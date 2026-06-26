@@ -4,6 +4,9 @@
     <!-- ── Root menu ─────────────────────────────────────────────────────── -->
     <menuitem id="menu_dlm_root" name="Đại Linh ERP" sequence="10" groups="dai_linh_erp.dlm_group_admin,dai_linh_erp.dlm_group_ceo,dai_linh_erp.dlm_group_ba,dai_linh_erp.dlm_group_tech"/>
 
+    <!-- ── Trang chủ ─────────────────────────────────────────────────────── -->
+    <menuitem id="menu_dlm_home" name="Trang chủ" parent="menu_dlm_root" action="action_dlm_home" sequence="1" groups="dai_linh_erp.dlm_group_admin,dai_linh_erp.dlm_group_ceo,dai_linh_erp.dlm_group_ba,dai_linh_erp.dlm_group_tech"/>
+
     <!-- ── Kinh doanh ────────────────────────────────────────────────────── -->
     <menuitem id="menu_dlm_sales" name="Kinh Doanh" parent="menu_dlm_root" sequence="10" groups="dai_linh_erp.dlm_group_admin,dai_linh_erp.dlm_group_ceo,dai_linh_erp.dlm_group_ba"/>
 

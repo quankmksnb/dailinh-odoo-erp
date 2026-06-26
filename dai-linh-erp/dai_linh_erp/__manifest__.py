@@ -14,8 +14,16 @@
         'security/groups.xml',
         'security/ir.model.access.csv',
         'views/customer_views.xml',
+        'views/home_action.xml',
         'views/menus.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'dai_linh_erp/static/src/components/dlm_home/dlm_home.js',
+            'dai_linh_erp/static/src/components/dlm_home/dlm_home.xml',
+            'dai_linh_erp/static/src/css/dlm_home.css',
+        ],
+    },
     'installable': True,
     'application': True,
     'auto_install': False,
