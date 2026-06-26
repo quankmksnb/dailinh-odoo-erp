@@ -8,7 +8,7 @@
         <field name="name">dlm.customer.list</field>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
-            <list string="Khách hàng" default_order="name asc">
+            <tree string="Khách hàng" default_order="name asc">
                 <field name="name" string="Tên khách hàng"/>
                 <field name="customer_type" string="Loại" widget="badge"
                        decoration-info="customer_type == 'individual'"
@@ -18,7 +18,7 @@
                 <field name="email" string="Email"/>
                 <field name="street" string="Địa chỉ" optional="show"/>
                 <field name="country_id" string="Quốc gia" optional="hide"/>
-            </list>
+            </tree>
         </field>
     </record>
 
@@ -119,7 +119,7 @@
     <record id="action_dlm_customer" model="ir.actions.act_window">
         <field name="name">Khách hàng</field>
         <field name="res_model">res.partner</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="domain">[('customer_rank', '>', 0)]</field>
         <field name="context">{
             'default_customer_rank': 1,
@@ -127,7 +127,7 @@
         }</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'list', 'view_id': ref('view_dlm_customer_list')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dlm_customer_list')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dlm_customer_form')}),
         ]"/>
         <field name="search_view_id" ref="view_dlm_customer_search"/>
