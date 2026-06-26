@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ── Module category ── -->
+        <record id="module_category_dlm" model="ir.module.category">
+            <field name="name">Đại Linh ERP</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <!-- ── Security groups (H2) ── -->
+        <record id="dlm_group_admin" model="res.groups">
+            <field name="name">Admin / IT</field>
+            <field name="category_id" ref="module_category_dlm"/>
+            <field name="comment">Quản trị hệ thống, cấu hình tham số kỹ thuật.</field>
+        </record>
+
+        <record id="dlm_group_ceo" model="res.groups">
+            <field name="name">Ban Giám Đốc (CEO)</field>
+            <field name="category_id" ref="module_category_dlm"/>
+            <field name="comment">Phê duyệt báo giá, cấu hình ngưỡng kinh doanh và công thức giá.</field>
+            <field name="implied_ids" eval="[(4, ref('dlm_group_admin'))]"/>
+        </record>
+
+        <record id="dlm_group_ba" model="res.groups">
+            <field name="name">BA / Kinh Doanh</field>
+            <field name="category_id" ref="module_category_dlm"/>
+            <field name="comment">Tạo và chỉnh sửa báo giá, xem lịch sử phê duyệt.</field>
+        </record>
+
+        <record id="dlm_group_tech" model="res.groups">
+            <field name="name">Kỹ Thuật</field>
+            <field name="category_id" ref="module_category_dlm"/>
+            <field name="comment">Quản lý BOM, bản vẽ, vật tư. Không thấy giá bán cuối.</field>
+        </record>
+
+    </data>
+</odoo>
