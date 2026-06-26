@@ -1,0 +1,84 @@
+# ──────────────────────────────────────────────
+#  Odoo 17.0 – Đại Linh Mini-ERP .gitignore
+# ──────────────────────────────────────────────
+
+# ── Odoo runtime ──────────────────────────────
+odoo.conf
+*.pid
+filestore/
+sessions/
+data/
+logs/
+*.log
+
+# ── Python ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+
+# ── Virtual environment ───────────────────────
+venv/
+.venv/
+env/
+ENV/
+.env
+
+# ── Secrets / credentials ─────────────────────
+*.key
+*.pem
+*.cert
+*.crt
+dbpw.txt
+secrets.json
+.secrets/
+
+# ── Database dumps ────────────────────────────
+*.sql
+*.dump
+*.backup
+*.bak
+*.zip          # thường dùng để backup database Odoo
+
+# ── Node / frontend assets ────────────────────
+node_modules/
+bower_components/
+.npm/
+package-lock.json
+yarn.lock
+
+# ── IDE / editors ─────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Test / coverage ───────────────────────────
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.mypy_cache/
+
+# ── Odoo source (dùng submodule hoặc pip) ─────
+odoo-17.0/
+
+# ── Misc ──────────────────────────────────────
+*.orig
+*.rej
