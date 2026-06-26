@@ -120,11 +120,8 @@
         <field name="name">Khách hàng</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('customer_rank', '>', 0)]</field>
-        <field name="context">{
-            'default_customer_rank': 1,
-            'default_customer_type': 'individual'
-        }</field>
+        <field name="domain">[('customer_type', '!=', False)]</field>
+        <field name="context">{'default_customer_type': 'individual'}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dlm_customer_list')}),

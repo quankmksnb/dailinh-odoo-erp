@@ -51,7 +51,7 @@ class DlmCustomer(models.Model):
     @api.constrains('customer_type')
     def _check_customer_type_required(self):
         for rec in self:
-            if rec.customer_rank > 0 and not rec.customer_type:
+            if rec.customer_type is False and rec._origin.customer_type:
                 raise ValidationError(
                     'Vui lòng chọn Loại khách hàng trước khi lưu.'
                 )
