@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         NHÀ CUNG CẤP / THẦU PHỤ (res.partner)
+         Domain: is_dlm_supplier = True
+         Entity Proposal: A4.supplier_id -> res.partner (nullable)
+    ================================================================ -->
+
+    <!-- List view -->
+    <record id="view_dl_supplier_tree" model="ir.ui.view">
+        <field name="name">dlm.supplier.tree</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <tree string="NCC / Thầu phụ"
+                  decoration-muted="active == False">
+                <field name="name" string="Tên NCC / Thầu phụ"/>
+                <field name="phone"/>
+                <field name="email"/>
+                <field name="tax_code" string="MST"/>
+                <field name="city" string="Tỉnh/TP"/>
+                <field name="active" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form view -->
+    <record id="view_dl_supplier_form" model="ir.ui.view">
+        <field name="name">dlm.supplier.form</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <form string="NCC / Thầu phụ">
+                <sheet>
+                    <div class="oe_button_box" name="button_box"/>
+                    <field name="image_1920" widget="image"
+                           class="oe_avatar" options="{'preview_image': 'image_128'}"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Tên NCC / Thầu phụ..."/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Thông tin liên hệ">
+                            <field name="phone"/>
+                            <field name="mobile"/>
+                            <field name="email"/>
+                            <field name="website"/>
+                            <field name="tax_code" string="Mã số thuế (MST)"/>
+                        </group>
+                        <group string="Địa chỉ">
+                            <field name="street" placeholder="Số nhà, tên đường..."/>
+                            <field name="street2" placeholder="Phường/Xã..."/>
+                            <field name="city" placeholder="Tỉnh / Thành phố"/>
+                            <field name="country_id" placeholder="Quốc gia"/>
+                        </group>
+                    </group>
+
+                    <field name="is_dlm_supplier" invisible="1"/>
+
+                    <notebook>
+                        <page string="Ghi chú nội bộ" name="notes">
+                            <field name="comment" placeholder="Ghi chú về NCC này..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search view -->
+    <record id="view_dl_supplier_search" model="ir.ui.view">
+        <field name="name">dlm.supplier.search</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <search string="Tìm NCC / Thầu phụ">
+                <field name="name" string="Tên"/>
+                <field name="phone"/>
+                <field name="email"/>
+                <field name="tax_code" string="MST"/>
+                <separator/>
+                <filter string="Đang hoạt động" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Không hoạt động" name="inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter string="Tỉnh/TP" name="group_city"
+                            context="{'group_by': 'city'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action window -->
+    <record id="action_dl_supplier" model="ir.actions.act_window">
+        <field name="name">NCC / Thầu phụ</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('is_dlm_supplier', '=', True)]</field>
+        <field name="context">{'default_is_dlm_supplier': True}</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplier_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_supplier_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_supplier_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Thêm nhà cung cấp đầu tiên!
+            </p>
+            <p>Quản lý NCC và thầu phụ cung cấp vật tư / dịch vụ cho Đại Linh.</p>
+        </field>
+    </record>
+
+</odoo>

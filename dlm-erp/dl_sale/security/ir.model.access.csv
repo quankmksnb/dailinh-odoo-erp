@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_dl_partner_ceo,access_dl_partner_ceo,base.model_res_partner,dl_base.dl_group_ceo,1,1,1,1
+access_dl_partner_admin,access_dl_partner_admin,base.model_res_partner,dl_base.dl_group_admin,1,1,1,1
+access_dl_partner_ba,access_dl_partner_ba,base.model_res_partner,dl_base.dl_group_ba,1,1,1,0
+access_dl_partner_tech,access_dl_partner_tech,base.model_res_partner,dl_base.dl_group_tech,1,0,0,0
+access_dl_quotation_ceo,access_dl_quotation_ceo,model_dl_quotation,dl_base.dl_group_ceo,1,1,1,1
+access_dl_quotation_admin,access_dl_quotation_admin,model_dl_quotation,dl_base.dl_group_admin,1,1,1,1
+access_dl_quotation_ba,access_dl_quotation_ba,model_dl_quotation,dl_base.dl_group_ba,1,1,1,0
+access_dl_quotation_tech,access_dl_quotation_tech,model_dl_quotation,dl_base.dl_group_tech,1,0,0,0
+access_dl_quotation_line_ceo,access_dl_quotation_line_ceo,model_dl_quotation_line,dl_base.dl_group_ceo,1,1,1,1
+access_dl_quotation_line_admin,access_dl_quotation_line_admin,model_dl_quotation_line,dl_base.dl_group_admin,1,1,1,1
+access_dl_quotation_line_ba,access_dl_quotation_line_ba,model_dl_quotation_line,dl_base.dl_group_ba,1,1,1,0
+access_dl_quotation_line_tech,access_dl_quotation_line_tech,model_dl_quotation_line,dl_base.dl_group_tech,1,0,0,0

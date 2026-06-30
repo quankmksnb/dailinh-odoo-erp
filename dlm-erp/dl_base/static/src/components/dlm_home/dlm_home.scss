@@ -1,0 +1,75 @@
+.dl-home {
+    padding: 40px;
+    background: #f5f4f0;
+    min-height: 100%;
+
+    .dl-home-header {
+        text-align: center;
+        margin-bottom: 40px;
+
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #5c3d8f;
+            margin-bottom: 6px;
+        }
+
+        p {
+            font-size: 15px;
+            color: #888;
+        }
+    }
+
+    .dl-home-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 24px;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .dl-home-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        transition: box-shadow 0.2s, transform 0.15s;
+
+        &:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.13);
+            transform: translateY(-2px);
+        }
+
+        .dl-home-card-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #fff;
+        }
+
+        .dl-home-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+
+            strong {
+                font-size: 15px;
+                color: #2c2c2c;
+            }
+
+            span {
+                font-size: 12px;
+                color: #999;
+                line-height: 1.4;
+            }
+        }
+    }
+}

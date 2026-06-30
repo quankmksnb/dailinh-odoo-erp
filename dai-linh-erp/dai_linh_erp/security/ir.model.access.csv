@@ -1,5 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_partner_dlm_ceo,res.partner dlm ceo,base.model_res_partner,dai_linh_erp.dlm_group_ceo,1,1,1,1
-access_partner_dlm_admin,res.partner dlm admin,base.model_res_partner,dai_linh_erp.dlm_group_admin,1,1,1,1
-access_partner_dlm_ba,res.partner dlm ba,base.model_res_partner,dai_linh_erp.dlm_group_ba,1,1,1,1
-access_partner_dlm_tech,res.partner dlm tech,base.model_res_partner,dai_linh_erp.dlm_group_tech,1,0,0,0
