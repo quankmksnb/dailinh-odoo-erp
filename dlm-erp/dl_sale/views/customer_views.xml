@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         KHÁCH HÀNG (A1 — dlm.customer / res.partner)
+         Domain: is_dlm_customer = True
+    ================================================================ -->
+
+    <!-- List view -->
+    <record id="view_dl_customer_tree" model="ir.ui.view">
+        <field name="name">dlm.customer.tree</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <tree string="Khách hàng"
+                  decoration-muted="active == False">
+                <field name="name" string="Tên khách hàng"/>
+                <field name="customer_type" string="Loại"/>
+                <field name="phone"/>
+                <field name="email"/>
+                <field name="tax_code" string="MST"/>
+                <field name="city" string="Tỉnh/TP"/>
+                <field name="active" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form view -->
+    <record id="view_dl_customer_form" model="ir.ui.view">
+        <field name="name">dlm.customer.form</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <form string="Khách hàng">
+                <sheet>
+                    <div class="oe_button_box" name="button_box"/>
+                    <field name="image_1920" widget="image"
+                           class="oe_avatar" options="{'preview_image': 'image_128'}"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="Tên khách hàng..."/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Thông tin chính">
+                            <field name="customer_type" string="Loại khách hàng"/>
+                            <field name="tax_code" string="Mã số thuế (MST)"
+                                   invisible="customer_type == 'individual'"/>
+                            <field name="phone"/>
+                            <field name="mobile"/>
+                            <field name="email"/>
+                            <field name="website"/>
+                        </group>
+                        <group string="Địa chỉ">
+                            <field name="street" placeholder="Số nhà, tên đường..."/>
+                            <field name="street2" placeholder="Phường/Xã..."/>
+                            <field name="city" placeholder="Tỉnh / Thành phố"/>
+                            <field name="country_id" placeholder="Quốc gia"/>
+                        </group>
+                    </group>
+
+                    <!-- Trường ẩn — luôn True khi tạo từ menu Khách hàng -->
+                    <field name="is_dlm_customer" invisible="1"/>
+
+                    <notebook>
+                        <page string="Ghi chú nội bộ" name="notes">
+                            <field name="comment" placeholder="Ghi chú..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search view -->
+    <record id="view_dl_customer_search" model="ir.ui.view">
+        <field name="name">dlm.customer.search</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <search string="Tìm khách hàng">
+                <field name="name" string="Tên" filter_domain="[('name', 'ilike', self)]"/>
+                <field name="phone"/>
+                <field name="email"/>
+                <field name="tax_code" string="MST"/>
+                <separator/>
+                <filter string="Cá nhân"
+                        name="filter_individual"
+                        domain="[('customer_type', '=', 'individual')]"/>
+                <filter string="Doanh nghiệp"
+                        name="filter_company"
+                        domain="[('customer_type', '=', 'company')]"/>
+                <filter string="Đại lý"
+                        name="filter_dealer"
+                        domain="[('customer_type', '=', 'dealer')]"/>
+                <separator/>
+                <filter string="Đang hoạt động" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Không hoạt động" name="inactive" domain="[('active', '=', False)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter string="Loại khách hàng" name="group_type"
+                            context="{'group_by': 'customer_type'}"/>
+                    <filter string="Tỉnh/TP" name="group_city"
+                            context="{'group_by': 'city'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action window -->
+    <record id="action_dl_customer" model="ir.actions.act_window">
+        <field name="name">Khách hàng</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('is_dlm_customer', '=', True)]</field>
+        <field name="context">{'default_is_dlm_customer': True, 'default_customer_type': 'company'}</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_customer_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_customer_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_customer_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Tạo khách hàng đầu tiên!
+            </p>
+            <p>Quản lý toàn bộ danh sách khách hàng của Đại Linh tại đây.</p>
+        </field>
+    </record>
+
+</odoo>

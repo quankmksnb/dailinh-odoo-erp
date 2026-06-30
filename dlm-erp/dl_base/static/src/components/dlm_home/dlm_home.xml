@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_base.DlHome">
+    <div class="dl-home o_action">
+        <div class="dl-home-header">
+            <h2>DL ERP — Phase 1</h2>
+            <p>Hệ thống quản lý báo giá &amp; phê duyệt</p>
+        </div>
+        <div class="dl-home-grid">
+            <t t-foreach="modules" t-as="mod" t-key="mod.key">
+                <div class="dl-home-card" t-on-click="() => this.openModule(mod.actionXmlId)">
+                    <div class="dl-home-card-icon" t-att-style="'background-color:' + mod.color">
+                        <i t-att-class="'fa fa-2x ' + mod.icon"/>
+                    </div>
+                    <div class="dl-home-card-body">
+                        <strong t-esc="mod.name"/>
+                        <span t-esc="mod.description"/>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </div>
+</t>
+
+</templates>
