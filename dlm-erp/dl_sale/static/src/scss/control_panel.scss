@@ -1,0 +1,314 @@
+// ============================================================
+//  DL-CRM & Báo giá — CONTROL PANEL & khung chung mọi màn DLM
+//  Scope bằng :has() cho các màn .dl-quotation-* / .dl-customer-*
+//  nên KHÔNG ảnh hưởng các app Odoo khác. Gồm: control panel,
+//  menu ⋮ (Nhập/Xuất/Nhân bản/Xoá), breadcrumb 1 hàng, .dl-cp-actions.
+//  (Biến & mixin lấy từ variables.scss — nạp trước file này.)
+// ============================================================
+
+// ============================================================
+//  CONTROL PANEL (khung trên) — scope bằng :has() cho mọi màn DLM
+// ============================================================
+.o_action_manager:has(.dl-quotation-form),
+.o_action_manager:has(.dl-quotation-list),
+.o_action_manager:has(.dl-customer-form),
+.o_action_manager:has(.dl-customer-list),
+.o_action_manager:has(.dl-customer-kanban) {
+    font-family: $dl-font;
+
+    .o_control_panel {
+        background: $dl-app-bg;
+        border-bottom: 1px solid $dl-border;
+
+        // Odoo dùng 'align-items-lg-start' → các mục căn mép TRÊN, so le
+        // cao thấp. Ép căn giữa cho thẳng hàng.
+        .o_control_panel_main { align-items: center !important; }
+
+        .o_breadcrumb,
+        .breadcrumb-item,
+        .o_last_breadcrumb_item > span,
+        .o_breadcrumb .active {
+            color: $dl-heading;
+            font-weight: 600;
+        }
+
+        // Odoo mặc định 'flex-md-column' → xếp DỌC (path trên, tên dưới)
+        // trông dồn cục. Ép về 1 HÀNG NGANG như design.
+        .o_breadcrumb {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 6px;
+
+            .breadcrumb { margin-bottom: 0; align-items: center; }
+            .o_last_breadcrumb_item { font-size: 14px; }
+        }
+
+        // Mũi tên ◀ back — CHỈ khi có crumb cha (form). List (crumb đơn)
+        // không có. Bấm 'Báo giá' để quay lại danh sách.
+        .o_breadcrumb:has(.breadcrumb .breadcrumb-item)::before {
+            content: "\25C0";
+            margin-right: 6px;
+            color: $dl-text-2;
+            font-size: 12px;
+        }
+        // "/" ngăn cách trước tên bản ghi khi có crumb cha
+        .o_breadcrumb:has(.breadcrumb .breadcrumb-item) .o_last_breadcrumb_item::before {
+            content: "/";
+            margin: 0 6px 0 2px;
+            color: $dl-text-muted;
+            font-weight: 400;
+        }
+
+        // Nút chính (New / Lưu) → pill tím
+        .btn-primary {
+            background-color: $dl-primary;
+            border-color: $dl-primary;
+            border-radius: 999px;
+
+            &:hover, &:focus, &:active {
+                background-color: $dl-primary-dark !important;
+                border-color: $dl-primary-dark !important;
+            }
+        }
+
+        // Nút phụ → pill viền nhạt
+        .btn-secondary {
+            border-radius: 999px;
+            border-color: $dl-border;
+        }
+
+        // ── Nút Lưu / Huỷ: thêm CHỮ cho người mới dễ hiểu ──────
+        .o_form_status_indicator_buttons {
+            gap: 8px;
+            align-items: center;
+        }
+
+        .o_form_button_save {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 14px !important;
+            border-radius: 999px !important;
+            background: $dl-primary !important;
+            color: #fff !important;
+
+            i.fa { color: #fff !important; }
+            &::after { content: "Lưu"; font-size: 13px; font-weight: 500; }
+            &:hover { background: $dl-primary-dark !important; }
+        }
+
+        .o_form_button_cancel {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 14px !important;
+            border-radius: 999px !important;
+            border: 1px solid $dl-border !important;
+            background: #fff !important;
+            color: $dl-text-2 !important;
+
+            i.fa { color: $dl-text-2 !important; }
+            &::after { content: "Huỷ"; font-size: 13px; font-weight: 500; }
+            &:hover { background: $dl-divider !important; }
+        }
+
+        // ── Cog Actions: thay icon ⚙ khó hiểu bằng nhãn chữ ────
+        .o_cp_action_menus {
+            .dropdown-toggle, button { color: $dl-text-2; }
+
+            .fa-cog {
+                font-size: 0; // ẩn glyph bánh răng
+
+                &::before {
+                    content: "Thao tác \25BE"; // "Thao tác ▾"
+                    font-family: $dl-font;
+                    font-weight: 500;
+                    font-size: 13px;
+                }
+            }
+        }
+    }
+}
+
+// ── Ẩn nút "New" (tạo mới, boxed) CHỈ ở FORM ────────────────
+// (List/Kanban vẫn giữ nút Thêm/Tạo báo giá như design)
+.o_action_manager:has(.dl-quotation-form) .o_control_panel_main_buttons,
+.o_action_manager:has(.dl-customer-form) .o_control_panel_main_buttons {
+    display: none !important;
+}
+
+// ── Ẩn cog Actions ở form/list (đã thay bằng nút phẳng) ─────
+.o_action_manager:has(.dl-quotation-form) .o_cp_action_menus,
+.o_action_manager:has(.dl-quotation-list) .o_cp_action_menus,
+.o_action_manager:has(.dl-customer-form) .o_cp_action_menus,
+.o_action_manager:has(.dl-customer-list) .o_cp_action_menus {
+    display: none !important;
+}
+
+// ── Menu Actions ⋮ (góc trên phải) — gom Nhập/Xuất/Nhân bản/Xoá ──
+.dl-actions-menu {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    order: -1; // đứng trước pager trong vùng navigation
+
+    .dl-actions-toggle {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid $dl-border;
+        border-radius: 999px;
+        background: #fff;
+        color: $dl-text-2;
+        cursor: pointer;
+
+        i.fa { font-size: 16px; }
+        &:hover { background: $dl-divider; color: $dl-heading; }
+    }
+
+    .dl-actions-list {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        min-width: 190px;
+        background: #fff;
+        border: 1px solid $dl-border;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(35, 23, 71, 0.14);
+        padding: 6px;
+        z-index: 1050;
+    }
+
+    // Mở khi rê chuột hoặc focus (bàn phím)
+    &:hover .dl-actions-list,
+    &:focus-within .dl-actions-list { display: block; }
+
+    .dl-actions-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        background: transparent;
+        border-radius: 8px;
+        color: $dl-text;
+        font-size: 13px;
+        text-align: left;
+        cursor: pointer;
+        white-space: nowrap;
+
+        i.fa { width: 16px; text-align: center; color: $dl-text-2; }
+        &:hover { background: $dl-active; }
+
+        // Xoá — destructive → đỏ
+        &.dl-actions-danger {
+            color: $dl-danger;
+            i.fa { color: $dl-danger; }
+            &:hover { background: $dl-danger-bg; }
+        }
+    }
+}
+
+// ── Giữ hàng trên (breadcrumb + nút) trên 1 DÒNG khi thu/phóng ──
+.o_action_manager:has(.dl-quotation-form),
+.o_action_manager:has(.dl-customer-form) {
+    .o_control_panel_main { flex-wrap: nowrap !important; }
+    .o_control_panel_breadcrumbs { flex-wrap: nowrap !important; min-width: 0; }
+
+    // Giữ tên bản ghi (BG/2026/xxxx) đầy đủ, KHÔNG rút gọn thành "B..."
+    .o_breadcrumb .o_last_breadcrumb_item { flex-shrink: 0; }
+    .o_breadcrumb .o_last_breadcrumb_item span {
+        text-overflow: clip;
+        overflow: visible;
+        min-width: max-content;
+    }
+}
+
+// ── Nút "→" mở bản ghi liên kết (many2one) ─────────────────
+// Luôn hiện + tím; PHỦ lên góc phải ô input để input full-width
+// (2 ô Khách hàng / Ngày báo giá bằng nhau, không bị nút đẩy hẹp).
+.dl-quotation-form .dl-field .o_field_many2one,
+.dl-customer-form .dl-field .o_field_many2one {
+    position: relative;
+    width: 100%;
+
+    .o_input_dropdown,
+    input.o_input { width: 100% !important; }
+    input.o_input { padding-right: 32px; }
+
+    .o_external_button {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        margin: 0 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        color: $dl-primary !important;
+        border: 0;
+        background: transparent;
+    }
+}
+// Cụm nút Duyệt/Từ chối/Về nháp: không tự xuống dòng
+.dl-cp-actions {
+    flex-wrap: nowrap !important;
+    flex-shrink: 0;
+}
+.dl-cp-actions .btn { white-space: nowrap; flex-shrink: 0; }
+
+// ── Cụm nút hành động đã được JS chuyển vào ngay sau breadcrumb ──
+// (controller dl_quotation_form). Style tại đây để nằm cùng hàng,
+// dạng pill như Figma.
+.dl-cp-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 16px;
+
+    .btn {
+        border-radius: 999px;
+        font-weight: 500;
+        padding: 5px 16px;
+    }
+
+    .btn-primary {
+        background-color: $dl-primary;
+        border-color: $dl-primary;
+
+        &:hover, &:focus, &:active {
+            background-color: $dl-primary-dark !important;
+            border-color: $dl-primary-dark !important;
+        }
+    }
+
+    // Từ chối — pill viền đỏ
+    .btn-danger {
+        color: $dl-danger;
+        background-color: #fff;
+        border-color: $dl-danger-border;
+
+        &:hover, &:focus {
+            color: $dl-danger;
+            background-color: $dl-danger-bg;
+            border-color: $dl-danger-border;
+        }
+    }
+
+    // Về nháp — nút chữ tím
+    .btn-link,
+    .btn-secondary {
+        color: $dl-primary;
+        background: transparent;
+        border-color: transparent;
+        text-decoration: none;
+
+        &:hover { text-decoration: underline; background: transparent; }
+    }
+}

@@ -1,75 +1,410 @@
+// ============================================================
+//  DLM-ERP — Home dashboard (theo thiết kế Figma)
+//  Toàn bộ style bọc trong .dl-home để không ảnh hưởng màn khác.
+// ============================================================
+
+$dl-primary:      #5b4b9e;
+$dl-nav-bg:       #f6f3fb;
+$dl-nav-active:   #e7def8;
+$dl-app-bg:       #fcfbfe;
+$dl-border:       #e5dfed;
+$dl-divider:      #f0ecf6;
+$dl-search-bg:    #f0ecf6;
+$dl-avatar-bg:    #6e4a8e;
+$dl-text:         #1c1b1f;
+$dl-text-2:       #49454f;
+$dl-text-muted:   #79747e;
+$dl-heading:      #231747;
+$dl-green:        #1b5e32;
+
 .dl-home {
-    padding: 40px;
-    background: #f5f4f0;
-    min-height: 100%;
+    // .dl-home cũng chính là .o_action (Odoo ép display:flex; flex-flow:column).
+    // Vì vậy layout ngang được đặt ở wrapper con .dl-home-layout.
+    background: $dl-app-bg;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: $dl-text;
 
-    .dl-home-header {
-        text-align: center;
-        margin-bottom: 40px;
+    // ── Khung layout ngang (sidebar + nội dung) ─────────────
+    .dl-home-layout {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        align-items: stretch;
+        overflow: hidden;
+    }
 
-        h2 {
-            font-size: 28px;
-            font-weight: 700;
-            color: #5c3d8f;
-            margin-bottom: 6px;
+    // ── Sidebar ─────────────────────────────────────────────
+    .dl-home-nav {
+        flex: 0 0 240px;
+        width: 240px;
+        background: $dl-nav-bg;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        overflow-y: auto;
+    }
+
+    // Logo kiêm nút mở menu Apps (lưới chuyển ứng dụng của Odoo).
+    // .dl-home-brand nằm trên thẻ .o-dropdown bọc ngoài → style nút
+    // toggler .dropdown-toggle bên trong (mặc định có viền + xếp block).
+    .dl-home-brand {
+        width: 100%;
+
+        > .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 8px;
+            border: 0;
+            background: transparent;
+            box-shadow: none;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: left;
+            color: $dl-heading;
+
+            &:hover { background: rgba($dl-primary, 0.08); }
+            &:focus,
+            &:focus-visible { outline: 0; box-shadow: none; }
+            &::after { display: none; } // bỏ caret bootstrap mặc định
         }
 
-        p {
-            font-size: 15px;
-            color: #888;
+        .dl-home-brand-caret {
+            margin-left: auto;
+            font-size: 13px;
+            color: $dl-text-muted;
         }
     }
 
-    .dl-home-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 24px;
-        max-width: 1100px;
-        margin: 0 auto;
-    }
-
-    .dl-home-card {
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        cursor: pointer;
+    .dl-home-brand-logo {
+        width: 30px;
+        height: 30px;
+        border-radius: 9px;
+        background: $dl-primary;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
         display: flex;
         align-items: center;
-        gap: 16px;
-        padding: 20px;
-        transition: box-shadow 0.2s, transform 0.15s;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .dl-home-brand-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: $dl-heading;
+    }
+
+    .dl-home-navitem {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 9px 14px;
+        border-radius: 999px;
+        cursor: pointer;
+        color: $dl-text-2;
+        transition: background-color 0.15s;
 
         &:hover {
-            box-shadow: 0 6px 20px rgba(0,0,0,0.13);
-            transform: translateY(-2px);
+            background: rgba($dl-primary, 0.08);
         }
 
-        .dl-home-card-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 10px;
+        &.active {
+            background: $dl-nav-active;
+            color: $dl-heading;
+
+            .dl-home-navitem-label { font-weight: 500; }
+            .dl-home-navitem-icon { color: $dl-primary; }
+        }
+
+        .dl-home-navitem-icon {
+            width: 18px;
+            height: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 13px;
+            color: $dl-text-muted;
             flex-shrink: 0;
-            color: #fff;
         }
 
-        .dl-home-card-body {
+        .dl-home-navitem-label {
+            font-size: 13px;
+        }
+    }
+
+    // ── Vùng nội dung ───────────────────────────────────────
+    .dl-home-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .dl-home-topbar {
+        height: 64px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 18px;
+        background: $dl-app-bg;
+        border-bottom: 1px solid $dl-border;
+    }
+
+    .dl-home-topbar-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: $dl-text;
+    }
+
+    .dl-home-search {
+        width: 280px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        padding: 0 14px;
+        border-radius: 999px;
+        background: $dl-search-bg;
+        color: $dl-text-muted;
+        font-size: 13px;
+    }
+
+    // ── Systray Odoo trong header sáng ──────────────────────
+    // QUAN TRỌNG: chỉ style NÚT toggler (.dropdown-toggle), KHÔNG đụng
+    // nội dung popup (.dropdown-menu) để list chat/hoạt động không bị vỡ.
+    .dl-home-systray {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+
+        .dropdown-toggle {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            min-width: 34px;
+            height: 34px;
+            padding: 0 4px;
+            border: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            border-radius: 999px;
+            color: $dl-text-2;
+
+            &:hover { background: $dl-search-bg; }
+            &:focus,
+            &:focus-visible { outline: 0; box-shadow: none; }
+            &::after { display: none; } // bỏ caret
+
+            // Icon đồng nhất
+            i.fa,
+            i.oi {
+                font-size: 17px !important;
+                color: $dl-text-2;
+            }
+
+            // Avatar menu người dùng — nhỏ, tròn
+            .o_user_avatar,
+            img.o_avatar,
+            img {
+                width: 28px !important;
+                height: 28px !important;
+                min-width: 28px;
+                border-radius: 999px !important;
+                object-fit: cover;
+            }
+
+            // Badge đếm nhỏ gọn
+            .badge.rounded-pill {
+                font-size: 10px;
+                padding: 1px 4px;
+            }
+        }
+    }
+
+    .dl-home-content {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 24px;
+    }
+
+    // ── Lời chào ────────────────────────────────────────────
+    .dl-home-hello {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .dl-home-hello-title {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: $dl-text;
+        }
+
+        .dl-home-hello-sub {
+            margin: 0;
+            font-size: 13px;
+            color: $dl-text-2;
+        }
+    }
+
+    // ── KPI ─────────────────────────────────────────────────
+    .dl-home-kpi {
+        display: flex;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .dl-home-stat {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 14px;
+        border-radius: 12px;
+        background: $dl-nav-bg;
+
+        .dl-home-stat-top {
             display: flex;
-            flex-direction: column;
-            gap: 4px;
+            align-items: center;
+            gap: 8px;
+        }
 
-            strong {
-                font-size: 15px;
-                color: #2c2c2c;
-            }
+        .dl-home-stat-label {
+            font-size: 12px;
+            color: $dl-text-2;
+        }
 
-            span {
-                font-size: 12px;
-                color: #999;
-                line-height: 1.4;
-            }
+        .dl-home-stat-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            flex-shrink: 0;
+        }
+
+        .dl-home-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: $dl-text;
+        }
+
+        .dl-home-stat-sub {
+            font-size: 11px;
+            color: $dl-text-muted;
+
+            &.up { color: $dl-green; }
+        }
+    }
+
+    // ── Bảng báo giá gần đây ────────────────────────────────
+    .dl-home-recent {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 12px;
+        border: 1px solid $dl-border;
+        background: $dl-app-bg;
+    }
+
+    .dl-home-recent-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .dl-home-recent-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: $dl-text;
+        }
+
+        .dl-home-recent-link {
+            font-size: 13px;
+            font-weight: 500;
+            color: $dl-primary;
+            cursor: pointer;
+
+            &:hover { text-decoration: underline; }
+        }
+    }
+
+    .dl-home-recent-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 4px;
+        border-top: 1px solid $dl-divider;
+        font-size: 12px;
+        color: $dl-text;
+
+        &.header {
+            border-top: 0;
+            padding: 6px 4px;
+            color: $dl-text-2;
+
+            .col-code { font-weight: 500; }
+        }
+
+        .col-code    { flex: 0 0 180px; width: 180px; }
+        .col-partner { flex: 1 1 0; min-width: 0; }
+        .col-amount  { flex: 0 0 140px; width: 140px; text-align: right; }
+        .col-state   { flex: 0 0 110px; width: 110px; display: flex; justify-content: flex-end; }
+    }
+
+    // ── Badge trạng thái ────────────────────────────────────
+    .dl-home-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 500;
+
+        &.draft    { background: #fce9c9; color: #7a4a00; }
+        &.sent     { background: #e6f0ff; color: #0e52c4; }
+        &.approved { background: #dceee2; color: #1b5e32; }
+        &.rejected { background: #fde4e4; color: #b3261e; }
+    }
+}
+
+// ============================================================
+//  Dropdown trong header (menu Apps trên logo + systray) — theme tím
+//  Menu nằm trong DOM dưới .dl-home nên scope này không ảnh hưởng màn khác.
+// ============================================================
+.dl-home {
+    .dropdown-menu {
+        border: 1px solid $dl-border;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(35, 23, 71, 0.14);
+        padding: 6px;
+    }
+
+    // Chỉ tác động các mục menu dạng list (Apps, menu người dùng);
+    // không đụng nội dung preview của tin nhắn/hoạt động (.o-mail-*).
+    .dropdown-item {
+        border-radius: 8px;
+        padding: 8px 12px;
+        color: $dl-text;
+
+        &:hover,
+        &:focus {
+            background-color: $dl-nav-active; // tím nhạt
+            color: $dl-heading;
+        }
+
+        &.active,
+        &.selected,
+        &.focus {
+            background-color: $dl-primary;
+            color: #fff;
         }
     }
 }

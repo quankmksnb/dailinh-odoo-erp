@@ -5,6 +5,9 @@
     <record id="action_dl_home" model="ir.actions.client">
         <field name="name">DLM-ERP Home</field>
         <field name="tag">dl_base.DlHomeAction</field>
+        <!-- fullscreen = ẩn navbar Odoo; tính năng navbar đã được nhúng
+             vào header của DlHome (menu Apps + systray). -->
+        <field name="target">fullscreen</field>
     </record>
 
 </odoo>

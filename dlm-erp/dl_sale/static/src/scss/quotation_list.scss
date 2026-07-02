@@ -1,0 +1,267 @@
+// ============================================================
+//  Màn 4 — Quotation List (.dl-quotation-list)
+//  (Biến lấy từ variables.scss — nạp trước file này.)
+//  Bố cục theo Figma: hàng tiêu đề + tìm kiếm (có caret ẩn) +
+//  "Tạo báo giá", thanh chip lọc có số đếm, BẢNG DẠNG CARD bo viền,
+//  cột Số BG/Khách hàng dồn trái — Ngày/Tổng tiền/Trạng thái dồn phải,
+//  footer đếm bản ghi + pager trong đáy card.
+//  Chip/footer do controller dl_quotation_list.js dựng.
+// ============================================================
+
+// ============================================================
+//  BẢNG — .dl-quotation-list nằm ở DIV GỐC của view (controller root),
+//  bọc cả control panel + nội dung. Vì vậy STYLE CARD phải đặt vào
+//  .o_list_renderer (khung bảng thật), KHÔNG đặt lên .dl-quotation-list.
+// ============================================================
+.dl-quotation-list {
+    font-family: $dl-font;
+
+    // ── Card: khung bảng bo viền, ôm nội dung (bỏ height:100% md) ──
+    .o_list_renderer {
+        height: auto !important;
+        max-height: 100%;
+        margin: 4px 16px 16px;
+        border: 1px solid $dl-border;
+        border-radius: 12px;
+        background: #fff;
+        overflow: auto;
+    }
+
+    // Header — nền tím nhạt, bo góc trên theo card
+    .o_list_table thead th {
+        background-color: $dl-table-head-bg;
+        color: $dl-text-2;
+        font-weight: 500;
+        border-bottom: 1px solid $dl-border;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+    .o_list_table thead th[data-name="name"]  { border-top-left-radius: 12px; }
+    .o_list_table thead th[data-name="state"] { border-top-right-radius: 12px; }
+
+    // Dòng — khoảng cách rõ ràng, đường kẻ nhạt, hover tím nhạt
+    .o_list_table td.o_data_cell {
+        padding-top: 14px;
+        padding-bottom: 14px;
+        vertical-align: middle;
+    }
+    .o_list_table tbody tr.o_data_row td { border-top: 1px solid $dl-divider; }
+    .o_list_table tbody tr.o_data_row:first-child td { border-top: 0; }
+    .o_list_table tbody tr.o_data_row:hover { background-color: $dl-app-bg; }
+
+    // ── Ẩn MỌI cột KHÔNG phải field (checkbox, mở-form, ⚙/xoá, ô rỗng
+    //    cuối dòng…). Header cột field có [data-name]; body cột field có
+    //    [name]. Ẩn phần còn lại ⇒ chỉ chừa 5 cột field, không lệch,
+    //    không còn cột rỗng chiếm chỗ bên phải.
+    .o_list_table {
+        thead th:not([data-name]) { display: none !important; }
+        tbody td:not([name])      { display: none !important; }
+
+        // Ẩn dòng tổng (tfoot) mặc định của Odoo — đã có footer riêng.
+        tfoot { display: none !important; }
+    }
+
+    // ── Chia cột bằng % (tổng = 100%) + table-layout:fixed !important
+    //    ⇒ bảng LUÔN full bề ngang, KHÔNG chừa trống; Khách hàng rộng
+    //    nhất (trái), Ngày/Tổng tiền/Trạng thái sát mép phải.
+    //    (Odoo mặc định table-layout:auto + tự đóng băng width bằng JS,
+    //     nên BẮT BUỘC !important mới thắng.)
+    .o_list_table {
+        table-layout: fixed !important;
+        width: 100% !important;
+
+        // Khách hàng RỘNG như design; Trạng thái hẹp & sát mép phải.
+        th[data-name="name"]         { width: 11% !important; }
+        th[data-name="partner_id"]   { width: 44% !important; }
+        th[data-name="date_order"]   { width: 15% !important; }
+        th[data-name="amount_total"] { width: 22% !important; }
+        th[data-name="state"]        { width: 8%  !important; }
+
+        // Đệm trái/phải thoáng cho cột đầu & cuối — rộng như bên Khách hàng
+        th[data-name="name"],  td[name="name"]  { padding-left: 24px !important; }
+        th[data-name="state"], td[name="state"] { padding-right: 20px !important; }
+
+        // Tổng tiền (căn phải) — đệm phải nhẹ cho thoáng khỏi Trạng thái
+        th[data-name="amount_total"],
+        td[name="amount_total"] { padding-right: 16px !important; }
+
+        // ── Trạng thái: NHÃN về sát mép phải, caret "v" đứng TRƯỚC nhãn.
+        //    Header Odoo là [span nhãn (flex-grow)] [i caret] ⇒ mặc định
+        //    caret bị đẩy ra tận cùng phải. Ép: dồn phải + nhãn không giãn
+        //    + đảo thứ tự caret (order:-1) ⇒ [v][Trạng thái] sát mép phải.
+        th[data-name="state"] { text-align: right !important; }
+        th[data-name="state"] > div { justify-content: flex-end !important; }
+        th[data-name="state"] > div > span { flex: 0 0 auto !important; }
+        th[data-name="state"] > div > i {
+            order: -1 !important;
+            margin: 0 4px 0 0 !important;
+        }
+        td[name="state"] { text-align: right !important; }
+
+        // Nội dung dài không đẩy tràn cột — cắt gọn
+        td[name="name"], td[name="partner_id"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        td[name="date_order"] { white-space: nowrap; }
+
+        // Bỏ tô nền cột đang sort — giữ nền trắng sạch như design
+        tbody td { background-color: transparent !important; }
+    }
+
+    // Số BG — in đậm, màu tiêu đề
+    .o_list_table td.o_data_cell[name="name"] {
+        font-weight: 600;
+        color: $dl-heading;
+    }
+
+    // Badge trạng thái — pastel pill theo Figma
+    .badge.rounded-pill { font-weight: 500; }
+    .badge.text-bg-warning { background-color: $dl-badge-draft-bg    !important; color: $dl-badge-draft-fg    !important; }
+    .badge.text-bg-info    { background-color: $dl-badge-sent-bg     !important; color: $dl-badge-sent-fg     !important; }
+    .badge.text-bg-success { background-color: $dl-badge-approved-bg !important; color: $dl-badge-approved-fg !important; }
+    .badge.text-bg-danger  { background-color: $dl-badge-rejected-bg !important; color: $dl-badge-rejected-fg !important; }
+}
+
+// ============================================================
+//  Control panel + chip + footer — chỉ áp khi đang mở màn này
+// ============================================================
+.o_action_manager:has(.dl-quotation-list) {
+
+    // ── Hàng trên: tiêu đề + tìm kiếm + nút tạo, dồn trái ───────
+    .o_control_panel .o_control_panel_main {
+        justify-content: flex-start !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+        gap: 16px;
+    }
+
+    // Tiêu đề "Báo giá" — lớn, đậm
+    .o_control_panel_breadcrumbs {
+        flex: 0 0 auto;
+
+        .me-auto { display: none !important; } // bỏ spacer đẩy giãn của Odoo
+        .o_last_breadcrumb_item span { font-size: 20px; font-weight: 700; }
+    }
+
+    // Cụm tìm kiếm (+ nút tạo được JS chuyển vào đây) — nằm cạnh tiêu đề
+    .o_control_panel_actions {
+        justify-content: flex-start !important;
+        width: auto !important;
+        max-width: none !important;
+        flex: 0 1 auto;
+        gap: 12px;
+    }
+
+    // ── Ô tìm kiếm dạng pill; caret Filters/Group By nằm cuối,
+    //    ẩn mặc định, HOVER (hoặc focus / đang mở) mới hiện. ──────
+    // .o_cp_searchview là input-group (flex) chứa ô nhập + caret.
+    .o_cp_searchview {
+        width: 300px;
+        max-width: 40vw;
+        flex: 0 1 auto;
+        flex-wrap: nowrap !important;
+        align-items: center;
+        border: 1px solid $dl-border;
+        border-radius: 999px;
+        background: #fff;
+        padding-right: 4px;
+
+        &:focus-within {
+            border-color: $dl-primary;
+            box-shadow: 0 0 0 2px rgba($dl-primary, 0.14);
+        }
+
+        // ô nhập bên trong: bỏ viền/nền form-control mặc định
+        .o_searchview {
+            border: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            flex: 1 1 auto;
+        }
+
+        // caret ▾ mở Filters/Group By/Favorites — luôn hiển thị,
+        // HOVER vào là mở menu (xử lý ở dl_quotation_list.js).
+        .o_searchview_dropdown_toggler {
+            border: 0 !important;
+            background: transparent !important;
+            color: $dl-text-muted !important;
+            border-radius: 999px !important;
+            padding: 2px 10px;
+            transition: color .15s, background .15s;
+
+            &:hover,
+            &.show,
+            &[aria-expanded="true"] {
+                color: $dl-primary !important;
+                background: $dl-divider !important;
+            }
+        }
+    }
+
+    // Nút "+ Tạo báo giá" (nút New gốc, đổi nhãn)
+    .dl-create-cluster .o_list_button_add {
+        border-radius: 999px;
+        font-weight: 500;
+        font-size: 0; // ẩn chữ "New" gốc
+
+        &::after {
+            content: "+ Tạo báo giá";
+            font-size: 13px;
+            font-weight: 500;
+        }
+    }
+
+    // ── Thanh chip lọc trạng thái (hàng 2 trong control panel) ──
+    .dl-chipbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 2px 0 0;
+
+        .dl-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 14px;
+            border: 1px solid $dl-border;
+            border-radius: 999px;
+            background: #fff;
+            color: $dl-text-2;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s, border-color .15s, color .15s;
+
+            .dl-chip-count { color: $dl-text-muted; font-weight: 400; }
+
+            &:hover { background: $dl-divider; }
+
+            // Chip đang chọn → nền tím nhạt viền tím
+            &.is-active {
+                background: $dl-active;
+                border-color: $dl-primary;
+                color: $dl-primary;
+
+                .dl-chip-count { color: $dl-primary; }
+            }
+        }
+    }
+
+    // ── Footer đáy card: "N báo giá" + pager gốc chuyển xuống ───
+    .dl-list-footer {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 12px 16px;
+        color: $dl-text-2;
+        font-size: 13px;
+        border-top: 1px solid $dl-divider;
+
+        .dl-list-count { font-weight: 500; }
+
+        // Pager gốc đã được JS chuyển vào đây
+        .o_cp_pager { margin: 0; }
+    }
+}

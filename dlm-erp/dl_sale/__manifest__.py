@@ -12,6 +12,23 @@
         'views/quotation_views.xml',
         'views/menus.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            # SCSS — variables.scss PHẢI đứng đầu (khai báo $dl-* + mixin dl-input)
+            'dl_sale/static/src/scss/variables.scss',
+            'dl_sale/static/src/scss/control_panel.scss',
+            'dl_sale/static/src/scss/quotation_form.scss',
+            'dl_sale/static/src/scss/quotation_list.scss',
+            'dl_sale/static/src/scss/customer_list.scss',
+            'dl_sale/static/src/scss/customer_kanban.scss',
+            'dl_sale/static/src/scss/customer_form.scss',
+            'dl_sale/static/src/components/dl_stepper/dl_stepper.js',
+            'dl_sale/static/src/components/dl_stepper/dl_stepper.xml',
+            'dl_sale/static/src/components/dl_stepper/dl_quotation_controller.js',
+            'dl_sale/static/src/components/dl_list/dl_quotation_list.js',
+            'dl_sale/static/src/components/dl_list/dl_customer_list.js',
+        ],
+    },
     'installable': True,
     'application': False,
     'license': 'LGPL-3',

@@ -11,16 +11,62 @@
         <field name="name">dlm.customer.tree</field>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
-            <tree string="Khách hàng"
+            <tree string="Khách hàng" class="dl-customer-list" js_class="dl_customer_list"
                   decoration-muted="active == False">
+                <field name="avatar_128" widget="image" class="dl-customer-avatar"
+                       options="{'preview_image': 'avatar_128'}" nolabel="1"/>
                 <field name="name" string="Tên khách hàng"/>
-                <field name="customer_type" string="Loại"/>
+                <field name="customer_type" string="Loại" widget="badge"
+                       decoration-info="customer_type == 'company'"
+                       decoration-warning="customer_type == 'dealer'"/>
+                <field name="phone" string="Điện thoại"/>
+                <field name="email" widget="email"/>
+                <field name="city" string="Tỉnh/TP"/>
+                <field name="active" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Kanban view -->
+    <record id="view_dl_customer_kanban" model="ir.ui.view">
+        <field name="name">dlm.customer.kanban</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <kanban class="dl-customer-kanban" default_group_by="">
+                <field name="name"/>
+                <field name="customer_type"/>
+                <field name="customer_type_label"/>
                 <field name="phone"/>
                 <field name="email"/>
-                <field name="tax_code" string="MST"/>
-                <field name="city" string="Tỉnh/TP"/>
-                <field name="active" invisible="1"/>
-            </tree>
+                <field name="city"/>
+                <field name="avatar_128"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click dl-cust-card">
+                            <div class="dl-cust-avatar"
+                                 t-att-data-type="record.customer_type.raw_value">
+                                <img t-att-src="kanban_image('res.partner', 'avatar_128', record.id.raw_value)"
+                                     alt="Avatar"/>
+                            </div>
+                            <div class="dl-cust-info">
+                                <strong class="dl-cust-name" t-esc="record.name.value"/>
+                                <span class="dl-cust-badge"
+                                      t-att-data-type="record.customer_type.raw_value"
+                                      t-esc="record.customer_type_label.value"/>
+                                <div class="dl-cust-line" t-if="record.phone.value">
+                                    <i class="fa fa-phone"/> <span t-esc="record.phone.value"/>
+                                </div>
+                                <div class="dl-cust-line" t-if="record.email.value">
+                                    <i class="fa fa-envelope-o"/> <span t-esc="record.email.value"/>
+                                </div>
+                                <div class="dl-cust-line" t-if="record.city.value">
+                                    <i class="fa fa-map-marker"/> <span t-esc="record.city.value"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
         </field>
     </record>
 
@@ -29,38 +75,45 @@
         <field name="name">dlm.customer.form</field>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
-            <form string="Khách hàng">
+            <form string="Khách hàng" class="dl-customer-form" js_class="dl_customer_form">
                 <sheet>
-                    <div class="oe_button_box" name="button_box"/>
-                    <field name="image_1920" widget="image"
-                           class="oe_avatar" options="{'preview_image': 'image_128'}"/>
-                    <div class="oe_title">
-                        <label for="name"/>
-                        <h1>
-                            <field name="name" placeholder="Tên khách hàng..."/>
-                        </h1>
+                    <!-- Trường ẩn — luôn True khi tạo từ menu Khách hàng -->
+                    <field name="is_dlm_customer" invisible="1"/>
+
+                    <!-- Đầu form: avatar bên trái + tên + phân loại -->
+                    <div class="dl-cust-head">
+                        <field name="image_1920" widget="image"
+                               class="oe_avatar dl-cust-form-avatar"
+                               options="{'preview_image': 'image_128'}"/>
+                        <div class="dl-cust-head-main">
+                            <label for="name" string="Tên khách hàng"/>
+                            <h1>
+                                <field name="name" placeholder="Tên khách hàng..."/>
+                            </h1>
+                            <field name="customer_type" widget="radio"
+                                   options="{'horizontal': true}" nolabel="1"
+                                   class="dl-cust-type-seg"/>
+                        </div>
                     </div>
 
                     <group>
-                        <group string="Thông tin chính">
-                            <field name="customer_type" string="Loại khách hàng"/>
+                        <group string="Thông tin liên hệ">
+                            <field name="phone" string="Điện thoại"/>
+                            <field name="mobile" string="Di động"/>
+                            <field name="email" widget="email"/>
                             <field name="tax_code" string="Mã số thuế (MST)"
-                                   invisible="customer_type == 'individual'"/>
-                            <field name="phone"/>
-                            <field name="mobile"/>
-                            <field name="email"/>
-                            <field name="website"/>
+                                   readonly="customer_type == 'individual'"
+                                   placeholder="Ẩn với Cá nhân"/>
                         </group>
                         <group string="Địa chỉ">
-                            <field name="street" placeholder="Số nhà, tên đường..."/>
-                            <field name="street2" placeholder="Phường/Xã..."/>
-                            <field name="city" placeholder="Tỉnh / Thành phố"/>
-                            <field name="country_id" placeholder="Quốc gia"/>
+                            <field name="street" string="Đường"
+                                   placeholder="Số nhà, tên đường..."/>
+                            <field name="city" string="Tỉnh / TP"
+                                   placeholder="Tỉnh / Thành phố"/>
+                            <field name="country_id" string="Quốc gia"
+                                   placeholder="Quốc gia"/>
                         </group>
                     </group>
-
-                    <!-- Trường ẩn — luôn True khi tạo từ menu Khách hàng -->
-                    <field name="is_dlm_customer" invisible="1"/>
 
                     <notebook>
                         <page string="Ghi chú nội bộ" name="notes">
@@ -114,12 +167,13 @@
     <record id="action_dl_customer" model="ir.actions.act_window">
         <field name="name">Khách hàng</field>
         <field name="res_model">res.partner</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="domain">[('is_dlm_customer', '=', True)]</field>
         <field name="context">{'default_is_dlm_customer': True, 'default_customer_type': 'company'}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_customer_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_customer_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_customer_form')}),
         ]"/>
         <field name="search_view_id" ref="view_dl_customer_search"/>
