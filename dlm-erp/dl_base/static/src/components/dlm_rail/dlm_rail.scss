@@ -1,0 +1,135 @@
+// ============================================================
+//  DLM-ERP — Rail điều hướng thu gọn (shell bên trái của app)
+//  Mặc định chỉ hiện icon; rê chuột vào → mở rộng hiện nhãn
+//  (giống sidebar Home); rời chuột → tự thu lại.
+//  Chỉ hiển thị khi đang ở trong app DLM-ERP (JS quản lý qua
+//  class .dlm-rail-active trên <body>). Ẩn trên Trang chủ (đã
+//  có sidebar riêng) và trên mọi trang Odoo gốc.
+// ============================================================
+
+$dl-primary:      #5b4b9e;
+$dl-heading:      #231747;
+$dl-rail-bg:      #f6f3fb;
+$dl-border:       #e5dfed;
+$dl-text-muted:   #79747e;
+$dl-rail-w:       56px;
+$dl-rail-w-open:  236px;
+
+.dlm-rail {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: $dl-rail-w;
+    z-index: 1010;
+    background: $dl-rail-bg;
+    border-right: 1px solid $dl-border;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 10px 8px;
+    overflow: hidden;
+    transition: width .18s ease, box-shadow .18s ease;
+
+    // Ô icon cố định 40px → nhãn không làm xê dịch icon khi mở rộng
+    .dlm-rail-icon {
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .dlm-rail-label {
+        opacity: 0;
+        white-space: nowrap;
+        font-size: 13px;
+        font-weight: 500;
+        transition: opacity .12s ease;
+        pointer-events: none;
+    }
+
+    // ── Logo kiêm nút Trang chủ ─────────────────────────────
+    .dlm-rail-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        margin-bottom: 6px;
+
+        .dlm-rail-icon {
+            width: 34px;
+            height: 34px;
+            margin: 0 3px;
+            border-radius: 10px;
+            background: $dl-primary;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .dlm-rail-label {
+            color: $dl-heading;
+            font-size: 15px;
+            font-weight: 600;
+        }
+    }
+
+    // ── Mục điều hướng ──────────────────────────────────────
+    .dlm-rail-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        color: $dl-text-muted;
+        transition: background-color .15s, color .15s;
+
+        i.fa { font-size: 16px; }
+
+        &:hover {
+            background: rgba($dl-primary, 0.10);
+            color: $dl-primary;
+        }
+
+        // Module Phase sau (chưa có action) → mờ, không bấm
+        &.disabled {
+            opacity: 0.45;
+            cursor: default;
+            &:hover { background: transparent; color: $dl-text-muted; }
+        }
+    }
+
+    // ── Mở rộng khi rê chuột ────────────────────────────────
+    &:hover {
+        width: $dl-rail-w-open;
+        box-shadow: 6px 0 28px rgba(35, 23, 71, 0.14);
+
+        .dlm-rail-label { opacity: 1; }
+    }
+}
+
+// ── Chỉ khi rail đang bật (đang ở trong app DLM-ERP) ────────
+// Ở các trang Odoo gốc (Apps, Discuss, Settings…) body KHÔNG có
+// class này → navbar tím mặc định của Odoo hiển thị bình thường,
+// nội dung không bị dịch, rail không chiếm chỗ.
+body.dlm-rail-active {
+    // Ẩn navbar tím mặc định (đã thay bằng rail shell) — khớp
+    // design màn chi tiết DLM (không có thanh navbar phía trên).
+    .o_main_navbar {
+        display: none !important;
+    }
+
+    // Dịch nội dung sang phải để chừa chỗ cho rail thu gọn.
+    .o_action_manager {
+        padding-left: $dl-rail-w;
+    }
+}
+
+// ── Trên Trang chủ (đã có sidebar riêng): ẩn rail + bỏ dịch ──
+.o_web_client:has(.dl-home) {
+    .dlm-rail { display: none; }
+    .o_action_manager { padding-left: 0; }
+}

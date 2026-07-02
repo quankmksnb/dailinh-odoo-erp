@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_base.DlmRail">
+    <div class="dlm-rail" t-if="state.visible">
+        <!-- Logo kiêm nút về Trang chủ -->
+        <div class="dlm-rail-logo"
+             t-on-click="() => this.openModule('dl_base.action_dl_home')">
+            <span class="dlm-rail-icon">◆</span>
+            <span class="dlm-rail-label">DLM-ERP</span>
+        </div>
+
+        <!-- Các mục điều hướng: icon thu gọn, hiện nhãn khi hover -->
+        <t t-foreach="railItems" t-as="item" t-key="item.key">
+            <div class="dlm-rail-item" t-att-title="item.name"
+                 t-att-class="{ 'disabled': !item.actionXmlId }"
+                 t-on-click="() => this.openModule(item.actionXmlId)">
+                <span class="dlm-rail-icon"><i t-att-class="'fa ' + item.icon"/></span>
+                <span class="dlm-rail-label" t-esc="item.name"/>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>
