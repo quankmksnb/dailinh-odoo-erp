@@ -14,19 +14,27 @@
     ],
     'assets': {
         'web.assets_backend': [
-            # SCSS — variables.scss PHẢI đứng đầu (khai báo $dl-* + mixin dl-input)
-            'dl_sale/static/src/scss/variables.scss',
+            # SCSS — token & mixin dùng chung nằm ở dl_base (nạp trước theo
+            # thứ tự phụ thuộc). Ở đây chỉ còn style theo màn của dl_sale.
             'dl_sale/static/src/scss/control_panel.scss',
             'dl_sale/static/src/scss/quotation_form.scss',
             'dl_sale/static/src/scss/quotation_list.scss',
             'dl_sale/static/src/scss/customer_list.scss',
             'dl_sale/static/src/scss/customer_kanban.scss',
             'dl_sale/static/src/scss/customer_form.scss',
-            'dl_sale/static/src/components/dl_stepper/dl_stepper.js',
-            'dl_sale/static/src/components/dl_stepper/dl_stepper.xml',
-            'dl_sale/static/src/components/dl_stepper/dl_quotation_controller.js',
-            'dl_sale/static/src/components/dl_list/dl_quotation_list.js',
-            'dl_sale/static/src/components/dl_list/dl_customer_list.js',
+            # Component — field widget dl_stepper (style co-located)
+            'dl_sale/static/src/components/stepper/stepper_field.scss',
+            'dl_sale/static/src/components/stepper/stepper_field.js',
+            'dl_sale/static/src/components/stepper/stepper_field.xml',
+            # JS — tiện ích dùng chung (menu ⋮ Thao tác)
+            'dl_sale/static/src/js/actions_menu.js',
+            # Views — list (lớp cơ sở nạp trước lớp con)
+            'dl_sale/static/src/views/dl_list_controller.js',
+            'dl_sale/static/src/views/quotation_list_controller.js',
+            'dl_sale/static/src/views/customer_list_controller.js',
+            # Views — form
+            'dl_sale/static/src/views/quotation_form_controller.js',
+            'dl_sale/static/src/views/customer_form_controller.js',
         ],
     },
     'installable': True,

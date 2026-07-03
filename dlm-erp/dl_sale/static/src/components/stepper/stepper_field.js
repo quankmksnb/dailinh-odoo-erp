@@ -1,17 +1,10 @@
 /** @odoo-module **/
-// ============================================================
-//  DL Stepper — widget hiển thị trạng thái báo giá dạng bước
-//  (Nháp → Đã gửi → Đã duyệt) theo thiết kế Figma.
-//  Chỉ HIỂN THỊ field state sẵn có; không đổi model/workflow.
-//  Dùng widget riêng để kiểm soát hoàn toàn DOM, tránh xung đột
-//  với statusbar gốc của Odoo (vốn có dropdown/trạng thái gấp).
-// ============================================================
 
 import { registry } from "@web/core/registry";
 import { Component } from "@odoo/owl";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
-// Các bước trên trục chính (rejected không nằm trong stepper)
+// rejected không nằm trên trục stepper
 const STEP_ORDER = ["draft", "sent", "approved"];
 const STEP_LABELS = {
     draft: "Nháp",

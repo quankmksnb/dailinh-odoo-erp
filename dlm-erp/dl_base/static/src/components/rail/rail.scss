@@ -1,17 +1,4 @@
-// ============================================================
-//  DLM-ERP — Rail điều hướng thu gọn (shell bên trái của app)
-//  Mặc định chỉ hiện icon; rê chuột vào → mở rộng hiện nhãn
-//  (giống sidebar Home); rời chuột → tự thu lại.
-//  Chỉ hiển thị khi đang ở trong app DLM-ERP (JS quản lý qua
-//  class .dlm-rail-active trên <body>). Ẩn trên Trang chủ (đã
-//  có sidebar riêng) và trên mọi trang Odoo gốc.
-// ============================================================
-
-$dl-primary:      #5b4b9e;
-$dl-heading:      #231747;
-$dl-rail-bg:      #f6f3fb;
-$dl-border:       #e5dfed;
-$dl-text-muted:   #79747e;
+$dl-rail-bg:      $dl-nav-bg;
 $dl-rail-w:       56px;
 $dl-rail-w-open:  236px;
 
@@ -51,7 +38,6 @@ $dl-rail-w-open:  236px;
         pointer-events: none;
     }
 
-    // ── Logo kiêm nút Trang chủ ─────────────────────────────
     .dlm-rail-logo {
         display: flex;
         align-items: center;
@@ -77,7 +63,6 @@ $dl-rail-w-open:  236px;
         }
     }
 
-    // ── Mục điều hướng ──────────────────────────────────────
     .dlm-rail-item {
         display: flex;
         align-items: center;
@@ -102,7 +87,6 @@ $dl-rail-w-open:  236px;
         }
     }
 
-    // ── Mở rộng khi rê chuột ────────────────────────────────
     &:hover {
         width: $dl-rail-w-open;
         box-shadow: 6px 0 28px rgba(35, 23, 71, 0.14);
@@ -111,13 +95,8 @@ $dl-rail-w-open:  236px;
     }
 }
 
-// ── Chỉ khi rail đang bật (đang ở trong app DLM-ERP) ────────
-// Ở các trang Odoo gốc (Apps, Discuss, Settings…) body KHÔNG có
-// class này → navbar tím mặc định của Odoo hiển thị bình thường,
-// nội dung không bị dịch, rail không chiếm chỗ.
+// Trang Odoo gốc không có class này → navbar tím mặc định giữ nguyên.
 body.dlm-rail-active {
-    // Ẩn navbar tím mặc định (đã thay bằng rail shell) — khớp
-    // design màn chi tiết DLM (không có thanh navbar phía trên).
     .o_main_navbar {
         display: none !important;
     }
@@ -128,7 +107,7 @@ body.dlm-rail-active {
     }
 }
 
-// ── Trên Trang chủ (đã có sidebar riêng): ẩn rail + bỏ dịch ──
+// Trên Trang chủ (đã có sidebar riêng): ẩn rail + bỏ dịch nội dung.
 .o_web_client:has(.dl-home) {
     .dlm-rail { display: none; }
     .o_action_manager { padding-left: 0; }

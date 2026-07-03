@@ -1,25 +1,18 @@
-// ============================================================
-//  Màn 2 — Quotation Form (.dl-quotation-form)
-//  (Biến & mixin lấy từ variables.scss — nạp trước file này.)
-// ============================================================
 .dl-quotation-form {
     font-family: $dl-font;
     color: $dl-text;
     background: $dl-app-bg;
 
-    // ── Sheet phẳng, nền sáng (bỏ card viền/bóng mặc định) ──
     .o_form_sheet_bg { background: $dl-app-bg; border: 0; }
     .o_form_sheet {
         max-width: 100%;
         border: 0;
         box-shadow: none;
         background: $dl-app-bg;
-        // Lề trái/phải đồng nhất cho TOÀN BỘ section bên trong
         padding: 8px 24px 24px;
     }
 
-    // ── Mọi section canh cùng grid (cùng mép trái & phải) ───
-    // Bỏ mọi thụt lề/tràn riêng của Odoo để thẳng hàng tuyệt đối.
+    // Bỏ thụt lề/tràn riêng của Odoo để mọi section thẳng hàng trái/phải.
     .oe_title,
     .dl-fields-row,
     .o_notebook,
@@ -35,12 +28,10 @@
         width: 100%;
     }
 
-    // Khoảng cách đều giữa các section
     .oe_title { margin-bottom: 18px !important; }
     .dl-fields-row { margin: 0 0 18px !important; }
     .o_notebook { margin-bottom: 18px !important; }
 
-    // ── Tiêu đề Số BG ───────────────────────────────────────
     .oe_title h1 {
         .o_field_widget, input {
             font-size: 26px;
@@ -49,7 +40,6 @@
         }
     }
 
-    // ── Nhãn field ──────────────────────────────────────────
     .o_form_label,
     .o_inner_group label {
         color: $dl-text-2;
@@ -57,7 +47,6 @@
         font-size: 13px;
     }
 
-    // ── Ô nhập chính (Khách hàng, Ngày báo giá…) ────────────
     .o_group .o_field_widget input.o_input,
     .o_group .o_field_many2one .o_input,
     .o_group .o_field_date input,
@@ -65,7 +54,6 @@
         @include dl-input;
     }
 
-    // ── Hàng 2 field: NHÃN NẰM TRÊN ô input (như Figma) ─────
     .dl-fields-row {
         display: flex;
         gap: 24px;
@@ -97,16 +85,13 @@
         }
     }
 
-    // ── Khoảng cách giữa tab và bảng chi tiết ───────────────
     .o_notebook .tab-content { padding-top: 14px; }
 
-    // ── Thanh trạng thái + nút hành động ────────────────────
     .o_form_statusbar {
         background: transparent;
         border-bottom: 0;
         padding: 10px 0 14px;
         gap: 14px;
-        // Xếp dọc: hàng nút ở trên, stepper ở dưới-trái như Figma
         flex-direction: column;
         align-items: flex-start;
 
@@ -129,7 +114,6 @@
                 }
             }
 
-            // Từ chối — pill viền đỏ
             .btn-danger {
                 color: $dl-danger;
                 background-color: #fff;
@@ -142,7 +126,6 @@
                 }
             }
 
-            // Về nháp — nút chữ tím
             .btn-link,
             .btn-secondary {
                 color: $dl-primary;
@@ -154,64 +137,10 @@
             }
         }
 
-        // ── Statusbar → dùng widget tuỳ biến dl_stepper ─────────
-        // (Xem components/dl_stepper/*). Widget tự dựng DOM nên
-        // không còn hack lên statusbar gốc của Odoo.
-        .dl-stepper {
-            display: inline-flex;
-            align-items: center;
-            flex-wrap: wrap;
-
-            .dl-stepper-step {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                color: $dl-text-2;
-                font-size: 13px;
-                font-weight: 500;
-
-                // Đường nối sang bước kế
-                &:not(:last-child)::after {
-                    content: "";
-                    display: inline-block;
-                    width: 34px;
-                    height: 2px;
-                    margin: 0 12px;
-                    background: $dl-divider;
-                }
-
-                .dl-stepper-dot {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    width: 22px;
-                    height: 22px;
-                    border-radius: 999px;
-                    background: $dl-divider;
-                    color: $dl-text-2;
-                    font-size: 12px;
-                    font-weight: 600;
-                    flex-shrink: 0;
-                }
-            }
-
-            // Bước hiện tại → xanh blue (theo Figma)
-            .dl-stepper-step.is-current {
-                color: $dl-blue;
-                font-weight: 600;
-
-                .dl-stepper-dot { background: $dl-blue; color: #fff; }
-            }
-
-            // Bước đã qua → xanh, đường nối xanh
-            .dl-stepper-step.is-done {
-                .dl-stepper-dot { background: $dl-green; color: #fff; }
-                &::after { background: $dl-green; }
-            }
-        }
+        // Statusbar dùng widget dl_stepper — style ở
+        // components/stepper/stepper_field.scss
     }
 
-    // ── Tab notebook — gạch chân tím ────────────────────────
     .o_notebook .o_notebook_headers .nav-tabs {
         border-bottom: 1px solid $dl-border;
 
@@ -231,35 +160,30 @@
         }
     }
 
-    // ── Bảng dòng báo giá ───────────────────────────────────
     .o_field_x2many {
         .o_list_renderer {
             border: 1px solid $dl-border;
             border-radius: 12px;
-            // KHÔNG dùng overflow:hidden — nó cắt cụt các cột bên phải
-            // khi bảng rộng hơn khung (mất Đơn giá/Thành tiền).
+            // KHÔNG dùng overflow:hidden — nó cắt cụt các cột bên phải khi bảng
+            // rộng hơn khung (mất Đơn giá/Thành tiền).
         }
 
         .o_list_table {
-            // Ép bảng vừa đúng khung, không để Odoo tính px gây tràn
-            table-layout: fixed;
+            table-layout: fixed; // không để Odoo tính px gây tràn
             width: 100% !important;
 
-            // Xoá width + min-width inline Odoo tính. Odoo đặt min-width
-            // ~92-100px/cột → khi khung hẹp (zoom to) tổng vượt khung →
-            // bảng tràn, cột số bị đẩy ra ngoài. min-width:0 cho cột co
-            // tự do để LUÔN vừa 100% khung ở mọi mức zoom.
+            // Xoá width + min-width inline Odoo tính (~92-100px/cột): khi khung
+            // hẹp tổng vượt khung → cột số bị đẩy ra ngoài. min-width:0 cho cột
+            // co tự do để luôn vừa 100% khung ở mọi mức zoom.
             th, td { width: auto !important; min-width: 0 !important; }
 
-            // Cột số (SL, Đơn giá, Thành tiền): dùng % (không px) để TỈ LỆ
-            // cố định ở mọi mức zoom → luôn hiển thị đủ, hẹp/đều/gói bên phải.
-            // HEADER dùng class 'o_list_number_th' (khác body 'o_list_number');
-            // với table-layout:fixed, HEADER quyết định độ rộng cột.
+            // Cột số dùng % (không px) để giữ tỉ lệ ở mọi zoom. Header dùng class
+            // 'o_list_number_th' (khác body); với fixed, header quyết định độ rộng.
             th.o_list_number_th,
             th.o_list_number,
             td.o_list_number { width: 14% !important; }
 
-            // Cột xoá / selector: rất hẹp (để Mô tả là cột auto duy nhất)
+            // Cột xoá/selector rất hẹp để Mô tả là cột auto duy nhất
             th.o_list_record_remove_header,
             td.o_list_record_remove,
             th.o_list_record_selector,
@@ -275,7 +199,6 @@
 
             .o_data_row td { border-top: 1px solid $dl-divider; }
 
-            // Hàng đều nhau: canh giữa theo chiều dọc + padding đồng nhất
             th, td { vertical-align: middle; }
             td.o_data_cell {
                 padding-top: 10px;
@@ -283,12 +206,9 @@
                 height: 44px;
             }
 
-            // Mô tả có thể dài → cắt gọn thay vì đẩy tràn
             td.o_list_char, td.o_data_cell.o_field_cell { overflow: hidden; text-overflow: ellipsis; }
         }
 
-        // Nút xoá dòng: ẩn mặc định, chỉ hiện khi rê chuột vào dòng
-        // (design gọn, không hiển thị thùng rác)
         .o_list_table td.o_list_record_remove button { visibility: hidden; }
         .o_list_table tr.o_data_row:hover td.o_list_record_remove button {
             visibility: visible;
@@ -298,7 +218,7 @@
         .o_field_x2many_list_row_add a {
             color: $dl-primary;
             font-weight: 500;
-            font-size: 0; // ẩn chữ gốc
+            font-size: 0;
 
             &::after {
                 content: "+ Thêm dòng";
@@ -307,7 +227,6 @@
         }
     }
 
-    // ── Khối tổng tiền — card bo góc bên phải ───────────────
     .dl-totals {
         width: 320px;
         max-width: 100%;
@@ -324,7 +243,6 @@
             gap: 14px;
             padding: 5px 0;
 
-            // ô field monetary không có padding/nền thừa
             .o_field_widget { padding: 0; margin: 0; }
         }
 
@@ -333,7 +251,6 @@
             min-width: 84px;
         }
 
-        // Tạm tính — nhạt, nhỏ, thường
         .dl-total-label { color: $dl-text-2; font-weight: 400; font-size: 13px; }
         .dl-total-sub {
             color: $dl-text-2;
@@ -341,7 +258,6 @@
             font-size: 13px;
         }
 
-        // Tổng tiền — đậm, tím, cỡ lớn (tương phản rõ)
         .dl-total-final-row {
             border-top: 1px solid $dl-divider;
             margin-top: 4px;
@@ -356,6 +272,5 @@
         }
     }
 
-    // ── Chatter gọn hơn ─────────────────────────────────────
     .o-mail-Chatter .o-mail-Chatter-topbar { border-bottom: 1px solid $dl-divider; }
 }

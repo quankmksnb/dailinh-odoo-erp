@@ -1,23 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ================================================================
-         Card DLM-ERP trong trang Apps (kanban model ir.module.module)
-         Kế thừa view core `base.module_view_kanban` — KHÔNG sửa source odoo-17.0,
-         KHÔNG đổi business logic. Chỉ tác động RIÊNG card của module dl_base:
-         phủ một overlay click-toàn-card mở thẳng Dashboard
-         (ir.actions.client dl_base.action_dl_home) thay vì Module Info.
-         Overlay (z-index cao) chặn mọi click trên card nên nút "Module Info"
-         gốc bên dưới không còn tác dụng. Các module khác giữ nguyên hành vi.
-    ================================================================ -->
+    <!-- Card dl_base trong trang Apps: overlay click-toàn-card (z-index cao,
+         chặn nút "Module Info" gốc) mở thẳng Dashboard. Card khác giữ nguyên. -->
     <record id="module_view_kanban_dlm" model="ir.ui.view">
         <field name="name">ir.module.module.kanban.dlm</field>
         <field name="model">ir.module.module</field>
         <field name="inherit_id" ref="base.module_view_kanban"/>
         <field name="arch" type="xml">
 
-            <!-- Biến vignette thành mốc định vị để overlay phủ kín card.
-                 Chỉ thêm ngữ cảnh position, không đổi giao diện các card khác. -->
+            <!-- Biến vignette thành mốc định vị để overlay phủ kín card. -->
             <xpath expr="//t[@t-name='kanban-box']/div[hasclass('oe_module_vignette')]"
                    position="attributes">
                 <attribute name="class" add="position-relative" separator=" "/>

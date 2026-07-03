@@ -14,12 +14,18 @@
     ],
     'assets': {
         'web.assets_backend': [
-            'dl_base/static/src/components/dlm_home/dlm_home.scss',
-            'dl_base/static/src/components/dlm_home/dlm_home.xml',
-            'dl_base/static/src/components/dlm_home/dlm_home.js',
-            'dl_base/static/src/components/dlm_rail/dlm_rail.scss',
-            'dl_base/static/src/components/dlm_rail/dlm_rail.xml',
-            'dl_base/static/src/components/dlm_rail/dlm_rail.js',
+            # Design tokens + mixin — PHẢI nạp đầu tiên (nguồn dùng chung,
+            # cả dl_sale cũng dựa vào — xem dl_sale/__manifest__.py).
+            'dl_base/static/src/scss/variables.scss',
+            'dl_base/static/src/scss/mixins.scss',
+            # Component — Home dashboard (client action ir.actions.client)
+            'dl_base/static/src/components/home/home.scss',
+            'dl_base/static/src/components/home/home.xml',
+            'dl_base/static/src/components/home/home.js',
+            # Component — Rail shell điều hướng (main_components)
+            'dl_base/static/src/components/rail/rail.scss',
+            'dl_base/static/src/components/rail/rail.xml',
+            'dl_base/static/src/components/rail/rail.js',
         ],
     },
     'installable': True,

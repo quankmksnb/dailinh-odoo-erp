@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ================================================================
-         BÁO GIÁ (dl.quotation)
-    ================================================================ -->
-
-    <!-- List view -->
     <record id="view_dl_quotation_tree" model="ir.ui.view">
         <field name="name">dl.quotation.tree</field>
         <field name="model">dl.quotation</field>
@@ -25,7 +20,6 @@
         </field>
     </record>
 
-    <!-- Form view -->
     <record id="view_dl_quotation_form" model="ir.ui.view">
         <field name="name">dl.quotation.form</field>
         <field name="model">dl.quotation</field>
@@ -51,7 +45,6 @@
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
                     <field name="currency_id" invisible="1"/>
-                    <!-- Nhãn nằm TRÊN ô input như thiết kế Figma -->
                     <div class="dl-fields-row">
                         <div class="dl-field">
                             <label for="partner_id" string="Khách hàng"/>
@@ -99,7 +92,6 @@
         </field>
     </record>
 
-    <!-- Search view -->
     <record id="view_dl_quotation_search" model="ir.ui.view">
         <field name="name">dl.quotation.search</field>
         <field name="model">dl.quotation</field>
@@ -121,7 +113,6 @@
         </field>
     </record>
 
-    <!-- Action -->
     <record id="action_dl_quotation" model="ir.actions.act_window">
         <field name="name">Báo giá</field>
         <field name="res_model">dl.quotation</field>
@@ -137,7 +128,6 @@
         </field>
     </record>
 
-    <!-- Sequence -->
     <record id="seq_dl_quotation" model="ir.sequence">
         <field name="name">DL Quotation</field>
         <field name="code">dl.quotation</field>

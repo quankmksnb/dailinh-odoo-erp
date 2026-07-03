@@ -1,0 +1,14 @@
+@mixin dl-input {
+    border: 1px solid $dl-border !important;
+    border-radius: 8px;
+    padding: 7px 12px;
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+
+    &:focus,
+    &:focus-within {
+        border-color: $dl-primary !important;
+        box-shadow: 0 0 0 2px rgba($dl-primary, 0.14);
+        outline: 0;
+    }
+}

@@ -1,30 +1,10 @@
-// ============================================================
-//  DLM-ERP — Home dashboard (theo thiết kế Figma)
-//  Toàn bộ style bọc trong .dl-home để không ảnh hưởng màn khác.
-// ============================================================
-
-$dl-primary:      #5b4b9e;
-$dl-nav-bg:       #f6f3fb;
-$dl-nav-active:   #e7def8;
-$dl-app-bg:       #fcfbfe;
-$dl-border:       #e5dfed;
-$dl-divider:      #f0ecf6;
-$dl-search-bg:    #f0ecf6;
-$dl-avatar-bg:    #6e4a8e;
-$dl-text:         #1c1b1f;
-$dl-text-2:       #49454f;
-$dl-text-muted:   #79747e;
-$dl-heading:      #231747;
-$dl-green:        #1b5e32;
-
 .dl-home {
-    // .dl-home cũng chính là .o_action (Odoo ép display:flex; flex-flow:column).
-    // Vì vậy layout ngang được đặt ở wrapper con .dl-home-layout.
+    // .dl-home cũng là .o_action (Odoo ép display:flex; flex-flow:column) nên
+    // layout ngang đặt ở wrapper con .dl-home-layout.
     background: $dl-app-bg;
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: $dl-text;
 
-    // ── Khung layout ngang (sidebar + nội dung) ─────────────
     .dl-home-layout {
         flex: 1 1 auto;
         min-height: 0;
@@ -33,7 +13,6 @@ $dl-green:        #1b5e32;
         overflow: hidden;
     }
 
-    // ── Sidebar ─────────────────────────────────────────────
     .dl-home-nav {
         flex: 0 0 240px;
         width: 240px;
@@ -45,9 +24,7 @@ $dl-green:        #1b5e32;
         overflow-y: auto;
     }
 
-    // Logo kiêm nút mở menu Apps (lưới chuyển ứng dụng của Odoo).
-    // .dl-home-brand nằm trên thẻ .o-dropdown bọc ngoài → style nút
-    // toggler .dropdown-toggle bên trong (mặc định có viền + xếp block).
+    // .dl-home-brand nằm trên thẻ .o-dropdown → style nút toggler bên trong
     .dl-home-brand {
         width: 100%;
 
@@ -136,7 +113,6 @@ $dl-green:        #1b5e32;
         }
     }
 
-    // ── Vùng nội dung ───────────────────────────────────────
     .dl-home-main {
         flex: 1 1 auto;
         min-width: 0;
@@ -174,9 +150,8 @@ $dl-green:        #1b5e32;
         font-size: 13px;
     }
 
-    // ── Systray Odoo trong header sáng ──────────────────────
-    // QUAN TRỌNG: chỉ style NÚT toggler (.dropdown-toggle), KHÔNG đụng
-    // nội dung popup (.dropdown-menu) để list chat/hoạt động không bị vỡ.
+    // QUAN TRỌNG: chỉ style NÚT toggler (.dropdown-toggle), KHÔNG đụng nội dung
+    // popup (.dropdown-menu) để list chat/hoạt động không bị vỡ.
     .dl-home-systray {
         margin-left: auto;
         display: flex;
@@ -201,14 +176,12 @@ $dl-green:        #1b5e32;
             &:focus-visible { outline: 0; box-shadow: none; }
             &::after { display: none; } // bỏ caret
 
-            // Icon đồng nhất
             i.fa,
             i.oi {
                 font-size: 17px !important;
                 color: $dl-text-2;
             }
 
-            // Avatar menu người dùng — nhỏ, tròn
             .o_user_avatar,
             img.o_avatar,
             img {
@@ -219,7 +192,6 @@ $dl-green:        #1b5e32;
                 object-fit: cover;
             }
 
-            // Badge đếm nhỏ gọn
             .badge.rounded-pill {
                 font-size: 10px;
                 padding: 1px 4px;
@@ -235,7 +207,6 @@ $dl-green:        #1b5e32;
         padding: 24px;
     }
 
-    // ── Lời chào ────────────────────────────────────────────
     .dl-home-hello {
         display: flex;
         flex-direction: column;
@@ -255,7 +226,6 @@ $dl-green:        #1b5e32;
         }
     }
 
-    // ── KPI ─────────────────────────────────────────────────
     .dl-home-kpi {
         display: flex;
         gap: 12px;
@@ -304,7 +274,6 @@ $dl-green:        #1b5e32;
         }
     }
 
-    // ── Bảng báo giá gần đây ────────────────────────────────
     .dl-home-recent {
         display: flex;
         flex-direction: column;
@@ -359,7 +328,6 @@ $dl-green:        #1b5e32;
         .col-state   { flex: 0 0 110px; width: 110px; display: flex; justify-content: flex-end; }
     }
 
-    // ── Badge trạng thái ────────────────────────────────────
     .dl-home-badge {
         display: inline-flex;
         align-items: center;
@@ -375,10 +343,6 @@ $dl-green:        #1b5e32;
     }
 }
 
-// ============================================================
-//  Dropdown trong header (menu Apps trên logo + systray) — theme tím
-//  Menu nằm trong DOM dưới .dl-home nên scope này không ảnh hưởng màn khác.
-// ============================================================
 .dl-home {
     .dropdown-menu {
         border: 1px solid $dl-border;
@@ -387,8 +351,8 @@ $dl-green:        #1b5e32;
         padding: 6px;
     }
 
-    // Chỉ tác động các mục menu dạng list (Apps, menu người dùng);
-    // không đụng nội dung preview của tin nhắn/hoạt động (.o-mail-*).
+    // Chỉ tác động mục menu dạng list (Apps, menu người dùng); không đụng
+    // preview tin nhắn/hoạt động (.o-mail-*).
     .dropdown-item {
         border-radius: 8px;
         padding: 8px 12px;
@@ -396,7 +360,7 @@ $dl-green:        #1b5e32;
 
         &:hover,
         &:focus {
-            background-color: $dl-nav-active; // tím nhạt
+            background-color: $dl-nav-active;
             color: $dl-heading;
         }
 

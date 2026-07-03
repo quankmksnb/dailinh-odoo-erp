@@ -1,19 +1,8 @@
-// ============================================================
-//  Màn 1 — Customer List (.dl-customer-list)
-//  (Biến lấy từ variables.scss — nạp trước file này.)
-//  Cùng khuôn với quotation_list.scss: hàng tiêu đề + tìm kiếm +
-//  "+ Thêm", chip lọc theo Loại có số đếm + toggle List/Kanban,
-//  bảng dạng card, footer đếm + pager. Chip/footer/switch do
-//  controller dl_customer_list.js dựng.
-//  (Phần "khung" trùng với quotation_list.scss — có thể gộp mixin sau.)
-// ============================================================
-
-// ── .dl-customer-list nằm ở DIV GỐC view (bọc control panel + nội
-//    dung). Card đặt vào .o_list_renderer, KHÔNG lên .dl-customer-list.
+// .dl-customer-list là DIV GỐC view → card đặt vào .o_list_renderer,
+// KHÔNG lên .dl-customer-list.
 .dl-customer-list {
     font-family: $dl-font;
 
-    // ── Card khung bảng: bo viền, ôm nội dung ───────────────
     .o_list_renderer {
         height: auto !important;
         max-height: 100%;
@@ -24,7 +13,6 @@
         overflow: auto;
     }
 
-    // Header — nền tím nhạt, bo góc trên
     .o_list_table thead th {
         background-color: $dl-table-head-bg;
         color: $dl-text-2;
@@ -36,7 +24,6 @@
     .o_list_table thead th[data-name="avatar_128"] { border-top-left-radius: 12px; }
     .o_list_table thead th[data-name="city"]       { border-top-right-radius: 12px; }
 
-    // Dòng — thoáng, kẻ nhạt, hover
     .o_list_table td.o_data_cell {
         padding-top: 12px;
         padding-bottom: 12px;
@@ -46,7 +33,7 @@
     .o_list_table tbody tr.o_data_row:first-child td { border-top: 0; }
     .o_list_table tbody tr.o_data_row:hover { background-color: $dl-app-bg; }
 
-    // ── Ẩn mọi cột KHÔNG phải field + cột 'active' ──────────
+    // Ẩn mọi cột KHÔNG phải field + cột 'active'
     .o_list_table {
         thead th:not([data-name]) { display: none !important; }
         tbody td:not([name])      { display: none !important; }
@@ -54,7 +41,6 @@
         tfoot { display: none !important; }
     }
 
-    // ── Chia cột bằng % (tổng = 100%) + table-layout:fixed ──
     .o_list_table {
         table-layout: fixed !important;
         width: 100% !important;
@@ -66,7 +52,6 @@
         th[data-name="email"]        { width: 25% !important; }
         th[data-name="city"]         { width: 14% !important; }
 
-        // Nội dung dài không tràn — cắt gọn
         td[name="name"], td[name="email"], td[name="city"] {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -77,14 +62,12 @@
         tbody td { background-color: transparent !important; }
     }
 
-    // Tên khách hàng — đậm
     .o_list_table td.o_data_cell[name="name"] {
         font-weight: 600;
         color: $dl-heading;
     }
 
-    // ── Avatar chữ cái nền màu (do dl_customer_list.js chèn) ────
-    //    Ẩn hình người xám mặc định của Odoo; hiện avatar chữ màu.
+    // Ẩn hình người xám mặc định của Odoo; hiện avatar chữ (do JS chèn).
     td[name="avatar_128"] {
         text-align: right;
         padding-right: 6px !important;
@@ -107,10 +90,8 @@
         text-transform: uppercase;
         vertical-align: middle;
     }
-    // Cột Tên nằm sát avatar
     td[name="name"] { padding-left: 6px !important; }
 
-    // Badge Loại — pastel pill (Cá nhân xám / Doanh nghiệp tím / Đại lý cam)
     .badge {
         font-weight: 500;
         border-radius: 999px;
@@ -120,16 +101,11 @@
     .badge.text-bg-info    { background-color: $dl-type-company-bg !important; color: $dl-type-company-fg !important; }
     .badge.text-bg-warning { background-color: $dl-type-dealer-bg  !important; color: $dl-type-dealer-fg  !important; }
 
-    // Email link tím
     .o_field_email a { color: $dl-primary; }
 }
 
-// ============================================================
-//  Control panel + chip + footer — chỉ áp khi mở màn Khách hàng
-// ============================================================
 .o_action_manager:has(.dl-customer-list) {
 
-    // Hàng trên: tiêu đề + tìm kiếm + "+ Thêm", dồn trái
     .o_control_panel .o_control_panel_main {
         justify-content: flex-start !important;
         align-items: center !important;
@@ -151,7 +127,6 @@
         gap: 12px;
     }
 
-    // Ô tìm kiếm dạng pill; caret Filters/Group By ở cuối
     .o_cp_searchview {
         width: 300px;
         max-width: 40vw;
@@ -192,7 +167,7 @@
         }
     }
 
-    // Nút "+ Thêm" (nút New gốc, đổi nhãn)
+    // Nút New gốc → đổi nhãn "+ Thêm"
     .dl-create-cluster .o_list_button_add {
         border-radius: 999px;
         font-weight: 500;
@@ -205,7 +180,6 @@
         }
     }
 
-    // ── Thanh chip lọc Loại (hàng 2 control panel) ──────────
     .dl-chipbar {
         display: flex;
         flex-wrap: wrap;
@@ -238,7 +212,7 @@
             }
         }
 
-        // ── Toggle List / Kanban (nav chuyển view chuyển vào đây) ──
+        // Toggle List/Kanban (nav chuyển view được JS chuyển vào đây)
         .dl-view-switch {
             display: inline-flex;
             margin-left: 4px;
@@ -254,7 +228,7 @@
                 padding: 5px 14px;
                 box-shadow: none !important;
 
-                i { font-size: 0; }             // ẩn icon, dùng chữ
+                i { font-size: 0; } // ẩn icon, dùng chữ
                 &.o_list::after   { content: "List";   font-size: 13px; }
                 &.o_kanban::after { content: "Kanban"; font-size: 13px; }
 
@@ -267,7 +241,6 @@
         }
     }
 
-    // ── Footer đáy card: "N khách hàng" + pager gốc ─────────
     .dl-list-footer {
         display: flex;
         align-items: center;
