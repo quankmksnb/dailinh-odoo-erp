@@ -10,7 +10,6 @@
         'security/ir.model.access.csv',
         'views/actions.xml',
         'views/menus.xml',
-        'views/apps_kanban.xml',
     ],
     'assets': {
         'web.assets_backend': [

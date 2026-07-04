@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_config.DlConfigHome">
+    <div class="dl-config o_action">
+        <div class="dl-config-inner">
+            <div class="dl-config-head">
+                <h1 class="dl-config-title">Cấu hình</h1>
+                <p class="dl-config-sub">
+                    Quản lý dữ liệu nền dùng chung: tiền tệ, đơn vị tính, thuế và công ty.
+                </p>
+            </div>
+
+            <div class="dl-config-grid">
+                <t t-foreach="cards" t-as="c" t-key="c.key">
+                    <div class="dl-config-card"
+                         t-att-class="{ 'is-disabled': !c.actionXmlId }"
+                         t-on-click="() => this.openCard(c.actionXmlId)">
+                        <span class="dl-config-card-icon">
+                            <i t-att-class="'fa ' + c.icon"/>
+                        </span>
+                        <span class="dl-config-card-body">
+                            <span class="dl-config-card-name" t-esc="c.name"/>
+                            <span class="dl-config-card-desc" t-esc="c.desc"/>
+                        </span>
+                        <span t-if="!c.actionXmlId" class="dl-config-card-soon">Sắp có</span>
+                        <i t-else="" class="fa fa-angle-right dl-config-card-arrow"/>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </div>
+</t>
+
+</templates>
