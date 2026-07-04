@@ -10,7 +10,6 @@
         'views/material_views.xml',
         'views/material_price_views.xml',
         'views/res_config_settings_views.xml',
-        'data/ir_cron_data.xml',
         'views/menus.xml',
     ],
     'installable': True,
