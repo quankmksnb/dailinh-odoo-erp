@@ -5,10 +5,10 @@
 # ── Odoo runtime ──────────────────────────────
 odoo.conf
 *.pid
-filestore/
-sessions/
-data/
-logs/
+/filestore/
+/sessions/
+/data/
+/logs/
 *.log
 
 # ── Python ────────────────────────────────────
