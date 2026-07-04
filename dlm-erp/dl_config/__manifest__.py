@@ -13,6 +13,7 @@
         'views/uom_views.xml',
         'views/company_views.xml',
         'views/vat_views.xml',
+        'views/role_views.xml',
         'views/menus.xml',
     ],
     'assets': {
@@ -37,6 +38,9 @@
             'dl_config/static/src/scss/vat_form.scss',
             'dl_config/static/src/views/vat_list_controller.js',
             'dl_config/static/src/views/vat_form_controller.js',
+            'dl_config/static/src/scss/role_list.scss',
+            'dl_config/static/src/scss/role_form.scss',
+            'dl_config/static/src/views/role_list_controller.js',
         ],
     },
     'installable': True,

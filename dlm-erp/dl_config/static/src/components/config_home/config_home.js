@@ -34,6 +34,13 @@ const CARDS = [
         icon: "fa-building-o",
         actionXmlId: "dl_config.action_dl_company",
     },
+    {
+        key: "role",
+        name: "Phân quyền",
+        desc: "Vai trò, người dùng & quyền theo module",
+        icon: "fa-shield",
+        actionXmlId: "dl_config.action_dl_role",
+    },
 ];
 
 export class DlConfigHome extends Component {

@@ -37,4 +37,13 @@
         groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
     />
 
+    <menuitem
+        id="menu_dl_config_role"
+        name="Phân quyền"
+        parent="dl_base.menu_dl_config"
+        sequence="50"
+        action="action_dl_role"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
+    />
+
 </odoo>
