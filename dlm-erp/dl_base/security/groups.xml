@@ -37,5 +37,23 @@
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]" />
         </record>
 
+        <!-- ============================================================
+             Bổ sung cho module dlm_material (Bảng giá Vật tư)
+        ============================================================ -->
+
+        <record id="dl_group_accountant" model="res.groups">
+            <field name="name">Kế toán nội bộ</field>
+            <field name="comment">Chủ sở hữu Bảng giá Vật tư: cập nhật đơn giá, NCC, ngày hiệu lực, đánh dấu giá không hợp lệ</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="dl_group_sales_manager" model="res.groups">
+            <field name="name">Trưởng phòng Kinh doanh</field>
+            <field name="comment">Xem (Restricted) danh mục vật tư/giá tham khảo phục vụ quản lý kinh doanh</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
     </data>
 </odoo>
