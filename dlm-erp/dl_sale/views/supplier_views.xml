@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ================================================================
-         NHÀ CUNG CẤP / THẦU PHỤ (res.partner)
-         Domain: is_dlm_supplier = True
-         Entity Proposal: A4.supplier_id -> res.partner (nullable)
-    ================================================================ -->
-
-    <!-- List view -->
     <record id="view_dl_supplier_tree" model="ir.ui.view">
         <field name="name">dlm.supplier.tree</field>
         <field name="model">res.partner</field>
@@ -24,7 +17,6 @@
         </field>
     </record>
 
-    <!-- Form view -->
     <record id="view_dl_supplier_form" model="ir.ui.view">
         <field name="name">dlm.supplier.form</field>
         <field name="model">res.partner</field>
@@ -74,7 +66,6 @@
         </field>
     </record>
 
-    <!-- Search view -->
     <record id="view_dl_supplier_search" model="ir.ui.view">
         <field name="name">dlm.supplier.search</field>
         <field name="model">res.partner</field>
@@ -95,7 +86,6 @@
         </field>
     </record>
 
-    <!-- Action window -->
     <record id="action_dl_supplier" model="ir.actions.act_window">
         <field name="name">NCC / Thầu phụ</field>
         <field name="res_model">res.partner</field>

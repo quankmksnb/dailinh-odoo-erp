@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ================================================================
-         Menu CRM & Báo giá — gắn vào menu_dl_sale của dl_base
-    ================================================================ -->
-
-    <!-- ── Khách hàng ─────────────────────────────────────────────── -->
     <menuitem
         id="menu_dl_sale_customer"
         name="Khách hàng"
@@ -15,7 +10,6 @@
         groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech"
     />
 
-    <!-- ── NCC / Thầu phụ ────────────────────────────────────────── -->
     <menuitem
         id="menu_dl_sale_supplier"
         name="NCC / Thầu phụ"
@@ -25,7 +19,6 @@
         groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba"
     />
 
-    <!-- ── Báo giá ──────────────────────────────────────────────── -->
     <menuitem
         id="menu_dl_sale_quotation"
         name="Báo giá"

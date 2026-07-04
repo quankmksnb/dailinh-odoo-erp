@@ -1,11 +1,3 @@
-// ============================================================
-//  DL-CRM & Báo giá — BIẾN & MIXIN dùng chung
-//  Các biến ($dl-*) và mixin (dl-input) được khai báo tại đây và
-//  PHẢI được nạp ĐẦU TIÊN trong bundle (xem __manifest__.py) để mọi
-//  file scss khác của module dùng được. Odoo biên dịch chung cả
-//  bundle nên biến/mixin ở file này có sẵn cho các file sau.
-// ============================================================
-
 $dl-primary:        #5b4b9e;
 $dl-primary-dark:   #4a3d84;
 $dl-blue:           #2f6fdb;
@@ -13,12 +5,16 @@ $dl-heading:        #231747;
 $dl-app-bg:         #fcfbfe;
 $dl-nav-bg:         #f6f3fb;
 $dl-active:         #e7def8;
+$dl-nav-active:     $dl-active;
 $dl-border:         #e5dfed;
 $dl-divider:        #f0ecf6;
 $dl-search-bg:      #f0ecf6;
+$dl-avatar-bg:      #6e4a8e;
+
 $dl-text:           #1c1b1f;
 $dl-text-2:         #49454f;
 $dl-text-muted:     #79747e;
+
 $dl-green:          #1b5e32;
 $dl-danger:         #ba1a1a;
 $dl-danger-border:  #f2b8b5;
@@ -26,7 +22,6 @@ $dl-danger-bg:      #fde4e4;
 
 $dl-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-// Badge trạng thái báo giá (pastel pill)
 $dl-badge-draft-bg:      #fce9c9;
 $dl-badge-draft-fg:      #7a4a00;
 $dl-badge-sent-bg:       #e6f0ff;
@@ -36,7 +31,6 @@ $dl-badge-approved-fg:   #1b5e32;
 $dl-badge-rejected-bg:   #fde4e4;
 $dl-badge-rejected-fg:   #ba1a1a;
 
-// Badge loại khách hàng
 $dl-type-individual-bg: #f0ecf6;
 $dl-type-individual-fg: #49454f;
 $dl-type-company-bg:    #e7def8;
@@ -46,19 +40,3 @@ $dl-type-dealer-fg:     #7a4a00;
 
 $dl-table-head-bg:  #f0ecf6;
 $dl-table-zebra-bg: #faf9fc;
-
-// ── Ô nhập bo góc theo Figma ────────────────────────────────
-@mixin dl-input {
-    border: 1px solid $dl-border !important;
-    border-radius: 8px;
-    padding: 7px 12px;
-    background: #fff;
-    transition: border-color .15s, box-shadow .15s;
-
-    &:focus,
-    &:focus-within {
-        border-color: $dl-primary !important;
-        box-shadow: 0 0 0 2px rgba($dl-primary, 0.14);
-        outline: 0;
-    }
-}

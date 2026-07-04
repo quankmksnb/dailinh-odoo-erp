@@ -4,7 +4,6 @@
 <t t-name="dl_base.DlHome">
     <div class="dl-home o_action" t-ref="root">
       <div class="dl-home-layout">
-        <!-- ── Sidebar điều hướng ─────────────────────────────── -->
         <aside class="dl-home-nav">
             <Dropdown class="'dl-home-brand'">
                 <t t-set-slot="toggler">
@@ -30,13 +29,11 @@
             </t>
         </aside>
 
-        <!-- ── Vùng nội dung ──────────────────────────────────── -->
         <div class="dl-home-main">
             <header class="dl-home-topbar">
                 <span class="dl-home-topbar-title">Trang chủ</span>
                 <div class="dl-home-search">Tìm kiếm…</div>
 
-                <!-- Systray Odoo: tin nhắn, hoạt động, menu người dùng -->
                 <div class="o_menu_systray dl-home-systray" role="menu">
                     <t t-foreach="systrayItems" t-as="item" t-key="item.key">
                         <ErrorHandler onError="(error) => this.handleItemError(error, item)">
@@ -47,7 +44,6 @@
             </header>
 
             <div class="dl-home-content">
-                <!-- Lời chào -->
                 <div class="dl-home-hello">
                     <p class="dl-home-hello-title">
                         <t t-esc="greeting"/>, <t t-esc="userName"/>
@@ -55,7 +51,6 @@
                     <p class="dl-home-hello-sub">3 báo giá đang chờ bạn phê duyệt.</p>
                 </div>
 
-                <!-- KPI -->
                 <div class="dl-home-kpi">
                     <t t-foreach="stats" t-as="stat" t-key="stat.key">
                         <div class="dl-home-stat">
@@ -69,7 +64,6 @@
                     </t>
                 </div>
 
-                <!-- Báo giá gần đây -->
                 <div class="dl-home-recent">
                     <div class="dl-home-recent-head">
                         <span class="dl-home-recent-title">Báo giá gần đây</span>

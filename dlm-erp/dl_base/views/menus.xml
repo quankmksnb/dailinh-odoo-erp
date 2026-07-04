@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ================================================================
-         ROOT — DL ERP (App icon trên home screen)
-         action_dl_home: client action dashboard tổng quan
-    ================================================================ -->
     <menuitem
         id="menu_dl_root"
         name="DLM-ERP"
@@ -13,12 +9,6 @@
         action="action_dl_home"
     />
 
-    <!-- ================================================================
-         1. CRM & BÁO GIÁ
-         Module: dl_sale
-         Entity: A1 (customer), D0-D2 (quotation), E1-E3 (approval)
-         — dl_sale sẽ thêm các leaf menu vào đây
-    ================================================================ -->
     <menuitem
         id="menu_dl_sale"
         name="CRM &amp; Báo giá"
@@ -26,11 +16,6 @@
         sequence="10"
     />
 
-    <!-- ================================================================
-         2. KỸ THUẬT
-         Module: dlm_technical
-         Entity: A2 (product.category), A3 (product), B1-B4 (BOM)
-    ================================================================ -->
     <menuitem
         id="menu_dl_technical"
         name="Kỹ thuật"
@@ -38,12 +23,6 @@
         sequence="20"
     />
 
-    <!-- ================================================================
-         3. VẬT TƯ
-         Module: dlm_material
-         Entity: A4 (material), A5 (labor.type), C1-C2 (pricing)
-         Phase 2: kết nối Inventory (stock.move)
-    ================================================================ -->
     <menuitem
         id="menu_dl_material"
         name="Vật tư"
@@ -51,11 +30,6 @@
         sequence="30"
     />
 
-    <!-- ================================================================
-         4. BÁO CÁO / DASHBOARD
-         Module: dlm_dashboard
-         Entity: KPI báo giá, margin, win-rate, chờ duyệt
-    ================================================================ -->
     <menuitem
         id="menu_dl_report"
         name="Báo cáo"
@@ -63,12 +37,6 @@
         sequence="40"
     />
 
-    <!-- ================================================================
-         5. CẤU HÌNH
-         Module: dlm_config
-         Entity: F1-F4 (config), G1-G2 (audit/log)
-         Chỉ CEO và Admin/IT mới thấy menu này
-    ================================================================ -->
     <menuitem
         id="menu_dl_config"
         name="Cấu hình"
