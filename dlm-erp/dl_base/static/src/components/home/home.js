@@ -40,7 +40,7 @@ const NAV_ITEMS = [
         key: "material",
         name: "Vật tư",
         icon: "fa-cubes",
-        actionXmlId: null,
+        actionXmlId: "dlm_material.action_dl_material",
     },
     {
         key: "report",

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem
+        id="menu_dl_config_currency"
+        name="Tiền tệ"
+        parent="dl_base.menu_dl_config"
+        sequence="10"
+        action="action_dl_currency"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
+    />
+
+    <menuitem
+        id="menu_dl_config_uom"
+        name="Đơn vị tính"
+        parent="dl_base.menu_dl_config"
+        sequence="20"
+        action="action_dl_uom"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
+    />
+
+    <menuitem
+        id="menu_dl_config_vat"
+        name="Thuế VAT"
+        parent="dl_base.menu_dl_config"
+        sequence="30"
+        action="action_dl_vat"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
+    />
+
+    <menuitem
+        id="menu_dl_config_company"
+        name="Công ty"
+        parent="dl_base.menu_dl_config"
+        sequence="40"
+        action="action_dl_company"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
+    />
+
+</odoo>

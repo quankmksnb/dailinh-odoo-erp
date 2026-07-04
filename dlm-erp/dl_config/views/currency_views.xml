@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_dl_currency_tree" model="ir.ui.view">
+        <field name="name">dl.currency.tree</field>
+        <field name="model">res.currency</field>
+        <field name="arch" type="xml">
+            <tree string="Tiền tệ" class="dl-currency-list" js_class="dl_currency_list"
+                  create="true" edit="true" decoration-muted="active == False">
+                <field name="name" string="Mã"/>
+                <field name="full_name" string="Tên"/>
+                <field name="symbol" string="Ký hiệu"/>
+                <field name="rate" string="Tỷ giá" digits="[16, 6]"/>
+                <field name="position" string="Vị trí ký hiệu"/>
+                <field name="active" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_currency_form" model="ir.ui.view">
+        <field name="name">dl.currency.form</field>
+        <field name="model">res.currency</field>
+        <field name="arch" type="xml">
+            <form string="Tiền tệ" class="dl-currency-form" js_class="dl_currency_form">
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <div class="oe_title">
+                        <label for="name" string="Mã tiền tệ"/>
+                        <h1><field name="name" placeholder="VND"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Thông tin">
+                            <field name="full_name" string="Tên đầy đủ"
+                                   placeholder="Việt Nam Đồng"/>
+                            <field name="symbol" string="Ký hiệu" placeholder="₫"/>
+                            <field name="position" string="Vị trí ký hiệu"
+                                   widget="radio" options="{'horizontal': true}"
+                                   class="dl-seg" nolabel="0"/>
+                        </group>
+                        <group string="Định dạng số">
+                            <field name="rounding" string="Bước làm tròn"/>
+                            <field name="decimal_places" string="Số chữ số thập phân"
+                                   readonly="1"/>
+                            <field name="rate" string="Tỷ giá hiện tại"
+                                   digits="[16, 6]" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_currency_search" model="ir.ui.view">
+        <field name="name">dl.currency.search</field>
+        <field name="model">res.currency</field>
+        <field name="arch" type="xml">
+            <search string="Tìm tiền tệ">
+                <field name="name" string="Mã"/>
+                <field name="full_name" string="Tên"/>
+                <field name="symbol" string="Ký hiệu"/>
+                <separator/>
+                <filter name="filter_active" string="Đang dùng"
+                        domain="[('active', '=', True)]"/>
+                <filter name="filter_inactive" string="Đã ẩn"
+                        domain="[('active', '=', False)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_position" string="Vị trí ký hiệu"
+                            context="{'group_by': 'position'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_currency" model="ir.actions.act_window">
+        <field name="name">Tiền tệ</field>
+        <field name="res_model">res.currency</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'active_test': False}</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_currency_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_currency_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_currency_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có loại tiền tệ nào phù hợp.</p>
+            <p>Quản lý danh mục tiền tệ dùng trong báo giá và kế toán.</p>
+        </field>
+    </record>
+
+</odoo>

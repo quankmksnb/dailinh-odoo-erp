@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_dl_uom_tree" model="ir.ui.view">
+        <field name="name">dl.uom.tree</field>
+        <field name="model">uom.uom</field>
+        <field name="arch" type="xml">
+            <tree string="Đơn vị tính" class="dl-uom-list" js_class="dl_uom_list"
+                  create="true" edit="true" decoration-muted="active == False">
+                <field name="name" string="Tên đơn vị"/>
+                <field name="category_id" string="Nhóm đơn vị"/>
+                <field name="uom_type" string="Loại"/>
+                <field name="ratio" string="Tỷ lệ quy đổi" digits="[16, 4]"/>
+                <field name="active" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_uom_form" model="ir.ui.view">
+        <field name="name">dl.uom.form</field>
+        <field name="model">uom.uom</field>
+        <field name="arch" type="xml">
+            <form string="Đơn vị tính" class="dl-uom-form" js_class="dl_uom_form">
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <div class="oe_title">
+                        <label for="name" string="Tên đơn vị"/>
+                        <h1><field name="name" placeholder="Cái, Kg, Mét..."/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Phân loại">
+                            <field name="category_id" string="Nhóm đơn vị"/>
+                            <field name="uom_type" string="Loại"
+                                   widget="radio" options="{'horizontal': true}"
+                                   class="dl-seg"/>
+                        </group>
+                        <group string="Quy đổi">
+                            <field name="ratio" string="Tỷ lệ quy đổi"
+                                   digits="[16, 4]"
+                                   readonly="uom_type == 'reference'"/>
+                            <field name="rounding" string="Bước làm tròn"
+                                   digits="[16, 4]"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_uom_search" model="ir.ui.view">
+        <field name="name">dl.uom.search</field>
+        <field name="model">uom.uom</field>
+        <field name="arch" type="xml">
+            <search string="Tìm đơn vị tính">
+                <field name="name" string="Tên"/>
+                <field name="category_id" string="Nhóm đơn vị"/>
+                <separator/>
+                <filter name="filter_reference" string="Tham chiếu"
+                        domain="[('uom_type', '=', 'reference')]"/>
+                <filter name="filter_bigger" string="Lớn hơn"
+                        domain="[('uom_type', '=', 'bigger')]"/>
+                <filter name="filter_smaller" string="Nhỏ hơn"
+                        domain="[('uom_type', '=', 'smaller')]"/>
+                <separator/>
+                <filter name="filter_active" string="Đang dùng"
+                        domain="[('active', '=', True)]"/>
+                <filter name="filter_inactive" string="Đã ẩn"
+                        domain="[('active', '=', False)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_category" string="Nhóm đơn vị"
+                            context="{'group_by': 'category_id'}"/>
+                    <filter name="group_type" string="Loại"
+                            context="{'group_by': 'uom_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_uom" model="ir.actions.act_window">
+        <field name="name">Đơn vị tính</field>
+        <field name="res_model">uom.uom</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_uom_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_uom_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_uom_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có đơn vị tính nào phù hợp.</p>
+            <p>Quản lý đơn vị tính và nhóm quy đổi dùng trong báo giá, vật tư.</p>
+        </field>
+    </record>
+
+</odoo>

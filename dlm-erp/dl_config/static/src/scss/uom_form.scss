@@ -1,0 +1,72 @@
+.dl-uom-form {
+    font-family: $dl-font;
+    color: $dl-text;
+    background: $dl-app-bg;
+
+    .o_form_sheet_bg { background: $dl-app-bg; border: 0; }
+    .o_form_sheet {
+        max-width: 100%;
+        border: 0;
+        box-shadow: none;
+        background: $dl-app-bg;
+        padding: 8px 24px 24px;
+    }
+
+    .oe_title { margin-bottom: 18px !important; }
+    .oe_title h1 {
+        .o_field_widget, input {
+            font-size: 26px;
+            font-weight: 700;
+            color: $dl-heading;
+        }
+    }
+
+    .o_form_label,
+    .o_inner_group label {
+        color: $dl-text-2;
+        font-weight: 500;
+        font-size: 13px;
+    }
+
+    .o_horizontal_separator,
+    .o_inner_group > .o_horizontal_separator {
+        color: $dl-primary;
+        text-transform: uppercase;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    .o_group .o_field_widget input.o_input,
+    .o_group .o_field_many2one .o_input,
+    .o_group .o_field_widget .o_input_dropdown input {
+        @include dl-input;
+    }
+
+    .dl-seg {
+        .o_radio_input,
+        input[type="radio"] { display: none; }
+
+        .o_radio_item { display: inline-flex; margin-right: 8px; }
+
+        .o_radio_item > label,
+        .o_radio_item label {
+            margin: 0;
+            padding: 5px 16px;
+            border: 1px solid $dl-border;
+            border-radius: 999px;
+            font-size: 13px;
+            color: $dl-text-2;
+            cursor: pointer;
+            transition: all .15s;
+        }
+
+        .o_radio_input:checked + label,
+        input[type="radio"]:checked + label {
+            background: $dl-primary;
+            border-color: $dl-primary;
+            color: #fff;
+            font-weight: 500;
+        }
+    }
+}
