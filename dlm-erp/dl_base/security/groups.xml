@@ -10,30 +10,31 @@
         <!-- Tất cả user DLM đều implied group_user -->
         <record id="dl_group_ceo" model="res.groups">
             <field name="name">CEO</field>
-            <field name="comment">Phê duyệt báo giá, cấu hình kinh doanh (F2, F3, E1), override margin</field>
-            <field name="category_id" ref="base.module_category_hidden"/>
-            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Phê duyệt báo giá, cấu hình kinh doanh (F2, F3, E1), override
+                margin</field>
+            <field name="category_id" ref="base.module_category_hidden" />
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]" />
         </record>
 
         <record id="dl_group_admin" model="res.groups">
             <field name="name">Admin/IT</field>
             <field name="comment">Quản trị hệ thống, cấu hình kỹ thuật (F1, F4), tạo user</field>
-            <field name="category_id" ref="base.module_category_hidden"/>
-            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="category_id" ref="base.module_category_hidden" />
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]" />
         </record>
 
         <record id="dl_group_ba" model="res.groups">
             <field name="name">BA/Sales</field>
             <field name="comment">Tạo và chỉnh sửa báo giá, xem lịch sử phê duyệt</field>
-            <field name="category_id" ref="base.module_category_hidden"/>
-            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="category_id" ref="base.module_category_hidden" />
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]" />
         </record>
 
         <record id="dl_group_tech" model="res.groups">
             <field name="name">Kỹ thuật</field>
             <field name="comment">Quản lý BOM, bản vẽ, vật tư — KHÔNG thấy giá bán cuối</field>
-            <field name="category_id" ref="base.module_category_hidden"/>
-            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="category_id" ref="base.module_category_hidden" />
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]" />
         </record>
 
     </data>
