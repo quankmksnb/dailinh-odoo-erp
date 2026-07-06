@@ -9,6 +9,7 @@
                   decoration-muted="active == False">
                 <field name="avatar_128" widget="image" class="dl-customer-avatar"
                        options="{'preview_image': 'avatar_128'}" nolabel="1"/>
+                <field name="dlm_code" string="Mã KH"/>
                 <field name="name" string="Tên khách hàng"/>
                 <field name="customer_type" string="Loại" widget="badge"
                        decoration-info="customer_type == 'company'"
@@ -68,9 +69,33 @@
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
             <form string="Khách hàng" class="dl-customer-form" js_class="dl_customer_form">
+                <header>
+                    <!-- Vô hiệu hóa / kích hoạt: chỉ Trưởng KD + Admin (Sales không được) -->
+                    <button name="toggle_active" type="object" string="Vô hiệu hóa KH"
+                            class="btn-secondary" invisible="not active"
+                            confirm="Vô hiệu hóa khách hàng này? Dữ liệu cũ được giữ nguyên; KH sẽ không xuất hiện khi tạo báo giá/RFQ mới."
+                            groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                    <button name="toggle_active" type="object" string="Kích hoạt lại"
+                            class="btn-secondary" invisible="active"
+                            groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                </header>
                 <sheet>
                     <!-- luôn True khi tạo từ menu Khách hàng (default trong context) -->
                     <field name="is_dlm_customer" invisible="1"/>
+                    <field name="active" invisible="1"/>
+                    <field name="dlm_split_warning" invisible="1"/>
+
+                    <widget name="web_ribbon" title="Ngừng hợp tác"
+                            bg_color="text-bg-danger" invisible="active"/>
+
+                    <!-- Cảnh báo gộp đơn (chống chia nhỏ né duyệt) -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not dlm_split_warning">
+                        <i class="fa fa-exclamation-triangle"/>
+                        <strong>Cảnh báo gộp đơn:</strong>
+                        KH này có <field name="dlm_recent_quote_count" class="oe_inline"/> báo giá
+                        trong 7 ngày gần đây — kiểm tra khả năng chia nhỏ để né duyệt.
+                    </div>
 
                     <div class="dl-cust-head">
                         <field name="image_1920" widget="image"
@@ -81,6 +106,9 @@
                             <h1>
                                 <field name="name" placeholder="Tên khách hàng..."/>
                             </h1>
+                            <div class="dl-cust-code" invisible="not dlm_code">
+                                Mã KH: <field name="dlm_code" class="oe_inline"/>
+                            </div>
                             <field name="customer_type" widget="radio"
                                    options="{'horizontal': true}" nolabel="1"
                                    class="dl-cust-type-seg"/>
@@ -95,6 +123,8 @@
                             <field name="tax_code" string="Mã số thuế (MST)"
                                    readonly="customer_type == 'individual'"
                                    placeholder="Ẩn với Cá nhân"/>
+                            <field name="dlm_allow_dup_tax"
+                                   invisible="customer_type == 'individual'"/>
                         </group>
                         <group string="Địa chỉ">
                             <field name="street" string="Đường"
@@ -107,8 +137,59 @@
                     </group>
 
                     <notebook>
+                        <page string="Người liên hệ" name="contacts">
+                            <field name="child_ids" context="{'default_type': 'contact'}">
+                                <tree editable="bottom">
+                                    <field name="name" string="Họ tên"/>
+                                    <field name="function" string="Chức vụ"/>
+                                    <field name="phone" string="Điện thoại"/>
+                                    <field name="email" widget="email"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <page string="Lịch sử Báo giá" name="quote_history">
+                            <group>
+                                <group>
+                                    <field name="dlm_quotation_count" string="Tổng số báo giá"/>
+                                </group>
+                                <group groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
+                                    <field name="dlm_win_rate" string="Win rate (%)"
+                                           widget="float" digits="[16, 1]"/>
+                                </group>
+                            </group>
+                            <field name="dlm_quotation_ids" nolabel="1" readonly="1">
+                                <tree string="Báo giá" create="false" delete="false"
+                                      decoration-success="state == 'approved'"
+                                      decoration-danger="state == 'rejected'"
+                                      decoration-info="state == 'sent'">
+                                    <field name="name" string="Số BG"/>
+                                    <field name="date_order" string="Ngày"/>
+                                    <field name="amount_total" string="Giá trị" widget="monetary"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="state" string="Trạng thái" widget="badge"
+                                           decoration-success="state == 'approved'"
+                                           decoration-danger="state == 'rejected'"
+                                           decoration-info="state == 'sent'"/>
+                                </tree>
+                            </field>
+                        </page>
+
                         <page string="Ghi chú nội bộ" name="notes">
-                            <field name="comment" placeholder="Ghi chú..."/>
+                            <field name="comment" placeholder="Ghi chú, yêu cầu đặc biệt, chính sách giá riêng..."/>
+                        </page>
+
+                        <page string="Thông tin hệ thống" name="audit">
+                            <group>
+                                <group string="Khởi tạo">
+                                    <field name="create_uid" string="Người tạo" readonly="1"/>
+                                    <field name="create_date" string="Ngày tạo" readonly="1"/>
+                                </group>
+                                <group string="Cập nhật gần nhất">
+                                    <field name="write_uid" string="Người sửa" readonly="1"/>
+                                    <field name="write_date" string="Ngày sửa" readonly="1"/>
+                                </group>
+                            </group>
                         </page>
                     </notebook>
                 </sheet>
@@ -127,6 +208,7 @@
         <field name="arch" type="xml">
             <search string="Tìm khách hàng">
                 <field name="name" string="Tên" filter_domain="[('name', 'ilike', self)]"/>
+                <field name="dlm_code" string="Mã KH"/>
                 <field name="phone"/>
                 <field name="email"/>
                 <field name="tax_code" string="MST"/>
@@ -151,6 +233,15 @@
                 </group>
             </search>
         </field>
+    </record>
+
+    <!-- Sequence mã KH (KH-0001) -->
+    <record id="seq_dlm_customer" model="ir.sequence">
+        <field name="name">DLM Khách hàng</field>
+        <field name="code">dlm.customer</field>
+        <field name="prefix">KH-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
     </record>
 
     <record id="action_dl_customer" model="ir.actions.act_window">

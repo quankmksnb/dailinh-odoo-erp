@@ -49,14 +49,15 @@
         <field name="model">dl.material.price</field>
         <field name="arch" type="xml">
             <tree string="Bảng giá Vật tư" create="0"
+                  class="dl-material-price-list" js_class="dl_material_price_list"
                   decoration-danger="status == 'expired'"
                   decoration-muted="status == 'invalid'">
-                <field name="material_id"/>
-                <field name="supplier_id"/>
-                <field name="unit_price"/>
-                <field name="valid_from"/>
-                <field name="valid_to"/>
-                <field name="status" widget="badge"/>
+                <field name="material_id" string="Vật tư"/>
+                <field name="supplier_id" string="Nhà cung cấp"/>
+                <field name="unit_price" string="Đơn giá"/>
+                <field name="valid_from" string="Hiệu lực từ"/>
+                <field name="valid_to" string="Đến"/>
+                <field name="status" string="Trạng thái" widget="badge"/>
             </tree>
         </field>
     </record>

@@ -10,19 +10,21 @@
         <field name="name">dlm.material.tree</field>
         <field name="model">dl.material</field>
         <field name="arch" type="xml">
-            <tree string="Danh mục Vật tư"
-                  decoration-danger="price_status == 'expired'"
-                  decoration-warning="price_status == 'warning'"
+            <tree string="Danh mục Vật tư" class="dl-material-list" js_class="dl_material_list"
                   decoration-muted="status == 'discontinued'">
-                <field name="code"/>
-                <field name="name"/>
-                <field name="category"/>
-                <field name="unit"/>
-                <field name="status" widget="badge"
+                <field name="code" string="Mã VT"/>
+                <field name="name" string="Tên vật tư"/>
+                <field name="category" string="Nhóm vật tư"/>
+                <field name="unit" string="ĐVT"/>
+                <field name="status" string="Trạng thái" widget="badge"
                        decoration-info="status == 'draft'"
                        decoration-success="status == 'active'"
                        decoration-muted="status == 'discontinued'"/>
-                <field name="price_status" invisible="1"/>
+                <field name="price_status" string="Tình trạng giá" widget="badge"
+                       decoration-success="price_status == 'ok'"
+                       decoration-warning="price_status == 'warning'"
+                       decoration-danger="price_status == 'expired'"
+                       decoration-muted="price_status == 'none'"/>
             </tree>
         </field>
     </record>
@@ -32,7 +34,7 @@
         <field name="name">dlm.material.form</field>
         <field name="model">dl.material</field>
         <field name="arch" type="xml">
-            <form string="Vật tư">
+            <form string="Vật tư" class="dl-material-form" js_class="dl_material_form">
                 <header>
                     <button name="action_activate" type="object" string="Kích hoạt"
                             class="oe_highlight" groups="dl_base.dl_group_accountant"

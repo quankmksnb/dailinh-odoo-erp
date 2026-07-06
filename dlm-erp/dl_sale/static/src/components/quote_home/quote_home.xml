@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_sale.DlQuoteHome">
+    <div class="dl-quote-home o_action">
+        <div class="dl-quote-home-inner">
+            <!-- Page header: tiêu đề + hành động nghiệp vụ báo giá -->
+            <div class="dl-quote-home-head">
+                <div class="dl-quote-home-head-main">
+                    <h1 class="dl-quote-home-title">Báo giá</h1>
+                    <span class="dl-quote-home-subtitle">Lập, xử lý và tiếp nhận yêu cầu báo giá</span>
+                </div>
+                <button class="dl-quote-home-btn primary"
+                        t-on-click="() => this.openCard('dl_sale.action_dl_rfq')">
+                    <i class="fa fa-plus"/> Tạo báo giá mới
+                </button>
+            </div>
+
+            <!-- Lối vào nghiệp vụ dạng hàng nén -->
+            <div class="dl-quote-home-section-label">Lối vào</div>
+            <div class="dl-quote-home-rows">
+                <t t-foreach="cards" t-as="c" t-key="c.key">
+                    <div class="dl-quote-home-row"
+                         t-att-class="{ 'is-disabled': !c.actionXmlId }"
+                         t-on-click="() => this.openCard(c.actionXmlId)">
+                        <span class="dl-quote-home-row-icon">
+                            <i t-att-class="'fa ' + c.icon"/>
+                        </span>
+                        <span class="dl-quote-home-row-body">
+                            <span class="dl-quote-home-row-name" t-esc="c.name"/>
+                            <span class="dl-quote-home-row-desc" t-esc="c.desc"/>
+                        </span>
+                        <i class="fa fa-angle-right dl-quote-home-row-arrow"/>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </div>
+</t>
+
+</templates>

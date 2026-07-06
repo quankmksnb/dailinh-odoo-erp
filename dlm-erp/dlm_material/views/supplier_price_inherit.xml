@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- S04 ↔ S06: thêm tab 'Giá vật tư' vào form NCC (dl_sale) -->
+    <record id="view_dl_supplier_form_prices" model="ir.ui.view">
+        <field name="name">dlm.supplier.form.prices</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="dl_sale.view_dl_supplier_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='notes']" position="before">
+                <page string="Giá vật tư" name="material_prices">
+                    <field name="dlm_supplier_price_ids" nolabel="1" readonly="1">
+                        <tree string="Giá vật tư cung cấp" create="false" delete="false"
+                              decoration-muted="status == 'expired'"
+                              decoration-danger="status == 'invalid'">
+                            <field name="material_id" string="Vật tư"/>
+                            <field name="unit_price" string="Đơn giá"/>
+                            <field name="valid_from" string="Hiệu lực từ"/>
+                            <field name="valid_to" string="Đến"/>
+                            <field name="status" string="Trạng thái" widget="badge"
+                                   decoration-success="status == 'active'"
+                                   decoration-muted="status == 'expired'"
+                                   decoration-danger="status == 'invalid'"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

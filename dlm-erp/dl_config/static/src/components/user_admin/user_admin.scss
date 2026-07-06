@@ -1,0 +1,261 @@
+// ============================================================================
+// S01 — Quản lý User & Phân quyền (mock)
+// Master-detail: danh sách user (trái) + chi tiết (phải). Dùng token dl_base.
+// ============================================================================
+.dl-user {
+    background: $dl-app-bg;
+    font-family: $dl-font;
+    color: $dl-text;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+
+    .dl-user-inner {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 18px 20px 24px;
+    }
+
+    // --- Header --------------------------------------------------------------
+    .dl-user-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid $dl-border;
+    }
+    .dl-user-head-main { display: flex; flex-direction: column; gap: 2px; }
+    .dl-user-title { margin: 0; font-size: 18px; font-weight: 700; color: $dl-heading; line-height: 1.2; }
+    .dl-user-subtitle { font-size: 12px; color: $dl-text-muted; }
+
+    .dl-user-btn-new {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 0; border-radius: $dl-radius-sm;
+        background: $dl-primary; color: #fff;
+        font-size: 13px; font-weight: 600;
+        padding: 7px 14px; cursor: pointer;
+        transition: background-color .1s;
+        &:hover { background: $dl-primary-dark; }
+    }
+
+    // --- Body: 2 cột ---------------------------------------------------------
+    .dl-user-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        gap: 16px;
+    }
+    @media (max-width: 980px) {
+        .dl-user-body { grid-template-columns: 1fr; }
+    }
+
+    // --- Cột danh sách -------------------------------------------------------
+    .dl-user-list-col { display: flex; flex-direction: column; min-height: 0; }
+
+    .dl-user-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
+    .dl-user-search {
+        flex: 1 1 auto;
+        display: flex; align-items: center; gap: 8px;
+        background: $dl-surface;
+        border: 1px solid $dl-border; border-radius: $dl-radius-sm;
+        padding: 0 10px;
+        > i { color: $dl-text-muted; font-size: 13px; }
+        input { flex: 1 1 auto; border: 0; outline: 0; background: transparent; padding: 7px 0; font-size: 13px; color: $dl-text; }
+    }
+    .dl-user-filter {
+        @include dl-input;
+        font-size: 13px; padding: 6px 8px; cursor: pointer; background: $dl-surface;
+    }
+
+    .dl-user-table-wrap {
+        flex: 1 1 auto; min-height: 0; overflow-y: auto;
+        border: 1px solid $dl-border; border-radius: $dl-radius; background: $dl-surface;
+    }
+    .dl-user-table {
+        width: 100%; border-collapse: collapse; font-size: 13px;
+        thead th {
+            position: sticky; top: 0; z-index: 1;
+            background: $dl-table-head-bg; color: $dl-text-2;
+            text-align: left; font-weight: 600; font-size: 12px;
+            padding: 8px 12px; border-bottom: 1px solid $dl-border; white-space: nowrap;
+        }
+        tbody td { padding: $dl-cell-y 12px; border-top: 1px solid $dl-divider; vertical-align: middle; }
+        tbody tr { cursor: pointer; transition: background-color .1s; }
+        tbody tr:hover { background: $dl-active; }
+        tbody tr.is-selected { background: $dl-active; box-shadow: inset 3px 0 0 $dl-primary; }
+        tbody tr.is-locked .dl-user-cell-fullname { color: $dl-text-muted; }
+    }
+    .dl-user-empty { text-align: center; color: $dl-text-muted; padding: 22px 0 !important; }
+
+    .dl-user-cell-name { display: flex; align-items: center; gap: 9px; }
+    .dl-user-cell-main { display: flex; flex-direction: column; min-width: 0; }
+    .dl-user-cell-fullname { font-weight: 600; color: $dl-heading; }
+    .dl-user-cell-email { font-size: 11px; color: $dl-text-muted; }
+
+    .dl-user-avatar {
+        width: 28px; height: 28px; flex-shrink: 0;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 50%; background: $dl-avatar-bg; color: #fff;
+        font-size: 13px; font-weight: 700; text-transform: uppercase;
+        &.lg { width: 40px; height: 40px; font-size: 17px; }
+    }
+
+    .dl-user-role-tag {
+        display: inline-block; font-size: 11px; font-weight: 600;
+        padding: 2px 8px; border-radius: $dl-radius-sm;
+        background: $dl-type-company-bg; color: $dl-type-company-fg;
+    }
+
+    .dl-user-status {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 12px; font-weight: 600;
+        &.on { color: $dl-green; }
+        &.off { color: $dl-danger; }
+    }
+
+    // --- Cột chi tiết --------------------------------------------------------
+    .dl-user-detail-col {
+        min-height: 0; overflow-y: auto;
+        border: 1px solid $dl-border; border-radius: $dl-radius;
+        background: $dl-surface; padding: 16px 16px 20px;
+    }
+
+    .dl-user-detail-head { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid $dl-divider; }
+    .dl-user-detail-id { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .dl-user-detail-name { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: $dl-heading; }
+    .dl-user-detail-sub { font-size: 12px; color: $dl-text-muted; }
+
+    .dl-user-actions { display: flex; gap: 8px; margin: 14px 0 4px; }
+    .dl-user-act {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid $dl-border; border-radius: $dl-radius-sm;
+        background: $dl-surface; color: $dl-text;
+        font-size: 12.5px; font-weight: 600; padding: 6px 12px; cursor: pointer;
+        transition: background-color .1s, border-color .1s;
+        &:hover { background: $dl-active; }
+        &.danger { color: $dl-danger; border-color: $dl-danger-border; &:hover { background: $dl-danger-bg; } }
+        &.ok { color: $dl-green; border-color: #bfe0c9; &:hover { background: $dl-badge-approved-bg; } }
+    }
+
+    .dl-user-section { margin-top: 18px; }
+    .dl-user-section-label {
+        font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+        color: $dl-section-fg; margin-bottom: 9px;
+        display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    }
+    .dl-user-hint-inline { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 11px; color: $dl-text-muted; }
+
+    .dl-user-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+    .dl-user-field { display: flex; flex-direction: column; gap: 3px; min-width: 0;
+        .k { font-size: 11px; color: $dl-text-muted; }
+        .v { font-size: 13px; color: $dl-text; font-weight: 500; }
+    }
+
+    .dl-user-inline-select {
+        @include dl-input;
+        font-size: 13px; padding: 5px 8px; cursor: pointer; background: $dl-surface;
+        &.wide { width: 100%; }
+    }
+
+    // --- Quyền theo vai trò --------------------------------------------------
+    .dl-user-perms { display: flex; flex-direction: column; border: 1px solid $dl-border; border-radius: $dl-radius; overflow: hidden; }
+    .dl-user-perm {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        padding: 7px 12px; border-top: 1px solid $dl-divider; font-size: 13px;
+        &:first-child { border-top: 0; }
+    }
+    .dl-user-perm-screen b { color: $dl-primary; margin-right: 4px; }
+    .dl-user-perm-empty { padding: 10px 12px; font-size: 12px; color: $dl-text-muted; }
+    .dl-user-perm-lvl {
+        font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+        background: $dl-search-bg; color: $dl-text-2;
+        &.full { background: $dl-badge-approved-bg; color: $dl-badge-approved-fg; }
+        &.view { background: $dl-badge-sent-bg; color: $dl-badge-sent-fg; }
+        &.l1 { background: $dl-badge-draft-bg; color: $dl-badge-draft-fg; }
+        &.limited { background: $dl-type-dealer-bg; color: $dl-type-dealer-fg; }
+    }
+
+    // --- Audit log -----------------------------------------------------------
+    .dl-user-audit { display: flex; flex-direction: column; gap: 0; padding-left: 4px; }
+    .dl-user-audit-row { display: flex; gap: 10px; position: relative; padding-bottom: 12px;
+        &:not(:last-child)::before { content: ""; position: absolute; left: 4px; top: 12px; bottom: 0; width: 1px; background: $dl-divider; }
+    }
+    .dl-user-audit-dot { width: 9px; height: 9px; flex-shrink: 0; margin-top: 3px; border-radius: 50%; background: $dl-primary; box-shadow: 0 0 0 2px rgba($dl-primary, 0.15); z-index: 1; }
+    .dl-user-audit-body { flex: 1 1 auto; min-width: 0; }
+    .dl-user-audit-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .dl-user-audit-action { font-size: 13px; font-weight: 600; color: $dl-heading; }
+    .dl-user-audit-time { font-size: 11px; color: $dl-text-muted; white-space: nowrap; }
+    .dl-user-audit-detail { font-size: 12px; color: $dl-text-2; }
+
+    // --- Modal / Dialog ------------------------------------------------------
+    .dl-user-modal-backdrop {
+        position: absolute; inset: 0; z-index: 50;
+        background: rgba(28, 39, 51, 0.35);
+        display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .dl-user-modal {
+        width: 100%; max-width: 440px; background: $dl-surface;
+        border-radius: $dl-radius-lg; box-shadow: $dl-shadow-pop; overflow: hidden;
+        display: flex; flex-direction: column;
+    }
+    .dl-user-modal-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 12px 16px; border-bottom: 1px solid $dl-divider;
+    }
+    .dl-user-modal-title { font-size: 14px; font-weight: 700; color: $dl-heading; display: inline-flex; align-items: center; gap: 8px; i { color: $dl-primary; } }
+    .dl-user-modal-close { border: 0; background: transparent; color: $dl-text-muted; cursor: pointer; font-size: 15px; padding: 2px 6px; &:hover { color: $dl-text; } }
+    .dl-user-modal-body { padding: 14px 16px; display: flex; flex-direction: column; }
+    .dl-user-flabel { font-size: 12px; font-weight: 600; color: $dl-text-2; margin: 8px 0 4px; .req { color: $dl-danger; } }
+    .dl-user-finput { @include dl-input; font-size: 13px; width: 100%; &.is-err { border-color: $dl-danger !important; } }
+    .dl-user-ferr { font-size: 11px; color: $dl-danger; margin-top: 4px; }
+    .dl-user-modal-note {
+        margin-top: 14px; font-size: 12px; color: $dl-text-2;
+        background: $dl-active; border-radius: $dl-radius-sm; padding: 8px 10px;
+        i { color: $dl-primary; margin-right: 4px; }
+    }
+    .dl-user-modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid $dl-divider; }
+
+    .dl-user-mbtn {
+        border: 1px solid $dl-border; border-radius: $dl-radius-sm; background: $dl-surface; color: $dl-text;
+        font-size: 13px; font-weight: 600; padding: 7px 16px; cursor: pointer; transition: background-color .1s;
+        &:hover { background: $dl-active; }
+        &.primary { background: $dl-primary; border-color: $dl-primary; color: #fff; &:hover { background: $dl-primary-dark; } }
+        &.danger { background: $dl-danger; border-color: $dl-danger; color: #fff; &:hover { filter: brightness(0.94); } }
+        &.ghost { color: $dl-text-2; }
+        &:disabled { opacity: 0.5; cursor: not-allowed; &:hover { background: $dl-primary; } }
+    }
+
+    // --- Dialog (confirm/block) ---------------------------------------------
+    .dl-user-dialog {
+        width: 100%; max-width: 420px; background: $dl-surface;
+        border-radius: $dl-radius-lg; box-shadow: $dl-shadow-pop;
+        padding: 22px 22px 16px; text-align: center;
+    }
+    .dl-user-dialog-icon {
+        width: 46px; height: 46px; margin: 0 auto 12px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; font-size: 20px;
+        background: $dl-badge-draft-bg; color: $dl-badge-draft-fg;
+        &.block { background: $dl-danger-bg; color: $dl-danger; }
+    }
+    .dl-user-dialog-title { font-size: 15px; font-weight: 700; color: $dl-heading; margin-bottom: 6px; }
+    .dl-user-dialog-msg { font-size: 13px; color: $dl-text-2; line-height: 1.5; margin-bottom: 18px; }
+    .dl-user-dialog-foot { display: flex; justify-content: center; gap: 8px; }
+
+    // --- Toast ---------------------------------------------------------------
+    .dl-user-toast {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 60;
+        display: inline-flex; align-items: center; gap: 8px;
+        background: $dl-heading; color: #fff; font-size: 13px; font-weight: 500;
+        padding: 10px 16px; border-radius: $dl-radius; box-shadow: $dl-shadow-pop;
+        i { color: #6bd08b; }
+    }
+}

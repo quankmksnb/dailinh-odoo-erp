@@ -3,6 +3,16 @@
     color: $dl-text;
     background: $dl-app-bg;
 
+    // Mã KH tự sinh hiển thị dưới tên (S03)
+    .dl-cust-code {
+        font-size: 12px;
+        font-weight: 600;
+        color: $dl-text-muted;
+        margin: 2px 0 6px;
+
+        .o_field_widget { font-weight: 700; color: $dl-primary; }
+    }
+
     .o_form_sheet_bg { background: $dl-app-bg; border: 0; }
     .o_form_sheet {
         max-width: 100%;
@@ -10,6 +20,8 @@
         box-shadow: none;
         background: $dl-app-bg;
     }
+
+    .o_inner_group { row-gap: 4px; }
 
     .dl-cust-head {
         display: flex;
@@ -24,7 +36,7 @@
         img, .o_image {
             width: 72px !important;
             height: 72px !important;
-            border-radius: 14px !important;
+            border-radius: $dl-radius !important;
             object-fit: cover;
         }
     }
@@ -34,7 +46,7 @@
         min-width: 0;
 
         h1 { margin: 2px 0 10px; }
-        h1 .o_field_widget input { font-size: 24px; font-weight: 700; color: $dl-heading; }
+        h1 .o_field_widget input { font-size: 18px; font-weight: 700; color: $dl-heading; }
     }
 
     .o_form_label,
@@ -67,7 +79,7 @@
             margin: 0;
             padding: 5px 16px;
             border: 1px solid $dl-border;
-            border-radius: 999px;
+            border-radius: $dl-radius-sm;
             font-size: 13px;
             color: $dl-text-2;
             cursor: pointer;

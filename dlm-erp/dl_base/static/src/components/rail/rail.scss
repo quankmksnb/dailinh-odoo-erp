@@ -1,25 +1,23 @@
 $dl-rail-bg:      $dl-nav-bg;
-$dl-rail-w:       56px;
-$dl-rail-w-open:  236px;
 
 .dlm-rail {
     position: fixed;
     top: 0;
     left: 0;
     bottom: 0;
-    width: $dl-rail-w;
+    width: $dl-sidebar-w;
     z-index: 1010;
     background: $dl-rail-bg;
     border-right: 1px solid $dl-border;
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 4px;
-    padding: 10px 8px;
+    gap: 1px;
+    padding: 8px;
     overflow: hidden;
-    transition: width .18s ease, box-shadow .18s ease;
+    transition: width .12s ease, box-shadow .12s ease;
 
-    // Ô icon cố định 40px → nhãn không làm xê dịch icon khi mở rộng
+    // Ô icon cố định 40px → nhãn không làm xê dịch icon khi thu gọn
     .dlm-rail-icon {
         width: 40px;
         height: 40px;
@@ -30,7 +28,7 @@ $dl-rail-w-open:  236px;
     }
 
     .dlm-rail-label {
-        opacity: 0;
+        opacity: 1;
         white-space: nowrap;
         font-size: 13px;
         font-weight: 500;
@@ -38,18 +36,50 @@ $dl-rail-w-open:  236px;
         pointer-events: none;
     }
 
+    .dlm-rail-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid $dl-divider;
+    }
+
+    .dlm-rail-toggle {
+        width: 40px;
+        height: 36px;
+        flex-shrink: 0;
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 0;
+        border-radius: $dl-radius-sm;
+        background: transparent;
+        color: $dl-text-muted;
+        cursor: pointer;
+        transition: background-color .1s, color .1s;
+
+        i.fa { font-size: 16px; }
+
+        &:hover {
+            background: $dl-search-bg;
+            color: $dl-primary;
+        }
+    }
+
     .dlm-rail-logo {
         display: flex;
         align-items: center;
         gap: 10px;
         cursor: pointer;
-        margin-bottom: 6px;
+        min-width: 0;
 
         .dlm-rail-icon {
-            width: 34px;
-            height: 34px;
+            width: 32px;
+            height: 32px;
             margin: 0 3px;
-            border-radius: 10px;
+            border-radius: $dl-radius-sm;
             background: $dl-primary;
             color: #fff;
             font-size: 15px;
@@ -67,15 +97,20 @@ $dl-rail-w-open:  236px;
         display: flex;
         align-items: center;
         gap: 10px;
-        border-radius: 10px;
+        min-height: 38px;
+        padding-right: 10px;
+        border-radius: $dl-radius-sm;
+        border-left: 2px solid transparent;
         cursor: pointer;
-        color: $dl-text-muted;
-        transition: background-color .15s, color .15s;
+        color: $dl-text-2;
+        font-size: 13px;
+        font-weight: 500;
+        transition: background-color .1s, color .1s;
 
         i.fa { font-size: 16px; }
 
         &:hover {
-            background: rgba($dl-primary, 0.10);
+            background: $dl-search-bg;
             color: $dl-primary;
         }
 
@@ -87,11 +122,18 @@ $dl-rail-w-open:  236px;
         }
     }
 
-    &:hover {
-        width: $dl-rail-w-open;
-        box-shadow: 6px 0 28px rgba(35, 23, 71, 0.14);
+    &.collapsed {
+        width: $dl-sidebar-w-collapsed;
 
-        .dlm-rail-label { opacity: 1; }
+        .dlm-rail-label { display: none; }
+        .dlm-rail-logo { display: none; }
+        .dlm-rail-toggle { margin-left: 0; }
+        .dlm-rail-item {
+            border-left: 0;
+            padding-right: 0;
+            gap: 0;
+            justify-content: center;
+        }
     }
 }
 
@@ -101,14 +143,17 @@ body.dlm-rail-active {
         display: none !important;
     }
 
-    // Dịch nội dung sang phải để chừa chỗ cho rail thu gọn.
-    .o_action_manager {
-        padding-left: $dl-rail-w;
+    .o_action_manager:not(:has(.dl-home)) {
+        padding-left: $dl-sidebar-w;
+        transition: padding-left .18s ease;
+    }
+
+    &.dlm-rail-collapsed .o_action_manager:not(:has(.dl-home)) {
+        padding-left: $dl-sidebar-w-collapsed;
     }
 }
 
-// Trên Trang chủ (đã có sidebar riêng): ẩn rail + bỏ dịch nội dung.
-.o_web_client:has(.dl-home) {
-    .dlm-rail { display: none; }
-    .o_action_manager { padding-left: 0; }
+// Trên Trang chủ (đã có sidebar riêng): ẩn rail.
+.o_web_client:has(.dl-home) .dlm-rail {
+    display: none;
 }

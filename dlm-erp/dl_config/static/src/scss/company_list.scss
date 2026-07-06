@@ -14,7 +14,7 @@
         max-height: none !important;
         margin: 4px 16px 16px;
         border: 1px solid $dl-border;
-        border-radius: 12px;
+        border-radius: $dl-radius;
         background: #fff;
         overflow: auto;
     }
@@ -24,15 +24,15 @@
         color: $dl-text-2;
         font-weight: 500;
         border-bottom: 1px solid $dl-border;
-        padding-top: 12px;
-        padding-bottom: 12px;
+        padding-top: 6px;
+        padding-bottom: 6px;
     }
-    .o_list_table thead th[data-name="name"]  { border-top-left-radius: 12px; }
-    .o_list_table thead th[data-name="email"] { border-top-right-radius: 12px; }
+    .o_list_table thead th[data-name="name"]  { border-top-left-radius: $dl-radius; }
+    .o_list_table thead th[data-name="email"] { border-top-right-radius: $dl-radius; }
 
     .o_list_table td.o_data_cell {
-        padding-top: 14px;
-        padding-bottom: 14px;
+        padding-top: 5px;
+        padding-bottom: 5px;
         vertical-align: middle;
     }
     .o_list_table tbody tr.o_data_row td { border-top: 1px solid $dl-divider; }
@@ -43,7 +43,7 @@
         thead th:not([data-name]) { display: none !important; }
         tbody td:not([name])      { display: none !important; }
 
-        tfoot { display: none !important; } 
+        tfoot { display: none !important; }
     }
 
     .o_list_table {
@@ -87,7 +87,7 @@
         flex: 0 0 auto;
 
         .me-auto { display: none !important; }
-        .o_last_breadcrumb_item span { font-size: 20px; font-weight: 700; }
+        .o_last_breadcrumb_item span { font-size: 18px; font-weight: 700; }
     }
 
     .o_control_panel_actions {
@@ -105,7 +105,7 @@
         flex-wrap: nowrap !important;
         align-items: center;
         border: 1px solid $dl-border;
-        border-radius: 999px;
+        border-radius: $dl-radius-sm;
         background: #fff;
         padding-right: 4px;
 
@@ -125,7 +125,7 @@
             border: 0 !important;
             background: transparent !important;
             color: $dl-text-muted !important;
-            border-radius: 999px !important;
+            border-radius: $dl-radius-sm !important;
             padding: 2px 10px;
             transition: color .15s, background .15s;
 
@@ -139,7 +139,7 @@
     }
 
     .dl-create-cluster .o_list_button_add {
-        border-radius: 999px;
+        border-radius: $dl-radius-sm;
         font-weight: 500;
         font-size: 0;
 
