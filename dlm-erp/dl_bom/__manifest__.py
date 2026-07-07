@@ -13,8 +13,17 @@
         'views/drawing_views.xml',
         'views/bom_views.xml',
         'views/quotation_request_views.xml',
+        'views/technical_home.xml',
         'views/menus.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'dl_bom/static/src/components/technical_home/technical_home.scss',
+            'dl_bom/static/src/components/technical_home/technical_home.xml',
+            'dl_bom/static/src/components/technical_home/technical_home.js',
+            'dl_bom/static/src/js/nav_patch.js',
+        ],
+    },
     'installable': True,
     'application': False,
     'license': 'LGPL-3',

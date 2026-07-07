@@ -2,23 +2,11 @@
 <odoo>
 
     <!-- ================================================================
-         TOP-LEVEL MENUS
-    ================================================================ -->
-
-    <!-- Menu gốc Kỹ thuật -->
-    <!-- Sales (BA) cần thấy menu này để tạo RFQ, nhưng chỉ nhánh RFQ được mở cho họ (xem groups riêng bên dưới) -->
-    <menuitem id="menu_dl_bom_root"
-              name="Kỹ thuật"
-              sequence="30"
-              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,
-                      dl_base.dl_group_sales_manager,dl_base.dl_group_ba"/>
-
-    <!-- ================================================================
-         BOM
+         BOM — dưới menu gốc "Kỹ thuật" (dl_base.menu_dl_technical)
     ================================================================ -->
     <menuitem id="menu_bom_parent"
               name="BOM"
-              parent="menu_dl_bom_root"
+              parent="dl_base.menu_dl_technical"
               groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
               sequence="10"/>
 
@@ -39,7 +27,7 @@
     ================================================================ -->
     <menuitem id="menu_product_parent"
               name="Sản phẩm"
-              parent="menu_dl_bom_root"
+              parent="dl_base.menu_dl_technical"
               groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
               sequence="20"/>
 
@@ -66,18 +54,20 @@
     ================================================================ -->
     <menuitem id="menu_drawing"
               name="Bản vẽ kỹ thuật"
-              parent="menu_dl_bom_root"
+              parent="dl_base.menu_dl_technical"
               action="action_dl_drawing"
               groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
               sequence="30"/>
 
     <!-- ================================================================
-         YÊU CẦU BÁO GIÁ (RFQ)
+         YÊU CẦU BÁO GIÁ (RFQ) — dưới menu gốc "CRM &amp; Báo giá" (dl_base.menu_dl_sale)
+         Sales tạo RFQ tại đây; Kỹ thuật cũng truy cập được để xử lý.
     ================================================================ -->
     <menuitem id="menu_rfq_parent"
               name="Yêu cầu báo giá"
-              parent="menu_dl_bom_root"
-              sequence="40"/>
+              parent="dl_base.menu_dl_sale"
+              groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_sales_manager"
+              sequence="25"/>
 
     <menuitem id="menu_rfq_all"
               name="Tất cả RFQ"
