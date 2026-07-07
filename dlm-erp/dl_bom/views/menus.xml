@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         TOP-LEVEL MENUS
+    ================================================================ -->
+
+    <!-- Menu gốc Kỹ thuật -->
+    <!-- Sales (BA) cần thấy menu này để tạo RFQ, nhưng chỉ nhánh RFQ được mở cho họ (xem groups riêng bên dưới) -->
+    <menuitem id="menu_dl_bom_root"
+              name="Kỹ thuật"
+              sequence="30"
+              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,
+                      dl_base.dl_group_sales_manager,dl_base.dl_group_ba"/>
+
+    <!-- ================================================================
+         BOM
+    ================================================================ -->
+    <menuitem id="menu_bom_parent"
+              name="BOM"
+              parent="menu_dl_bom_root"
+              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+              sequence="10"/>
+
+    <menuitem id="menu_bom_quotation"
+              name="BOM báo giá"
+              parent="menu_bom_parent"
+              action="action_dl_bom"
+              sequence="10"/>
+
+    <menuitem id="menu_bom_template"
+              name="BOM mẫu"
+              parent="menu_bom_parent"
+              action="action_dl_bom_template"
+              sequence="20"/>
+
+    <!-- ================================================================
+         SẢN PHẨM
+    ================================================================ -->
+    <menuitem id="menu_product_parent"
+              name="Sản phẩm"
+              parent="menu_dl_bom_root"
+              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+              sequence="20"/>
+
+    <menuitem id="menu_product"
+              name="Danh mục sản phẩm"
+              parent="menu_product_parent"
+              action="action_dl_product"
+              sequence="10"/>
+
+    <menuitem id="menu_product_category"
+              name="Nhóm sản phẩm"
+              parent="menu_product_parent"
+              action="action_dl_product_category"
+              sequence="20"/>
+
+    <menuitem id="menu_semi_product"
+              name="Bán thành phẩm"
+              parent="menu_product_parent"
+              action="action_dl_semi_product"
+              sequence="30"/>
+
+    <!-- ================================================================
+         BẢN VẼ
+    ================================================================ -->
+    <menuitem id="menu_drawing"
+              name="Bản vẽ kỹ thuật"
+              parent="menu_dl_bom_root"
+              action="action_dl_drawing"
+              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+              sequence="30"/>
+
+    <!-- ================================================================
+         YÊU CẦU BÁO GIÁ (RFQ)
+    ================================================================ -->
+    <menuitem id="menu_rfq_parent"
+              name="Yêu cầu báo giá"
+              parent="menu_dl_bom_root"
+              sequence="40"/>
+
+    <menuitem id="menu_rfq_all"
+              name="Tất cả RFQ"
+              parent="menu_rfq_parent"
+              action="action_dl_quotation_request"
+              sequence="10"/>
+
+    <menuitem id="menu_rfq_my"
+              name="RFQ của tôi"
+              parent="menu_rfq_parent"
+              action="action_dl_quotation_request_my"
+              sequence="20"
+              groups="dl_base.dl_group_tech"/>
+
+</odoo>

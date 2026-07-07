@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         BÁN THÀNH PHẨM (dl.semi.product)
+    ================================================================ -->
+
+    <record id="view_dl_semi_product_tree" model="ir.ui.view">
+        <field name="name">dl.semi.product.tree</field>
+        <field name="model">dl.semi.product</field>
+        <field name="arch" type="xml">
+            <tree string="Bán thành phẩm"
+                  decoration-muted="state == 'discontinued'">
+                <field name="semi_code"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <field name="uom_id"/>
+                <field name="dimension_spec"/>
+                <field name="material_spec"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'active'"
+                       decoration-muted="state == 'discontinued'"/>
+                <field name="bom_count" string="BOM"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_semi_product_form" model="ir.ui.view">
+        <field name="name">dl.semi.product.form</field>
+        <field name="model">dl.semi.product</field>
+        <field name="arch" type="xml">
+            <form string="Bán thành phẩm">
+                <header>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="active,discontinued" readonly="1"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_boms" type="object"
+                                class="oe_stat_button" icon="fa-list">
+                            <field name="bom_count" widget="statinfo" string="BOM"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="semi_code"/>
+                        <h1>
+                            <field name="semi_code" placeholder="Mã BTP..."
+                                   readonly="semi_code != 'New'"/>
+                        </h1>
+                        <label for="name"/>
+                        <h2>
+                            <field name="name" placeholder="Tên bán thành phẩm..."/>
+                        </h2>
+                    </div>
+                    <group>
+                        <group string="Thông tin chung">
+                            <field name="category_id"/>
+                            <field name="uom_id"/>
+                        </group>
+                        <group string="Thuộc tính kỹ thuật">
+                            <field name="dimension_spec" placeholder="VD: 900 x 600 x 1.5"/>
+                            <field name="material_spec" placeholder="VD: Thép CT3"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Ghi chú kỹ thuật" name="tech_note">
+                            <field name="technical_note" nolabel="1"
+                                   placeholder="Ghi chú kỹ thuật..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_semi_product_search" model="ir.ui.view">
+        <field name="name">dl.semi.product.search</field>
+        <field name="model">dl.semi.product</field>
+        <field name="arch" type="xml">
+            <search string="Tìm bán thành phẩm">
+                <field name="semi_code"/>
+                <field name="name"/>
+                <field name="category_id"/>
+                <filter name="active_state" string="Đang dùng"
+                        domain="[('state', '=', 'active')]"/>
+                <filter name="discontinued" string="Ngừng"
+                        domain="[('state', '=', 'discontinued')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_category" string="Nhóm SP"
+                            context="{'group_by': 'category_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_semi_product" model="ir.actions.act_window">
+        <field name="name">Bán thành phẩm</field>
+        <field name="res_model">dl.semi.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_active_state': 1}</field>
+    </record>
+
+</odoo>

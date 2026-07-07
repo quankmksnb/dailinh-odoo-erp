@@ -1,0 +1,21 @@
+{
+    'name': 'DLM-ERP Kỹ thuật — BOM & Sản phẩm',
+    'version': '17.0.1.0.0',
+    'summary': 'Quản lý Sản phẩm, Bán thành phẩm, Bản vẽ, BOM & BOM Mẫu — Phase 1',
+    'author': 'Dai Linh',
+    'category': 'Hidden',
+    'depends': ['dl_base', 'dlm_material', 'dl_sale', 'mail', 'uom'],
+    'data': [
+        'security/ir.model.access.csv',
+        'data/ir_sequence_data.xml',
+        'views/product_views.xml',
+        'views/semi_product_views.xml',
+        'views/drawing_views.xml',
+        'views/bom_views.xml',
+        'views/quotation_request_views.xml',
+        'views/menus.xml',
+    ],
+    'installable': True,
+    'application': False,
+    'license': 'LGPL-3',
+}
