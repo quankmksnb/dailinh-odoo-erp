@@ -11,6 +11,15 @@
     />
 
     <menuitem
+        id="menu_dl_config_role_perm"
+        name="Phân quyền"
+        parent="dl_base.menu_dl_config"
+        sequence="6"
+        action="action_dl_role_perm"
+        groups="dl_base.dl_group_admin"
+    />
+
+    <menuitem
         id="menu_dl_config_sys_config"
         name="Cấu hình Hệ thống"
         parent="dl_base.menu_dl_config"

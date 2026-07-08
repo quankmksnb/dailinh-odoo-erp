@@ -8,7 +8,7 @@
             <!-- Header -->
             <div class="dl-user-head">
                 <div class="dl-user-head-main">
-                    <h1 class="dl-user-title">Quản lý User &amp; Phân quyền</h1>
+                    <h1 class="dl-user-title">Quản lý User</h1>
                     <span class="dl-user-subtitle">Quản trị tài khoản, gán vai trò, khóa/mở khóa, Backup Approver</span>
                 </div>
                 <button class="dl-user-btn-new" type="button" t-on-click="openCreate">
@@ -24,14 +24,14 @@
                     <div class="dl-user-toolbar">
                         <div class="dl-user-search">
                             <i class="fa fa-search"/>
-                            <input type="text" placeholder="Tìm tên, email…"
+                            <input type="text" placeholder="Tìm tên, email, login…"
                                    t-att-value="state.search"
                                    t-on-input="(ev) => state.search = ev.target.value"/>
                         </div>
                         <select class="dl-user-filter" t-model="state.roleFilter">
                             <option value="">Tất cả vai trò</option>
-                            <t t-foreach="roles" t-as="r" t-key="r.key">
-                                <option t-att-value="r.key" t-esc="r.label"/>
+                            <t t-foreach="state.roles" t-as="r" t-key="r.id">
+                                <option t-att-value="r.id" t-esc="r.name"/>
                             </t>
                         </select>
                         <select class="dl-user-filter" t-model="state.statusFilter">
@@ -47,7 +47,7 @@
                                 <tr>
                                     <th>Họ tên</th>
                                     <th>Vai trò</th>
-                                    <th>Phòng ban</th>
+                                    <th>Đăng nhập cuối</th>
                                     <th>Trạng thái</th>
                                 </tr>
                             </thead>
@@ -57,15 +57,15 @@
                                         t-on-click="() => this.selectUser(u.id)">
                                         <td>
                                             <div class="dl-user-cell-name">
-                                                <span class="dl-user-avatar" t-esc="u.name.trim()[0]"/>
+                                                <span class="dl-user-avatar" t-esc="(u.name.trim()[0] || '?')"/>
                                                 <div class="dl-user-cell-main">
                                                     <span class="dl-user-cell-fullname" t-esc="u.name"/>
-                                                    <span class="dl-user-cell-email" t-esc="u.email"/>
+                                                    <span class="dl-user-cell-email" t-esc="u.email || u.login"/>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td><span class="dl-user-role-tag" t-esc="roleLabel(u.role)"/></td>
-                                        <td t-esc="roleDept(u.role)"/>
+                                        <td><span class="dl-user-role-tag" t-esc="roleNames(u)"/></td>
+                                        <td class="dl-user-cell-dim" t-esc="u.login_date || '—'"/>
                                         <td>
                                             <span class="dl-user-status" t-att-class="u.active ? 'on' : 'off'">
                                                 <i t-att-class="'fa ' + (u.active ? 'fa-check-circle' : 'fa-ban')"/>
@@ -74,7 +74,7 @@
                                         </td>
                                     </tr>
                                 </t>
-                                <tr t-if="!filteredUsers.length">
+                                <tr t-if="!filteredUsers.length and !state.loading">
                                     <td colspan="4" class="dl-user-empty">Không có user phù hợp bộ lọc.</td>
                                 </tr>
                             </tbody>
@@ -88,7 +88,7 @@
 
                     <!-- Đầu chi tiết -->
                     <div class="dl-user-detail-head">
-                        <span class="dl-user-avatar lg" t-esc="u.name.trim()[0]"/>
+                        <span class="dl-user-avatar lg" t-esc="(u.name.trim()[0] || '?')"/>
                         <div class="dl-user-detail-id">
                             <div class="dl-user-detail-name">
                                 <span t-esc="u.name"/>
@@ -97,7 +97,7 @@
                                     <t t-esc="u.active ? 'Hoạt động' : 'Bị khóa'"/>
                                 </span>
                             </div>
-                            <div class="dl-user-detail-sub" t-esc="u.email"/>
+                            <div class="dl-user-detail-sub" t-esc="u.email || u.login"/>
                         </div>
                     </div>
 
@@ -117,72 +117,46 @@
                     <div class="dl-user-section">
                         <div class="dl-user-section-label">Thông tin cơ bản</div>
                         <div class="dl-user-fields">
+                            <div class="dl-user-field"><span class="k">Login</span><span class="v" t-esc="u.login"/></div>
                             <div class="dl-user-field"><span class="k">Số điện thoại</span><span class="v" t-esc="u.phone || '—'"/></div>
-                            <div class="dl-user-field"><span class="k">Phòng ban</span><span class="v" t-esc="roleDept(u.role)"/></div>
-                            <div class="dl-user-field"><span class="k">Ngày tạo</span><span class="v" t-esc="u.createdAt"/></div>
-                            <div class="dl-user-field"><span class="k">Đăng nhập cuối</span><span class="v" t-esc="u.lastLogin"/></div>
-                            <div class="dl-user-field">
-                                <span class="k">Vai trò</span>
-                                <select class="dl-user-inline-select" t-on-change="onChangeRole">
-                                    <t t-foreach="roles" t-as="r" t-key="r.key">
-                                        <option t-att-value="r.key" t-att-selected="r.key === u.role" t-esc="r.label"/>
-                                    </t>
-                                </select>
+                            <div class="dl-user-field"><span class="k">Đăng nhập cuối</span><span class="v" t-esc="u.login_date || '—'"/></div>
+                        </div>
+                    </div>
+
+                    <!-- Vai trò (đa vai trò, tick trực tiếp) -->
+                    <div class="dl-user-section">
+                        <div class="dl-user-section-label">
+                            Vai trò
+                            <span class="dl-user-hint-inline">Cấu hình quyền chi tiết ở màn “Phân quyền”</span>
+                        </div>
+                        <div class="dl-user-role-chips">
+                            <t t-foreach="state.roles" t-as="r" t-key="r.id">
+                                <button type="button" class="dl-user-role-chip"
+                                        t-att-class="{ 'is-on': hasRole(u, r.id) }"
+                                        t-att-disabled="state.saving"
+                                        t-on-click="() => this.toggleRole(r.id)">
+                                    <i t-att-class="'fa ' + (hasRole(u, r.id) ? 'fa-check-square' : 'fa-square-o')"/>
+                                    <span t-esc="r.name"/>
+                                </button>
+                            </t>
+                            <div t-if="!state.roles.length" class="dl-user-perm-empty">
+                                Chưa có vai trò nào — tạo ở màn “Phân quyền”.
                             </div>
                         </div>
                     </div>
 
-                    <!-- Backup Approver (chỉ CEO / Trưởng KD) -->
-                    <div class="dl-user-section" t-if="isApprover(u.role)">
+                    <!-- Backup Approver -->
+                    <div class="dl-user-section">
                         <div class="dl-user-section-label">
                             Người duyệt dự phòng (Backup Approver)
-                            <span class="dl-user-hint-inline">Dùng khi user vắng / quá SLA — ảnh hưởng Escalation (S10)</span>
+                            <span class="dl-user-hint-inline">Dùng khi user vắng / quá SLA — ảnh hưởng Escalation phê duyệt</span>
                         </div>
                         <select class="dl-user-inline-select wide" t-on-change="onChangeBackup">
                             <option value="">(Chưa gán)</option>
                             <t t-foreach="backupCandidates" t-as="c" t-key="c.id">
-                                <option t-att-value="c.id" t-att-selected="c.id === u.backup"
-                                        t-esc="c.name + ' — ' + roleLabel(c.role)"/>
+                                <option t-att-value="c.id" t-att-selected="c.id === u.backup_id" t-esc="c.name"/>
                             </t>
                         </select>
-                    </div>
-
-                    <!-- Quyền theo vai trò -->
-                    <div class="dl-user-section">
-                        <div class="dl-user-section-label">Quyền theo vai trò</div>
-                        <div class="dl-user-perms">
-                            <t t-foreach="selectedPerms" t-as="p" t-key="p.code">
-                                <div class="dl-user-perm">
-                                    <span class="dl-user-perm-screen">
-                                        <b t-esc="p.code"/> <t t-esc="p.name"/>
-                                    </span>
-                                    <span class="dl-user-perm-lvl" t-att-class="p.level.toLowerCase()"
-                                          t-att-title="p.hint" t-esc="p.level"/>
-                                </div>
-                            </t>
-                            <div t-if="!selectedPerms.length" class="dl-user-perm-empty">
-                                Vai trò này chưa được gán quyền màn hình nào.
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Lịch sử thao tác (audit log) -->
-                    <div class="dl-user-section">
-                        <div class="dl-user-section-label">Lịch sử thao tác (Audit log)</div>
-                        <div class="dl-user-audit">
-                            <t t-foreach="u.audit" t-as="a" t-key="a_index">
-                                <div class="dl-user-audit-row">
-                                    <span class="dl-user-audit-dot"/>
-                                    <div class="dl-user-audit-body">
-                                        <div class="dl-user-audit-top">
-                                            <span class="dl-user-audit-action" t-esc="a.action"/>
-                                            <span class="dl-user-audit-time" t-esc="a.time"/>
-                                        </div>
-                                        <div class="dl-user-audit-detail" t-esc="a.detail"/>
-                                    </div>
-                                </div>
-                            </t>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -205,24 +179,26 @@
                                t-on-input="(ev) => this.onFormInput('name', ev)"/>
 
                         <label class="dl-user-flabel">Email / Username <span class="req">*</span></label>
-                        <input type="email" class="dl-user-finput"
-                               t-att-class="{ 'is-err': createEmailDup }"
-                               placeholder="user@dailinh.vn"
+                        <input type="email" class="dl-user-finput" placeholder="user@dailinh.vn"
                                t-att-value="state.form.email"
                                t-on-input="(ev) => this.onFormInput('email', ev)"/>
-                        <div t-if="createEmailDup" class="dl-user-ferr">Email này đã tồn tại trong hệ thống.</div>
 
                         <label class="dl-user-flabel">Số điện thoại</label>
                         <input type="text" class="dl-user-finput" placeholder="09xx xxx xxx"
                                t-att-value="state.form.phone"
                                t-on-input="(ev) => this.onFormInput('phone', ev)"/>
 
-                        <label class="dl-user-flabel">Vai trò <span class="req">*</span></label>
-                        <select class="dl-user-finput" t-model="state.form.role">
-                            <t t-foreach="roles" t-as="r" t-key="r.key">
-                                <option t-att-value="r.key" t-esc="r.label + ' — ' + r.dept"/>
+                        <label class="dl-user-flabel">Vai trò</label>
+                        <div class="dl-user-role-chips">
+                            <t t-foreach="state.roles" t-as="r" t-key="r.id">
+                                <button type="button" class="dl-user-role-chip"
+                                        t-att-class="{ 'is-on': state.form.roleIds.includes(r.id) }"
+                                        t-on-click="() => this.toggleFormRole(r.id)">
+                                    <i t-att-class="'fa ' + (state.form.roleIds.includes(r.id) ? 'fa-check-square' : 'fa-square-o')"/>
+                                    <span t-esc="r.name"/>
+                                </button>
                             </t>
-                        </select>
+                        </div>
 
                         <div class="dl-user-modal-note">
                             <i class="fa fa-envelope-o"/> Sau khi lưu, hệ thống gửi email mời user đặt mật khẩu.
@@ -231,7 +207,7 @@
                     <div class="dl-user-modal-foot">
                         <button class="dl-user-mbtn ghost" type="button" t-on-click="closeCreate">Hủy</button>
                         <button class="dl-user-mbtn primary" type="button"
-                                t-att-disabled="!createValid or createEmailDup"
+                                t-att-disabled="!createValid"
                                 t-on-click="submitCreate">Lưu &amp; gửi lời mời</button>
                     </div>
                 </div>

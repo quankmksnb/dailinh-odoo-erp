@@ -38,6 +38,14 @@ const CARDS = [
         group: "system",
         actionXmlId: "dl_config.action_dl_user_admin",
     },
+    {
+        key: "role_perm",
+        name: "Phân quyền",
+        desc: "Định nghĩa vai trò, tick quyền Xem/Thêm/Sửa/Xóa & thao tác đặc biệt (RBAC)",
+        icon: "fa-shield",
+        group: "system",
+        actionXmlId: "dl_config.action_dl_role_perm",
+    },
 ];
 
 const GROUPS = [

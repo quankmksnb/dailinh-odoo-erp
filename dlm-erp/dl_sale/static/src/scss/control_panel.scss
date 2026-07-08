@@ -2,7 +2,7 @@
 .o_action_manager:has(.dl-quotation-list),
 .o_action_manager:has(.dl-customer-form),
 .o_action_manager:has(.dl-customer-list),
-.o_action_manager:has(.dl-customer-kanban),
+.o_action_manager:has(.dl-cust-kanban),
 .o_action_manager:has(.dl-supplier-form),
 .o_action_manager:has(.dl-supplier-list),
 .o_action_manager:has(.dl-product-form),
@@ -16,7 +16,6 @@
         background: $dl-app-bg;
         border-bottom: 1px solid $dl-border;
 
-        // Odoo dùng 'align-items-lg-start' (căn mép trên, so le) → ép căn giữa.
         .o_control_panel_main { align-items: center !important; }
 
         .o_breadcrumb,
@@ -27,7 +26,6 @@
             font-weight: 600;
         }
 
-        // Odoo mặc định 'flex-md-column' (xếp dọc) → ép về 1 hàng ngang.
         .o_breadcrumb {
             flex-direction: row !important;
             flex-wrap: nowrap !important;
@@ -39,14 +37,13 @@
             .o_last_breadcrumb_item { font-size: 14px; }
         }
 
-        // Mũi tên ◀ back — chỉ khi có crumb cha (form); list crumb đơn không có.
         .o_breadcrumb:has(.breadcrumb .breadcrumb-item)::before {
             content: "\25C0";
             margin-right: 6px;
             color: $dl-text-2;
             font-size: 12px;
         }
-        // "/" ngăn cách trước tên bản ghi khi có crumb cha
+
         .o_breadcrumb:has(.breadcrumb .breadcrumb-item) .o_last_breadcrumb_item::before {
             content: "/";
             margin: 0 6px 0 2px;
@@ -104,15 +101,15 @@
             &:hover { background: $dl-divider !important; }
         }
 
-        // Thay icon ⚙ bằng nhãn chữ
+
         .o_cp_action_menus {
             .dropdown-toggle, button { color: $dl-text-2; }
 
             .fa-cog {
-                font-size: 0; // ẩn glyph bánh răng
+                font-size: 0;
 
                 &::before {
-                    content: "Thao tác \25BE"; // "Thao tác ▾"
+                    content: "Thao tác \25BE";
                     font-family: $dl-font;
                     font-weight: 500;
                     font-size: 13px;
@@ -125,6 +122,7 @@
 // Ẩn nút "New" boxed chỉ ở form (list/kanban vẫn giữ nút Thêm/Tạo báo giá).
 .o_action_manager:has(.dl-quotation-form) .o_control_panel_main_buttons,
 .o_action_manager:has(.dl-customer-form) .o_control_panel_main_buttons,
+.o_action_manager:has(.dl-cust-kanban) .o_control_panel_main_buttons,
 .o_action_manager:has(.dl-supplier-form) .o_control_panel_main_buttons,
 .o_action_manager:has(.dl-product-form) .o_control_panel_main_buttons,
 .o_action_manager:has(.dl-material-form) .o_control_panel_main_buttons {
@@ -136,6 +134,7 @@
 .o_action_manager:has(.dl-quotation-list) .o_cp_action_menus,
 .o_action_manager:has(.dl-customer-form) .o_cp_action_menus,
 .o_action_manager:has(.dl-customer-list) .o_cp_action_menus,
+.o_action_manager:has(.dl-cust-kanban) .o_cp_action_menus,
 .o_action_manager:has(.dl-supplier-form) .o_cp_action_menus,
 .o_action_manager:has(.dl-supplier-list) .o_cp_action_menus,
 .o_action_manager:has(.dl-product-form) .o_cp_action_menus,
@@ -151,7 +150,7 @@
     display: inline-flex;
     align-items: center;
     margin-left: 8px;
-    order: -1; // đứng trước pager trong vùng navigation
+    order: -1; 
 
     .dl-actions-toggle {
         width: 34px;
@@ -219,8 +218,6 @@
 .o_action_manager:has(.dl-material-form) {
     .o_control_panel_main { flex-wrap: nowrap !important; }
     .o_control_panel_breadcrumbs { flex-wrap: nowrap !important; min-width: 0; }
-
-    // Giữ tên bản ghi (BG/2026/xxxx) đầy đủ, không rút gọn thành "B..."
     .o_breadcrumb .o_last_breadcrumb_item { flex-shrink: 0; }
     .o_breadcrumb .o_last_breadcrumb_item span {
         text-overflow: clip;
@@ -229,8 +226,6 @@
     }
 }
 
-// Nút "→" mở bản ghi many2one: phủ lên góc phải ô input để input full-width
-// (2 ô Khách hàng / Ngày báo giá bằng nhau, không bị nút đẩy hẹp).
 .dl-quotation-form .dl-field .o_field_many2one,
 .dl-customer-form .dl-field .o_field_many2one {
     position: relative;
@@ -259,7 +254,6 @@
 }
 .dl-cp-actions .btn { white-space: nowrap; flex-shrink: 0; }
 
-// Cụm nút hành động được JS (dl_quotation_form) chuyển vào sau breadcrumb.
 .dl-cp-actions {
     display: inline-flex;
     align-items: center;

@@ -9,6 +9,7 @@
     'depends': ['dl_base', 'mail', 'dl_sale'],
     'data': [
         'security/ir.model.access.csv',
+        'data/rbac_features.xml',
         'views/material_views.xml',
         'views/material_price_views.xml',
         'views/res_config_settings_views.xml',

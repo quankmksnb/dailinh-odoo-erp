@@ -1,24 +1,7 @@
 /** @odoo-module **/
-// ============================================================
-//  Menu ⋮ "Thao tác" dùng chung cho form & list của DLM.
-//  Trước đây menu này bị dựng lặp ở nhiều controller (form: Nhân bản/
-//  Xoá; list: Nhập/Xuất) → gom về MỘT nơi tại đây để không trùng code.
-//  Menu do JS tự dựng (không qua Owl) nên gắn sự kiện an toàn; khung &
-//  style .dl-actions-* nằm ở scss/control_panel.scss.
-//  Cung cấp 2 hàm:
-//    • buildActionsMenu(container, specs, opts) — dựng menu tổng quát.
-//    • setupFormActionsMenu(ctrl) — hook sẵn cho FormController (Nhân
-//      bản/Xoá + tooltip nút mở bản ghi liên kết).
-// ============================================================
 
 import { useEffect } from "@odoo/owl";
 
-// ── Dựng menu ⋮ trong `container` ───────────────────────────
-// Idempotent: gọi lại nhiều lần chỉ trả về menu đã dựng (tránh nhân
-// đôi). Trả về phần tử .dl-actions-menu (hoặc null nếu thiếu container)
-// để caller tuỳ biến (vd: ẩn khi bản ghi mới chưa lưu).
-// specs: [{ label, icon, onClick, danger? }]. opts.prepend: chèn đầu
-// container (form/list generic) thay vì cuối (list tuỳ biến).
 export function buildActionsMenu(container, specs, { prepend = false } = {}) {
     if (!container) {
         return null;
@@ -65,10 +48,6 @@ export function buildActionsMenu(container, specs, { prepend = false } = {}) {
     return menu;
 }
 
-// ── Menu ⋮ cho FormController: Nhân bản / Xoá ───────────────
-// Gọi trong setup() của controller (chạy trong useEffect nên an toàn
-// với vòng đời render). Dùng thẳng handler sẵn có của Odoo:
-// duplicateRecord() / deleteRecord() (deleteRecord đã có hộp xác nhận).
 export function setupFormActionsMenu(ctrl) {
     useEffect(() => {
         const root = ctrl.rootRef.el;

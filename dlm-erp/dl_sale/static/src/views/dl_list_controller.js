@@ -1,21 +1,4 @@
 /** @odoo-module **/
-// ============================================================
-//  Danh sách DLM — LỚP CƠ SỞ dùng chung + view generic "dl_list".
-//
-//  DlListBaseController: gom hành vi chung của các màn danh sách tuỳ
-//  biến (Báo giá / Khách hàng) theo Figma để KHÔNG lặp code:
-//    • Chuyển nút tạo sang cụm bên phải ô tìm kiếm.
-//    • Menu ⋮ Nhập/Xuất ở góc trên phải (buildActionsMenu dùng chung).
-//    • Caret ▾ Filters/Group By: hover mở, rời ra tự đóng.
-//    • Thanh CHIP lọc có SỐ ĐẾM (bấm = bật/tắt filter sẵn trong search).
-//    • Footer đáy bảng: "N <đơn vị>" + pager gốc chuyển xuống.
-//  Lớp con chỉ khai báo phần RIÊNG: dlChips, dlCountNoun, _loadCounts,
-//  _activeChip, _selectChip, _chipCount (tuỳ chọn), _afterChipbar (hook).
-//
-//  DlListController (registry "dl_list"): view generic — chỉ thêm menu
-//  ⋮ Nhập/Xuất. Giữ để tương thích js_class="dl_list" (chưa dùng trong XML).
-//  Mọi thao tác DOM chạy trong useEffect, gọi thẳng API sẵn của Odoo.
-// ============================================================
 
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
@@ -28,10 +11,7 @@ export class DlListBaseController extends ListController {
     setup() {
         super.setup();
         this.orm = useService("orm");
-        this.dlCounts = {}; // { <key>: n, all: total }
-
-        // Số đếm tổng không phụ thuộc filter — nạp 1 lần; vào/ra 1 bản ghi
-        // sẽ remount controller ⇒ số đếm tự làm mới.
+        this.dlCounts = {};
         onWillStart(async () => {
             await this._loadCounts();
         });
@@ -45,7 +25,6 @@ export class DlListBaseController extends ListController {
         });
     }
 
-    // Điểm mở rộng cho lớp con (vd: khách hàng thêm avatar).
     _dlRenderChrome(root) {
         this._relocateCreateButton(root);
         this._renderActionsMenu(root);
@@ -56,10 +35,10 @@ export class DlListBaseController extends ListController {
 
     get dlChips() {
         return [];
-    } // [{ key, label }]
+    } 
     get dlCountNoun() {
         return "";
-    } // đơn vị footer ("báo giá" / "khách hàng")
+    }
     async _loadCounts() {} // nạp this.dlCounts
     _activeChip() {
         return "all";
@@ -68,7 +47,7 @@ export class DlListBaseController extends ListController {
     _chipCount(chip) {
         return this.dlCounts[chip.key];
     }
-    _afterChipbar() {} // hook sau khi dựng hàng chip (vd: chèn nút List/Kanban)
+    _afterChipbar() {} 
 
     _relocateCreateButton(root) {
         const buttons = root.querySelector(".o_control_panel_main_buttons");
@@ -79,7 +58,6 @@ export class DlListBaseController extends ListController {
         }
     }
 
-    // Cog gốc bị ẩn theo design; tái dùng handler Nhập/Xuất gốc của Odoo.
     _renderActionsMenu(root) {
         const host =
             root.querySelector(".o_control_panel_navigation") ||
@@ -135,7 +113,6 @@ export class DlListBaseController extends ListController {
         this._afterChipbar(root, bar);
     }
 
-    // Chèn NGAY TRONG bảng (.o_list_renderer) để footer trôi dưới bảng.
     _renderFooter(root) {
         const renderer = root.querySelector(".o_list_renderer");
         if (!renderer) {
@@ -159,8 +136,6 @@ export class DlListBaseController extends ListController {
         }
     }
 
-    // Odoo Dropdown không có open-on-hover: tự mở/đóng, đóng sau ~180ms khi
-    // chuột rời KHỎI CẢ caret lẫn menu (đủ thời gian di từ caret sang menu).
     _setupSearchHover(root) {
         const toggler = root.querySelector(".o_searchview_dropdown_toggler");
         if (!toggler || toggler.dataset.dlHoverOpen) {
@@ -174,8 +149,6 @@ export class DlListBaseController extends ListController {
             clearTimeout(timer);
             timer = null;
         };
-        // Kiểm tra tại thời điểm đóng nên không lệ thuộc thứ tự sự kiện
-        // (menu render ở portal → tra bằng :hover).
         const scheduleClose = () => {
             cancel();
             timer = setTimeout(() => {
@@ -206,8 +179,6 @@ export class DlListBaseController extends ListController {
         toggler.addEventListener("mouseleave", scheduleClose);
     }
 }
-
-// Giữ để tương thích js_class="dl_list"; hiện chưa dùng trong XML.
 export class DlListController extends ListController {
     setup() {
         super.setup();
