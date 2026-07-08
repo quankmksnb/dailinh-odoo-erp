@@ -13,15 +13,12 @@
             <tree string="Danh mục Vật tư"
                   decoration-danger="price_status == 'expired'"
                   decoration-warning="price_status == 'warning'"
-                  decoration-muted="status == 'discontinued'">
-                <field name="code"/>
+                  decoration-muted="not active">
+                <field name="material_code"/>
                 <field name="name"/>
-                <field name="category"/>
-                <field name="unit"/>
-                <field name="status" widget="badge"
-                       decoration-info="status == 'draft'"
-                       decoration-success="status == 'active'"
-                       decoration-muted="status == 'discontinued'"/>
+                <field name="categ_id"/>
+                <field name="uom_id"/>
+                <field name="active" invisible="1"/>
                 <field name="price_status" invisible="1"/>
             </tree>
         </field>
@@ -36,20 +33,20 @@
                 <header>
                     <button name="action_activate" type="object" string="Kích hoạt"
                             class="oe_highlight" groups="dl_base.dl_group_accountant"
-                            invisible="status == 'active'"/>
+                            invisible="active"/>
                     <button name="action_discontinue" type="object" string="Ngừng dùng"
                             groups="dl_base.dl_group_accountant"
-                            invisible="status != 'active'"/>
+                            invisible="not active"/>
                     <button name="action_new_price" type="object" string="Cập nhật giá mới"
                             class="oe_highlight" groups="dl_base.dl_group_accountant"/>
-                    <field name="status" widget="statusbar" statusbar_visible="draft,active,discontinued"
-                           readonly="1"/>
                 </header>
                 <sheet>
+                    <widget name="web_ribbon" title="Ngừng dùng" bg_color="text-bg-danger"
+                            invisible="active"/>
                     <div class="oe_title">
-                        <label for="code"/>
+                        <label for="material_code"/>
                         <h1>
-                            <field name="code" placeholder="Mã vật tư..."/>
+                            <field name="material_code" placeholder="Mã vật tư..."/>
                         </h1>
                         <label for="name"/>
                         <h2>
@@ -57,10 +54,11 @@
                         </h2>
                     </div>
                     <field name="is_technician" invisible="1"/>
+                    <field name="active" invisible="1"/>
                     <group>
                         <group string="Thông tin chung">
-                            <field name="category"/>
-                            <field name="unit"/>
+                            <field name="categ_id"/>
+                            <field name="uom_id"/>
                         </group>
                         <group string="Tình trạng giá"
                                groups="dl_base.dl_group_ceo,dl_base.dl_group_accountant">
@@ -72,23 +70,21 @@
                                    decoration-success="price_status == 'ok'"/>
                         </group>
                     </group>
-                    <group string="Thông số kỹ thuật">
-                        <field name="technical_spec" nolabel="1" readonly="not is_technician"
-                               placeholder="Mác thép, độ dày, quy cách..."/>
-                    </group>
                     <notebook>
                         <page string="Lịch sử giá" name="price_history"
                               groups="dl_base.dl_group_ceo,dl_base.dl_group_accountant">
                             <field name="price_ids">
-                                <tree decoration-danger="status == 'expired'"
-                                      decoration-muted="status == 'invalid'"
+                                <tree decoration-danger="not is_active"
+                                      decoration-info="is_override"
                                       create="0" delete="0">
                                     <field name="supplier_id"/>
                                     <field name="unit_price"/>
+                                    <field name="uom_id"/>
                                     <field name="source"/>
                                     <field name="valid_from"/>
                                     <field name="valid_to"/>
-                                    <field name="status" widget="badge"/>
+                                    <field name="is_active" widget="boolean_toggle" readonly="1"/>
+                                    <field name="is_override"/>
                                     <field name="create_uid"/>
                                     <field name="create_date"/>
                                 </tree>
@@ -111,19 +107,14 @@
         <field name="model">dl.material</field>
         <field name="arch" type="xml">
             <search string="Tìm Vật tư">
-                <field name="code"/>
+                <field name="material_code"/>
                 <field name="name"/>
-                <field name="category"/>
-                <separator/>
-                <filter string="Nháp" name="draft" domain="[('status', '=', 'draft')]"/>
-                <filter string="Đang dùng" name="active_status" domain="[('status', '=', 'active')]"/>
-                <filter string="Ngừng dùng" name="discontinued" domain="[('status', '=', 'discontinued')]"/>
+                <field name="categ_id"/>
                 <separator/>
                 <filter string="Thiếu giá hiệu lực" name="no_active_price"
                         domain="[('has_active_price', '=', False)]"/>
                 <group expand="0" string="Nhóm theo">
-                    <filter string="Nhóm vật tư" name="group_category" context="{'group_by': 'category'}"/>
-                    <filter string="Trạng thái" name="group_status" context="{'group_by': 'status'}"/>
+                    <filter string="Nhóm vật tư" name="group_categ" context="{'group_by': 'categ_id'}"/>
                 </group>
             </search>
         </field>

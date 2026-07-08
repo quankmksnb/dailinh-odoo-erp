@@ -10,7 +10,7 @@
                 <field name="name" string="Tên NCC / Thầu phụ"/>
                 <field name="phone"/>
                 <field name="email"/>
-                <field name="tax_code" string="MST"/>
+                <field name="vat" string="MST"/>
                 <field name="city" string="Tỉnh/TP"/>
                 <field name="active" invisible="1"/>
             </tree>
@@ -39,7 +39,7 @@
                             <field name="mobile"/>
                             <field name="email"/>
                             <field name="website"/>
-                            <field name="tax_code" string="Mã số thuế (MST)"/>
+                            <field name="vat" string="Mã số thuế (MST)"/>
                         </group>
                         <group string="Địa chỉ">
                             <field name="street" placeholder="Số nhà, tên đường..."/>
@@ -49,7 +49,7 @@
                         </group>
                     </group>
 
-                    <field name="is_dlm_supplier" invisible="1"/>
+                    <field name="partner_role" invisible="1"/>
 
                     <notebook>
                         <page string="Ghi chú nội bộ" name="notes">
@@ -74,7 +74,7 @@
                 <field name="name" string="Tên"/>
                 <field name="phone"/>
                 <field name="email"/>
-                <field name="tax_code" string="MST"/>
+                <field name="vat" string="MST"/>
                 <separator/>
                 <filter string="Đang hoạt động" name="active" domain="[('active', '=', True)]"/>
                 <filter string="Không hoạt động" name="inactive" domain="[('active', '=', False)]"/>
@@ -90,8 +90,8 @@
         <field name="name">NCC / Thầu phụ</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('is_dlm_supplier', '=', True)]</field>
-        <field name="context">{'default_is_dlm_supplier': True}</field>
+        <field name="domain">[('partner_role', '=', 'supplier')]</field>
+        <field name="context">{'default_partner_role': 'supplier'}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplier_tree')}),

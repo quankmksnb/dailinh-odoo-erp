@@ -3,26 +3,22 @@ from odoo import models, fields, api
 
 class ResPartner(models.Model):
     """
-    Mở rộng res.partner cho nghiệp vụ DLM.
+    Mở rộng res.partner cho nghiệp vụ DLM (theo TDS 4.0 §2.1 — dl.partner).
     Không tạo bảng mới — các trường được thêm vào res_partner (kế thừa Odoo native).
 
-    A1 — dlm.customer  : is_dlm_customer=True
-    A4 — dlm.supplier  : is_dlm_supplier=True
-    Một partner có thể vừa là khách hàng vừa là NCC.
+    partner_role: cột duy nhất quyết định 1 partner là Khách hàng hay NCC
+    (theo TDS 4.0 — thay cho 2 cờ Boolean is_dlm_customer/is_dlm_supplier cũ).
+    Lưu ý: khác thiết kế cũ, TDS không cho phép 1 partner vừa là Khách hàng
+    vừa là NCC cùng lúc (enum đơn giá trị) — nếu nghiệp vụ thực sự cần 1 đối
+    tác vừa mua vừa bán, cần tạo 2 bản ghi partner riêng.
     """
     _inherit = 'res.partner'
 
-    # ── Phân loại DLM ────────────────────────────────────────────────
-    is_dlm_customer = fields.Boolean(
-        string='Là khách hàng',
-        default=False,
-        help='Đánh dấu đây là khách hàng của Đại Linh',
-    )
-    is_dlm_supplier = fields.Boolean(
-        string='Là NCC / Thầu phụ',
-        default=False,
-        help='Đánh dấu đây là nhà cung cấp hoặc thầu phụ của Đại Linh',
-    )
+    # ── Phân loại DLM (TDS 4.0 §2.1) ───────────────────────────────────
+    partner_role = fields.Selection([
+        ('customer', 'Khách hàng'),
+        ('supplier', 'NCC / Thầu phụ'),
+    ], string='Vai trò')
 
     # ── A1: Loại khách hàng (Entity Proposal A1.customer_type) ───────
     customer_type = fields.Selection(
@@ -36,11 +32,8 @@ class ResPartner(models.Model):
         help='Phân loại phục vụ lọc báo cáo và chiết khấu tự động (D0)',
     )
 
-    # ── Thông tin bổ sung ─────────────────────────────────────────────
-    tax_code = fields.Char(
-        string='Mã số thuế (MST)',
-        help='Bắt buộc điền khi xuất hóa đơn VAT cho doanh nghiệp',
-    )
+    # MST dùng field native `vat` có sẵn trên res.partner (TDS 4.0 — Cap_Nhat_S04),
+    # không tự chế field riêng nữa.
 
     # ── Computed: tên hiển thị loại ───────────────────────────────────
     customer_type_label = fields.Char(
@@ -60,10 +53,10 @@ class ResPartner(models.Model):
             rec.customer_type_label = mapping.get(rec.customer_type, '')
 
     # ── Constraints ───────────────────────────────────────────────────
-    @api.constrains('is_dlm_customer', 'customer_type')
+    @api.constrains('partner_role', 'customer_type')
     def _check_customer_type(self):
         for rec in self:
-            if rec.is_dlm_customer and not rec.customer_type:
+            if rec.partner_role == 'customer' and not rec.customer_type:
                 raise models.ValidationError(
                     'Khách hàng DLM phải có Loại khách hàng.'
                 )

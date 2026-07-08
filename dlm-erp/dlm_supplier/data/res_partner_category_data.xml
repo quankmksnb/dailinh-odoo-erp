@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- "Nhóm vật tư cung cấp" (S04) — dùng chung field category_id (Tags) chuẩn
+             Odoo trên res.partner, không tạo field/bảng mới. -->
+        <record id="res_partner_category_steel" model="res.partner.category">
+            <field name="name">Thép xây dựng</field>
+        </record>
+        <record id="res_partner_category_paint" model="res.partner.category">
+            <field name="name">Sơn</field>
+        </record>
+        <record id="res_partner_category_electric" model="res.partner.category">
+            <field name="name">Vật tư điện</field>
+        </record>
+        <record id="res_partner_category_subcontract" model="res.partner.category">
+            <field name="name">Gia công</field>
+        </record>
+
+    </data>
+</odoo>

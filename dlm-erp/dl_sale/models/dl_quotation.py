@@ -10,7 +10,7 @@ class DlQuotation(models.Model):
     name = fields.Char(string='Số báo giá', required=True, copy=False,
                        readonly=True, default='New')
     partner_id = fields.Many2one('res.partner', string='Khách hàng', required=True,
-                                 domain=[('is_dlm_customer', '=', True)],
+                                 domain=[('partner_role', '=', 'customer')],
                                  tracking=True)
     date_order = fields.Date(string='Ngày báo giá', required=True,
                              default=fields.Date.context_today, tracking=True)

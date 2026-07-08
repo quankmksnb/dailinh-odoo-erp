@@ -11,13 +11,6 @@
         <field name="model">dl.material.price</field>
         <field name="arch" type="xml">
             <form string="Dòng giá vật tư">
-                <header>
-                    <button name="action_mark_invalid" type="object" string="Đánh dấu không hợp lệ"
-                            groups="dl_base.dl_group_accountant"
-                            invisible="status == 'invalid'"
-                            confirm="Đánh dấu dòng giá này là KHÔNG HỢP LỆ? Dòng sẽ được giữ lại trong lịch sử."/>
-                    <field name="status" widget="statusbar" statusbar_visible="active,expired,invalid"/>
-                </header>
                 <sheet>
                     <div class="alert alert-warning" role="alert"
                          invisible="not auto_close_preview">
@@ -28,15 +21,18 @@
                             <field name="material_id" readonly="id"/>
                             <field name="supplier_id" readonly="id"/>
                             <field name="unit_price" readonly="id"/>
+                            <field name="uom_id" readonly="id"/>
                             <field name="source" readonly="id"/>
                         </group>
                         <group>
                             <field name="valid_from" readonly="id"/>
-                            <field name="valid_to" readonly="id"/>
+                            <field name="valid_to" readonly="id and not is_override"/>
+                            <field name="is_active" readonly="1"/>
                         </group>
                     </group>
-                    <group string="Lý do không hợp lệ" invisible="status != 'invalid'">
-                        <field name="invalid_reason" nolabel="1"/>
+                    <group string="Ghi đè sớm">
+                        <field name="is_override"/>
+                        <field name="override_reason" required="is_override" invisible="not is_override"/>
                     </group>
                 </sheet>
             </form>
@@ -49,14 +45,16 @@
         <field name="model">dl.material.price</field>
         <field name="arch" type="xml">
             <tree string="Bảng giá Vật tư" create="0"
-                  decoration-danger="status == 'expired'"
-                  decoration-muted="status == 'invalid'">
+                  decoration-danger="not is_active"
+                  decoration-info="is_override">
                 <field name="material_id"/>
                 <field name="supplier_id"/>
                 <field name="unit_price"/>
+                <field name="uom_id"/>
                 <field name="valid_from"/>
                 <field name="valid_to"/>
-                <field name="status" widget="badge"/>
+                <field name="is_active"/>
+                <field name="is_override"/>
             </tree>
         </field>
     </record>
@@ -70,19 +68,19 @@
                 <field name="material_id"/>
                 <field name="supplier_id"/>
                 <separator/>
-                <filter string="Hiệu lực" name="active_status" domain="[('status', '=', 'active')]"/>
-                <filter string="Hết hạn" name="expired" domain="[('status', '=', 'expired')]"/>
-                <filter string="Không hợp lệ" name="invalid" domain="[('status', '=', 'invalid')]"/>
+                <filter string="Đang hiệu lực" name="active_status" domain="[('is_active', '=', True)]"/>
+                <filter string="Không còn hiệu lực" name="inactive_status" domain="[('is_active', '=', False)]"/>
+                <filter string="Ghi đè sớm" name="overridden" domain="[('is_override', '=', True)]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter string="Vật tư" name="group_material" context="{'group_by': 'material_id'}"/>
                     <filter string="Nhà cung cấp" name="group_supplier" context="{'group_by': 'supplier_id'}"/>
-                    <filter string="Trạng thái" name="group_status" context="{'group_by': 'status'}"/>
+                    <filter string="Ghi đè sớm" name="group_override" context="{'group_by': 'is_override'}"/>
                 </group>
             </search>
         </field>
     </record>
 
-    <!-- Action: toàn bộ Bảng giá Vật tư -->
+    <!-- Action: toàn bộ Bảng giá Vật tư (giữ nguyên create=False, không đổi luồng cũ) -->
     <record id="action_dl_material_price" model="ir.actions.act_window">
         <field name="name">Bảng giá Vật tư</field>
         <field name="res_model">dl.material.price</field>
@@ -99,12 +97,33 @@
         </field>
     </record>
 
+    <!-- Action: Nhập giá vật tư hàng loạt qua Import Excel gốc của Odoo -->
+    <record id="action_dl_material_price_import" model="ir.actions.act_window">
+        <field name="name">Nhập giá vật tư (Excel)</field>
+        <field name="res_model">dl.material.price</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_material_price_list_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_material_price_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_material_price_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Dùng nút "Import records" (biểu tượng ⇧ góc trên) để nhập giá vật tư hàng loạt từ file Excel/CSV.
+            </p>
+            <p>Các cột cần có: Vật tư (material_id), Nhà cung cấp (supplier_id), Đơn giá (unit_price),
+               Đơn vị (uom_id), Ngày hiệu lực (valid_from). Để sửa/thêm 1 dòng giá đơn lẻ, dùng nút
+               "Cập nhật giá mới" ở form Vật tư thay vì tạo mới ở đây.</p>
+        </field>
+    </record>
+
     <!-- Action: worklist Vật tư cần cập nhật giá (spec 6.2) -->
     <record id="action_dl_material_price_overdue" model="ir.actions.act_window">
         <field name="name">Vật tư cần cập nhật giá</field>
         <field name="res_model">dl.material</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('status', '=', 'active'), ('price_status', 'in', ['warning', 'expired', 'none'])]</field>
+        <field name="domain">[('active', '=', True), ('price_status', 'in', ['warning', 'expired', 'none'])]</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_material_tree')}),

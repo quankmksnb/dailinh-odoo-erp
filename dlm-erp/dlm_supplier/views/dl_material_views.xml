@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Thêm NCC mặc định (TDS 4.0 §2.2 — dl.material.supplier_id) vào form Vật tư -->
+    <record id="view_dl_material_form_inherit_sup" model="ir.ui.view">
+        <field name="name">dlm.material.form.inherit.sup</field>
+        <field name="model">dl.material</field>
+        <field name="inherit_id" ref="dlm_material.view_dl_material_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='uom_id']" position="after">
+                <field name="supplier_id" string="NCC mặc định"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

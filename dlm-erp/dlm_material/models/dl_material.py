@@ -5,34 +5,25 @@ from odoo.exceptions import AccessError
 
 # Field-level RBAC (BR/AC-6, AC-7): Odoo's per-field `groups=` kwarg only hides a
 # field in views, it does not block write()/RPC — so we enforce it explicitly here.
-_TECH_ONLY_FIELDS = {'code', 'name', 'unit', 'category', 'technical_spec'}
-_ACCOUNTANT_ONLY_FIELDS = {'status'}
+_TECH_ONLY_FIELDS = {'material_code', 'name', 'uom_id', 'categ_id'}
+_ACCOUNTANT_ONLY_FIELDS = {'active'}
 
 
 class DlMaterial(models.Model):
     _name = 'dl.material'
     _description = 'Vật tư'
-    _order = 'code'
+    _order = 'material_code'
     _inherit = ['mail.thread', 'mail.activity.mixin']
+    _inherits = {'product.product': 'product_id'}
     _sql_constraints = [
-        ('code_uniq', 'unique(code)', 'Mã vật tư đã tồn tại, vui lòng chọn mã khác.'),
+        ('material_code_uniq', 'unique(material_code)', 'Mã vật tư đã tồn tại, vui lòng chọn mã khác.'),
     ]
 
-    code = fields.Char(string='Mã vật tư', required=True, tracking=True)
-    name = fields.Char(string='Tên vật tư', required=True, tracking=True)
-    unit = fields.Char(string='Đơn vị tính')
-    category = fields.Selection([
-        ('steel_sheet', 'Thép tấm'),
-        ('steel_pipe', 'Thép hộp - ống'),
-        ('paint_coating', 'Sơn - mạ'),
-        ('auxiliary', 'Vật tư phụ'),
-    ], string='Nhóm vật tư', required=True)
-    status = fields.Selection([
-        ('draft', 'Nháp'),
-        ('active', 'Đang dùng'),
-        ('discontinued', 'Ngừng dùng'),
-    ], string='Trạng thái', default='draft', tracking=True, readonly=True)
-    technical_spec = fields.Text(string='Thông số kỹ thuật')
+    product_id = fields.Many2one('product.product', string='Sản phẩm', required=True,
+                                  ondelete='cascade', auto_join=True)
+    material_code = fields.Char(string='Mã vật tư', required=True, tracking=True)
+    # name/uom_id/categ_id/active đều delegate qua product_id (product.product/product.template)
+    # theo TDS 4.0 — không còn field code/unit/category/status/technical_spec riêng trên dl_material.
 
     price_ids = fields.One2many('dl.material.price', 'material_id', string='Lịch sử giá')
     # compute_sudo=True: hàm tính này phải đọc price_ids bất kể quyền của người xem
@@ -66,23 +57,21 @@ class DlMaterial(models.Model):
         for rec in self:
             rec.is_technician = is_tech
 
-    @api.depends('price_ids.status', 'price_ids.valid_from', 'price_ids.valid_to')
+    @api.depends('price_ids.valid_from', 'price_ids.valid_to')
     def _compute_price_info(self):
         today = fields.Date.context_today(self)
         warning_days = int(self.env['ir.config_parameter'].sudo().get_param(
             'dlm_material.expiry_warning_days', 15))
         for material in self:
             candidates = material.price_ids.filtered(
-                lambda p: p.status == 'active' and p.valid_from <= today
+                lambda p: p.valid_from <= today
                 and (not p.valid_to or p.valid_to >= today)
             )
             current = candidates.sorted('valid_from', reverse=True)[:1]
             material.active_price_id = current
             material.has_active_price = bool(current)
             if not current:
-                has_history = bool(material.price_ids.filtered(
-                    lambda p: p.status in ('active', 'expired')))
-                material.price_status = 'expired' if has_history else 'none'
+                material.price_status = 'expired' if material.price_ids else 'none'
             elif current.valid_to and (current.valid_to - today).days <= warning_days:
                 material.price_status = 'warning'
             else:
@@ -110,10 +99,10 @@ class DlMaterial(models.Model):
         return super().write(vals)
 
     def action_activate(self):
-        self.write({'status': 'active'})
+        self.write({'active': True})
 
     def action_discontinue(self):
-        self.write({'status': 'discontinued'})
+        self.write({'active': False})
 
     def action_new_price(self):
         self.ensure_one()
@@ -131,6 +120,7 @@ class DlMaterial(models.Model):
             'target': 'new',
             'context': {
                 'default_material_id': self.id,
+                'default_uom_id': self.uom_id.id,
                 'default_supplier_id': current.supplier_id.id if current else False,
                 'default_valid_from': suggested_from,
             },

@@ -2,12 +2,13 @@ import logging
 from datetime import date, timedelta
 
 from odoo import api, fields, models, _
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
-# Chặn sửa dòng giá đã lưu (BR-Material-05) — ngoại trừ status/invalid_reason.
-_IMMUTABLE_FIELDS = {'material_id', 'supplier_id', 'unit_price', 'source', 'valid_from', 'valid_to'}
+# Chặn sửa dòng giá đã lưu (BR-Material-05) — ngoại trừ valid_to (đóng sớm có
+# is_override+override_reason, xem write()) và status/invalid_reason (đã bỏ theo TDS).
+_IMMUTABLE_FIELDS = {'material_id', 'supplier_id', 'unit_price', 'uom_id', 'source', 'valid_from'}
 
 
 class DlMaterialPrice(models.Model):
@@ -17,21 +18,36 @@ class DlMaterialPrice(models.Model):
 
     material_id = fields.Many2one('dl.material', string='Vật tư', required=True,
                                    ondelete='restrict', index=True)
-    supplier_id = fields.Many2one('res.partner', string='Nhà cung cấp', required=True,
-                                   domain=[('is_dlm_supplier', '=', True)])
+    supplier_id = fields.Many2one('res.partner', string='Nhà cung cấp',
+                                   domain=[('partner_role', '=', 'supplier')])
     unit_price = fields.Float(string='Đơn giá', required=True)
+    uom_id = fields.Many2one('uom.uom', string='Đơn vị niêm yết giá', required=True)
     source = fields.Char(string='Nguồn giá')
     valid_from = fields.Date(string='Ngày hiệu lực', required=True,
                               default=fields.Date.context_today)
     valid_to = fields.Date(string='Ngày hết hiệu lực')
-    status = fields.Selection([
-        ('active', 'Hiệu lực'),
-        ('expired', 'Hết hạn'),
-        ('invalid', 'Không hợp lệ'),
-    ], string='Trạng thái', default='active')
-    invalid_reason = fields.Text(string='Lý do không hợp lệ')
+    is_override = fields.Boolean(string='Ghi đè sớm', default=False)
+    override_reason = fields.Char(string='Lý do ghi đè', size=255)
+    is_active = fields.Boolean(string='Đang hiệu lực', compute='_compute_is_active',
+                                store=False, search='_search_is_active')
     auto_close_preview = fields.Char(string='Cảnh báo đóng giá cũ',
                                       compute='_compute_auto_close_preview', store=False)
+
+    @api.depends('valid_from', 'valid_to')
+    def _compute_is_active(self):
+        today = fields.Date.context_today(self)
+        for rec in self:
+            rec.is_active = bool(rec.valid_from) and rec.valid_from <= today and (
+                not rec.valid_to or rec.valid_to >= today)
+
+    def _search_is_active(self, operator, value):
+        today = fields.Date.context_today(self)
+        want = value if operator == '=' else not value
+        if want:
+            return ['&', ('valid_from', '<=', today),
+                    '|', ('valid_to', '=', False), ('valid_to', '>=', today)]
+        return ['|', ('valid_from', '>', today),
+                '&', ('valid_to', '!=', False), ('valid_to', '<', today)]
 
     @api.depends('material_id', 'valid_from')
     def _compute_auto_close_preview(self):
@@ -41,7 +57,6 @@ class DlMaterialPrice(models.Model):
                 continue
             open_price = self.search([
                 ('material_id', '=', rec.material_id.id),
-                ('status', '=', 'active'),
                 ('valid_to', '=', False),
             ], limit=1) - rec
             if open_price and open_price.valid_from < rec.valid_from:
@@ -63,15 +78,12 @@ class DlMaterialPrice(models.Model):
                     "Ngày hiệu lực (%(f)s) phải trước hoặc bằng Ngày hết hiệu lực (%(t)s)."
                 ) % {'f': rec.valid_from, 't': rec.valid_to})
 
-    @api.constrains('material_id', 'valid_from', 'valid_to', 'status')
+    @api.constrains('material_id', 'valid_from', 'valid_to')
     def _check_no_overlap(self):
         for rec in self:
-            if rec.status == 'invalid':
-                continue
             siblings = self.search([
                 ('id', '!=', rec.id),
                 ('material_id', '=', rec.material_id.id),
-                ('status', '!=', 'invalid'),
             ])
             new_from = rec.valid_from
             new_to = rec.valid_to or date.max
@@ -95,16 +107,20 @@ class DlMaterialPrice(models.Model):
     def create(self, vals_list):
         records = self.browse()
         for vals in vals_list:
-            if vals.get('status', 'active') == 'active' and vals.get('material_id') and vals.get('valid_from'):
+            if vals.get('material_id') and vals.get('valid_from'):
                 open_price = self.search([
                     ('material_id', '=', vals['material_id']),
-                    ('status', '=', 'active'),
                     ('valid_to', '=', False),
                 ], limit=1)
                 new_from = fields.Date.to_date(vals['valid_from'])
                 if open_price and open_price.valid_from < new_from:
                     close_date = new_from - timedelta(days=1)
-                    open_price.with_context(dlm_auto_close=True).write({'valid_to': close_date})
+                    open_price.with_context(dlm_auto_close=True).write({
+                        'valid_to': close_date,
+                        'is_override': True,
+                        'override_reason': _(
+                            'Tự động đóng do dòng giá mới bắt đầu %s.') % new_from,
+                    })
                     open_price.material_id.message_post(body=_(
                         "Tự động đóng hiệu lực dòng giá cũ (NCC: %(supplier)s) — "
                         "Ngày hết hạn = %(close)s do dòng giá mới bắt đầu %(new)s."
@@ -117,24 +133,27 @@ class DlMaterialPrice(models.Model):
         return records
 
     def write(self, vals):
-        if (not self.env.su and not self.env.context.get('dlm_auto_close')
-                and _IMMUTABLE_FIELDS & vals.keys()):
-            raise UserError(_(
-                'Dòng giá đã lưu không được sửa — dùng "Cập nhật giá mới" để tạo dòng mới.'
-            ))
+        if not self.env.su and not self.env.context.get('dlm_auto_close'):
+            if _IMMUTABLE_FIELDS & vals.keys():
+                raise UserError(_(
+                    'Dòng giá đã lưu không được sửa — dùng "Cập nhật giá mới" để tạo dòng mới.'
+                ))
+            if 'valid_to' in vals:
+                for rec in self:
+                    is_override = vals.get('is_override', rec.is_override)
+                    override_reason = vals.get('override_reason', rec.override_reason)
+                    if not is_override or not override_reason:
+                        raise UserError(_(
+                            'Sửa Ngày hết hiệu lực của dòng giá đã lưu bắt buộc đánh dấu '
+                            '"Ghi đè sớm" kèm Lý do ghi đè.'
+                        ))
         return super().write(vals)
-
-    def action_mark_invalid(self):
-        if not self.env.su and not self.env.user.has_group('dl_base.dl_group_accountant'):
-            raise AccessError(_('Chỉ Kế toán nội bộ được đánh dấu giá không hợp lệ.'))
-        self.write({'status': 'invalid'})
 
     @api.model
     def get_active_price(self, material_id, at_date=None):
         at_date = at_date or fields.Date.context_today(self)
         return self.search([
             ('material_id', '=', material_id),
-            ('status', '=', 'active'),
             ('valid_from', '<=', at_date),
             '|', ('valid_to', '=', False), ('valid_to', '>=', at_date),
         ], order='valid_from desc', limit=1)
@@ -142,20 +161,11 @@ class DlMaterialPrice(models.Model):
     @api.model
     def _cron_scan_price_validity(self):
         today = fields.Date.context_today(self)
-
-        to_expire = self.search([
-            ('status', '=', 'active'),
-            ('valid_to', '!=', False),
-            ('valid_to', '<', today),
-        ])
-        to_expire.write({'status': 'expired'})
-        _logger.info('dlm_material cron: %s dòng giá chuyển Expired.', len(to_expire))
-
         threshold = int(self.env['ir.config_parameter'].sudo().get_param(
             'dlm_material.expiry_warning_days', 15))
         accountant_users = self.env.ref('dl_base.dl_group_accountant').users
         warned = 0
-        for material in self.env['dl.material'].search([('status', '=', 'active')]):
+        for material in self.env['dl.material'].search([('active', '=', True)]):
             if material.has_active_price:
                 continue
             last_price = self.search(

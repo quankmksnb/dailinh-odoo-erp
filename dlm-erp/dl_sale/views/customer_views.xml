@@ -69,8 +69,8 @@
         <field name="arch" type="xml">
             <form string="Khách hàng" class="dl-customer-form" js_class="dl_customer_form">
                 <sheet>
-                    <!-- luôn True khi tạo từ menu Khách hàng (default trong context) -->
-                    <field name="is_dlm_customer" invisible="1"/>
+                    <!-- luôn 'customer' khi tạo từ menu Khách hàng (default trong context) -->
+                    <field name="partner_role" invisible="1"/>
 
                     <div class="dl-cust-head">
                         <field name="image_1920" widget="image"
@@ -92,7 +92,7 @@
                             <field name="phone" string="Điện thoại"/>
                             <field name="mobile" string="Di động"/>
                             <field name="email" widget="email"/>
-                            <field name="tax_code" string="Mã số thuế (MST)"
+                            <field name="vat" string="Mã số thuế (MST)"
                                    readonly="customer_type == 'individual'"
                                    placeholder="Ẩn với Cá nhân"/>
                         </group>
@@ -129,7 +129,7 @@
                 <field name="name" string="Tên" filter_domain="[('name', 'ilike', self)]"/>
                 <field name="phone"/>
                 <field name="email"/>
-                <field name="tax_code" string="MST"/>
+                <field name="vat" string="MST"/>
                 <separator/>
                 <filter string="Cá nhân"
                         name="filter_individual"
@@ -157,8 +157,8 @@
         <field name="name">Khách hàng</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,kanban,form</field>
-        <field name="domain">[('is_dlm_customer', '=', True)]</field>
-        <field name="context">{'default_is_dlm_customer': True, 'default_customer_type': 'company'}</field>
+        <field name="domain">[('partner_role', '=', 'customer')]</field>
+        <field name="context">{'default_partner_role': 'customer', 'default_customer_type': 'company'}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_customer_tree')}),

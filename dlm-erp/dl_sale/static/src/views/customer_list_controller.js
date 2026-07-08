@@ -58,7 +58,7 @@ export class DlCustomerListController extends DlListBaseController {
     async _loadCounts() {
         const groups = await this.orm.readGroup(
             "res.partner",
-            [["is_dlm_customer", "=", true]],
+            [["partner_role", "=", "customer"]],
             ["customer_type"],
             ["customer_type"]
         );

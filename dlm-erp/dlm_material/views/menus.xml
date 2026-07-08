@@ -16,6 +16,11 @@
               action="action_dl_material_price_overdue"
               groups="dl_base.dl_group_ceo,dl_base.dl_group_accountant"/>
 
+    <menuitem id="menu_dl_material_price_import" name="Nhập giá vật tư (Excel)"
+              parent="dl_base.menu_dl_material" sequence="25"
+              action="action_dl_material_price_import"
+              groups="dl_base.dl_group_accountant"/>
+
     <menuitem id="menu_dlm_material_settings" name="Vật tư"
               parent="dl_base.menu_dl_config" sequence="10"
               action="action_dlm_material_settings"

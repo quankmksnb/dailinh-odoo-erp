@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_dl_partner_accountant,access_dl_partner_accountant,base.model_res_partner,dl_base.dl_group_accountant,1,1,1,0
+access_dl_partner_sales_manager,access_dl_partner_sales_manager,base.model_res_partner,dl_base.dl_group_sales_manager,1,0,0,0

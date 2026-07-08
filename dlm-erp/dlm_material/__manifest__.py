@@ -1,10 +1,10 @@
 {
     'name': 'DLM-ERP Vật tư',
-    'version': '17.0.1.0.0',
+    'version': '17.0.2.0.0',
     'summary': 'Danh mục Vật tư & Bảng giá Vật tư theo thời gian (lịch sử, cảnh báo hết hạn)',
     'author': 'Dai Linh',
     'category': 'Hidden',
-    'depends': ['dl_base', 'mail'],
+    'depends': ['dl_base', 'mail', 'product'],
     'data': [
         'security/ir.model.access.csv',
         'views/material_views.xml',
