@@ -1,1 +1,3 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_dl_rbac_feature_admin,access_dl_rbac_feature_admin,model_dl_rbac_feature,dl_group_admin,1,0,0,0
+access_dl_rbac_operation_admin,access_dl_rbac_operation_admin,model_dl_rbac_operation,dl_group_admin,1,0,0,0

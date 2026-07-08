@@ -1,20 +1,9 @@
 /** @odoo-module **/
-// ============================================================
-//  DL Customer List — kế thừa DlListBaseController (khung chung).
-//  Đăng ký view js_class="dl_customer_list" (dùng ở customer_views.xml).
-//  Phần RIÊNG của khách hàng:
-//   1) Chip lọc theo LOẠI có số đếm (Tất cả · Cá nhân · Doanh nghiệp ·
-//      Đại lý) — bấm = bật/tắt filter sẵn trong search view.
-//   2) Chuyển nút chuyển view (List/Kanban) vào cuối hàng chip.
-//   3) Avatar chữ cái nền màu cho từng dòng.
-// ============================================================
 
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
 import { DlListBaseController } from "./dl_list_controller";
 
-// filter: tên filter trong search view · ctype: giá trị customer_type để đếm.
-// key "all" = không lọc loại.
 const CHIPS = [
     { key: "all",        label: "Tất cả",       filter: null,                ctype: null },
     { key: "individual", label: "Cá nhân",      filter: "filter_individual", ctype: "individual" },
@@ -88,7 +77,6 @@ export class DlCustomerListController extends DlListBaseController {
         return chip ? chip.key : "all";
     }
 
-    // Single-select: tắt hết filter loại rồi bật 1
     _selectChip(key) {
         const sm = this.env.searchModel;
         const items = this._typeFilters();
@@ -118,16 +106,28 @@ export class DlCustomerListController extends DlListBaseController {
         }
     }
 
-    // Odoo trả hình người xám cho khách hàng (không có user nội bộ): ẩn bằng
-    // CSS và tự chèn avatar chữ cái theo tên vào ô avatar_128 mỗi dòng.
     _renderAvatars(root) {
+        const records = this.model.root.records || [];
         const rows = root.querySelectorAll(".o_list_table tbody tr.o_data_row");
-        for (const row of rows) {
+        rows.forEach((row, i) => {
             const cell = row.querySelector("td[name='avatar_128']");
             const nameCell = row.querySelector("td[name='name']");
             if (!cell || !nameCell) {
-                continue;
+                return;
             }
+            const rec = records[i];
+            const hasPhoto = !!(rec && rec.data && rec.data.dlm_has_photo);
+
+            if (hasPhoto) {
+                cell.classList.add("dl-has-photo");
+                const ava = cell.querySelector(".dl-letter-ava");
+                if (ava) {
+                    ava.remove();
+                }
+                return;
+            }
+
+            cell.classList.remove("dl-has-photo");
             const name = (nameCell.textContent || "").trim();
             let ava = cell.querySelector(".dl-letter-ava");
             if (!ava) {
@@ -139,7 +139,7 @@ export class DlCustomerListController extends DlListBaseController {
             ava.textContent = name ? name[0].toUpperCase() : "?";
             ava.style.background = c.bg;
             ava.style.color = c.fg;
-        }
+        });
     }
 }
 

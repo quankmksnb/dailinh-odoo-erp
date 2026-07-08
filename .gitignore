@@ -79,6 +79,10 @@ htmlcov/
 # ── Odoo source (dùng submodule hoặc pip) ─────
 odoo-17.0/
 
+# ── Claude Code / tài liệu nội bộ (không push) ─
+CLAUDE.md 
+docs/
+
 # ── Misc ──────────────────────────────────────
 *.orig
 *.rej

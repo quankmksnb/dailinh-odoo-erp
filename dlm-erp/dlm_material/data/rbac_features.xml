@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         CHỨC NĂNG phân quyền của module dlm_material (Vật tư & Bảng giá).
+    ============================================================ -->
+    <data noupdate="0">
+
+        <record id="dl_group_op_price_invalidate" model="res.groups">
+            <field name="name">[Thao tác] Đánh dấu giá vật tư không hợp lệ</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+        </record>
+
+        <record id="feat_material" model="dl.rbac.feature">
+            <field name="name">Vật tư</field>
+            <field name="code">material</field>
+            <field name="model_id" ref="model_dl_material"/>
+            <field name="category">master</field>
+            <field name="sequence">50</field>
+        </record>
+
+        <record id="feat_material_price" model="dl.rbac.feature">
+            <field name="name">Bảng giá Vật tư</field>
+            <field name="code">material_price</field>
+            <field name="model_id" ref="model_dl_material_price"/>
+            <field name="category">master</field>
+            <field name="sequence">60</field>
+        </record>
+        <record id="op_price_invalidate" model="dl.rbac.operation">
+            <field name="feature_id" ref="feat_material_price"/>
+            <field name="name">Đánh dấu không hợp lệ</field>
+            <field name="code">invalidate</field>
+            <field name="group_id" ref="dl_group_op_price_invalidate"/>
+        </record>
+
+    </data>
+</odoo>

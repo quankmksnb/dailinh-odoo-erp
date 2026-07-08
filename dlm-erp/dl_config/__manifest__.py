@@ -8,10 +8,12 @@
     'depends': ['dl_base', 'dl_sale', 'uom'],
     'data': [
         'security/ir.model.access.csv',
+        'data/rbac_features.xml',
         'views/config_home.xml',
         'views/uom_views.xml',
         'views/company_views.xml',
         'views/user_admin_views.xml',
+        'views/role_perm_views.xml',
         'views/menus.xml',
     ],
     'assets': {
@@ -25,6 +27,10 @@
             'dl_config/static/src/components/user_admin/user_admin.scss',
             'dl_config/static/src/components/user_admin/user_admin.xml',
             'dl_config/static/src/components/user_admin/user_admin.js',
+            # Phân quyền Vai trò (OWL, nối DB thật — RBAC)
+            'dl_config/static/src/components/role_perm/role_perm.scss',
+            'dl_config/static/src/components/role_perm/role_perm.xml',
+            'dl_config/static/src/components/role_perm/role_perm.js',
             # S02 — Cấu hình Hệ thống (OWL mock)
             'dl_config/static/src/components/sys_config/sys_config.scss',
             'dl_config/static/src/components/sys_config/sys_config.xml',
