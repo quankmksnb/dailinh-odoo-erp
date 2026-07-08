@@ -1,60 +1,199 @@
-.dl-customer-kanban {
+.dl-cust-kanban {
     font-family: $dl-font;
+
+    &.o_kanban_renderer,
+    .o_kanban_renderer {
+        padding: 4px 16px 16px;
+        gap: 12px !important;
+        align-content: start;
+    }
+
+    .o_kanban_record {
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+
+        &:focus,
+        &:focus-within {
+            outline: none;
+        }
+
+        &::after {
+            display: none !important;
+        }
+    }
 
     .dl-cust-card {
         display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        padding: 14px;
+        background: $dl-surface;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        box-shadow: $dl-shadow-sm;
+        transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+
+        &:hover {
+            border-color: $dl-primary;
+            box-shadow: $dl-shadow-pop;
+            transform: translateY(-2px);
+        }
+    }
+
+    .dl-cust-card__head {
+        display: flex;
         align-items: flex-start;
         gap: 12px;
-        padding: 14px;
-        border: 1px solid $dl-border;
-        border-radius: 12px;
-        background: #fff;
     }
 
-    .dl-cust-avatar {
-        width: 44px;
-        height: 44px;
-        flex-shrink: 0;
+    .dl-cust-ava {
+        flex: 0 0 auto;
+        width: 46px;
+        height: 46px;
 
         img {
-            width: 44px;
-            height: 44px;
-            border-radius: 999px;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
             object-fit: cover;
+            border: 1px solid $dl-divider;
+        }
+
+        &__letter {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1;
+            text-transform: uppercase;
         }
     }
 
-    .dl-cust-info {
+    .dl-cust-card__id {
+        flex: 1 1 auto;
+        min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 4px;
-        min-width: 0;
-
-        .dl-cust-name {
-            font-size: 14px;
-            font-weight: 600;
-            color: $dl-text;
-        }
-
-        .dl-cust-line {
-            font-size: 12px;
-            color: $dl-text-2;
-
-            i.fa { width: 14px; color: $dl-text-2; margin-right: 4px; }
-        }
+        gap: 5px;
     }
 
-    .dl-cust-badge {
-        align-self: flex-start;
+    .dl-cust-card__name {
+        font-size: 15px;
+        font-weight: 600;
+        color: $dl-heading;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dl-cust-card__tags {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .dl-cust-code {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        font-size: 12px;
+        color: $dl-text-2;
+    }
+
+    .dl-type-badge {
         display: inline-flex;
-        padding: 2px 10px;
-        border-radius: 999px;
+        padding: 1px 9px;
+        border-radius: $dl-radius-sm;
         font-size: 11px;
-        font-weight: 500;
+        font-weight: 600;
         background: $dl-type-individual-bg;
         color: $dl-type-individual-fg;
 
-        &[data-type="company"] { background: $dl-type-company-bg; color: $dl-type-company-fg; }
-        &[data-type="dealer"]  { background: $dl-type-dealer-bg;  color: $dl-type-dealer-fg;  }
+        &--company {
+            background: $dl-type-company-bg;
+            color: $dl-type-company-fg;
+        }
+
+        &--dealer {
+            background: $dl-type-dealer-bg;
+            color: $dl-type-dealer-fg;
+        }
+    }
+
+    .dl-cust-status {
+        flex: 0 0 auto;
+        align-self: flex-start;
+        padding: 2px 8px;
+        border-radius: $dl-radius-sm;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .02em;
+        white-space: nowrap;
+    }
+
+    .dl-cust-status--active {
+        background: $dl-badge-approved-bg;
+        color: $dl-badge-approved-fg;
+    }
+
+    .dl-cust-status--inactive {
+        background: $dl-badge-rejected-bg;
+        color: $dl-badge-rejected-fg;
+    }
+
+    .dl-cust-card__body {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding-top: 10px;
+        border-top: 1px solid $dl-divider;
+    }
+
+    .dl-cust-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        font-size: 13px;
+        color: $dl-text-2;
+
+        i.fa {
+            width: 14px;
+            text-align: center;
+            color: $dl-text-muted;
+            flex: 0 0 auto;
+        }
+
+        span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .dl-cust-card--off {
+        border-color: $dl-danger-border;
+
+        .dl-cust-card__name {
+            color: $dl-text-2;
+        }
+
+        .dl-cust-ava img {
+            filter: grayscale(0.5);
+            opacity: .85;
+        }
+
+        &:hover {
+            border-color: $dl-danger;
+        }
     }
 }
