@@ -3,6 +3,7 @@
 import { Component, useState, useEffect } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService, useBus } from "@web/core/utils/hooks";
+import { sidebarState, toggleSidebar } from "@dl_base/js/sidebar_state";
 
 const DLM_APP_XMLID = "dl_base.menu_dl_root";
 
@@ -11,6 +12,7 @@ const RAIL_ITEMS = [
     { key: "customer", name: "Khách hàng", icon: "fa-users", actionXmlId: "dl_sale.action_dl_customer" },
     { key: "supplier", name: "NCC / Thầu phụ", icon: "fa-truck", actionXmlId: "dl_sale.action_dl_supplier" },
     { key: "quotation", name: "Báo giá", icon: "fa-file-text-o", actionXmlId: "dl_sale.action_dl_quotation" },
+    { key: "product", name: "Sản phẩm", icon: "fa-cube", actionXmlId: "dl_sale.action_dl_product" },
     { key: "technical", name: "Kỹ thuật", icon: "fa-cogs", actionXmlId: null },
     { key: "material", name: "Vật tư", icon: "fa-cubes", actionXmlId: "dlm_material.action_dl_material" },
     { key: "report", name: "Báo cáo", icon: "fa-bar-chart", actionXmlId: null },
@@ -26,6 +28,7 @@ export class DlmRail extends Component {
         this.menuService = useService("menu");
         this.railItems = RAIL_ITEMS;
         this.state = useState({ visible: this._inDlmApp() });
+        this.sidebar = useState(sidebarState);
 
         // "MENUS:APP-CHANGED" chỉ phát khi ĐỔI app (selectMenu / app switcher);
         // điều hướng nội bộ DLM bằng doAction không đổi app nên rail vẫn hiện.
@@ -35,12 +38,20 @@ export class DlmRail extends Component {
 
         // Đồng bộ class trên <body> để CSS ẩn navbar Odoo + chừa chỗ cho rail.
         useEffect(
-            (visible) => {
+            (visible, collapsed) => {
                 document.body.classList.toggle("dlm-rail-active", visible);
-                return () => document.body.classList.remove("dlm-rail-active");
+                document.body.classList.toggle("dlm-rail-collapsed", visible && collapsed);
+                return () => {
+                    document.body.classList.remove("dlm-rail-active");
+                    document.body.classList.remove("dlm-rail-collapsed");
+                };
             },
-            () => [this.state.visible]
+            () => [this.state.visible, this.sidebar.collapsed]
         );
+    }
+
+    toggleSidebar() {
+        toggleSidebar();
     }
 
     _inDlmApp() {

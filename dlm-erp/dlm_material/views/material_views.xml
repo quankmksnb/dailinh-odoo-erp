@@ -29,7 +29,7 @@
         <field name="name">dlm.material.form</field>
         <field name="model">dl.material</field>
         <field name="arch" type="xml">
-            <form string="Vật tư">
+            <form string="Vật tư" class="dl-material-form" js_class="dl_material_form">
                 <header>
                     <button name="action_activate" type="object" string="Kích hoạt"
                             class="oe_highlight" groups="dl_base.dl_group_accountant"

@@ -9,8 +9,10 @@
         border: 0;
         box-shadow: none;
         background: $dl-app-bg;
-        padding: 8px 24px 24px;
+        padding: 6px 18px 20px;
     }
+
+    .o_inner_group { row-gap: 4px; }
 
     // Bỏ thụt lề/tràn riêng của Odoo để mọi section thẳng hàng trái/phải.
     .oe_title,
@@ -34,7 +36,7 @@
 
     .oe_title h1 {
         .o_field_widget, input {
-            font-size: 26px;
+            font-size: 20px;
             font-weight: 700;
             color: $dl-heading;
         }
@@ -85,7 +87,7 @@
         }
     }
 
-    .o_notebook .tab-content { padding-top: 14px; }
+    .o_notebook .tab-content { padding-top: 7px; }
 
     .o_form_statusbar {
         background: transparent;
@@ -99,7 +101,7 @@
             gap: 8px;
 
             .btn {
-                border-radius: 999px;
+                border-radius: $dl-radius-sm;
                 font-weight: 500;
                 padding: 6px 16px;
             }
@@ -163,7 +165,7 @@
     .o_field_x2many {
         .o_list_renderer {
             border: 1px solid $dl-border;
-            border-radius: 12px;
+            border-radius: $dl-radius;
             // KHÔNG dùng overflow:hidden — nó cắt cụt các cột bên phải khi bảng
             // rộng hơn khung (mất Đơn giá/Thành tiền).
         }
@@ -234,7 +236,7 @@
         margin-top: 14px;
         padding: 14px 20px;
         border: 1px solid $dl-border;
-        border-radius: 12px;
+        border-radius: $dl-radius;
         background: #fff;
 
         .dl-total-row {

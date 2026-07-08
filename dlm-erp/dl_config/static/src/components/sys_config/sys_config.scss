@@ -1,0 +1,185 @@
+// ============================================================================
+// S02 — Cấu hình Hệ thống (mock) — 5 tab. Dùng token dl_base.
+// ============================================================================
+.dl-cfg {
+    background: $dl-app-bg;
+    font-family: $dl-font;
+    color: $dl-text;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+
+    .dl-cfg-inner {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        width: 100%;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 18px 20px 28px;
+    }
+
+    // --- Header --------------------------------------------------------------
+    .dl-cfg-head { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid $dl-border; }
+    .dl-cfg-head-main { display: flex; flex-direction: column; gap: 2px; }
+    .dl-cfg-title { margin: 0; font-size: 18px; font-weight: 700; color: $dl-heading; line-height: 1.2; }
+    .dl-cfg-subtitle { font-size: 12px; color: $dl-text-muted; }
+
+    // --- Tab bar -------------------------------------------------------------
+    .dl-cfg-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid $dl-border; flex-wrap: wrap; }
+    .dl-cfg-tab {
+        display: inline-flex; align-items: center; gap: 7px;
+        border: 0; background: transparent; cursor: pointer;
+        font-size: 13px; font-weight: 600; color: $dl-text-2;
+        padding: 9px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+        transition: color .1s, border-color .1s;
+        i { font-size: 13px; }
+        &:hover { color: $dl-text; }
+        &.is-active { color: $dl-primary; border-bottom-color: $dl-primary; }
+    }
+
+    // --- Panel ---------------------------------------------------------------
+    .dl-cfg-panel {
+        background: $dl-surface; border: 1px solid $dl-border; border-radius: $dl-radius;
+        padding: 16px 16px 20px;
+    }
+    .dl-cfg-panel-head {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid $dl-divider;
+    }
+    .dl-cfg-panel-title { font-size: 14px; font-weight: 700; color: $dl-heading; }
+    .dl-cfg-head-btns { display: flex; gap: 8px; }
+
+    .dl-cfg-save {
+        display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: $dl-radius-sm;
+        background: $dl-primary; color: #fff; font-size: 13px; font-weight: 600; padding: 7px 14px; cursor: pointer;
+        &:hover { background: $dl-primary-dark; }
+    }
+    .dl-cfg-mini {
+        display: inline-flex; align-items: center; gap: 5px; border: 1px solid $dl-border; border-radius: $dl-radius-sm;
+        background: $dl-surface; color: $dl-primary; font-size: 12px; font-weight: 600; padding: 5px 10px; cursor: pointer;
+        &:hover { background: $dl-active; }
+    }
+
+    // --- Form grid -----------------------------------------------------------
+    .dl-cfg-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 18px; }
+    @media (max-width: 860px) { .dl-cfg-grid { grid-template-columns: 1fr 1fr; } }
+    .dl-cfg-f {
+        display: flex; flex-direction: column; gap: 5px; min-width: 0;
+        .k { font-size: 12px; font-weight: 600; color: $dl-text-2; }
+        input, select { @include dl-input; font-size: 13px; width: 100%; }
+        .hint { font-size: 11px; color: $dl-text-muted; }
+    }
+
+    // --- Subhead + tables ----------------------------------------------------
+    .dl-cfg-subhead {
+        display: flex; align-items: center; justify-content: space-between; gap: 10px;
+        margin: 20px 0 8px;
+        > span:first-child { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: $dl-section-fg; }
+    }
+
+    .dl-cfg-table {
+        width: 100%; border-collapse: collapse; font-size: 13px;
+        border: 1px solid $dl-border; border-radius: $dl-radius; overflow: hidden;
+        thead th {
+            background: $dl-table-head-bg; color: $dl-text-2; text-align: left; font-weight: 600; font-size: 12px;
+            padding: 7px 10px; border-bottom: 1px solid $dl-border;
+            &.num { text-align: right; } &.act { width: 44px; }
+        }
+        tbody td { padding: 4px 8px; border-top: 1px solid $dl-divider; vertical-align: middle; &.num { text-align: right; } &.act { text-align: center; } }
+        &.audit tbody td { padding: 7px 10px; }
+        .mono { font-variant-numeric: tabular-nums; color: $dl-text-2; white-space: nowrap; }
+    }
+    .dl-cfg-empty { text-align: center; color: $dl-text-muted; padding: 20px 0 !important; }
+
+    input.cell, select.cell {
+        width: 100%; border: 1px solid transparent; border-radius: $dl-radius-sm; background: transparent;
+        padding: 5px 7px; font-size: 13px; color: $dl-text; font-family: inherit;
+        &:hover { border-color: $dl-border; background: $dl-surface; }
+        &:focus { border-color: $dl-primary; background: $dl-surface; box-shadow: 0 0 0 2px rgba($dl-primary, 0.14); outline: 0; }
+        &.num { text-align: right; }
+        &.note { color: $dl-text-2; font-style: italic; }
+    }
+
+    .dl-cfg-del {
+        border: 0; background: transparent; color: $dl-text-muted; cursor: pointer; font-size: 14px; padding: 4px 6px; border-radius: $dl-radius-sm;
+        &:hover { color: $dl-danger; background: $dl-danger-bg; }
+        &.is-locked { opacity: 0.45; }
+    }
+
+    // --- Notices -------------------------------------------------------------
+    .dl-cfg-note {
+        display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.5;
+        padding: 9px 12px; border-radius: $dl-radius-sm; margin-bottom: 10px;
+        i { margin-top: 1px; }
+        b { font-weight: 700; }
+        &.info { background: $dl-active; color: $dl-text; i { color: $dl-primary; } }
+        &.warn { background: $dl-badge-draft-bg; color: $dl-badge-draft-fg; i { color: $dl-badge-draft-fg; } }
+    }
+
+    // --- Matrix table --------------------------------------------------------
+    .dl-cfg-matrix-wrap { overflow-x: auto; border: 1px solid $dl-border; border-radius: $dl-radius; }
+    .dl-cfg-matrix {
+        width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 1040px;
+        thead th {
+            background: $dl-table-head-bg; color: $dl-text-2; text-align: left; font-weight: 600; font-size: 11.5px;
+            padding: 8px 8px; border-bottom: 1px solid $dl-border; white-space: nowrap;
+            &.num { text-align: right; } &.ord { width: 54px; } &.act { width: 40px; } &.lname { min-width: 170px; }
+        }
+        tbody td { padding: 3px 6px; border-top: 1px solid $dl-divider; vertical-align: middle; &.num { text-align: right; } &.act { text-align: center; } }
+        tbody tr.is-off { opacity: 0.55; }
+        tbody tr.is-overlap td { background: rgba($dl-danger, 0.06); }
+        .dl-cfg-noterow td { padding: 2px 8px 8px 54px; border-top: 0; color: $dl-text-muted; i { margin-right: 6px; } }
+    }
+    .dl-cfg-ord { display: flex; flex-direction: column; gap: 2px; align-items: center;
+        button { border: 1px solid $dl-border; background: $dl-surface; color: $dl-text-2; border-radius: $dl-radius-sm; cursor: pointer; line-height: 1; padding: 1px 6px; font-size: 11px;
+            &:hover:not(:disabled) { background: $dl-active; color: $dl-primary; } &:disabled { opacity: 0.35; cursor: default; } }
+    }
+    .dl-cfg-range { display: flex; align-items: center; gap: 3px; > span { color: $dl-text-muted; } input { max-width: 62px; } }
+    .dl-cfg-flag {
+        display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: $dl-radius-sm; margin-left: 4px;
+        background: $dl-type-dealer-bg; color: $dl-type-dealer-fg;
+        &.err { background: $dl-danger-bg; color: $dl-danger; }
+    }
+    .dl-cfg-toggle {
+        border: 1px solid $dl-border; border-radius: 999px; cursor: pointer; font-size: 11px; font-weight: 700; padding: 2px 12px;
+        &.on { background: $dl-badge-approved-bg; color: $dl-badge-approved-fg; border-color: #bfe0c9; }
+        &.off { background: $dl-search-bg; color: $dl-text-muted; }
+    }
+    .dl-cfg-pending { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; font-size: 11px; font-weight: 600; color: $dl-badge-draft-fg; }
+
+    // --- Checkboxes ----------------------------------------------------------
+    .dl-cfg-checks { display: flex; flex-direction: column; gap: 8px; }
+    .dl-cfg-check {
+        display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: $dl-text; cursor: pointer;
+        input { width: 15px; height: 15px; accent-color: $dl-primary; cursor: pointer; }
+        &.big { font-weight: 600; }
+    }
+
+    .dl-cfg-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: $dl-radius-sm; background: $dl-type-company-bg; color: $dl-type-company-fg; }
+
+    // --- Dialog / Toast (dùng lại phong cách S01) ----------------------------
+    .dl-cfg-modal-backdrop { position: absolute; inset: 0; z-index: 50; background: rgba(28, 39, 51, 0.35); display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .dl-cfg-dialog { width: 100%; max-width: 440px; background: $dl-surface; border-radius: $dl-radius-lg; box-shadow: $dl-shadow-pop; padding: 22px 22px 16px; text-align: center; }
+    .dl-cfg-dialog-icon {
+        width: 46px; height: 46px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 20px;
+        background: $dl-badge-draft-bg; color: $dl-badge-draft-fg;
+        &.block { background: $dl-danger-bg; color: $dl-danger; }
+    }
+    .dl-cfg-dialog-title { font-size: 15px; font-weight: 700; color: $dl-heading; margin-bottom: 6px; }
+    .dl-cfg-dialog-msg { font-size: 13px; color: $dl-text-2; line-height: 1.5; margin-bottom: 18px; }
+    .dl-cfg-dialog-foot { display: flex; justify-content: center; gap: 8px; }
+    .dl-cfg-mbtn {
+        border: 1px solid $dl-border; border-radius: $dl-radius-sm; background: $dl-surface; color: $dl-text; font-size: 13px; font-weight: 600; padding: 7px 16px; cursor: pointer;
+        &:hover { background: $dl-active; }
+        &.primary { background: $dl-primary; border-color: $dl-primary; color: #fff; &:hover { background: $dl-primary-dark; } }
+        &.danger { background: $dl-danger; border-color: $dl-danger; color: #fff; &:hover { filter: brightness(0.94); } }
+        &.ghost { color: $dl-text-2; }
+    }
+    .dl-cfg-toast {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 60;
+        display: inline-flex; align-items: center; gap: 8px; max-width: 90%;
+        background: $dl-heading; color: #fff; font-size: 13px; font-weight: 500; padding: 10px 16px; border-radius: $dl-radius; box-shadow: $dl-shadow-pop;
+        i { color: #6bd08b; }
+    }
+}

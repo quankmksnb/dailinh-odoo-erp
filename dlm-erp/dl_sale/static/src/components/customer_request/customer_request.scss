@@ -1,0 +1,199 @@
+.dl-creq {
+    background: $dl-app-bg;
+    font-family: $dl-font;
+    color: $dl-text;
+
+    .dl-creq-inner {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        width: 100%;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 16px 20px 32px;
+    }
+
+    .dl-creq-head { margin-bottom: 14px; }
+    .dl-creq-title {
+        margin: 0 0 4px;
+        font-size: 18px;
+        font-weight: 700;
+        color: $dl-heading;
+    }
+    .dl-creq-sub { margin: 0; font-size: 13px; color: $dl-text-2; }
+
+    // ── Thẻ đếm ──────────────────────────────────────────────────────────────
+    .dl-creq-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+    .dl-creq-stat {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 10px 14px;
+        background: #fff;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        cursor: pointer;
+        border-left: 3px solid $dl-border;
+        transition: border-color .1s;
+        &:hover { border-color: $dl-primary; }
+        &.is-active { border-color: $dl-primary; border-left-color: $dl-primary; background: $dl-active; }
+        &.s-new      { border-left-color: $dl-badge-sent-fg; }
+        &.s-processing { border-left-color: $dl-badge-draft-fg; }
+        &.s-quoted   { border-left-color: $dl-badge-approved-fg; }
+        &.s-closed   { border-left-color: $dl-text-muted; }
+    }
+    .dl-creq-stat-val { font-size: 18px; font-weight: 800; color: $dl-heading; }
+    .dl-creq-stat-label { font-size: 12px; color: $dl-text-2; }
+
+    // ── Toolbar ──────────────────────────────────────────────────────────────
+    .dl-creq-toolbar { margin-bottom: 14px; }
+    .dl-creq-search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        max-width: 380px;
+        background: #fff;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius-sm;
+        padding: 0 12px;
+        i { color: $dl-text-muted; font-size: 13px; }
+        input {
+            flex: 1 1 auto;
+            border: none;
+            background: transparent;
+            padding: 9px 0;
+            font-size: 13px;
+            &:focus { outline: none; }
+        }
+    }
+
+    // ── Body 2 cột ───────────────────────────────────────────────────────────
+    .dl-creq-body {
+        display: grid;
+        grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+    }
+
+    .dl-creq-list { display: flex; flex-direction: column; gap: 8px; }
+    .dl-creq-item {
+        background: #fff;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        padding: 10px 13px;
+        cursor: pointer;
+        transition: border-color .1s;
+        &:hover { border-color: $dl-primary; }
+        &.is-selected { border-color: $dl-primary; box-shadow: 0 0 0 1px $dl-primary inset; }
+    }
+    .dl-creq-item-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 5px;
+    }
+    .dl-creq-item-code { font-size: 13px; font-weight: 700; color: $dl-heading; }
+    .dl-creq-item-cust { font-size: 13px; color: $dl-text; margin-bottom: 7px; }
+    .dl-creq-item-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        font-size: 11.5px;
+        color: $dl-text-muted;
+        i { margin-right: 3px; }
+    }
+    .dl-creq-empty {
+        padding: 26px;
+        text-align: center;
+        color: $dl-text-muted;
+        font-size: 13px;
+    }
+
+    // ── Chi tiết ─────────────────────────────────────────────────────────────
+    .dl-creq-detail {
+        background: #fff;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        padding: 20px 22px;
+        position: sticky;
+        top: 0;
+    }
+    .dl-creq-detail-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding-bottom: 14px;
+        border-bottom: 1px solid $dl-divider;
+        margin-bottom: 16px;
+    }
+    .dl-creq-detail-code { font-size: 15px; font-weight: 800; color: $dl-heading; }
+    .dl-creq-detail-cust { font-size: 13px; color: $dl-text-2; margin-top: 2px; }
+
+    .dl-creq-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px 20px;
+        margin-bottom: 16px;
+    }
+    .dl-creq-field {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        .k { font-size: 11.5px; color: $dl-text-muted; }
+        .v { font-size: 13px; color: $dl-text; font-weight: 500; }
+    }
+
+    .dl-creq-note {
+        background: $dl-app-bg;
+        border-radius: $dl-radius-sm;
+        padding: 12px 14px;
+        margin-bottom: 18px;
+        .k { font-size: 11.5px; color: $dl-text-muted; }
+        p { margin: 5px 0 0; font-size: 13px; line-height: 1.55; color: $dl-text; }
+    }
+
+    .dl-creq-detail-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .dl-creq-btn-primary {
+        border: none;
+        border-radius: $dl-radius-sm;
+        padding: 9px 16px;
+        background: $dl-primary;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        i { margin-right: 6px; }
+        &:hover { background: $dl-primary-dark; }
+    }
+    .dl-creq-btn-ghost {
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius-sm;
+        padding: 9px 16px;
+        background: #fff;
+        color: $dl-text-2;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        i { margin-right: 6px; }
+        &:hover { border-color: $dl-primary; color: $dl-primary; }
+    }
+
+    // ── Badge trạng thái ─────────────────────────────────────────────────────
+    .dl-creq-badge {
+        display: inline-block;
+        font-size: 11.5px;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: $dl-radius-sm;
+        white-space: nowrap;
+        &.new        { background: $dl-badge-sent-bg;     color: $dl-badge-sent-fg; }
+        &.processing { background: $dl-badge-draft-bg;    color: $dl-badge-draft-fg; }
+        &.quoted     { background: $dl-badge-approved-bg; color: $dl-badge-approved-fg; }
+        &.closed     { background: $dl-search-bg;         color: $dl-text-muted; }
+    }
+}
