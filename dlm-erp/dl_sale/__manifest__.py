@@ -7,6 +7,7 @@
     'depends': ['dl_base', 'mail'],
     'data': [
         'security/ir.model.access.csv',
+        'data/rbac_features.xml',
         'views/customer_views.xml',
         'views/supplier_views.xml',
         'views/product_views.xml',

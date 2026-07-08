@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         CHỨC NĂNG phân quyền của module dl_sale (CRM & Báo giá).
+         Kèm các res.groups KỸ THUẬT cho thao tác đặc biệt (duyệt/xuất).
+         Op-group để category HIDDEN — chúng KHÔNG phải vai trò, chỉ gate nút.
+    ============================================================ -->
+    <data noupdate="0">
+
+        <!-- Nhóm kỹ thuật cho thao tác đặc biệt -->
+        <record id="dl_group_op_quote_approve" model="res.groups">
+            <field name="name">[Thao tác] Duyệt báo giá</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+        </record>
+        <record id="dl_group_op_quote_export" model="res.groups">
+            <field name="name">[Thao tác] Xuất báo giá (PDF/Excel)</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+        </record>
+        <record id="dl_group_op_partner_export" model="res.groups">
+            <field name="name">[Thao tác] Xuất danh sách đối tác</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+        </record>
+
+        <!-- Chức năng -->
+        <record id="feat_partner" model="dl.rbac.feature">
+            <field name="name">Khách hàng &amp; Nhà cung cấp</field>
+            <field name="code">partner</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="category">sales</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="op_partner_export" model="dl.rbac.operation">
+            <field name="feature_id" ref="feat_partner"/>
+            <field name="name">Xuất file</field>
+            <field name="code">export</field>
+            <field name="group_id" ref="dl_group_op_partner_export"/>
+        </record>
+
+        <record id="feat_product" model="dl.rbac.feature">
+            <field name="name">Sản phẩm</field>
+            <field name="code">product</field>
+            <field name="model_id" ref="model_dl_product"/>
+            <field name="category">sales</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <record id="feat_quotation" model="dl.rbac.feature">
+            <field name="name">Báo giá</field>
+            <field name="code">quotation</field>
+            <field name="model_id" ref="model_dl_quotation"/>
+            <field name="category">sales</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="op_quote_approve" model="dl.rbac.operation">
+            <field name="feature_id" ref="feat_quotation"/>
+            <field name="name">Duyệt báo giá</field>
+            <field name="code">approve</field>
+            <field name="sequence">10</field>
+            <field name="group_id" ref="dl_group_op_quote_approve"/>
+        </record>
+        <record id="op_quote_export" model="dl.rbac.operation">
+            <field name="feature_id" ref="feat_quotation"/>
+            <field name="name">Xuất file</field>
+            <field name="code">export</field>
+            <field name="sequence">20</field>
+            <field name="group_id" ref="dl_group_op_quote_export"/>
+        </record>
+
+    </data>
+</odoo>

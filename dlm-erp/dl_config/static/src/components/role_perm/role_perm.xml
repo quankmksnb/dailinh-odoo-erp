@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_config.DlRolePerm">
+    <div class="dl-rperm o_action">
+        <div class="dl-rperm-inner">
+
+            <!-- Header -->
+            <div class="dl-rperm-head">
+                <div class="dl-rperm-head-main">
+                    <h1 class="dl-rperm-title">Phân quyền Vai trò</h1>
+                    <span class="dl-rperm-subtitle">Định nghĩa vai trò và quyền Xem/Thêm/Sửa/Xóa + thao tác đặc biệt theo từng chức năng (RBAC)</span>
+                </div>
+                <button class="dl-rperm-btn-new" type="button" t-on-click="openCreate">
+                    <i class="fa fa-plus"/> Tạo vai trò
+                </button>
+            </div>
+
+            <div class="dl-rperm-body">
+
+                <!-- ===== Cột vai trò ===== -->
+                <div class="dl-rperm-roles">
+                    <div class="dl-rperm-roles-label">Vai trò</div>
+                    <t t-foreach="state.roles" t-as="r" t-key="r.id">
+                        <div class="dl-rperm-role"
+                             t-att-class="{ 'is-selected': r.id === state.selectedRoleId }"
+                             t-on-click="() => this.selectRole(r.id)">
+                            <div class="dl-rperm-role-main">
+                                <span class="dl-rperm-role-name" t-esc="r.name"/>
+                                <span class="dl-rperm-role-meta"><t t-esc="r.user_count"/> user</span>
+                            </div>
+                            <span t-if="r.system" class="dl-rperm-role-badge">Mặc định</span>
+                        </div>
+                    </t>
+                    <div t-if="!state.roles.length and !state.loading" class="dl-rperm-role-empty">
+                        Chưa có vai trò nào.
+                    </div>
+                </div>
+
+                <!-- ===== Ma trận quyền ===== -->
+                <div class="dl-rperm-matrix">
+                    <div t-if="selectedRole" class="dl-rperm-matrix-head">
+                        <div class="dl-rperm-matrix-title">
+                            <span t-esc="selectedRole.name"/>
+                            <span t-if="selectedRole.comment" class="dl-rperm-matrix-desc" t-esc="selectedRole.comment"/>
+                        </div>
+                        <button class="dl-rperm-del" type="button"
+                                t-att-disabled="selectedRole.system"
+                                t-on-click="confirmDelete">
+                            <i class="fa fa-trash-o"/> Xóa vai trò
+                        </button>
+                    </div>
+
+                    <div class="dl-rperm-scroll">
+                        <t t-foreach="sections" t-as="sec" t-key="sec.key">
+                            <div class="dl-rperm-cat" t-esc="sec.label"/>
+                            <table class="dl-rperm-table">
+                                <thead>
+                                    <tr>
+                                        <th class="feat">Chức năng</th>
+                                        <th t-foreach="crudCols" t-as="c" t-key="c.key" class="perm" t-esc="c.label"/>
+                                        <th class="ops">Thao tác đặc biệt</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="sec.items" t-as="f" t-key="f.id">
+                                        <tr>
+                                            <td class="feat">
+                                                <span class="dl-rperm-feat-name" t-esc="f.name"/>
+                                                <span t-if="!f.has_model" class="dl-rperm-feat-nomodel"
+                                                      title="Chức năng chưa gắn model dữ liệu — chỉ cấu hình được thao tác đặc biệt">chưa có dữ liệu</span>
+                                            </td>
+                                            <td t-foreach="crudCols" t-as="c" t-key="c.key" class="perm">
+                                                <label class="dl-rperm-check" t-att-class="{ 'is-disabled': !f.has_model }">
+                                                    <input type="checkbox"
+                                                           t-att-checked="f.crud[c.key]"
+                                                           t-att-disabled="!f.has_model"
+                                                           t-on-change="() => this.toggleCrud(f, c.key)"/>
+                                                    <span class="dl-rperm-box"><i class="fa fa-check"/></span>
+                                                </label>
+                                            </td>
+                                            <td class="ops">
+                                                <t t-if="f.operations.length">
+                                                    <t t-foreach="f.operations" t-as="op" t-key="op.id">
+                                                        <label class="dl-rperm-op" t-att-class="{ 'is-on': op.enabled }">
+                                                            <input type="checkbox"
+                                                                   t-att-checked="op.enabled"
+                                                                   t-on-change="() => this.toggleOp(f, op)"/>
+                                                            <i class="fa fa-bolt"/>
+                                                            <span t-esc="op.name"/>
+                                                        </label>
+                                                    </t>
+                                                </t>
+                                                <span t-else="" class="dl-rperm-op-none">—</span>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </t>
+                        <div t-if="selectedRole and !sections.length" class="dl-rperm-empty">
+                            Chưa có chức năng nào được khai báo trong hệ thống.
+                        </div>
+                        <div t-if="!selectedRole and !state.loading" class="dl-rperm-empty">
+                            Chọn hoặc tạo một vai trò để cấu hình quyền.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Modal tạo vai trò ===== -->
+        <t t-if="state.createOpen">
+            <div class="dl-rperm-modal-backdrop" t-on-click="closeCreate">
+                <div class="dl-rperm-modal" t-on-click.stop="">
+                    <div class="dl-rperm-modal-bar">
+                        <span class="dl-rperm-modal-title"><i class="fa fa-shield"/> Tạo vai trò mới</span>
+                        <button class="dl-rperm-modal-close" type="button" t-on-click="closeCreate"><i class="fa fa-times"/></button>
+                    </div>
+                    <div class="dl-rperm-modal-body">
+                        <label class="dl-rperm-flabel">Tên vai trò <span class="req">*</span></label>
+                        <input type="text" class="dl-rperm-finput" placeholder="VD: Sales miền Bắc"
+                               t-att-value="state.form.name"
+                               t-on-input="(ev) => this.onFormInput('name', ev)"/>
+                        <label class="dl-rperm-flabel">Mô tả</label>
+                        <input type="text" class="dl-rperm-finput" placeholder="Mô tả ngắn phạm vi vai trò"
+                               t-att-value="state.form.comment"
+                               t-on-input="(ev) => this.onFormInput('comment', ev)"/>
+                        <div class="dl-rperm-modal-note">
+                            <i class="fa fa-info-circle"/> Sau khi tạo, chọn vai trò để tick các quyền chi tiết.
+                        </div>
+                    </div>
+                    <div class="dl-rperm-modal-foot">
+                        <button class="dl-rperm-mbtn ghost" type="button" t-on-click="closeCreate">Hủy</button>
+                        <button class="dl-rperm-mbtn primary" type="button"
+                                t-att-disabled="!createValid" t-on-click="submitCreate">Tạo vai trò</button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- ===== Dialog xác nhận / chặn ===== -->
+        <t t-if="state.dialog">
+            <div class="dl-rperm-modal-backdrop" t-on-click="dialogClose">
+                <div class="dl-rperm-dialog" t-on-click.stop="">
+                    <div class="dl-rperm-dialog-icon" t-att-class="state.dialog.kind">
+                        <i t-att-class="'fa ' + (state.dialog.kind === 'block' ? 'fa-ban' : 'fa-exclamation-triangle')"/>
+                    </div>
+                    <div class="dl-rperm-dialog-title" t-esc="state.dialog.title"/>
+                    <div class="dl-rperm-dialog-msg" t-esc="state.dialog.msg"/>
+                    <div class="dl-rperm-dialog-foot">
+                        <t t-if="state.dialog.kind === 'block'">
+                            <button class="dl-rperm-mbtn primary" type="button" t-on-click="dialogClose">Đã hiểu</button>
+                        </t>
+                        <t t-else="">
+                            <button class="dl-rperm-mbtn ghost" type="button" t-on-click="dialogClose">Hủy</button>
+                            <button class="dl-rperm-mbtn" type="button"
+                                    t-att-class="state.dialog.danger ? 'danger' : 'primary'"
+                                    t-on-click="dialogOk" t-esc="state.dialog.okLabel || 'Xác nhận'"/>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- Toast -->
+        <t t-if="state.toast">
+            <div class="dl-rperm-toast"><i class="fa fa-check-circle"/> <span t-esc="state.toast"/></div>
+        </t>
+    </div>
+</t>
+
+</templates>
