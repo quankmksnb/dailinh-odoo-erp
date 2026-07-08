@@ -4,7 +4,7 @@
     'summary': 'Quản lý Sản phẩm, Bán thành phẩm, Bản vẽ, BOM & BOM Mẫu — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
-    'depends': ['dl_base', 'dlm_material', 'dl_sale', 'mail', 'uom', 'product'],
+    'depends': ['dl_base', 'dlm_material', 'dl_sale', 'mail', 'uom'],
     'external_dependencies': {'python': ['simpleeval']},
     'data': [
         'security/ir.model.access.csv',

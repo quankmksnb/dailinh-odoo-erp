@@ -15,7 +15,7 @@ const CARDS = [
     },
     {
         key: "bom_template",
-        name: "Khung mẫu cấp nhóm",
+        name: "BOM mẫu",
         desc: "BOM trừu tượng theo nhóm sản phẩm, dùng để sao chép khi tạo SP mới",
         icon: "fa-clone",
         actionXmlId: "dl_bom.action_dl_bom_template",
@@ -30,9 +30,9 @@ const CARDS = [
     {
         key: "product",
         name: "Danh mục sản phẩm",
-        desc: "Thành phẩm và thông số kỹ thuật",
+        desc: "Thành phẩm và thông số kỹ thuật (màn S05)",
         icon: "fa-cube",
-        actionXmlId: "dl_bom.action_dl_product",
+        actionXmlId: "dl_sale.action_dl_product",
     },
     {
         key: "product_category",

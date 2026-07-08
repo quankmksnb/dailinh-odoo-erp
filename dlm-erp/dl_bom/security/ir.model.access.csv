@@ -1,9 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_dl_product_category_ceo,dl.product.category CEO,model_dl_product_category,dl_base.dl_group_ceo,1,0,0,0
-access_dl_product_category_admin,dl.product.category Admin,model_dl_product_category,dl_base.dl_group_admin,1,1,1,1
-access_dl_product_category_ba,dl.product.category BA,model_dl_product_category,dl_base.dl_group_ba,1,0,0,0
-access_dl_product_category_tech,dl.product.category Tech,model_dl_product_category,dl_base.dl_group_tech,1,1,1,0
-access_dl_product_category_sm,dl.product.category SM,model_dl_product_category,dl_base.dl_group_sales_manager,1,1,1,0
 access_dl_semi_product_ceo,dl.semi.product CEO,model_dl_semi_product,dl_base.dl_group_ceo,1,0,0,0
 access_dl_semi_product_admin,dl.semi.product Admin,model_dl_semi_product,dl_base.dl_group_admin,1,1,1,1
 access_dl_semi_product_ba,dl.semi.product BA,model_dl_semi_product,dl_base.dl_group_ba,1,0,0,0

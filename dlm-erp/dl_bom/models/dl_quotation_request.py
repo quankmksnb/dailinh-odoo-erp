@@ -147,8 +147,7 @@ class DlQuotationRequestLine(models.Model):
     check_note = fields.Text(string='Ghi chú kiểm tra KT')
 
     reference_product_id = fields.Many2one(
-        'product.product', string='Sản phẩm tham chiếu',
-        domain=[('product_kind', '=', 'finished')],
+        'dl.product', string='Sản phẩm tham chiếu',
         help='Sản phẩm tương tự hoặc sản phẩm cũ đã có (nếu áp dụng).',
     )
     reference_bom_id = fields.Many2one(
@@ -168,9 +167,8 @@ class DlQuotationRequestLine(models.Model):
             if not line.product_category_id:
                 line.similar_bom_ids = False
                 continue
-            product_ids = self.env['product.product'].search([
-                ('product_category_id', '=', line.product_category_id.id),
-                ('product_kind', '=', 'finished'),
+            product_ids = self.env['dl.product'].search([
+                ('category_id', '=', line.product_category_id.id),
             ]).ids
             domain = [('status', 'in', ('confirmed', 'locked'))]
             domain += [('product_id', 'in', product_ids)] if product_ids else [('id', '=', 0)]

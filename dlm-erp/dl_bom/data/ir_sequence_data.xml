@@ -2,8 +2,9 @@
 <odoo>
     <data noupdate="1">
 
-        <!-- dl.product không còn model riêng (mở rộng product.product trực tiếp,
-             mã sản phẩm nhập tay kiểu CT-200/GS-100 theo TDS) — không cần sequence. -->
+        <!-- dl.product đã có sẵn ở module dl_sale (S05) với sequence riêng
+             (dlm.product, prefix SP-) — dl_bom chỉ mở rộng field, không cần
+             sequence riêng cho sản phẩm ở đây. -->
 
         <record id="seq_dl_semi_product" model="ir.sequence">
             <field name="name">Mã bán thành phẩm</field>

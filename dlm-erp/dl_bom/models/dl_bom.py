@@ -34,8 +34,8 @@ class DlBom(models.Model):
     # còn lại KHÔNG có owner nào — vi phạm ràng buộc XOR (_check_owner_xor)
     # mà không đi qua được validation Python. Phải xoá/lưu trữ BOM trước.
     product_id = fields.Many2one(
-        'product.product', string='Thành phẩm', tracking=True,
-        domain=[('product_kind', '=', 'finished'), ('active', '=', True)],
+        'dl.product', string='Thành phẩm', tracking=True,
+        domain=[('active', '=', True)],
         ondelete='restrict',
     )
     semi_product_id = fields.Many2one(
@@ -118,7 +118,7 @@ class DlBom(models.Model):
             if owners != 1:
                 raise ValidationError(_(
                     'BOM phải liên kết chính xác 1 trong: Thành phẩm, '
-                    'Bán thành phẩm, hoặc Nhóm sản phẩm (khung mẫu cấp nhóm).'))
+                    'Bán thành phẩm, hoặc Nhóm sản phẩm (BOM mẫu).'))
 
     @api.constrains('product_qty')
     def _check_product_qty(self):
@@ -202,7 +202,7 @@ class DlBom(models.Model):
         }
 
     def action_copy_as_product_bom(self):
-        """Sao chép khung mẫu cấp nhóm (category_id) thành BOM cụ thể cho 1
+        """Sao chép BOM mẫu (category_id) thành BOM cụ thể cho 1
         thành phẩm — dùng khi KTV tạo sản phẩm mới thuộc nhóm đã có BOM mẫu."""
         self.ensure_one()
         if not self.category_id:
