@@ -17,6 +17,8 @@
             # cả dl_sale cũng dựa vào — xem dl_sale/__manifest__.py).
             'dl_base/static/src/scss/variables.scss',
             'dl_base/static/src/scss/mixins.scss',
+            # State dùng chung sidebar (Home nav + Rail) — nạp trước component
+            'dl_base/static/src/js/sidebar_state.js',
             # Component — Home dashboard (client action ir.actions.client)
             'dl_base/static/src/components/home/home.scss',
             'dl_base/static/src/components/home/home.xml',

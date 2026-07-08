@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- S01 — Quản lý User & Phân quyền (client action, OWL mock) -->
+    <record id="action_dl_user_admin" model="ir.actions.client">
+        <field name="name">Quản lý User &amp; Phân quyền</field>
+        <field name="tag">dl_config.DlUserAdmin</field>
+    </record>
+
+    <!-- S02 — Cấu hình Hệ thống (client action, OWL mock) -->
+    <record id="action_dl_sys_config" model="ir.actions.client">
+        <field name="name">Cấu hình Hệ thống</field>
+        <field name="tag">dl_config.DlSysConfig</field>
+    </record>
+
+</odoo>

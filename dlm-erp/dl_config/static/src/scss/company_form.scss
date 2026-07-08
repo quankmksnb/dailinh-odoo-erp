@@ -9,8 +9,10 @@
         border: 0;
         box-shadow: none;
         background: $dl-app-bg;
-        padding: 8px 24px 24px;
+        padding: 6px 18px 20px;
     }
+
+    .o_inner_group { row-gap: 4px; }
 
     .dl-co-head {
         display: flex;
@@ -25,7 +27,7 @@
         img, .o_image {
             width: 80px !important;
             height: 80px !important;
-            border-radius: 14px !important;
+            border-radius: $dl-radius !important;
             object-fit: contain;
             background: #fff;
             border: 1px solid $dl-border;
@@ -38,7 +40,7 @@
 
         h1 { margin: 2px 0 6px; }
         h1 .o_field_widget input {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
             color: $dl-heading;
         }

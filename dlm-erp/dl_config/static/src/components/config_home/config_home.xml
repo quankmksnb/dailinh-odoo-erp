@@ -4,30 +4,37 @@
 <t t-name="dl_config.DlConfigHome">
     <div class="dl-config o_action">
         <div class="dl-config-inner">
+            <!-- Page header -->
             <div class="dl-config-head">
-                <h1 class="dl-config-title">Cấu hình</h1>
-                <p class="dl-config-sub">
-                    Quản lý dữ liệu nền dùng chung: tiền tệ, đơn vị tính, thuế và công ty.
-                </p>
+                <div class="dl-config-head-main">
+                    <h1 class="dl-config-title">Cấu hình</h1>
+                    <span class="dl-config-subtitle">Danh mục dùng chung và thiết lập hệ thống</span>
+                </div>
             </div>
 
-            <div class="dl-config-grid">
-                <t t-foreach="cards" t-as="c" t-key="c.key">
-                    <div class="dl-config-card"
-                         t-att-class="{ 'is-disabled': !c.actionXmlId }"
-                         t-on-click="() => this.openCard(c.actionXmlId)">
-                        <span class="dl-config-card-icon">
-                            <i t-att-class="'fa ' + c.icon"/>
-                        </span>
-                        <span class="dl-config-card-body">
-                            <span class="dl-config-card-name" t-esc="c.name"/>
-                            <span class="dl-config-card-desc" t-esc="c.desc"/>
-                        </span>
-                        <span t-if="!c.actionXmlId" class="dl-config-card-soon">Sắp có</span>
-                        <i t-else="" class="fa fa-angle-right dl-config-card-arrow"/>
+            <!-- Danh sách hàng danh mục nén, nhóm theo phân khu -->
+            <t t-foreach="sections" t-as="sec" t-key="sec.key">
+                <div class="dl-config-section">
+                    <div class="dl-config-section-label" t-esc="sec.label"/>
+                    <div class="dl-config-rows">
+                        <t t-foreach="sec.items" t-as="c" t-key="c.key">
+                            <div class="dl-config-row"
+                                 t-att-class="{ 'is-disabled': !c.actionXmlId }"
+                                 t-on-click="() => this.openCard(c.actionXmlId)">
+                                <span class="dl-config-row-icon">
+                                    <i t-att-class="'fa ' + c.icon"/>
+                                </span>
+                                <span class="dl-config-row-body">
+                                    <span class="dl-config-row-name" t-esc="c.name"/>
+                                    <span class="dl-config-row-desc" t-esc="c.desc"/>
+                                </span>
+                                <span t-if="!c.actionXmlId" class="dl-config-row-soon">Sắp có</span>
+                                <i t-else="" class="fa fa-angle-right dl-config-row-arrow"/>
+                            </div>
+                        </t>
                     </div>
-                </t>
-            </div>
+                </div>
+            </t>
         </div>
     </div>
 </t>

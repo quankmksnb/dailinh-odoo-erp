@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_config.DlUserAdmin">
+    <div class="dl-user o_action">
+        <div class="dl-user-inner">
+
+            <!-- Header -->
+            <div class="dl-user-head">
+                <div class="dl-user-head-main">
+                    <h1 class="dl-user-title">Quản lý User &amp; Phân quyền</h1>
+                    <span class="dl-user-subtitle">Quản trị tài khoản, gán vai trò, khóa/mở khóa, Backup Approver</span>
+                </div>
+                <button class="dl-user-btn-new" type="button" t-on-click="openCreate">
+                    <i class="fa fa-plus"/> Tạo user
+                </button>
+            </div>
+
+            <!-- Thân: danh sách (trái) + chi tiết (phải) -->
+            <div class="dl-user-body">
+
+                <!-- ============ Cột danh sách ============ -->
+                <div class="dl-user-list-col">
+                    <div class="dl-user-toolbar">
+                        <div class="dl-user-search">
+                            <i class="fa fa-search"/>
+                            <input type="text" placeholder="Tìm tên, email…"
+                                   t-att-value="state.search"
+                                   t-on-input="(ev) => state.search = ev.target.value"/>
+                        </div>
+                        <select class="dl-user-filter" t-model="state.roleFilter">
+                            <option value="">Tất cả vai trò</option>
+                            <t t-foreach="roles" t-as="r" t-key="r.key">
+                                <option t-att-value="r.key" t-esc="r.label"/>
+                            </t>
+                        </select>
+                        <select class="dl-user-filter" t-model="state.statusFilter">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="active">Đang hoạt động</option>
+                            <option value="locked">Bị khóa</option>
+                        </select>
+                    </div>
+
+                    <div class="dl-user-table-wrap">
+                        <table class="dl-user-table">
+                            <thead>
+                                <tr>
+                                    <th>Họ tên</th>
+                                    <th>Vai trò</th>
+                                    <th>Phòng ban</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="filteredUsers" t-as="u" t-key="u.id">
+                                    <tr t-att-class="{ 'is-selected': u.id === state.selectedId, 'is-locked': !u.active }"
+                                        t-on-click="() => this.selectUser(u.id)">
+                                        <td>
+                                            <div class="dl-user-cell-name">
+                                                <span class="dl-user-avatar" t-esc="u.name.trim()[0]"/>
+                                                <div class="dl-user-cell-main">
+                                                    <span class="dl-user-cell-fullname" t-esc="u.name"/>
+                                                    <span class="dl-user-cell-email" t-esc="u.email"/>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td><span class="dl-user-role-tag" t-esc="roleLabel(u.role)"/></td>
+                                        <td t-esc="roleDept(u.role)"/>
+                                        <td>
+                                            <span class="dl-user-status" t-att-class="u.active ? 'on' : 'off'">
+                                                <i t-att-class="'fa ' + (u.active ? 'fa-check-circle' : 'fa-ban')"/>
+                                                <t t-esc="u.active ? 'Hoạt động' : 'Bị khóa'"/>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </t>
+                                <tr t-if="!filteredUsers.length">
+                                    <td colspan="4" class="dl-user-empty">Không có user phù hợp bộ lọc.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ============ Cột chi tiết ============ -->
+                <div class="dl-user-detail-col" t-if="selectedUser">
+                    <t t-set="u" t-value="selectedUser"/>
+
+                    <!-- Đầu chi tiết -->
+                    <div class="dl-user-detail-head">
+                        <span class="dl-user-avatar lg" t-esc="u.name.trim()[0]"/>
+                        <div class="dl-user-detail-id">
+                            <div class="dl-user-detail-name">
+                                <span t-esc="u.name"/>
+                                <span class="dl-user-status" t-att-class="u.active ? 'on' : 'off'">
+                                    <i t-att-class="'fa ' + (u.active ? 'fa-check-circle' : 'fa-ban')"/>
+                                    <t t-esc="u.active ? 'Hoạt động' : 'Bị khóa'"/>
+                                </span>
+                            </div>
+                            <div class="dl-user-detail-sub" t-esc="u.email"/>
+                        </div>
+                    </div>
+
+                    <!-- Thao tác nhanh -->
+                    <div class="dl-user-actions">
+                        <button class="dl-user-act" type="button" t-on-click="toggleLock"
+                                t-att-class="u.active ? 'danger' : 'ok'">
+                            <i t-att-class="'fa ' + (u.active ? 'fa-lock' : 'fa-unlock')"/>
+                            <t t-esc="u.active ? 'Khóa tài khoản' : 'Mở khóa'"/>
+                        </button>
+                        <button class="dl-user-act" type="button" t-on-click="resetPassword">
+                            <i class="fa fa-key"/> Reset mật khẩu
+                        </button>
+                    </div>
+
+                    <!-- Thông tin cơ bản -->
+                    <div class="dl-user-section">
+                        <div class="dl-user-section-label">Thông tin cơ bản</div>
+                        <div class="dl-user-fields">
+                            <div class="dl-user-field"><span class="k">Số điện thoại</span><span class="v" t-esc="u.phone || '—'"/></div>
+                            <div class="dl-user-field"><span class="k">Phòng ban</span><span class="v" t-esc="roleDept(u.role)"/></div>
+                            <div class="dl-user-field"><span class="k">Ngày tạo</span><span class="v" t-esc="u.createdAt"/></div>
+                            <div class="dl-user-field"><span class="k">Đăng nhập cuối</span><span class="v" t-esc="u.lastLogin"/></div>
+                            <div class="dl-user-field">
+                                <span class="k">Vai trò</span>
+                                <select class="dl-user-inline-select" t-on-change="onChangeRole">
+                                    <t t-foreach="roles" t-as="r" t-key="r.key">
+                                        <option t-att-value="r.key" t-att-selected="r.key === u.role" t-esc="r.label"/>
+                                    </t>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Backup Approver (chỉ CEO / Trưởng KD) -->
+                    <div class="dl-user-section" t-if="isApprover(u.role)">
+                        <div class="dl-user-section-label">
+                            Người duyệt dự phòng (Backup Approver)
+                            <span class="dl-user-hint-inline">Dùng khi user vắng / quá SLA — ảnh hưởng Escalation (S10)</span>
+                        </div>
+                        <select class="dl-user-inline-select wide" t-on-change="onChangeBackup">
+                            <option value="">(Chưa gán)</option>
+                            <t t-foreach="backupCandidates" t-as="c" t-key="c.id">
+                                <option t-att-value="c.id" t-att-selected="c.id === u.backup"
+                                        t-esc="c.name + ' — ' + roleLabel(c.role)"/>
+                            </t>
+                        </select>
+                    </div>
+
+                    <!-- Quyền theo vai trò -->
+                    <div class="dl-user-section">
+                        <div class="dl-user-section-label">Quyền theo vai trò</div>
+                        <div class="dl-user-perms">
+                            <t t-foreach="selectedPerms" t-as="p" t-key="p.code">
+                                <div class="dl-user-perm">
+                                    <span class="dl-user-perm-screen">
+                                        <b t-esc="p.code"/> <t t-esc="p.name"/>
+                                    </span>
+                                    <span class="dl-user-perm-lvl" t-att-class="p.level.toLowerCase()"
+                                          t-att-title="p.hint" t-esc="p.level"/>
+                                </div>
+                            </t>
+                            <div t-if="!selectedPerms.length" class="dl-user-perm-empty">
+                                Vai trò này chưa được gán quyền màn hình nào.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lịch sử thao tác (audit log) -->
+                    <div class="dl-user-section">
+                        <div class="dl-user-section-label">Lịch sử thao tác (Audit log)</div>
+                        <div class="dl-user-audit">
+                            <t t-foreach="u.audit" t-as="a" t-key="a_index">
+                                <div class="dl-user-audit-row">
+                                    <span class="dl-user-audit-dot"/>
+                                    <div class="dl-user-audit-body">
+                                        <div class="dl-user-audit-top">
+                                            <span class="dl-user-audit-action" t-esc="a.action"/>
+                                            <span class="dl-user-audit-time" t-esc="a.time"/>
+                                        </div>
+                                        <div class="dl-user-audit-detail" t-esc="a.detail"/>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ Modal tạo user ============ -->
+        <t t-if="state.createOpen">
+            <div class="dl-user-modal-backdrop" t-on-click="closeCreate">
+                <div class="dl-user-modal" t-on-click.stop="">
+                    <div class="dl-user-modal-bar">
+                        <span class="dl-user-modal-title"><i class="fa fa-user-plus"/> Tạo user mới</span>
+                        <button class="dl-user-modal-close" type="button" t-on-click="closeCreate">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+                    <div class="dl-user-modal-body">
+                        <label class="dl-user-flabel">Họ tên <span class="req">*</span></label>
+                        <input type="text" class="dl-user-finput" placeholder="Nguyễn Văn A"
+                               t-att-value="state.form.name"
+                               t-on-input="(ev) => this.onFormInput('name', ev)"/>
+
+                        <label class="dl-user-flabel">Email / Username <span class="req">*</span></label>
+                        <input type="email" class="dl-user-finput"
+                               t-att-class="{ 'is-err': createEmailDup }"
+                               placeholder="user@dailinh.vn"
+                               t-att-value="state.form.email"
+                               t-on-input="(ev) => this.onFormInput('email', ev)"/>
+                        <div t-if="createEmailDup" class="dl-user-ferr">Email này đã tồn tại trong hệ thống.</div>
+
+                        <label class="dl-user-flabel">Số điện thoại</label>
+                        <input type="text" class="dl-user-finput" placeholder="09xx xxx xxx"
+                               t-att-value="state.form.phone"
+                               t-on-input="(ev) => this.onFormInput('phone', ev)"/>
+
+                        <label class="dl-user-flabel">Vai trò <span class="req">*</span></label>
+                        <select class="dl-user-finput" t-model="state.form.role">
+                            <t t-foreach="roles" t-as="r" t-key="r.key">
+                                <option t-att-value="r.key" t-esc="r.label + ' — ' + r.dept"/>
+                            </t>
+                        </select>
+
+                        <div class="dl-user-modal-note">
+                            <i class="fa fa-envelope-o"/> Sau khi lưu, hệ thống gửi email mời user đặt mật khẩu.
+                        </div>
+                    </div>
+                    <div class="dl-user-modal-foot">
+                        <button class="dl-user-mbtn ghost" type="button" t-on-click="closeCreate">Hủy</button>
+                        <button class="dl-user-mbtn primary" type="button"
+                                t-att-disabled="!createValid or createEmailDup"
+                                t-on-click="submitCreate">Lưu &amp; gửi lời mời</button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- ============ Dialog xác nhận / cảnh báo ============ -->
+        <t t-if="state.dialog">
+            <div class="dl-user-modal-backdrop" t-on-click="dialogClose">
+                <div class="dl-user-dialog" t-on-click.stop="">
+                    <div class="dl-user-dialog-icon" t-att-class="state.dialog.kind">
+                        <i t-att-class="'fa ' + (state.dialog.kind === 'block' ? 'fa-ban' : 'fa-exclamation-triangle')"/>
+                    </div>
+                    <div class="dl-user-dialog-title" t-esc="state.dialog.title"/>
+                    <div class="dl-user-dialog-msg" t-esc="state.dialog.msg"/>
+                    <div class="dl-user-dialog-foot">
+                        <t t-if="state.dialog.kind === 'block'">
+                            <button class="dl-user-mbtn primary" type="button" t-on-click="dialogClose">Đã hiểu</button>
+                        </t>
+                        <t t-else="">
+                            <button class="dl-user-mbtn ghost" type="button" t-on-click="dialogClose">Hủy</button>
+                            <button class="dl-user-mbtn" type="button"
+                                    t-att-class="state.dialog.danger ? 'danger' : 'primary'"
+                                    t-on-click="dialogOk" t-esc="state.dialog.okLabel || 'Xác nhận'"/>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- Toast -->
+        <t t-if="state.toast">
+            <div class="dl-user-toast"><i class="fa fa-check-circle"/> <span t-esc="state.toast"/></div>
+        </t>
+    </div>
+</t>
+
+</templates>

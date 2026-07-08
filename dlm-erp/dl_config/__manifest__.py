@@ -1,18 +1,17 @@
 {
     'name': 'DLM-ERP Cấu hình (Master Data)',
     'version': '17.0.1.0.0',
-    'summary': 'Master Data: Tiền tệ, Đơn vị tính, Thuế VAT, Công ty — Phase 1',
+    'summary': 'Cấu hình Hệ thống, User & Phân quyền, Đơn vị tính, Công ty — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
-    # uom/account: chứa model uom.uom/account.tax mà module dựng UI lên (không tạo model mới)
-    'depends': ['dl_base', 'dl_sale', 'uom', 'account'],
+    # uom: chứa model uom.uom mà module dựng UI lên (không tạo model mới)
+    'depends': ['dl_base', 'dl_sale', 'uom'],
     'data': [
         'security/ir.model.access.csv',
         'views/config_home.xml',
-        'views/currency_views.xml',
         'views/uom_views.xml',
         'views/company_views.xml',
-        'views/vat_views.xml',
+        'views/user_admin_views.xml',
         'views/menus.xml',
     ],
     'assets': {
@@ -22,10 +21,14 @@
             'dl_config/static/src/components/config_home/config_home.scss',
             'dl_config/static/src/components/config_home/config_home.xml',
             'dl_config/static/src/components/config_home/config_home.js',
-            'dl_config/static/src/scss/currency_list.scss',
-            'dl_config/static/src/scss/currency_form.scss',
-            'dl_config/static/src/views/currency_list_controller.js',
-            'dl_config/static/src/views/currency_form_controller.js',
+            # S01 — Quản lý User & Phân quyền (OWL mock)
+            'dl_config/static/src/components/user_admin/user_admin.scss',
+            'dl_config/static/src/components/user_admin/user_admin.xml',
+            'dl_config/static/src/components/user_admin/user_admin.js',
+            # S02 — Cấu hình Hệ thống (OWL mock)
+            'dl_config/static/src/components/sys_config/sys_config.scss',
+            'dl_config/static/src/components/sys_config/sys_config.xml',
+            'dl_config/static/src/components/sys_config/sys_config.js',
             'dl_config/static/src/scss/uom_list.scss',
             'dl_config/static/src/scss/uom_form.scss',
             'dl_config/static/src/views/uom_list_controller.js',
@@ -33,10 +36,6 @@
             'dl_config/static/src/scss/company_list.scss',
             'dl_config/static/src/scss/company_form.scss',
             'dl_config/static/src/views/company_list_controller.js',
-            'dl_config/static/src/scss/vat_list.scss',
-            'dl_config/static/src/scss/vat_form.scss',
-            'dl_config/static/src/views/vat_list_controller.js',
-            'dl_config/static/src/views/vat_form_controller.js',
         ],
     },
     'installable': True,

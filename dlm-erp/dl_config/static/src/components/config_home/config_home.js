@@ -7,33 +7,42 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 
 const CARDS = [
     {
-        key: "currency",
-        name: "Tiền tệ",
-        desc: "Danh mục tiền tệ, tỷ giá, ký hiệu",
-        icon: "fa-money",
-        actionXmlId: "dl_config.action_dl_currency",
-    },
-    {
         key: "uom",
         name: "Đơn vị tính",
         desc: "Đơn vị và nhóm quy đổi",
         icon: "fa-balance-scale",
+        group: "master",
         actionXmlId: "dl_config.action_dl_uom",
-    },
-    {
-        key: "vat",
-        name: "Thuế VAT",
-        desc: "Thuế suất áp dụng cho báo giá",
-        icon: "fa-percent",
-        actionXmlId: "dl_config.action_dl_vat",
     },
     {
         key: "company",
         name: "Công ty",
         desc: "Thông tin công ty phát hành",
         icon: "fa-building-o",
+        group: "master",
         actionXmlId: "dl_config.action_dl_company",
     },
+    {
+        key: "sys_config",
+        name: "Cấu hình Hệ thống",
+        desc: "Tham số báo giá, ma trận phê duyệt, SLA, parametric",
+        icon: "fa-cogs",
+        group: "system",
+        actionXmlId: "dl_config.action_dl_sys_config",
+    },
+    {
+        key: "user",
+        name: "Quản lý User",
+        desc: "Tài khoản, gán vai trò, khóa/mở, Backup Approver",
+        icon: "fa-users",
+        group: "system",
+        actionXmlId: "dl_config.action_dl_user_admin",
+    },
+];
+
+const GROUPS = [
+    { key: "master", label: "Dữ liệu danh mục" },
+    { key: "system", label: "Hệ thống & phân quyền" },
 ];
 
 export class DlConfigHome extends Component {
@@ -43,6 +52,13 @@ export class DlConfigHome extends Component {
     setup() {
         this.actionService = useService("action");
         this.cards = CARDS;
+    }
+
+    get sections() {
+        return GROUPS.map((g) => ({
+            ...g,
+            items: CARDS.filter((c) => c.group === g.key),
+        })).filter((g) => g.items.length);
     }
 
     openCard(actionXmlId) {

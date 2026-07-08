@@ -8,95 +8,122 @@
         min-height: 0;
         overflow-y: auto;
         width: 100%;
-        max-width: 960px;
+        max-width: 860px;
         margin: 0 auto;
-        padding: 28px 24px 40px;
+        padding: 18px 20px 32px;
     }
 
-    .dl-config-head { margin-bottom: 22px; }
-    .dl-config-title {
-        margin: 0 0 4px;
-        font-size: 24px;
-        font-weight: 700;
-        color: $dl-heading;
-    }
-    .dl-config-sub {
-        margin: 0;
-        font-size: 13px;
-        color: $dl-text-2;
-    }
-
-    .dl-config-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px;
-    }
-
-    .dl-config-card {
+    // --- Page header ---------------------------------------------------------
+    .dl-config-head {
         display: flex;
         align-items: center;
-        gap: 14px;
-        padding: 18px;
-        border-radius: 14px;
-        border: 1px solid $dl-border;
-        background: #fff;
-        cursor: pointer;
-        transition: border-color .15s, box-shadow .15s;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid $dl-border;
+    }
+    .dl-config-head-main {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .dl-config-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: $dl-heading;
+        line-height: 1.2;
+    }
+    .dl-config-subtitle {
+        font-size: 12px;
+        color: $dl-text-muted;
+    }
 
-        &:hover {
-            border-color: $dl-primary;
-            box-shadow: 0 8px 24px rgba(35, 23, 71, 0.10);
-        }
+    // --- Phân khu ------------------------------------------------------------
+    .dl-config-section {
+        & + .dl-config-section { margin-top: 18px; }
+    }
+    .dl-config-section-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: $dl-section-fg;
+        margin-bottom: 8px;
+    }
+
+    // --- Hàng danh mục nén (list rows) --------------------------------------
+    .dl-config-rows {
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        background: $dl-surface;
+        overflow: hidden;
+    }
+
+    .dl-config-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-top: 1px solid $dl-divider;
+        cursor: pointer;
+        transition: background-color .1s;
+
+        &:first-child { border-top: 0; }
+        &:hover { background: $dl-active; }
 
         &.is-disabled {
             cursor: default;
             opacity: 0.6;
-            &:hover { border-color: $dl-border; box-shadow: none; }
+            &:hover { background: $dl-surface; }
         }
     }
 
-    .dl-config-card-icon {
-        width: 44px;
-        height: 44px;
+    .dl-config-row-icon {
+        width: 30px;
+        height: 30px;
         flex-shrink: 0;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 12px;
+        border-radius: $dl-radius-sm;
         background: $dl-active;
         color: $dl-primary;
-        font-size: 19px;
+        font-size: 15px;
     }
 
-    .dl-config-card-body {
+    .dl-config-row-body {
         display: flex;
         flex-direction: column;
-        gap: 2px;
+        gap: 1px;
         flex: 1 1 auto;
         min-width: 0;
     }
-    .dl-config-card-name {
-        font-size: 15px;
+    .dl-config-row-name {
+        font-size: 14px;
         font-weight: 600;
         color: $dl-heading;
     }
-    .dl-config-card-desc {
+    .dl-config-row-desc {
         font-size: 12px;
         color: $dl-text-2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
-    .dl-config-card-arrow {
+    .dl-config-row-arrow {
         color: $dl-text-muted;
-        font-size: 18px;
+        font-size: 16px;
         flex-shrink: 0;
     }
 
-    .dl-config-card-soon {
+    .dl-config-row-soon {
         flex-shrink: 0;
         font-size: 11px;
         font-weight: 500;
-        padding: 3px 10px;
-        border-radius: 999px;
+        padding: 2px 8px;
+        border-radius: $dl-radius-sm;
         background: $dl-search-bg;
         color: $dl-text-muted;
     }

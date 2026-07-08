@@ -2,11 +2,17 @@
 <templates xml:space="preserve">
 
 <t t-name="dl_base.DlmRail">
-    <div class="dlm-rail" t-if="state.visible">
-        <div class="dlm-rail-logo"
-             t-on-click="() => this.openModule('dl_base.action_dl_home')">
-            <span class="dlm-rail-icon">◆</span>
-            <span class="dlm-rail-label">DLM-ERP</span>
+    <div class="dlm-rail" t-if="state.visible" t-att-class="{ collapsed: sidebar.collapsed }">
+        <div class="dlm-rail-head">
+            <div class="dlm-rail-logo"
+                 t-on-click="() => this.openModule('dl_base.action_dl_home')">
+                <span class="dlm-rail-icon">◆</span>
+                <span class="dlm-rail-label">DLM-ERP</span>
+            </div>
+            <button class="dlm-rail-toggle" t-on-click="() => this.toggleSidebar()"
+                    t-att-title="sidebar.collapsed ? 'Mở rộng' : 'Thu gọn'">
+                <i class="fa fa-bars"/>
+            </button>
         </div>
 
         <t t-foreach="railItems" t-as="item" t-key="item.key">

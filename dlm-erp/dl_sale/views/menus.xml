@@ -7,7 +7,7 @@
         parent="dl_base.menu_dl_sale"
         sequence="10"
         action="action_dl_customer"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_ba"
     />
 
     <menuitem
@@ -16,7 +16,7 @@
         parent="dl_base.menu_dl_sale"
         sequence="20"
         action="action_dl_supplier"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
     />
 
     <menuitem
@@ -26,6 +26,16 @@
         sequence="30"
         action="action_dl_quotation"
         groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech"
+    />
+
+    <!-- S05 — Danh mục Sản phẩm (mọi vai trò xem được) -->
+    <menuitem
+        id="menu_dl_technical_product"
+        name="Danh mục Sản phẩm"
+        parent="dl_base.menu_dl_technical"
+        sequence="10"
+        action="action_dl_product"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_accountant"
     />
 
 </odoo>

@@ -1,15 +1,7 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_dl_currency_ceo,access_dl_currency_ceo,base.model_res_currency,dl_base.dl_group_ceo,1,1,1,1
-access_dl_currency_admin,access_dl_currency_admin,base.model_res_currency,dl_base.dl_group_admin,1,1,1,1
 access_dl_uom_ceo,access_dl_uom_ceo,uom.model_uom_uom,dl_base.dl_group_ceo,1,1,1,1
 access_dl_uom_admin,access_dl_uom_admin,uom.model_uom_uom,dl_base.dl_group_admin,1,1,1,1
 access_dl_uom_categ_ceo,access_dl_uom_categ_ceo,uom.model_uom_category,dl_base.dl_group_ceo,1,1,1,1
 access_dl_uom_categ_admin,access_dl_uom_categ_admin,uom.model_uom_category,dl_base.dl_group_admin,1,1,1,1
 access_dl_company_ceo,access_dl_company_ceo,base.model_res_company,dl_base.dl_group_ceo,1,1,1,0
 access_dl_company_admin,access_dl_company_admin,base.model_res_company,dl_base.dl_group_admin,1,1,1,0
-access_dl_tax_ceo,access_dl_tax_ceo,account.model_account_tax,dl_base.dl_group_ceo,1,1,1,1
-access_dl_tax_admin,access_dl_tax_admin,account.model_account_tax,dl_base.dl_group_admin,1,1,1,1
-access_dl_tax_rep_ceo,access_dl_tax_rep_ceo,account.model_account_tax_repartition_line,dl_base.dl_group_ceo,1,1,1,1
-access_dl_tax_rep_admin,access_dl_tax_rep_admin,account.model_account_tax_repartition_line,dl_base.dl_group_admin,1,1,1,1
-access_dl_tax_group_ceo,access_dl_tax_group_ceo,account.model_account_tax_group,dl_base.dl_group_ceo,1,0,0,0
-access_dl_tax_group_admin,access_dl_tax_group_admin,account.model_account_tax_group,dl_base.dl_group_admin,1,0,0,0
