@@ -19,7 +19,8 @@ class DlDrawing(models.Model):
         default=lambda self: _('New'),
     )
     product_id = fields.Many2one(
-        'dl.product', string='Sản phẩm', required=True, tracking=True,
+        'product.product', string='Sản phẩm', required=True, tracking=True,
+        domain=[('product_kind', '=', 'finished')],
     )
     version = fields.Integer(string='Phiên bản', default=1, required=True)
     status = fields.Selection([

@@ -23,7 +23,7 @@ class DlBomLine(models.Model):
     )
     semi_finished_id = fields.Many2one(
         'dl.semi.product', string='Bán thành phẩm',
-        domain=[('state', '=', 'active')],
+        domain=[('active', '=', True)],
     )
 
     component_name = fields.Char(
@@ -74,6 +74,17 @@ class DlBomLine(models.Model):
     material_price_status = fields.Selection(
         related='material_id.price_status', string='Tình trạng giá', readonly=True,
     )
+    formula_id = fields.Many2one(
+        'dl.parametric.formula', string='Công thức tham số',
+        compute='_compute_formula_id',
+    )
+
+    @api.depends('material_id')
+    def _compute_formula_id(self):
+        for line in self:
+            line.formula_id = self.env['dl.parametric.formula'].search([
+                ('material_id', '=', line.material_id.id),
+            ], limit=1) if line.material_id else False
 
     @api.depends('component_type', 'material_id', 'semi_finished_id')
     def _compute_component_name(self):
@@ -105,6 +116,21 @@ class DlBomLine(models.Model):
             self.uom_id = False
             if self.material_id.active_price_id:
                 self.price_snapshot = self.material_id.active_price_id.unit_price
+            formula = self.env['dl.parametric.formula'].search(
+                [('material_id', '=', self.material_id.id)], limit=1)
+            if formula and formula.formula_type == 'direct_count' and not self.is_override:
+                self.quantity = formula._evaluate()
+
+    @api.onchange('input_length_mm', 'input_width_mm', 'input_thickness_mm')
+    def _onchange_dimensions(self):
+        # Gợi ý quantity theo công thức tham số (C3) — KTV vẫn có thể ghi đè
+        # bằng is_override (đúng note "KTV chỉnh lại theo kích thước thật").
+        if (self.component_type == 'raw_material' and self.material_id
+                and not self.is_override):
+            formula = self.formula_id
+            if formula and formula.formula_type in ('volume_density', 'custom_expression'):
+                self.quantity = formula._evaluate(
+                    self.input_length_mm, self.input_width_mm, self.input_thickness_mm)
 
     @api.onchange('semi_finished_id')
     def _onchange_semi_finished_id(self):
@@ -115,7 +141,6 @@ class DlBomLine(models.Model):
             child_boms = self.env['dl.bom'].search([
                 ('semi_product_id', '=', self.semi_finished_id.id),
                 ('status', 'in', ('confirmed', 'locked')),
-                ('bom_type', '=', 'quotation'),
             ], order='version desc', limit=1)
             if child_boms:
                 self.price_snapshot = child_boms.total_material_cost

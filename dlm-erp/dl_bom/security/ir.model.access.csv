@@ -4,11 +4,6 @@ access_dl_product_category_admin,dl.product.category Admin,model_dl_product_cate
 access_dl_product_category_ba,dl.product.category BA,model_dl_product_category,dl_base.dl_group_ba,1,0,0,0
 access_dl_product_category_tech,dl.product.category Tech,model_dl_product_category,dl_base.dl_group_tech,1,1,1,0
 access_dl_product_category_sm,dl.product.category SM,model_dl_product_category,dl_base.dl_group_sales_manager,1,1,1,0
-access_dl_product_ceo,dl.product CEO,model_dl_product,dl_base.dl_group_ceo,1,0,0,0
-access_dl_product_admin,dl.product Admin,model_dl_product,dl_base.dl_group_admin,1,1,1,1
-access_dl_product_ba,dl.product BA,model_dl_product,dl_base.dl_group_ba,1,0,0,0
-access_dl_product_tech,dl.product Tech,model_dl_product,dl_base.dl_group_tech,1,1,1,0
-access_dl_product_sm,dl.product SM,model_dl_product,dl_base.dl_group_sales_manager,1,1,1,0
 access_dl_semi_product_ceo,dl.semi.product CEO,model_dl_semi_product,dl_base.dl_group_ceo,1,0,0,0
 access_dl_semi_product_admin,dl.semi.product Admin,model_dl_semi_product,dl_base.dl_group_admin,1,1,1,1
 access_dl_semi_product_ba,dl.semi.product BA,model_dl_semi_product,dl_base.dl_group_ba,1,0,0,0
@@ -16,6 +11,9 @@ access_dl_semi_product_tech,dl.semi.product Tech,model_dl_semi_product,dl_base.d
 access_dl_drawing_ceo,dl.drawing CEO,model_dl_drawing,dl_base.dl_group_ceo,1,0,0,0
 access_dl_drawing_admin,dl.drawing Admin,model_dl_drawing,dl_base.dl_group_admin,1,1,1,1
 access_dl_drawing_tech,dl.drawing Tech,model_dl_drawing,dl_base.dl_group_tech,1,1,1,0
+access_dl_parametric_formula_ceo,dl.parametric.formula CEO,model_dl_parametric_formula,dl_base.dl_group_ceo,1,0,0,0
+access_dl_parametric_formula_admin,dl.parametric.formula Admin,model_dl_parametric_formula,dl_base.dl_group_admin,1,1,1,1
+access_dl_parametric_formula_tech,dl.parametric.formula Tech,model_dl_parametric_formula,dl_base.dl_group_tech,1,0,0,0
 access_dl_bom_ceo,dl.bom CEO,model_dl_bom,dl_base.dl_group_ceo,1,0,0,0
 access_dl_bom_admin,dl.bom Admin,model_dl_bom,dl_base.dl_group_admin,1,1,1,1
 access_dl_bom_ba,dl.bom BA,model_dl_bom,dl_base.dl_group_ba,1,0,0,0
@@ -31,3 +29,8 @@ access_dl_quotation_request_admin,dl.quotation.request Admin,model_dl_quotation_
 access_dl_quotation_request_ba,dl.quotation.request BA,model_dl_quotation_request,dl_base.dl_group_ba,1,1,1,0
 access_dl_quotation_request_tech,dl.quotation.request Tech,model_dl_quotation_request,dl_base.dl_group_tech,1,1,0,0
 access_dl_quotation_request_sm,dl.quotation.request SM,model_dl_quotation_request,dl_base.dl_group_sales_manager,1,1,1,0
+access_dl_quotation_request_line_ceo,dl.quotation.request.line CEO,model_dl_quotation_request_line,dl_base.dl_group_ceo,1,0,0,0
+access_dl_quotation_request_line_admin,dl.quotation.request.line Admin,model_dl_quotation_request_line,dl_base.dl_group_admin,1,1,1,1
+access_dl_quotation_request_line_ba,dl.quotation.request.line BA,model_dl_quotation_request_line,dl_base.dl_group_ba,1,1,1,1
+access_dl_quotation_request_line_tech,dl.quotation.request.line Tech,model_dl_quotation_request_line,dl_base.dl_group_tech,1,1,0,0
+access_dl_quotation_request_line_sm,dl.quotation.request.line SM,model_dl_quotation_request_line,dl_base.dl_group_sales_manager,1,1,1,0

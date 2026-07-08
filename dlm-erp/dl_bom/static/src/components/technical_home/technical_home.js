@@ -8,15 +8,15 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 const CARDS = [
     {
         key: "bom_quotation",
-        name: "BOM báo giá",
-        desc: "BOM gắn với RFQ / báo giá khách hàng",
+        name: "BOM sản phẩm / BTP",
+        desc: "Công thức BOM gắn với 1 thành phẩm hoặc bán thành phẩm cụ thể",
         icon: "fa-list-alt",
         actionXmlId: "dl_bom.action_dl_bom",
     },
     {
         key: "bom_template",
-        name: "BOM mẫu",
-        desc: "BOM chuẩn theo nhóm sản phẩm, dùng để sao chép",
+        name: "Khung mẫu cấp nhóm",
+        desc: "BOM trừu tượng theo nhóm sản phẩm, dùng để sao chép khi tạo SP mới",
         icon: "fa-clone",
         actionXmlId: "dl_bom.action_dl_bom_template",
     },

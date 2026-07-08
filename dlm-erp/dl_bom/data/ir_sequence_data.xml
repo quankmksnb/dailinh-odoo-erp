@@ -2,12 +2,8 @@
 <odoo>
     <data noupdate="1">
 
-        <record id="seq_dl_product" model="ir.sequence">
-            <field name="name">Mã sản phẩm</field>
-            <field name="code">dl.product</field>
-            <field name="prefix">SP-</field>
-            <field name="padding">4</field>
-        </record>
+        <!-- dl.product không còn model riêng (mở rộng product.product trực tiếp,
+             mã sản phẩm nhập tay kiểu CT-200/GS-100 theo TDS) — không cần sequence. -->
 
         <record id="seq_dl_semi_product" model="ir.sequence">
             <field name="name">Mã bán thành phẩm</field>

@@ -11,16 +11,23 @@
               sequence="10"/>
 
     <menuitem id="menu_bom_quotation"
-              name="BOM báo giá"
+              name="BOM sản phẩm / BTP"
               parent="menu_bom_parent"
               action="action_dl_bom"
               sequence="10"/>
 
     <menuitem id="menu_bom_template"
-              name="BOM mẫu"
+              name="Khung mẫu cấp nhóm"
               parent="menu_bom_parent"
               action="action_dl_bom_template"
               sequence="20"/>
+
+    <menuitem id="menu_parametric_formula"
+              name="Công thức tham số"
+              parent="menu_bom_parent"
+              action="action_dl_parametric_formula"
+              groups="dl_base.dl_group_admin,dl_base.dl_group_ceo"
+              sequence="30"/>
 
     <!-- ================================================================
          SẢN PHẨM

@@ -22,21 +22,29 @@ class DlBom(models.Model):
     )
     version = fields.Integer(string='Phiên bản', default=1, required=True, tracking=True)
     bom_type = fields.Selection([
-        ('quotation', 'BOM báo giá'),
-        ('template', 'BOM mẫu'),
-    ], string='Loại BOM', required=True, default='quotation', tracking=True)
+        ('template', 'BOM / Công thức chuẩn'),
+    ], string='Loại BOM', required=True, default='template', tracking=True,
+        help='Theo TDS: mọi dl.bom (dù gắn product_id, semi_product_id hay '
+             'category_id) đều là công thức chuẩn tái sử dụng — không có bản '
+             'sao riêng theo từng báo giá. dl.quotation.line.bom_id trỏ thẳng '
+             'vào bản ghi này.')
 
-    # XOR: chỉ 1 trong 3 có giá trị
+    # XOR: chỉ 1 trong 3 có giá trị. ondelete='restrict' (thay vì mặc định
+    # 'set null') vì nếu Postgres tự null hoá lúc xoá sản phẩm, dòng dl.bom sẽ
+    # còn lại KHÔNG có owner nào — vi phạm ràng buộc XOR (_check_owner_xor)
+    # mà không đi qua được validation Python. Phải xoá/lưu trữ BOM trước.
     product_id = fields.Many2one(
-        'dl.product', string='Thành phẩm', tracking=True,
-        domain=[('state', '=', 'active')],
+        'product.product', string='Thành phẩm', tracking=True,
+        domain=[('product_kind', '=', 'finished'), ('active', '=', True)],
+        ondelete='restrict',
     )
     semi_product_id = fields.Many2one(
         'dl.semi.product', string='Bán thành phẩm', tracking=True,
-        domain=[('state', '=', 'active')],
+        ondelete='restrict',
     )
     category_id = fields.Many2one(
         'dl.product.category', string='Nhóm sản phẩm (BOM mẫu)', tracking=True,
+        ondelete='restrict',
     )
 
     owner_name = fields.Char(
@@ -67,11 +75,6 @@ class DlBom(models.Model):
 
     confirmed_by = fields.Many2one('res.users', string='Người xác nhận', readonly=True)
     confirmed_date = fields.Datetime(string='Ngày xác nhận', readonly=True)
-
-    rfq_id = fields.Many2one(
-        'dl.quotation.request', string='RFQ liên kết',
-        help='Yêu cầu báo giá gốc yêu cầu tạo BOM này',
-    )
 
     has_expired_price = fields.Boolean(
         compute='_compute_has_expired_price', store=False,
@@ -112,16 +115,10 @@ class DlBom(models.Model):
     def _check_owner_xor(self):
         for rec in self:
             owners = bool(rec.product_id) + bool(rec.semi_product_id) + bool(rec.category_id)
-            if rec.bom_type == 'template':
-                if not rec.category_id and not rec.product_id and not rec.semi_product_id:
-                    raise ValidationError(_(
-                        'BOM mẫu phải liên kết với ít nhất Nhóm sản phẩm, '
-                        'Thành phẩm hoặc Bán thành phẩm.'))
-            else:
-                if owners != 1:
-                    raise ValidationError(_(
-                        'BOM báo giá phải liên kết chính xác 1 trong: '
-                        'Thành phẩm, Bán thành phẩm, hoặc Nhóm sản phẩm.'))
+            if owners != 1:
+                raise ValidationError(_(
+                    'BOM phải liên kết chính xác 1 trong: Thành phẩm, '
+                    'Bán thành phẩm, hoặc Nhóm sản phẩm (khung mẫu cấp nhóm).'))
 
     @api.constrains('product_qty')
     def _check_product_qty(self):
@@ -204,18 +201,20 @@ class DlBom(models.Model):
             'target': 'current',
         }
 
-    def action_copy_as_quotation_bom(self):
+    def action_copy_as_product_bom(self):
+        """Sao chép khung mẫu cấp nhóm (category_id) thành BOM cụ thể cho 1
+        thành phẩm — dùng khi KTV tạo sản phẩm mới thuộc nhóm đã có BOM mẫu."""
         self.ensure_one()
-        if self.bom_type != 'template':
-            raise UserError(_('Chỉ BOM mẫu mới có thể sao chép thành BOM báo giá.'))
+        if not self.category_id:
+            raise UserError(_(
+                'Chỉ BOM mẫu cấp nhóm (category_id) mới có thể sao chép thành BOM sản phẩm.'))
         new_bom = self.copy({
-            'bom_type': 'quotation',
             'status': 'draft',
             'version': 1,
             'category_id': False,
             'confirmed_by': False,
             'confirmed_date': False,
-            'change_note': _('Sao chép từ BOM mẫu %s') % self.name,
+            'change_note': _('Sao chép từ khung mẫu %s') % self.name,
         })
         return {
             'type': 'ir.actions.act_window',

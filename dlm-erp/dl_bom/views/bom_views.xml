@@ -16,8 +16,7 @@
                   decoration-success="status == 'confirmed'"
                   decoration-warning="status == 'locked'">
                 <field name="name"/>
-                <field name="bom_type" widget="badge"/>
-                <field name="owner_name" string="Sản phẩm / Nhóm"/>
+                <field name="owner_name" string="Sản phẩm / Nhóm / BTP"/>
                 <field name="version"/>
                 <field name="product_qty"/>
                 <field name="line_count" string="Dòng"/>
@@ -52,9 +51,9 @@
                             string="Tạo phiên bản mới"
                             invisible="status not in ('confirmed', 'locked')"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                    <button name="action_copy_as_quotation_bom" type="object"
-                            string="Sao chép → BOM báo giá"
-                            invisible="bom_type != 'template'"
+                    <button name="action_copy_as_product_bom" type="object"
+                            string="Sao chép → BOM sản phẩm"
+                            invisible="not category_id"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_archive_bom" type="object" string="Lưu trữ"
                             invisible="status in ('locked', 'archived')"
@@ -74,22 +73,15 @@
 
                     <group>
                         <group string="Thông tin BOM">
-                            <field name="bom_type" readonly="status != 'draft'"/>
+                            <field name="bom_type" invisible="1"/>
                             <field name="version" readonly="1"/>
                             <field name="product_qty"/>
-                            <field name="rfq_id" readonly="1"
-                                   invisible="not rfq_id"/>
                         </group>
-                        <group string="Liên kết sản phẩm">
-                            <field name="product_id"
-                                   readonly="status != 'draft'"
-                                   invisible="bom_type == 'template' and not product_id"/>
-                            <field name="semi_product_id"
-                                   readonly="status != 'draft'"
-                                   invisible="bom_type == 'template' and not semi_product_id"/>
-                            <field name="category_id"
-                                   readonly="status != 'draft'"
-                                   invisible="bom_type != 'template'"/>
+                        <group string="Liên kết sản phẩm (chọn đúng 1)">
+                            <field name="product_id" readonly="status != 'draft'"/>
+                            <field name="semi_product_id" readonly="status != 'draft'"/>
+                            <field name="category_id" readonly="status != 'draft'"
+                                   help="Chỉ dùng cho khung mẫu trừu tượng cấp nhóm (chưa gắn sản phẩm cụ thể)."/>
                         </group>
                     </group>
 
@@ -191,15 +183,13 @@
                 <filter name="archived" string="Lưu trữ"
                         domain="[('status', '=', 'archived')]"/>
                 <separator/>
-                <filter name="type_quotation" string="BOM báo giá"
-                        domain="[('bom_type', '=', 'quotation')]"/>
-                <filter name="type_template" string="BOM mẫu"
-                        domain="[('bom_type', '=', 'template')]"/>
+                <filter name="has_product" string="BOM sản phẩm/BTP"
+                        domain="[('category_id', '=', False)]"/>
+                <filter name="is_template" string="Khung mẫu cấp nhóm"
+                        domain="[('category_id', '!=', False)]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_status" string="Trạng thái"
                             context="{'group_by': 'status'}"/>
-                    <filter name="group_type" string="Loại BOM"
-                            context="{'group_by': 'bom_type'}"/>
                     <filter name="group_product" string="Sản phẩm"
                             context="{'group_by': 'product_id'}"/>
                 </group>
@@ -209,18 +199,18 @@
 
     <!-- Actions -->
     <record id="action_dl_bom" model="ir.actions.act_window">
-        <field name="name">Bill of Materials</field>
+        <field name="name">BOM sản phẩm / BTP</field>
         <field name="res_model">dl.bom</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'search_default_type_quotation': 1}</field>
+        <field name="domain">[('category_id', '=', False)]</field>
     </record>
 
     <record id="action_dl_bom_template" model="ir.actions.act_window">
-        <field name="name">BOM Mẫu</field>
+        <field name="name">Khung mẫu cấp nhóm</field>
         <field name="res_model">dl.bom</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('bom_type', '=', 'template')]</field>
-        <field name="context">{'default_bom_type': 'template'}</field>
+        <field name="domain">[('category_id', '!=', False)]</field>
+        <field name="context">{'default_category_id': False}</field>
     </record>
 
 </odoo>
