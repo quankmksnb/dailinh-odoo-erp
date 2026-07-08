@@ -5,15 +5,15 @@
     'author': 'Dai Linh',
     'category': 'Hidden',
     # product: dl.material dùng _inherits = {'product.product': 'product_id'}.
-    # dl_sale: định nghĩa NCC (partner_role='supplier') mà dl.material.price tham chiếu +
-    # form NCC được inherit để thêm tab 'Giá vật tư' (S04 ↔ S06).
+    # dl_sale: định nghĩa NCC (partner_role='supplier') mà dl.material.price tham chiếu,
+    # và JS controller Vật tư tái dùng DlListBaseController/actions_menu của dl_sale.
+    # (Tab 'Giá vật tư' trong form NCC do dlm_supplier đảm nhiệm, không lặp lại ở đây.)
     'depends': ['dl_base', 'mail', 'product', 'dl_sale'],
     'data': [
         'security/ir.model.access.csv',
         'views/material_views.xml',
         'views/material_price_views.xml',
         'views/res_config_settings_views.xml',
-        'views/supplier_price_inherit.xml',
         'views/menus.xml',
     ],
     'assets': {

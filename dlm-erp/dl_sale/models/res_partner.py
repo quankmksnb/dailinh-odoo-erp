@@ -33,28 +33,11 @@ class ResPartner(models.Model):
     )
 
     # ── S04: Nhà cung cấp ─────────────────────────────────────────────
-    dlm_supplier_code = fields.Char(
-        string='Mã NCC',
-        readonly=True,
-        copy=False,
-        index=True,
-        help='Mã nhà cung cấp tự sinh, duy nhất (VD: NCC-0001)',
-    )
-    dlm_supplier_group = fields.Selection(
-        selection=[
-            ('steel', 'Thép xây dựng'),
-            ('paint', 'Sơn - mạ'),
-            ('electric', 'Vật tư điện'),
-            ('subcontract', 'Gia công ngoài'),
-            ('other', 'Khác'),
-        ],
-        string='Nhóm vật tư cung cấp',
-        help='Nhóm vật tư / dịch vụ mà NCC này cung cấp',
-    )
-    dlm_payment_days = fields.Integer(
-        string='Công nợ (ngày)',
-        help='Điều kiện thanh toán: số ngày công nợ cho phép',
-    )
+    # Mã NCC (supplier_code), Nhóm vật tư cung cấp (category_id — Tags native)
+    # và Điều kiện thanh toán do module dlm_supplier đảm nhiệm theo đúng
+    # TDS 4.0 đã thống nhất (Cap_Nhat_S04_Nha_Cung_Cap.md — "Công nợ" bị bỏ
+    # hẳn ở Phase 1, "Nhóm vật tư cung cấp" dùng category_id chứ không phải
+    # Selection riêng) — không định nghĩa lại ở đây để tránh trùng lặp.
 
     # ── A1: Loại khách hàng (Entity Proposal A1.customer_type) ───────
     customer_type = fields.Selection(
@@ -134,15 +117,13 @@ class ResPartner(models.Model):
             rec.dlm_recent_quote_count = len(recent)
             rec.dlm_split_warning = len(recent) >= 2
 
-    # ── Auto sinh mã KH / mã NCC khi tạo mới ──────────────────────────
+    # ── Auto sinh mã KH khi tạo mới (mã NCC do dlm_supplier tự đảm nhiệm) ──
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
         for rec in records:
             if rec.partner_role == 'customer' and not rec.dlm_code:
                 rec.dlm_code = self.env['ir.sequence'].next_by_code('dlm.customer') or '/'
-            if rec.partner_role == 'supplier' and not rec.dlm_supplier_code:
-                rec.dlm_supplier_code = self.env['ir.sequence'].next_by_code('dlm.supplier') or '/'
         return records
 
     # ── Constraints ───────────────────────────────────────────────────
