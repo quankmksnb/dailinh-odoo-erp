@@ -11,6 +11,7 @@
         <field name="model">dl.bom</field>
         <field name="arch" type="xml">
             <tree string="Bill of Materials"
+                  class="dl-bom-list" js_class="dl_bom_list"
                   decoration-muted="status == 'archived'"
                   decoration-info="status == 'draft'"
                   decoration-success="status == 'confirmed'"
@@ -37,7 +38,7 @@
         <field name="name">dl.bom.form</field>
         <field name="model">dl.bom</field>
         <field name="arch" type="xml">
-            <form string="Bill of Materials">
+            <form string="Bill of Materials" class="dl-bom-form" js_class="dl_bom_form">
                 <header>
                     <button name="action_confirm" type="object" string="Xác nhận BOM"
                             class="oe_highlight"
@@ -62,6 +63,10 @@
                            readonly="1"/>
                 </header>
                 <sheet>
+                    <widget name="web_ribbon" title="Đã khóa"
+                            bg_color="text-bg-warning" invisible="status != 'locked'"/>
+                    <widget name="web_ribbon" title="Lưu trữ"
+                            bg_color="text-bg-danger" invisible="status != 'archived'"/>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>

@@ -12,6 +12,7 @@
         <field name="model">dl.quotation.request</field>
         <field name="arch" type="xml">
             <tree string="Yêu cầu báo giá"
+                  class="dl-rfq-list" js_class="dl_rfq_list"
                   decoration-muted="status in ('cancelled', 'quoted')">
                 <field name="name"/>
                 <field name="customer_id"/>
@@ -31,7 +32,7 @@
         <field name="name">dl.quotation.request.form</field>
         <field name="model">dl.quotation.request</field>
         <field name="arch" type="xml">
-            <form string="Yêu cầu báo giá">
+            <form string="Yêu cầu báo giá" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
                     <!-- Sale đánh dấu đã tạo báo giá (tạm thời thủ công, xem
                          docstring model — D3 chưa có quotation_request_id) -->
@@ -50,6 +51,10 @@
                            readonly="1"/>
                 </header>
                 <sheet>
+                    <widget name="web_ribbon" title="Đã hủy"
+                            bg_color="text-bg-danger" invisible="status != 'cancelled'"/>
+                    <widget name="web_ribbon" title="Đã tạo báo giá"
+                            bg_color="text-bg-success" invisible="status != 'quoted'"/>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>

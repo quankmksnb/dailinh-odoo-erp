@@ -19,6 +19,20 @@
     ],
     'assets': {
         'web.assets_backend': [
+            # Đồng bộ UI danh sách/form với các màn dl_sale/dlm_material.
+            'dl_bom/static/src/scss/bom_list.scss',
+            'dl_bom/static/src/scss/bom_form.scss',
+            'dl_bom/static/src/scss/rfq_list.scss',
+            'dl_bom/static/src/scss/rfq_form.scss',
+            'dl_bom/static/src/scss/drawing_list.scss',
+            'dl_bom/static/src/scss/drawing_form.scss',
+            'dl_bom/static/src/views/bom_list_controller.js',
+            'dl_bom/static/src/views/bom_form_controller.js',
+            'dl_bom/static/src/views/rfq_list_controller.js',
+            'dl_bom/static/src/views/rfq_form_controller.js',
+            'dl_bom/static/src/views/drawing_list_controller.js',
+            'dl_bom/static/src/views/drawing_form_controller.js',
+            # Dashboard "Kỹ thuật"
             'dl_bom/static/src/components/technical_home/technical_home.scss',
             'dl_bom/static/src/components/technical_home/technical_home.xml',
             'dl_bom/static/src/components/technical_home/technical_home.js',

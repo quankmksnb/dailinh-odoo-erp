@@ -85,7 +85,7 @@ class DlParametricFormula(models.Model):
                 'width_mm': width_mm,
                 'thickness_mm': thickness_mm,
                 'coefficient_value': self.coefficient_value,
-            }
+            }   
             try:
                 return float(simple_eval(self.formula_expression, names=names))
             except Exception as exc:

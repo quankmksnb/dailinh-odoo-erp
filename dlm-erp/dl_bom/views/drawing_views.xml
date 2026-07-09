@@ -10,6 +10,7 @@
         <field name="model">dl.drawing</field>
         <field name="arch" type="xml">
             <tree string="Bản vẽ kỹ thuật"
+                  class="dl-drawing-list" js_class="dl_drawing_list"
                   decoration-muted="status == 'archived'">
                 <field name="drawing_code"/>
                 <field name="name"/>
@@ -29,7 +30,7 @@
         <field name="name">dl.drawing.form</field>
         <field name="model">dl.drawing</field>
         <field name="arch" type="xml">
-            <form string="Bản vẽ kỹ thuật">
+            <form string="Bản vẽ kỹ thuật" class="dl-drawing-form" js_class="dl_drawing_form">
                 <header>
                     <button name="action_confirm" type="object" string="Xác nhận"
                             class="oe_highlight"
@@ -45,6 +46,8 @@
                            statusbar_visible="draft,confirmed,archived" readonly="1"/>
                 </header>
                 <sheet>
+                    <widget name="web_ribbon" title="Lưu trữ"
+                            bg_color="text-bg-danger" invisible="status != 'archived'"/>
                     <div class="oe_title">
                         <label for="drawing_code"/>
                         <h1>
