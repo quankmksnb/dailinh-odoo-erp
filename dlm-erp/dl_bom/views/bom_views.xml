@@ -16,10 +16,11 @@
                   decoration-success="status == 'confirmed'"
                   decoration-warning="status == 'locked'">
                 <field name="name"/>
-                <field name="owner_name" string="Sản phẩm / Nhóm / BTP"/>
+                <field name="product_id"/>
+                <field name="semi_product_id"/>
+                <field name="category_id"/>
                 <field name="version"/>
                 <field name="product_qty"/>
-                <field name="line_count" string="Dòng"/>
                 <field name="total_material_cost" string="Chi phí VT"
                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
                 <field name="status" widget="badge"
@@ -27,8 +28,6 @@
                        decoration-success="status == 'confirmed'"
                        decoration-warning="status == 'locked'"
                        decoration-muted="status == 'archived'"/>
-                <field name="confirmed_by"/>
-                <field name="confirmed_date" widget="date"/>
             </tree>
         </field>
     </record>
@@ -47,15 +46,14 @@
                     <button name="action_reset_draft" type="object" string="Về nháp"
                             invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_lock" type="object" string="Khóa"
+                            invisible="status != 'confirmed'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_create_new_version" type="object"
                             string="Tạo phiên bản mới"
                             invisible="status not in ('confirmed', 'locked')"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                    <button name="action_copy_as_product_bom" type="object"
-                            string="Sao chép → BOM sản phẩm"
-                            invisible="not category_id"
-                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                    <button name="action_archive_bom" type="object" string="Lưu trữ"
+                    <button name="action_archive" type="object" string="Lưu trữ"
                             invisible="status in ('locked', 'archived')"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn lưu trữ BOM này?"/>
@@ -73,7 +71,7 @@
 
                     <group>
                         <group string="Thông tin BOM">
-                            <field name="bom_type" invisible="1"/>
+                            <field name="bom_type"/>
                             <field name="version" readonly="1"/>
                             <field name="product_qty"/>
                         </group>
@@ -90,7 +88,6 @@
                             <field name="line_ids"
                                    readonly="status in ('locked', 'archived')">
                                 <tree string="Dòng BOM" editable="bottom">
-                                    <field name="sequence" widget="handle"/>
                                     <field name="component_type"/>
                                     <field name="material_id"
                                            invisible="component_type != 'raw_material'"
@@ -98,7 +95,6 @@
                                     <field name="semi_finished_id"
                                            invisible="component_type != 'semi_finished'"
                                            required="component_type == 'semi_finished'"/>
-                                    <field name="component_name" optional="hide"/>
                                     <field name="input_length_mm" optional="show"
                                            string="Dài (mm)"/>
                                     <field name="input_width_mm" optional="show"
@@ -115,12 +111,6 @@
                                            groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                                     <field name="subtotal" sum="Tổng"
                                            groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                    <field name="material_price_status" widget="badge"
-                                           decoration-danger="material_price_status == 'expired'"
-                                           decoration-warning="material_price_status == 'warning'"
-                                           decoration-success="material_price_status == 'ok'"
-                                           optional="show" string="Giá VT"/>
-                                    <field name="note" optional="hide"/>
                                 </tree>
                             </field>
 
@@ -132,24 +122,8 @@
                         </page>
 
                         <page string="Ghi chú" name="notes">
-                            <group>
-                                <field name="note" nolabel="1"
-                                       placeholder="Ghi chú kỹ thuật..."/>
-                            </group>
-                            <group string="Thay đổi">
-                                <field name="change_note" nolabel="1"
-                                       placeholder="Mô tả thay đổi so với phiên bản trước..."/>
-                            </group>
-                        </page>
-
-                        <page string="Xác nhận" name="confirmation"
-                              invisible="not confirmed_by">
-                            <group>
-                                <group>
-                                    <field name="confirmed_by"/>
-                                    <field name="confirmed_date"/>
-                                </group>
-                            </group>
+                            <field name="note" nolabel="1"
+                                   placeholder="Ghi chú kỹ thuật..."/>
                         </page>
                     </notebook>
                 </sheet>
@@ -172,7 +146,6 @@
                 <field name="product_id"/>
                 <field name="semi_product_id"/>
                 <field name="category_id"/>
-                <field name="owner_name"/>
                 <separator/>
                 <filter name="draft" string="Nháp"
                         domain="[('status', '=', 'draft')]"/>

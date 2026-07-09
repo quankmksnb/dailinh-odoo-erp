@@ -29,27 +29,9 @@
               groups="dl_base.dl_group_admin,dl_base.dl_group_ceo"
               sequence="30"/>
 
-    <!-- ================================================================
-         SẢN PHẨM — "Danh mục Sản phẩm" đã có sẵn ở dl_sale
-         (dl_base.menu_dl_technical_product), không tạo trùng ở đây.
-    ================================================================ -->
-    <menuitem id="menu_product_parent"
-              name="Sản phẩm"
-              parent="dl_base.menu_dl_technical"
-              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
-              sequence="20"/>
-
-    <menuitem id="menu_product_category"
-              name="Nhóm sản phẩm"
-              parent="menu_product_parent"
-              action="action_dl_product_category"
-              sequence="10"/>
-
-    <menuitem id="menu_semi_product"
-              name="Bán thành phẩm"
-              parent="menu_product_parent"
-              action="action_dl_semi_product"
-              sequence="20"/>
+    <!-- Danh mục Sản phẩm / Nhóm sản phẩm / Bán thành phẩm: ngoài phạm vi
+         S08 (không tạo màn quản lý ở đây) — "Danh mục Sản phẩm" đã có sẵn
+         ở dl_sale (dl_base.menu_dl_technical_product). -->
 
     <!-- ================================================================
          BẢN VẼ
@@ -78,10 +60,10 @@
               sequence="10"/>
 
     <menuitem id="menu_rfq_my"
-              name="RFQ của tôi"
+              name="RFQ cần xử lý"
               parent="menu_rfq_parent"
               action="action_dl_quotation_request_my"
               sequence="20"
-              groups="dl_base.dl_group_tech"/>
+              groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
 
 </odoo>

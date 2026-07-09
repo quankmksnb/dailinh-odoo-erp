@@ -20,7 +20,7 @@
                        decoration-success="status == 'confirmed'"
                        decoration-muted="status == 'archived'"/>
                 <field name="confirmed_date"/>
-                <field name="confirmed_by"/>
+                <field name="created_by"/>
             </tree>
         </field>
     </record>
@@ -60,21 +60,15 @@
                         <group string="Thông tin">
                             <field name="product_id"/>
                             <field name="version"/>
+                            <field name="created_by"/>
                         </group>
                         <group string="Xác nhận">
                             <field name="confirmed_date"/>
-                            <field name="confirmed_by"/>
                         </group>
                     </group>
-                    <notebook>
-                        <page string="File đính kèm" name="attachments">
-                            <field name="attachment_ids" widget="many2many_binary"
-                                   nolabel="1"/>
-                        </page>
-                        <page string="Ghi chú" name="note">
-                            <field name="note" nolabel="1" placeholder="Ghi chú..."/>
-                        </page>
-                    </notebook>
+                    <group string="File đính kèm">
+                        <field name="attachment_id" nolabel="1"/>
+                    </group>
                 </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>

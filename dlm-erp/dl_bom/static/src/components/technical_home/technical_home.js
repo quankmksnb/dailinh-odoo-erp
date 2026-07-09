@@ -23,30 +23,9 @@ const CARDS = [
     {
         key: "rfq",
         name: "Yêu cầu báo giá (RFQ)",
-        desc: "Nhận RFQ từ Sales, đánh giá SP mới/tương tự/cũ",
+        desc: "Nhận RFQ từ Sales, gán sản phẩm thật hoặc đánh dấu không khả thi",
         icon: "fa-inbox",
         actionXmlId: "dl_bom.action_dl_quotation_request_my",
-    },
-    {
-        key: "product",
-        name: "Danh mục sản phẩm",
-        desc: "Thành phẩm và thông số kỹ thuật (màn S05)",
-        icon: "fa-cube",
-        actionXmlId: "dl_sale.action_dl_product",
-    },
-    {
-        key: "product_category",
-        name: "Nhóm sản phẩm",
-        desc: "Nhóm SP và BOM mẫu mặc định",
-        icon: "fa-sitemap",
-        actionXmlId: "dl_bom.action_dl_product_category",
-    },
-    {
-        key: "semi_product",
-        name: "Bán thành phẩm",
-        desc: "Cấu kiện trung gian dùng trong BOM đệ quy",
-        icon: "fa-puzzle-piece",
-        actionXmlId: "dl_bom.action_dl_semi_product",
     },
     {
         key: "drawing",
