@@ -65,5 +65,16 @@
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         </record>
 
+        <!-- ============================================================
+             Seed: gán tài khoản admin mặc định của Odoo vào vai trò
+             Admin/IT của DLM. Nếu không có dòng này, DB mới cài xong sẽ
+             KHÔNG có user nào thuộc dl_group_admin ⇒ không ai vào được màn
+             Phân quyền (guard _check_rbac_admin chặn). Membership do tick
+             tay trên UI chỉ nằm trong DB, không đi theo git.
+        ============================================================ -->
+        <record id="base.user_admin" model="res.users">
+            <field name="groups_id" eval="[(4, ref('dl_base.dl_group_admin'))]"/>
+        </record>
+
     </data>
 </odoo>
