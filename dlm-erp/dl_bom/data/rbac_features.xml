@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         CHỨC NĂNG phân quyền của module dl_bom (Kỹ thuật — BOM, Bản vẽ,
+         Công thức tham số, Yêu cầu báo giá).
+         Khai ở đây ⇒ tự hiện trong màn Phân quyền (auto-discovery).
+         Chỉ khai model HEADER (không khai dòng con bom.line / rfq.line),
+         bám đúng quy ước của dl_sale (quotation không khai quotation.line).
+         Op-group để category HIDDEN — chúng KHÔNG phải vai trò, chỉ gate thao tác.
+    ============================================================ -->
+    <data noupdate="0">
+
+        <!-- ===== Nhóm kỹ thuật cho thao tác đặc biệt ===== -->
+        <record id="dl_group_op_bom_lock" model="res.groups">
+            <field name="name">[Thao tác] Khóa BOM</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+        </record>
+        <record id="dl_group_op_formula_test" model="res.groups">
+            <field name="name">[Thao tác] Chạy test-case công thức tham số</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+        </record>
+        <record id="dl_group_op_rfq_cancel" model="res.groups">
+            <field name="name">[Thao tác] Hủy yêu cầu báo giá</field>
+            <field name="category_id" ref="base.module_category_hidden"/>
+        </record>
+
+        <!-- ===== Chức năng ===== -->
+
+        <!-- BOM (dl.bom) -->
+        <record id="feat_bom" model="dl.rbac.feature">
+            <field name="name">BOM (Định mức vật tư)</field>
+            <field name="code">bom</field>
+            <field name="model_id" ref="model_dl_bom"/>
+            <field name="category">master</field>
+            <field name="sequence">70</field>
+        </record>
+        <record id="op_bom_lock" model="dl.rbac.operation">
+            <field name="feature_id" ref="feat_bom"/>
+            <field name="name">Khóa BOM</field>
+            <field name="code">lock</field>
+            <field name="group_id" ref="dl_group_op_bom_lock"/>
+        </record>
+
+        <!-- Bán thành phẩm (dl.semi.product) -->
+        <record id="feat_semi_product" model="dl.rbac.feature">
+            <field name="name">Bán thành phẩm</field>
+            <field name="code">semi_product</field>
+            <field name="model_id" ref="model_dl_semi_product"/>
+            <field name="category">master</field>
+            <field name="sequence">80</field>
+        </record>
+
+        <!-- Bản vẽ kỹ thuật (dl.drawing) -->
+        <record id="feat_drawing" model="dl.rbac.feature">
+            <field name="name">Bản vẽ kỹ thuật</field>
+            <field name="code">drawing</field>
+            <field name="model_id" ref="model_dl_drawing"/>
+            <field name="category">master</field>
+            <field name="sequence">90</field>
+        </record>
+
+        <!-- Công thức tham số (dl.parametric.formula) -->
+        <record id="feat_parametric_formula" model="dl.rbac.feature">
+            <field name="name">Công thức tham số</field>
+            <field name="code">parametric_formula</field>
+            <field name="model_id" ref="model_dl_parametric_formula"/>
+            <field name="category">master</field>
+            <field name="sequence">100</field>
+        </record>
+        <record id="op_formula_test" model="dl.rbac.operation">
+            <field name="feature_id" ref="feat_parametric_formula"/>
+            <field name="name">Chạy test-case</field>
+            <field name="code">run_test</field>
+            <field name="group_id" ref="dl_group_op_formula_test"/>
+        </record>
+
+        <!-- Yêu cầu báo giá / RFQ (dl.quotation.request) -->
+        <record id="feat_quotation_request" model="dl.rbac.feature">
+            <field name="name">Yêu cầu báo giá (RFQ)</field>
+            <field name="code">quotation_request</field>
+            <field name="model_id" ref="model_dl_quotation_request"/>
+            <field name="category">sales</field>
+            <field name="sequence">40</field>
+        </record>
+        <record id="op_rfq_cancel" model="dl.rbac.operation">
+            <field name="feature_id" ref="feat_quotation_request"/>
+            <field name="name">Hủy yêu cầu</field>
+            <field name="code">cancel</field>
+            <field name="group_id" ref="dl_group_op_rfq_cancel"/>
+        </record>
+
+    </data>
+</odoo>

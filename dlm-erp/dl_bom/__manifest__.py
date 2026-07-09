@@ -8,6 +8,7 @@
     'external_dependencies': {'python': ['simpleeval']},
     'data': [
         'security/ir.model.access.csv',
+        'data/rbac_features.xml',
         'data/ir_sequence_data.xml',
         'views/product_views.xml',
         'views/drawing_views.xml',
