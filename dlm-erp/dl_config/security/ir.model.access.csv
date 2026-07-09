@@ -5,3 +5,12 @@ access_dl_uom_categ_ceo,access_dl_uom_categ_ceo,uom.model_uom_category,dl_base.d
 access_dl_uom_categ_admin,access_dl_uom_categ_admin,uom.model_uom_category,dl_base.dl_group_admin,1,1,1,1
 access_dl_company_ceo,access_dl_company_ceo,base.model_res_company,dl_base.dl_group_ceo,1,1,1,0
 access_dl_company_admin,access_dl_company_admin,base.model_res_company,dl_base.dl_group_admin,1,1,1,0
+access_dl_pricing_config_admin,dl.pricing.config admin,model_dl_pricing_config,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_config_ceo,dl.pricing.config ceo,model_dl_pricing_config,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_config_sm,dl.pricing.config sales_manager,model_dl_pricing_config,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_waste_admin,dl.pricing.waste admin,model_dl_pricing_waste,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_waste_ceo,dl.pricing.waste ceo,model_dl_pricing_waste,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_waste_sm,dl.pricing.waste sales_manager,model_dl_pricing_waste,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_config_audit_admin,dl.config.audit.log admin,model_dl_config_audit_log,dl_base.dl_group_admin,1,1,1,1
+access_dl_config_audit_ceo,dl.config.audit.log ceo,model_dl_config_audit_log,dl_base.dl_group_ceo,1,1,0,0
+access_dl_config_audit_sm,dl.config.audit.log sales_manager,model_dl_config_audit_log,dl_base.dl_group_sales_manager,1,0,0,0
