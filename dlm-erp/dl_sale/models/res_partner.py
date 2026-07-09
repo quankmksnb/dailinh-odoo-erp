@@ -232,6 +232,20 @@ class ResPartner(models.Model):
         today = fields.Date.context_today(self)
         window_start = today - timedelta(days=7)
         threshold = self._get_split_threshold()
+        # Role không được cấp quyền đọc Báo giá (vd chỉ xem KH/NCC): để trống
+        # thống kê thay vì đọc dl.quotation — tránh AccessError khi mở form KH.
+        can_read_quote = self.env['dl.quotation'].check_access_rights(
+            'read', raise_exception=False)
+        if not can_read_quote:
+            for rec in self:
+                rec.dlm_quotation_count = 0
+                rec.dlm_win_rate = 0.0
+                rec.dlm_open_quote_count = 0
+                rec.dlm_recent_quote_count = 0
+                rec.dlm_recent_quote_total = 0.0
+                rec.dlm_split_threshold = threshold
+                rec.dlm_split_warning = False
+            return
         for rec in self:
             quotes = rec.dlm_quotation_ids
             rec.dlm_quotation_count = len(quotes)
