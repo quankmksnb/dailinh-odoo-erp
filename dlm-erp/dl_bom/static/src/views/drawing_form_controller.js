@@ -1,0 +1,30 @@
+/** @odoo-module **/
+// ============================================================
+//  DL Drawing Form — đồng bộ chrome form Bản vẽ kỹ thuật (B1).
+// ============================================================
+
+import { registry } from "@web/core/registry";
+import { _t } from "@web/core/l10n/translation";
+import { formView } from "@web/views/form/form_view";
+import { FormController } from "@web/views/form/form_controller";
+import { setupFormActionsMenu } from "@dl_sale/js/actions_menu";
+
+export class DlDrawingFormController extends FormController {
+    setup() {
+        super.setup();
+        setupFormActionsMenu(this);
+    }
+
+    displayName() {
+        return (
+            this.model.root.data.display_name?.split("\n")[0] ||
+            (this.model.root.isNew && _t("Thêm bản vẽ")) ||
+            ""
+        );
+    }
+}
+
+registry.category("views").add("dl_drawing_form", {
+    ...formView,
+    Controller: DlDrawingFormController,
+});

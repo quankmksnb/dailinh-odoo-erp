@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- dl.product đã có sẵn ở module dl_sale (S05) với sequence riêng
+             (dlm.product, prefix SP-) — dl_bom chỉ mở rộng field, không cần
+             sequence riêng cho sản phẩm ở đây. -->
+
+        <record id="seq_dl_semi_product" model="ir.sequence">
+            <field name="name">Mã bán thành phẩm</field>
+            <field name="code">dl.semi.product</field>
+            <field name="prefix">BTP-</field>
+            <field name="padding">4</field>
+        </record>
+
+        <record id="seq_dl_drawing" model="ir.sequence">
+            <field name="name">Mã bản vẽ</field>
+            <field name="code">dl.drawing</field>
+            <field name="prefix">DW-</field>
+            <field name="padding">4</field>
+        </record>
+
+        <record id="seq_dl_bom" model="ir.sequence">
+            <field name="name">Mã BOM</field>
+            <field name="code">dl.bom</field>
+            <field name="prefix">BOM-</field>
+            <field name="padding">4</field>
+        </record>
+
+        <record id="seq_dl_quotation_request" model="ir.sequence">
+            <field name="name">Mã yêu cầu báo giá</field>
+            <field name="code">dl.quotation.request</field>
+            <field name="prefix">RFQ-%(year)s-</field>
+            <field name="padding">4</field>
+        </record>
+
+    </data>
+</odoo>

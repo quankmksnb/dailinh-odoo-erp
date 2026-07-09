@@ -224,7 +224,10 @@
 .o_action_manager:has(.dl-supplier-list),
 .o_action_manager:has(.dl-product-list),
 .o_action_manager:has(.dl-material-list),
-.o_action_manager:has(.dl-material-price-list) {
+.o_action_manager:has(.dl-material-price-list),
+.o_action_manager:has(.dl-bom-list),
+.o_action_manager:has(.dl-rfq-list),
+.o_action_manager:has(.dl-drawing-list) {
 
     .o_control_panel .o_control_panel_main {
         justify-content: flex-start !important;

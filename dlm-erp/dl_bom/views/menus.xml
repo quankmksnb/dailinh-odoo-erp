@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         BOM — dưới menu gốc "Kỹ thuật" (dl_base.menu_dl_technical)
+    ================================================================ -->
+    <menuitem id="menu_bom_parent"
+              name="BOM"
+              parent="dl_base.menu_dl_technical"
+              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+              sequence="10"/>
+
+    <menuitem id="menu_bom_quotation"
+              name="BOM sản phẩm / BTP"
+              parent="menu_bom_parent"
+              action="action_dl_bom"
+              sequence="10"/>
+
+    <menuitem id="menu_bom_template"
+              name="BOM mẫu"
+              parent="menu_bom_parent"
+              action="action_dl_bom_template"
+              sequence="20"/>
+
+    <menuitem id="menu_parametric_formula"
+              name="Công thức tham số"
+              parent="menu_bom_parent"
+              action="action_dl_parametric_formula"
+              groups="dl_base.dl_group_admin,dl_base.dl_group_ceo"
+              sequence="30"/>
+
+    <!-- Danh mục Sản phẩm / Nhóm sản phẩm / Bán thành phẩm: ngoài phạm vi
+         S08 (không tạo màn quản lý ở đây) — "Danh mục Sản phẩm" đã có sẵn
+         ở dl_sale (dl_base.menu_dl_technical_product). -->
+
+    <!-- ================================================================
+         BẢN VẼ
+    ================================================================ -->
+    <menuitem id="menu_drawing"
+              name="Bản vẽ kỹ thuật"
+              parent="dl_base.menu_dl_technical"
+              action="action_dl_drawing"
+              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+              sequence="30"/>
+
+    <!-- ================================================================
+         YÊU CẦU BÁO GIÁ (RFQ) — dưới menu gốc "CRM &amp; Báo giá" (dl_base.menu_dl_sale)
+         Sales tạo RFQ tại đây; Kỹ thuật cũng truy cập được để xử lý.
+    ================================================================ -->
+    <menuitem id="menu_rfq_parent"
+              name="Yêu cầu báo giá"
+              parent="dl_base.menu_dl_sale"
+              groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_sales_manager"
+              sequence="25"/>
+
+    <menuitem id="menu_rfq_all"
+              name="Tất cả RFQ"
+              parent="menu_rfq_parent"
+              action="action_dl_quotation_request"
+              sequence="10"/>
+
+    <menuitem id="menu_rfq_my"
+              name="RFQ cần xử lý"
+              parent="menu_rfq_parent"
+              action="action_dl_quotation_request_my"
+              sequence="20"
+              groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+
+</odoo>

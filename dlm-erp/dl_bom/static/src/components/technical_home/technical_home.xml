@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_bom.DlTechnicalHome">
+    <div class="dl-technical o_action">
+        <div class="dl-technical-inner">
+            <div class="dl-technical-head">
+                <h1 class="dl-technical-title">Kỹ thuật</h1>
+                <p class="dl-technical-sub">
+                    Quản lý sản phẩm, bán thành phẩm, bản vẽ, BOM &amp; BOM mẫu, và xử lý yêu cầu báo giá (RFQ).
+                </p>
+            </div>
+
+            <div class="dl-technical-grid">
+                <t t-foreach="cards" t-as="c" t-key="c.key">
+                    <div class="dl-technical-card"
+                         t-att-class="{ 'is-disabled': !c.actionXmlId }"
+                         t-on-click="() => this.openCard(c.actionXmlId)">
+                        <span class="dl-technical-card-icon">
+                            <i t-att-class="'fa ' + c.icon"/>
+                        </span>
+                        <span class="dl-technical-card-body">
+                            <span class="dl-technical-card-name" t-esc="c.name"/>
+                            <span class="dl-technical-card-desc" t-esc="c.desc"/>
+                        </span>
+                        <span t-if="!c.actionXmlId" class="dl-technical-card-soon">Sắp có</span>
+                        <i t-else="" class="fa fa-angle-right dl-technical-card-arrow"/>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </div>
+</t>
+
+</templates>
