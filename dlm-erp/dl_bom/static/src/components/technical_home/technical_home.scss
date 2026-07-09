@@ -1,0 +1,103 @@
+.dl-technical {
+    background: $dl-app-bg;
+    font-family: $dl-font;
+    color: $dl-text;
+
+    .dl-technical-inner {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 28px 24px 40px;
+    }
+
+    .dl-technical-head { margin-bottom: 22px; }
+    .dl-technical-title {
+        margin: 0 0 4px;
+        font-size: 24px;
+        font-weight: 700;
+        color: $dl-heading;
+    }
+    .dl-technical-sub {
+        margin: 0;
+        font-size: 13px;
+        color: $dl-text-2;
+    }
+
+    .dl-technical-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+    }
+
+    .dl-technical-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 18px;
+        border-radius: 14px;
+        border: 1px solid $dl-border;
+        background: #fff;
+        cursor: pointer;
+        transition: border-color .15s, box-shadow .15s;
+
+        &:hover {
+            border-color: $dl-primary;
+            box-shadow: 0 8px 24px rgba(35, 23, 71, 0.10);
+        }
+
+        &.is-disabled {
+            cursor: default;
+            opacity: 0.6;
+            &:hover { border-color: $dl-border; box-shadow: none; }
+        }
+    }
+
+    .dl-technical-card-icon {
+        width: 44px;
+        height: 44px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: $dl-active;
+        color: $dl-primary;
+        font-size: 19px;
+    }
+
+    .dl-technical-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .dl-technical-card-name {
+        font-size: 15px;
+        font-weight: 600;
+        color: $dl-heading;
+    }
+    .dl-technical-card-desc {
+        font-size: 12px;
+        color: $dl-text-2;
+    }
+
+    .dl-technical-card-arrow {
+        color: $dl-text-muted;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .dl-technical-card-soon {
+        flex-shrink: 0;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: $dl-search-bg;
+        color: $dl-text-muted;
+    }
+}

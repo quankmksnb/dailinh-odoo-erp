@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Kế thừa form dl.product (S05, module dl_sale) — thêm thuộc tính
+         cần cho S08 BOM + nối "BOM liên quan" đúng chỗ placeholder cũ.
+         KHÔNG khai báo model/tree/form/action mới cho dl.product / Danh mục
+         Nhóm sản phẩm — nằm ngoài phạm vi S08 (đã chốt với người yêu cầu).
+    ================================================================ -->
+
+    <record id="view_dl_product_form_inherit_bom" model="ir.ui.view">
+        <field name="name">dl.product.form.inherit.bom</field>
+        <field name="model">dl.product</field>
+        <field name="inherit_id" ref="dl_sale.view_dl_product_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='finish']/.." position="after">
+                <group string="Cung ứng (S08 — BOM)">
+                    <field name="supply_type"/>
+                    <field name="uom_id"/>
+                    <field name="purchase_cost" invisible="supply_type != 'trading'"/>
+                    <field name="default_supplier_id" invisible="supply_type != 'trading'"/>
+                </group>
+            </xpath>
+            <xpath expr="//page[@name='boms']/div" position="replace">
+                <field name="bom_ids" nolabel="1">
+                    <tree string="BOM">
+                        <field name="name"/>
+                        <field name="version"/>
+                        <field name="status" widget="badge"/>
+                        <field name="total_material_cost"/>
+                    </tree>
+                </field>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

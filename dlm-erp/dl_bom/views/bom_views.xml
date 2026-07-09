@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         BOM (dl.bom)
+    ================================================================ -->
+
+    <!-- Tree view -->
+    <record id="view_dl_bom_tree" model="ir.ui.view">
+        <field name="name">dl.bom.tree</field>
+        <field name="model">dl.bom</field>
+        <field name="arch" type="xml">
+            <tree string="Bill of Materials"
+                  class="dl-bom-list" js_class="dl_bom_list"
+                  decoration-muted="status == 'archived'"
+                  decoration-info="status == 'draft'"
+                  decoration-success="status == 'confirmed'"
+                  decoration-warning="status == 'locked'">
+                <field name="name"/>
+                <field name="product_id"/>
+                <field name="semi_product_id"/>
+                <field name="category_id"/>
+                <field name="version"/>
+                <field name="product_qty"/>
+                <field name="total_material_cost" string="Chi phí VT"
+                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
+                <field name="status" widget="badge"
+                       decoration-info="status == 'draft'"
+                       decoration-success="status == 'confirmed'"
+                       decoration-warning="status == 'locked'"
+                       decoration-muted="status == 'archived'"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Form view -->
+    <record id="view_dl_bom_form" model="ir.ui.view">
+        <field name="name">dl.bom.form</field>
+        <field name="model">dl.bom</field>
+        <field name="arch" type="xml">
+            <form string="Bill of Materials" class="dl-bom-form" js_class="dl_bom_form">
+                <header>
+                    <button name="action_confirm" type="object" string="Xác nhận BOM"
+                            class="oe_highlight"
+                            invisible="status != 'draft'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_reset_draft" type="object" string="Về nháp"
+                            invisible="status != 'confirmed'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_lock" type="object" string="Khóa"
+                            invisible="status != 'confirmed'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_create_new_version" type="object"
+                            string="Tạo phiên bản mới"
+                            invisible="status not in ('confirmed', 'locked')"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_archive" type="object" string="Lưu trữ"
+                            invisible="status in ('locked', 'archived')"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
+                            confirm="Bạn có chắc muốn lưu trữ BOM này?"/>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="draft,confirmed,locked"
+                           readonly="1"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Đã khóa"
+                            bg_color="text-bg-warning" invisible="status != 'locked'"/>
+                    <widget name="web_ribbon" title="Lưu trữ"
+                            bg_color="text-bg-danger" invisible="status != 'archived'"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" readonly="name != 'New'"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Thông tin BOM">
+                            <field name="bom_type"/>
+                            <field name="version" readonly="1"/>
+                            <field name="product_qty"/>
+                        </group>
+                        <group string="Liên kết sản phẩm (chọn đúng 1)">
+                            <field name="product_id" readonly="status != 'draft'"/>
+                            <field name="semi_product_id" readonly="status != 'draft'"/>
+                            <field name="category_id" readonly="status != 'draft'"
+                                   help="Chỉ dùng cho khung mẫu trừu tượng cấp nhóm (chưa gắn sản phẩm cụ thể)."/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Dòng BOM" name="bom_lines">
+                            <field name="line_ids"
+                                   readonly="status in ('locked', 'archived')">
+                                <tree string="Dòng BOM" editable="bottom">
+                                    <field name="component_type"/>
+                                    <field name="material_id"
+                                           invisible="component_type != 'raw_material'"
+                                           required="component_type == 'raw_material'"/>
+                                    <field name="semi_finished_id"
+                                           invisible="component_type != 'semi_finished'"
+                                           required="component_type == 'semi_finished'"/>
+                                    <field name="input_length_mm" optional="show"
+                                           string="Dài (mm)"/>
+                                    <field name="input_width_mm" optional="show"
+                                           string="Rộng (mm)"/>
+                                    <field name="input_thickness_mm" optional="show"
+                                           string="Dày (mm)"/>
+                                    <field name="quantity"/>
+                                    <field name="waste_rate" string="Hao hụt (%)"/>
+                                    <field name="effective_qty" string="SL thực"/>
+                                    <field name="uom_id" optional="show"/>
+                                    <field name="is_override" optional="hide"/>
+                                    <field name="override_reason" optional="hide"/>
+                                    <field name="price_snapshot"
+                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                    <field name="subtotal" sum="Tổng"
+                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                </tree>
+                            </field>
+
+                            <group class="oe_subtotal_footer oe_right"
+                                   groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                                <field name="total_material_cost"
+                                       class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+
+                        <page string="Ghi chú" name="notes">
+                            <field name="note" nolabel="1"
+                                   placeholder="Ghi chú kỹ thuật..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search view -->
+    <record id="view_dl_bom_search" model="ir.ui.view">
+        <field name="name">dl.bom.search</field>
+        <field name="model">dl.bom</field>
+        <field name="arch" type="xml">
+            <search string="Tìm BOM">
+                <field name="name"/>
+                <field name="product_id"/>
+                <field name="semi_product_id"/>
+                <field name="category_id"/>
+                <separator/>
+                <filter name="draft" string="Nháp"
+                        domain="[('status', '=', 'draft')]"/>
+                <filter name="confirmed" string="Đã xác nhận"
+                        domain="[('status', '=', 'confirmed')]"/>
+                <filter name="locked" string="Đã khóa"
+                        domain="[('status', '=', 'locked')]"/>
+                <filter name="archived" string="Lưu trữ"
+                        domain="[('status', '=', 'archived')]"/>
+                <separator/>
+                <filter name="has_product" string="BOM sản phẩm/BTP"
+                        domain="[('category_id', '=', False)]"/>
+                <filter name="is_template" string="BOM mẫu"
+                        domain="[('category_id', '!=', False)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_status" string="Trạng thái"
+                            context="{'group_by': 'status'}"/>
+                    <filter name="group_product" string="Sản phẩm"
+                            context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_dl_bom" model="ir.actions.act_window">
+        <field name="name">BOM sản phẩm / BTP</field>
+        <field name="res_model">dl.bom</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('category_id', '=', False)]</field>
+    </record>
+
+    <record id="action_dl_bom_template" model="ir.actions.act_window">
+        <field name="name">BOM mẫu</field>
+        <field name="res_model">dl.bom</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('category_id', '!=', False)]</field>
+        <field name="context">{'default_category_id': False}</field>
+    </record>
+
+</odoo>

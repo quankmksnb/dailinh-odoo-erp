@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         C3 — dl.parametric.formula (cấu hình: Admin IT; Kỹ thuật chỉ xem)
+    ================================================================ -->
+
+    <record id="view_dl_parametric_formula_tree" model="ir.ui.view">
+        <field name="name">dl.parametric.formula.tree</field>
+        <field name="model">dl.parametric.formula</field>
+        <field name="arch" type="xml">
+            <tree string="Công thức tham số">
+                <field name="material_id"/>
+                <field name="formula_type"/>
+                <field name="coefficient_value"/>
+                <field name="output_uom_id"/>
+                <field name="is_test_confirmed" widget="boolean_toggle"/>
+                <field name="active" widget="boolean_toggle"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_parametric_formula_form" model="ir.ui.view">
+        <field name="name">dl.parametric.formula.form</field>
+        <field name="model">dl.parametric.formula</field>
+        <field name="arch" type="xml">
+            <form string="Công thức tham số">
+                <sheet>
+                    <group>
+                        <group string="Công thức">
+                            <field name="material_id"/>
+                            <field name="formula_type"/>
+                            <field name="formula_expression"
+                                   invisible="formula_type != 'custom_expression'"/>
+                            <field name="coefficient_value"
+                                   invisible="formula_type == 'direct_count'"/>
+                            <field name="output_uom_id"/>
+                            <field name="formula_note"/>
+                            <field name="active"/>
+                        </group>
+                        <group string="Sandbox test-case (bắt buộc trước khi active custom_expression)">
+                            <field name="test_length_mm"/>
+                            <field name="test_width_mm"/>
+                            <field name="test_thickness_mm"/>
+                            <field name="test_expected_result"/>
+                            <field name="test_actual_result" readonly="1"/>
+                            <field name="is_test_confirmed" readonly="1" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <button name="action_run_test" type="object"
+                            string="Chạy test-case" class="oe_highlight"
+                            groups="dl_base.dl_group_admin"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_dl_parametric_formula" model="ir.actions.act_window">
+        <field name="name">Công thức tham số</field>
+        <field name="res_model">dl.parametric.formula</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+</odoo>
