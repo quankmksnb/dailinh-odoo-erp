@@ -118,10 +118,10 @@
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
                         class="btn-secondary" invisible="active"
                         groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin" />
-                    <button name="action_mark_also_supplier" type="object" string="Cũng là NCC"
+                    <!-- <button name="action_mark_also_supplier" type="object" string="Cũng là NCC"
                         class="btn-secondary" invisible="partner_role != 'customer'"
                         confirm="Đánh dấu đối tác này cũng là Nhà cung cấp? Đối tác sẽ xuất hiện ở cả màn Khách hàng và NCC."
-                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin" />
+                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin" /> -->
                 </header>
                 <sheet>
                     <!-- 'customer' khi tạo từ menu Khách hàng (default trong context);
@@ -184,6 +184,13 @@
                                 readonly="not active"
                                 class="dl-cust-type-seg" />
                         </div>
+
+                        <field name="pending_link_partner_id"
+                            string="NCC trùng tên (nếu có)"
+                            context="{'dl_link_search_role': 'supplier'}"
+                            options="{'no_open': True, 'no_create': True}"
+                            invisible="id"
+                            placeholder="Tìm NCC..."/>
                     </div>
 
                     <group>

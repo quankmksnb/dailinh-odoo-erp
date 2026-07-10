@@ -32,6 +32,14 @@ class ResPartner(models.Model):
         ('both', 'Khách hàng & NCC'),
     ], string='Vai trò')
 
+    pending_link_partner_id = fields.Many2one(
+        "res.partner",
+        string="Liên kết với (gộp thành Khách hàng & NCC)",
+        copy=False,
+        store=True,
+        help="Gõ tên để tìm Khách hàng ↔ NCC",
+    )
+
     # ── S03: Mã khách hàng (Customer ID) tự sinh KH-0001 ──────────────
     dlm_code = fields.Char(
         string='Mã KH',
@@ -217,51 +225,88 @@ class ResPartner(models.Model):
         except (TypeError, ValueError):
             return _SPLIT_THRESHOLD_DEFAULT
 
+    # ── Liên kết đối tác trùng tên: điền field ngay khi chọn (không cần lưu) ──
+    @api.onchange('pending_link_partner_id')
+    def _onchange_pending_link_partner(self):
+        if self.pending_link_partner_id:
+            target = self.pending_link_partner_id.sudo()
+            for f in ('name', 'phone', 'mobile', 'email', 'website', 'vat',
+                      'street', 'street2', 'city', 'country_id', 'comment'):
+                self[f] = target[f]
+
     # ── Auto sinh mã KH khi tạo mới (mã NCC do dlm_supplier tự đảm nhiệm) ──
+    # Khi có pending_link_partner_id: chuyển create() thành write() lên record
+    # đã chọn (gộp thành 'both') thay vì tạo bản ghi trùng lặp.
     @api.model_create_multi
     def create(self, vals_list):
-        records = super().create(vals_list)
-        for rec in records:
+        to_create = []
+        linked_records = self.browse()
+        for vals in vals_list:
+            target_id = vals.pop('pending_link_partner_id', False)
+            if target_id:
+                target = self.browse(target_id).sudo()
+                write_vals = {k: v for k, v in vals.items() if k in target._fields}
+                write_vals['partner_role'] = 'both'
+                if target.partner_role == 'supplier' and not target.partner_type \
+                        and not write_vals.get('partner_type'):
+                    write_vals['partner_type'] = 'company'
+                target.write(write_vals)
+                target.message_post(body=_(
+                    "Chuyển thành 'Khách hàng & NCC' — hợp nhất từ dữ liệu tạo mới."))
+                linked_records |= target
+            else:
+                to_create.append(vals)
+        created = super().create(to_create) if to_create else self.browse()
+        for rec in created:
             if rec.partner_role in _CUSTOMER_ROLES and not rec.dlm_code:
                 rec.dlm_code = self.env['ir.sequence'].next_by_code('dlm.customer') or '/'
-        return records
+        return created + linked_records
 
     # Cũng là NCC (customer → both) — nút trên form Khách hàng.
-    def action_mark_also_supplier(self):
-        for rec in self:
-            if rec.partner_role == 'customer':
-                rec.partner_role = 'both'
+    # def action_mark_also_supplier(self):
+    #     for rec in self:
+    #         if rec.partner_role == 'customer':
+    #             rec.partner_role = 'both'
 
     # Cũng là Khách hàng (supplier → both) — nút trên form NCC.
     # Set kèm partner_type mặc định 'company' nếu chưa có, tránh vướng
     # constraint _check_partner_type ngay khi chuyển sang 'both'.
-    def action_mark_also_customer(self):
-        for rec in self:
-            if rec.partner_role == 'supplier':
-                vals = {'partner_role': 'both'}
-                if not rec.partner_type:
-                    vals['partner_type'] = 'company'
-                rec.write(vals)
-                if not rec.dlm_code:
-                    rec.dlm_code = self.env['ir.sequence'].next_by_code('dlm.customer') or '/'
+    # def action_mark_also_customer(self):
+    #     for rec in self:
+    #         if rec.partner_role == 'supplier':
+    #             vals = {'partner_role': 'both'}
+    #             if not rec.partner_type:
+    #                 vals['partner_type'] = 'company'
+    #             rec.write(vals)
+    #             if not rec.dlm_code:
+    #                 rec.dlm_code = self.env['ir.sequence'].next_by_code('dlm.customer') or '/'
 
     # Vô hiệu hóa: KH ('customer'/'both') cần Trưởng KD hoặc Admin; NCC/'both'
     # cũng được Kế toán vô hiệu hóa (theo quyết định nhóm cho role 'both').
     def write(self, vals):
-        if 'active' in vals and not vals['active'] and not self.env.su:
-            is_sales_manager = self.env.user.has_group('dl_base.dl_group_sales_manager')
-            is_accountant = self.env.user.has_group('dl_base.dl_group_accountant')
-            is_admin = self.env.user.has_group('dl_base.dl_group_admin')
+        if "active" in vals and not vals["active"] and not self.env.su:
+            is_sales_manager = self.env.user.has_group("dl_base.dl_group_sales_manager")
+            is_accountant = self.env.user.has_group("dl_base.dl_group_accountant")
+            is_admin = self.env.user.has_group("dl_base.dl_group_admin")
             for rec in self:
                 if rec.partner_role not in _CUSTOMER_ROLES:
                     continue
-                allowed = is_admin or is_sales_manager or (
-                    rec.partner_role == 'both' and is_accountant)
+                allowed = (
+                    is_admin
+                    or is_sales_manager
+                    or (rec.partner_role == "both" and is_accountant)
+                )
                 if not allowed:
-                    raise AccessError(_(
-                        'Chỉ Trưởng phòng Kinh doanh, Kế toán (với đối tác cả '
-                        'hai vai trò) hoặc Admin mới được vô hiệu hóa khách hàng.'))
-        return super().write(vals)
+                    raise AccessError(
+                        _(
+                            "Chỉ Trưởng phòng Kinh doanh, Kế toán (với đối tác cả "
+                            "hai vai trò) hoặc Admin mới được vô hiệu hóa khách hàng."
+                        )
+                    )
+        res = super().write(vals)
+        if "pending_link_partner_id" in vals:
+            self._process_pending_link()
+        return res
 
     # ── Constraints ───────────────────────────────────────────────────
     @api.constrains('partner_role', 'partner_type')
@@ -323,3 +368,34 @@ class ResPartner(models.Model):
                     "'Cho phép trùng MST (chi nhánh khác)' và ghi chú lý do."
                     % (rec.vat, dup.name, ref)
                 )
+
+    # Method phục vụ search ở màn tạo Khách Hàng/NCC
+    @api.model
+    def name_search(self, name="", args=None, operator="ilike", limit=100):
+        role = self.env.context.get("dl_link_search_role")
+        if role:
+            domain = (args or []) + [("partner_role", "=", role), ("active", "=", True)]
+            partners = self.sudo().search(
+                domain + [("name", operator, name)], limit=limit
+            )
+            return [(p.id, p.name) for p in partners]
+        return super().name_search(name=name, args=args, operator=operator, limit=limit)
+
+    # Method xử lý khi lưu
+    def _process_pending_link(self):
+        for rec in self:
+            if not rec.pending_link_partner_id:
+                continue
+            target = rec.pending_link_partner_id.sudo()
+            if target.partner_role != "both":
+                vals = {"partner_role": "both"}
+                if target.partner_role == "supplier" and not target.partner_type:
+                    vals["partner_type"] = "company"   # đã fix bug == thành =
+                target.write(vals)
+                target.message_post(body=_(
+                    "Được gộp vai trò 'Khách hàng & NCC' — liên kết từ '%s' (bởi %s)"
+                ) % (rec.name, self.env.user.name))
+            rec.message_post(body=_(
+                "Đã liên kết với đối tác trùng tên: %s → partner_role đã chuyển 'both'."
+            ) % target.name)
+            rec.pending_link_partner_id = False

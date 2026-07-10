@@ -45,8 +45,13 @@ export class DlCustomerFormController extends FormController {
         return this.model.root.data.active === false;
     }
 
-    // Chỉ hỏi khi bản ghi thực sự bị người dùng chỉnh sửa.
+    // Bản ghi mới đã nhập/điền (kể cả fill tự động từ onchange tìm–liên kết)
+    // coi như có thay đổi → hỏi trước khi rời. Bản ghi cũ chỉ tính khi người
+    // dùng thực sự chỉnh (tránh hỏi vô cớ).
     get _dlHasRealChanges() {
+        if (this.model.root.isNew) {
+            return this.model.root.isDirty;
+        }
         return this.model.root.isDirty && this._dlUserTouched;
     }
 
