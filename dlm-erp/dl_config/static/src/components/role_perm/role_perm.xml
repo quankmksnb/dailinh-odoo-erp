@@ -68,7 +68,7 @@
                                             <td class="feat">
                                                 <span class="dl-rperm-feat-name" t-esc="f.name"/>
                                                 <span t-if="!f.has_model" class="dl-rperm-feat-nomodel"
-                                                      title="Chức năng chưa gắn model dữ liệu — chỉ cấu hình được thao tác đặc biệt">chưa có dữ liệu</span>
+                                                      title="Chức năng chưa gắn model dữ liệu — quyền Xem/Thêm/Sửa/Xóa được quản ở chức năng dùng chung model (vd Nhà cung cấp dùng chung quyền với Khách hàng)">chưa gắn model</span>
                                             </td>
                                             <td t-foreach="crudCols" t-as="c" t-key="c.key" class="perm">
                                                 <label class="dl-rperm-check" t-att-class="{ 'is-disabled': !f.has_model }">
