@@ -118,9 +118,14 @@
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
                         class="btn-secondary" invisible="active"
                         groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin" />
+                    <button name="action_mark_also_supplier" type="object" string="Cũng là NCC"
+                        class="btn-secondary" invisible="partner_role != 'customer'"
+                        confirm="Đánh dấu đối tác này cũng là Nhà cung cấp? Đối tác sẽ xuất hiện ở cả màn Khách hàng và NCC."
+                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin" />
                 </header>
                 <sheet>
-                    <!-- luôn 'customer' khi tạo từ menu Khách hàng (default trong context) -->
+                    <!-- 'customer' khi tạo từ menu Khách hàng (default trong context);
+                         có thể là 'both' nếu đã bấm "Cũng là NCC" -->
                     <field name="partner_role" invisible="1"/>
                     <field name="active" invisible="1"/>
                     <field name="dlm_split_warning" invisible="1"/>
@@ -328,7 +333,7 @@
         <field name="name">Khách hàng</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,kanban,form</field>
-        <field name="domain">[('partner_role', '=', 'customer')]</field>
+        <field name="domain">[('partner_role', 'in', ['customer', 'both'])]</field>
         <field name="context">{'default_partner_role': 'customer', 'default_customer_type':
             'company', 'active_test': False}</field>
         <field name="view_ids" eval="[

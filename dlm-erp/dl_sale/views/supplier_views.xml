@@ -10,7 +10,7 @@
                 <field name="avatar_128" widget="image" class="dl-supplier-avatar"
                        options="{'preview_image': 'avatar_128'}" nolabel="1"/>
                 <field name="name" string="Tên NCC / Thầu phụ"/>
-                <field name="phone"/>
+                <field name="phone" string="Điện thoại"/>
                 <field name="email"/>
                 <field name="vat" string="MST"/>
                 <field name="city" string="Tỉnh/TP"/>
@@ -33,6 +33,10 @@
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
                             class="btn-secondary" invisible="active"
                             groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/>
+                    <button name="action_mark_also_customer" type="object" string="Cũng là Khách hàng"
+                            class="btn-secondary" invisible="partner_role != 'supplier'"
+                            confirm="Đánh dấu đối tác này cũng là Khách hàng? Đối tác sẽ xuất hiện ở cả màn NCC và Khách hàng."
+                            groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/>
                 </header>
                 <sheet>
                     <field name="active" invisible="1"/>
@@ -51,17 +55,17 @@
 
                     <group>
                         <group string="Thông tin liên hệ">
-                            <field name="phone"/>
-                            <field name="mobile"/>
+                            <field name="phone" string="Điện thoại"/>
+                            <field name="mobile" string="Di động"/>
                             <field name="email"/>
-                            <field name="website"/>
+                            <field name="website" string="Trang web"/>
                             <field name="vat" string="Mã số thuế (MST)"/>
                         </group>
                         <group string="Địa chỉ">
-                            <field name="street" placeholder="Số nhà, tên đường..."/>
-                            <field name="street2" placeholder="Phường/Xã..."/>
-                            <field name="city" placeholder="Tỉnh / Thành phố"/>
-                            <field name="country_id" placeholder="Quốc gia"/>
+                            <field name="street" string="Đường" placeholder="Số nhà, tên đường..."/>
+                            <field name="street2" string="Phường/Xã" placeholder="Phường/Xã..."/>
+                            <field name="city" string="Tỉnh / TP" placeholder="Tỉnh / Thành phố"/>
+                            <field name="country_id" string="Quốc gia" placeholder="Quốc gia"/>
                         </group>
                     </group>
 
@@ -119,8 +123,8 @@
         <field name="name">NCC / Thầu phụ</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('partner_role', '=', 'supplier')]</field>
-        <field name="context">{'default_partner_role': 'supplier'}</field>
+        <field name="domain">[('partner_role', 'in', ['supplier', 'both'])]</field>
+        <field name="context">{'default_partner_role': 'supplier', 'active_test': False}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplier_tree')}),

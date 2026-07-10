@@ -112,6 +112,7 @@ class DlMaterial(models.Model):
             suggested_from = current.valid_to or fields.Date.context_today(self)
             if current.valid_to:
                 suggested_from = current.valid_to + relativedelta(days=1)
+        default_supplier = current.supplier_id if current else self.supplier_id
         return {
             'type': 'ir.actions.act_window',
             'name': _('Cập nhật giá mới'),
@@ -121,7 +122,7 @@ class DlMaterial(models.Model):
             'context': {
                 'default_material_id': self.id,
                 'default_uom_id': self.uom_id.id,
-                'default_supplier_id': current.supplier_id.id if current else False,
+                'default_supplier_id': default_supplier.id,
                 'default_valid_from': suggested_from,
             },
         }

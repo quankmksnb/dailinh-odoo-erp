@@ -16,7 +16,7 @@
         parent="dl_base.menu_dl_sale"
         sequence="20"
         action="action_dl_supplier"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
     />
 
     <menuitem

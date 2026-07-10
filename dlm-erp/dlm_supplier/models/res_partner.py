@@ -20,7 +20,7 @@ class ResPartner(models.Model):
     def _assign_supplier_code(self):
         seq = self.env['ir.sequence'].sudo()
         for partner in self:
-            if partner.partner_role == 'supplier' and not partner.supplier_code:
+            if partner.partner_role in ('supplier', 'both') and not partner.supplier_code:
                 partner.supplier_code = seq.next_by_code('res.partner.supplier') or 'New'
 
     @api.model_create_multi
@@ -31,6 +31,6 @@ class ResPartner(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
-        if vals.get('partner_role') == 'supplier':
+        if vals.get('partner_role') in ('supplier', 'both'):
             self._assign_supplier_code()
         return res

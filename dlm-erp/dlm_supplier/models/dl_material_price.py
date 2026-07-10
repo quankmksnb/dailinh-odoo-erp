@@ -18,7 +18,7 @@ class DlMaterialPrice(models.Model):
                 raise ValidationError(
                     'Không thể chọn NCC đã Ngừng hoạt động (Inactive) cho Giá vật tư.'
                 )
-            if rec.supplier_id.partner_role != 'supplier':
+            if rec.supplier_id.partner_role not in ('supplier', 'both'):
                 raise ValidationError(
-                    'supplier_id phải là một Nhà cung cấp (partner_role = supplier).'
+                    'supplier_id phải là một Nhà cung cấp (partner_role = supplier/both).'
                 )

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         CHỨC NĂNG phân quyền của module dlm_supplier (Nhà cung cấp).
+
+         Lưu ý: Nhà cung cấp KHÔNG có model riêng — theo TDS 4.0 nó là
+         res.partner với partner_role='supplier'/'both'. Vì vậy feature
+         này CỐ TÌNH không gắn model_id (feature "thuần action", cùng
+         pattern feat_sys_config bên dl_config): CRUD thật sự vẫn dùng
+         chung ir.model.access với feat_partner (dl_sale) trên model
+         res.partner — gắn model_id ở đây sẽ đụng chung 1 dòng ACL với
+         feat_partner (xem _access_row() trong dl_base/models/dl_rbac.py)
+         và bật/tắt nhầm quyền của Khách hàng. Record này chỉ để "Nhà
+         cung cấp" hiện thành 1 mục riêng trong ma trận phân quyền, và
+         làm chỗ neo cho thao tác đặc biệt của màn NCC nếu cần sau này.
+    ============================================================ -->
+    <data noupdate="0">
+
+        <record id="feat_supplier" model="dl.rbac.feature">
+            <field name="name">Nhà cung cấp</field>
+            <field name="code">supplier</field>
+            <field name="category">sales</field>
+            <field name="sequence">15</field>
+        </record>
+
+    </data>
+</odoo>

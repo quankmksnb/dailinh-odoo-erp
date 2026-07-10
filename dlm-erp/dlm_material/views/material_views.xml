@@ -16,8 +16,8 @@
                   decoration-muted="not active">
                 <field name="material_code"/>
                 <field name="name"/>
-                <field name="categ_id"/>
-                <field name="uom_id"/>
+                <field name="categ_id" string="Nhóm vật tư"/>
+                <field name="uom_id" string="Đơn vị tính"/>
                 <field name="active" invisible="1"/>
                 <field name="price_status" invisible="1"/>
             </tree>
@@ -57,8 +57,8 @@
                     <field name="active" invisible="1"/>
                     <group>
                         <group string="Thông tin chung">
-                            <field name="categ_id"/>
-                            <field name="uom_id"/>
+                            <field name="categ_id" string="Nhóm vật tư"/>
+                            <field name="uom_id" string="Đơn vị tính"/>
                         </group>
                         <group string="Tình trạng giá"
                                groups="dl_base.dl_group_ceo,dl_base.dl_group_accountant">
@@ -109,10 +109,13 @@
             <search string="Tìm Vật tư">
                 <field name="material_code"/>
                 <field name="name"/>
-                <field name="categ_id"/>
+                <field name="categ_id" string="Nhóm vật tư"/>
                 <separator/>
                 <filter string="Thiếu giá hiệu lực" name="no_active_price"
                         domain="[('has_active_price', '=', False)]"/>
+                <separator/>
+                <filter string="Đang hoạt động" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Ngừng dùng" name="inactive" domain="[('active', '=', False)]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter string="Nhóm vật tư" name="group_categ" context="{'group_by': 'categ_id'}"/>
                 </group>
@@ -131,6 +134,7 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_material_form')}),
         ]"/>
         <field name="search_view_id" ref="view_dl_material_search"/>
+        <field name="context">{'active_test': False}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Thêm vật tư đầu tiên!

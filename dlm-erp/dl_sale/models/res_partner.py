@@ -9,6 +9,7 @@ _PHONE_RE = re.compile(r'^(0|\+84)[0-9]{9,10}$')
 _EMAIL_RE = re.compile(r'^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$')
 _SPLIT_THRESHOLD_KEY = 'dl_sale.split_order_threshold'
 _SPLIT_THRESHOLD_DEFAULT = 20_000_000.0
+_CUSTOMER_ROLES = ('customer', 'both')
 
 
 class ResPartner(models.Model):
@@ -16,18 +17,19 @@ class ResPartner(models.Model):
     Mở rộng res.partner cho nghiệp vụ DLM (theo TDS 4.0 §2.1 — dl.partner).
     Không tạo bảng mới — các trường được thêm vào res_partner (kế thừa Odoo native).
 
-    partner_role: cột duy nhất quyết định 1 partner là Khách hàng hay NCC
+    partner_role: cột quyết định 1 partner là Khách hàng, NCC, hay cả hai
     (theo TDS 4.0 — thay cho 2 cờ Boolean is_dlm_customer/is_dlm_supplier cũ).
-    Lưu ý: khác thiết kế cũ, TDS không cho phép 1 partner vừa là Khách hàng
-    vừa là NCC cùng lúc (enum đơn giá trị) — nếu nghiệp vụ thực sự cần 1 đối
-    tác vừa mua vừa bán, cần tạo 2 bản ghi partner riêng.
+    Chốt lại với nhóm (khác bản TDS 4.0 gốc): 1 partner CÓ THỂ vừa là Khách
+    hàng vừa là NCC ('both') — dùng nút "Cũng là NCC" / "Cũng là Khách hàng"
+    trên form để chuyển sang 'both' thay vì tạo 2 bản ghi riêng.
     """
     _inherit = 'res.partner'
 
-    # ── Phân loại DLM (TDS 4.0 §2.1) ───────────────────────────────────
+    # ── Phân loại DLM (TDS 4.0 §2.1, mở rộng theo quyết định nhóm) ─────
     partner_role = fields.Selection([
         ('customer', 'Khách hàng'),
         ('supplier', 'NCC / Thầu phụ'),
+        ('both', 'Khách hàng & NCC'),
     ], string='Vai trò')
 
     # ── S03: Mã khách hàng (Customer ID) tự sinh KH-0001 ──────────────
@@ -220,27 +222,52 @@ class ResPartner(models.Model):
     def create(self, vals_list):
         records = super().create(vals_list)
         for rec in records:
-            if rec.partner_role == 'customer' and not rec.dlm_code:
+            if rec.partner_role in _CUSTOMER_ROLES and not rec.dlm_code:
                 rec.dlm_code = self.env['ir.sequence'].next_by_code('dlm.customer') or '/'
         return records
 
-    # Chỉ Trưởng KD / Admin được vô hiệu hóa khách hàng
+    # Cũng là NCC (customer → both) — nút trên form Khách hàng.
+    def action_mark_also_supplier(self):
+        for rec in self:
+            if rec.partner_role == 'customer':
+                rec.partner_role = 'both'
+
+    # Cũng là Khách hàng (supplier → both) — nút trên form NCC.
+    # Set kèm customer_type mặc định 'company' nếu chưa có, tránh vướng
+    # constraint _check_customer_type ngay khi chuyển sang 'both'.
+    def action_mark_also_customer(self):
+        for rec in self:
+            if rec.partner_role == 'supplier':
+                vals = {'partner_role': 'both'}
+                if not rec.customer_type:
+                    vals['customer_type'] = 'company'
+                rec.write(vals)
+                if not rec.dlm_code:
+                    rec.dlm_code = self.env['ir.sequence'].next_by_code('dlm.customer') or '/'
+
+    # Vô hiệu hóa: KH ('customer'/'both') cần Trưởng KD hoặc Admin; NCC/'both'
+    # cũng được Kế toán vô hiệu hóa (theo quyết định nhóm cho role 'both').
     def write(self, vals):
         if 'active' in vals and not vals['active'] and not self.env.su:
-            is_manager = (
-                self.env.user.has_group('dl_base.dl_group_sales_manager')
-                or self.env.user.has_group('dl_base.dl_group_admin'))
-            if not is_manager and any(r.partner_role == 'customer' for r in self):
-                raise AccessError(_(
-                    'Chỉ Trưởng phòng Kinh doanh hoặc Admin mới được vô hiệu '
-                    'hóa khách hàng. Sales không có quyền này.'))
+            is_sales_manager = self.env.user.has_group('dl_base.dl_group_sales_manager')
+            is_accountant = self.env.user.has_group('dl_base.dl_group_accountant')
+            is_admin = self.env.user.has_group('dl_base.dl_group_admin')
+            for rec in self:
+                if rec.partner_role not in _CUSTOMER_ROLES:
+                    continue
+                allowed = is_admin or is_sales_manager or (
+                    rec.partner_role == 'both' and is_accountant)
+                if not allowed:
+                    raise AccessError(_(
+                        'Chỉ Trưởng phòng Kinh doanh, Kế toán (với đối tác cả '
+                        'hai vai trò) hoặc Admin mới được vô hiệu hóa khách hàng.'))
         return super().write(vals)
 
     # ── Constraints ───────────────────────────────────────────────────
     @api.constrains('partner_role', 'customer_type')
     def _check_customer_type(self):
         for rec in self:
-            if rec.partner_role == 'customer' and not rec.customer_type:
+            if rec.partner_role in _CUSTOMER_ROLES and not rec.customer_type:
                 raise ValidationError(
                     'Khách hàng DLM phải có Loại khách hàng.'
                 )
@@ -249,7 +276,7 @@ class ResPartner(models.Model):
     def _check_company_tax_code(self):
         """MST bắt buộc với khách doanh nghiệp (dùng trên PDF báo giá S09)."""
         for rec in self:
-            if rec.partner_role == 'customer' and rec.customer_type == 'company' \
+            if rec.partner_role in _CUSTOMER_ROLES and rec.customer_type == 'company' \
                     and not (rec.vat and rec.vat.strip()):
                 raise ValidationError(_(
                     'Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).'))
@@ -258,7 +285,7 @@ class ResPartner(models.Model):
     def _check_phone_format(self):
         """Validate SĐT Việt Nam (TDS A1): ^(0|+84)[0-9]{9,10}$."""
         for rec in self:
-            if rec.partner_role != 'customer':
+            if rec.partner_role not in _CUSTOMER_ROLES:
                 continue
             for label, value in (('Điện thoại', rec.phone), ('Di động', rec.mobile)):
                 if not value:
@@ -273,7 +300,7 @@ class ResPartner(models.Model):
     @api.constrains('partner_role', 'email')
     def _check_email_format(self):
         for rec in self:
-            if rec.partner_role == 'customer' and rec.email and not _EMAIL_RE.match(rec.email.strip()):
+            if rec.partner_role in _CUSTOMER_ROLES and rec.email and not _EMAIL_RE.match(rec.email.strip()):
                 raise ValidationError(_(
                     "Email '%s' không hợp lệ.") % rec.email)
 
@@ -281,11 +308,11 @@ class ResPartner(models.Model):
     def _check_unique_tax_code(self):
         """EX-05: chặn tạo KH trùng MST; cho phép ghi đè nếu là chi nhánh khác."""
         for rec in self:
-            if rec.partner_role != 'customer' or not rec.vat or rec.dlm_allow_dup_tax:
+            if rec.partner_role not in _CUSTOMER_ROLES or not rec.vat or rec.dlm_allow_dup_tax:
                 continue
             dup = self.with_context(active_test=False).search([
                 ('id', '!=', rec.id),
-                ('partner_role', '=', 'customer'),
+                ('partner_role', 'in', _CUSTOMER_ROLES),
                 ('vat', '=', rec.vat),
             ], limit=1)
             if dup:

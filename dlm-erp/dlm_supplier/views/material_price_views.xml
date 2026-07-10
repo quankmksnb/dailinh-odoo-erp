@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Cảnh báo "NCC không còn hoạt động" ở màn Giá Vật tư (Cap_Nhat_S04 mục 6) -->
+    <!-- Cảnh báo "Nhà cung cấp không còn hoạt động" ở màn Giá Vật tư (Cap_Nhat_S04 mục 6) -->
     <record id="view_dl_material_price_form_inherit_sup_active" model="ir.ui.view">
         <field name="name">dlm.material.price.form.inherit.sup.active</field>
         <field name="model">dl.material.price</field>
@@ -9,8 +9,9 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='auto_close_preview']/.." position="after">
                 <field name="supplier_active" invisible="1"/>
-                <div class="alert alert-warning" role="alert" invisible="supplier_active">
-                    NCC này đã Ngừng hoạt động (Inactive).
+                <div class="alert alert-warning" role="alert"
+                     invisible="not supplier_id or supplier_active">
+                    Nhà cung cấp này đã Ngừng hoạt động (Inactive).
                 </div>
             </xpath>
         </field>
@@ -22,7 +23,7 @@
         <field name="inherit_id" ref="dlm_material.view_dl_material_price_list_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//tree" position="attributes">
-                <attribute name="decoration-warning">not supplier_active</attribute>
+                <attribute name="decoration-warning">supplier_id and not supplier_active</attribute>
             </xpath>
             <xpath expr="//field[@name='supplier_id']" position="after">
                 <field name="supplier_active" invisible="1"/>

@@ -16,27 +16,27 @@
         <field name="inherit_id" ref="dl_sale.view_dl_supplier_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[hasclass('oe_title')]" position="inside">
-                <field name="supplier_code" readonly="1" invisible="partner_role != 'supplier'"/>
+                <field name="supplier_code" readonly="1" invisible="partner_role not in ('supplier', 'both')"/>
             </xpath>
             <xpath expr="//field[@name='partner_role']" position="before">
-                <group invisible="partner_role != 'supplier'">
+                <group invisible="partner_role not in ('supplier', 'both')">
                     <field name="category_id" widget="many2many_tags" string="Nhóm vật tư cung cấp"
                            options="{'color_field': 'color'}"/>
                 </group>
             </xpath>
             <xpath expr="//page[@name='notes']" position="after">
-                <page string="Người liên hệ" name="contacts" invisible="partner_role != 'supplier'">
+                <page string="Người liên hệ" name="contacts" invisible="partner_role not in ('supplier', 'both')">
                     <field name="child_ids" context="{'default_parent_id': id, 'default_type': 'contact'}"
                            domain="[('type', '=', 'contact')]">
                         <tree editable="bottom">
-                            <field name="name"/>
+                            <field name="name" string="Họ tên"/>
                             <field name="function" string="Chức vụ"/>
-                            <field name="phone"/>
+                            <field name="phone" string="Điện thoại"/>
                             <field name="email"/>
                         </tree>
                     </field>
                 </page>
-                <page string="Giá vật tư" name="material_prices" invisible="partner_role != 'supplier'">
+                <page string="Giá vật tư" name="material_prices" invisible="partner_role not in ('supplier', 'both')">
                     <field name="material_price_ids" create="0" delete="0">
                         <tree>
                             <field name="material_id"/>

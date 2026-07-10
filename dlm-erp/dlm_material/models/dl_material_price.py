@@ -19,7 +19,8 @@ class DlMaterialPrice(models.Model):
     material_id = fields.Many2one('dl.material', string='Vật tư', required=True,
                                    ondelete='restrict', index=True)
     supplier_id = fields.Many2one('res.partner', string='Nhà cung cấp',
-                                   domain=[('partner_role', '=', 'supplier')])
+                                   domain=[('partner_role', 'in', ('supplier', 'both')),
+                                           ('active', '=', True)])
     unit_price = fields.Float(string='Đơn giá', required=True)
     uom_id = fields.Many2one('uom.uom', string='Đơn vị niêm yết giá', required=True)
     source = fields.Char(string='Nguồn giá')
@@ -63,7 +64,7 @@ class DlMaterialPrice(models.Model):
                 close_date = rec.valid_from - timedelta(days=1)
                 rec.auto_close_preview = _(
                     "Lưu dòng giá này sẽ TỰ ĐỘNG đóng hiệu lực dòng giá đang mở hiện tại "
-                    "(NCC: %(supplier)s, từ %(from)s) — đặt Ngày hết hạn = %(close)s."
+                    "(Nhà cung cấp: %(supplier)s, từ %(from)s) — đặt Ngày hết hạn = %(close)s."
                 ) % {
                     'supplier': open_price.supplier_id.display_name,
                     'from': open_price.valid_from,
