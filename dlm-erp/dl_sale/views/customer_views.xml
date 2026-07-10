@@ -216,7 +216,8 @@
                             </field>
                         </page>
 
-                        <page string="Lịch sử Báo giá" name="quote_history">
+                        <page string="Lịch sử Báo giá" name="quote_history"
+                            groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech">
                             <group>
                                 <group>
                                     <field name="dlm_quotation_count" string="Tổng số báo giá" />
