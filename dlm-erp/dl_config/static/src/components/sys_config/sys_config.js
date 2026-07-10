@@ -6,10 +6,12 @@ import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 
 // ============================================================================
-// S02 — Cấu hình Hệ thống (mock UI)
+// S02 — Cấu hình Hệ thống
 // Tab 1: Tham số báo giá | Tab 2: Ma trận phê duyệt | Tab 3: SLA & Escalation
 // Tab 4: Tham số Parametric | Tab 5: Lịch sử thay đổi (audit)
-// Admin/CEO được sửa, Trưởng KD chỉ xem. Bản mock: dữ liệu in-memory.
+// Admin/CEO được sửa, Trưởng KD chỉ xem.
+// Tab 1 (cost) & Tab 3 (SLA) đã nối backend thật (dl.pricing.config + audit DB);
+// Tab 2/4 hiện còn mock in-memory. Tab 5 hiển thị audit thật từ DB.
 // Nguyên tắc: thay đổi có hiệu lực với báo giá MỚI; báo giá cũ giữ snapshot (BR-28).
 // ============================================================================
 
@@ -77,13 +79,8 @@ const COST_STRUCTURE = [
   },
 ];
 
-// Nhãn field phục vụ ghi audit "cũ → mới" (Tab 1 diff nay do server đảm nhiệm).
-const SLA_LABELS = {
-  salesManager: "SLA Trưởng KD (giờ)",
-  ceo: "SLA CEO (giờ)",
-  reminderEvery: "Tần suất nhắc (giờ)",
-  requireLateReason: "Bắt buộc lý do khi duyệt trễ",
-};
+// Nhãn field phục vụ ghi audit "cũ → mới". Tab 1 & Tab 3 nay diff ở server;
+// còn lại đây là nhãn cho Tab 4 (Parametric) vẫn diff phía client.
 const PARAM_LABELS = {
   steelDensity: "Tỉ trọng thép (kg/m³)",
 };
@@ -254,8 +251,8 @@ export class DlSysConfig extends Component {
 
     // Baseline (không reactive) để tính diff khi Lưu.
     this._snapshot();
-    // Tab 1 nạp thật từ DB trước khi render lần đầu.
-    onWillStart(() => this.loadTab1());
+    // Tab 1 (cost) & Tab 3 (SLA) nạp thật từ DB trước khi render lần đầu.
+    onWillStart(() => Promise.all([this.loadTab1(), this.loadTab3()]));
   }
 
   _snapshot() {
@@ -279,6 +276,18 @@ export class DlSysConfig extends Component {
       this.baseline.waste = clone(this.state.waste);
     } catch (e) {
       this.flash("Không tải được cấu hình từ máy chủ.");
+    }
+  }
+
+  // Nạp cấu hình SLA (Tab 3) từ dl.pricing.config.
+  async loadTab3() {
+    try {
+      const res = await this.orm.call("dl.pricing.config", "get_tab3", []);
+      this.state.sla = { ...this.state.sla, ...res.sla };
+      this.state.canEdit = res.canEdit;
+      this.baseline.sla = clone(this.state.sla);
+    } catch (e) {
+      this.flash("Không tải được cấu hình SLA từ máy chủ.");
     }
   }
 
@@ -543,7 +552,7 @@ export class DlSysConfig extends Component {
   }
 
   // --- Tab 3: SLA & Escalation -------------------------------------------
-  saveSla() {
+  async saveSla() {
     const s = this.state.sla;
     if (s.salesManager < 1 || s.ceo < 1 || s.reminderEvery < 1) {
       this.state.dialog = {
@@ -553,20 +562,41 @@ export class DlSysConfig extends Component {
       };
       return;
     }
-    const entries = this._diffScalars(s, this.baseline.sla, SLA_LABELS);
-    const oldOv = JSON.stringify(this.baseline.sla.onOverdue);
-    if (oldOv !== JSON.stringify(s.onOverdue)) {
-      entries.push({ param: "Hành động khi quá SLA", detail: "Đã cập nhật" });
-    }
-    if (!entries.length) {
-      this.flash("Không có thay đổi để lưu.");
+    if (!this.state.canEdit) {
+      this.flash("Bạn không có quyền sửa cấu hình (chỉ Admin/CEO).");
       return;
     }
-    this._pushAudit("SLA & Escalation", entries);
-    this.baseline.sla = clone(s);
-    this.flash(
-      "Đã lưu SLA. Áp dụng cho các bước duyệt MỚI bắt đầu sau thời điểm lưu.",
-    );
+    try {
+      // Server tự diff + ghi audit; trả về giá trị đã chuẩn hóa (nguồn sự thật).
+      const res = await this.orm.call("dl.pricing.config", "save_tab3", [
+        {
+          salesManager: s.salesManager,
+          ceo: s.ceo,
+          reminderEvery: s.reminderEvery,
+          requireLateReason: s.requireLateReason,
+          onOverdue: {
+            remind: s.onOverdue.remind,
+            escalate: s.onOverdue.escalate,
+            log: s.onOverdue.log,
+            kpi: s.onOverdue.kpi,
+          },
+        },
+      ]);
+      this.state.sla = { ...this.state.sla, ...res.sla };
+      this.baseline.sla = clone(this.state.sla);
+      if (res.audit_new && res.audit_new.length) {
+        this.state.audit = [...res.audit_new, ...this.state.audit];
+        this.flash(
+          "Đã lưu SLA. Áp dụng cho các bước duyệt MỚI bắt đầu sau thời điểm lưu.",
+        );
+      } else {
+        this.flash("Không có thay đổi để lưu.");
+      }
+    } catch (e) {
+      const msg =
+        (e && e.data && e.data.message) || (e && e.message) || "lỗi không xác định";
+      this.flash("Lưu thất bại: " + msg);
+    }
   }
 
   // --- Tab 4: Parametric --------------------------------------------------

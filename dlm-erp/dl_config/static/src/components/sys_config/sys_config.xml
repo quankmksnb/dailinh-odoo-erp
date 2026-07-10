@@ -285,7 +285,18 @@
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">SLA &amp; Escalation</span>
-                        <button class="dl-cfg-save" type="button" t-on-click="saveSla"><i class="fa fa-check"/> Lưu thay đổi</button>
+                        <button class="dl-cfg-save" type="button" t-on-click="saveSla" t-att-disabled="!state.canEdit"><i class="fa fa-check"/> Lưu thay đổi</button>
+                    </div>
+
+                    <div t-if="!state.canEdit" class="dl-cfg-note warn">
+                        <i class="fa fa-lock"/>
+                        Bạn đang ở chế độ chỉ xem — chỉ Admin/CEO được sửa cấu hình SLA.
+                    </div>
+
+                    <div class="dl-cfg-note info">
+                        <i class="fa fa-info-circle"/>
+                        SLA được màn Phê duyệt (S10) đọc để tính deadline &amp; trigger escalation.
+                        Sửa SLA chỉ áp dụng cho bước duyệt MỚI bắt đầu sau khi lưu; bước đang chờ giữ nguyên hạn cũ.
                     </div>
 
                     <div class="dl-cfg-grid">

@@ -7,7 +7,7 @@
 # Mọi thay đổi ghi audit vào dl.config.audit.log (BR-28).
 # ============================================================================
 from odoo import api, fields, models, _
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, ValidationError
 
 # Nhãn tiếng Việt cho từng field Tab 1 — dùng khi ghi audit "cũ → mới".
 _TAB1_LABELS = {
@@ -26,6 +26,24 @@ _ROUNDING_LABELS = {
     1000: "Làm tròn đến 1.000đ",
     10000: "Làm tròn đến 10.000đ",
 }
+
+# Nhãn tiếng Việt cho từng field Tab 3 (SLA & Escalation) — dùng khi ghi audit.
+# Thứ tự dict = thứ tự dòng audit sinh ra khi Lưu.
+_TAB3_LABELS = {
+    "sla_sales_manager_hours": "SLA Trưởng KD (giờ)",
+    "sla_ceo_hours": "SLA CEO (giờ)",
+    "sla_reminder_every_hours": "Tần suất nhắc nhở (giờ)",
+    "sla_overdue_remind": "Nhắc nhở khi quá SLA",
+    "sla_overdue_escalate": "Tự động escalate khi quá SLA",
+    "sla_overdue_log": "Ghi log khi quá SLA",
+    "sla_overdue_kpi": "Ghi nhận KPI khi quá SLA",
+    "sla_require_late_reason": "Bắt buộc lý do khi duyệt trễ",
+}
+
+
+def _bool_label(v):
+    """True → 'Bật', False → 'Tắt' (dùng khi ghi audit các công tắc SLA)."""
+    return "Bật" if v else "Tắt"
 
 
 def _fmt_num(v):
@@ -62,6 +80,26 @@ class DlPricingConfig(models.Model):
     waste_ids = fields.One2many(
         "dl.pricing.waste", "config_id", "Hao hụt theo nhóm vật tư"
     )
+
+    # --- S02 · Tab 3: SLA & Escalation --------------------------------------
+    # SLA phê duyệt (giờ làm việc) + hành động khi quá hạn. S10 (Phê duyệt) đọc
+    # cấu hình này để tính deadline & trigger escalation. Sửa SLA chỉ áp dụng
+    # cho bước duyệt MỚI bắt đầu sau thời điểm lưu; bước đang chạy giữ nguyên.
+    sla_sales_manager_hours = fields.Integer(
+        "SLA Trưởng KD (giờ làm việc)", default=4
+    )
+    sla_ceo_hours = fields.Integer("SLA CEO (giờ làm việc)", default=8)
+    sla_reminder_every_hours = fields.Integer("Tần suất nhắc nhở (giờ)", default=2)
+    sla_require_late_reason = fields.Boolean(
+        "Bắt buộc lý do khi duyệt trễ", default=True
+    )
+    # Hành động khi quá SLA (đặc tả: Nhắc → Escalate → Ghi log → Ghi nhận KPI)
+    sla_overdue_remind = fields.Boolean("Nhắc nhở khi quá SLA", default=True)
+    sla_overdue_escalate = fields.Boolean(
+        "Tự động escalate lên cấp trên / Backup", default=True
+    )
+    sla_overdue_log = fields.Boolean("Ghi log khi quá SLA", default=True)
+    sla_overdue_kpi = fields.Boolean("Ghi nhận để tính KPI", default=True)
 
     @api.depends(
         "material_pct", "labor_pct", "overhead_pct", "risk_pct", "margin_pct"
@@ -112,6 +150,22 @@ class DlPricingConfig(models.Model):
         return [
             {"group": w.group_name, "pct": w.waste_pct} for w in self.waste_ids
         ]
+
+    def _read_sla(self):
+        """Trả cấu hình SLA theo khóa camelCase khớp state.sla bên OWL."""
+        self.ensure_one()
+        return {
+            "salesManager": self.sla_sales_manager_hours,
+            "ceo": self.sla_ceo_hours,
+            "reminderEvery": self.sla_reminder_every_hours,
+            "requireLateReason": self.sla_require_late_reason,
+            "onOverdue": {
+                "remind": self.sla_overdue_remind,
+                "escalate": self.sla_overdue_escalate,
+                "log": self.sla_overdue_log,
+                "kpi": self.sla_overdue_kpi,
+            },
+        }
 
     @api.model
     def get_tab1(self):
@@ -197,6 +251,78 @@ class DlPricingConfig(models.Model):
         return {
             "cost": cfg._read_cost(),
             "waste": cfg._read_waste(),
+            "audit_new": [l._to_dict() for l in created],
+        }
+
+    # --- Tab 3: SLA & Escalation -------------------------------------------
+    @api.model
+    def get_tab3(self):
+        """OWL gọi lúc mở màn: nạp cấu hình SLA + quyền sửa.
+        (Audit dùng chung, đã nạp ở get_tab1.)"""
+        cfg = self._get_singleton()
+        return {"sla": cfg._read_sla(), "canEdit": cfg._can_edit()}
+
+    @api.model
+    def save_tab3(self, sla):
+        """OWL gọi khi Lưu SLA: ghi DB + sinh audit "cũ → mới". Trả về giá trị
+        chuẩn (server là nguồn sự thật) + các dòng audit vừa tạo."""
+        cfg = self._get_singleton()
+        if not cfg._can_edit():
+            raise AccessError(_("Chỉ Admin/CEO được sửa cấu hình SLA."))
+
+        sla = sla or {}
+        overdue = sla.get("onOverdue") or {}
+        sm = int(sla.get("salesManager") or 0)
+        ceo = int(sla.get("ceo") or 0)
+        remind_every = int(sla.get("reminderEvery") or 0)
+
+        # SLA & tần suất nhắc phải ≥ 1 giờ làm việc (chặn cứng — vô nghĩa nếu < 1).
+        if sm < 1 or ceo < 1 or remind_every < 1:
+            raise ValidationError(
+                _("SLA và tần suất nhắc nhở phải ≥ 1 giờ làm việc.")
+            )
+
+        new_vals = {
+            "sla_sales_manager_hours": sm,
+            "sla_ceo_hours": ceo,
+            "sla_reminder_every_hours": remind_every,
+            "sla_require_late_reason": bool(sla.get("requireLateReason")),
+            "sla_overdue_remind": bool(overdue.get("remind")),
+            "sla_overdue_escalate": bool(overdue.get("escalate")),
+            "sla_overdue_log": bool(overdue.get("log")),
+            "sla_overdue_kpi": bool(overdue.get("kpi")),
+        }
+
+        # Diff → dòng audit (số cho SLA/giờ, Bật/Tắt cho các công tắc)
+        audit = []
+        for fname, label in _TAB3_LABELS.items():
+            old, new = cfg[fname], new_vals[fname]
+            if isinstance(old, bool) or isinstance(new, bool):
+                if bool(old) != bool(new):
+                    audit.append(
+                        (label, "%s → %s" % (_bool_label(old), _bool_label(new)))
+                    )
+            elif int(old) != int(new):
+                audit.append((label, "%s → %s" % (_fmt_num(old), _fmt_num(new))))
+
+        cfg.write(new_vals)
+
+        # Audit ghi sudo (append-only, người dùng không cần quyền create)
+        Log = self.env["dl.config.audit.log"].sudo()
+        created = Log.create(
+            [
+                {
+                    "config_tab": "SLA & Escalation",
+                    "param_label": label,
+                    "detail": detail,
+                    "user_id": self.env.uid,
+                }
+                for label, detail in audit
+            ]
+        ) if audit else Log.browse()
+
+        return {
+            "sla": cfg._read_sla(),
             "audit_new": [l._to_dict() for l in created],
         }
 
