@@ -2,24 +2,6 @@
 <odoo>
 
     <menuitem
-        id="menu_dl_sale_customer"
-        name="Khách hàng"
-        parent="dl_base.menu_dl_sale"
-        sequence="10"
-        action="action_dl_customer"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_ba"
-    />
-
-    <menuitem
-        id="menu_dl_sale_supplier"
-        name="NCC / Thầu phụ"
-        parent="dl_base.menu_dl_sale"
-        sequence="20"
-        action="action_dl_supplier"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
-    />
-
-    <menuitem
         id="menu_dl_sale_quotation"
         name="Báo giá"
         parent="dl_base.menu_dl_sale"

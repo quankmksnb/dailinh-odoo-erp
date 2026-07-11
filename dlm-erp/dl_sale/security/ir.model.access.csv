@@ -1,8 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_dl_partner_admin,access_dl_partner_admin,base.model_res_partner,dl_base.dl_group_admin,1,1,1,1
-access_dl_partner_manager,access_dl_partner_manager,base.model_res_partner,dl_base.dl_group_sales_manager,1,1,1,1
-access_dl_partner_ba,access_dl_partner_ba,base.model_res_partner,dl_base.dl_group_ba,1,1,1,0
-access_dl_partner_ceo,access_dl_partner_ceo,base.model_res_partner,dl_base.dl_group_ceo,1,0,0,0
 access_dl_quotation_ceo,access_dl_quotation_ceo,model_dl_quotation,dl_base.dl_group_ceo,1,1,1,1
 access_dl_quotation_admin,access_dl_quotation_admin,model_dl_quotation,dl_base.dl_group_admin,1,1,1,1
 access_dl_quotation_ba,access_dl_quotation_ba,model_dl_quotation,dl_base.dl_group_ba,1,1,1,0

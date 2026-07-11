@@ -25,7 +25,6 @@
         <field name="arch" type="xml">
             <form string="NCC / Thầu phụ" class="dl-supplier-form" js_class="dl_supplier_form">
                 <header>
-                    <!-- Vô hiệu hóa / kích hoạt: chỉ Kế toán + Admin (S04) -->
                     <button name="toggle_active" type="object" string="Vô hiệu hóa NCC"
                             class="btn-secondary" invisible="not active"
                             confirm="Vô hiệu hóa NCC này? Lịch sử giá cũ được giữ nguyên; NCC sẽ không xuất hiện khi cập nhật giá vật tư mới."
@@ -33,10 +32,6 @@
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
                             class="btn-secondary" invisible="active"
                             groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/>
-                    <!-- <button name="action_mark_also_customer" type="object" string="Cũng là Khách hàng"
-                            class="btn-secondary" invisible="partner_role != 'supplier'"
-                            confirm="Đánh dấu đối tác này cũng là Khách hàng? Đối tác sẽ xuất hiện ở cả màn NCC và Khách hàng."
-                            groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/> -->
                 </header>
                 <sheet>
                     <field name="active" invisible="1"/>
@@ -52,7 +47,7 @@
                             <field name="name" placeholder="Tên NCC / Thầu phụ..."/>
                         </h1>
                     </div>
-                    
+
                     <field name="pending_link_partner_id"
                         string="Khách hàng trùng tên (nếu có)"
                         context="{'dl_link_search_role': 'customer'}"
@@ -119,8 +114,7 @@
                 <filter string="Đang hoạt động" name="active" domain="[('active', '=', True)]"/>
                 <filter string="Không hoạt động" name="inactive" domain="[('active', '=', False)]"/>
                 <group expand="0" string="Nhóm theo">
-                    <filter string="Tỉnh/TP" name="group_city"
-                            context="{'group_by': 'city'}"/>
+                    <filter string="Tỉnh/TP" name="group_city" context="{'group_by': 'city'}"/>
                 </group>
             </search>
         </field>
@@ -139,11 +133,25 @@
         ]"/>
         <field name="search_view_id" ref="view_dl_supplier_search"/>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Thêm nhà cung cấp đầu tiên!
-            </p>
+            <p class="o_view_nocontent_smiling_face">Thêm nhà cung cấp đầu tiên!</p>
             <p>Quản lý NCC và thầu phụ cung cấp vật tư / dịch vụ cho Đại Linh.</p>
         </field>
+    </record>
+
+    <!-- Action chỉ-đọc cho Trưởng phòng KD (S04: "Xem danh sách" NCC).
+         context create/edit/delete=False => UX chỉ đọc; bảo mật thật do ir.rule đảm nhiệm. -->
+    <record id="action_dl_supplier_readonly" model="ir.actions.act_window">
+        <field name="name">NCC / Thầu phụ</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('partner_role', 'in', ['supplier', 'both'])]</field>
+        <field name="context">{'active_test': False, 'create': False, 'edit': False, 'delete': False}</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplier_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_supplier_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_supplier_search"/>
     </record>
 
 </odoo>

@@ -13,7 +13,7 @@
     <record id="view_dl_supplier_form_inherit_sup" model="ir.ui.view">
         <field name="name">dlm.supplier.form.inherit.sup</field>
         <field name="model">res.partner</field>
-        <field name="inherit_id" ref="dl_sale.view_dl_supplier_form"/>
+        <field name="inherit_id" ref="dl_partner.view_dl_supplier_form"/>
         <field name="arch" type="xml">
             <xpath expr="//div[hasclass('oe_title')]" position="inside">
                 <field name="supplier_code" readonly="1" invisible="partner_role not in ('supplier', 'both')"/>
@@ -54,7 +54,7 @@
     <record id="view_dl_supplier_tree_inherit_sup" model="ir.ui.view">
         <field name="name">dlm.supplier.tree.inherit.sup</field>
         <field name="model">res.partner</field>
-        <field name="inherit_id" ref="dl_sale.view_dl_supplier_tree"/>
+        <field name="inherit_id" ref="dl_partner.view_dl_supplier_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='name']" position="after">
                 <field name="supplier_code"/>
@@ -68,7 +68,7 @@
     <record id="view_dl_supplier_search_inherit_sup" model="ir.ui.view">
         <field name="name">dlm.supplier.search.inherit.sup</field>
         <field name="model">res.partner</field>
-        <field name="inherit_id" ref="dl_sale.view_dl_supplier_search"/>
+        <field name="inherit_id" ref="dl_partner.view_dl_supplier_search"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='vat']" position="after">
                 <field name="category_id"/>
@@ -95,10 +95,10 @@
         <field name="context">{'active_test': False, 'create': False, 'edit': False, 'delete': False}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('dl_sale.view_dl_supplier_tree')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('dl_sale.view_dl_supplier_form')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('dl_partner.view_dl_supplier_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('dl_partner.view_dl_supplier_form')}),
         ]"/>
-        <field name="search_view_id" ref="dl_sale.view_dl_supplier_search"/>
+        <field name="search_view_id" ref="dl_partner.view_dl_supplier_search"/>
     </record>
 
 </odoo>
