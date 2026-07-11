@@ -2,7 +2,7 @@
 
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
-import { DlListBaseController } from "@dl_sale/views/dl_list_controller";
+import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
 const CHIPS = [
     { key: "all",       label: "Tất cả",     filter: null,              type: null },

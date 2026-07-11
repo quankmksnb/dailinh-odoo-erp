@@ -39,7 +39,7 @@
         <record id="feat_product" model="dl.rbac.feature">
             <field name="name">Sản phẩm</field>
             <field name="code">product</field>
-            <field name="model_id" ref="model_dl_product"/>
+            <field name="model_id" ref="dl_product.model_dl_product"/>
             <field name="category">sales</field>
             <field name="sequence">20</field>
         </record>

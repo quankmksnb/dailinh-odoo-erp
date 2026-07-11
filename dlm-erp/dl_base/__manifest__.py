@@ -19,6 +19,12 @@
             'dl_base/static/src/scss/mixins.scss',
             # State dùng chung sidebar (Home nav + Rail) — nạp trước component
             'dl_base/static/src/js/sidebar_state.js',
+            # JS — hạ tầng list/form dùng chung toàn hệ thống (menu ⋮ Thao
+            # tác + DlListBaseController). Các module con (dl_sale, dl_product,
+            # dl_bom, dl_config...) đều import từ đây, KHÔNG từ dl_sale, để
+            # tránh phụ thuộc vòng (dl_sale lại depends dl_product).
+            'dl_base/static/src/js/actions_menu.js',
+            'dl_base/static/src/views/dl_list_controller.js',
             # Component — Home dashboard (client action ir.actions.client)
             'dl_base/static/src/components/home/home.scss',
             'dl_base/static/src/components/home/home.xml',

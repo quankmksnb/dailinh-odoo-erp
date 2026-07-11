@@ -7,7 +7,7 @@ import { registry } from "@web/core/registry";
 import { _t } from "@web/core/l10n/translation";
 import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
-import { setupFormActionsMenu } from "@dl_sale/js/actions_menu";
+import { setupFormActionsMenu } from "@dl_base/js/actions_menu";
 
 export class DlDrawingFormController extends FormController {
     setup() {
