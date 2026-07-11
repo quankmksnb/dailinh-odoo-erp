@@ -4,7 +4,7 @@
     'summary': 'Quản lý BOM & BOM Mẫu, Bản vẽ, RFQ kỹ thuật — Phase 1 (S08)',
     'author': 'Dai Linh',
     'category': 'Hidden',
-    'depends': ['dl_base', 'dlm_material', 'dl_sale', 'mail', 'uom'],
+    'depends': ['dl_base', 'dlm_material', 'dl_sale', 'mail', 'uom', 'product'],
     'external_dependencies': {'python': ['simpleeval']},
     'data': [
         'security/ir.model.access.csv',

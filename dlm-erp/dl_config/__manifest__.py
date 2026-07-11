@@ -10,6 +10,7 @@
     'data': [
         'security/ir.model.access.csv',
         'data/rbac_features.xml',
+        'data/pricing_config_data.xml',
         'views/config_home.xml',
         'views/uom_views.xml',
         'views/company_views.xml',

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- noupdate="1": chỉ seed 1 lần; -u dl_config KHÔNG ghi đè giá trị người dùng đã sửa. -->
+    <data noupdate="1">
+
+        <record id="pricing_config_default" model="dl.pricing.config">
+            <field name="name">Cấu hình báo giá</field>
+            <field name="material_pct">55</field>
+            <field name="labor_pct">25</field>
+            <field name="overhead_pct">5</field>
+            <field name="risk_pct">3</field>
+            <field name="margin_pct">12</field>
+            <field name="max_discount_pct">15</field>
+            <field name="vat_pct">0</field>
+            <field name="price_validity_days">30</field>
+            <field name="rounding_to">1000</field>
+            <!-- Tab 3: SLA & Escalation -->
+            <field name="sla_sales_manager_hours">4</field>
+            <field name="sla_ceo_hours">8</field>
+            <field name="sla_reminder_every_hours">2</field>
+            <field name="sla_require_late_reason" eval="True"/>
+            <field name="sla_overdue_remind" eval="True"/>
+            <field name="sla_overdue_escalate" eval="True"/>
+            <field name="sla_overdue_log" eval="True"/>
+            <field name="sla_overdue_kpi" eval="True"/>
+        </record>
+
+        <record id="waste_thep_tam" model="dl.pricing.waste">
+            <field name="config_id" ref="pricing_config_default"/>
+            <field name="group_name">Thép tấm</field>
+            <field name="waste_pct">3</field>
+        </record>
+        <record id="waste_thep_hop" model="dl.pricing.waste">
+            <field name="config_id" ref="pricing_config_default"/>
+            <field name="group_name">Thép hộp</field>
+            <field name="waste_pct">5</field>
+        </record>
+        <record id="waste_thep_ong" model="dl.pricing.waste">
+            <field name="config_id" ref="pricing_config_default"/>
+            <field name="group_name">Thép ống</field>
+            <field name="waste_pct">5</field>
+        </record>
+        <record id="waste_son" model="dl.pricing.waste">
+            <field name="config_id" ref="pricing_config_default"/>
+            <field name="group_name">Sơn</field>
+            <field name="waste_pct">8</field>
+        </record>
+        <record id="waste_vat_tu_phu" model="dl.pricing.waste">
+            <field name="config_id" ref="pricing_config_default"/>
+            <field name="group_name">Vật tư phụ</field>
+            <field name="waste_pct">2</field>
+        </record>
+        <record id="waste_gia_cong_ngoai" model="dl.pricing.waste">
+            <field name="config_id" ref="pricing_config_default"/>
+            <field name="group_name">Gia công ngoài</field>
+            <field name="waste_pct">0</field>
+        </record>
+
+        <!-- Tab 2 (Ma trận phê duyệt) KHÔNG seed ở đây: seed mặc định được tạo
+             bằng Python (_ensure_default_levels) gắn vào ĐÚNG singleton thực tế,
+             tránh phụ thuộc bản ghi cấu hình nào là singleton. Cờ matrix_seeded
+             bảo đảm không seed lại nếu người dùng cố ý xóa hết cấp. -->
+
+    </data>
+</odoo>
