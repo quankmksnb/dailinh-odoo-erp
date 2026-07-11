@@ -48,8 +48,8 @@ class ResPartner(models.Model):
     # hẳn ở Phase 1, "Nhóm vật tư cung cấp" dùng category_id chứ không phải
     # Selection riêng) — không định nghĩa lại ở đây để tránh trùng lặp.
 
-    # ── A1: Loại khách hàng (Entity Proposal A1.customer_type) ───────
-    customer_type = fields.Selection(
+    # ── A1: Loại khách hàng (Entity Proposal A1.partner_type) ───────
+    partner_type = fields.Selection(
         selection=[
             ('individual', 'Cá nhân'),
             ('company', 'Doanh nghiệp'),
@@ -165,11 +165,11 @@ class ResPartner(models.Model):
         for rec in self:
             rec.dlm_currency_id = currency
 
-    @api.depends('customer_type')
+    @api.depends('partner_type')
     def _compute_partner_type_label(self):
-        mapping = dict(self._fields['customer_type'].selection)
+        mapping = dict(self._fields['partner_type'].selection)
         for rec in self:
-            rec.partner_type_label = mapping.get(rec.customer_type, '')
+            rec.partner_type_label = mapping.get(rec.partner_type, '')
 
     @api.depends('dlm_quotation_ids', 'dlm_quotation_ids.state',
                  'dlm_quotation_ids.date_order', 'dlm_quotation_ids.amount_total')
@@ -233,14 +233,14 @@ class ResPartner(models.Model):
                 rec.partner_role = 'both'
 
     # Cũng là Khách hàng (supplier → both) — nút trên form NCC.
-    # Set kèm customer_type mặc định 'company' nếu chưa có, tránh vướng
-    # constraint _check_customer_type ngay khi chuyển sang 'both'.
+    # Set kèm partner_type mặc định 'company' nếu chưa có, tránh vướng
+    # constraint _check_partner_type ngay khi chuyển sang 'both'.
     def action_mark_also_customer(self):
         for rec in self:
             if rec.partner_role == 'supplier':
                 vals = {'partner_role': 'both'}
-                if not rec.customer_type:
-                    vals['customer_type'] = 'company'
+                if not rec.partner_type:
+                    vals['partner_type'] = 'company'
                 rec.write(vals)
                 if not rec.dlm_code:
                     rec.dlm_code = self.env['ir.sequence'].next_by_code('dlm.customer') or '/'
@@ -264,19 +264,19 @@ class ResPartner(models.Model):
         return super().write(vals)
 
     # ── Constraints ───────────────────────────────────────────────────
-    @api.constrains('partner_role', 'customer_type')
-    def _check_customer_type(self):
+    @api.constrains('partner_role', 'partner_type')
+    def _check_partner_type(self):
         for rec in self:
-            if rec.partner_role in _CUSTOMER_ROLES and not rec.customer_type:
+            if rec.partner_role in _CUSTOMER_ROLES and not rec.partner_type:
                 raise ValidationError(
                     'Khách hàng DLM phải có Loại khách hàng.'
                 )
 
-    @api.constrains('partner_role', 'customer_type', 'vat')
+    @api.constrains('partner_role', 'partner_type', 'vat')
     def _check_company_tax_code(self):
         """MST bắt buộc với khách doanh nghiệp (dùng trên PDF báo giá S09)."""
         for rec in self:
-            if rec.partner_role in _CUSTOMER_ROLES and rec.customer_type == 'company' \
+            if rec.partner_role in _CUSTOMER_ROLES and rec.partner_type == 'company' \
                     and not (rec.vat and rec.vat.strip()):
                 raise ValidationError(_(
                     'Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).'))

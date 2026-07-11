@@ -30,7 +30,7 @@ class DlQuotationRequest(models.Model):
         string="Khách hàng",
         required=True,
         tracking=True,
-        domain=[("is_dlm_customer", "=", True)],
+        domain=[("partner_role", "in", ("customer", "both"))],
     )
 
     description = fields.Text(

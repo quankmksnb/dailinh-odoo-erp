@@ -48,14 +48,14 @@ export class DlCustomerListController extends DlListBaseController {
         const groups = await this.orm.readGroup(
             "res.partner",
             [["partner_role", "in", ["customer", "both"]]],
-            ["customer_type"],
-            ["customer_type"]
+            ["partner_type"],
+            ["partner_type"]
         );
         const counts = {};
         let total = 0;
         for (const g of groups) {
-            const n = g.__count ?? g.customer_type_count ?? 0;
-            counts[g.customer_type] = n;
+            const n = g.__count ?? g.partner_type_count ?? 0;
+            counts[g.partner_type] = n;
             total += n;
         }
         counts.all = total;

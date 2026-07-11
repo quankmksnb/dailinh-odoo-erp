@@ -12,9 +12,9 @@
                 <field name="dlm_has_photo" column_invisible="1" />
                 <field name="dlm_code" string="Mã KH" />
                 <field name="name" string="Tên khách hàng" />
-                <field name="customer_type" string="Loại" widget="badge"
-                    decoration-info="customer_type == 'company'"
-                    decoration-warning="customer_type == 'dealer'" />
+                <field name="partner_type" string="Loại" widget="badge"
+                    decoration-info="partner_type == 'company'"
+                    decoration-warning="partner_type == 'dealer'" />
                 <field name="dlm_status_label" string="Trạng thái" widget="badge"
                     decoration-success="active"
                     decoration-danger="not active" />
@@ -33,7 +33,7 @@
             <kanban class="dl-cust-kanban" default_group_by="">
                 <field name="name" />
                 <field name="dlm_code" />
-                <field name="customer_type" />
+                <field name="partner_type" />
                 <field name="partner_type_label" />
                 <field name="phone" />
                 <field name="mobile" />
@@ -63,7 +63,7 @@
                                         <span class="dl-cust-code" t-if="record.dlm_code.value"
                                             t-esc="record.dlm_code.value" />
                                         <span
-                                            t-attf-class="dl-type-badge dl-type-badge--#{record.customer_type.raw_value}"
+                                            t-attf-class="dl-type-badge dl-type-badge--#{record.partner_type.raw_value}"
                                             t-esc="record.partner_type_label.value" />
                                     </div>
                                 </div>
@@ -179,7 +179,7 @@
                             <div class="dl-cust-code" invisible="not dlm_code"> Mã KH: <field
                                     name="dlm_code" class="oe_inline" />
                             </div>
-                            <field name="customer_type" widget="radio"
+                            <field name="partner_type" widget="radio"
                                 options="{'horizontal': true}" nolabel="1"
                                 readonly="not active"
                                 class="dl-cust-type-seg" />
@@ -192,11 +192,11 @@
                             <field name="mobile" string="Di động" readonly="not active" />
                             <field name="email" widget="email" readonly="not active" />
                             <field name="vat" string="Mã số thuế (MST)"
-                                readonly="customer_type == 'individual' or not active"
-                                required="customer_type == 'company'"
+                                readonly="partner_type == 'individual' or not active"
+                                required="partner_type == 'company'"
                                 placeholder="Bắt buộc với Doanh nghiệp" />
                             <field name="dlm_allow_dup_tax" readonly="not active"
-                                invisible="customer_type == 'individual'" />
+                                invisible="partner_type == 'individual'" />
                         </group>
                         <group string="Địa chỉ">
                             <field name="street" string="Đường" readonly="not active"
@@ -291,19 +291,19 @@
                 <separator />
                 <filter string="Cá nhân"
                     name="filter_individual"
-                    domain="[('customer_type', '=', 'individual')]" />
+                    domain="[('partner_type', '=', 'individual')]" />
                 <filter string="Doanh nghiệp"
                     name="filter_company"
-                    domain="[('customer_type', '=', 'company')]" />
+                    domain="[('partner_type', '=', 'company')]" />
                 <filter string="Đại lý"
                     name="filter_dealer"
-                    domain="[('customer_type', '=', 'dealer')]" />
+                    domain="[('partner_type', '=', 'dealer')]" />
                 <separator />
                 <filter string="Đang hoạt động" name="active" domain="[('active', '=', True)]" />
                 <filter string="Không hoạt động" name="inactive" domain="[('active', '=', False)]" />
                 <group expand="0" string="Nhóm theo">
                     <filter string="Loại khách hàng" name="group_type"
-                        context="{'group_by': 'customer_type'}" />
+                        context="{'group_by': 'partner_type'}" />
                     <filter string="Tỉnh/TP" name="group_city"
                         context="{'group_by': 'city'}" />
                 </group>
@@ -334,7 +334,7 @@
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,kanban,form</field>
         <field name="domain">[('partner_role', 'in', ['customer', 'both'])]</field>
-        <field name="context">{'default_partner_role': 'customer', 'default_customer_type':
+        <field name="context">{'default_partner_role': 'customer', 'default_partner_type':
             'company', 'active_test': False}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
