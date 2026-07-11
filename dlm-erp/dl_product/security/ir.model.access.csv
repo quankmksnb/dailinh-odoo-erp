@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+acess_dl_product_admin,acess_dl_product_admin,model_dl_product,dl_base.dl_group_admin,1,1,1,1
+acess_dl_product_skd,acess_dl_product_skd,model_dl_product,dl_base.dl_group_sales_manager,1,1,1,1
+access_dl_product_tech,access_dl_product_tech,model_dl_product,dl_base.dl_group_tech,1,1,1,0
+access_dl_product_ba,access_dl_product_ba,model_dl_product,dl_base.dl_group_ba,1,0,0,0
+access_dl_product_ceo,access_dl_product_ceo,model_dl_product,dl_base.dl_group_ceo,1,0,0,0
+access_dl_product_acc,access_dl_product_acc,model_dl_product,dl_base.dl_group_accountant,1,0,0,0

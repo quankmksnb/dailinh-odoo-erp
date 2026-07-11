@@ -49,7 +49,7 @@ class DlBom(models.Model):
     )
 
     category_id = fields.Many2one(
-        "dl.product.category",
+        "product.category",
         string="Nhóm sản phẩm",
         tracking=True,
         ondelete="restrict",

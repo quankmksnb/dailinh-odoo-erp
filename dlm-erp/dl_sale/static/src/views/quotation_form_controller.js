@@ -12,7 +12,7 @@ import { registry } from "@web/core/registry";
 import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
 import { useEffect } from "@odoo/owl";
-import { setupFormActionsMenu } from "../js/actions_menu";
+import { setupFormActionsMenu } from "@dl_base/js/actions_menu";
 
 export class DlQuotationFormController extends FormController {
     setup() {

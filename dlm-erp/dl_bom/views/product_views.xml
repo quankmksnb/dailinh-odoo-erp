@@ -11,7 +11,7 @@
     <record id="view_dl_product_form_inherit_bom" model="ir.ui.view">
         <field name="name">dl.product.form.inherit.bom</field>
         <field name="model">dl.product</field>
-        <field name="inherit_id" ref="dl_sale.view_dl_product_form"/>
+        <field name="inherit_id" ref="dl_product.view_dl_product_form"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='finish']/.." position="after">
                 <group string="Cung ứng (S08 — BOM)">

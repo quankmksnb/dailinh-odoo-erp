@@ -17,7 +17,7 @@ import { _t } from "@web/core/l10n/translation";
 import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
-import { setupFormActionsMenu } from "../js/actions_menu";
+import { setupFormActionsMenu } from "@dl_base/js/actions_menu";
 import { useService } from "@web/core/utils/hooks";
 import { onWillStart, onMounted, useEffect } from "@odoo/owl";
 

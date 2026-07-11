@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="prod_categ_ban_sat" model="product.category">
+            <field name="name">Bàn sắt</field>
+            <field name="category_kind">product</field>
+        </record>
+        <record id="prod_categ_ghe_sat" model="product.category">
+            <field name="name">Ghế sắt</field>
+            <field name="category_kind">product</field>
+        </record>
+        <record id="prod_categ_tu_dien" model="product.category">
+            <field name="name">Tủ điện</field>
+            <field name="category_kind">product</field>
+        </record>
+        <record id="prod_categ_tu_cc" model="product.category">
+            <field name="name">Tủ chữa cháy</field>
+            <field name="category_kind">product</field>
+        </record>
+        <record id="prod_categ_long_chim" model="product.category">
+            <field name="name">Lồng chim</field>
+            <field name="category_kind">product</field>
+        </record>
+        <record id="prod_categ_khung_thep" model="product.category">
+            <field name="name">Khung thép</field>
+            <field name="category_kind">product</field>
+        </record>
+        <record id="prod_categ_khac" model="product.category">
+            <field name="name">Khác</field>
+            <field name="category_kind">product</field>
+        </record>
+    </data>
+
+
+    <record id="view_dl_product_tree" model="ir.ui.view">
+        <field name="name">dl.product.tree</field>
+        <field name="model">dl.product</field>
+        <field name="arch" type='xml'>
+            <tree
+                string="Sản phẩm"
+                class="dl-product-list"
+                js_class="dl_product_list"
+                decoration-muted="active == False"
+            >
+                <field name="default_code" string="Mã SP" />
+                <field name="name" string="Tên SP" />
+                <field name="categ_id" string="Nhóm" />
+                <field name="main_material" string="Vật liệu chính" />
+                <field name="dim_display" string="Kích thước" />
+                <field name="finish" string="Hoàn thiện" />
+                <field
+                    name="status_display"
+                    string="Trạng thái"
+                    widget="badge"
+                    decoration-success="active == True"
+                    decoration-muted="active == False"
+                />
+                <field name="active" column_invisible="1" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_product_form" model="ir.ui.view">
+        <field name="name">dl.product.form</field>
+        <field name="model">dl.product</field>
+        <field name="arch" type="xml">
+            <form
+                string="Sản phẩm"
+                class="dl-product-form"
+                js_class="dl_product_form"
+            >
+                <header>
+                    <button
+                        name="toggle_active"
+                        type="object"
+                        string="Vô hiệu hóa SP"
+                        class="btn-secondary"
+                        invisible="not active"
+                        confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu BOM/báo giá cũ giữ nguyên."
+                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
+                    />
+                    <button
+                        name="toggle_active"
+                        type="object"
+                        string="Kích hoạt lại"
+                        class="btn-secondary"
+                        invisible="active"
+                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
+                    />
+                </header>
+                <sheet>
+                    <field name="active" invisible="1" />
+                    <widget
+                        name="web_ribbon"
+                        title="Ngừng sản xuất"
+                        bg_color="text-bg-danger"
+                        invisible="active"
+                    />
+
+                    <div class="oe_title">
+                        <label for="name" string="Tên sản phẩm" />
+                        <h1>
+                            <field
+                                name="name"
+                                placeholder="VD: Bàn sắt chân chữ A 1200×600..."
+                            />
+                        </h1>
+                        <div
+                            class="dl-prod-code"
+                            invisible="not default_code"
+                        > Mã SP: <field
+                                name="default_code"
+                                class="oe_inline"
+                                readonly="1"
+                            />
+                        </div>
+                    </div>
+
+                    <group>
+                        <group string="Phân loại">
+                            <field name="categ_id"
+                                domain="[('category_kind', '=', 'product')]"
+                                options="{'no_open': True}" />
+                            <field name="supply_type" />
+                        </group>
+                        <group string="Vật liệu &amp; hoàn thiện">
+                            <field
+                                name="main_material"
+                                placeholder="Thép CT3 / Inox 304 / Nhôm..."
+                            />
+                            <field name="thickness" />
+                            <field name="finish" />
+                        </group>
+                    </group>
+
+                    <group
+                        string="Thuộc tính kỹ thuật (dùng để tìm sản phẩm tương tự)"
+                    >
+                        <group>
+                            <label for="dim_length" string="Kích thước D×R×C (mm)" />
+                            <div class="o_row">
+                                <field
+                                    name="dim_length"
+                                    nolabel="1"
+                                    class="oe_inline"
+                                /> × <field
+                                    name="dim_width"
+                                    nolabel="1"
+                                    class="oe_inline"
+                                /> × <field
+                                    name="dim_height"
+                                    nolabel="1"
+                                    class="oe_inline"
+                                />
+                            </div>
+                        </group>
+                        <group>
+                            <field name="est_weight" />
+                            <field name="default_supplier_id" />
+                        </group>
+                    </group>
+
+                    <group
+                        invisible="supply_type != 'trading'"
+                        string="Thông tin thương mại"
+                    >
+                        <field name="purchase_cost" />
+                    </group>
+
+                    <notebook>
+                        <page string="Ghi chú kỹ thuật" name="tech_note">
+                            <field
+                                name="tech_note"
+                                placeholder="Tiêu chuẩn, yêu cầu đặc biệt, dung sai..."
+                            />
+                        </page>
+                        <page string="BOM liên quan" name="boms">
+                            <div class="text-muted" style="padding:12px">
+                                <i class="fa fa-info-circle" /> BOM sẽ hiển thị ở đây khi màn <b>S08</b>
+                                được triển khai. </div>
+                        </page>
+                        <page string="Thông tin hệ thống" name="audit">
+                            <group>
+                                <group string="Khởi tạo">
+                                    <field
+                                        name="create_uid"
+                                        string="Người tạo"
+                                        readonly="1"
+                                    />
+                                    <field
+                                        name="create_date"
+                                        string="Ngày tạo"
+                                        readonly="1"
+                                    />
+                                </group>
+                                <group string="Cập nhật gần nhất">
+                                    <field name="write_uid" string="Người sửa" readonly="1" />
+                                    <field name="write_date" string="Ngày sửa" readonly="1" />
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" />
+                    <field name="activity_ids" />
+                    <field name="message_ids" />
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_product_search" model="ir.ui.view">
+        <field name="name">dl.product.search</field>
+        <field name="model">dl.product</field>
+        <field name="arch" type="xml">
+            <search string="Tìm sản phẩm">
+                <field name="name" string="Tên" />
+                <field name="default_code" string="Mã SP" />
+                <field name="main_material" string="Vật liệu" />
+                <field name="categ_id" string="Nhóm" />
+                <separator />
+                <filter string="Sơn tĩnh điện" name="f_powder" domain="[('finish', '=', 'powder')]" />
+                <filter string="Mạ kẽm" name="f_galv" domain="[('finish', '=', 'galv')]" />
+                <separator />
+                <filter string="Đang sản xuất" name="active" domain="[('active', '=', True)]" />
+                <filter string="Ngừng" name="inactive" domain="[('active', '=', False)]" />
+                <group expand="0" string="Nhóm theo">
+                    <filter string="Nhóm sản phẩm" name="group_category"
+                        context="{'group_by': 'categ_id'}" />
+                    <filter string="Lớp hoàn thiện" name="group_finish"
+                        context="{'group_by': 'finish'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_product" model="ir.actions.act_window">
+        <field name="name">Danh mục Sản phẩm</field>
+        <field name="res_model">dl.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids"
+            eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="context">{'default_type': 'product'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Thêm sản phẩm đầu tiên!</p>
+            <p>Quản lý danh mục sản phẩm và thuộc tính kỹ thuật.</p>
+        </field>
+    </record>
+</odoo>

@@ -7,7 +7,7 @@ import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { onMounted, useEffect } from "@odoo/owl";
-import { setupFormActionsMenu } from "../js/actions_menu";
+import { setupFormActionsMenu } from "@dl_base/js/actions_menu";
 
 const PHONE_RE = /^(0|\+84)[0-9]{9,10}$/;
 const EMAIL_RE = /^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$/;
