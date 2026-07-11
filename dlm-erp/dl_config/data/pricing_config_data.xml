@@ -56,5 +56,10 @@
             <field name="waste_pct">0</field>
         </record>
 
+        <!-- Tab 2 (Ma trận phê duyệt) KHÔNG seed ở đây: seed mặc định được tạo
+             bằng Python (_ensure_default_levels) gắn vào ĐÚNG singleton thực tế,
+             tránh phụ thuộc bản ghi cấu hình nào là singleton. Cờ matrix_seeded
+             bảo đảm không seed lại nếu người dùng cố ý xóa hết cấp. -->
+
     </data>
 </odoo>

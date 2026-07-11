@@ -162,14 +162,19 @@
                     <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">Ma trận phê duyệt (Approval Matrix)</span>
                         <div class="dl-cfg-head-btns">
-                            <button class="dl-cfg-mini" type="button" t-on-click="addLevel"><i class="fa fa-plus"/> Thêm cấp duyệt</button>
-                            <button class="dl-cfg-save" type="button" t-on-click="saveMatrix"><i class="fa fa-check"/> Lưu ma trận</button>
+                            <button class="dl-cfg-mini" type="button" t-on-click="addLevel" t-att-disabled="!state.canEdit"><i class="fa fa-plus"/> Thêm cấp duyệt</button>
+                            <button class="dl-cfg-save" type="button" t-on-click="saveMatrix" t-att-disabled="!state.canEdit"><i class="fa fa-check"/> Lưu ma trận</button>
                         </div>
+                    </div>
+
+                    <div t-if="!state.canEdit" class="dl-cfg-note warn">
+                        <i class="fa fa-lock"/>
+                        Bạn đang ở chế độ chỉ xem — chỉ Admin/CEO được sửa ma trận phê duyệt.
                     </div>
 
                     <div class="dl-cfg-note info">
                         <i class="fa fa-info-circle"/>
-                        Quyền sửa ma trận: hiện áp dụng <b>Admin + CEO</b> (đề xuất mặc định — chờ CEO chốt).
+                        Quyền sửa ma trận: <b>Admin + CEO</b> (BR-28 — mọi thay đổi rule đều ghi audit).
                         Sửa ngưỡng chỉ ảnh hưởng báo giá mới; BG đang Pending giữ cấp cũ.
                     </div>
                     <div t-if="ceoBackupMissing" class="dl-cfg-note warn">
@@ -233,22 +238,24 @@
                                         </td>
                                         <td>
                                             <select class="cell" t-model="l.user">
-                                                <t t-foreach="approverUsers" t-as="au" t-key="au.key">
-                                                    <option t-att-value="au.key" t-esc="au.label"/>
+                                                <option value="">(Theo vai trò)</option>
+                                                <t t-foreach="state.approverUsers" t-as="au" t-key="au.id">
+                                                    <option t-att-value="au.id" t-esc="au.name"/>
                                                 </t>
                                             </select>
                                         </td>
                                         <td>
                                             <select class="cell" t-model="l.backup">
-                                                <t t-foreach="approverUsers" t-as="au" t-key="au.key">
-                                                    <option t-att-value="au.key" t-esc="au.key ? au.label : '(Chưa gán)'"/>
+                                                <option value="">(Chưa gán)</option>
+                                                <t t-foreach="state.approverUsers" t-as="au" t-key="au.id">
+                                                    <option t-att-value="au.id" t-esc="au.name"/>
                                                 </t>
                                             </select>
                                         </td>
                                         <td>
                                             <select class="cell" t-model="l.mode">
-                                                <t t-foreach="modes" t-as="m" t-key="m">
-                                                    <option t-att-value="m" t-esc="m"/>
+                                                <t t-foreach="modes" t-as="m" t-key="m.key">
+                                                    <option t-att-value="m.key" t-esc="m.label"/>
                                                 </t>
                                             </select>
                                         </td>

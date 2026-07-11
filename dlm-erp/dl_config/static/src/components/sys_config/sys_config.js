@@ -10,8 +10,8 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 // Tab 1: Tham số báo giá | Tab 2: Ma trận phê duyệt | Tab 3: SLA & Escalation
 // Tab 4: Tham số Parametric | Tab 5: Lịch sử thay đổi (audit)
 // Admin/CEO được sửa, Trưởng KD chỉ xem.
-// Tab 1 (cost) & Tab 3 (SLA) đã nối backend thật (dl.pricing.config + audit DB);
-// Tab 2/4 hiện còn mock in-memory. Tab 5 hiển thị audit thật từ DB.
+// Tab 1 (cost), Tab 2 (matrix) & Tab 3 (SLA) đã nối backend thật (dl.pricing.config
+// + dl.approval.level + audit DB); Tab 4 hiện còn mock in-memory. Tab 5 audit thật.
 // Nguyên tắc: thay đổi có hiệu lực với báo giá MỚI; báo giá cũ giữ snapshot (BR-28).
 // ============================================================================
 
@@ -36,13 +36,15 @@ const APPROVER_ROLES = [
   { key: "custom", label: "Custom role" },
 ];
 
-const APPROVER_USERS = [
-  { key: "", label: "(Theo vai trò)" },
-  { key: "ceo1", label: "Trần Thị Bích (CEO)" },
-  { key: "skd1", label: "Lê Văn Cường (Trưởng KD)" },
-];
+// Người duyệt (dropdown) được nạp THẬT từ server: res.users thuộc nhóm
+// CEO / Trưởng KD / Admin qua get_tab2 → state.approverUsers (không hardcode).
 
-const MODES = ["Tuần tự", "Song song", "Trực tiếp", "—"];
+const MODES = [
+  { key: "sequential", label: "Tuần tự" },
+  { key: "parallel", label: "Song song" },
+  { key: "direct", label: "Trực tiếp" },
+  { key: "none", label: "—" },
+];
 
 // Cơ cấu giá: 5 thành phần dưới đây CỘNG LẠI = 100% tổng báo giá (giá bán).
 // Vật tư ~55% (tham khảo, không phải công thức cứng). Thứ tự = thứ tự trên thanh cơ cấu & bảng.
@@ -92,8 +94,10 @@ const now = () => {
 };
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
-let _lid = 10;
-const nextLid = () => `L${++_lid}`;
+// Id tạm cho cấp duyệt MỚI thêm ở client (chưa lưu DB). save_tab2 phân biệt
+// cấp cũ (id là số > 0 từ server) với cấp mới (id "tmp-*") để ghi đúng audit.
+let _tmpSeq = 0;
+const nextTmpId = () => `tmp-${++_tmpSeq}`;
 
 export class DlSysConfig extends Component {
   static template = "dl_config.DlSysConfig";
@@ -105,7 +109,6 @@ export class DlSysConfig extends Component {
     this.tabs = TABS;
     this.rounding = ROUNDING;
     this.approverRoles = APPROVER_ROLES;
-    this.approverUsers = APPROVER_USERS;
     this.modes = MODES;
     this.costStructure = COST_STRUCTURE;
 
@@ -133,80 +136,8 @@ export class DlSysConfig extends Component {
         { group: "Vật tư phụ", pct: 2 },
         { group: "Gia công ngoài", pct: 0 },
       ],
-      levels: [
-        {
-          id: "L1",
-          name: "Tự động",
-          vMin: 0,
-          vMax: 20,
-          dMin: 0,
-          dMax: 5,
-          marginMin: null,
-          role: "none",
-          user: "",
-          backup: "",
-          mode: "—",
-          sla: 0,
-          note: "Không cần duyệt → Ready to Send",
-          active: true,
-          pending: 0,
-          priority: false,
-        },
-        {
-          id: "L2",
-          name: "Cấp 1 – Trưởng KD",
-          vMin: 20,
-          vMax: 100,
-          dMin: 5,
-          dMax: 15,
-          marginMin: 8,
-          role: "sales_manager",
-          user: "",
-          backup: "ceo1",
-          mode: "Tuần tự",
-          sla: 4,
-          note: "",
-          active: true,
-          pending: 2,
-          priority: false,
-        },
-        {
-          id: "L3",
-          name: "Cấp 2 – CEO",
-          vMin: 100,
-          vMax: null,
-          dMin: 15,
-          dMax: 100,
-          marginMin: 8,
-          role: "ceo",
-          user: "",
-          backup: "",
-          mode: "Tuần tự",
-          sla: 8,
-          note: "",
-          active: true,
-          pending: 1,
-          priority: false,
-        },
-        {
-          id: "L4",
-          name: "Cấp 2 (ưu tiên) – Margin thấp",
-          vMin: 0,
-          vMax: null,
-          dMin: 0,
-          dMax: 100,
-          marginMin: 8,
-          role: "ceo",
-          user: "",
-          backup: "",
-          mode: "Trực tiếp",
-          sla: 8,
-          note: "Margin < 8% → CEO trực tiếp, bỏ qua Cấp 1",
-          active: true,
-          pending: 0,
-          priority: true,
-        },
-      ],
+      levels: [], // nạp thật từ dl.approval.level qua loadTab2
+      approverUsers: [], // res.users (CEO/Trưởng KD/Admin) — nạp qua loadTab2
       sla: {
         salesManager: 4,
         ceo: 8,
@@ -251,8 +182,10 @@ export class DlSysConfig extends Component {
 
     // Baseline (không reactive) để tính diff khi Lưu.
     this._snapshot();
-    // Tab 1 (cost) & Tab 3 (SLA) nạp thật từ DB trước khi render lần đầu.
-    onWillStart(() => Promise.all([this.loadTab1(), this.loadTab3()]));
+    // Tab 1 (cost), Tab 2 (matrix) & Tab 3 (SLA) nạp thật từ DB trước render đầu.
+    onWillStart(() =>
+      Promise.all([this.loadTab1(), this.loadTab2(), this.loadTab3()]),
+    );
   }
 
   _snapshot() {
@@ -291,6 +224,18 @@ export class DlSysConfig extends Component {
     }
   }
 
+  // Nạp ma trận phê duyệt (Tab 2) + danh sách người duyệt thật từ server.
+  async loadTab2() {
+    try {
+      const res = await this.orm.call("dl.pricing.config", "get_tab2", []);
+      this.state.levels = res.levels;
+      this.state.approverUsers = res.approvers;
+      this.state.canEdit = res.canEdit;
+    } catch (e) {
+      this.flash("Không tải được ma trận phê duyệt từ máy chủ.");
+    }
+  }
+
   // --- Helpers ------------------------------------------------------------
   setTab(key) {
     this.state.tab = key;
@@ -304,8 +249,8 @@ export class DlSysConfig extends Component {
     return r ? r.label : key;
   }
   userLabel(key) {
-    const u = APPROVER_USERS.find((x) => x.key === key);
-    return u ? u.label : key;
+    const u = this.state.approverUsers.find((x) => String(x.id) === String(key));
+    return u ? u.name : key ? key : "(Theo vai trò)";
   }
   vRange(l) {
     const lo = l.vMin || 0;
@@ -472,8 +417,9 @@ export class DlSysConfig extends Component {
     );
   }
   addLevel() {
+    // Cấp mới mang id tạm; audit ghi ở server khi Lưu (không audit tức thời).
     const l = {
-      id: nextLid(),
+      id: nextTmpId(),
       name: "Cấp duyệt mới",
       vMin: 0,
       vMax: null,
@@ -483,7 +429,7 @@ export class DlSysConfig extends Component {
       role: "sales_manager",
       user: "",
       backup: "",
-      mode: "Tuần tự",
+      mode: "sequential",
       sla: 4,
       note: "",
       active: true,
@@ -491,15 +437,10 @@ export class DlSysConfig extends Component {
       priority: false,
     };
     this.state.levels = [...this.state.levels, l];
-    this._pushAudit("Ma trận phê duyệt", [
-      { param: l.name, detail: "Thêm cấp duyệt mới" },
-    ]);
   }
   toggleLevel(l) {
+    // Chỉ đổi trạng thái ở client; ghi DB + audit khi bấm Lưu ma trận.
     l.active = !l.active;
-    this._pushAudit("Ma trận phê duyệt", [
-      { param: l.name, detail: l.active ? "Kích hoạt" : "Vô hiệu hóa" },
-    ]);
   }
   removeLevel(l) {
     // Không xóa vĩnh viễn nếu level đang có BG chờ duyệt.
@@ -515,13 +456,10 @@ export class DlSysConfig extends Component {
       kind: "confirm",
       danger: true,
       title: "Xóa cấp duyệt",
-      msg: `Xóa cấp "${l.name}" khỏi ma trận?`,
+      msg: `Xóa cấp "${l.name}" khỏi ma trận? Thay đổi được ghi khi bấm Lưu ma trận.`,
       okLabel: "Xóa",
       onOk: () => {
         this.state.levels = this.state.levels.filter((x) => x.id !== l.id);
-        this._pushAudit("Ma trận phê duyệt", [
-          { param: l.name, detail: "Xóa cấp duyệt" },
-        ]);
       },
     };
   }
@@ -534,7 +472,12 @@ export class DlSysConfig extends Component {
     [arr[i], arr[j]] = [arr[j], arr[i]];
     this.state.levels = arr;
   }
-  saveMatrix() {
+  async saveMatrix() {
+    if (!this.state.canEdit) {
+      this.flash("Bạn không có quyền sửa cấu hình (chỉ Admin/CEO).");
+      return;
+    }
+    // Chặn cứng chồng chéo ngay ở client (server cũng kiểm tra lần nữa — EX-06).
     if (this.overlapIds.size) {
       this.state.dialog = {
         kind: "block",
@@ -543,12 +486,40 @@ export class DlSysConfig extends Component {
       };
       return;
     }
-    this._pushAudit("Ma trận phê duyệt", [
-      { param: "Toàn ma trận", detail: "Lưu cấu hình ma trận phê duyệt" },
-    ]);
-    this.flash(
-      "Đã lưu ma trận. BG đang Pending giữ nguyên cấp cũ; BG mới định tuyến theo ma trận mới.",
-    );
+    try {
+      // Gửi trọn ma trận theo thứ tự hiện tại; id số = cấp cũ, "tmp-*" = cấp mới.
+      const payload = this.state.levels.map((l) => ({
+        id: typeof l.id === "number" ? l.id : 0,
+        name: l.name,
+        vMin: l.vMin,
+        vMax: l.vMax,
+        dMin: l.dMin,
+        dMax: l.dMax,
+        marginMin: l.marginMin,
+        role: l.role,
+        user: l.user ? Number(l.user) : 0,
+        backup: l.backup ? Number(l.backup) : 0,
+        mode: l.mode,
+        sla: l.sla,
+        note: l.note,
+        active: l.active,
+        priority: l.priority,
+      }));
+      const res = await this.orm.call("dl.pricing.config", "save_tab2", [payload]);
+      this.state.levels = res.levels; // server là nguồn sự thật (id thật cho cấp mới)
+      if (res.audit_new && res.audit_new.length) {
+        this.state.audit = [...res.audit_new, ...this.state.audit];
+        this.flash(
+          "Đã lưu ma trận. BG đang Pending giữ nguyên cấp cũ; BG mới định tuyến theo ma trận mới.",
+        );
+      } else {
+        this.flash("Không có thay đổi để lưu.");
+      }
+    } catch (e) {
+      const msg =
+        (e && e.data && e.data.message) || (e && e.message) || "lỗi không xác định";
+      this.flash("Lưu thất bại: " + msg);
+    }
   }
 
   // --- Tab 3: SLA & Escalation -------------------------------------------

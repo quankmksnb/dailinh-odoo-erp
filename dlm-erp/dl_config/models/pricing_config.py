@@ -41,6 +41,70 @@ _TAB3_LABELS = {
 }
 
 
+# Nhãn tiếng Việt cho các giá trị Selection của Tab 2 (Ma trận phê duyệt) —
+# dùng khi hiển thị & ghi audit "cũ → mới".
+_ROLE_LABELS = {
+    "none": "Không cần duyệt",
+    "sales_manager": "Trưởng KD",
+    "ceo": "CEO",
+    "custom": "Custom role",
+}
+_MODE_LABELS = {
+    "sequential": "Tuần tự",
+    "parallel": "Song song",
+    "direct": "Trực tiếp",
+    "none": "—",
+}
+
+# Các field của 1 cấp duyệt sẽ được so sánh để sinh dòng audit khi Lưu.
+# (key nội bộ dùng ở _level_snapshot → nhãn hiển thị)
+_TAB2_FIELD_LABELS = [
+    ("name", "Tên cấp"),
+    ("value", "Ngưỡng giá trị (triệu)"),
+    ("discount", "Ngưỡng chiết khấu (%)"),
+    ("margin", "Margin tối thiểu (%)"),
+    ("role", "Vai trò duyệt"),
+    ("user", "Người duyệt cụ thể"),
+    ("backup", "Backup Approver"),
+    ("mode", "Kiểu duyệt"),
+    ("sla", "SLA (giờ)"),
+    ("active", "Trạng thái"),
+    ("priority", "Ưu tiên"),
+    ("note", "Ghi chú"),
+]
+
+# Ma trận phê duyệt mặc định (đặc tả S02 "Ví dụ ma trận mặc định"). value_max=0
+# ⇒ ∞ (không giới hạn trên); margin_min=0 ⇒ không áp điều kiện margin. Người
+# duyệt/backup để trống — Admin gán user thật ở màn cấu hình.
+_DEFAULT_LEVELS = [
+    {
+        "sequence": 0, "name": "Tự động",
+        "value_min": 0, "value_max": 20, "discount_min": 0, "discount_max": 5,
+        "margin_min": 0, "approver_role": "none", "mode": "none", "sla_hours": 0,
+        "note": "Không cần duyệt → Ready to Send", "is_active": True, "is_priority": False,
+    },
+    {
+        "sequence": 10, "name": "Cấp 1 – Trưởng KD",
+        "value_min": 20, "value_max": 100, "discount_min": 5, "discount_max": 15,
+        "margin_min": 8, "approver_role": "sales_manager", "mode": "sequential",
+        "sla_hours": 4, "note": "", "is_active": True, "is_priority": False,
+    },
+    {
+        "sequence": 20, "name": "Cấp 2 – CEO",
+        "value_min": 100, "value_max": 0, "discount_min": 15, "discount_max": 100,
+        "margin_min": 8, "approver_role": "ceo", "mode": "sequential",
+        "sla_hours": 8, "note": "", "is_active": True, "is_priority": False,
+    },
+    {
+        "sequence": 30, "name": "Cấp 2 (ưu tiên) – Margin thấp",
+        "value_min": 0, "value_max": 0, "discount_min": 0, "discount_max": 100,
+        "margin_min": 8, "approver_role": "ceo", "mode": "direct", "sla_hours": 8,
+        "note": "Margin < 8% → CEO trực tiếp, bỏ qua Cấp 1",
+        "is_active": True, "is_priority": True,
+    },
+]
+
+
 def _bool_label(v):
     """True → 'Bật', False → 'Tắt' (dùng khi ghi audit các công tắc SLA)."""
     return "Bật" if v else "Tắt"
@@ -80,6 +144,15 @@ class DlPricingConfig(models.Model):
     waste_ids = fields.One2many(
         "dl.pricing.waste", "config_id", "Hao hụt theo nhóm vật tư"
     )
+
+    # --- S02 · Tab 2: Ma trận phê duyệt (Approval Matrix) -------------------
+    # Danh sách các cấp duyệt (cấu hình động). S09 (Tạo báo giá) đọc để định
+    # tuyến; S10 (Phê duyệt) dùng người duyệt/backup/SLA của từng cấp.
+    level_ids = fields.One2many(
+        "dl.approval.level", "config_id", "Các cấp duyệt"
+    )
+    # Đã seed ma trận mặc định lần đầu chưa (để không tạo lại nếu user xóa hết).
+    matrix_seeded = fields.Boolean("Đã khởi tạo ma trận", default=False)
 
     # --- S02 · Tab 3: SLA & Escalation --------------------------------------
     # SLA phê duyệt (giờ làm việc) + hành động khi quá hạn. S10 (Phê duyệt) đọc
@@ -326,6 +399,309 @@ class DlPricingConfig(models.Model):
             "audit_new": [l._to_dict() for l in created],
         }
 
+    # --- Tab 2: Ma trận phê duyệt ------------------------------------------
+    def _ensure_default_levels(self):
+        """Seed ma trận mặc định lần đầu mở Tab 2 (kể cả DB đã tồn tại trước khi
+        có tính năng). Cờ matrix_seeded ⇒ KHÔNG seed lại nếu user đã xóa hết."""
+        self.ensure_one()
+        if self.matrix_seeded:
+            return
+        # DB cũ có thể đã có cấp (vd seed XML trước đây) → chỉ đánh dấu, không nhân đôi.
+        vals = {"matrix_seeded": True}
+        if not self.level_ids:
+            vals["level_ids"] = [(0, 0, dict(v)) for v in _DEFAULT_LEVELS]
+        self.sudo().write(vals)
+
+    def _read_levels(self):
+        """Trả danh sách cấp duyệt theo khóa camelCase khớp state.levels bên OWL.
+        vMax/marginMin = null khi ≤ 0 (∞ / không áp) — giữ đúng ngữ nghĩa client."""
+        self.ensure_one()
+        out = []
+        for l in self.level_ids:  # đã _order theo sequence, id
+            out.append(
+                {
+                    "id": l.id,
+                    "name": l.name or "",
+                    "vMin": l.value_min,
+                    "vMax": l.value_max if l.value_max > 0 else None,
+                    "dMin": l.discount_min,
+                    "dMax": l.discount_max,
+                    "marginMin": l.margin_min if l.margin_min > 0 else None,
+                    "role": l.approver_role,
+                    "user": str(l.approver_user_id.id) if l.approver_user_id else "",
+                    "backup": str(l.backup_user_id.id) if l.backup_user_id else "",
+                    "mode": l.mode,
+                    "sla": l.sla_hours,
+                    "note": l.note or "",
+                    "active": l.is_active,
+                    "priority": l.is_priority,
+                    "pending": l.pending_count,
+                }
+            )
+        return out
+
+    @api.model
+    def _read_approvers(self):
+        """Ứng viên người duyệt / backup = user thật thuộc nhóm CEO / Trưởng KD /
+        Admin (đúng đặc tả: người duyệt lấy từ danh sách user - S01)."""
+        Groups = self.env["res.groups"].sudo()
+        role_of = []  # (group_id, nhãn) theo thứ tự ưu tiên hiển thị
+        for xmlid, label in (
+            ("dl_base.dl_group_ceo", "CEO"),
+            ("dl_base.dl_group_sales_manager", "Trưởng KD"),
+            ("dl_base.dl_group_admin", "Admin"),
+        ):
+            g = self.env.ref(xmlid, raise_if_not_found=False)
+            if g:
+                role_of.append((g.id, label))
+        group_ids = [gid for gid, _l in role_of]
+        excluded = []
+        root = self.env.ref("base.user_root", raise_if_not_found=False)
+        if root:
+            excluded.append(root.id)
+        users = (
+            self.env["res.users"]
+            .sudo()
+            .search(
+                [
+                    ("share", "=", False),
+                    ("groups_id", "in", group_ids),
+                    ("id", "not in", excluded),
+                ],
+                order="name",
+            )
+        )
+        out = []
+        for u in users:
+            tag = next((lbl for gid, lbl in role_of if gid in u.groups_id.ids), "")
+            out.append(
+                {
+                    "id": str(u.id),
+                    "name": "%s (%s)" % (u.name, tag) if tag else u.name,
+                }
+            )
+        return out
+
+    @api.model
+    def get_tab2(self):
+        """OWL gọi lúc mở màn: nạp ma trận + danh sách người duyệt + quyền sửa.
+        (Audit dùng chung, đã nạp ở get_tab1.)"""
+        cfg = self._get_singleton()
+        cfg._ensure_default_levels()
+        return {
+            "levels": cfg._read_levels(),
+            "approvers": self._read_approvers(),
+            "canEdit": cfg._can_edit(),
+        }
+
+    def _parse_level(self, l):
+        """Chuẩn hóa 1 cấp duyệt từ payload OWL → dict field DB (+ _id để khớp
+        bản ghi cũ). id là số > 0 ⇒ cấp có sẵn; ngược lại (tmp/None) ⇒ cấp mới."""
+        l = l or {}
+
+        def _f(x):
+            try:
+                return float(x or 0)
+            except (TypeError, ValueError):
+                return 0.0
+
+        raw_id = l.get("id")
+        lid = raw_id if isinstance(raw_id, int) and raw_id > 0 else 0
+        role = l.get("role") if l.get("role") in _ROLE_LABELS else "none"
+        mode = l.get("mode") if l.get("mode") in _MODE_LABELS else "sequential"
+        return {
+            "_id": lid,
+            "name": (l.get("name") or "Cấp duyệt").strip(),
+            "value_min": _f(l.get("vMin")),
+            "value_max": _f(l.get("vMax")),  # 0 ⇒ ∞ (không giới hạn trên)
+            "discount_min": _f(l.get("dMin")),
+            "discount_max": _f(l.get("dMax")),
+            "margin_min": _f(l.get("marginMin")),  # 0 ⇒ không áp điều kiện margin
+            "approver_role": role,
+            "approver_user_id": int(l["user"]) if l.get("user") else False,
+            "backup_user_id": int(l["backup"]) if l.get("backup") else False,
+            "mode": mode,
+            "sla_hours": int(l.get("sla") or 0),
+            "note": (l.get("note") or "").strip(),
+            "is_active": bool(l.get("active", True)),
+            "is_priority": bool(l.get("priority")),
+        }
+
+    def _check_overlap(self, parsed):
+        """EX-06: chặn cứng khi 2 cấp (đang bật, không phải cấp ưu tiên) trùng
+        khoảng giá trị. Một khoảng giá không được thuộc 2 cấp."""
+        act = [d for d in parsed if d["is_active"] and not d["is_priority"]]
+        bad = set()
+        for i in range(len(act)):
+            for j in range(i + 1, len(act)):
+                a, b = act[i], act[j]
+                a_max = a["value_max"] if a["value_max"] > 0 else float("inf")
+                b_max = b["value_max"] if b["value_max"] > 0 else float("inf")
+                lo = max(a["value_min"], b["value_min"])
+                hi = min(a_max, b_max)
+                if hi - lo > 0:
+                    bad.add(a["name"])
+                    bad.add(b["name"])
+        if bad:
+            raise ValidationError(
+                _(
+                    "Ngưỡng giá trị chồng chéo giữa các cấp: %s. "
+                    "Một khoảng giá không được thuộc 2 cấp — hãy điều chỉnh trước khi lưu."
+                )
+                % ", ".join(sorted(bad))
+            )
+
+    def _diff_levels(self, old_by_id, parsed):
+        """So khớp theo id → sinh dòng audit chi tiết (thêm/xóa/sửa từng field/
+        đổi thứ tự). Trả về list (param_label, detail)."""
+        self.ensure_one()
+        Users = self.env["res.users"].sudo()
+
+        def _n(v):
+            return _fmt_num(v)
+
+        def _rng(lo, hi):
+            hi_s = "∞" if not hi or hi <= 0 else _n(hi)
+            return "%s–%s" % (_n(lo), hi_s)
+
+        def _margin(m):
+            return "—" if not m or m <= 0 else _n(m)
+
+        def snap_old(lv):
+            return {
+                "name": lv.name or "",
+                "value": _rng(lv.value_min, lv.value_max),
+                "discount": _rng(lv.discount_min, lv.discount_max),
+                "margin": _margin(lv.margin_min),
+                "role": _ROLE_LABELS.get(lv.approver_role, lv.approver_role),
+                "user": lv.approver_user_id.name or "(Theo vai trò)",
+                "backup": lv.backup_user_id.name or "(Chưa gán)",
+                "mode": _MODE_LABELS.get(lv.mode, lv.mode),
+                "sla": _n(lv.sla_hours),
+                "active": _bool_label(lv.is_active),
+                "priority": _bool_label(lv.is_priority),
+                "note": lv.note or "",
+            }
+
+        def snap_new(d):
+            return {
+                "name": d["name"],
+                "value": _rng(d["value_min"], d["value_max"]),
+                "discount": _rng(d["discount_min"], d["discount_max"]),
+                "margin": _margin(d["margin_min"]),
+                "role": _ROLE_LABELS.get(d["approver_role"], d["approver_role"]),
+                "user": (
+                    Users.browse(d["approver_user_id"]).name
+                    if d["approver_user_id"]
+                    else "(Theo vai trò)"
+                ),
+                "backup": (
+                    Users.browse(d["backup_user_id"]).name
+                    if d["backup_user_id"]
+                    else "(Chưa gán)"
+                ),
+                "mode": _MODE_LABELS.get(d["mode"], d["mode"]),
+                "sla": _n(d["sla_hours"]),
+                "active": _bool_label(d["is_active"]),
+                "priority": _bool_label(d["is_priority"]),
+                "note": d["note"],
+            }
+
+        audit = []
+        seen = set()
+        for d in parsed:
+            lid = d["_id"]
+            if lid and lid in old_by_id:
+                seen.add(lid)
+                o, n = snap_old(old_by_id[lid]), snap_new(d)
+                for key, label in _TAB2_FIELD_LABELS:
+                    if o[key] != n[key]:
+                        audit.append(
+                            (n["name"] or o["name"], "%s: %s → %s" % (label, o[key], n[key]))
+                        )
+            else:
+                audit.append((d["name"], "Thêm cấp duyệt"))
+
+        for lid, lv in old_by_id.items():
+            if lid not in seen:
+                audit.append((lv.name or "(không tên)", "Xóa cấp duyệt"))
+
+        # Đổi thứ tự giữa các cấp còn giữ lại
+        old_order = [lv.id for lv in self.level_ids if lv.id in seen]
+        new_order = [d["_id"] for d in parsed if d["_id"] in seen]
+        if len(old_order) > 1 and old_order != new_order:
+            audit.append(("Ma trận phê duyệt", "Thay đổi thứ tự các cấp duyệt"))
+
+        return audit
+
+    @api.model
+    def save_tab2(self, levels):
+        """OWL gọi khi Lưu ma trận: validate chồng chéo (chặn cứng) → diff audit
+        → ghi DB (incremental, giữ pending_count). Trả về ma trận chuẩn + audit."""
+        cfg = self._get_singleton()
+        if not cfg._can_edit():
+            raise AccessError(_("Chỉ Admin/CEO được sửa ma trận phê duyệt."))
+
+        parsed = [cfg._parse_level(l) for l in (levels or [])]
+        cfg._check_overlap(parsed)  # EX-06 — ValidationError nếu chồng chéo
+
+        old_by_id = {lv.id: lv for lv in cfg.level_ids}
+        keep_ids = {d["_id"] for d in parsed if d["_id"]}
+
+        # Không cho xóa vĩnh viễn cấp đang có báo giá chờ duyệt (chỉ được tắt).
+        for lid, lv in old_by_id.items():
+            if lid not in keep_ids and lv.pending_count > 0:
+                raise ValidationError(
+                    _(
+                        'Không thể xóa cấp "%s" đang có %d báo giá chờ duyệt — '
+                        "chỉ được vô hiệu hóa."
+                    )
+                    % (lv.name, lv.pending_count)
+                )
+
+        # Diff audit TRƯỚC khi ghi (còn giá trị cũ trong old_by_id).
+        audit = cfg._diff_levels(old_by_id, parsed)
+
+        # Ghi incremental: (1) sửa cấp cũ, (0) tạo cấp mới, (2) xóa cấp bỏ đi.
+        # pending_count không nằm trong vals ⇒ giữ nguyên khi update.
+        commands, seq = [], 0
+        for d in parsed:
+            vals = {k: v for k, v in d.items() if k != "_id"}
+            vals["sequence"] = seq
+            seq += 10
+            lid = d["_id"]
+            if lid and lid in old_by_id:
+                commands.append((1, lid, vals))
+            else:
+                commands.append((0, 0, vals))
+        for lid in old_by_id:
+            if lid not in keep_ids:
+                commands.append((2, lid))
+        cfg.write({"level_ids": commands})
+
+        # Audit ghi sudo (append-only, người dùng không cần quyền create)
+        Log = self.env["dl.config.audit.log"].sudo()
+        created = (
+            Log.create(
+                [
+                    {
+                        "config_tab": "Ma trận phê duyệt",
+                        "param_label": label,
+                        "detail": detail,
+                        "user_id": self.env.uid,
+                    }
+                    for label, detail in audit
+                ]
+            )
+            if audit
+            else Log.browse()
+        )
+
+        return {
+            "levels": cfg._read_levels(),
+            "audit_new": [l._to_dict() for l in created],
+        }
+
 
 class DlPricingWaste(models.Model):
     _name = "dl.pricing.waste"
@@ -337,6 +713,71 @@ class DlPricingWaste(models.Model):
     )
     group_name = fields.Char("Nhóm vật tư", required=True)
     waste_pct = fields.Float("Hao hụt (%)")
+
+
+class DlApprovalLevel(models.Model):
+    _name = "dl.approval.level"
+    _description = "Cấp duyệt trong Ma trận phê duyệt (S02 · Tab 2)"
+    _order = "sequence, id"
+
+    config_id = fields.Many2one(
+        "dl.pricing.config", "Cấu hình", ondelete="cascade", required=True
+    )
+    sequence = fields.Integer("Thứ tự", default=10)
+    name = fields.Char("Tên cấp duyệt", required=True)
+
+    # Điều kiện kích hoạt: giá trị (triệu VNĐ) và chiết khấu (%).
+    # value_max ≤ 0 ⇒ không giới hạn trên (∞); margin_min ≤ 0 ⇒ không áp margin.
+    value_min = fields.Float("Giá trị từ (triệu)", default=0.0)
+    value_max = fields.Float("Giá trị đến (triệu)", default=0.0)
+    discount_min = fields.Float("Chiết khấu từ (%)", default=0.0)
+    discount_max = fields.Float("Chiết khấu đến (%)", default=100.0)
+    margin_min = fields.Float("Margin tối thiểu (%)", default=0.0)
+
+    approver_role = fields.Selection(
+        [
+            ("none", "Không cần duyệt"),
+            ("sales_manager", "Trưởng KD"),
+            ("ceo", "CEO"),
+            ("custom", "Custom role"),
+        ],
+        "Vai trò duyệt",
+        default="sales_manager",
+        required=True,
+    )
+    # Người duyệt cụ thể / Backup — tùy chọn, gán đích danh user (S01).
+    approver_user_id = fields.Many2one("res.users", "Người duyệt cụ thể")
+    backup_user_id = fields.Many2one(
+        "res.users",
+        "Backup Approver",
+        help="Người thay thế khi người chính vắng / quá SLA (ảnh hưởng Escalation ở S10).",
+    )
+
+    mode = fields.Selection(
+        [
+            ("sequential", "Tuần tự"),
+            ("parallel", "Song song"),
+            ("direct", "Trực tiếp"),
+            ("none", "—"),
+        ],
+        "Kiểu duyệt",
+        default="sequential",
+        required=True,
+    )
+    sla_hours = fields.Integer("SLA (giờ)", default=4)
+    note = fields.Char("Ghi chú nội bộ")
+
+    # KHÔNG dùng tên field 'active' để tránh Odoo tự ẩn record inactive khỏi
+    # One2many (active_test) — cấp bị tắt vẫn phải hiển thị trong ma trận.
+    is_active = fields.Boolean("Kích hoạt", default=True)
+    is_priority = fields.Boolean(
+        "Cấp ưu tiên", default=False,
+        help="Cấp điều kiện đặc biệt (vd margin thấp → CEO trực tiếp); "
+        "không tính vào kiểm tra chồng chéo ngưỡng.",
+    )
+    # Số báo giá đang chờ duyệt ở cấp này — trạng thái runtime do S10 cập nhật,
+    # KHÔNG sửa qua màn cấu hình. Dùng để chặn xóa cấp đang có việc.
+    pending_count = fields.Integer("Số BG chờ duyệt", default=0, readonly=True)
 
 
 class DlConfigAuditLog(models.Model):

@@ -14,3 +14,6 @@ access_dl_pricing_waste_sm,dl.pricing.waste sales_manager,model_dl_pricing_waste
 access_dl_config_audit_admin,dl.config.audit.log admin,model_dl_config_audit_log,dl_base.dl_group_admin,1,1,1,1
 access_dl_config_audit_ceo,dl.config.audit.log ceo,model_dl_config_audit_log,dl_base.dl_group_ceo,1,1,0,0
 access_dl_config_audit_sm,dl.config.audit.log sales_manager,model_dl_config_audit_log,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_approval_level_admin,dl.approval.level admin,model_dl_approval_level,dl_base.dl_group_admin,1,1,1,1
+access_dl_approval_level_ceo,dl.approval.level ceo,model_dl_approval_level,dl_base.dl_group_ceo,1,1,1,1
+access_dl_approval_level_sm,dl.approval.level sales_manager,model_dl_approval_level,dl_base.dl_group_sales_manager,1,0,0,0
