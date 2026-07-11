@@ -164,7 +164,7 @@ export class DlCustomerFormController extends FormController {
 
     async _dlValidateCustomer(record) {
         const d = record.data;
-        if (!d.is_dlm_customer) {
+        if (!["customer", "both"].includes(d.partner_role)) {
             return null;
         }
 
@@ -174,7 +174,7 @@ export class DlCustomerFormController extends FormController {
         }
 
         // MST bắt buộc với khách Doanh nghiệp.
-        const tax = (d.tax_code || "").trim();
+        const tax = (d.vat || "").trim();
         if (d.partner_type === "company" && !tax) {
             return _t("Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).");
         }
@@ -200,8 +200,8 @@ export class DlCustomerFormController extends FormController {
                 "res.partner",
                 [
                     ["id", "!=", record.resId || 0],
-                    ["is_dlm_customer", "=", true],
-                    ["tax_code", "=", tax],
+                    ["partner_role", "in", ["customer", "both"]],
+                    ["vat", "=", tax],
                 ],
                 ["name", "dlm_code"],
                 { limit: 1, context: { active_test: false } }
