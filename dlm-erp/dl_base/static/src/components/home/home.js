@@ -23,13 +23,13 @@ const NAV_ITEMS = [
         key: "customer",
         name: "Khách hàng",
         icon: "fa-users",
-        actionXmlId: "dl_sale.action_dl_customer",
+        actionXmlId: "dl_partner.action_dl_customer",
     },
     {
         key: "supplier",
         name: "Nhà cung cấp",
         icon: "fa-truck",
-        actionXmlId: "dl_sale.action_dl_supplier",
+        actionXmlId: "dl_partner.action_dl_supplier",
     },
     {
         key: "quotation",

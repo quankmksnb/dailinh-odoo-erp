@@ -9,8 +9,8 @@ const DLM_APP_XMLID = "dl_base.menu_dl_root";
 
 const RAIL_ITEMS = [
     { key: "home", name: "Trang chủ", icon: "fa-home", actionXmlId: "dl_base.action_dl_home" },
-    { key: "customer", name: "Khách hàng", icon: "fa-users", actionXmlId: "dl_sale.action_dl_customer" },
-    { key: "supplier", name: "NCC / Thầu phụ", icon: "fa-truck", actionXmlId: "dl_sale.action_dl_supplier" },
+    { key: "customer", name: "Khách hàng", icon: "fa-users", actionXmlId: "dl_partner.action_dl_customer" },
+    { key: "supplier", name: "NCC / Thầu phụ", icon: "fa-truck", actionXmlId: "dl_partner.action_dl_supplier" },
     { key: "quotation", name: "Báo giá", icon: "fa-file-text-o", actionXmlId: "dl_sale.action_dl_quotation" },
     { key: "product", name: "Sản phẩm", icon: "fa-cube", actionXmlId: "dl_sale.action_dl_product" },
     { key: "technical", name: "Kỹ thuật", icon: "fa-cogs", actionXmlId: null },
