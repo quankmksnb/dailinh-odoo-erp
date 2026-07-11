@@ -33,10 +33,10 @@
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
                             class="btn-secondary" invisible="active"
                             groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/>
-                    <button name="action_mark_also_customer" type="object" string="Cũng là Khách hàng"
+                    <!-- <button name="action_mark_also_customer" type="object" string="Cũng là Khách hàng"
                             class="btn-secondary" invisible="partner_role != 'supplier'"
                             confirm="Đánh dấu đối tác này cũng là Khách hàng? Đối tác sẽ xuất hiện ở cả màn NCC và Khách hàng."
-                            groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/>
+                            groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/> -->
                 </header>
                 <sheet>
                     <field name="active" invisible="1"/>
@@ -52,6 +52,13 @@
                             <field name="name" placeholder="Tên NCC / Thầu phụ..."/>
                         </h1>
                     </div>
+                    
+                    <field name="pending_link_partner_id"
+                        string="Khách hàng trùng tên (nếu có)"
+                        context="{'dl_link_search_role': 'customer'}"
+                        options="{'no_open': True, 'no_create': True}"
+                        invisible="id"
+                        placeholder="Tìm Khách Hàng..."/>
 
                     <group>
                         <group string="Thông tin liên hệ">

@@ -11,6 +11,8 @@
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
 import { DlListBaseController } from "./dl_list_controller";
+import { useService } from "@web/core/utils/hooks";
+import { onWillStart } from "@odoo/owl";
 
 const AVA_PALETTE = [
     { bg: "#dbe7ff", fg: "#1e4fa3" },
@@ -29,6 +31,30 @@ function avaColor(name) {
 }
 
 export class DlSupplierListController extends DlListBaseController {
+    setup() {
+        super.setup();
+        this.userService = useService("user");
+        // Trưởng KD chỉ được XEM danh sách NCC (S04) — ẩn nút Thêm/Xoá.
+        // Bảo mật thật do ir.rule; đây chỉ khớp UI. Kế toán/Admin vẫn full CRUD.
+        this._dlReadonly = false;
+        onWillStart(async () => {
+            const [isSM, isAdmin, isAcc] = await Promise.all([
+                this.userService.hasGroup("dl_base.dl_group_sales_manager"),
+                this.userService.hasGroup("dl_base.dl_group_admin"),
+                this.userService.hasGroup("dl_base.dl_group_accountant"),
+            ]);
+            this._dlReadonly = isSM && !isAdmin && !isAcc;
+            if (this._dlReadonly) {
+                const aa = this.activeActions || (this.archInfo && this.archInfo.activeActions);
+                if (aa) {
+                    aa.create = false;
+                    aa.delete = false;
+                    aa.duplicate = false;
+                }
+            }
+        });
+    }
+
     get dlCountNoun() {
         return "nhà cung cấp";
     }
@@ -36,6 +62,13 @@ export class DlSupplierListController extends DlListBaseController {
     _dlRenderChrome(root) {
         super._dlRenderChrome(root);
         this._renderAvatars(root);
+        if (this._dlReadonly) {
+            // Fallback DOM: ẩn cụm nút Thêm nếu template còn render.
+            const btns = root.querySelector(".o_control_panel_main_buttons");
+            if (btns) {
+                btns.style.display = "none";
+            }
+        }
     }
 
     // Chèn avatar chữ cái theo tên NCC vào ô avatar_128 mỗi dòng.

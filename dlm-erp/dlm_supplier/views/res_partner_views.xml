@@ -79,4 +79,26 @@
         </field>
     </record>
 
+    <!-- ================================================================
+         S04 — Trưởng phòng KD: "Xem danh sách" NCC (chỉ đọc).
+         Action riêng, dùng lại view NCC gốc nhưng context create/edit/delete
+         = False => list + form CHỈ ĐỌC, ẩn nút Tạo/Sửa/Xóa ở UI.
+         Bảo mật thật vẫn do ir.rule rule_partner_sales_manager_no_supplier
+         (chặn write/create/unlink NCC thuần) đảm nhiệm — context chỉ là UX.
+         Menu gắn action này chỉ hiện cho Trưởng KD (xem menus.xml).
+    ================================================================ -->
+    <record id="action_dl_supplier_readonly" model="ir.actions.act_window">
+        <field name="name">NCC / Thầu phụ</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('partner_role', 'in', ['supplier', 'both'])]</field>
+        <field name="context">{'active_test': False, 'create': False, 'edit': False, 'delete': False}</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('dl_sale.view_dl_supplier_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('dl_sale.view_dl_supplier_form')}),
+        ]"/>
+        <field name="search_view_id" ref="dl_sale.view_dl_supplier_search"/>
+    </record>
+
 </odoo>

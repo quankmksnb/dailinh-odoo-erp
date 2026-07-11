@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Additive: theo TDS 4.0, quyền NCC dùng chung cơ chế Partner đã có
-         (không còn ir.rule thu hẹp riêng) — chỉ cần đảm bảo Kế toán nội bộ
-         (vừa được cấp ACL ở trên) cũng thấy được menu NCC sẵn có của dl_sale. -->
+    <!-- Menu NCC full-CRUD: chỉ Admin / CEO / Kế toán (BỎ Trưởng phòng KD).
+         Trưởng KD dùng menu chỉ-đọc riêng bên dưới (S04: "Xem danh sách").
+         (6,0,[...]) đặt lại toàn bộ groups thay cho danh sách gốc của dl_sale. -->
     <record id="dl_sale.menu_dl_sale_supplier" model="ir.ui.menu">
-        <field name="groups_id" eval="[(4, ref('dl_base.dl_group_accountant'))]"/>
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_ceo'),
+            ref('dl_base.dl_group_accountant'),
+        ])]"/>
     </record>
+
+    <!-- Menu NCC chỉ-đọc cho Trưởng phòng KD (trỏ tới action_dl_supplier_readonly). -->
+    <menuitem
+        id="menu_dl_sale_supplier_readonly"
+        name="NCC / Thầu phụ"
+        parent="dl_base.menu_dl_sale"
+        sequence="20"
+        action="action_dl_supplier_readonly"
+        groups="dl_base.dl_group_sales_manager"
+    />
 
 </odoo>

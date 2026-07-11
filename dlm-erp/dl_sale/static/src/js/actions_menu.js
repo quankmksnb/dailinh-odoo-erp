@@ -57,26 +57,30 @@ export function setupFormActionsMenu(ctrl) {
         const container =
             root.querySelector(".o_control_panel_navigation") ||
             root.querySelector(".o_control_panel_breadcrumbs");
-        const menu = buildActionsMenu(
-            container,
-            [
-                {
-                    label: "Nhân bản",
-                    icon: "fa-clone",
-                    onClick: () => ctrl.duplicateRecord && ctrl.duplicateRecord(),
-                },
-                {
-                    label: "Xoá",
-                    icon: "fa-trash-o",
-                    danger: true,
-                    onClick: () => ctrl.deleteRecord && ctrl.deleteRecord(),
-                },
-            ],
-            { prepend: true }
-        );
+        // Tôn trọng activeActions: view chỉ-đọc (hoặc vai trò bị giới hạn) tắt
+        // create/duplicate/delete ⇒ KHÔNG hiện Nhân bản / Xoá trong menu ⋮.
+        const aa = (ctrl.archInfo && ctrl.archInfo.activeActions) || {};
+        const specs = [];
+        if (aa.create && aa.duplicate) {
+            specs.push({
+                label: "Nhân bản",
+                icon: "fa-clone",
+                onClick: () => ctrl.duplicateRecord && ctrl.duplicateRecord(),
+            });
+        }
+        if (aa.delete) {
+            specs.push({
+                label: "Xoá",
+                icon: "fa-trash-o",
+                danger: true,
+                onClick: () => ctrl.deleteRecord && ctrl.deleteRecord(),
+            });
+        }
+        const menu = buildActionsMenu(container, specs, { prepend: true });
         if (menu) {
-            // Bản ghi mới chưa lưu → chưa có gì để nhân bản/xoá
-            menu.style.display = ctrl.model.root.isNew ? "none" : "";
+            // Ẩn menu khi bản ghi mới chưa lưu HOẶC không còn thao tác khả dụng.
+            menu.style.display =
+                specs.length === 0 || ctrl.model.root.isNew ? "none" : "";
         }
 
         // Tooltip tiếng Việt cho nút "→" mở bản ghi liên kết (many2one)

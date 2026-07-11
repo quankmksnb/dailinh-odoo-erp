@@ -7,6 +7,7 @@
     'depends': ['dl_base', 'dl_sale', 'dlm_material', 'mail'],
     'data': [
         'security/ir.model.access.csv',
+        'security/ir_rule.xml',
         'data/rbac_features.xml',
         'data/res_partner_category_data.xml',
         'views/res_partner_views.xml',
