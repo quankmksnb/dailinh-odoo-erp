@@ -15,3 +15,9 @@ access_dl_material_price_admin,dl.material.price Admin,model_dl_material_price,d
 access_dl_material_price_tech,dl.material.price Tech,model_dl_material_price,dl_base.dl_group_tech,1,1,1,0
 access_dl_material_price_ceo,dl.material.price CEO,model_dl_material_price,dl_base.dl_group_ceo,1,0,0,0
 access_dl_material_price_acc,dl.material.price Acc,model_dl_material_price,dl_base.dl_group_accountant,1,0,0,0
+access_dl_semi_product_admin,dl.semi.product Admin,model_dl_semi_product,dl_base.dl_group_admin,1,1,1,1
+access_dl_semi_product_sm,dl.semi.product SM,model_dl_semi_product,dl_base.dl_group_sales_manager,1,1,1,0
+access_dl_semi_product_tech,dl.semi.product Tech,model_dl_semi_product,dl_base.dl_group_tech,1,1,1,0
+access_dl_semi_product_ba,dl.semi.product BA,model_dl_semi_product,dl_base.dl_group_ba,1,0,0,0
+access_dl_semi_product_ceo,dl.semi.product CEO,model_dl_semi_product,dl_base.dl_group_ceo,1,0,0,0
+access_dl_semi_product_acc,dl.semi.product Acc,model_dl_semi_product,dl_base.dl_group_accountant,1,0,0,0

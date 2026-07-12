@@ -6,13 +6,6 @@
              (dlm.product, prefix SP-) — dl_technical chỉ mở rộng field, không cần
              sequence riêng cho sản phẩm ở đây. -->
 
-        <record id="seq_dl_semi_product" model="ir.sequence">
-            <field name="name">Mã bán thành phẩm</field>
-            <field name="code">dl.semi.product</field>
-            <field name="prefix">BTP-</field>
-            <field name="padding">4</field>
-        </record>
-
         <record id="seq_dl_drawing" model="ir.sequence">
             <field name="name">Mã bản vẽ</field>
             <field name="code">dl.drawing</field>

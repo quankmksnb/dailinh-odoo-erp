@@ -59,7 +59,7 @@ class DlMaterial(models.Model):
                 vals["default_code"] = (
                     self.env["ir.sequence"].next_by_code("dl.material") or "/"
                 )
-            vals.setdefault("type", "product")
+            vals.setdefault("detailed_type", "product")
         return super().create(vals_list)
 
 
