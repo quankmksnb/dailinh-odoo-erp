@@ -1,8 +1,8 @@
 {
     "name": "DL-Product",
     "version": "17.0.1.0.0",
-    "summary": "Dang mục sản phẩm, Bán thành phẩm, Vật tư - Tích hợp product.product",
-    "author": "Dại Linh",
+    "summary": "Danh mục sản phẩm, Bán thành phẩm, Vật tư - Tích hợp product.product",
+    "author": "Dai Linh",
     "category": "Hidden",
     "depends": ["dl_base", "product", "stock", "uom", "dl_partner"],
     "data": [
