@@ -8,7 +8,10 @@
     "data": [
         "security/ir.model.access.csv",
         "data/product_sequence.xml",
+        "data/material_cron.xml",
+        "data/material_category_data.xml",
         "views/product_views.xml",
+        "views/material_views.xml",
     ],
     "assets": {
         "web.assets_backend": [
