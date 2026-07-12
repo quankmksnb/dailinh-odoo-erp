@@ -6,4 +6,12 @@
         <field name="prefix">SP-</field>
         <field name="company_id" eval="False" />
     </record>
+
+    <record id="seq_dl_material" model="ir.sequence">
+        <field name="name">DL Vật tư</field>
+        <field name="code">dl.material</field>
+        <field name="prefix">VT-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False" />
+    </record>
 </odoo>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ============================================================
-         CHỨC NĂNG phân quyền của module dl_bom (Kỹ thuật — BOM, Bản vẽ,
+         CHỨC NĂNG phân quyền của module dl_technical (Kỹ thuật — BOM, Bản vẽ,
          Công thức tham số, Yêu cầu báo giá).
          Khai ở đây ⇒ tự hiện trong màn Phân quyền (auto-discovery).
          Chỉ khai model HEADER (không khai dòng con bom.line / rfq.line),

@@ -14,7 +14,7 @@ const RAIL_ITEMS = [
     { key: "quotation", name: "Báo giá", icon: "fa-file-text-o", actionXmlId: "dl_sale.action_dl_quotation" },
     { key: "product", name: "Sản phẩm", icon: "fa-cube", actionXmlId: "dl_product.action_dl_product" },
     { key: "technical", name: "Kỹ thuật", icon: "fa-cogs", actionXmlId: null },
-    { key: "material", name: "Vật tư", icon: "fa-cubes", actionXmlId: "dlm_material.action_dl_material" },
+    { key: "material", name: "Vật tư", icon: "fa-cubes", actionXmlId: null },
     { key: "report", name: "Báo cáo", icon: "fa-bar-chart", actionXmlId: null },
     { key: "config", name: "Cấu hình", icon: "fa-sliders", actionXmlId: null },
 ];

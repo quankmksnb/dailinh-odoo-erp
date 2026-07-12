@@ -11,33 +11,33 @@ const CARDS = [
         name: "BOM sản phẩm / BTP",
         desc: "Công thức BOM gắn với 1 thành phẩm hoặc bán thành phẩm cụ thể",
         icon: "fa-list-alt",
-        actionXmlId: "dl_bom.action_dl_bom",
+        actionXmlId: "dl_technical.action_dl_bom",
     },
     {
         key: "bom_template",
         name: "BOM mẫu",
         desc: "BOM trừu tượng theo nhóm sản phẩm, dùng để sao chép khi tạo SP mới",
         icon: "fa-clone",
-        actionXmlId: "dl_bom.action_dl_bom_template",
+        actionXmlId: "dl_technical.action_dl_bom_template",
     },
     {
         key: "rfq",
         name: "Yêu cầu báo giá (RFQ)",
         desc: "Nhận RFQ từ Sales, gán sản phẩm thật hoặc đánh dấu không khả thi",
         icon: "fa-inbox",
-        actionXmlId: "dl_bom.action_dl_quotation_request_my",
+        actionXmlId: "dl_technical.action_dl_quotation_request_my",
     },
     {
         key: "drawing",
         name: "Bản vẽ kỹ thuật",
         desc: "Bản vẽ và file đính kèm theo sản phẩm",
         icon: "fa-file-pdf-o",
-        actionXmlId: "dl_bom.action_dl_drawing",
+        actionXmlId: "dl_technical.action_dl_drawing",
     },
 ];
 
 export class DlTechnicalHome extends Component {
-    static template = "dl_bom.DlTechnicalHome";
+    static template = "dl_technical.DlTechnicalHome";
     static props = { ...standardActionServiceProps };
 
     setup() {
@@ -54,4 +54,4 @@ export class DlTechnicalHome extends Component {
     }
 }
 
-registry.category("actions").add("dl_bom.DlTechnicalHome", DlTechnicalHome);
+registry.category("actions").add("dl_technical.DlTechnicalHome", DlTechnicalHome);

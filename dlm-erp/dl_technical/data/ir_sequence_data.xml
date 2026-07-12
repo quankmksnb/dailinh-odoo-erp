@@ -3,7 +3,7 @@
     <data noupdate="1">
 
         <!-- dl.product đã có sẵn ở module dl_sale (S05) với sequence riêng
-             (dlm.product, prefix SP-) — dl_bom chỉ mở rộng field, không cần
+             (dlm.product, prefix SP-) — dl_technical chỉ mở rộng field, không cần
              sequence riêng cho sản phẩm ở đây. -->
 
         <record id="seq_dl_semi_product" model="ir.sequence">
