@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_dl_semi_product_tree" model="ir.ui.view">
+        <field name="name">dl.semi.product.tree</field>
+        <field name="model">dl.semi.product</field>
+        <field name="arch" type="xml">
+            <tree string="Bán thành phẩm" decoration-muted="active == False">
+                <field name="semi_code" string="Mã BTP" />
+                <field name="name" string="Tên BTP" />
+                <field name="categ_id" string="Nhóm"
+                    domain="[('category_kind', '=', 'semi')]" />
+                <field name="active" widget="boolean_toggle" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_semi_product_form" model="ir.ui.view">
+        <field name="name">dl.semi.product.form</field>
+        <field name="model">dl.semi.product</field>
+        <field name="arch" type="xml">
+            <form string="Bán thành phẩm">
+                <header>
+                    <button
+                        name="toggle_active"
+                        type="object"
+                        string="Vô hiệu hóa"
+                        class="btn-secondary"
+                        invisible="not active"
+                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_tech"
+                    />
+                    <button
+                        name="toggle_active"
+                        type="object"
+                        string="Kích hoạt lại"
+                        class="btn-secondary"
+                        invisible="active"
+                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_tech"
+                    />
+                </header>
+                <sheet>
+                    <field name="active" invisible="1" />
+                    <widget
+                        name="web_ribbon"
+                        title="Ngừng sử dụng"
+                        bg_color="text-bg-danger"
+                        invisible="active"
+                    />
+
+                    <div class="oe_title">
+                        <label for="name" string="Tên bán thành phẩm" />
+                        <h1>
+                            <field name="name" placeholder="VD: Khung chân bàn A-1200..." />
+                        </h1>
+                        <div invisible="not semi_code"> Mã BTP: <field name="semi_code"
+                                class="oe_inline" readonly="1" />
+                        </div>
+                    </div>
+
+                    <group>
+                        <group string="Phân loại">
+                            <field name="categ_id"
+                                string="Nhóm BTP"
+                                domain="[('category_kind', '=', 'semi')]"
+                                options="{'no_open': True}" />
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="BOM liên quan" name="boms">
+                            <div class="text-muted" style="padding:12px">
+                                <i class="fa fa-info-circle" /> BOM sẽ hiển thị khi <b>S08</b> được
+                                triển khai. </div>
+                        </page>
+                        <page string="Thông tin hệ thống" name="audit">
+                            <group>
+                                <group string="Khởi tạo">
+                                    <field name="create_uid" string="Người tạo" readonly="1" />
+                                    <field name="create_date" string="Ngày tạo" readonly="1" />
+                                </group>
+                                <group string="Cập nhật gần nhất">
+                                    <field name="write_uid" string="Người sửa" readonly="1" />
+                                    <field name="write_date" string="Ngày sửa" readonly="1" />
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" />
+                    <field name="activity_ids" />
+                    <field name="message_ids" />
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_semi_product_search" model="ir.ui.view">
+        <field name="name">dl.semi.product.search</field>
+        <field name="model">dl.semi.product</field>
+        <field name="arch" type="xml">
+            <search string="Tìm bán thành phẩm">
+                <field name="name" string="Tên" />
+                <field name="semi_code" string="Mã BTP" />
+                <field name="categ_id" string="Nhóm" />
+                <separator />
+                <filter string="Đang dùng" name="active"
+                    domain="[('active', '=', True)]" />
+                <filter string="Ngừng" name="inactive"
+                    domain="[('active', '=', False)]" />
+                <group expand="0" string="Nhóm theo">
+                    <filter string="Nhóm BTP" name="group_category"
+                        context="{'group_by': 'categ_id'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ============ ACTIONS ============ -->
+
+    <!-- Full: Admin, Trưởng KD, KTV -->
+    <record id="action_dl_semi_full" model="ir.actions.act_window">
+        <field name="name">Bán thành phẩm</field>
+        <field name="res_model">dl.semi.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids"
+            eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_semi_product_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_semi_product_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_semi_product_search" />
+        <field name="context">{'default_type': 'product'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Thêm bán thành phẩm đầu tiên!</p>
+        </field>
+    </record>
+
+    <!-- View-only: BA/Sales, CEO, Kế toán -->
+    <record id="action_dl_semi_view" model="ir.actions.act_window">
+        <field name="name">Bán thành phẩm</field>
+        <field name="res_model">dl.semi.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids"
+            eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_semi_product_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_semi_product_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_semi_product_search" />
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+</odoo>

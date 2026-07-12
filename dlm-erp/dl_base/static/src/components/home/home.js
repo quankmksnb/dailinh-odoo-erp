@@ -41,7 +41,7 @@ const NAV_ITEMS = [
         key: "product",
         name: "Sản phẩm",
         icon: "fa-cube",
-        actionXmlId: "dl_product.action_dl_product",
+        actionXmlId: "dl_product.action_dl_product_full",
     },
     {
         key: "technical",

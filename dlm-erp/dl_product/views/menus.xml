@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         Parent menu: "Sản phẩm" dưới DLM-ERP root
+         (Thay thế menu cũ nếu cần — đặt ở dl_product thay vì dl_base)
+    ============================================================ -->
+    <menuitem
+        id="menu_dl_product_root"
+        name="Sản phẩm"
+        parent="dl_base.menu_dl_root"
+        sequence="15"
+    />
+
+    <!-- ============================================================
+         THÀNH PHẨM
+    ============================================================ -->
+
+    <!-- Full: Admin, Trưởng KD -->
+    <menuitem
+        id="menu_dl_product_full"
+        name="Thành phẩm"
+        action="action_dl_product_full"
+        parent="menu_dl_product_root"
+        sequence="10"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager"
+    />
+
+    <!-- Tech: KTV (create/edit OK, delete blocked) -->
+    <menuitem
+        id="menu_dl_product_tech"
+        name="Thành phẩm"
+        action="action_dl_product_tech"
+        parent="menu_dl_product_root"
+        sequence="11"
+        groups="dl_base.dl_group_tech"
+    />
+
+    <!-- View-only: BA/Sales, CEO, Kế toán -->
+    <menuitem
+        id="menu_dl_product_view"
+        name="Thành phẩm"
+        action="action_dl_product_view"
+        parent="menu_dl_product_root"
+        sequence="12"
+        groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <!-- ============================================================
+         BÁN THÀNH PHẨM
+    ============================================================ -->
+
+    <!-- Full: Admin, Trưởng KD, KTV -->
+    <menuitem
+        id="menu_dl_semi_full"
+        name="Bán thành phẩm"
+        action="action_dl_semi_full"
+        parent="menu_dl_product_root"
+        sequence="20"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager,dl_base.dl_group_tech"
+    />
+
+    <!-- View-only: BA/Sales, CEO, Kế toán -->
+    <menuitem
+        id="menu_dl_semi_view"
+        name="Bán thành phẩm"
+        action="action_dl_semi_view"
+        parent="menu_dl_product_root"
+        sequence="21"
+        groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <!-- ============================================================
+         NHÓM SẢN PHẨM
+    ============================================================ -->
+
+    <!-- Full: Admin, Trưởng KD -->
+    <menuitem
+        id="menu_dl_category_full"
+        name="Nhóm sản phẩm"
+        action="action_dl_category_full"
+        parent="menu_dl_product_root"
+        sequence="30"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager"
+    />
+
+    <!-- View-only: others -->
+    <menuitem
+        id="menu_dl_category_view"
+        name="Nhóm sản phẩm"
+        action="action_dl_category_view"
+        parent="menu_dl_product_root"
+        sequence="31"
+        groups="dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+</odoo>

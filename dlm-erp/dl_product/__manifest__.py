@@ -11,7 +11,10 @@
         "data/material_cron.xml",
         "data/material_category_data.xml",
         "views/product_views.xml",
+        "views/semi_views.xml",
+        "views/category_views.xml",
         "views/material_views.xml",
+        "views/menus.xml",
     ],
     "assets": {
         "web.assets_backend": [
