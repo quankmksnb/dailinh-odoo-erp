@@ -7,7 +7,7 @@ import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { onMounted, useEffect } from "@odoo/owl";
-import { setupFormActionsMenu } from "../js/actions_menu";
+import { setupFormActionsMenu } from "@dl_base/js/actions_menu";
 
 const PHONE_RE = /^(0|\+84)[0-9]{9,10}$/;
 const EMAIL_RE = /^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$/;
@@ -45,8 +45,13 @@ export class DlCustomerFormController extends FormController {
         return this.model.root.data.active === false;
     }
 
-    // Chỉ hỏi khi bản ghi thực sự bị người dùng chỉnh sửa.
+    // Bản ghi mới đã nhập/điền (kể cả fill tự động từ onchange tìm–liên kết)
+    // coi như có thay đổi → hỏi trước khi rời. Bản ghi cũ chỉ tính khi người
+    // dùng thực sự chỉnh (tránh hỏi vô cớ).
     get _dlHasRealChanges() {
+        if (this.model.root.isNew) {
+            return this.model.root.isDirty;
+        }
         return this.model.root.isDirty && this._dlUserTouched;
     }
 
@@ -164,7 +169,7 @@ export class DlCustomerFormController extends FormController {
 
     async _dlValidateCustomer(record) {
         const d = record.data;
-        if (!d.is_dlm_customer) {
+        if (!["customer", "both"].includes(d.partner_role)) {
             return null;
         }
 
@@ -174,7 +179,7 @@ export class DlCustomerFormController extends FormController {
         }
 
         // MST bắt buộc với khách Doanh nghiệp.
-        const tax = (d.tax_code || "").trim();
+        const tax = (d.vat || "").trim();
         if (d.partner_type === "company" && !tax) {
             return _t("Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).");
         }
@@ -200,8 +205,8 @@ export class DlCustomerFormController extends FormController {
                 "res.partner",
                 [
                     ["id", "!=", record.resId || 0],
-                    ["is_dlm_customer", "=", true],
-                    ["tax_code", "=", tax],
+                    ["partner_role", "in", ["customer", "both"]],
+                    ["vat", "=", tax],
                 ],
                 ["name", "dlm_code"],
                 { limit: 1, context: { active_test: false } }

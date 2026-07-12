@@ -4,13 +4,11 @@
     'summary': 'Quản lý Khách hàng, NCC, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
-    'depends': ['dl_base', 'mail'],
+    'depends': ['dl_partner', 'dl_product', 'dl_base', 'mail'],
     'data': [
         'security/ir.model.access.csv',
         'data/rbac_features.xml',
-        'views/customer_views.xml',
-        'views/supplier_views.xml',
-        'views/product_views.xml',
+        'views/customer_views_ext.xml',
         'views/quotation_views.xml',
         'views/quote_actions.xml',
         'views/menus.xml',
@@ -27,25 +25,19 @@
             'dl_sale/static/src/scss/customer_form.scss',
             'dl_sale/static/src/scss/supplier_list.scss',
             'dl_sale/static/src/scss/supplier_form.scss',
-            'dl_sale/static/src/scss/product_list.scss',
-            'dl_sale/static/src/scss/product_form.scss',
             # Component — field widget dl_stepper (style co-located)
             'dl_sale/static/src/components/stepper/stepper_field.scss',
             'dl_sale/static/src/components/stepper/stepper_field.js',
             'dl_sale/static/src/components/stepper/stepper_field.xml',
-            # JS — tiện ích dùng chung (menu ⋮ Thao tác)
-            'dl_sale/static/src/js/actions_menu.js',
-            # Views — list (lớp cơ sở nạp trước lớp con)
-            'dl_sale/static/src/views/dl_list_controller.js',
+            # Views — list (lớp cơ sở DlListBaseController + actions_menu nằm
+            # ở dl_base, nạp trước theo thứ tự phụ thuộc)
             'dl_sale/static/src/views/quotation_list_controller.js',
             'dl_sale/static/src/views/customer_list_controller.js',
             'dl_sale/static/src/views/supplier_list_controller.js',
-            'dl_sale/static/src/views/product_list_controller.js',
             # Views — form
             'dl_sale/static/src/views/quotation_form_controller.js',
             'dl_sale/static/src/views/customer_form_controller.js',
             'dl_sale/static/src/views/supplier_form_controller.js',
-            'dl_sale/static/src/views/product_form_controller.js',
             # JS — patch điều hướng
             'dl_sale/static/src/js/nav_patch.js',
             # Component — Hub Báo giá (RFQ + Yêu cầu khách hàng)

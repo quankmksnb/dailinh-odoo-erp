@@ -2,7 +2,7 @@
 
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
-import { DlListBaseController } from "./dl_list_controller";
+import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
 const CHIPS = [
     { key: "all",        label: "Tất cả",       filter: null,                ctype: null },
@@ -47,10 +47,9 @@ export class DlCustomerListController extends DlListBaseController {
     async _loadCounts() {
         const groups = await this.orm.readGroup(
             "res.partner",
-            [["is_dlm_customer", "=", true]],
+            [["partner_role", "in", ["customer", "both"]]],
             ["partner_type"],
-            ["partner_type"],
-            { context: { active_test: false } }
+            ["partner_type"]
         );
         const counts = {};
         let total = 0;

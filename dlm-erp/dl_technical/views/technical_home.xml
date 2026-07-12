@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_dl_technical_home" model="ir.actions.client">
+        <field name="name">Kỹ thuật</field>
+        <field name="tag">dl_technical.DlTechnicalHome</field>
+    </record>
+
+</odoo>

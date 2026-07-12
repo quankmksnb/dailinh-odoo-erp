@@ -9,7 +9,7 @@
 
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
-import { DlListBaseController } from "./dl_list_controller";
+import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
 // key "all" = không filter trạng thái nào
 const CHIPS = [

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Khách hàng: Admin / CEO / Trưởng KD / BA -->
+    <menuitem
+        id="menu_dl_sale_customer"
+        name="Khách hàng"
+        parent="dl_base.menu_dl_sale"
+        sequence="10"
+        action="action_dl_customer"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_ba"
+    />
+
+    <!-- NCC full-CRUD: Admin / CEO / Kế toán -->
+    <menuitem
+        id="menu_dl_sale_supplier"
+        name="NCC / Thầu phụ"
+        parent="dl_base.menu_dl_sale"
+        sequence="20"
+        action="action_dl_supplier"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <!-- NCC chỉ-đọc: Trưởng KD xem được nhưng không CRUD -->
+    <menuitem
+        id="menu_dl_sale_supplier_readonly"
+        name="NCC / Thầu phụ"
+        parent="dl_base.menu_dl_sale"
+        sequence="21"
+        action="action_dl_supplier_readonly"
+        groups="dl_base.dl_group_sales_manager"
+    />
+
+</odoo>

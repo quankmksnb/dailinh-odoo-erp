@@ -107,6 +107,48 @@
         &.is-locked { opacity: 0.45; }
     }
 
+    // --- Tab 1: cơ cấu giá (100% tổng báo giá) -------------------------------
+    .dl-cfg-sample {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12px; font-weight: 600; color: $dl-text-2;
+        text-transform: none; letter-spacing: 0;
+        input { @include dl-input; width: 150px; font-size: 12px; text-align: right; padding: 4px 8px; }
+        .unit { color: $dl-text-muted; }
+    }
+
+    .dl-cfg-bar {
+        display: flex; width: 100%; height: 26px; margin-bottom: 12px;
+        border: 1px solid $dl-border; border-radius: $dl-radius-sm; overflow: hidden; background: $dl-search-bg;
+        &.is-bad { box-shadow: 0 0 0 2px rgba($dl-danger, 0.20); border-color: $dl-danger-border; }
+    }
+    .dl-cfg-bar-seg {
+        display: flex; align-items: center; justify-content: center; height: 100%; min-width: 0;
+        color: #fff; font-size: 11px; font-weight: 700; white-space: nowrap; overflow: hidden;
+        transition: width .15s ease;
+        .lbl { text-shadow: 0 1px 1px rgba(0, 0, 0, 0.22); }
+        & + .dl-cfg-bar-seg { border-left: 1px solid rgba(255, 255, 255, 0.5); }
+        &.is-rem {
+            background: repeating-linear-gradient(45deg, #e7ebee, #e7ebee 6px, #dfe3e7 6px, #dfe3e7 12px);
+            color: $dl-text-muted;
+            .lbl { text-shadow: none; }
+        }
+    }
+
+    .dl-cfg-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; }
+
+    .dl-cfg-table.struct {
+        th.sw, td.sw { width: 26px; text-align: center; }
+        td.nm { font-weight: 600; color: $dl-text; }
+        td.mono, .mono { font-variant-numeric: tabular-nums; white-space: nowrap; color: $dl-text-2; }
+        .hintcell { font-size: 11px; color: $dl-text-muted; }
+        input.cell.num { max-width: 96px; }
+        tfoot td { border-top: 2px solid $dl-border; font-weight: 700; padding: 8px 10px; }
+        tfoot td.total { font-size: 14px; }
+        tfoot .statuscell i { margin-right: 4px; }
+        tfoot tr.ok td.total, tfoot tr.ok .statuscell { color: $dl-green; }
+        tfoot tr.bad td.total, tfoot tr.bad .statuscell { color: $dl-danger; }
+    }
+
     // --- Notices -------------------------------------------------------------
     .dl-cfg-note {
         display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.5;

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Mở rộng form Khách hàng (dl_partner) với thống kê báo giá (EX-30, EX-42). -->
+
+    <record id="view_dl_customer_form_quote_ext" model="ir.ui.view">
+        <field name="name">dlm.customer.form.quote.ext</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="dl_partner.view_dl_customer_form"/>
+        <field name="arch" type="xml">
+            <!-- Thêm hidden fields cho EX-30/EX-42 ngay sau partner_role -->
+            <xpath expr="//field[@name='active'][@invisible='1']" position="after">
+                <field name="dlm_split_warning" invisible="1"/>
+                <field name="dlm_open_quote_count" invisible="1" />
+                <field name="dlm_recent_quote_total" invisible="1" />
+                <field name="dlm_split_threshold" invisible="1" />
+                <field name="dlm_currency_id" invisible="1" />
+            </xpath>
+
+            <!-- Cảnh báo EX-30 và EX-42 trước phần head -->
+            <xpath expr="//div[hasclass('dl-cust-head')]" position="before">
+                <div class="alert alert-danger" role="alert"
+                    invisible="active or dlm_open_quote_count == 0">
+                    <i class="fa fa-ban" />
+                    <strong>KH đã ngừng hợp tác.</strong> Vẫn còn <field
+                        name="dlm_open_quote_count" class="oe_inline" /> báo giá chưa đóng — các
+                    báo giá này tiếp tục quy trình bình thường, nhưng không thể tạo báo giá/RFQ
+                    mới cho KH này.
+                </div>
+
+                <div class="alert alert-info" role="alert"
+                    invisible="not active or dlm_open_quote_count == 0">
+                    <i class="fa fa-info-circle" /> KH này đang có <field
+                        name="dlm_open_quote_count" class="oe_inline" /> báo giá chưa đóng. Vô
+                    hiệu hóa KH sẽ không hủy các báo giá đó.
+                </div>
+
+                <div class="alert alert-warning" role="alert"
+                    invisible="not dlm_split_warning">
+                    <i class="fa fa-exclamation-triangle" />
+                    <strong>Cảnh báo gộp đơn:</strong>
+                    KH này có <field name="dlm_recent_quote_count" class="oe_inline" /> báo giá
+                    trong 7 ngày gần đây với tổng <field name="dlm_recent_quote_total"
+                        class="oe_inline" widget="monetary" />, vượt ngưỡng duyệt tự động (<field
+                        name="dlm_split_threshold" class="oe_inline" widget="monetary" />) —
+                    kiểm tra khả năng chia nhỏ để né duyệt.
+                </div>
+            </xpath>
+
+            <!-- Tab Lịch sử Báo giá — chèn trước tab Ghi chú nội bộ -->
+            <xpath expr="//page[@name='notes']" position="before">
+                <page string="Lịch sử Báo giá" name="quote_history"
+                    groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech">
+                    <group>
+                        <group>
+                            <field name="dlm_quotation_count" string="Tổng số báo giá" />
+                        </group>
+                        <group groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
+                            <field name="dlm_win_rate" string="Win rate (%)"
+                                widget="float" digits="[16, 1]" />
+                        </group>
+                    </group>
+                    <field name="dlm_quotation_ids" nolabel="1" readonly="1">
+                        <tree string="Báo giá" create="false" delete="false"
+                            decoration-success="state == 'approved'"
+                            decoration-danger="state == 'rejected'"
+                            decoration-info="state == 'sent'">
+                            <field name="name" string="Số BG" />
+                            <field name="date_order" string="Ngày" />
+                            <field name="amount_total" string="Giá trị" widget="monetary" />
+                            <field name="currency_id" column_invisible="1" />
+                            <field name="state" string="Trạng thái" widget="badge"
+                                decoration-success="state == 'approved'"
+                                decoration-danger="state == 'rejected'"
+                                decoration-info="state == 'sent'" />
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -30,28 +30,94 @@
             <t t-if="state.tab === 'cost'">
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
-                        <span class="dl-cfg-panel-title">Cơ cấu chi phí (Cost Structure)</span>
-                        <button class="dl-cfg-save" type="button" t-on-click="saveCost">
+                        <span class="dl-cfg-panel-title">Cơ cấu chi phí &amp; Tham số báo giá</span>
+                        <button class="dl-cfg-save" type="button" t-on-click="saveCost" t-att-disabled="!state.canEdit">
                             <i class="fa fa-check"/> Lưu thay đổi
                         </button>
                     </div>
 
+                    <div t-if="!state.canEdit" class="dl-cfg-note warn">
+                        <i class="fa fa-lock"/>
+                        Bạn đang ở chế độ chỉ xem — chỉ Admin/CEO được sửa cấu hình báo giá.
+                    </div>
+
+                    <!-- === Cơ cấu giá: 5 thành phần = 100% tổng báo giá === -->
+                    <div class="dl-cfg-subhead">
+                        <span>Cơ cấu giá — 5 thành phần cộng lại = 100% tổng báo giá</span>
+                        <label class="dl-cfg-sample">Báo giá mẫu:
+                            <input type="number" min="0" step="1000000" t-model.number="state.sampleTotal"/>
+                            <span class="unit">đ</span>
+                        </label>
+                    </div>
+
+                    <div class="dl-cfg-note info">
+                        <i class="fa fa-info-circle"/>
+                        Tỷ lệ tham khảo (không phải công thức cứng). VD: vật tư 55% nghĩa là chiếm 55% giá bán của báo giá.
+                        Hệ thống cảnh báo nếu tổng khác 100%.
+                    </div>
+
+                    <!-- Thanh cơ cấu trực quan -->
+                    <div class="dl-cfg-bar" t-att-class="{ 'is-bad': !costStructOk }">
+                        <t t-foreach="costBar.segs" t-as="seg" t-key="seg.key">
+                            <div class="dl-cfg-bar-seg" t-if="seg.pct > 0"
+                                 t-attf-style="width: {{seg.width}}%; background: {{seg.color}};"
+                                 t-attf-title="{{seg.label}}: {{seg.pct}}%">
+                                <span t-if="seg.width >= 9" class="lbl"><t t-esc="seg.pct"/>%</span>
+                            </div>
+                        </t>
+                        <div t-if="costBar.remainder > 0" class="dl-cfg-bar-seg is-rem"
+                             t-attf-style="width: {{costBar.remainder}}%;"
+                             t-attf-title="Chưa phân bổ: {{costBar.remainder}}%">
+                            <span t-if="costBar.remainder >= 9" class="lbl">−<t t-esc="costBar.remainder"/>%</span>
+                        </div>
+                    </div>
+
+                    <!-- Bảng thành phần cơ cấu -->
+                    <table class="dl-cfg-table struct">
+                        <thead>
+                            <tr>
+                                <th class="sw"></th>
+                                <th>Thành phần chi phí</th>
+                                <th class="num">Tỷ lệ (%)</th>
+                                <th class="num">Thành tiền (theo báo giá mẫu)</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="costStructure" t-as="c" t-key="c.key">
+                                <tr>
+                                    <td class="sw"><span class="dl-cfg-swatch" t-attf-style="background: {{c.color}};"/></td>
+                                    <td class="nm" t-esc="c.label"/>
+                                    <td class="num">
+                                        <input type="number" min="0" step="0.5" class="cell num"
+                                               t-att-value="state.cost[c.key]"
+                                               t-on-input="(ev) => this.setCost(c.key, ev.target.value)"/>
+                                    </td>
+                                    <td class="num mono" t-esc="fmtVnd(state.sampleTotal * (state.cost[c.key] || 0) / 100)"/>
+                                    <td class="hintcell" t-esc="c.hint"/>
+                                </tr>
+                            </t>
+                        </tbody>
+                        <tfoot>
+                            <tr t-att-class="costStructOk ? 'ok' : 'bad'">
+                                <td class="sw"></td>
+                                <td class="nm">Tổng cơ cấu</td>
+                                <td class="num total"><t t-esc="costStructTotal"/>%</td>
+                                <td class="num mono" t-esc="fmtVnd(state.sampleTotal * costStructTotal / 100)"/>
+                                <td class="statuscell">
+                                    <t t-if="costStructOk"><i class="fa fa-check-circle"/> Đúng bằng 100%</t>
+                                    <t t-else="">
+                                        <i class="fa fa-exclamation-triangle"/>
+                                        <t t-esc="costStructDelta > 0 ? 'Dư ' + costStructDelta + '%' : 'Thiếu ' + (-costStructDelta) + '%'"/>
+                                    </t>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- === Tham số khác (không nằm trong 100%) === -->
+                    <div class="dl-cfg-subhead"><span>Tham số khác</span></div>
                     <div class="dl-cfg-grid">
-                        <label class="dl-cfg-f"><span class="k">Tỷ lệ chi phí vật tư (%)</span>
-                            <input type="number" t-model.number="state.cost.material"/>
-                            <span class="hint">Tham khảo 55% — không phải công thức cứng</span></label>
-                        <label class="dl-cfg-f"><span class="k">Tỷ lệ chi phí nhân công (%)</span>
-                            <input type="number" t-model.number="state.cost.labor"/>
-                            <span class="hint">Khoảng 30–35%</span></label>
-                        <label class="dl-cfg-f"><span class="k">Tỷ lệ rủi ro / phát sinh (%)</span>
-                            <input type="number" t-model.number="state.cost.risk"/>
-                            <span class="hint">0–5% (mặc định 3%)</span></label>
-                        <label class="dl-cfg-f"><span class="k">Lợi nhuận mục tiêu (%)</span>
-                            <input type="number" t-model.number="state.cost.margin"/>
-                            <span class="hint">Target margin — mặc định 12%</span></label>
-                        <label class="dl-cfg-f"><span class="k">Chi phí vận hành / overhead (%)</span>
-                            <input type="number" t-model.number="state.cost.overhead"/>
-                            <span class="hint">Cấu hình theo thực tế DN</span></label>
                         <label class="dl-cfg-f"><span class="k">Chiết khấu tối đa cho phép (%)</span>
                             <input type="number" t-model.number="state.cost.maxDiscount"/>
                             <span class="hint">Liên quan ma trận phê duyệt</span></label>
@@ -96,14 +162,19 @@
                     <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">Ma trận phê duyệt (Approval Matrix)</span>
                         <div class="dl-cfg-head-btns">
-                            <button class="dl-cfg-mini" type="button" t-on-click="addLevel"><i class="fa fa-plus"/> Thêm cấp duyệt</button>
-                            <button class="dl-cfg-save" type="button" t-on-click="saveMatrix"><i class="fa fa-check"/> Lưu ma trận</button>
+                            <button class="dl-cfg-mini" type="button" t-on-click="addLevel" t-att-disabled="!state.canEdit"><i class="fa fa-plus"/> Thêm cấp duyệt</button>
+                            <button class="dl-cfg-save" type="button" t-on-click="saveMatrix" t-att-disabled="!state.canEdit"><i class="fa fa-check"/> Lưu ma trận</button>
                         </div>
+                    </div>
+
+                    <div t-if="!state.canEdit" class="dl-cfg-note warn">
+                        <i class="fa fa-lock"/>
+                        Bạn đang ở chế độ chỉ xem — chỉ Admin/CEO được sửa ma trận phê duyệt.
                     </div>
 
                     <div class="dl-cfg-note info">
                         <i class="fa fa-info-circle"/>
-                        Quyền sửa ma trận: hiện áp dụng <b>Admin + CEO</b> (đề xuất mặc định — chờ CEO chốt).
+                        Quyền sửa ma trận: <b>Admin + CEO</b> (BR-28 — mọi thay đổi rule đều ghi audit).
                         Sửa ngưỡng chỉ ảnh hưởng báo giá mới; BG đang Pending giữ cấp cũ.
                     </div>
                     <div t-if="ceoBackupMissing" class="dl-cfg-note warn">
@@ -167,22 +238,24 @@
                                         </td>
                                         <td>
                                             <select class="cell" t-model="l.user">
-                                                <t t-foreach="approverUsers" t-as="au" t-key="au.key">
-                                                    <option t-att-value="au.key" t-esc="au.label"/>
+                                                <option value="">(Theo vai trò)</option>
+                                                <t t-foreach="state.approverUsers" t-as="au" t-key="au.id">
+                                                    <option t-att-value="au.id" t-esc="au.name"/>
                                                 </t>
                                             </select>
                                         </td>
                                         <td>
                                             <select class="cell" t-model="l.backup">
-                                                <t t-foreach="approverUsers" t-as="au" t-key="au.key">
-                                                    <option t-att-value="au.key" t-esc="au.key ? au.label : '(Chưa gán)'"/>
+                                                <option value="">(Chưa gán)</option>
+                                                <t t-foreach="state.approverUsers" t-as="au" t-key="au.id">
+                                                    <option t-att-value="au.id" t-esc="au.name"/>
                                                 </t>
                                             </select>
                                         </td>
                                         <td>
                                             <select class="cell" t-model="l.mode">
-                                                <t t-foreach="modes" t-as="m" t-key="m">
-                                                    <option t-att-value="m" t-esc="m"/>
+                                                <t t-foreach="modes" t-as="m" t-key="m.key">
+                                                    <option t-att-value="m.key" t-esc="m.label"/>
                                                 </t>
                                             </select>
                                         </td>
@@ -219,7 +292,18 @@
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">SLA &amp; Escalation</span>
-                        <button class="dl-cfg-save" type="button" t-on-click="saveSla"><i class="fa fa-check"/> Lưu thay đổi</button>
+                        <button class="dl-cfg-save" type="button" t-on-click="saveSla" t-att-disabled="!state.canEdit"><i class="fa fa-check"/> Lưu thay đổi</button>
+                    </div>
+
+                    <div t-if="!state.canEdit" class="dl-cfg-note warn">
+                        <i class="fa fa-lock"/>
+                        Bạn đang ở chế độ chỉ xem — chỉ Admin/CEO được sửa cấu hình SLA.
+                    </div>
+
+                    <div class="dl-cfg-note info">
+                        <i class="fa fa-info-circle"/>
+                        SLA được màn Phê duyệt (S10) đọc để tính deadline &amp; trigger escalation.
+                        Sửa SLA chỉ áp dụng cho bước duyệt MỚI bắt đầu sau khi lưu; bước đang chờ giữ nguyên hạn cũ.
                     </div>
 
                     <div class="dl-cfg-grid">

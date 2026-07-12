@@ -3,23 +3,16 @@
 //  DL Supplier List — kế thừa DlListBaseController (khung chung).
 //  Đăng ký view js_class="dl_supplier_list" (dùng ở supplier_views.xml).
 //  Đồng bộ giao diện với danh sách Khách hàng:
-//   1) Chip lọc theo NHÓM CUNG CẤP có số đếm.
-//   2) Avatar chữ cái nền màu cho từng dòng.
+//   1) Avatar chữ cái nền màu cho từng dòng.
+//  (Chip lọc theo Nhóm vật tư cung cấp đã bỏ — category_id là Tags multi-
+//   value, dùng Group By chuẩn của Odoo thay vì chip loại trừ lẫn nhau.)
 // ============================================================
 
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
-import { DlListBaseController } from "./dl_list_controller";
-
-const CHIPS = [
-    { key: "all",         label: "Tất cả",        filter: null,                      grp: null },
-    { key: "steel",       label: "Thép xây dựng", filter: "filter_grp_steel",        grp: "steel" },
-    { key: "paint",       label: "Sơn - mạ",      filter: "filter_grp_paint",        grp: "paint" },
-    { key: "electric",    label: "Vật tư điện",   filter: "filter_grp_electric",     grp: "electric" },
-    { key: "subcontract", label: "Gia công",      filter: "filter_grp_subcontract",  grp: "subcontract" },
-    { key: "other",       label: "Khác",          filter: "filter_grp_other",        grp: "other" },
-];
-const FILTER_NAMES = CHIPS.filter((c) => c.filter).map((c) => c.filter);
+import { DlListBaseController } from "@dl_base/views/dl_list_controller";
+import { useService } from "@web/core/utils/hooks";
+import { onWillStart } from "@odoo/owl";
 
 const AVA_PALETTE = [
     { bg: "#dbe7ff", fg: "#1e4fa3" },
@@ -38,8 +31,28 @@ function avaColor(name) {
 }
 
 export class DlSupplierListController extends DlListBaseController {
-    get dlChips() {
-        return CHIPS;
+    setup() {
+        super.setup();
+        this.userService = useService("user");
+        // Trưởng KD chỉ được XEM danh sách NCC (S04) — ẩn nút Thêm/Xoá.
+        // Bảo mật thật do ir.rule; đây chỉ khớp UI. Kế toán/Admin vẫn full CRUD.
+        this._dlReadonly = false;
+        onWillStart(async () => {
+            const [isSM, isAdmin, isAcc] = await Promise.all([
+                this.userService.hasGroup("dl_base.dl_group_sales_manager"),
+                this.userService.hasGroup("dl_base.dl_group_admin"),
+                this.userService.hasGroup("dl_base.dl_group_accountant"),
+            ]);
+            this._dlReadonly = isSM && !isAdmin && !isAcc;
+            if (this._dlReadonly) {
+                const aa = this.activeActions || (this.archInfo && this.archInfo.activeActions);
+                if (aa) {
+                    aa.create = false;
+                    aa.delete = false;
+                    aa.duplicate = false;
+                }
+            }
+        });
     }
 
     get dlCountNoun() {
@@ -49,60 +62,13 @@ export class DlSupplierListController extends DlListBaseController {
     _dlRenderChrome(root) {
         super._dlRenderChrome(root);
         this._renderAvatars(root);
-    }
-
-    async _loadCounts() {
-        const groups = await this.orm.readGroup(
-            "res.partner",
-            [["is_dlm_supplier", "=", true]],
-            ["dlm_supplier_group"],
-            ["dlm_supplier_group"]
-        );
-        const counts = {};
-        let total = 0;
-        for (const g of groups) {
-            const n = g.__count ?? g.dlm_supplier_group_count ?? 0;
-            counts[g.dlm_supplier_group] = n;
-            total += n;
-        }
-        counts.all = total;
-        this.dlCounts = counts;
-    }
-
-    _typeFilters() {
-        return this.env.searchModel.getSearchItems(
-            (i) => i.type === "filter" && FILTER_NAMES.includes(i.name)
-        );
-    }
-
-    _activeChip() {
-        const active = this._typeFilters().find((i) => i.isActive);
-        if (!active) {
-            return "all";
-        }
-        const chip = CHIPS.find((c) => c.filter === active.name);
-        return chip ? chip.key : "all";
-    }
-
-    _selectChip(key) {
-        const sm = this.env.searchModel;
-        const items = this._typeFilters();
-        for (const it of items) {
-            if (it.isActive) {
-                sm.toggleSearchItem(it.id);
+        if (this._dlReadonly) {
+            // Fallback DOM: ẩn cụm nút Thêm nếu template còn render.
+            const btns = root.querySelector(".o_control_panel_main_buttons");
+            if (btns) {
+                btns.style.display = "none";
             }
         }
-        const chip = CHIPS.find((c) => c.key === key);
-        if (chip && chip.filter) {
-            const it = items.find((i) => i.name === chip.filter);
-            if (it) {
-                sm.toggleSearchItem(it.id);
-            }
-        }
-    }
-
-    _chipCount(chip) {
-        return chip.key === "all" ? this.dlCounts.all : this.dlCounts[chip.grp];
     }
 
     // Chèn avatar chữ cái theo tên NCC vào ô avatar_128 mỗi dòng.

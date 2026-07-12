@@ -23,13 +23,13 @@ const NAV_ITEMS = [
         key: "customer",
         name: "Khách hàng",
         icon: "fa-users",
-        actionXmlId: "dl_sale.action_dl_customer",
+        actionXmlId: "dl_partner.action_dl_customer",
     },
     {
         key: "supplier",
         name: "Nhà cung cấp",
         icon: "fa-truck",
-        actionXmlId: "dl_sale.action_dl_supplier",
+        actionXmlId: "dl_partner.action_dl_supplier",
     },
     {
         key: "quotation",
@@ -41,7 +41,7 @@ const NAV_ITEMS = [
         key: "product",
         name: "Sản phẩm",
         icon: "fa-cube",
-        actionXmlId: "dl_sale.action_dl_product",
+        actionXmlId: "dl_product.action_dl_product",
     },
     {
         key: "technical",
@@ -53,7 +53,7 @@ const NAV_ITEMS = [
         key: "material",
         name: "Vật tư",
         icon: "fa-cubes",
-        actionXmlId: "dlm_material.action_dl_material",
+        actionXmlId: null,
     },
     {
         key: "report",

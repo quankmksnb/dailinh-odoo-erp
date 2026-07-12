@@ -59,7 +59,7 @@
                     </div>
                     <div class="dl-home-pagehead-actions">
                         <button class="dl-home-btn ghost"
-                                t-on-click="() => this.openModule('dl_sale.action_dl_customer')">
+                                t-on-click="() => this.openModule('dl_partner.action_dl_customer')">
                             <i class="fa fa-users"/> Khách hàng
                         </button>
                         <button class="dl-home-btn primary"

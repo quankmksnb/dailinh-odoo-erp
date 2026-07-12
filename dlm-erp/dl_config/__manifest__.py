@@ -5,10 +5,12 @@
     'author': 'Dai Linh',
     'category': 'Hidden',
     # uom: chứa model uom.uom mà module dựng UI lên (không tạo model mới)
-    'depends': ['dl_base', 'dl_sale', 'uom'],
+    # auth_signup: cung cấp action_reset_password() + email template + trang đặt mật khẩu
+    'depends': ['dl_base', 'uom', 'auth_signup'],
     'data': [
         'security/ir.model.access.csv',
         'data/rbac_features.xml',
+        'data/pricing_config_data.xml',
         'views/config_home.xml',
         'views/uom_views.xml',
         'views/company_views.xml',
