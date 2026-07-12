@@ -76,16 +76,19 @@
                             <field name="line_ids"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Dòng sản phẩm" editable="bottom">
+                                    <field name="is_technician" column_invisible="1"/>
                                     <field name="product_name"/>
                                     <field name="product_category_id"/>
                                     <field name="quantity"/>
                                     <field name="dimension_note" optional="show"/>
-                                    <field name="resolved_product_id"/>
-                                    <field name="is_infeasible"/>
+                                    <field name="resolved_product_id" readonly="not is_technician"/>
+                                    <field name="is_infeasible" readonly="not is_technician"/>
                                     <field name="infeasible_reason"
-                                           invisible="not is_infeasible" optional="show"/>
+                                           invisible="not is_infeasible"
+                                           readonly="not is_technician" optional="show"/>
                                 </tree>
                                 <form string="Dòng sản phẩm">
+                                    <field name="is_technician" invisible="1"/>
                                     <group>
                                         <group string="Yêu cầu">
                                             <field name="product_name"/>
@@ -95,10 +98,12 @@
                                         </group>
                                         <group string="Kết quả xử lý (Kỹ thuật)">
                                             <field name="resolved_product_id"
-                                                   invisible="is_infeasible"/>
-                                            <field name="is_infeasible"/>
+                                                   invisible="is_infeasible"
+                                                   readonly="not is_technician"/>
+                                            <field name="is_infeasible" readonly="not is_technician"/>
                                             <field name="infeasible_reason"
-                                                   invisible="not is_infeasible"/>
+                                                   invisible="not is_infeasible"
+                                                   readonly="not is_technician"/>
                                         </group>
                                     </group>
                                 </form>

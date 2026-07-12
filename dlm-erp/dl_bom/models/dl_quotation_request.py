@@ -1,5 +1,10 @@
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
+
+# Field-level RBAC (giống dl.material): chỉ Kỹ thuật/Admin được quyết định
+# "sản phẩm xác định" / "không khả thi" — đây là đánh giá kỹ thuật, Sales chỉ
+# được nhập yêu cầu (product_name/product_category_id/quantity/dimension_note).
+_TECH_ONLY_LINE_FIELDS = {'resolved_product_id', 'is_infeasible', 'infeasible_reason'}
 
 
 class DlQuotationRequest(models.Model):
@@ -180,6 +185,20 @@ class DlQuotationRequestLine(models.Model):
         string="Lý do không khả thi",
     )
 
+    # dùng để readonly field trên view theo nhóm quyền — compute_sudo=True vì
+    # user không thuộc dl_group_tech vẫn phải đọc được field này để tính readonly.
+    is_technician = fields.Boolean(
+        compute='_compute_is_technician', compute_sudo=True,
+        default=lambda self: (
+            self.env.user.has_group('dl_base.dl_group_tech')
+            or self.env.user.has_group('dl_base.dl_group_admin')))
+
+    def _compute_is_technician(self):
+        is_tech = (self.env.user.has_group('dl_base.dl_group_tech')
+                   or self.env.user.has_group('dl_base.dl_group_admin'))
+        for rec in self:
+            rec.is_technician = is_tech
+
     @api.constrains("quantity")
     def _check_quantity(self):
         for rec in self:
@@ -225,6 +244,14 @@ class DlQuotationRequestLine(models.Model):
         return records
 
     def write(self, vals):
+        if not self.env.su and _TECH_ONLY_LINE_FIELDS & vals.keys():
+            user = self.env.user
+            if not (user.has_group('dl_base.dl_group_tech')
+                     or user.has_group('dl_base.dl_group_admin')):
+                raise AccessError(_(
+                    'Chỉ Kỹ thuật hoặc Admin được quyết định "Sản phẩm xác định" '
+                    '/ "Không khả thi" — đây là đánh giá kỹ thuật.'))
+
         res = super().write(vals)
 
         if {"resolved_product_id", "is_infeasible"} & set(vals.keys()):
