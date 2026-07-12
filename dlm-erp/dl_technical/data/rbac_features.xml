@@ -41,15 +41,6 @@
             <field name="group_id" ref="dl_group_op_bom_lock"/>
         </record>
 
-        <!-- Bán thành phẩm (dl.semi.product) -->
-        <record id="feat_semi_product" model="dl.rbac.feature">
-            <field name="name">Bán thành phẩm</field>
-            <field name="code">semi_product</field>
-            <field name="model_id" ref="model_dl_semi_product"/>
-            <field name="category">master</field>
-            <field name="sequence">80</field>
-        </record>
-
         <!-- Bản vẽ kỹ thuật (dl.drawing) -->
         <record id="feat_drawing" model="dl.rbac.feature">
             <field name="name">Bản vẽ kỹ thuật</field>

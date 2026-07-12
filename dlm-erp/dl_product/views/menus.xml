@@ -94,4 +94,40 @@
         groups="dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
     />
 
+    <!-- ============================================================
+         VẬT TƯ & BẢNG GIÁ (S06)
+         Parent: dl_base.menu_dl_material
+         Sales (dl_group_ba) KHÔNG có menu → Odoo tự ẩn parent
+    ============================================================ -->
+
+    <!-- Full: Admin, Kế toán -->
+    <menuitem
+        id="menu_dl_material_full"
+        name="Danh sách vật tư"
+        action="action_material_full"
+        parent="dl_base.menu_dl_material"
+        sequence="10"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant"
+    />
+
+    <!-- View-only: CEO, Trưởng KD -->
+    <menuitem
+        id="menu_dl_material_view"
+        name="Danh sách vật tư"
+        action="action_material_view"
+        parent="dl_base.menu_dl_material"
+        sequence="11"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+    />
+
+    <!-- KTV: View-only, giá ẩn -->
+    <menuitem
+        id="menu_dl_material_tech"
+        name="Danh sách vật tư"
+        action="action_material_tech"
+        parent="dl_base.menu_dl_material"
+        sequence="12"
+        groups="dl_base.dl_group_tech"
+    />
+
 </odoo>

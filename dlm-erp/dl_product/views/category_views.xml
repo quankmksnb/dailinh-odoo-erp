@@ -6,7 +6,11 @@
         <field name="model">product.category</field>
         <field name="priority">20</field>
         <field name="arch" type="xml">
-            <tree string="Nhóm sản phẩm">
+            <tree
+                string="Nhóm sản phẩm"
+                class="dl-category-list"
+                js_class="dl_category_list"
+            >
                 <field name="display_name" string="Tên nhóm" />
                 <field name="category_kind" string="Loại" />
             </tree>
@@ -18,7 +22,7 @@
         <field name="model">product.category</field>
         <field name="priority">20</field>
         <field name="arch" type="xml">
-            <form string="Nhóm sản phẩm">
+            <form string="Nhóm sản phẩm" class="dl-category-form" js_class="dl_category_form">
                 <sheet>
                     <group>
                         <group>
@@ -34,6 +38,22 @@
         </field>
     </record>
 
+    <record id="view_product_category_search" model="ir.ui.view">
+        <field name="name">product.category.dl.search</field>
+        <field name="model">product.category</field>
+        <field name="priority">20</field>
+        <field name="arch" type="xml">
+            <search string="Tìm nhóm sản phẩm">
+                <field name="name" string="Tên nhóm" />
+                <field name="category_kind" string="Loại" />
+                <group expand="0" string="Nhóm theo">
+                    <filter string="Loại" name="group_kind"
+                        context="{'group_by': 'category_kind'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
     <!-- Full: Admin, Trưởng KD -->
     <record id="action_dl_category_full" model="ir.actions.act_window">
         <field name="name">Nhóm sản phẩm</field>
@@ -45,6 +65,10 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_product_category_form')}),
         ]" />
         <field name="domain">[('category_kind', 'in', ['product', 'semi'])]</field>
+        <field name="search_view_id" ref="view_product_category_search" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Thêm nhóm sản phẩm đầu tiên!</p>
+        </field>
     </record>
 
     <!-- View-only: others -->
@@ -58,6 +82,7 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_product_category_form')}),
         ]" />
         <field name="domain">[('category_kind', 'in', ['product', 'semi'])]</field>
+        <field name="search_view_id" ref="view_product_category_search" />
         <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
     </record>
 

@@ -5,12 +5,17 @@
         <field name="name">dl.semi.product.tree</field>
         <field name="model">dl.semi.product</field>
         <field name="arch" type="xml">
-            <tree string="Bán thành phẩm" decoration-muted="active == False">
+            <tree
+                string="Bán thành phẩm"
+                class="dl-semi-list"
+                js_class="dl_semi_list"
+                decoration-muted="active == False"
+            >
                 <field name="semi_code" string="Mã BTP" />
                 <field name="name" string="Tên BTP" />
                 <field name="categ_id" string="Nhóm"
                     domain="[('category_kind', '=', 'semi')]" />
-                <field name="active" widget="boolean_toggle" />
+                <field name="active" column_invisible="1" />
             </tree>
         </field>
     </record>
@@ -19,7 +24,7 @@
         <field name="name">dl.semi.product.form</field>
         <field name="model">dl.semi.product</field>
         <field name="arch" type="xml">
-            <form string="Bán thành phẩm">
+            <form string="Bán thành phẩm" class="dl-semi-form" js_class="dl_semi_form">
                 <header>
                     <button
                         name="toggle_active"

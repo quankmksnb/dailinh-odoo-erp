@@ -58,6 +58,17 @@ class DlMaterial(models.Model):
         compute="_compute_active_price",
     )
 
+    current_unit_price = fields.Float(
+        related="active_price_id.unit_price",
+        string="Đơn giá hiện hành",
+        digits="Product Price",
+    )
+
+    current_price_status = fields.Selection(
+        related="active_price_id.price_status",
+        string="Trạng thái giá",
+    )
+
     price_ids = fields.One2many(
         "dl.material.price",
         "material_id",

@@ -12,8 +12,17 @@ const RAIL_ITEMS = [
     { key: "customer", name: "Khách hàng", icon: "fa-users", actionXmlId: "dl_partner.action_dl_customer" },
     { key: "supplier", name: "NCC / Thầu phụ", icon: "fa-truck", actionXmlId: "dl_partner.action_dl_supplier" },
     { key: "quotation", name: "Báo giá", icon: "fa-file-text-o", actionXmlId: "dl_sale.action_dl_quotation" },
-{ key: "product", name: "Sản phẩm", icon: "fa-cube", actionXmlId: "dl_product.action_dl_product_full" },    { key: "technical", name: "Kỹ thuật", icon: "fa-cogs", actionXmlId: null },
-    { key: "material", name: "Vật tư", icon: "fa-cubes", actionXmlId: null },
+    {
+        key: "product", name: "Sản phẩm", icon: "fa-cube",
+        actionXmlId: "dl_product.action_dl_product_full",
+        children: [
+            { key: "product_main", name: "Thành phẩm", actionXmlId: "dl_product.action_dl_product_full" },
+            { key: "semi_product", name: "Bán thành phẩm", actionXmlId: "dl_product.action_dl_semi_full" },
+            { key: "category", name: "Nhóm sản phẩm", actionXmlId: "dl_product.action_dl_category_full" },
+        ],
+    },
+    { key: "technical", name: "Kỹ thuật", icon: "fa-cogs", actionXmlId: null },
+    { key: "material", name: "Vật tư", icon: "fa-cubes", actionXmlId: "dl_product.action_material_full" },
     { key: "report", name: "Báo cáo", icon: "fa-bar-chart", actionXmlId: null },
     { key: "config", name: "Cấu hình", icon: "fa-sliders", actionXmlId: null },
 ];
@@ -26,7 +35,7 @@ export class DlmRail extends Component {
         this.actionService = useService("action");
         this.menuService = useService("menu");
         this.railItems = RAIL_ITEMS;
-        this.state = useState({ visible: this._inDlmApp() });
+        this.state = useState({ visible: this._inDlmApp(), expanded: {} });
         this.sidebar = useState(sidebarState);
 
         // "MENUS:APP-CHANGED" chỉ phát khi ĐỔI app (selectMenu / app switcher);
@@ -58,9 +67,12 @@ export class DlmRail extends Component {
         return !!app && app.xmlid === DLM_APP_XMLID;
     }
 
+    toggleSubmenu(key) {
+        this.state.expanded[key] = !this.state.expanded[key];
+    }
+
     openModule(actionXmlId) {
         if (!actionXmlId) return;
-        // clearBreadcrumbs: reset stack để breadcrumb không tích lũy dài.
         this.actionService.doAction(actionXmlId, { clearBreadcrumbs: true });
     }
 }

@@ -1,0 +1,28 @@
+.dl-material-form {
+  font-family: $dl-font;
+  color: $dl-text;
+  background: $dl-app-bg;
+
+  .o_form_sheet_bg {
+    background: $dl-app-bg;
+    border: 0;
+  }
+  .o_form_sheet {
+    max-width: 100%;
+    border: 1px solid $dl-border;
+    border-radius: $dl-radius;
+    box-shadow: none;
+    background: $dl-surface;
+  }
+
+  .oe_title h1 .o_field_widget {
+    font-size: 22px;
+    font-weight: 700;
+    color: $dl-heading;
+  }
+
+  .o_notebook .nav-link.active {
+    color: $dl-primary;
+    border-bottom-color: $dl-primary;
+  }
+}
