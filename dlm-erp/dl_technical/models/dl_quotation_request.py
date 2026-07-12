@@ -152,7 +152,7 @@ class DlQuotationRequestLine(models.Model):
     )
 
     product_category_id = fields.Many2one(
-        "dl.product.category",
+        "product.category",
         string="Nhóm sản phẩm",
     )
 

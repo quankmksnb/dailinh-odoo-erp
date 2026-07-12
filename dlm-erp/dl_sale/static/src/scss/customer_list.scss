@@ -218,7 +218,7 @@
 
 // Control-panel dùng chung cho danh sách Khách hàng / NCC / Sản phẩm / Vật tư:
 // chipbar, ô tìm kiếm, nút "+ Thêm", footer. Khối bảng riêng của mỗi màn nằm
-// ở supplier_list.scss / product_list.scss / dlm_material material_list.scss.
+// ở supplier_list.scss / product_list.scss / dl_product material_list.scss.
 .o_action_manager:has(.dl-customer-list),
 .o_action_manager:has(.dl-cust-kanban),
 .o_action_manager:has(.dl-supplier-list),

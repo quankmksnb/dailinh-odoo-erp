@@ -48,7 +48,7 @@
         </record>
 
         <!-- ============================================================
-             Bổ sung cho module dlm_material (Bảng giá Vật tư)
+             Bổ sung cho module dl_product (Bảng giá Vật tư)
         ============================================================ -->
 
         <record id="dl_group_accountant" model="res.groups">
