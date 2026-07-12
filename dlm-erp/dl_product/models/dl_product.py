@@ -95,7 +95,7 @@ class DlProduct(models.Model):
         for vals in vals_list:
             if not vals.get("default_code"):
                 vals["default_code"] = (
-                    self.env["ir.sequence"].next_by_code("dlm.product") or "/"
+                    self.env["ir.sequence"].next_by_code("dl.product") or "/"
                 )
-            vals.setdefault("type", "product")
+            vals.setdefault("detailed_type", "product")
         return super().create(vals_list)

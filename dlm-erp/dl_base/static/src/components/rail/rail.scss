@@ -120,6 +120,30 @@ $dl-rail-bg:      $dl-nav-bg;
             cursor: default;
             &:hover { background: transparent; color: $dl-text-muted; }
         }
+
+        &.has-children {
+            .dlm-rail-chevron {
+                margin-left: auto;
+                font-size: 10px;
+                transition: transform .15s ease;
+            }
+            &.expanded .dlm-rail-chevron {
+                transform: rotate(180deg);
+            }
+        }
+    }
+
+    .dlm-rail-submenu {
+        .dlm-rail-subitem {
+            padding-left: 18px;
+            min-height: 34px;
+            font-size: 12.5px;
+
+            .dlm-rail-icon {
+                width: 22px;
+                height: 22px;
+            }
+        }
     }
 
     &.collapsed {
@@ -128,6 +152,8 @@ $dl-rail-bg:      $dl-nav-bg;
         .dlm-rail-label { display: none; }
         .dlm-rail-logo { display: none; }
         .dlm-rail-toggle { margin-left: 0; }
+        .dlm-rail-chevron { display: none; }
+        .dlm-rail-submenu { display: none; }
         .dlm-rail-item {
             border-left: 0;
             padding-right: 0;

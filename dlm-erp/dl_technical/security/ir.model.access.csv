@@ -1,8 +1,4 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_dl_semi_product_ceo,dl.semi.product CEO,model_dl_semi_product,dl_base.dl_group_ceo,1,0,0,0
-access_dl_semi_product_admin,dl.semi.product Admin,model_dl_semi_product,dl_base.dl_group_admin,1,1,1,1
-access_dl_semi_product_ba,dl.semi.product BA,model_dl_semi_product,dl_base.dl_group_ba,1,0,0,0
-access_dl_semi_product_tech,dl.semi.product Tech,model_dl_semi_product,dl_base.dl_group_tech,1,1,1,0
 access_dl_drawing_ceo,dl.drawing CEO,model_dl_drawing,dl_base.dl_group_ceo,1,0,0,0
 access_dl_drawing_admin,dl.drawing Admin,model_dl_drawing,dl_base.dl_group_admin,1,1,1,1
 access_dl_drawing_tech,dl.drawing Tech,model_dl_drawing,dl_base.dl_group_tech,1,1,1,0

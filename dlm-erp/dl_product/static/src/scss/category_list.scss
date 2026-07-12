@@ -1,0 +1,75 @@
+.dl-category-list {
+  font-family: $dl-font;
+
+  .o_list_renderer {
+    height: auto !important;
+    max-height: 100%;
+    margin: 4px 16px 16px;
+    border: 1px solid $dl-border;
+    border-radius: $dl-radius;
+    background: #fff;
+    overflow: auto;
+  }
+
+  .o_list_table thead th {
+    background-color: $dl-table-head-bg;
+    color: $dl-text-2;
+    font-weight: 500;
+    border-bottom: 1px solid $dl-border;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .o_list_table td.o_data_cell {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    vertical-align: middle;
+  }
+  .o_list_table tbody tr.o_data_row td {
+    border-top: 1px solid $dl-divider;
+  }
+  .o_list_table tbody tr.o_data_row:first-child td {
+    border-top: 0;
+  }
+  .o_list_table tbody tr.o_data_row:hover {
+    background-color: $dl-app-bg;
+  }
+
+  .o_list_table {
+    thead th:not([data-name]) {
+      display: none !important;
+    }
+    tbody td:not([name]) {
+      display: none !important;
+    }
+    tfoot {
+      display: none !important;
+    }
+  }
+
+  .o_list_table {
+    table-layout: fixed !important;
+    width: 100% !important;
+
+    th[data-name="display_name"] {
+      width: 55% !important;
+    }
+    th[data-name="category_kind"] {
+      width: 25% !important;
+    }
+
+    td[name="display_name"] {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    tbody td {
+      background-color: transparent !important;
+    }
+  }
+
+  .o_list_table td.o_data_cell[name="display_name"] {
+    font-weight: 600;
+    color: $dl-heading;
+  }
+}

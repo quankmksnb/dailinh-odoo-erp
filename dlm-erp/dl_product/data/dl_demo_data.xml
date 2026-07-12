@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ============ CATEGORY ============ -->
+        <record id="categ_khung_thep_han" model="product.category">
+            <field name="name">Khung thép hàn</field>
+            <field name="category_kind">product</field>
+        </record>
+        <record id="categ_semi_khung" model="product.category">
+            <field name="name">Khung bán thành phẩm</field>
+            <field name="category_kind">semi</field>
+        </record>
+        <record id="categ_vt_thep" model="product.category">
+            <field name="name">Thép hộp / Thép ống</field>
+            <field name="category_kind">material</field>
+        </record>
+
+        <!-- ============ THÀNH PHẨM (dl.product) ============ -->
+        <record id="demo_product_ct200" model="dl.product">
+            <field name="name">Khung thép hàn CT-200</field>
+            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="supply_type">manufactured</field>
+            <field name="main_material">Thép CT3</field>
+            <field name="thickness">2.0</field>
+            <field name="finish">powder</field>
+            <field name="dim_length">2000</field>
+            <field name="dim_width">600</field>
+            <field name="dim_height">750</field>
+            <field name="est_weight">35.5</field>
+            <field name="tech_note">Hàn MIG, sơn tĩnh điện RAL 7035. Dung sai ±2mm.</field>
+        </record>
+
+        <!-- ============ BÁN THÀNH PHẨM (dl.semi.product) ============ -->
+        <record id="demo_semi_chan_ban" model="dl.semi.product">
+            <field name="name">Chân bàn chữ A - 750mm</field>
+            <field name="categ_id" ref="categ_semi_khung" />
+        </record>
+        <record id="demo_semi_khung_mat" model="dl.semi.product">
+            <field name="name">Khung mặt bàn 2000×600</field>
+            <field name="categ_id" ref="categ_semi_khung" />
+        </record>
+
+        <!-- ============ VẬT TƯ (dl.material) ============ -->
+        <record id="demo_mat_thep_hop" model="dl.material">
+            <field name="name">Thép hộp 25×50×1.4mm</field>
+            <field name="categ_id" ref="categ_vt_thep" />
+            <field name="spec">25×50×1.4mm, dài 6m/cây</field>
+            <field name="uom_id" ref="uom.product_uom_meter" />
+        </record>
+        <record id="demo_mat_thep_ong" model="dl.material">
+            <field name="name">Thép ống Φ27×1.2mm</field>
+            <field name="categ_id" ref="categ_vt_thep" />
+            <field name="spec">Φ27×1.2mm, dài 6m/cây</field>
+            <field name="uom_id" ref="uom.product_uom_meter" />
+        </record>
+        <record id="demo_mat_son" model="dl.material">
+            <field name="name">Bột sơn tĩnh điện RAL 7035</field>
+            <field name="categ_id" ref="categ_vt_thep" />
+            <field name="spec">Bao 25kg, màu xám nhạt</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+        </record>
+
+        <!-- ============ BẢNG GIÁ VẬT TƯ (dl.material.price) ============ -->
+        <!-- Thép hộp: giá hiện hành -->
+        <record id="demo_price_thep_hop_1" model="dl.material.price">
+            <field name="material_id" ref="demo_mat_thep_hop" />
+            <field name="unit_price">18500</field>
+            <field name="uom_id" ref="uom.product_uom_meter" />
+            <field name="valid_from">2026-07-01</field>
+            <field name="valid_to">2026-12-31</field>
+            <field name="is_active" eval="True" />
+            <field name="note">Giá NCC Hoà Phát Q3/2026</field>
+        </record>
+        <!-- Thép ống: giá sắp hết hạn (test badge expiring) -->
+        <record id="demo_price_thep_ong_1" model="dl.material.price">
+            <field name="material_id" ref="demo_mat_thep_ong" />
+            <field name="unit_price">15200</field>
+            <field name="uom_id" ref="uom.product_uom_meter" />
+            <field name="valid_from">2026-06-01</field>
+            <field name="valid_to">2026-07-18</field>
+            <field name="is_active" eval="True" />
+            <field name="note">Giá cũ — sắp hết hạn</field>
+        </record>
+        <!-- Bột sơn: giá bình thường -->
+        <record id="demo_price_son_1" model="dl.material.price">
+            <field name="material_id" ref="demo_mat_son" />
+            <field name="unit_price">72000</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="valid_from">2026-07-01</field>
+            <field name="valid_to">2027-06-30</field>
+            <field name="is_active" eval="True" />
+        </record>
+
+    </data>
+</odoo>
