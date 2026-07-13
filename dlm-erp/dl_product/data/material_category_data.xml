@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="material_categ_steel_sheet" model="product.category">
+        <field name="name">Thép tấm</field>
+        <field name="category_kind">material</field>
+    </record>
+    <record id="material_categ_steel_box" model="product.category">
+        <field name="name">Thép hộp</field>
+        <field name="category_kind">material</field>
+    </record>
+    <record id="material_categ_steel_pipe" model="product.category">
+        <field name="name">Thép ống</field>
+        <field name="category_kind">material</field>
+    </record>
+    <record id="material_categ_paint" model="product.category">
+        <field name="name">Sơn</field>
+        <field name="category_kind">material</field>
+    </record>
+    <record id="material_categ_consumable" model="product.category">
+        <field name="name">Vật tư tiêu hao</field>
+        <field name="category_kind">material</field>
+    </record>
+    <record id="material_categ_outsource" model="product.category">
+        <field name="name">Gia công ngoài</field>
+        <field name="category_kind">material</field>
+    </record>
+</odoo>

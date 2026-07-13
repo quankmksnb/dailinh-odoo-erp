@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
     <menuitem
         id="menu_dl_sale_quotation"
         name="Báo giá"
@@ -9,15 +8,4 @@
         action="action_dl_quotation"
         groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech"
     />
-
-    <!-- S05 — Danh mục Sản phẩm (mọi vai trò xem được) -->
-    <menuitem
-        id="menu_dl_technical_product"
-        name="Danh mục Sản phẩm"
-        parent="dl_base.menu_dl_technical"
-        sequence="10"
-        action="dl_product.action_dl_product"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_accountant"
-    />
-
 </odoo>
