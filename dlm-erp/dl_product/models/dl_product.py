@@ -1,101 +1,79 @@
-from odoo import api, fields, models
+import re
+
+from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
+
+# Data Model PROD-02: default_code validate ^[A-Z0-9\-]+$ (chữ hoa, số, gạch ngang)
+_CODE_RE = re.compile(r"^[A-Z0-9\-]+$")
 
 
-class DlProduct(models.Model):
-    _name = "dl.product"
-    _inherits = {"product.product": "product_id"}
-    _inherit = ["mail.thread", "mail.activity.mixin"]
-    _description = "Thành phẩm"
-    _order = "default_code"
+class ProductProduct(models.Model):
+    """PROD-02 — dl.product.
 
-    _sql_constraints = [
-        (
-            "product_id_uniq",
-            "unique(product_id)",
-            "Sản phẩm Odoo này được liên kết với một thành phẩm khác.",
-        )
-    ]
+    Theo Data Model (TDS Report 4, §4.2): SẢN PHẨM là bảng HỢP NHẤT cho cả 4
+    loại nghiệp vụ, phân biệt qua ``product_kind``. Kế thừa MỞ RỘNG THUẦN
+    ``product.product`` (``_inherit`` — KHÔNG tạo bảng mới): mọi bản ghi nằm
+    trực tiếp trong ``product_product``, giữ nguyên vẹn search/report/tồn kho.
 
-    product_id = fields.Many2one(
-        "product.product",
-        string="Sản phẩm",
-        required=True,
-        ondelete="cascade",
-        index=True,
-    )
+    Thiết kế cũ (dl.product/dl.semi.product/dl.material là 3 bảng delegation
+    riêng qua ``_inherits``) đã bị BỎ — semi → material_processed, material giữ
+    nguyên; đổi loại sản phẩm nay chỉ là đổi 1 field ``product_kind``.
 
-    # Phân loại
-    # category_id / categ_id: dùng categ_id native proxy qua product_id.
-    # Không khai lại ở đây — view XML dùng tên 'categ_id'
+    Pattern: để MỞ RỘNG product.product ĐỒNG THỜI thêm mixin mail.thread, phải
+    khai cả ``_name`` (= 'product.product') LẪN ``_inherit`` dạng list chứa chính
+    nó + mixin. Thiếu ``_name`` khi ``_inherit`` là list ⇒ Odoo báo
+    "The _name attribute ... is not valid".
+    """
 
-    supply_type = fields.Selection(
+    _name = "product.product"
+    _inherit = ["product.product", "mail.thread", "mail.activity.mixin"]
+
+    product_kind = fields.Selection(
         [
-            ("manufactured", "Gia công"),
-            ("trading", "Thương mại"),
+            ("manufactured", "Sản phẩm gia công"),
+            ("trading", "Sản phẩm thương mại"),
+            ("material", "Vật tư"),
+            ("material_processed", "Vật tư đã gia công"),
         ],
-        string="Loại cung ứng",
+        string="Loại sản phẩm",
         required=True,
         default="manufactured",
         tracking=True,
+        help="Phân loại nghiệp vụ (Data Model PROD-02):\n"
+        "• Gia công (manufactured): tự sản xuất theo BOM\n"
+        "• Thương mại (trading): nhập về bán thẳng, tra giá NCC\n"
+        "• Vật tư (material): NVL thô, tra giá NCC\n"
+        "• Vật tư đã gia công (material_processed): cắt/gia công từ vật tư gốc, có BOM riêng",
     )
 
+    # Hàng thương mại (trading): giá vốn nhập dùng trực tiếp làm chi phí khi báo
+    # giá (không qua BOM). Chỉ áp dụng khi product_kind='trading'.
     purchase_cost = fields.Monetary(
-        string="Giá vốn nhập", help="Chỉ điền khi loại cung ứng là Thương mại."
+        string="Giá vốn nhập",
+        currency_field="currency_id",
+        help="Chỉ dùng cho hàng thương mại (trading) — làm giá vốn trực tiếp khi báo giá.",
     )
 
-    default_supplier_id = fields.Many2one(
-        "res.partner",
-        string="Nhà cung cấp mặc định",
-        domain="[('partner_role', 'in', ['supplier', 'both'])]",
-    )
-
-    # ── Thuộc tính kỹ thuật
-    dim_length = fields.Float(string="Dài (mm)")
-    dim_width = fields.Float(string="Rộng (mm)")
-    dim_height = fields.Float(string="Cao (mm)")
-    dim_display = fields.Char(
-        string="Kích thước", compute="_compute_dim_display", store=True
-    )
-    main_material = fields.Char(
-        string="Vật liệu chính", help="VD: Thép CT3, Inox 304, Nhôm..."
-    )
-    thickness = fields.Float(string="Độ dày (mm)")
-    finish = fields.Selection(
-        [
-            ("powder", "Sơn tĩnh điện"),
-            ("galv", "Mạ kẽm"),
-            ("raw", "Để nguyên"),
-        ],
-        string="Lớp hoàn thiện",
-    )
-    est_weight = fields.Float(string="Khối lượng ước tính (kg)")
-    tech_note = fields.Text(string="Ghi chú kỹ thuật")
-
-    status_display = fields.Char(string="Trạng thái", compute="_compute_status_display")
-
-    @api.depends("active")
-    def _compute_status_display(self):
+    # ── Constraints ──────────────────────────────────────────────────────
+    @api.constrains("default_code")
+    def _check_default_code(self):
+        """Data Model §6 Indexing: default_code UNIQUE + validate ^[A-Z0-9\\-]+$."""
         for rec in self:
-            rec.status_display = "Đang sản xuất" if rec.active else "Ngừng sản xuất"
-
-    @api.depends("dim_length", "dim_width", "dim_height")
-    def _compute_dim_display(self):
-        for rec in self:
-            if rec.dim_length or rec.dim_width or rec.dim_height:
-                rec.dim_display = "%g × %g × %g mm" % (
-                    rec.dim_length or 0,
-                    rec.dim_width or 0,
-                    rec.dim_height or 0,
+            code = rec.default_code
+            if not code:
+                continue
+            if not _CODE_RE.match(code):
+                raise ValidationError(
+                    _(
+                        "Mã sản phẩm '%s' không hợp lệ — chỉ cho phép chữ IN HOA, "
+                        "số và dấu gạch ngang (VD: CT-200, VT-001)."
+                    )
+                    % code
                 )
-            else:
-                rec.dim_display = ""
-
-    @api.model_create_multi
-    def create(self, vals_list):
-        for vals in vals_list:
-            if not vals.get("default_code"):
-                vals["default_code"] = (
-                    self.env["ir.sequence"].next_by_code("dl.product") or "/"
+            dup = self.with_context(active_test=False).search(
+                [("default_code", "=", code), ("id", "!=", rec.id)], limit=1
+            )
+            if dup:
+                raise ValidationError(
+                    _("Mã sản phẩm '%s' đã tồn tại (%s).") % (code, dup.display_name)
                 )
-            vals.setdefault("detailed_type", "product")
-        return super().create(vals_list)

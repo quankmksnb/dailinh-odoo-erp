@@ -2,15 +2,6 @@
 <odoo>
     <data noupdate="0">
 
-        <!-- Bán thành phẩm (dl.semi.product) -->
-        <record id="feat_semi_product" model="dl.rbac.feature">
-            <field name="name">Bán thành phẩm</field>
-            <field name="code">semi_product</field>
-            <field name="model_id" ref="model_dl_semi_product"/>
-            <field name="category">master</field>
-            <field name="sequence">25</field>
-        </record>
-
         <!-- Nhóm sản phẩm (product.category) -->
         <record id="feat_category" model="dl.rbac.feature">
             <field name="name">Nhóm sản phẩm</field>
@@ -20,11 +11,11 @@
             <field name="sequence">26</field>
         </record>
 
-        <!-- Vật tư (dl.material) -->
-        <record id="feat_material" model="dl.rbac.feature">
-            <field name="name">Vật tư</field>
-            <field name="code">material</field>
-            <field name="model_id" ref="model_dl_material"/>
+        <!-- Bảng giá NCC (product.supplierinfo — PROD-03) -->
+        <record id="feat_supplierinfo" model="dl.rbac.feature">
+            <field name="name">Bảng giá NCC</field>
+            <field name="code">supplierinfo</field>
+            <field name="model_id" ref="product.model_product_supplierinfo"/>
             <field name="category">master</field>
             <field name="sequence">27</field>
         </record>

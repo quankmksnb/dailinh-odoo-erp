@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         PROD-03 — dl.product.supplierinfo (kế thừa product.supplierinfo)
+         Bảng giá vật tư / SP thương mại theo NCC + thời điểm + duyệt giá.
+    ============================================================ -->
+
+    <record id="view_dl_supplierinfo_tree" model="ir.ui.view">
+        <field name="name">dl.product.supplierinfo.tree</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="arch" type="xml">
+            <tree string="Bảng giá NCC" editable="bottom">
+                <field name="company_id" column_invisible="1" />
+                <field name="product_tmpl_id" string="Sản phẩm / Vật tư" />
+                <field name="partner_id" string="Nhà cung cấp" />
+                <field name="price" />
+                <field name="currency_id" column_invisible="1" />
+                <field name="date_start" string="Từ ngày" />
+                <field name="date_end" string="Đến ngày" />
+                <field name="min_qty" string="SL tối thiểu" optional="hide" />
+                <field
+                    name="approval_state"
+                    widget="badge"
+                    decoration-success="approval_state == 'approved'"
+                    decoration-warning="approval_state == 'draft'"
+                />
+                <button name="action_approve" type="object" string="Duyệt"
+                    icon="fa-check" invisible="approval_state == 'approved'"
+                    groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                <button name="action_reset_draft" type="object" string="Hủy duyệt"
+                    icon="fa-undo" invisible="approval_state != 'approved'"
+                    groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_supplierinfo_form" model="ir.ui.view">
+        <field name="name">dl.product.supplierinfo.form</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="arch" type="xml">
+            <form string="Giá NCC">
+                <header>
+                    <button name="action_approve" type="object" string="Duyệt giá"
+                        class="oe_highlight" invisible="approval_state == 'approved'"
+                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                    <button name="action_reset_draft" type="object" string="Về nháp"
+                        invisible="approval_state != 'approved'"
+                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                    <field name="approval_state" widget="statusbar" />
+                </header>
+                <sheet>
+                    <field name="company_id" invisible="1" />
+                    <group>
+                        <group string="Sản phẩm &amp; NCC">
+                            <field name="product_tmpl_id" string="Sản phẩm / Vật tư" />
+                            <field name="partner_id" string="Nhà cung cấp" />
+                        </group>
+                        <group string="Giá &amp; Hiệu lực">
+                            <field name="price" />
+                            <field name="currency_id" invisible="1" />
+                            <field name="date_start" string="Từ ngày" />
+                            <field name="date_end" string="Đến ngày" />
+                            <field name="min_qty" string="SL tối thiểu" />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_supplierinfo_search" model="ir.ui.view">
+        <field name="name">dl.product.supplierinfo.search</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="arch" type="xml">
+            <search string="Tìm bảng giá NCC">
+                <field name="product_tmpl_id" string="Sản phẩm / Vật tư" />
+                <field name="partner_id" string="Nhà cung cấp" />
+                <separator />
+                <filter name="draft" string="Chờ duyệt"
+                    domain="[('approval_state', '=', 'draft')]" />
+                <filter name="approved" string="Đã duyệt"
+                    domain="[('approval_state', '=', 'approved')]" />
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_partner" string="Nhà cung cấp"
+                        context="{'group_by': 'partner_id'}" />
+                    <filter name="group_state" string="Trạng thái duyệt"
+                        context="{'group_by': 'approval_state'}" />
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Full: Admin, Kế toán -->
+    <record id="action_dl_supplierinfo_full" model="ir.actions.act_window">
+        <field name="name">Bảng giá NCC</field>
+        <field name="res_model">product.supplierinfo</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplierinfo_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_supplierinfo_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_supplierinfo_search" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Thêm bảng giá NCC đầu tiên!</p>
+        </field>
+    </record>
+
+    <!-- View-only: CEO, Trưởng KD -->
+    <record id="action_dl_supplierinfo_view" model="ir.actions.act_window">
+        <field name="name">Bảng giá NCC</field>
+        <field name="res_model">product.supplierinfo</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplierinfo_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_supplierinfo_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_supplierinfo_search" />
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+</odoo>

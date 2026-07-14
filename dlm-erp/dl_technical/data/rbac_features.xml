@@ -15,10 +15,6 @@
             <field name="name">[Thao tác] Khóa BOM</field>
             <field name="category_id" ref="base.module_category_hidden"/>
         </record>
-        <record id="dl_group_op_formula_test" model="res.groups">
-            <field name="name">[Thao tác] Chạy test-case công thức tham số</field>
-            <field name="category_id" ref="base.module_category_hidden"/>
-        </record>
         <record id="dl_group_op_rfq_cancel" model="res.groups">
             <field name="name">[Thao tác] Hủy yêu cầu báo giá</field>
             <field name="category_id" ref="base.module_category_hidden"/>
@@ -50,19 +46,13 @@
             <field name="sequence">90</field>
         </record>
 
-        <!-- Công thức tham số (dl.parametric.formula) -->
-        <record id="feat_parametric_formula" model="dl.rbac.feature">
-            <field name="name">Công thức tham số</field>
-            <field name="code">parametric_formula</field>
-            <field name="model_id" ref="model_dl_parametric_formula"/>
+        <!-- BOM mẫu (dl.bom.template — TECH-04) -->
+        <record id="feat_bom_template" model="dl.rbac.feature">
+            <field name="name">BOM mẫu</field>
+            <field name="code">bom_template</field>
+            <field name="model_id" ref="model_dl_bom_template"/>
             <field name="category">master</field>
             <field name="sequence">100</field>
-        </record>
-        <record id="op_formula_test" model="dl.rbac.operation">
-            <field name="feature_id" ref="feat_parametric_formula"/>
-            <field name="name">Chạy test-case</field>
-            <field name="code">run_test</field>
-            <field name="group_id" ref="dl_group_op_formula_test"/>
         </record>
 
         <!-- Yêu cầu báo giá / RFQ (dl.quotation.request) -->
