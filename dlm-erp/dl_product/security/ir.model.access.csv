@@ -1,0 +1,16 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+acess_dl_product_skd,acess_dl_product_skd,model_dl_product,dl_base.dl_group_sales_manager,1,1,1,1
+access_dl_product_tech,access_dl_product_tech,model_dl_product,dl_base.dl_group_tech,1,0,0,0
+access_dl_product_ba,access_dl_product_ba,model_dl_product,dl_base.dl_group_ba,1,0,0,0
+access_dl_product_ceo,access_dl_product_ceo,model_dl_product,dl_base.dl_group_ceo,1,0,0,0
+access_dl_material_acc,dl.material Acc,model_dl_material,dl_base.dl_group_accountant,1,1,1,0
+access_dl_material_ceo,dl.material CEO,model_dl_material,dl_base.dl_group_ceo,1,0,0,0
+access_dl_material_sm,dl.material SM,model_dl_material,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_material_tech,dl.material Tech,model_dl_material,dl_base.dl_group_tech,1,0,0,0
+access_dl_material_price_acc,dl.material.price Acc,model_dl_material_price,dl_base.dl_group_accountant,1,1,1,0
+access_dl_material_price_ceo,dl.material.price CEO,model_dl_material_price,dl_base.dl_group_ceo,1,0,0,0
+access_dl_material_price_sm,dl.material.price SM,model_dl_material_price,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_semi_product_sm,dl.semi.product SM,model_dl_semi_product,dl_base.dl_group_sales_manager,1,1,1,0
+access_dl_semi_product_tech,dl.semi.product Tech,model_dl_semi_product,dl_base.dl_group_tech,1,0,0,0
+access_dl_semi_product_ba,dl.semi.product BA,model_dl_semi_product,dl_base.dl_group_ba,1,0,0,0
+access_dl_semi_product_ceo,dl.semi.product CEO,model_dl_semi_product,dl_base.dl_group_ceo,1,0,0,0

@@ -16,7 +16,6 @@
     ],
     'assets': {
         'web.assets_backend': [
-            'dl_config/static/src/js/nav_patch.js',
             'dl_config/static/src/scss/control_panel.scss',
             'dl_config/static/src/components/config_home/config_home.scss',
             'dl_config/static/src/components/config_home/config_home.xml',

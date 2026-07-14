@@ -1,16 +1,17 @@
 /** @odoo-module **/
 
-import { Component, useRef, useState, onMounted, onWillUnmount } from "@odoo/owl";
+import { Component } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import { Dropdown } from "@web/core/dropdown/dropdown";
 import { DropdownItem } from "@web/core/dropdown/dropdown_item";
 import { ErrorHandler } from "@web/core/utils/components";
-import { sidebarState, toggleSidebar } from "@dl_base/js/sidebar_state";
+import { getModules, DLM_ROOT_XMLID } from "@dl_base/js/modules_nav";
 
 const systrayRegistry = registry.category("systray");
 
+<<<<<<< Updated upstream
 const NAV_ITEMS = [
     {
         key: "home",
@@ -91,6 +92,8 @@ const ACTIVITIES = [
     { key: "a5", icon: "fa-cube",          tone: "muted", text: "Cập nhật vật tư: Thép hộp 40x80", who: "Kho vật tư", time: "Hôm qua" },
 ];
 
+=======
+>>>>>>> Stashed changes
 export class DlHome extends Component {
     static template = "dl_base.DlHome";
     static props = { ...standardActionServiceProps };
@@ -100,48 +103,28 @@ export class DlHome extends Component {
         this.actionService = useService("action");
         this.menuService = useService("menu");
         this.userService = useService("user");
-        this.navItems = NAV_ITEMS;
-        this.stats = STATS;
-        this.recentQuotations = RECENT_QUOTATIONS;
-        this.activities = ACTIVITIES;
-        this.sidebar = useState(sidebarState);
+
+        // Đảm bảo app hiện tại là DLM để systray (avatar/thông báo) hoạt động đúng.
         const dlmApp = this.menuService
             .getApps()
-            .find((app) => app.xmlid === "dl_base.menu_dl_root");
+            .find((app) => app.xmlid === DLM_ROOT_XMLID);
         if (dlmApp && this.menuService.getCurrentApp()?.id !== dlmApp.id) {
             this.menuService.setCurrentMenu(dlmApp);
         }
 
-        this.rootRef = useRef("root");
-        this._closeTimer = null;
-        this._onDocMouseMove = this._onDocMouseMove.bind(this);
-        onMounted(() => document.addEventListener("mousemove", this._onDocMouseMove));
-        onWillUnmount(() => {
-            document.removeEventListener("mousemove", this._onDocMouseMove);
-            if (this._closeTimer) { clearTimeout(this._closeTimer); }
-        });
+        // Card = menu user ĐƯỢC PHÉP (menuService đã lọc theo RBAC).
+        // Không quyền ⇒ menu vắng mặt ⇒ card tự ẩn. Xem dl_base/js/modules_nav.js.
+        this.modules = getModules(this.menuService);
     }
 
     get userName() {
         return this.userService.name || "";
     }
 
-    get greeting() {
-        const hour = new Date().getHours();
-        if (hour < 11) return "Chào buổi sáng";
-        if (hour < 14) return "Chào buổi trưa";
-        if (hour < 18) return "Chào buổi chiều";
-        return "Chào buổi tối";
-    }
-
-    get today() {
-        try {
-            return new Date().toLocaleDateString("vi-VN", {
-                weekday: "long", day: "2-digit", month: "2-digit", year: "numeric",
-            });
-        } catch {
-            return "";
-        }
+    // Danh sách App Odoo (DLM-ERP, Cấu hình/Settings, Thảo luận...) cho dropdown
+    // thương hiệu góc trái — giữ lối vào Apps/Settings như bản cũ.
+    get apps() {
+        return this.menuService.getApps();
     }
 
     get systrayItems() {
@@ -161,10 +144,6 @@ export class DlHome extends Component {
         });
     }
 
-    get apps() {
-        return this.menuService.getApps();
-    }
-
     getMenuItemHref(payload) {
         const parts = [`menu_id=${payload.id}`];
         if (payload.actionID) {
@@ -178,48 +157,15 @@ export class DlHome extends Component {
             this.menuService.selectMenu(menu);
         }
     }
-    _onDocMouseMove(ev) {
-        const t = ev.target;
-        const overToggle = t.closest && t.closest(".dl-home .dropdown-toggle");
-        const overMenu = t.closest && t.closest(".dropdown-menu, .o-dropdown--menu");
 
-        if (overToggle || overMenu) {
-            if (this._closeTimer) { clearTimeout(this._closeTimer); this._closeTimer = null; }
-
-            if (
-                overToggle &&
-                overToggle !== this._openTgl &&
-                overToggle.getAttribute("aria-expanded") === "false"
-            ) {
-                const root = this.rootRef.el;
-                root && root
-                    .querySelectorAll('.dropdown-toggle[aria-expanded="true"]')
-                    .forEach((x) => { if (x !== overToggle) { x.click(); } });
-                this._openTgl = overToggle;
-                overToggle.click();
-            }
-            return;
+    openCard(mod) {
+        // Có launcher curated (Báo giá/Kỹ thuật/Cấu hình) → mở thẳng action đó;
+        // ngược lại mở màn con đầu tiên user được phép (target đã resolve sẵn).
+        if (mod.action) {
+            this.actionService.doAction(mod.action, { clearBreadcrumbs: true });
+        } else if (mod.target) {
+            this.menuService.selectMenu(mod.target);
         }
-
-        if (!this._closeTimer && this._openTgl) {
-            this._closeTimer = setTimeout(() => {
-                this._closeTimer = null;
-                this._openTgl = null;
-                const root = this.rootRef.el;
-                root && root
-                    .querySelectorAll('.dropdown-toggle[aria-expanded="true"]')
-                    .forEach((tg) => tg.click());
-            }, 220);
-        }
-    }
-
-    toggleSidebar() {
-        toggleSidebar();
-    }
-
-    openModule(actionXmlId) {
-        if (!actionXmlId) return;
-        this.actionService.doAction(actionXmlId, { clearBreadcrumbs: true });
     }
 }
 

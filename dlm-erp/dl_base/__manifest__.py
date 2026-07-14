@@ -17,8 +17,25 @@
             # cả dl_sale cũng dựa vào — xem dl_sale/__manifest__.py).
             'dl_base/static/src/scss/variables.scss',
             'dl_base/static/src/scss/mixins.scss',
+            # Chrome control-panel dùng CHUNG toàn hệ thống (breadcrumb, nút
+            # Lưu/Huỷ, menu ⋮ Thao tác) cho mọi màn dl-*-form / dl-*-list ở
+            # dl_sale, dl_product, dl_technical... — đặt ở base để module con
+            # không phải phụ thuộc dl_sale mới có style. Dùng biến ở variables.scss
+            # nên PHẢI nạp sau variables.scss.
+            'dl_base/static/src/scss/control_panel.scss',
             # State dùng chung sidebar (Home nav + Rail) — nạp trước component
             'dl_base/static/src/js/sidebar_state.js',
+<<<<<<< Updated upstream
+=======
+            # Nguồn điều hướng module theo RBAC (menuService) — dùng chung Home + Rail
+            'dl_base/static/src/js/modules_nav.js',
+            # JS — hạ tầng list/form dùng chung toàn hệ thống (menu ⋮ Thao
+            # tác + DlListBaseController). Các module con (dl_sale, dl_product,
+            # dl_bom, dl_config...) đều import từ đây, KHÔNG từ dl_sale, để
+            # tránh phụ thuộc vòng (dl_sale lại depends dl_product).
+            'dl_base/static/src/js/actions_menu.js',
+            'dl_base/static/src/views/dl_list_controller.js',
+>>>>>>> Stashed changes
             # Component — Home dashboard (client action ir.actions.client)
             'dl_base/static/src/components/home/home.scss',
             'dl_base/static/src/components/home/home.xml',

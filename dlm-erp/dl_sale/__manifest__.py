@@ -16,9 +16,9 @@
     ],
     'assets': {
         'web.assets_backend': [
-            # SCSS — token & mixin dùng chung nằm ở dl_base (nạp trước theo
-            # thứ tự phụ thuộc). Ở đây chỉ còn style theo màn của dl_sale.
-            'dl_sale/static/src/scss/control_panel.scss',
+            # SCSS — token & mixin + chrome control-panel dùng chung nằm ở
+            # dl_base (nạp trước theo thứ tự phụ thuộc). Ở đây chỉ còn style
+            # theo màn của dl_sale.
             'dl_sale/static/src/scss/quotation_form.scss',
             'dl_sale/static/src/scss/quotation_list.scss',
             'dl_sale/static/src/scss/customer_list.scss',
@@ -44,9 +44,12 @@
             'dl_sale/static/src/views/quotation_form_controller.js',
             'dl_sale/static/src/views/customer_form_controller.js',
             'dl_sale/static/src/views/supplier_form_controller.js',
+<<<<<<< Updated upstream
             'dl_sale/static/src/views/product_form_controller.js',
             # JS — patch điều hướng
             'dl_sale/static/src/js/nav_patch.js',
+=======
+>>>>>>> Stashed changes
             # Component — Hub Báo giá (RFQ + Yêu cầu khách hàng)
             'dl_sale/static/src/components/quote_home/quote_home.scss',
             'dl_sale/static/src/components/quote_home/quote_home.js',
