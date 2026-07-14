@@ -1,45 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- ============ DEMO/SEED DATA ============ -->
-    <data noupdate="1">
-        <record id="prod_categ_ban_sat" model="product.category">
-            <field name="name">Bàn sắt</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_ghe_sat" model="product.category">
-            <field name="name">Ghế sắt</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_tu_dien" model="product.category">
-            <field name="name">Tủ điện</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_tu_cc" model="product.category">
-            <field name="name">Tủ chữa cháy</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_long_chim" model="product.category">
-            <field name="name">Lồng chim</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_khung_thep" model="product.category">
-            <field name="name">Khung thép</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_khac" model="product.category">
-            <field name="name">Khác</field>
-            <field name="category_kind">product</field>
-        </record>
-    </data>
-
-    <!-- ============ VIEWS ============ -->
+    <!-- ============================================================
+         PROD-02 — dl.product = product.product (mở rộng thuần)
+         Bảng hợp nhất 4 loại: manufactured / trading / material /
+         material_processed (phân biệt qua product_kind).
+    ============================================================ -->
 
     <record id="view_dl_product_tree" model="ir.ui.view">
         <field name="name">dl.product.tree</field>
-        <field name="model">dl.product</field>
+        <field name="model">product.product</field>
         <field name="arch" type="xml">
             <tree
-                string="Thành phẩm"
+                string="Sản phẩm"
                 class="dl-product-list"
                 js_class="dl_product_list"
                 decoration-muted="active == False"
@@ -47,15 +19,8 @@
                 <field name="default_code" string="Mã SP" />
                 <field name="name" string="Tên SP" />
                 <field name="categ_id" string="Nhóm SP" />
-                <field name="supply_type" string="Loại cung ứng" />
-                <field name="dim_display" string="Kích thước" />
-                <field
-                    name="status_display"
-                    string="Trạng thái"
-                    widget="badge"
-                    decoration-success="active == True"
-                    decoration-muted="active == False"
-                />
+                <field name="product_kind" string="Loại SP" />
+                <field name="uom_id" string="ĐVT" optional="show" />
                 <field name="active" column_invisible="1" />
             </tree>
         </field>
@@ -63,10 +28,10 @@
 
     <record id="view_dl_product_form" model="ir.ui.view">
         <field name="name">dl.product.form</field>
-        <field name="model">dl.product</field>
+        <field name="model">product.product</field>
         <field name="arch" type="xml">
             <form
-                string="Thành phẩm"
+                string="Sản phẩm"
                 class="dl-product-form"
                 js_class="dl_product_form"
             >
@@ -77,7 +42,7 @@
                         string="Vô hiệu hóa SP"
                         class="btn-secondary"
                         invisible="not active"
-                        confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu BOM/báo giá cũ giữ nguyên."
+                        confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu cũ giữ nguyên."
                         groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
                     />
                     <button
@@ -93,7 +58,7 @@
                     <field name="active" invisible="1" />
                     <widget
                         name="web_ribbon"
-                        title="Ngừng sản xuất"
+                        title="Ngừng sử dụng"
                         bg_color="text-bg-danger"
                         invisible="active"
                     />
@@ -103,58 +68,67 @@
                         <h1>
                             <field
                                 name="name"
-                                placeholder="VD: Bàn sắt chân chữ A 1200×600..."
+                                placeholder="VD: Khung thép hàn CT-200..."
                             />
                         </h1>
-                        <div class="dl-prod-code" invisible="not default_code"> Mã SP: <field
-                                name="default_code" class="oe_inline" readonly="1" />
-                        </div>
                     </div>
 
                     <group>
                         <group string="Phân loại">
-                            <field name="categ_id"
+                            <field
+                                name="default_code"
+                                string="Mã SP"
+                                placeholder="VD: CT-200, VT-001"
+                            />
+                            <field name="product_kind" />
+                            <field
+                                name="categ_id"
                                 string="Nhóm SP"
-                                domain="[('category_kind', '=', 'product')]"
-                                options="{'no_open': True}" />
-                            <field name="supply_type" />
+                                options="{'no_open': True}"
+                            />
                         </group>
-                        <group string="Vật liệu &amp; hoàn thiện">
-                            <field name="main_material"
-                                placeholder="Thép CT3 / Inox 304 / Nhôm..." />
-                            <field name="thickness" />
-                            <field name="finish" />
+                        <group string="Đơn vị tính">
+                            <field name="uom_id" />
+                            <field name="uom_po_id" groups="uom.group_uom" />
                         </group>
                     </group>
 
-                    <group string="Thuộc tính kỹ thuật">
-                        <group>
-                            <label for="dim_length" string="Kích thước D×R×C (mm)" />
-                            <div class="o_row">
-                                <field name="dim_length" nolabel="1" class="oe_inline" /> × <field
-                                    name="dim_width" nolabel="1" class="oe_inline" /> × <field
-                                    name="dim_height" nolabel="1" class="oe_inline" />
-                            </div>
-                        </group>
-                        <group>
-                            <field name="est_weight" />
-                            <field name="default_supplier_id" />
-                        </group>
-                    </group>
-
-                    <group invisible="supply_type != 'trading'" string="Thông tin thương mại">
+                    <group
+                        string="Thông tin thương mại"
+                        invisible="product_kind != 'trading'"
+                    >
+                        <field name="currency_id" invisible="1" />
                         <field name="purchase_cost" />
                     </group>
 
                     <notebook>
-                        <page string="Ghi chú kỹ thuật" name="tech_note">
-                            <field name="tech_note"
-                                placeholder="Tiêu chuẩn, yêu cầu đặc biệt, dung sai..." />
+                        <page
+                            string="Nhà cung cấp &amp; Bảng giá"
+                            name="sellers"
+                            groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo"
+                        >
+                            <field name="seller_ids">
+                                <tree editable="bottom">
+                                    <field name="company_id" column_invisible="1" />
+                                    <field name="partner_id" string="Nhà cung cấp" />
+                                    <field name="price" />
+                                    <field name="currency_id" column_invisible="1" />
+                                    <field name="date_start" string="Từ ngày" />
+                                    <field name="date_end" string="Đến ngày" />
+                                    <field name="min_qty" string="SL tối thiểu" optional="hide" />
+                                    <field
+                                        name="approval_state"
+                                        widget="badge"
+                                        decoration-success="approval_state == 'approved'"
+                                        decoration-warning="approval_state == 'draft'"
+                                    />
+                                </tree>
+                            </field>
                         </page>
                         <page string="BOM liên quan" name="boms">
                             <div class="text-muted" style="padding:12px">
-                                <i class="fa fa-info-circle" /> BOM sẽ hiển thị ở đây khi màn <b>S08</b>
-                                được triển khai. </div>
+                                <i class="fa fa-info-circle" /> BOM sẽ hiển thị ở đây khi module
+                                <b>dl_technical</b> được cài. </div>
                         </page>
                         <page string="Thông tin hệ thống" name="audit">
                             <group>
@@ -182,83 +156,78 @@
 
     <record id="view_dl_product_search" model="ir.ui.view">
         <field name="name">dl.product.search</field>
-        <field name="model">dl.product</field>
+        <field name="model">product.product</field>
         <field name="arch" type="xml">
-            <search string="Tìm thành phẩm">
+            <search string="Tìm sản phẩm">
                 <field name="name" string="Tên" />
                 <field name="default_code" string="Mã SP" />
-                <field name="main_material" string="Vật liệu" />
                 <field name="categ_id" string="Nhóm SP" />
                 <separator />
-                <filter string="Đang sản xuất" name="active"
-                    domain="[('active', '=', True)]" />
-                <filter string="Ngừng" name="inactive"
-                    domain="[('active', '=', False)]" />
+                <filter string="Đang dùng" name="active" domain="[('active', '=', True)]" />
+                <filter string="Ngừng" name="inactive" domain="[('active', '=', False)]" />
                 <separator />
-                <filter string="Sản xuất" name="f_manufactured"
-                    domain="[('supply_type', '=', 'manufactured')]" />
+                <filter string="Gia công" name="f_manufactured"
+                    domain="[('product_kind', '=', 'manufactured')]" />
                 <filter string="Thương mại" name="f_trading"
-                    domain="[('supply_type', '=', 'trading')]" />
+                    domain="[('product_kind', '=', 'trading')]" />
+                <filter string="Vật tư" name="f_material"
+                    domain="[('product_kind', '=', 'material')]" />
+                <filter string="Vật tư đã gia công" name="f_material_processed"
+                    domain="[('product_kind', '=', 'material_processed')]" />
                 <group expand="0" string="Nhóm theo">
                     <filter string="Nhóm SP" name="group_category"
                         context="{'group_by': 'categ_id'}" />
-                    <filter string="Loại cung ứng" name="group_supply"
-                        context="{'group_by': 'supply_type'}" />
+                    <filter string="Loại SP" name="group_kind"
+                        context="{'group_by': 'product_kind'}" />
                 </group>
             </search>
         </field>
     </record>
 
-    <!-- ============ ACTIONS (tách Full / Tech / View) ============ -->
+    <!-- ============ ACTIONS (tách Full / Tech / View theo role) ============ -->
 
     <!-- Full: Admin, Trưởng KD -->
     <record id="action_dl_product_full" model="ir.actions.act_window">
-        <field name="name">Thành phẩm</field>
-        <field name="res_model">dl.product</field>
+        <field name="name">Sản phẩm</field>
+        <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
-        <field name="view_ids"
-            eval="[
+        <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
-        <field name="context">{'default_type': 'product', 'search_default_active': 1, 'active_test':
-            False}</field>
+        <field name="context">{'default_detailed_type': 'product', 'search_default_active': 1, 'active_test': False}</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Thêm thành phẩm đầu tiên!</p>
+            <p class="o_view_nocontent_smiling_face">Thêm sản phẩm đầu tiên!</p>
         </field>
     </record>
 
     <!-- Tech: KTV — create/edit OK, delete blocked (ACL 1|1|1|0) -->
     <record id="action_dl_product_tech" model="ir.actions.act_window">
-        <field name="name">Thành phẩm</field>
-        <field name="res_model">dl.product</field>
+        <field name="name">Sản phẩm</field>
+        <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
-        <field name="view_ids"
-            eval="[
+        <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
-        <field name="context">{'default_type': 'product', 'delete': False, 'search_default_active':
-            1, 'active_test': False}</field>
+        <field name="context">{'default_detailed_type': 'product', 'delete': False, 'search_default_active': 1, 'active_test': False}</field>
     </record>
 
     <!-- View-only: BA/Sales, CEO, Kế toán -->
     <record id="action_dl_product_view" model="ir.actions.act_window">
-        <field name="name">Thành phẩm</field>
-        <field name="res_model">dl.product</field>
+        <field name="name">Sản phẩm</field>
+        <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
-        <field name="view_ids"
-            eval="[
+        <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
-        <field name="context">{'default_type': 'product', 'create': False, 'edit': False, 'delete':
-            False, 'search_default_active': 1, 'active_test': False}</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False, 'search_default_active': 1, 'active_test': False}</field>
     </record>
 </odoo>

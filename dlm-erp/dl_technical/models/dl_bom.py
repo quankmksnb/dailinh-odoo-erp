@@ -34,18 +34,24 @@ class DlBom(models.Model):
         tracking=True,
     )
 
+    # Data Model refactor: dl.product/dl.semi.product đã hợp nhất vào
+    # product.product (phân biệt bằng product_kind). product_id giữ nghĩa
+    # "thành phẩm/manufactured", semi_product_id giữ nghĩa "vật tư đã gia
+    # công/material_processed" — cùng trỏ product.product.
     product_id = fields.Many2one(
-        "dl.product",
+        "product.product",
         string="Thành phẩm",
         tracking=True,
         ondelete="restrict",
+        domain=[("product_kind", "=", "manufactured")],
     )
 
     semi_product_id = fields.Many2one(
-        "dl.semi.product",
+        "product.product",
         string="Bán thành phẩm",
         tracking=True,
         ondelete="restrict",
+        domain=[("product_kind", "=", "material_processed")],
     )
 
     category_id = fields.Many2one(

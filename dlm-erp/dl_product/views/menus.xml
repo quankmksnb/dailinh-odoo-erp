@@ -2,8 +2,7 @@
 <odoo>
 
     <!-- ============================================================
-         Parent menu: "Sản phẩm" dưới DLM-ERP root
-         (Thay thế menu cũ nếu cần — đặt ở dl_product thay vì dl_base)
+         Menu gốc "Sản phẩm" dưới DLM-ERP root
     ============================================================ -->
     <menuitem
         id="menu_dl_product_root"
@@ -13,33 +12,27 @@
     />
 
     <!-- ============================================================
-         THÀNH PHẨM
+         SẢN PHẨM (product.product — hợp nhất 4 loại)
     ============================================================ -->
-
-    <!-- Full: Admin, Trưởng KD -->
     <menuitem
         id="menu_dl_product_full"
-        name="Thành phẩm"
+        name="Sản phẩm"
         action="action_dl_product_full"
         parent="menu_dl_product_root"
         sequence="10"
         groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager"
     />
-
-    <!-- Tech: KTV (create/edit OK, delete blocked) -->
     <menuitem
         id="menu_dl_product_tech"
-        name="Thành phẩm"
+        name="Sản phẩm"
         action="action_dl_product_tech"
         parent="menu_dl_product_root"
         sequence="11"
         groups="dl_base.dl_group_tech"
     />
-
-    <!-- View-only: BA/Sales, CEO, Kế toán -->
     <menuitem
         id="menu_dl_product_view"
-        name="Thành phẩm"
+        name="Sản phẩm"
         action="action_dl_product_view"
         parent="menu_dl_product_root"
         sequence="12"
@@ -47,34 +40,8 @@
     />
 
     <!-- ============================================================
-         BÁN THÀNH PHẨM
+         NHÓM SẢN PHẨM (product.category)
     ============================================================ -->
-
-    <!-- Full: Admin, Trưởng KD, KTV -->
-    <menuitem
-        id="menu_dl_semi_full"
-        name="Bán thành phẩm"
-        action="action_dl_semi_full"
-        parent="menu_dl_product_root"
-        sequence="20"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager,dl_base.dl_group_tech"
-    />
-
-    <!-- View-only: BA/Sales, CEO, Kế toán -->
-    <menuitem
-        id="menu_dl_semi_view"
-        name="Bán thành phẩm"
-        action="action_dl_semi_view"
-        parent="menu_dl_product_root"
-        sequence="21"
-        groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
-    />
-
-    <!-- ============================================================
-         NHÓM SẢN PHẨM
-    ============================================================ -->
-
-    <!-- Full: Admin, Trưởng KD -->
     <menuitem
         id="menu_dl_category_full"
         name="Nhóm sản phẩm"
@@ -83,8 +50,6 @@
         sequence="30"
         groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager"
     />
-
-    <!-- View-only: others -->
     <menuitem
         id="menu_dl_category_view"
         name="Nhóm sản phẩm"
@@ -95,39 +60,49 @@
     />
 
     <!-- ============================================================
-         VẬT TƯ & BẢNG GIÁ (S06)
-         Parent: dl_base.menu_dl_material
-         Sales (dl_group_ba) KHÔNG có menu → Odoo tự ẩn parent
+         ĐO LƯỜNG (PROD-04/05/06) — master data kỹ thuật
     ============================================================ -->
-
-    <!-- Full: Admin, Kế toán -->
     <menuitem
-        id="menu_dl_material_full"
-        name="Danh sách vật tư"
-        action="action_material_full"
+        id="menu_dl_measurement_root"
+        name="Đo lường"
+        parent="menu_dl_product_root"
+        sequence="40"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_tech"
+    />
+    <menuitem
+        id="menu_dl_measurement_type"
+        name="Loại đo lường"
+        action="action_dl_measurement_type"
+        parent="menu_dl_measurement_root"
+        sequence="10"
+    />
+    <menuitem
+        id="menu_dl_measurement_shape"
+        name="Hình dạng đo lường"
+        action="action_dl_measurement_shape"
+        parent="menu_dl_measurement_root"
+        sequence="20"
+    />
+
+    <!-- ============================================================
+         BẢNG GIÁ NCC (product.supplierinfo — PROD-03)
+         Parent: dl_base.menu_dl_material ("Vật tư")
+    ============================================================ -->
+    <menuitem
+        id="menu_dl_supplierinfo_full"
+        name="Bảng giá NCC"
+        action="action_dl_supplierinfo_full"
         parent="dl_base.menu_dl_material"
         sequence="10"
         groups="dl_base.dl_group_admin,dl_base.dl_group_accountant"
     />
-
-    <!-- View-only: CEO, Trưởng KD -->
     <menuitem
-        id="menu_dl_material_view"
-        name="Danh sách vật tư"
-        action="action_material_view"
+        id="menu_dl_supplierinfo_view"
+        name="Bảng giá NCC"
+        action="action_dl_supplierinfo_view"
         parent="dl_base.menu_dl_material"
         sequence="11"
         groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
-    />
-
-    <!-- KTV: View-only, giá ẩn -->
-    <menuitem
-        id="menu_dl_material_tech"
-        name="Danh sách vật tư"
-        action="action_material_tech"
-        parent="dl_base.menu_dl_material"
-        sequence="12"
-        groups="dl_base.dl_group_tech"
     />
 
 </odoo>

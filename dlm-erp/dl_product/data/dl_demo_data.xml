@@ -2,94 +2,190 @@
 <odoo>
     <data noupdate="1">
 
-        <!-- ============ CATEGORY ============ -->
+        <!-- ============ NHÀ CUNG CẤP (res.partner) ============ -->
+        <record id="demo_supplier_nam_dinh" model="res.partner">
+            <field name="name">Công ty TNHH Thép Nam Định</field>
+            <field name="company_type">company</field>
+            <field name="partner_type">company</field>
+            <field name="partner_role">supplier</field>
+        </record>
+        <record id="demo_supplier_thanh_hoa" model="res.partner">
+            <field name="name">Công ty CP Thép Thanh Hóa</field>
+            <field name="company_type">company</field>
+            <field name="partner_type">company</field>
+            <field name="partner_role">supplier</field>
+        </record>
+        <record id="demo_supplier_hoa_thanh_que" model="res.partner">
+            <field name="name">Cơ khí Hoa Thanh Quế</field>
+            <field name="company_type">company</field>
+            <field name="partner_type">company</field>
+            <field name="partner_role">supplier</field>
+        </record>
+        <record id="demo_supplier_kim_long" model="res.partner">
+            <field name="name">Nội thất Kim Long</field>
+            <field name="company_type">company</field>
+            <field name="partner_type">company</field>
+            <field name="partner_role">supplier</field>
+        </record>
+
+        <!-- ============ NHÓM SẢN PHẨM (product.category) ============ -->
         <record id="categ_khung_thep_han" model="product.category">
             <field name="name">Khung thép hàn</field>
-            <field name="category_kind">product</field>
         </record>
-        <record id="categ_semi_khung" model="product.category">
-            <field name="name">Khung bán thành phẩm</field>
-            <field name="category_kind">semi</field>
-        </record>
-        <record id="categ_vt_thep" model="product.category">
-            <field name="name">Thép hộp / Thép ống</field>
-            <field name="category_kind">material</field>
+        <record id="categ_ban_ghe_sat" model="product.category">
+            <field name="name">Bàn ghế sắt</field>
         </record>
 
-        <!-- ============ THÀNH PHẨM (dl.product) ============ -->
-        <record id="demo_product_ct200" model="dl.product">
+        <!-- ============ PROD-02 — SẢN PHẨM (product.product) ============ -->
+        <!-- (1) manufactured — SP gia công theo BOM -->
+        <record id="demo_product_ct200" model="product.product">
             <field name="name">Khung thép hàn CT-200</field>
+            <field name="default_code">CT-200</field>
+            <field name="product_kind">manufactured</field>
             <field name="categ_id" ref="categ_khung_thep_han" />
-            <field name="supply_type">manufactured</field>
-            <field name="main_material">Thép CT3</field>
-            <field name="thickness">2.0</field>
-            <field name="finish">powder</field>
-            <field name="dim_length">2000</field>
-            <field name="dim_width">600</field>
-            <field name="dim_height">750</field>
-            <field name="est_weight">35.5</field>
-            <field name="tech_note">Hàn MIG, sơn tĩnh điện RAL 7035. Dung sai ±2mm.</field>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_po_id" ref="uom.product_uom_unit" />
         </record>
 
-        <!-- ============ BÁN THÀNH PHẨM (dl.semi.product) ============ -->
-        <record id="demo_semi_chan_ban" model="dl.semi.product">
-            <field name="name">Chân bàn chữ A - 750mm</field>
-            <field name="categ_id" ref="categ_semi_khung" />
-        </record>
-        <record id="demo_semi_khung_mat" model="dl.semi.product">
-            <field name="name">Khung mặt bàn 2000×600</field>
-            <field name="categ_id" ref="categ_semi_khung" />
+        <!-- (2) trading — SP thương mại, tra giá NCC (không BOM) -->
+        <record id="demo_product_gs100" model="product.product">
+            <field name="name">Ghế sắt sơn tĩnh điện GS-100</field>
+            <field name="default_code">GS-100</field>
+            <field name="product_kind">trading</field>
+            <field name="categ_id" ref="categ_ban_ghe_sat" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_po_id" ref="uom.product_uom_unit" />
+            <field name="seller_ids" eval="[(0, 0, {
+                'partner_id': ref('demo_supplier_kim_long'),
+                'price': 450000,
+                'date_start': '2026-06-20',
+                'approval_state': 'approved',
+            })]" />
         </record>
 
-        <!-- ============ VẬT TƯ (dl.material) ============ -->
-        <record id="demo_mat_thep_hop" model="dl.material">
-            <field name="name">Thép hộp 25×50×1.4mm</field>
-            <field name="categ_id" ref="categ_vt_thep" />
-            <field name="spec">25×50×1.4mm, dài 6m/cây</field>
-            <field name="uom_id" ref="uom.product_uom_meter" />
-        </record>
-        <record id="demo_mat_thep_ong" model="dl.material">
-            <field name="name">Thép ống Φ27×1.2mm</field>
-            <field name="categ_id" ref="categ_vt_thep" />
-            <field name="spec">Φ27×1.2mm, dài 6m/cây</field>
-            <field name="uom_id" ref="uom.product_uom_meter" />
-        </record>
-        <record id="demo_mat_son" model="dl.material">
-            <field name="name">Bột sơn tĩnh điện RAL 7035</field>
-            <field name="categ_id" ref="categ_vt_thep" />
-            <field name="spec">Bao 25kg, màu xám nhạt</field>
+        <!-- (3) material — vật tư thô, tra giá NCC -->
+        <record id="demo_product_thep_cuon" model="product.product">
+            <field name="name">Thép cuộn CT3</field>
+            <field name="default_code">VT-001</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="seller_ids" eval="[(0, 0, {
+                'partner_id': ref('demo_supplier_nam_dinh'),
+                'price': 22000,
+                'date_start': '2026-06-01',
+                'approval_state': 'approved',
+            })]" />
+        </record>
+        <record id="demo_product_ong_vuong" model="product.product">
+            <field name="name">Ống thép vuông 25×25×1.5mm</field>
+            <field name="default_code">VT-014</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="seller_ids" eval="[(0, 0, {
+                'partner_id': ref('demo_supplier_thanh_hoa'),
+                'price': 27000,
+                'date_start': '2026-06-01',
+                'approval_state': 'approved',
+            })]" />
+        </record>
+        <record id="demo_product_oc_vit" model="product.product">
+            <field name="name">Ốc vít M6</field>
+            <field name="default_code">VT-032</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_po_id" ref="uom.product_uom_unit" />
+            <field name="seller_ids" eval="[(0, 0, {
+                'partner_id': ref('demo_supplier_hoa_thanh_que'),
+                'price': 500,
+                'date_start': '2026-05-01',
+                'approval_state': 'approved',
+            })]" />
         </record>
 
-        <!-- ============ BẢNG GIÁ VẬT TƯ (dl.material.price) ============ -->
-        <!-- Thép hộp: giá hiện hành -->
-        <record id="demo_price_thep_hop_1" model="dl.material.price">
-            <field name="material_id" ref="demo_mat_thep_hop" />
-            <field name="unit_price">18500</field>
-            <field name="uom_id" ref="uom.product_uom_meter" />
-            <field name="valid_from">2026-07-01</field>
-            <field name="valid_to">2026-12-31</field>
-            <field name="is_active" eval="True" />
-            <field name="note">Giá NCC Hoà Phát Q3/2026</field>
+        <!-- (4) material_processed — vật tư đã gia công, có BOM riêng -->
+        <record id="demo_product_tam_sat" model="product.product">
+            <field name="name">Tấm sắt phủ sơn 600×400×2mm</field>
+            <field name="default_code">BTP-TAMSAT-01</field>
+            <field name="product_kind">material_processed</field>
+            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_po_id" ref="uom.product_uom_unit" />
         </record>
-        <!-- Thép ống: giá sắp hết hạn (test badge expiring) -->
-        <record id="demo_price_thep_ong_1" model="dl.material.price">
-            <field name="material_id" ref="demo_mat_thep_ong" />
-            <field name="unit_price">15200</field>
-            <field name="uom_id" ref="uom.product_uom_meter" />
-            <field name="valid_from">2026-06-01</field>
-            <field name="valid_to">2026-07-18</field>
-            <field name="is_active" eval="True" />
-            <field name="note">Giá cũ — sắp hết hạn</field>
+        <record id="demo_product_khung_ong" model="product.product">
+            <field name="name">Khung ống vuông 25×25×1.5mm (bộ)</field>
+            <field name="default_code">BTP-KHUNGONG-01</field>
+            <field name="product_kind">material_processed</field>
+            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_po_id" ref="uom.product_uom_unit" />
         </record>
-        <!-- Bột sơn: giá bình thường -->
-        <record id="demo_price_son_1" model="dl.material.price">
-            <field name="material_id" ref="demo_mat_son" />
-            <field name="unit_price">72000</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="valid_from">2026-07-01</field>
-            <field name="valid_to">2027-06-30</field>
-            <field name="is_active" eval="True" />
+
+        <!-- ============ PROD-04/05/06 — MEASUREMENT ============ -->
+        <record id="demo_meas_type_weight" model="dl.measurement.type">
+            <field name="name">Khối lượng (Weight)</field>
+            <field name="description">Đo theo kg — vật tư kim loại tính theo trọng lượng.</field>
+        </record>
+        <record id="demo_meas_type_area" model="dl.measurement.type">
+            <field name="name">Diện tích (Area)</field>
+            <field name="description">Đo theo m² — vật tư dạng tấm/khối lưu kho theo diện tích.</field>
+        </record>
+
+        <record id="demo_meas_shape_flat" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="demo_meas_type_weight" />
+            <field name="name">Tấm phẳng</field>
+            <field name="code">flat_plate</field>
+            <field name="default_coefficient">7850</field>
+            <field name="coefficient_label">Khối lượng riêng (kg/m³)</field>
+        </record>
+        <record id="demo_meas_shape_square_tube" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="demo_meas_type_weight" />
+            <field name="name">Ống vuông rỗng</field>
+            <field name="code">hollow_square_tube</field>
+            <field name="default_coefficient">7850</field>
+            <field name="coefficient_label">Khối lượng riêng (kg/m³)</field>
+        </record>
+
+        <record id="demo_meas_param_flat_len" model="dl.measurement.shape.param">
+            <field name="shape_id" ref="demo_meas_shape_flat" />
+            <field name="name">Chiều dài</field>
+            <field name="code">length</field>
+        </record>
+        <record id="demo_meas_param_flat_wid" model="dl.measurement.shape.param">
+            <field name="shape_id" ref="demo_meas_shape_flat" />
+            <field name="name">Chiều rộng</field>
+            <field name="code">width</field>
+        </record>
+        <record id="demo_meas_param_flat_thick" model="dl.measurement.shape.param">
+            <field name="shape_id" ref="demo_meas_shape_flat" />
+            <field name="name">Độ dày</field>
+            <field name="code">thickness</field>
+        </record>
+        <record id="demo_meas_param_tube_len" model="dl.measurement.shape.param">
+            <field name="shape_id" ref="demo_meas_shape_square_tube" />
+            <field name="name">Chiều dài</field>
+            <field name="code">length</field>
+        </record>
+        <record id="demo_meas_param_tube_side" model="dl.measurement.shape.param">
+            <field name="shape_id" ref="demo_meas_shape_square_tube" />
+            <field name="name">Cạnh ngoài</field>
+            <field name="code">side</field>
+        </record>
+        <record id="demo_meas_param_tube_thick" model="dl.measurement.shape.param">
+            <field name="shape_id" ref="demo_meas_shape_square_tube" />
+            <field name="name">Độ dày thành ống</field>
+            <field name="code">thickness</field>
         </record>
 
     </data>
