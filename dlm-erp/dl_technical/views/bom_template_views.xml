@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         TECH-04/05 — dl.bom.template + dl.bom.template.line (BOM mẫu)
+    ================================================================ -->
+
+    <record id="view_dl_bom_template_tree" model="ir.ui.view">
+        <field name="name">dl.bom.template.tree</field>
+        <field name="model">dl.bom.template</field>
+        <field name="arch" type="xml">
+            <tree string="BOM mẫu" decoration-muted="active == False">
+                <field name="name"/>
+                <field name="product_category_id"/>
+                <field name="active" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_bom_template_form" model="ir.ui.view">
+        <field name="name">dl.bom.template.form</field>
+        <field name="model">dl.bom.template</field>
+        <field name="arch" type="xml">
+            <form string="BOM mẫu">
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Lưu trữ" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name" string="Tên BOM mẫu"/>
+                        <h1><field name="name" placeholder="VD: BOM mẫu Khung thép hàn"/></h1>
+                    </div>
+                    <group>
+                        <field name="product_category_id"/>
+                    </group>
+                    <notebook>
+                        <page string="Dòng mẫu" name="lines">
+                            <field name="line_ids">
+                                <tree editable="bottom">
+                                    <field name="suggested_product_id"/>
+                                    <field name="default_qty"/>
+                                    <field name="note"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_bom_template_search" model="ir.ui.view">
+        <field name="name">dl.bom.template.search</field>
+        <field name="model">dl.bom.template</field>
+        <field name="arch" type="xml">
+            <search string="Tìm BOM mẫu">
+                <field name="name"/>
+                <field name="product_category_id"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_category" string="Nhóm sản phẩm"
+                            context="{'group_by': 'product_category_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_bom_template" model="ir.actions.act_window">
+        <field name="name">BOM mẫu</field>
+        <field name="res_model">dl.bom.template</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Thêm BOM mẫu đầu tiên!</p>
+        </field>
+    </record>
+
+</odoo>

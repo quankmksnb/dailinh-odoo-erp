@@ -167,7 +167,7 @@ class DlQuotationRequestLine(models.Model):
     )
 
     resolved_product_id = fields.Many2one(
-        "dl.product",
+        "product.product",
         string="Sản phẩm xác định",
     )
 
