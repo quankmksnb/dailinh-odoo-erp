@@ -350,6 +350,10 @@ export class DlPricingConfig extends Component {
             row[field] = value;
         } catch (e) { this.showError(e); await this.load(section); }
     }
+    // Chọn người duyệt cụ thể (m2o): "" → false (theo vai trò), else → id số.
+    async setApprover(row, value) {
+        return this.inlineWrite("apprset", row, "approver_user_id", value ? Number(value) : false);
+    }
     async addComplexity() {
         try {
             await this.orm.create(M.complexity, [{ name: "Mức mới", factor: 1.0, sequence: 99 }]);

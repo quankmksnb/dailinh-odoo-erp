@@ -321,7 +321,7 @@
                             <t t-foreach="state.rows.complexity" t-as="r" t-key="r.id">
                                 <tr>
                                     <td><input type="text" class="cell" t-att-value="r.name" t-on-change="(ev) => this.inlineWrite('complexity', r, 'name', ev.target.value)"/></td>
-                                    <td class="num"><input type="number" step="0.01" class="cell num" t-att-value="r.factor" t-on-change="(ev) => this.inlineWrite('complexity', r, 'factor', parseFloat(ev.target.value))"/></td>
+                                    <td class="num"><input type="number" step="0.01" class="cell num" t-att-value="r.factor" t-on-change="(ev) => this.inlineWrite('complexity', r, 'factor', ev.target.valueAsNumber)"/></td>
                                     <td><input type="text" class="cell" t-att-value="r.note" t-on-change="(ev) => this.inlineWrite('complexity', r, 'note', ev.target.value)"/></td>
                                     <td><input type="checkbox" t-att-checked="r.active" t-on-change="(ev) => this.inlineWrite('complexity', r, 'active', ev.target.checked)"/></td>
                                     <td class="act"><button class="dl-cfg-del" type="button" t-on-click="() => this.delMaster('complexity', r.id)"><i class="fa fa-trash-o"/></button></td>
@@ -361,7 +361,7 @@
                                         </select>
                                     </td>
                                     <td>
-                                        <select class="cell" t-att-value="m2oId(r.approver_user_id) || ''" t-on-change="(ev) => this.inlineWrite('apprset', r, 'approver_user_id', ev.target.value ? Number(ev.target.value) : false)">
+                                        <select class="cell" t-att-value="m2oId(r.approver_user_id) || ''" t-on-change="(ev) => this.setApprover(r, ev.target.value)">
                                             <option value="">(Theo vai trò)</option>
                                             <t t-foreach="state.options.approvers" t-as="u" t-key="u.id"><option t-att-value="u.id" t-esc="u.name"/></t>
                                         </select>
