@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- Cho phép Trưởng KD nhìn thấy menu cha; các menu con khác vẫn giữ
+         groups riêng nên chỉ màn Báo giá được hiển thị cho vai trò này. -->
+    <record id="dl_base.menu_dl_config" model="ir.ui.menu">
+        <field name="groups_id" eval="[(4, ref('dl_base.dl_group_sales_manager'))]"/>
+    </record>
+
     <menuitem
         id="menu_dl_config_user_admin"
         name="Quản lý User"
@@ -17,6 +23,16 @@
         sequence="6"
         action="action_dl_role_perm"
         groups="dl_base.dl_group_admin"
+    />
+
+    <!-- Cấu hình Báo giá — một màn OWL nhiều tab (V3 §3.1 cho phép thanh tab). -->
+    <menuitem
+        id="menu_dl_config_pricing"
+        name="Cấu hình Báo giá"
+        parent="dl_base.menu_dl_config"
+        sequence="7"
+        action="action_dl_pricing_config"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager,dl_base.dl_group_tech,dl_base.dl_group_accountant,dl_base.dl_group_ba"
     />
 
     <menuitem

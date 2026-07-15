@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_config.DlPricingConfig">
+    <div class="dl-cfg o_action">
+        <div class="dl-cfg-inner">
+
+            <div class="dl-cfg-head">
+                <div class="dl-cfg-head-main">
+                    <h1 class="dl-cfg-title">Cấu hình Báo giá</h1>
+                    <span class="dl-cfg-subtitle">
+                        Kỹ thuật/kế toán áp dụng ngay · Lợi nhuận &amp; chiết khấu bắt buộc phê duyệt ·
+                        Sửa bản đang chạy sẽ tạo bản mới, báo giá cũ giữ nguyên
+                    </span>
+                </div>
+            </div>
+
+            <div class="dl-cfg-tabs">
+                <t t-foreach="tabs" t-as="t" t-key="t.key">
+                    <button class="dl-cfg-tab" type="button"
+                            t-att-class="{ 'is-active': state.tab === t.key }"
+                            t-on-click="() => this.setTab(t.key)">
+                        <i t-att-class="'fa ' + t.icon"/> <span t-esc="t.label"/>
+                    </button>
+                </t>
+            </div>
+
+            <div t-if="state.loading" class="dl-cfg-panel"><div class="dl-cfg-empty">Đang tải…</div></div>
+
+            <!-- ============ TAB HAO HỤT ============ -->
+            <t t-if="!state.loading and state.tab === 'waste'">
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Hao hụt và thu hồi</span>
+                        <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('waste')"
+                                t-on-click="() => this.openCreate('waste')"><i class="fa fa-plus"/> Thêm quy tắc</button>
+                    </div>
+                    <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
+                        Cấu hình theo <b>category</b> để mọi vật tư kế thừa, hoặc theo <b>vật tư</b> cụ thể khi khác biệt. Vật tư luôn ưu tiên hơn category.
+                    </div>
+                    <table class="dl-cfg-table">
+                        <thead><tr>
+                            <th>Đối tượng</th><th class="num">Hao hụt (%)</th><th>Thu hồi</th>
+                            <th class="num">Thu hồi (%)</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                        </tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.waste" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td class="nm"><span class="dl-pc-tt" t-esc="lab('wasteTarget', r.target_type)"/> · <t t-esc="r.target_label"/></td>
+                                    <td class="num" t-esc="r.waste_rate"/>
+                                    <td><t t-if="r.has_recovery"><i class="fa fa-check text-success"/></t></td>
+                                    <td class="num" t-esc="r.has_recovery ? r.recovery_rate : ''"/>
+                                    <td t-esc="fmtDate(r.valid_from)"/>
+                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
+                                    <td class="actw"><t t-call="dl_config.PcTechActions"/></td>
+                                </tr>
+                            </t>
+                            <tr t-if="!state.rows.waste.length"><td colspan="7" class="dl-cfg-empty">Chưa có quy tắc hao hụt.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+
+            <!-- ============ TAB CÔNG ĐOẠN ============ -->
+            <t t-if="!state.loading and state.tab === 'operation'">
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Chi phí công đoạn</span>
+                        <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('operation')"
+                                t-on-click="() => this.openCreate('operation')"><i class="fa fa-plus"/> Thêm quy tắc</button>
+                    </div>
+                    <table class="dl-cfg-table">
+                        <thead><tr>
+                            <th>Công đoạn</th><th>Phương pháp</th><th class="num">Đơn giá/Tỷ lệ</th>
+                            <th class="num">Phí setup</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                        </tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.operation" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td class="nm" t-esc="m2oName(r.operation_id)"/>
+                                    <td t-esc="lab('opMethod', r.method)"/>
+                                    <td class="num" t-esc="r.price_rate"/>
+                                    <td class="num" t-esc="r.setup_fee"/>
+                                    <td t-esc="fmtDate(r.valid_from)"/>
+                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
+                                    <td class="actw"><t t-call="dl_config.PcTechActions"/></td>
+                                </tr>
+                            </t>
+                            <tr t-if="!state.rows.operation.length"><td colspan="7" class="dl-cfg-empty">Chưa có quy tắc công đoạn.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+
+            <!-- ============ TAB CHI PHÍ CHUNG ============ -->
+            <t t-if="!state.loading and state.tab === 'cost'">
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Chi phí chung và hệ số điều chỉnh</span>
+                        <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('cost')"
+                                t-on-click="() => this.openCreate('cost')"><i class="fa fa-plus"/> Thêm khoản</button>
+                    </div>
+                    <table class="dl-cfg-table">
+                        <thead><tr>
+                            <th>Tên khoản</th><th>Loại</th><th>Cách tính</th><th class="num">Giá trị</th>
+                            <th>Không CK</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                        </tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.cost" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td class="nm" t-esc="r.name"/>
+                                    <td t-esc="lab('costType', r.rule_type)"/>
+                                    <td t-esc="lab('costMethod', r.method)"/>
+                                    <td class="num" t-esc="r.value"/>
+                                    <td><t t-if="r.no_discount"><i class="fa fa-check text-success"/></t></td>
+                                    <td t-esc="fmtDate(r.valid_from)"/>
+                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
+                                    <td class="actw"><t t-call="dl_config.PcTechActions"/></td>
+                                </tr>
+                            </t>
+                            <tr t-if="!state.rows.cost.length"><td colspan="8" class="dl-cfg-empty">Chưa có khoản chi phí chung.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+
+            <!-- ============ TAB LỢI NHUẬN & CHIẾT KHẤU ============ -->
+            <t t-if="!state.loading and state.tab === 'commercial'">
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Lợi nhuận và giá sàn</span>
+                        <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('profit')"
+                                t-on-click="() => this.openCreate('profit')"><i class="fa fa-plus"/> Thêm chính sách</button>
+                    </div>
+                    <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
+                        Phương pháp cố định: <b>Markup trên giá thành</b>. Thay đổi phải <b>gửi duyệt</b> mới có hiệu lực.
+                    </div>
+                    <table class="dl-cfg-table">
+                        <thead><tr>
+                            <th class="num">Mục tiêu (%)</th><th class="num">Tối thiểu / sàn (%)</th>
+                            <th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                        </tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.profit" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td class="num nm" t-esc="r.target_markup"/>
+                                    <td class="num" t-esc="r.min_markup"/>
+                                    <td t-esc="fmtDate(r.valid_from)"/>
+                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
+                                    <td class="actw"><t t-call="dl_config.PcCommActions"><t t-set="section" t-value="'profit'"/></t></td>
+                                </tr>
+                            </t>
+                            <tr t-if="!state.rows.profit.length"><td colspan="5" class="dl-cfg-empty">Chưa có chính sách lợi nhuận.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="dl-cfg-subhead">
+                        <span>Chiết khấu theo nhóm khách hàng</span>
+                        <button class="dl-cfg-mini" type="button" t-att-disabled="!canEdit('discount')"
+                                t-on-click="() => this.openCreate('discount')"><i class="fa fa-plus"/> Thêm chính sách</button>
+                    </div>
+                    <table class="dl-cfg-table">
+                        <thead><tr>
+                            <th>Nhóm khách</th><th class="num">Mặc định (%)</th><th class="num">Tối đa (%)</th>
+                            <th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                        </tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.discount" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td class="nm" t-esc="lab('customerGroup', r.customer_group)"/>
+                                    <td class="num" t-esc="r.default_rate"/>
+                                    <td class="num" t-esc="r.max_rate"/>
+                                    <td t-esc="fmtDate(r.valid_from)"/>
+                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
+                                    <td class="actw"><t t-call="dl_config.PcCommActions"><t t-set="section" t-value="'discount'"/></t></td>
+                                </tr>
+                            </t>
+                            <tr t-if="!state.rows.discount.length"><td colspan="6" class="dl-cfg-empty">Chưa có chính sách chiết khấu.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+
+            <!-- ============ TAB PHÊ DUYỆT ============ -->
+            <t t-if="!state.loading and state.tab === 'approval'">
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Yêu cầu phê duyệt</span>
+                    </div>
+                    <table class="dl-cfg-table">
+                        <thead><tr>
+                            <th>Ngày gửi</th><th>Loại yêu cầu</th><th>Đối tượng</th><th>Thay đổi</th>
+                            <th>Người yêu cầu</th><th>Trạng thái</th><th class="actw"></th>
+                        </tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.approval" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td class="mono" t-esc="fmtDate(r.create_date)"/>
+                                    <td t-esc="lab('approvalType', r.request_type)"/>
+                                    <td t-esc="r.object_label"/>
+                                    <td><span class="dl-pc-diff"><t t-esc="r.old_value"/> → <b t-esc="r.new_value"/></span></td>
+                                    <td>
+                                        <t t-esc="m2oName(r.requester_id)"/>
+                                        <span t-if="r.is_self_approval" class="dl-cfg-flag err" title="Người đề xuất tự duyệt">Tự duyệt</span>
+                                    </td>
+                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
+                                    <td class="actw">
+                                        <t t-if="r.state === 'pending' and canEdit('approval')">
+                                            <button class="dl-pc-act ok" type="button" t-on-click="() => this.approve(r.id)"><i class="fa fa-check"/> Duyệt</button>
+                                            <button class="dl-pc-act danger" type="button" t-on-click="() => this.openReject(r.id)"><i class="fa fa-times"/> Từ chối</button>
+                                        </t>
+                                    </td>
+                                </tr>
+                            </t>
+                            <tr t-if="!state.rows.approval.length"><td colspan="7" class="dl-cfg-empty">Chưa có yêu cầu phê duyệt.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+
+            <!-- ============ TAB DANH MỤC ============ -->
+            <t t-if="!state.loading and state.tab === 'master'">
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-subhead">
+                        <span>Hệ số phức tạp dùng chung</span>
+                        <button class="dl-cfg-mini" type="button" t-att-disabled="!canEdit('master')" t-on-click="addComplexity"><i class="fa fa-plus"/> Thêm mức</button>
+                    </div>
+                    <table class="dl-cfg-table">
+                        <thead><tr><th>Mức</th><th class="num">Hệ số</th><th>Gợi ý</th><th>Dùng</th><th class="act"></th></tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.complexity" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td><input type="text" class="cell" t-att-value="r.name" t-on-change="(ev) => this.inlineWrite('complexity', r, 'name', ev.target.value)"/></td>
+                                    <td class="num"><input type="number" step="0.01" class="cell num" t-att-value="r.factor" t-on-change="(ev) => this.inlineWrite('complexity', r, 'factor', parseFloat(ev.target.value))"/></td>
+                                    <td><input type="text" class="cell" t-att-value="r.note" t-on-change="(ev) => this.inlineWrite('complexity', r, 'note', ev.target.value)"/></td>
+                                    <td><input type="checkbox" t-att-checked="r.active" t-on-change="(ev) => this.inlineWrite('complexity', r, 'active', ev.target.checked)"/></td>
+                                    <td class="act"><button class="dl-cfg-del" type="button" t-on-click="() => this.delMaster('complexity', r.id)"><i class="fa fa-trash-o"/></button></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <div class="dl-cfg-subhead">
+                        <span>Danh mục công đoạn</span>
+                        <button class="dl-cfg-mini" type="button" t-att-disabled="!canEdit('master')" t-on-click="addOperation"><i class="fa fa-plus"/> Thêm công đoạn</button>
+                    </div>
+                    <table class="dl-cfg-table">
+                        <thead><tr><th>Mã</th><th>Tên công đoạn</th><th>Dùng</th><th class="act"></th></tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.opcat" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td><input type="text" class="cell" t-att-value="r.code" t-on-change="(ev) => this.inlineWrite('opcat', r, 'code', ev.target.value)"/></td>
+                                    <td><input type="text" class="cell" t-att-value="r.name" t-on-change="(ev) => this.inlineWrite('opcat', r, 'name', ev.target.value)"/></td>
+                                    <td><input type="checkbox" t-att-checked="r.active" t-on-change="(ev) => this.inlineWrite('opcat', r, 'active', ev.target.checked)"/></td>
+                                    <td class="act"><button class="dl-cfg-del" type="button" t-on-click="() => this.delMaster('opcat', r.id)"><i class="fa fa-trash-o"/></button></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <div class="dl-cfg-subhead"><span>Người duyệt theo loại yêu cầu</span></div>
+                    <table class="dl-cfg-table">
+                        <thead><tr><th>Loại yêu cầu</th><th>Vai trò duyệt</th><th>Người duyệt cụ thể</th></tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.apprset" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td class="nm" t-esc="lab('approvalType', r.request_type)"/>
+                                    <td>
+                                        <select class="cell" t-att-value="r.approver_role" t-on-change="(ev) => this.inlineWrite('apprset', r, 'approver_role', ev.target.value)">
+                                            <t t-foreach="opt.approverRole" t-as="o" t-key="o.v"><option t-att-value="o.v" t-esc="o.label"/></t>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="cell" t-att-value="m2oId(r.approver_user_id) || ''" t-on-change="(ev) => this.inlineWrite('apprset', r, 'approver_user_id', ev.target.value ? Number(ev.target.value) : false)">
+                                            <option value="">(Theo vai trò)</option>
+                                            <t t-foreach="state.options.approvers" t-as="u" t-key="u.id"><option t-att-value="u.id" t-esc="u.name"/></t>
+                                        </select>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+
+        </div>
+
+        <!-- ============ MODAL FORM ============ -->
+        <t t-if="state.form">
+            <div class="dl-cfg-modal-backdrop" t-on-click="closeForm">
+                <div class="dl-cfg-dialog dl-pc-form" t-on-click.stop="">
+                    <div class="dl-pc-form-title">
+                        <t t-esc="state.form.id ? 'Sửa quy tắc' : 'Thêm quy tắc mới'"/>
+                    </div>
+                    <div class="dl-cfg-grid">
+                        <!-- WASTE -->
+                        <t t-if="state.form.section === 'waste'">
+                            <label class="dl-cfg-f"><span class="k">Áp dụng cho</span>
+                                <select t-model="state.form.target_type">
+                                    <t t-foreach="opt.wasteTarget" t-as="o" t-key="o.v"><option t-att-value="o.v" t-esc="o.label"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f" t-if="state.form.target_type === 'category'"><span class="k">Category</span>
+                                <select t-model.number="state.form.category_id">
+                                    <option value="">— chọn —</option>
+                                    <t t-foreach="state.options.categories" t-as="c" t-key="c.id"><option t-att-value="c.id" t-esc="c.name"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f" t-if="state.form.target_type === 'product'"><span class="k">Vật tư</span>
+                                <select t-model.number="state.form.product_id">
+                                    <option value="">— chọn —</option>
+                                    <t t-foreach="state.options.products" t-as="p" t-key="p.id"><option t-att-value="p.id" t-esc="p.name"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f"><span class="k">Tỷ lệ hao hụt cơ sở (%)</span>
+                                <input type="number" step="0.1" t-model.number="state.form.waste_rate"/></label>
+                            <label class="dl-cfg-f"><span class="k">Thu hồi</span>
+                                <label class="dl-cfg-check"><input type="checkbox" t-model="state.form.has_recovery"/> <span>Có thu hồi phế liệu</span></label></label>
+                            <label class="dl-cfg-f" t-if="state.form.has_recovery"><span class="k">Tỷ lệ thu hồi (%)</span>
+                                <input type="number" step="0.1" t-model.number="state.form.recovery_rate"/></label>
+                            <label class="dl-cfg-f" t-if="state.form.has_recovery"><span class="k">Sản phẩm phế liệu</span>
+                                <select t-model.number="state.form.scrap_product_id">
+                                    <option value="">— chọn —</option>
+                                    <t t-foreach="state.options.products" t-as="p" t-key="p.id"><option t-att-value="p.id" t-esc="p.name"/></t>
+                                </select></label>
+                        </t>
+                        <!-- OPERATION -->
+                        <t t-if="state.form.section === 'operation'">
+                            <label class="dl-cfg-f"><span class="k">Công đoạn</span>
+                                <select t-model.number="state.form.operation_id">
+                                    <option value="">— chọn —</option>
+                                    <t t-foreach="state.options.operations" t-as="o" t-key="o.id"><option t-att-value="o.id" t-esc="o.name"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f"><span class="k">Phương pháp tính</span>
+                                <select t-model="state.form.method">
+                                    <t t-foreach="opt.opMethod" t-as="o" t-key="o.v"><option t-att-value="o.v" t-esc="o.label"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f"><span class="k">Đơn giá / Tỷ lệ</span>
+                                <input type="number" step="0.01" t-model.number="state.form.price_rate"/></label>
+                            <label class="dl-cfg-f"><span class="k">Phí setup/lô</span>
+                                <input type="number" step="1000" t-model.number="state.form.setup_fee"/></label>
+                        </t>
+                        <!-- COST -->
+                        <t t-if="state.form.section === 'cost'">
+                            <label class="dl-cfg-f"><span class="k">Tên khoản</span>
+                                <input type="text" t-model="state.form.name" placeholder="VD: Chi phí chung xưởng"/></label>
+                            <label class="dl-cfg-f"><span class="k">Loại quy tắc</span>
+                                <select t-model="state.form.rule_type">
+                                    <t t-foreach="opt.costType" t-as="o" t-key="o.v"><option t-att-value="o.v" t-esc="o.label"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f"><span class="k">Cách tính</span>
+                                <select t-model="state.form.method">
+                                    <t t-foreach="opt.costMethod" t-as="o" t-key="o.v"><option t-att-value="o.v" t-esc="o.label"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f"><span class="k">Giá trị</span>
+                                <input type="number" step="0.01" t-model.number="state.form.value"/></label>
+                            <label class="dl-cfg-f" t-if="state.form.rule_type === 'urgent'"><span class="k">Số ngày giao tối đa</span>
+                                <input type="number" t-model.number="state.form.condition_days"/></label>
+                            <label class="dl-cfg-f" t-if="state.form.rule_type === 'small_order'"><span class="k">Giá trị đơn tối đa</span>
+                                <input type="number" step="1000" t-model.number="state.form.condition_amount"/></label>
+                            <label class="dl-cfg-f"><span class="k">Chiết khấu</span>
+                                <label class="dl-cfg-check"><input type="checkbox" t-model="state.form.no_discount"/> <span>Không chịu chiết khấu</span></label></label>
+                        </t>
+                        <!-- PROFIT -->
+                        <t t-if="state.form.section === 'profit'">
+                            <label class="dl-cfg-f"><span class="k">Lợi nhuận mục tiêu (%)</span>
+                                <input type="number" step="0.1" t-model.number="state.form.target_markup"/></label>
+                            <label class="dl-cfg-f"><span class="k">Lợi nhuận tối thiểu (%)</span>
+                                <input type="number" step="0.1" t-model.number="state.form.min_markup"/></label>
+                        </t>
+                        <!-- DISCOUNT -->
+                        <t t-if="state.form.section === 'discount'">
+                            <label class="dl-cfg-f"><span class="k">Nhóm khách hàng</span>
+                                <select t-model="state.form.customer_group">
+                                    <t t-foreach="opt.customerGroup" t-as="o" t-key="o.v"><option t-att-value="o.v" t-esc="o.label"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f"><span class="k">Chiết khấu mặc định (%)</span>
+                                <input type="number" step="0.1" t-model.number="state.form.default_rate"/></label>
+                            <label class="dl-cfg-f"><span class="k">Chiết khấu tối đa (%)</span>
+                                <input type="number" step="0.1" t-model.number="state.form.max_rate"/></label>
+                        </t>
+                        <!-- CHUNG -->
+                        <label class="dl-cfg-f"><span class="k">Có hiệu lực từ</span>
+                            <input type="date" t-model="state.form.valid_from"/></label>
+                        <label class="dl-cfg-f dl-pc-wide"><span class="k">Lý do thay đổi
+                                <t t-if="state.form.section === 'profit' or state.form.section === 'discount'"> (bắt buộc để gửi duyệt)</t></span>
+                            <input type="text" t-model="state.form.change_reason" placeholder="Ghi lại để truy vết"/></label>
+                    </div>
+                    <div class="dl-cfg-dialog-foot">
+                        <button class="dl-cfg-mbtn ghost" type="button" t-on-click="closeForm">Hủy</button>
+                        <button class="dl-cfg-mbtn primary" type="button" t-on-click="saveForm">Lưu</button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- ============ MODAL TỪ CHỐI ============ -->
+        <t t-if="state.reject">
+            <div class="dl-cfg-modal-backdrop" t-on-click="closeReject">
+                <div class="dl-cfg-dialog" t-on-click.stop="">
+                    <div class="dl-cfg-dialog-title">Từ chối yêu cầu</div>
+                    <div class="dl-cfg-dialog-msg">Nhập lý do từ chối (bắt buộc):</div>
+                    <input type="text" class="dl-pc-reason" t-model="state.reject.comment" placeholder="Lý do từ chối…"/>
+                    <div class="dl-cfg-dialog-foot">
+                        <button class="dl-cfg-mbtn ghost" type="button" t-on-click="closeReject">Hủy</button>
+                        <button class="dl-cfg-mbtn danger" type="button" t-on-click="confirmReject" t-att-disabled="!state.reject.comment.trim()">Từ chối</button>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- Dialog xác nhận -->
+        <t t-if="state.dialog">
+            <div class="dl-cfg-modal-backdrop" t-on-click="dialogClose">
+                <div class="dl-cfg-dialog" t-on-click.stop="">
+                    <div class="dl-cfg-dialog-icon" t-att-class="state.dialog.kind">
+                        <i t-att-class="'fa ' + (state.dialog.kind === 'block' ? 'fa-ban' : 'fa-exclamation-triangle')"/>
+                    </div>
+                    <div class="dl-cfg-dialog-title" t-esc="state.dialog.title"/>
+                    <div class="dl-cfg-dialog-msg" t-esc="state.dialog.msg"/>
+                    <div class="dl-cfg-dialog-foot">
+                        <t t-if="state.dialog.kind === 'block'">
+                            <button class="dl-cfg-mbtn primary" type="button" t-on-click="dialogClose">Đã hiểu</button>
+                        </t>
+                        <t t-else="">
+                            <button class="dl-cfg-mbtn ghost" type="button" t-on-click="dialogClose">Hủy</button>
+                            <button class="dl-cfg-mbtn" type="button"
+                                    t-att-class="state.dialog.danger ? 'danger' : 'primary'"
+                                    t-on-click="dialogOk" t-esc="state.dialog.okLabel || 'Xác nhận'"/>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <t t-if="state.toast">
+            <div class="dl-cfg-toast"><i class="fa fa-check-circle"/> <span t-esc="state.toast"/></div>
+        </t>
+    </div>
+</t>
+
+<!-- Nút hành động cho quy tắc kỹ thuật (waste/operation/cost) -->
+<t t-name="dl_config.PcTechActions">
+    <t t-set="sec" t-value="state.tab"/>
+    <t t-if="r.state === 'draft'">
+        <button class="dl-pc-act ok" type="button" t-att-disabled="!canEdit(sec)" t-on-click="() => this.apply(sec, r.id)"><i class="fa fa-play"/> Áp dụng</button>
+        <button class="dl-pc-act" type="button" t-att-disabled="!canEdit(sec)" t-on-click="() => this.openEdit(sec, r)"><i class="fa fa-pencil"/></button>
+        <button class="dl-pc-act danger" type="button" t-att-disabled="!canEdit(sec)" t-on-click="() => this.remove(sec, r.id)"><i class="fa fa-trash-o"/></button>
+    </t>
+    <t t-if="r.state === 'active'">
+        <button class="dl-pc-act" type="button" t-att-disabled="!canEdit(sec)" t-on-click="() => this.revise(sec, r.id)"><i class="fa fa-clone"/> Sửa đổi</button>
+        <button class="dl-pc-act warn" type="button" t-att-disabled="!canEdit(sec)" t-on-click="() => this.expire(sec, r.id)"><i class="fa fa-stop"/> Ngừng</button>
+    </t>
+</t>
+
+<!-- Nút hành động cho quy tắc thương mại (profit/discount) -->
+<t t-name="dl_config.PcCommActions">
+    <t t-if="r.state === 'draft' or r.state === 'rejected'">
+        <button class="dl-pc-act ok" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.submit(section, r.id)"><i class="fa fa-paper-plane"/> Gửi duyệt</button>
+        <button class="dl-pc-act" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.openEdit(section, r)"><i class="fa fa-pencil"/></button>
+        <button class="dl-pc-act danger" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.remove(section, r.id)"><i class="fa fa-trash-o"/></button>
+    </t>
+    <t t-if="r.state === 'pending'">
+        <button class="dl-pc-act warn" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.expire(section, r.id)"><i class="fa fa-stop"/> Ngừng</button>
+    </t>
+    <t t-if="r.state === 'active'">
+        <button class="dl-pc-act" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.revise(section, r.id)"><i class="fa fa-clone"/> Sửa đổi</button>
+        <button class="dl-pc-act warn" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.expire(section, r.id)"><i class="fa fa-stop"/> Ngừng</button>
+    </t>
+</t>
+
+</templates>

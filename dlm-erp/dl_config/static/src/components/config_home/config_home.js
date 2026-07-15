@@ -23,6 +23,14 @@ const CARDS = [
         actionXmlId: "dl_config.action_dl_company",
     },
     {
+        key: "pricing_config",
+        name: "Cấu hình Báo giá",
+        desc: "Hao hụt, công đoạn, chi phí chung, lợi nhuận, chiết khấu và phê duyệt",
+        icon: "fa-calculator",
+        group: "system",
+        actionXmlId: "dl_config.action_dl_pricing_config",
+    },
+    {
         key: "sys_config",
         name: "Cấu hình Hệ thống",
         desc: "Tham số báo giá, ma trận phê duyệt, SLA, parametric",

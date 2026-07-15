@@ -1,21 +1,24 @@
 {
     'name': 'DLM-ERP Cấu hình (Master Data)',
-    'version': '17.0.1.0.0',
-    'summary': 'Cấu hình Hệ thống, User & Phân quyền, Đơn vị tính, Công ty — Phase 1',
+    'version': '17.0.2.0.0',
+    'summary': 'Cấu hình hệ thống, cấu hình báo giá có phiên bản và dữ liệu danh mục',
     'author': 'Dai Linh',
     'category': 'Hidden',
     # uom: chứa model uom.uom mà module dựng UI lên (không tạo model mới)
     # auth_signup: cung cấp action_reset_password() + email template + trang đặt mật khẩu
-    'depends': ['dl_base', 'uom', 'auth_signup'],
+    'depends': ['dl_base', 'uom', 'auth_signup', 'mail', 'product'],
     'data': [
         'security/ir.model.access.csv',
+        'security/pricing_record_rules.xml',
         'data/rbac_features.xml',
         'data/pricing_config_data.xml',
+        'data/pricing_seed.xml',
         'views/config_home.xml',
         'views/uom_views.xml',
         'views/company_views.xml',
         'views/user_admin_views.xml',
         'views/role_perm_views.xml',
+        'views/pricing_config_views.xml',
         'views/menus.xml',
     ],
     'assets': {
@@ -37,6 +40,10 @@
             'dl_config/static/src/components/sys_config/sys_config.scss',
             'dl_config/static/src/components/sys_config/sys_config.xml',
             'dl_config/static/src/components/sys_config/sys_config.js',
+            # Cấu hình Báo giá (V3) — màn OWL nhiều tab, nối model quy tắc thật.
+            'dl_config/static/src/components/pricing_config/pricing_config.scss',
+            'dl_config/static/src/components/pricing_config/pricing_config.xml',
+            'dl_config/static/src/components/pricing_config/pricing_config.js',
             'dl_config/static/src/scss/uom_list.scss',
             'dl_config/static/src/scss/uom_form.scss',
             'dl_config/static/src/views/uom_list_controller.js',

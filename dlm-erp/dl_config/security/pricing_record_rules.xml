@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <record id="rule_dl_pricing_waste_company" model="ir.rule">
+            <field name="name">Hao hụt theo công ty được phép</field>
+            <field name="model_id" ref="model_dl_pricing_waste_rule"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+
+        <record id="rule_dl_pricing_operation_rule_company" model="ir.rule">
+            <field name="name">Chi phí công đoạn theo công ty được phép</field>
+            <field name="model_id" ref="model_dl_pricing_operation_rule"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+
+        <record id="rule_dl_pricing_cost_adj_company" model="ir.rule">
+            <field name="name">Chi phí chung/hệ số theo công ty được phép</field>
+            <field name="model_id" ref="model_dl_pricing_cost_adjustment_rule"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+
+        <record id="rule_dl_pricing_profit_company" model="ir.rule">
+            <field name="name">Chính sách lợi nhuận theo công ty được phép</field>
+            <field name="model_id" ref="model_dl_pricing_profit_rule"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+
+        <record id="rule_dl_pricing_discount_company" model="ir.rule">
+            <field name="name">Chính sách chiết khấu theo công ty được phép</field>
+            <field name="model_id" ref="model_dl_pricing_discount_rule"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+
+        <record id="rule_dl_pricing_appr_setting_company" model="ir.rule">
+            <field name="name">Cấu hình người duyệt theo công ty được phép</field>
+            <field name="model_id" ref="model_dl_pricing_approval_setting"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+
+        <record id="rule_dl_pricing_appr_request_company" model="ir.rule">
+            <field name="name">Yêu cầu duyệt theo công ty được phép</field>
+            <field name="model_id" ref="model_dl_pricing_approval_request"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="global" eval="True"/>
+        </record>
+
+    </data>
+</odoo>
