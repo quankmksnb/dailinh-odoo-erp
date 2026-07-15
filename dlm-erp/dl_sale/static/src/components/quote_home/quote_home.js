@@ -7,6 +7,13 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 
 const CARDS = [
     {
+        key: "rfq_create",
+        name: "Tạo RFQ",
+        desc: "Tạo yêu cầu báo giá mới gửi Kỹ thuật xử lý",
+        icon: "fa-plus-square",
+        actionXmlId: "dl_technical.action_dl_quotation_request_create",
+    },
+    {
         key: "rfq",
         name: "Đơn hàng mới (RFQ)",
         desc: "Lập báo giá mới, cấu hình tỷ lệ chi phí & xuất mẫu Nội bộ / Khách hàng",

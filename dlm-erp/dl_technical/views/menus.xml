@@ -37,8 +37,20 @@
               sequence="30"/>
 
     <!-- ================================================================
+         TẠO RFQ — sidebar riêng cho Sales, dưới menu gốc "CRM &amp; Báo giá"
+         (dl_base.menu_dl_sale). Thay thế màn tạo RFQ cũ cho Sales; menu
+         "Yêu cầu báo giá" bên dưới vẫn giữ nguyên cho Kỹ thuật xử lý.
+    ================================================================ -->
+    <menuitem id="menu_rfq_create"
+              name="Tạo RFQ"
+              parent="dl_base.menu_dl_sale"
+              action="action_dl_quotation_request_create"
+              groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+              sequence="20"/>
+
+    <!-- ================================================================
          YÊU CẦU BÁO GIÁ (RFQ) — dưới menu gốc "CRM &amp; Báo giá" (dl_base.menu_dl_sale)
-         Sales tạo RFQ tại đây; Kỹ thuật cũng truy cập được để xử lý.
+         Kỹ thuật xử lý RFQ tại đây (danh sách/xử lý, không phải màn tạo mới).
     ================================================================ -->
     <menuitem id="menu_rfq_parent"
               name="Yêu cầu báo giá"
