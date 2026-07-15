@@ -5,18 +5,18 @@
     "author": "Dai Linh",
     "category": "Hidden",
     "depends": ["dl_base", "dl_product", "uom"],
-    "external_dependencies": {"python": ["simpleeval"]},
     "data": [
         "security/ir.model.access.csv",
         "data/rbac_features.xml",
         "data/ir_sequence_data.xml",
         "views/product_views.xml",
         "views/drawing_views.xml",
-        "views/parametric_formula_views.xml",
         "views/bom_views.xml",
+        "views/bom_template_views.xml",
         "views/quotation_request_views.xml",
         "views/technical_home.xml",
         "views/menus.xml",
+        "data/dl_demo_data.xml",
     ],
     "assets": {
         "web.assets_backend": [

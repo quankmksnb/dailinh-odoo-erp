@@ -22,13 +22,6 @@
               action="action_dl_bom_template"
               sequence="20"/>
 
-    <menuitem id="menu_parametric_formula"
-              name="Công thức tham số"
-              parent="menu_bom_parent"
-              action="action_dl_parametric_formula"
-              groups="dl_base.dl_group_admin,dl_base.dl_group_ceo"
-              sequence="30"/>
-
     <!-- Danh mục Sản phẩm / Nhóm sản phẩm / Bán thành phẩm: ngoài phạm vi
          S08 (không tạo màn quản lý ở đây) — "Danh mục Sản phẩm" đã có sẵn
          ở dl_sale (dl_base.menu_dl_technical_product). -->
