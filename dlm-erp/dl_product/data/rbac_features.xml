@@ -1,13 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="0">
+        <record id="feat_product" model="dl.rbac.feature">
+            <field name="name">Sản phẩm / Vật tư</field>
+            <field name="code">products</field>
+            <field name="model_id" ref="product.model_product_product" />
+            <field name="category">sales</field>
+            <field name="sequence">20</field>
+        </record>
 
         <!-- Nhóm sản phẩm (product.category) -->
         <record id="feat_category" model="dl.rbac.feature">
             <field name="name">Nhóm sản phẩm</field>
             <field name="code">category</field>
-            <field name="model_id" ref="product.model_product_category"/>
-            <field name="category">master</field>
+            <field name="model_id" ref="product.model_product_category" />
+            <field name="category">sales</field>
             <field name="sequence">26</field>
         </record>
 
@@ -15,8 +22,8 @@
         <record id="feat_supplierinfo" model="dl.rbac.feature">
             <field name="name">Bảng giá NCC</field>
             <field name="code">supplierinfo</field>
-            <field name="model_id" ref="product.model_product_supplierinfo"/>
-            <field name="category">master</field>
+            <field name="model_id" ref="product.model_product_supplierinfo" />
+            <field name="category">sales</field>
             <field name="sequence">27</field>
         </record>
 

@@ -36,14 +36,6 @@
             <field name="group_id" ref="dl_group_op_partner_export"/>
         </record>
 
-        <record id="feat_product" model="dl.rbac.feature">
-            <field name="name">Sản phẩm</field>
-            <field name="code">product</field>
-            <field name="model_id" ref="product.model_product_product"/>
-            <field name="category">sales</field>
-            <field name="sequence">20</field>
-        </record>
-
         <record id="feat_quotation" model="dl.rbac.feature">
             <field name="name">Báo giá</field>
             <field name="code">quotation</field>

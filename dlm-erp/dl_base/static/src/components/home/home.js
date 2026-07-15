@@ -41,7 +41,7 @@ const NAV_ITEMS = [
         key: "product",
         name: "Sản phẩm",
         icon: "fa-cube",
-        actionXmlId: "dl_product.action_dl_product_full",
+        actionXmlId: null,
     },
     {
         key: "technical",
@@ -50,9 +50,9 @@ const NAV_ITEMS = [
         actionXmlId: null,
     },
     {
-        key: "material",
-        name: "Vật tư",
-        icon: "fa-cubes",
+        key: "pricing",
+        name: "Bảng giá",
+        icon: "fa-money",
         actionXmlId: null,
     },
     {
