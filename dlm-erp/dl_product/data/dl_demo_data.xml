@@ -2,32 +2,6 @@
 <odoo>
     <data noupdate="1">
 
-        <!-- ============ NHÀ CUNG CẤP (res.partner) ============ -->
-        <record id="demo_supplier_nam_dinh" model="res.partner">
-            <field name="name">Công ty TNHH Thép Nam Định</field>
-            <field name="company_type">company</field>
-            <field name="partner_type">company</field>
-            <field name="partner_role">supplier</field>
-        </record>
-        <record id="demo_supplier_thanh_hoa" model="res.partner">
-            <field name="name">Công ty CP Thép Thanh Hóa</field>
-            <field name="company_type">company</field>
-            <field name="partner_type">company</field>
-            <field name="partner_role">supplier</field>
-        </record>
-        <record id="demo_supplier_hoa_thanh_que" model="res.partner">
-            <field name="name">Cơ khí Hoa Thanh Quế</field>
-            <field name="company_type">company</field>
-            <field name="partner_type">company</field>
-            <field name="partner_role">supplier</field>
-        </record>
-        <record id="demo_supplier_kim_long" model="res.partner">
-            <field name="name">Nội thất Kim Long</field>
-            <field name="company_type">company</field>
-            <field name="partner_type">company</field>
-            <field name="partner_role">supplier</field>
-        </record>
-
         <!-- ============ NHÓM SẢN PHẨM (product.category) ============ -->
         <record id="categ_khung_thep_han" model="product.category">
             <field name="name">Khung thép hàn</field>
@@ -57,13 +31,6 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="uom_po_id" ref="uom.product_uom_unit" />
-            <field name="seller_ids" eval="[(0, 0, {
-                'partner_id': ref('demo_supplier_kim_long'),
-                'price': 450000,
-                'date_start': '2026-06-20',
-                'approval_state': 'approved',
-                'is_applied': True,
-            })]" />
         </record>
 
         <!-- (3) material — vật tư thô, tra giá NCC -->
@@ -75,13 +42,6 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
-            <field name="seller_ids" eval="[(0, 0, {
-                'partner_id': ref('demo_supplier_nam_dinh'),
-                'price': 22000,
-                'date_start': '2026-06-01',
-                'approval_state': 'approved',
-                'is_applied': True,
-            })]" />
         </record>
         <record id="demo_product_ong_vuong" model="product.product">
             <field name="name">Ống thép vuông 25×25×1.5mm</field>
@@ -91,13 +51,6 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
-            <field name="seller_ids" eval="[(0, 0, {
-                'partner_id': ref('demo_supplier_thanh_hoa'),
-                'price': 27000,
-                'date_start': '2026-06-01',
-                'approval_state': 'approved',
-                'is_applied': True,
-            })]" />
         </record>
         <record id="demo_product_oc_vit" model="product.product">
             <field name="name">Ốc vít M6</field>
@@ -107,13 +60,6 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="uom_po_id" ref="uom.product_uom_unit" />
-            <field name="seller_ids" eval="[(0, 0, {
-                'partner_id': ref('demo_supplier_hoa_thanh_que'),
-                'price': 500,
-                'date_start': '2026-05-01',
-                'approval_state': 'approved',
-                'is_applied': True,
-            })]" />
         </record>
 
         <!-- (4) material_processed — vật tư đã gia công, có BOM riêng -->

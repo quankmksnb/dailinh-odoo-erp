@@ -54,11 +54,14 @@
         </field>
     </record>
 
+    <!-- Ẩn 3 nhóm gốc mặc định của module product lõi (All/Saleable/Expenses) -->
+    <!-- khỏi màn hình quản lý Nhóm sản phẩm của dự án (không xóa record, tránh vỡ liên kết ngầm core). -->
     <!-- Full: Admin, Trưởng KD -->
     <record id="action_dl_category_full" model="ir.actions.act_window">
         <field name="name">Nhóm sản phẩm</field>
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain" eval="[('id', 'not in', [ref('product.product_category_all'), ref('product.product_category_1'), ref('product.cat_expense')])]" />
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_product_category_tree')}),
@@ -75,6 +78,7 @@
         <field name="name">Nhóm sản phẩm</field>
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain" eval="[('id', 'not in', [ref('product.product_category_all'), ref('product.product_category_1'), ref('product.cat_expense')])]" />
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_product_category_tree')}),

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Nhãn khách hàng mặc định (res.partner.category) -->
+        <record id="dl_partner_category_khach_quen" model="res.partner.category">
+            <field name="name">Khách quen</field>
+            <field name="color">4</field>
+        </record>
+        <record id="dl_partner_category_vip" model="res.partner.category">
+            <field name="name">VIP</field>
+            <field name="color">2</field>
+        </record>
+
+    </data>
+</odoo>

@@ -21,6 +21,8 @@
                 <field name="phone" string="Điện thoại" />
                 <field name="email" widget="email" />
                 <field name="city" string="Tỉnh/TP" />
+                <field name="category_id" string="Nhãn" widget="many2many_tags"
+                    options="{'color_field': 'color'}" optional="show" />
                 <field name="active" column_invisible="1" />
             </tree>
         </field>
@@ -142,6 +144,11 @@
                                 options="{'horizontal': true}" nolabel="1"
                                 readonly="not active"
                                 class="dl-cust-type-seg" />
+                            <field name="category_id" widget="many2many_tags"
+                                string="Nhãn"
+                                options="{'color_field': 'color', 'no_create_edit': False}"
+                                placeholder="VD: Khách quen, VIP..."
+                                readonly="not active" />
                         </div>
 
                         <field name="pending_link_partner_id"
@@ -225,6 +232,7 @@
                 <field name="phone" />
                 <field name="email" />
                 <field name="vat" string="MST" />
+                <field name="category_id" string="Nhãn" />
                 <separator />
                 <filter string="Cá nhân" name="filter_individual"
                     domain="[('partner_type', '=', 'individual')]" />
@@ -240,6 +248,8 @@
                         context="{'group_by': 'partner_type'}" />
                     <filter string="Tỉnh/TP" name="group_city"
                         context="{'group_by': 'city'}" />
+                    <filter string="Nhãn" name="group_category"
+                        context="{'group_by': 'category_id'}" />
                 </group>
             </search>
         </field>
