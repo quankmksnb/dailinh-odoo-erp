@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         BẢNG GIÁ — dùng lại danh sách/form Sản phẩm (view_dl_product_*),
+         chỉ khác domain lọc theo product_kind (trading / material).
+    ============================================================ -->
+
+    <!-- View bảng giá: kế thừa form gốc, thêm lại tab "Nhà cung cấp & Bảng giá"
+         (tab này đã bị bỏ khỏi màn Danh sách Sản phẩm / Vật tư chung). -->
+    <record id="view_dl_product_pricing_form" model="ir.ui.view">
+        <field name="name">dl.product.pricing.form</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_form" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <notebook position="inside">
+                <page
+                    string="Nhà cung cấp &amp; Bảng giá"
+                    name="sellers"
+                    groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo"
+                >
+                    <field name="seller_ids">
+                        <tree editable="bottom">
+                            <field name="company_id" column_invisible="1" />
+                            <field name="partner_id" string="Nhà cung cấp" />
+                            <field name="price" />
+                            <field name="currency_id" column_invisible="1" />
+                            <field name="date_start" string="Từ ngày" />
+                            <field name="date_end" string="Đến ngày" />
+                            <field name="min_qty" string="SL tối thiểu" optional="hide" />
+                            <field
+                                name="approval_state"
+                                widget="badge"
+                                decoration-success="approval_state == 'approved'"
+                                decoration-warning="approval_state == 'draft'"
+                            />
+                            <field name="is_applied" widget="boolean_toggle" string="Đang áp dụng" />
+                            <button name="action_approve" type="object" string="Duyệt"
+                                icon="fa-check" invisible="approval_state == 'approved'"
+                                groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                            <button name="action_set_applied" type="object" string="Áp dụng"
+                                icon="fa-star" invisible="approval_state != 'approved' or is_applied"
+                                groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                            <button name="action_unset_applied" type="object" string="Bỏ áp dụng"
+                                icon="fa-star-o" invisible="not is_applied"
+                                groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                        </tree>
+                    </field>
+                </page>
+            </notebook>
+        </field>
+    </record>
+
+    <record id="action_dl_product_pricing" model="ir.actions.act_window">
+        <field name="name">Bảng giá Sản phẩm thương mại</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_ids"
+            eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="domain">[('product_kind', '=', 'trading')]</field>
+        <field name="context">{'create': False, 'delete': False, 'search_default_active': 1}</field>
+        <!-- KTV không được vào Bảng giá; Kế toán toàn quyền sửa (ACL/ir.rule),
+             CEO/Trưởng phòng KD chỉ xem (ACL write=0) -->
+        <field name="groups_id"
+            eval="[(6, 0, [
+                ref('dl_base.dl_group_admin'),
+                ref('dl_base.dl_group_accountant'),
+                ref('dl_base.dl_group_ceo'),
+                ref('dl_base.dl_group_sales_manager'),
+            ])]" />
+    </record>
+
+    <!-- Vật tư: chỉ xem chi tiết, được sửa bảng giá NCC (tab "Nhà cung cấp &
+         Bảng giá") — các trường còn lại khóa readonly. -->
+    <record id="view_dl_product_pricing_material_form" model="ir.ui.view">
+        <field name="name">dl.product.pricing.material.form</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_pricing_form" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <field name="name" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="default_code" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="product_kind" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="categ_id" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="uom_id" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="uom_po_id" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="action_dl_product_pricing_material" model="ir.actions.act_window">
+        <field name="name">Bảng giá Vật tư</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_ids"
+            eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_material_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="domain">[('product_kind', '=', 'material')]</field>
+        <field name="context">{'create': False, 'delete': False, 'search_default_active': 1}</field>
+        <field name="groups_id"
+            eval="[(6, 0, [
+                ref('dl_base.dl_group_admin'),
+                ref('dl_base.dl_group_accountant'),
+                ref('dl_base.dl_group_ceo'),
+                ref('dl_base.dl_group_sales_manager'),
+            ])]" />
+    </record>
+
+</odoo>

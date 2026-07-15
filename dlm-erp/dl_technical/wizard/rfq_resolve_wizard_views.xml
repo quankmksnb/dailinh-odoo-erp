@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Nhận RFQ (Kỹ thuật) — wizard chọn/tạo Product + BOM cho 1 dòng RFQ.
+    ================================================================ -->
+    <record id="view_dl_rfq_resolve_wizard_form" model="ir.ui.view">
+        <field name="name">dl.rfq.resolve.wizard.form</field>
+        <field name="model">dl.rfq.resolve.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Xử lý RFQ">
+                <group string="Yêu cầu từ Sales">
+                    <group>
+                        <field name="request_product_name"/>
+                        <field name="request_category_id"/>
+                        <field name="request_quantity"/>
+                    </group>
+                    <group>
+                        <field name="request_reference_product_id"/>
+                        <field name="request_dimension_note"/>
+                    </group>
+                </group>
+
+                <field name="rfq_line_id" invisible="1"/>
+
+                <group>
+                    <field name="mode" widget="radio"/>
+                </group>
+
+                <!-- A. Product đã từng gia công -->
+                <group invisible="mode != 'existing'" string="Chọn Product có sẵn">
+                    <field name="product_id" placeholder="Tìm theo tên sản phẩm..."/>
+                </group>
+
+                <group invisible="mode != 'existing' or not product_id" string="BOM Version">
+                    <field name="bom_ids" nolabel="1" colspan="2">
+                        <tree>
+                            <field name="name"/>
+                            <field name="version"/>
+                            <field name="status" widget="badge"/>
+                            <field name="create_date" string="Ngày tạo"/>
+                        </tree>
+                    </field>
+                </group>
+
+                <group invisible="mode != 'existing' or not product_id">
+                    <field name="selected_bom_id"/>
+                    <button name="action_edit_selected_bom" type="object"
+                            string="Chỉnh sửa BOM cho RFQ này"
+                            class="btn-secondary"
+                            invisible="not selected_bom_id"/>
+                    <button name="action_create_bom" type="object"
+                            string="Tạo BOM mới"
+                            class="btn-secondary"/>
+                </group>
+
+                <notebook invisible="mode != 'existing' or not selected_bom_id">
+                    <page string="Chi tiết BOM (xem trước)">
+                        <field name="selected_bom_line_ids" readonly="1">
+                            <tree>
+                                <field name="material_id"/>
+                                <field name="measurement_shape_id"/>
+                                <field name="quantity"/>
+                                <field name="waste_rate"/>
+                                <field name="effective_qty"/>
+                                <field name="subtotal"/>
+                            </tree>
+                        </field>
+                    </page>
+                </notebook>
+
+                <!-- B. Product chưa từng gia công -->
+                <group invisible="mode != 'new'" string="Tạo Product mới">
+                    <field name="new_product_name"/>
+                    <field name="new_product_category_id"/>
+                    <button name="action_create_product" type="object"
+                            string="Tạo Product" class="oe_highlight"/>
+                </group>
+
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Xác nhận" class="oe_highlight"/>
+                    <button string="Hủy" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

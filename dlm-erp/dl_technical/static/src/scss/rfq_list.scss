@@ -54,6 +54,23 @@
     .badge { font-weight: 500; border-radius: $dl-radius-sm; }
 }
 
+// "RFQ cần xử lý" (Kỹ thuật) — thêm 2 cột Product/BOM Reference, cần chia lại
+// % width cho đủ 7 cột (không đụng .dl-rfq-list gốc dùng ở "Tất cả RFQ").
+.dl-rfq-list-my {
+    .o_list_table {
+        th[data-name="status"] { border-top-right-radius: 0; }
+        th[data-name="resolved_bom_ids"] { border-top-right-radius: $dl-radius; }
+
+        th[data-name="name"]                 { width: 12% !important; }
+        th[data-name="customer_id"]          { width: 16% !important; }
+        th[data-name="requested_date"]       { width: 14% !important; }
+        th[data-name="deadline"]             { width: 12% !important; }
+        th[data-name="status"]               { width: 12% !important; }
+        th[data-name="resolved_product_ids"] { width: 17% !important; }
+        th[data-name="resolved_bom_ids"]     { width: 17% !important; }
+    }
+}
+
 // Đưa ô tìm kiếm ra giữa control-panel (chỉ riêng màn RFQ).
 .o_action_manager:has(.dl-rfq-list) .o_control_panel_actions {
     flex: 1 1 auto !important;

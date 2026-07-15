@@ -47,12 +47,12 @@ class ProductProduct(models.Model):
     )
 
     # Hàng thương mại (trading): giá vốn nhập dùng trực tiếp làm chi phí khi báo
-    # giá (không qua BOM). Chỉ áp dụng khi product_kind='trading'.
-    purchase_cost = fields.Monetary(
-        string="Giá vốn nhập",
-        currency_field="currency_id",
-        help="Chỉ dùng cho hàng thương mại (trading) — làm giá vốn trực tiếp khi báo giá.",
-    )
+    # # giá (không qua BOM). Chỉ áp dụng khi product_kind='trading'.
+    # purchase_cost = fields.Monetary(
+    #     string="Giá vốn nhập",
+    #     currency_field="currency_id",
+    #     help="Chỉ dùng cho hàng thương mại (trading) — làm giá vốn trực tiếp khi báo giá.",
+    # )
 
     # ── Constraints ──────────────────────────────────────────────────────
     @api.constrains("default_code")

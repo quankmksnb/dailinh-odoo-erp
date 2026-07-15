@@ -62,6 +62,7 @@
                 'price': 450000,
                 'date_start': '2026-06-20',
                 'approval_state': 'approved',
+                'is_applied': True,
             })]" />
         </record>
 
@@ -79,6 +80,7 @@
                 'price': 22000,
                 'date_start': '2026-06-01',
                 'approval_state': 'approved',
+                'is_applied': True,
             })]" />
         </record>
         <record id="demo_product_ong_vuong" model="product.product">
@@ -94,6 +96,7 @@
                 'price': 27000,
                 'date_start': '2026-06-01',
                 'approval_state': 'approved',
+                'is_applied': True,
             })]" />
         </record>
         <record id="demo_product_oc_vit" model="product.product">
@@ -109,6 +112,7 @@
                 'price': 500,
                 'date_start': '2026-05-01',
                 'approval_state': 'approved',
+                'is_applied': True,
             })]" />
         </record>
 
