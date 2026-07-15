@@ -17,17 +17,18 @@
     />
 
     <menuitem
+        id="menu_dl_product"
+        name="Sản phẩm / Vật tư"
+        parent="menu_dl_root"
+        sequence="20"
+        groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
+    />
+
+    <menuitem
         id="menu_dl_technical"
         name="Kỹ thuật"
         parent="menu_dl_root"
         sequence="20"
-    />
-
-    <menuitem
-        id="menu_dl_material"
-        name="Vật tư"
-        parent="menu_dl_root"
-        sequence="30"
     />
 
     <menuitem

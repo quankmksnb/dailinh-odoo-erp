@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         BẢNG GIÁ — dùng lại danh sách/form Sản phẩm (view_dl_product_*),
+         chỉ khác domain lọc theo product_kind (trading / material).
+    ============================================================ -->
+
+    <record id="action_dl_product_pricing" model="ir.actions.act_window">
+        <field name="name">Bảng giá Sản phẩm thương mại</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_ids"
+            eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="domain">[('product_kind', '=', 'trading')]</field>
+        <field name="context">{'create': False, 'delete': False, 'search_default_active': 1}</field>
+    </record>
+
+    <!-- Vật tư: chỉ xem chi tiết, được sửa bảng giá NCC (tab "Nhà cung cấp &
+         Bảng giá") — các trường còn lại khóa readonly. -->
+    <record id="view_dl_product_pricing_material_form" model="ir.ui.view">
+        <field name="name">dl.product.pricing.material.form</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_form" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <field name="name" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="default_code" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="product_kind" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="categ_id" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="uom_id" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="uom_po_id" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="action_dl_product_pricing_material" model="ir.actions.act_window">
+        <field name="name">Bảng giá Vật tư</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_ids"
+            eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_material_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="domain">[('product_kind', '=', 'material')]</field>
+        <field name="context">{'create': False, 'delete': False, 'search_default_active': 1}</field>
+    </record>
+
+</odoo>
