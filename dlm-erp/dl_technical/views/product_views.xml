@@ -15,6 +15,13 @@
         <field name="inherit_id" ref="dl_product.view_dl_product_form"/>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='boms']/div" position="replace">
+                <!-- bom_ids là computed field (chỉ đọc) — không hỗ trợ "Add a
+                     line" trực tiếp vì gộp cả 2 liên kết product_id/
+                     semi_product_id. Dùng nút bên dưới để tạo BOM mới. -->
+                <button name="action_create_bom" type="object"
+                        string="+ Tạo BOM"
+                        class="btn-secondary mb-2"
+                        groups="dl_base.dl_group_admin,dl_base.dl_group_tech"/>
                 <field name="bom_ids" nolabel="1">
                     <tree string="BOM">
                         <field name="name"/>

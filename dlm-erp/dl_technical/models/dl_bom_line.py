@@ -163,16 +163,19 @@ class DlBomLine(models.Model):
         "material_id", "semi_finished_id",
         "material_id.seller_ids.price",
         "material_id.seller_ids.approval_state",
+        "material_id.seller_ids.is_applied",
     )
     def _compute_price_snapshot(self):
         """Snapshot đơn giá tại thời điểm tạo BOM.
 
-        - Vật tư (material): lấy giá product.supplierinfo bản ĐÃ DUYỆT
-          (approval_state='approved') còn hiệu lực, mới nhất (PROD-03).
+        - Vật tư (material): lấy giá product.supplierinfo đang được đánh dấu
+          "đang áp dụng" (is_applied=True, kéo theo approval_state='approved'
+          — PROD-03). Kế toán chọn rõ 1 bảng giá áp dụng cho mỗi vật tư thay
+          vì suy đoán "mới nhất theo ngày" (không phân biệt được khi 1 vật tư
+          có nhiều bảng giá đã duyệt từ nhiều NCC).
         - Vật tư đã gia công / BTP: chi phí đệ quy = total_material_cost của
           BOM confirmed/locked của chính nó.
         """
-        today = fields.Date.context_today(self)
         for rec in self:
             price = 0.0
             component = rec.material_id or rec.semi_finished_id
@@ -189,13 +192,9 @@ class DlBomLine(models.Model):
                 if bom:
                     price = bom.total_material_cost
             elif component:
-                sellers = component.seller_ids.filtered(
-                    lambda s: s.approval_state == "approved"
-                    and (not s.date_start or s.date_start <= today)
-                    and (not s.date_end or s.date_end >= today)
-                ).sorted(key=lambda s: s.date_start or fields.Date.today(), reverse=True)
-                if sellers:
-                    price = sellers[0].price
+                seller = component.seller_ids.filtered("is_applied")
+                if seller:
+                    price = seller[0].price
 
             rec.price_snapshot = price
 

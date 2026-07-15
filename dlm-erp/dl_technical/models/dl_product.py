@@ -32,6 +32,37 @@ class DlProductTechnical(models.Model):
         # trên dl.bom để các role không có quyền dl.bom (VD: Kế toán) không
         # bị chặn quyền truy cập khi mở SP thương mại/vật tư.
         eligible = self.filtered(lambda p: p.product_kind in BOM_ELIGIBLE_KINDS)
-        boms = self.env["dl.bom"].search([("product_id", "in", eligible.ids)]) if eligible else self.env["dl.bom"]
+        boms = (
+            self.env["dl.bom"].search([
+                "|",
+                ("product_id", "in", eligible.ids),
+                ("semi_product_id", "in", eligible.ids),
+            ])
+            if eligible
+            else self.env["dl.bom"]
+        )
         for product in self:
-            product.bom_ids = boms.filtered(lambda b: b.product_id.id == product.id)
+            product.bom_ids = boms.filtered(
+                lambda b: product.id in (b.product_id.id, b.semi_product_id.id)
+            )
+
+    def action_create_bom(self):
+        # bom_ids là computed field (chỉ đọc) vì dùng chung cho cả 2 loại liên
+        # kết (product_id/semi_product_id) nên không hỗ trợ "Add a line" trực
+        # tiếp — nút này mở form dl.bom mới, tự set đúng field liên kết theo
+        # product_kind của sản phẩm đang xem.
+        self.ensure_one()
+        ctx = {"default_bom_type": "quotation"}
+        if self.product_kind == "manufactured":
+            ctx["default_product_id"] = self.id
+        elif self.product_kind == "material_processed":
+            ctx["default_semi_product_id"] = self.id
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Tạo BOM",
+            "res_model": "dl.bom",
+            "view_mode": "form",
+            "view_id": self.env.ref("dl_technical.view_dl_bom_form").id,
+            "target": "current",
+            "context": ctx,
+        }
