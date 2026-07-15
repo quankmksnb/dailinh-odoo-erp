@@ -224,8 +224,9 @@ class DlQuotationRequestLine(models.Model):
     )
 
     # Hiển thị đơn giá tham khảo khi Sales chọn thẳng Product cho dòng "Sản
-    # phẩm thương mại" (§3 — không qua BOM). purchase_cost chỉ có ý nghĩa khi
-    # product_kind='trading' (xem dl_product/models/dl_product.py).
+    # phẩm thương mại" (§3 — không qua BOM). Trước dùng purchase_cost (đã bị
+    # đồng nghiệp bỏ ở dl_product, xem product_views.xml) — đổi sang list_price
+    # (Giá bán, field chuẩn Odoo) theo đúng field mới đang dùng cho trading.
     currency_id = fields.Many2one(
         "res.currency",
         string="Tiền tệ",
@@ -235,7 +236,7 @@ class DlQuotationRequestLine(models.Model):
 
     product_price = fields.Monetary(
         string="Đơn giá",
-        related="resolved_product_id.purchase_cost",
+        related="resolved_product_id.list_price",
         currency_field="currency_id",
         readonly=True,
     )
