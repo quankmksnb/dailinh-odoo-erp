@@ -2,137 +2,52 @@
 <templates xml:space="preserve">
 
 <t t-name="dl_base.DlHome">
-    <div class="dl-home o_action" t-ref="root">
-      <div class="dl-home-layout">
-        <aside class="dl-home-nav" t-att-class="{ 'is-collapsed': sidebar.collapsed }">
-            <div class="dl-home-nav-head">
-                <Dropdown class="'dl-home-brand'">
-                    <t t-set-slot="toggler">
-                        <div class="dl-home-brand-logo">◆</div>
-                        <span class="dl-home-brand-name">DLM-ERP</span>
-                        <i class="fa fa-angle-down dl-home-brand-caret"/>
-                    </t>
-                    <DropdownItem t-foreach="apps" t-as="app" t-key="app.id"
-                                  class="{ 'o_app': true }"
-                                  href="getMenuItemHref(app)"
-                                  onSelected="() => this.onAppSelected(app)"
-                                  t-esc="app.name"/>
-                </Dropdown>
-                <button class="dl-home-navtoggle" t-on-click="() => this.toggleSidebar()"
-                        t-att-title="sidebar.collapsed ? 'Mở rộng' : 'Thu gọn'">
-                    <i class="fa fa-bars"/>
-                </button>
+    <div class="dl-home o_action">
+        <nav class="dl-home-navbar">
+            <Dropdown class="'dl-home-brand'">
+                <t t-set-slot="toggler">
+                    <div class="dl-home-brand-logo">&#9670;</div>
+                    <span class="dl-home-brand-name">DLM-ERP</span>
+                    <i class="fa fa-angle-down dl-home-brand-caret"/>
+                </t>
+                <DropdownItem t-foreach="apps" t-as="app" t-key="app.id"
+                              class="{ 'o_app': true }"
+                              href="getMenuItemHref(app)"
+                              onSelected="() => this.onAppSelected(app)"
+                              t-esc="app.name"/>
+            </Dropdown>
+
+            <div class="o_menu_systray dl-home-systray" role="menu">
+                <t t-foreach="systrayItems" t-as="item" t-key="item.key">
+                    <ErrorHandler onError="(error) => this.handleItemError(error, item)">
+                        <t t-component="item.Component" t-props="item.props"/>
+                    </ErrorHandler>
+                </t>
             </div>
-            <t t-foreach="navItems" t-as="item" t-key="item.key">
-                <div class="dl-home-navitem"
-                     t-att-class="{ 'active': item.active }"
-                     t-on-click="() => this.openModule(item.actionXmlId)">
-                    <span class="dl-home-navitem-icon">
-                        <i t-att-class="'fa ' + item.icon"/>
-                    </span>
-                    <span class="dl-home-navitem-label" t-esc="item.name"/>
-                </div>
-            </t>
-        </aside>
+        </nav>
 
-        <div class="dl-home-main">
-            <header class="dl-home-topbar">
-                <span class="dl-home-topbar-title">Trang chủ</span>
-                <div class="dl-home-search">Tìm kiếm…</div>
+        <div class="dl-home-body">
+            <div class="dl-home-hero">
+                <h1 class="dl-home-title">DLM ERP &#8212; Phase 1</h1>
+                <p class="dl-home-subtitle">Hệ thống quản lý báo giá &amp; phê duyệt</p>
+            </div>
 
-                <div class="o_menu_systray dl-home-systray" role="menu">
-                    <t t-foreach="systrayItems" t-as="item" t-key="item.key">
-                        <ErrorHandler onError="(error) => this.handleItemError(error, item)">
-                            <t t-component="item.Component" t-props="item.props"/>
-                        </ErrorHandler>
-                    </t>
-                </div>
-            </header>
-
-            <div class="dl-home-content">
-                <div class="dl-home-pagehead">
-                    <div class="dl-home-pagehead-main">
-                        <h1 class="dl-home-pagehead-title">Tổng quan</h1>
-                        <span class="dl-home-pagehead-sub">
-                            <t t-esc="greeting"/>, <t t-esc="userName"/> · <t t-esc="today"/>
-                        </span>
+            <div class="dl-home-grid">
+                <t t-foreach="cards" t-as="card" t-key="card.key">
+                    <div class="dl-home-card"
+                         t-att-class="{ 'is-disabled': !card.menuXmlId &amp;&amp; !card.actionXmlId }"
+                         t-on-click="() => this.openCard(card)">
+                        <div class="dl-home-card-icon" t-attf-style="background: {{ card.color }}">
+                            <i t-att-class="'fa ' + card.icon"/>
+                        </div>
+                        <div class="dl-home-card-info">
+                            <span class="dl-home-card-name" t-esc="card.name"/>
+                            <span class="dl-home-card-desc" t-esc="card.description"/>
+                        </div>
                     </div>
-                    <div class="dl-home-pagehead-actions">
-                        <button class="dl-home-btn ghost"
-                                t-on-click="() => this.openModule('dl_partner.action_dl_customer')">
-                            <i class="fa fa-users"/> Khách hàng
-                        </button>
-                        <button class="dl-home-btn primary"
-                                t-on-click="() => this.openModule('dl_sale.action_dl_quotation')">
-                            <i class="fa fa-plus"/> Tạo báo giá
-                        </button>
-                    </div>
-                </div>
-
-                <div class="dl-home-kpi">
-                    <t t-foreach="stats" t-as="stat" t-key="stat.key">
-                        <div class="dl-home-kpi-cell">
-                            <span class="dl-home-kpi-label" t-esc="stat.label"/>
-                            <span class="dl-home-kpi-value" t-esc="stat.value"/>
-                            <span t-att-class="'dl-home-kpi-sub ' + stat.subClass" t-esc="stat.sub"/>
-                        </div>
-                    </t>
-                </div>
-
-                <div class="dl-home-work">
-                    <section class="dl-home-panel">
-                        <div class="dl-home-panel-head">
-                            <span class="dl-home-panel-title">Báo giá chờ xử lý</span>
-                            <span class="dl-home-panel-link"
-                                  t-on-click="() => this.openModule('dl_sale.action_dl_quotation')">Xem tất cả</span>
-                        </div>
-                        <table class="dl-home-table">
-                            <thead>
-                                <tr>
-                                    <th class="col-code">Số BG</th>
-                                    <th class="col-partner">Khách hàng</th>
-                                    <th class="col-amount">Tổng tiền</th>
-                                    <th class="col-state">Trạng thái</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <t t-foreach="recentQuotations" t-as="q" t-key="q.key">
-                                    <tr t-on-click="() => this.openModule('dl_sale.action_dl_quotation')">
-                                        <td class="col-code" t-esc="q.name"/>
-                                        <td class="col-partner" t-esc="q.partner"/>
-                                        <td class="col-amount" t-esc="q.amount"/>
-                                        <td class="col-state">
-                                            <span t-att-class="'dl-home-badge ' + q.stateClass" t-esc="q.state"/>
-                                        </td>
-                                    </tr>
-                                </t>
-                            </tbody>
-                        </table>
-                    </section>
-
-                    <section class="dl-home-panel">
-                        <div class="dl-home-panel-head">
-                            <span class="dl-home-panel-title">Hoạt động gần đây</span>
-                        </div>
-                        <div class="dl-home-feed">
-                            <t t-foreach="activities" t-as="a" t-key="a.key">
-                                <div class="dl-home-feed-row">
-                                    <span t-att-class="'dl-home-feed-icon ' + a.tone">
-                                        <i t-att-class="'fa ' + a.icon"/>
-                                    </span>
-                                    <div class="dl-home-feed-body">
-                                        <span class="dl-home-feed-text" t-esc="a.text"/>
-                                        <span class="dl-home-feed-who" t-esc="a.who"/>
-                                    </div>
-                                    <span class="dl-home-feed-time" t-esc="a.time"/>
-                                </div>
-                            </t>
-                        </div>
-                    </section>
-                </div>
+                </t>
             </div>
         </div>
-      </div>
     </div>
 </t>
 
