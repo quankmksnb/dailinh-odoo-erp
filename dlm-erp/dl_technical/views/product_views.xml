@@ -16,8 +16,7 @@
         <field name="arch" type="xml">
             <xpath expr="//page[@name='boms']/div" position="replace">
                 <!-- bom_ids là computed field (chỉ đọc) — không hỗ trợ "Add a
-                     line" trực tiếp vì gộp cả 2 liên kết product_id/
-                     semi_product_id. Dùng nút bên dưới để tạo BOM mới. -->
+                     line" trực tiếp. Dùng nút bên dưới để tạo BOM mới. -->
                 <button name="action_create_bom" type="object"
                         string="+ Tạo BOM"
                         class="btn-secondary mb-2"
