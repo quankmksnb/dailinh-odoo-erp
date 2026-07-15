@@ -17,8 +17,8 @@ function wireItem(items, key, actionXmlId) {
 patch(DlHome.prototype, {
   setup() {
     super.setup(...arguments);
-    wireItem(this.navItems, "product", PRODUCT_ACTION);
-    wireItem(this.navItems, "pricing", PRICING_ACTION);
+    wireItem(this.cards, "product", PRODUCT_ACTION);
+    wireItem(this.cards, "pricing", PRICING_ACTION);
   },
 });
 
