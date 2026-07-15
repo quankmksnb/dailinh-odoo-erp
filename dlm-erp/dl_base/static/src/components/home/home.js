@@ -37,11 +37,11 @@ const MODULE_CARDS = [
     },
     {
         key: "product",
-        name: "Sản phẩm",
-        description: "Thành phẩm, bán thành phẩm & nhóm SP",
+        name: "Sản phẩm / Vật tư",
+        description: "Quản lý Sản phẩm / Vật tư",
         icon: "fa-cube",
         color: "#1a9e6f",
-        menuXmlId: "dl_product.menu_dl_product_root",
+        menuXmlId: null,
     },
     {
         key: "technical",
@@ -52,12 +52,12 @@ const MODULE_CARDS = [
         menuXmlId: "dl_base.menu_dl_technical",
     },
     {
-        key: "material",
-        name: "Vật tư",
-        description: "Danh mục vật tư & bảng giá",
-        icon: "fa-cubes",
+        key: "pricing",
+        name: "Bảng giá",
+        description: "Bảng giá SP Thương mại / Vật tư",
+        icon: "fa-money",
         color: "#c49052",
-        menuXmlId: "dl_base.menu_dl_material",
+        menuXmlId: null,
     },
     {
         key: "config",

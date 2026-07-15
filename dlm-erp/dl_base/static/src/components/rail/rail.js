@@ -11,17 +11,9 @@ const RAIL_ITEMS = [
     { key: "customer", name: "Khách hàng", icon: "fa-users", actionXmlId: "dl_partner.action_dl_customer" },
     { key: "supplier", name: "NCC / Thầu phụ", icon: "fa-truck", actionXmlId: "dl_partner.action_dl_supplier" },
     { key: "quotation", name: "Báo giá", icon: "fa-file-text-o", actionXmlId: "dl_sale.action_dl_quotation" },
-    {
-        key: "product", name: "Sản phẩm", icon: "fa-cube",
-        actionXmlId: "dl_product.action_dl_product_full",
-        children: [
-            { key: "product_main", name: "Thành phẩm", actionXmlId: "dl_product.action_dl_product_full" },
-            { key: "semi_product", name: "Bán thành phẩm", actionXmlId: "dl_product.action_dl_semi_full" },
-            { key: "category", name: "Nhóm sản phẩm", actionXmlId: "dl_product.action_dl_category_full" },
-        ],
-    },
+    { key: "product", name: "Sản phẩm / Vật tư", icon: "fa-cube", actionXmlId: null },
     { key: "technical", name: "Kỹ thuật", icon: "fa-cogs", actionXmlId: null },
-    { key: "material", name: "Vật tư", icon: "fa-cubes", actionXmlId: "dl_product.action_material_full" },
+    { key: "pricing", name: "Bảng giá", icon: "fa-money", actionXmlId: null },
     { key: "report", name: "Báo cáo", icon: "fa-bar-chart", actionXmlId: null },
     { key: "config", name: "Cấu hình", icon: "fa-sliders", actionXmlId: null },
 ];

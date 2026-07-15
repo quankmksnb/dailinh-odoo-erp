@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ============================================================
-         Menu gốc "Sản phẩm" dưới DLM-ERP root
-    ============================================================ -->
     <menuitem
         id="menu_dl_product_root"
         name="Sản phẩm"
-        parent="dl_base.menu_dl_root"
+        parent="dl_base.menu_dl_product"
         sequence="15"
     />
 
@@ -22,6 +19,7 @@
         sequence="10"
         groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager"
     />
+
     <menuitem
         id="menu_dl_product_tech"
         name="Sản phẩm"
@@ -83,26 +81,4 @@
         parent="menu_dl_measurement_root"
         sequence="20"
     />
-
-    <!-- ============================================================
-         BẢNG GIÁ NCC (product.supplierinfo — PROD-03)
-         Parent: dl_base.menu_dl_material ("Vật tư")
-    ============================================================ -->
-    <menuitem
-        id="menu_dl_supplierinfo_full"
-        name="Bảng giá NCC"
-        action="action_dl_supplierinfo_full"
-        parent="dl_base.menu_dl_material"
-        sequence="10"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant"
-    />
-    <menuitem
-        id="menu_dl_supplierinfo_view"
-        name="Bảng giá NCC"
-        action="action_dl_supplierinfo_view"
-        parent="dl_base.menu_dl_material"
-        sequence="11"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
-    />
-
 </odoo>
