@@ -48,7 +48,8 @@
                     <div class="dl-fields-row">
                         <div class="dl-field">
                             <label for="partner_id" string="Khách hàng"/>
-                            <field name="partner_id" nolabel="1"/>
+                            <field name="partner_id" nolabel="1"
+                                context="{'default_partner_role': 'customer', 'default_partner_type': 'company'}"/>
                         </div>
                         <div class="dl-field">
                             <label for="date_order" string="Ngày báo giá"/>

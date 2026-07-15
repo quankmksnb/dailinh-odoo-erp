@@ -99,6 +99,7 @@
                                 name="categ_id"
                                 string="Nhóm SP"
                                 options="{'no_open': True}"
+                                domain="[('id', 'not in', [%(product.product_category_all)d, %(product.product_category_1)d, %(product.cat_expense)d])]"
                             />
                         </group>
                         <group string="Đơn vị tính">
@@ -163,7 +164,11 @@
             <search string="Tìm sản phẩm">
                 <field name="name" string="Tên" />
                 <field name="default_code" string="Mã SP" />
-                <field name="categ_id" string="Nhóm SP" />
+                <field
+                    name="categ_id"
+                    string="Nhóm SP"
+                    domain="[('id', 'not in', [%(product.product_category_all)d, %(product.product_category_1)d, %(product.cat_expense)d])]"
+                />
                 <separator />
                 <filter string="Đang dùng" name="active" domain="[('active', '=', True)]" />
                 <filter string="Ngừng" name="inactive" domain="[('active', '=', False)]" />

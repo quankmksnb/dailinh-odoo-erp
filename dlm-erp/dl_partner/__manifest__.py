@@ -8,6 +8,7 @@
     'data': [
         'security/ir.model.access.csv',
         'security/ir_rule.xml',
+        'data/partner_category_data.xml',
         'views/customer_views.xml',
         'views/supplier_views.xml',
         'views/partner_menus.xml',

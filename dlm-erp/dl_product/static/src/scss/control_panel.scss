@@ -1,16 +1,8 @@
-.o_action_manager:has(.dl-currency-list),
-.o_action_manager:has(.dl-currency-form),
-.o_action_manager:has(.dl-uom-list),
-.o_action_manager:has(.dl-uom-form),
-.o_action_manager:has(.dl-vat-list),
-.o_action_manager:has(.dl-vat-form),
-.o_action_manager:has(.dl-company-list),
-.o_action_manager:has(.dl-company-form),
-.o_action_manager:has(.dl-role-list),
-.o_action_manager:has(.dl-role-form) {
+.o_action_manager:has(.dl-category-list),
+.o_action_manager:has(.dl-category-form) {
     font-family: $dl-font;
 
-    .o_action_manager {
+    .o_control_panel {
         background: $dl-app-bg;
         border-bottom: 1px solid $dl-border;
 
@@ -52,7 +44,7 @@
         .btn-primary {
             background-color: $dl-primary;
             border-color: $dl-primary;
-            border-radius: 999px;
+            border-radius: $dl-radius-sm;
 
             &:hover, &:focus, &:active {
                 background-color: $dl-primary-dark !important;
@@ -61,7 +53,7 @@
         }
 
         .btn-secondary {
-            border-radius: 999px;
+            border-radius: $dl-radius-sm;
             border-color: $dl-border;
         }
 
@@ -75,7 +67,7 @@
             align-items: center;
             gap: 5px;
             padding: 5px 14px !important;
-            border-radius: 999px !important;
+            border-radius: $dl-radius-sm !important;
             background: $dl-primary !important;
             color: #fff !important;
 
@@ -89,7 +81,7 @@
             align-items: center;
             gap: 5px;
             padding: 5px 14px !important;
-            border-radius: 999px !important;
+            border-radius: $dl-radius-sm !important;
             border: 1px solid $dl-border !important;
             background: #fff !important;
             color: $dl-text-2 !important;
@@ -103,7 +95,7 @@
             .dropdown-toggle, button { color: $dl-text-2; }
 
             .fa-cog {
-                font-size: 0; 
+                font-size: 0;
 
                 &::before {
                     content: "Thao tác \25BE";
@@ -116,23 +108,7 @@
     }
 }
 
-.o_action_manager:has(.dl-currency-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-uom-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-vat-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-company-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-role-form) .o_control_panel_main_buttons {
-    display: none !important;
-}
-
-.o_action_manager:has(.dl-currency-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-currency-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-uom-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-uom-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-vat-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-vat-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-company-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-company-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-role-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-role-form) .o_cp_action_menus {
+.o_action_manager:has(.dl-category-form) .o_cp_action_menus,
+.o_action_manager:has(.dl-category-list) .o_cp_action_menus {
     display: none !important;
 }

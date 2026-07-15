@@ -223,6 +223,7 @@
 .o_action_manager:has(.dl-cust-kanban),
 .o_action_manager:has(.dl-supplier-list),
 .o_action_manager:has(.dl-product-list),
+.o_action_manager:has(.dl-category-list),
 .o_action_manager:has(.dl-material-list),
 .o_action_manager:has(.dl-material-price-list),
 .o_action_manager:has(.dl-bom-list),
@@ -295,6 +296,25 @@
                 background: $dl-divider !important;
             }
         }
+    }
+
+    // Ô tìm kiếm bị bó hẹp còn 300px (xem .o_cp_searchview ở trên) nên panel
+    // filter/group-by mặc định của Odoo (bám theo bề rộng full o_searchview)
+    // phải được neo tuyệt đối vào chính ô tìm kiếm, không để vỡ layout control panel.
+    .o_control_panel_actions {
+        position: relative;
+    }
+
+    .o_search_bar_menu,
+    .o_filter_menu,
+    .o_group_by_menu {
+        position: absolute !important;
+        top: calc(100% + 4px) !important;
+        left: 0 !important;
+        right: auto !important;
+        min-width: 280px;
+        max-width: 90vw;
+        z-index: 1060;
     }
 
     // Nút New gốc → đổi nhãn "+ Thêm" (list + kanban)

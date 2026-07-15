@@ -10,6 +10,7 @@
         'security/ir.model.access.csv',
         'views/actions.xml',
         'views/menus.xml',
+        'data/demo_users_data.xml',
     ],
     'assets': {
         'web.assets_backend': [
