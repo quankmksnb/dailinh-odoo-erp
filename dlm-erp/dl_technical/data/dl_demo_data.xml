@@ -10,20 +10,20 @@
 
         <record id="demo_bom_tmpl_line_tamsat" model="dl.bom.template.line">
             <field name="bom_template_id" ref="demo_bom_template_khungthep"/>
-            <field name="suggested_product_id" ref="dl_product.demo_product_tam_sat"/>
-            <field name="default_qty">2</field>
+            <field name="material_id" ref="dl_product.demo_product_tam_sat"/>
+            <field name="quantity">2</field>
             <field name="note">KTV chỉnh lại theo kích thước thật khi áp dụng</field>
         </record>
         <record id="demo_bom_tmpl_line_khungong" model="dl.bom.template.line">
             <field name="bom_template_id" ref="demo_bom_template_khungthep"/>
-            <field name="suggested_product_id" ref="dl_product.demo_product_khung_ong"/>
-            <field name="default_qty">4</field>
+            <field name="material_id" ref="dl_product.demo_product_khung_ong"/>
+            <field name="quantity">4</field>
             <field name="note">KTV chỉnh lại theo kích thước thật</field>
         </record>
         <record id="demo_bom_tmpl_line_ocvit" model="dl.bom.template.line">
             <field name="bom_template_id" ref="demo_bom_template_khungthep"/>
-            <field name="suggested_product_id" ref="dl_product.demo_product_oc_vit"/>
-            <field name="default_qty">8</field>
+            <field name="material_id" ref="dl_product.demo_product_oc_vit"/>
+            <field name="quantity">8</field>
             <field name="note">Chỉ mang tính gợi ý — có thể đổi loại ốc vít</field>
         </record>
 

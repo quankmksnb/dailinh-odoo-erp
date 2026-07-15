@@ -17,11 +17,10 @@
                   decoration-success="status == 'confirmed'"
                   decoration-warning="status == 'locked'">
                 <field name="name"/>
+                <field name="category_id" optional="show"/>
                 <field name="product_id"/>
-                <field name="semi_product_id"/>
-                <field name="category_id"/>
                 <field name="version"/>
-                <field name="product_qty"/>
+                <field name="product_qty" string="Output Quantity"/>
                 <field name="total_material_cost" string="Chi phí VT"
                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
                 <field name="status" widget="badge"
@@ -40,6 +39,10 @@
         <field name="arch" type="xml">
             <form string="Bill of Materials" class="dl-bom-form" js_class="dl_bom_form">
                 <header>
+                    <button name="action_create_from_template" type="object"
+                            string="Create From BOM Template"
+                            invisible="status != 'draft'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_confirm" type="object" string="Xác nhận BOM"
                             class="oe_highlight"
                             invisible="status != 'draft'"
@@ -78,13 +81,13 @@
                         <group string="Thông tin BOM">
                             <field name="bom_type"/>
                             <field name="version" readonly="1"/>
-                            <field name="product_qty"/>
+                            <field name="product_qty" string="Output Quantity"/>
                         </group>
-                        <group string="Liên kết sản phẩm (chọn đúng 1)">
-                            <field name="product_id" readonly="status != 'draft'"/>
-                            <field name="semi_product_id" readonly="status != 'draft'"/>
+                        <group string="Sản phẩm">
                             <field name="category_id" readonly="status != 'draft'"
-                                   help="Chỉ dùng cho khung mẫu trừu tượng cấp nhóm (chưa gắn sản phẩm cụ thể)."/>
+                                   string="Nhóm sản phẩm (lọc)"
+                                   help="Chỉ để lọc nhanh Sản phẩm bên dưới, không bắt buộc."/>
+                            <field name="product_id" readonly="status != 'draft'"/>
                         </group>
                     </group>
 
@@ -93,54 +96,65 @@
                             <field name="line_ids"
                                    readonly="status in ('locked', 'archived')">
                                 <tree string="Dòng BOM">
-                                    <field name="component_type"/>
-                                    <field name="material_id" optional="show"/>
-                                    <field name="semi_finished_id" optional="show"/>
+                                    <field name="material_id"/>
+                                    <field name="measurement_type_id" optional="show"/>
                                     <field name="measurement_shape_id" optional="show"/>
+                                    <field name="computed_quantity" string="Định mức"/>
                                     <field name="quantity"/>
+                                    <field name="waste_config_id" optional="show"/>
                                     <field name="waste_rate" string="Hao hụt (%)"/>
                                     <field name="effective_qty" string="SL thực"/>
                                     <field name="uom_id" optional="show"/>
-                                    <field name="price_snapshot"
-                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                    <field name="subtotal" sum="Tổng"
-                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                                 </tree>
                                 <form string="Dòng BOM">
+                                    <field name="shape_code" invisible="1"/>
                                     <group>
-                                        <group string="Thành phần">
-                                            <field name="component_type"/>
+                                        <group string="1. Material">
                                             <field name="material_id"
-                                                   invisible="component_type != 'raw_material'"
-                                                   required="component_type == 'raw_material'"/>
-                                            <field name="semi_finished_id"
-                                                   invisible="component_type != 'semi_finished'"
-                                                   required="component_type == 'semi_finished'"/>
+                                                   options="{'no_quick_create': True}"
+                                                   context="{'default_product_kind': 'material'}"/>
                                             <field name="uom_id" readonly="1"/>
                                         </group>
-                                        <group string="Số lượng">
+                                        <group string="2-3. Calculation Rule / Shape">
+                                            <field name="measurement_type_id"
+                                                   options="{'no_create': True, 'no_create_edit': True}"/>
+                                            <field name="measurement_shape_id"
+                                                   options="{'no_create': True, 'no_create_edit': True}"/>
+                                            <field name="measurement_coefficient"
+                                                   invisible="shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar')"/>
+                                        </group>
+                                    </group>
+                                    <group string="4. Kích thước (theo Shape đã chọn)"
+                                           invisible="not measurement_shape_id or shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar', 'area_rectangle', 'area_square', 'area_circle', 'area_triangle', 'perimeter_rectangle', 'perimeter_square', 'perimeter_circle', 'volume_box', 'volume_cube', 'volume_cylinder', 'volume_sphere', 'length_segment')">
+                                        <field name="dim_length"
+                                               invisible="shape_code in ('area_circle', 'perimeter_circle', 'volume_cylinder', 'area_square', 'perimeter_square', 'volume_cube', 'volume_sphere')"/>
+                                        <field name="dim_width"
+                                               invisible="shape_code not in ('flat_plate', 'area_rectangle', 'perimeter_rectangle', 'volume_box')"/>
+                                        <field name="dim_side"
+                                               invisible="shape_code not in ('hollow_square_tube', 'solid_square_bar', 'area_square', 'perimeter_square', 'volume_cube')"/>
+                                        <field name="dim_diameter"
+                                               invisible="shape_code not in ('hollow_round_tube', 'solid_round_bar', 'area_circle', 'perimeter_circle', 'volume_cylinder', 'volume_sphere')"/>
+                                        <field name="dim_thickness"
+                                               invisible="shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube')"/>
+                                        <field name="dim_height"
+                                               invisible="shape_code not in ('area_triangle', 'volume_box', 'volume_cylinder')"/>
+                                    </group>
+                                    <group>
+                                        <group string="Kết quả">
+                                            <field name="computed_quantity"/>
+                                        </group>
+                                        <group string="5. Quantity (dùng thực tế — sửa được)">
                                             <field name="quantity"/>
-                                            <field name="waste_rate"/>
-                                            <field name="effective_qty" readonly="1"/>
                                             <field name="is_override"/>
                                             <field name="override_reason"
                                                    invisible="not is_override"
                                                    required="is_override"/>
                                         </group>
                                     </group>
-                                    <group string="Đo lường — tự tính định mức từ kích thước">
-                                        <field name="measurement_shape_id"/>
-                                        <field name="measurement_coefficient"/>
-                                        <field name="dimension_ids" nolabel="1" colspan="2">
-                                            <tree editable="bottom">
-                                                <field name="param_id" readonly="1"/>
-                                                <field name="value"/>
-                                            </tree>
-                                        </field>
-                                    </group>
-                                    <group groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
-                                        <field name="price_snapshot" readonly="1"/>
-                                        <field name="subtotal" readonly="1"/>
+                                    <group string="6. Waste">
+                                        <field name="waste_config_id"/>
+                                        <field name="waste_rate"/>
+                                        <field name="effective_qty" readonly="1"/>
                                     </group>
                                 </form>
                             </field>
@@ -175,7 +189,6 @@
             <search string="Tìm BOM">
                 <field name="name"/>
                 <field name="product_id"/>
-                <field name="semi_product_id"/>
                 <field name="category_id"/>
                 <separator/>
                 <filter name="draft" string="Nháp"
@@ -186,14 +199,11 @@
                         domain="[('status', '=', 'locked')]"/>
                 <filter name="archived" string="Lưu trữ"
                         domain="[('status', '=', 'archived')]"/>
-                <separator/>
-                <filter name="has_product" string="BOM sản phẩm/BTP"
-                        domain="[('category_id', '=', False)]"/>
-                <filter name="is_template" string="BOM mẫu"
-                        domain="[('category_id', '!=', False)]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_status" string="Trạng thái"
                             context="{'group_by': 'status'}"/>
+                    <filter name="group_category" string="Nhóm sản phẩm"
+                            context="{'group_by': 'category_id'}"/>
                     <filter name="group_product" string="Sản phẩm"
                             context="{'group_by': 'product_id'}"/>
                 </group>
@@ -206,7 +216,6 @@
         <field name="name">BOM sản phẩm / BTP</field>
         <field name="res_model">dl.bom</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('category_id', '=', False)]</field>
     </record>
 
     <!-- action_dl_bom_template chuyển sang model dl.bom.template (bom_template_views.xml) -->

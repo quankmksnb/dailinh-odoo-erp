@@ -27,6 +27,25 @@
         </field>
     </record>
 
+    <!-- Tree view riêng cho "RFQ cần xử lý" (Kỹ thuật) — không tạo mới ở đây
+         (chỉ tạo qua "Tạo RFQ" của Sales), có thêm cột Product/BOM Reference. -->
+    <record id="view_dl_quotation_request_tree_my" model="ir.ui.view">
+        <field name="name">dl.quotation.request.tree.my</field>
+        <field name="model">dl.quotation.request</field>
+        <field name="inherit_id" ref="view_dl_quotation_request_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//tree" position="attributes">
+                <attribute name="create">0</attribute>
+                <attribute name="class">dl-rfq-list dl-rfq-list-my</attribute>
+            </xpath>
+            <xpath expr="//field[@name='status']" position="after">
+                <field name="resolved_product_ids" widget="many2many_tags" string="Product Reference"/>
+                <field name="resolved_bom_ids" widget="many2many_tags" string="BOM Reference"/>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Form view -->
     <record id="view_dl_quotation_request_form" model="ir.ui.view">
         <field name="name">dl.quotation.request.form</field>
@@ -76,30 +95,170 @@
                             <field name="line_ids"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Dòng sản phẩm" editable="bottom">
-                                    <field name="product_name"/>
+                                    <field name="is_technician" column_invisible="1"/>
+                                    <field name="product_type"/>
+                                    <field name="product_name" required="1"/>
                                     <field name="product_category_id"/>
                                     <field name="quantity"/>
                                     <field name="dimension_note" optional="show"/>
-                                    <field name="resolved_product_id"/>
-                                    <field name="is_infeasible"/>
+                                    <field name="resolved_product_id" string="Product Reference"
+                                           readonly="not is_technician"/>
+                                    <field name="resolved_bom_id" string="BOM Reference"
+                                           readonly="not is_technician"
+                                           domain="[('product_id', '=', resolved_product_id)]"/>
+                                    <field name="is_infeasible" readonly="not is_technician"/>
                                     <field name="infeasible_reason"
-                                           invisible="not is_infeasible" optional="show"/>
+                                           invisible="not is_infeasible"
+                                           readonly="not is_technician" optional="show"/>
                                 </tree>
                                 <form string="Dòng sản phẩm">
+                                    <field name="is_technician" invisible="1"/>
+                                    <field name="product_type" invisible="1"/>
                                     <group>
                                         <group string="Yêu cầu">
-                                            <field name="product_name"/>
+                                            <field name="product_name" required="1"/>
                                             <field name="product_category_id"/>
                                             <field name="quantity"/>
                                             <field name="dimension_note"/>
                                         </group>
                                         <group string="Kết quả xử lý (Kỹ thuật)">
-                                            <field name="resolved_product_id"
-                                                   invisible="is_infeasible"/>
-                                            <field name="is_infeasible"/>
+                                            <button name="action_open_resolve_wizard" type="object"
+                                                    string="Xử lý RFQ (chọn/tạo Product + BOM)"
+                                                    class="btn-secondary"
+                                                    invisible="not id or is_infeasible or product_type == 'trading'"
+                                                    groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                            <field name="resolved_product_id" string="Product Reference"
+                                                   invisible="is_infeasible"
+                                                   readonly="not is_technician"/>
+                                            <field name="resolved_bom_id" string="BOM Reference"
+                                                   invisible="is_infeasible"
+                                                   readonly="not is_technician"
+                                                   domain="[('product_id', '=', resolved_product_id)]"/>
+                                            <field name="is_infeasible" readonly="not is_technician"/>
                                             <field name="infeasible_reason"
-                                                   invisible="not is_infeasible"/>
+                                                   invisible="not is_infeasible"
+                                                   readonly="not is_technician"/>
                                         </group>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+
+                        <page string="Ghi chú" name="notes">
+                            <group>
+                                <field name="description" nolabel="1"
+                                       placeholder="Ghi chú tổng thể: hẹn nhận hàng, điều khoản thanh toán..."/>
+                            </group>
+                            <group string="Ghi chú nội bộ">
+                                <field name="note" nolabel="1"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         TẠO RFQ (Sales) — màn tạo mới, tách riêng khỏi form cũ ở trên (form cũ
+         vẫn giữ nguyên cho Kỹ thuật xử lý RFQ, không đổi).
+         Mỗi dòng tự chọn product_type: "Sản phẩm thương mại" (chọn thẳng
+         Product có sẵn, không qua BOM) hoặc "Sản phẩm gia công" (chỉ nhập tên/
+         mô tả/số lượng, Product/Nhóm sản phẩm chỉ tham khảo, Kỹ thuật xử lý
+         sau) — §2-6 màn Tạo RFQ.
+    ================================================================ -->
+    <record id="view_dl_quotation_request_sales_form" model="ir.ui.view">
+        <field name="name">dl.quotation.request.sales.form</field>
+        <field name="model">dl.quotation.request</field>
+        <field name="arch" type="xml">
+            <form string="Tạo RFQ" class="dl-rfq-form" js_class="dl_rfq_form">
+                <header>
+                    <button name="action_mark_quoted" type="object"
+                            string="Đánh dấu đã tạo báo giá" class="oe_highlight"
+                            invisible="status != 'confirmed'"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                    <button name="action_cancel" type="object"
+                            string="Hủy"
+                            invisible="status in ('quoted', 'cancelled')"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
+                            confirm="Bạn có chắc muốn hủy RFQ này?"/>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="new,processing,confirmed,quoted"
+                           readonly="1"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Đã hủy"
+                            bg_color="text-bg-danger" invisible="status != 'cancelled'"/>
+                    <widget name="web_ribbon" title="Đã tạo báo giá"
+                            bg_color="text-bg-success" invisible="status != 'quoted'"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <group>
+                        <group string="Thông tin yêu cầu">
+                            <field name="customer_id" readonly="status != 'new'"/>
+                            <field name="requested_date" readonly="status != 'new'"/>
+                            <field name="deadline"/>
+                            <field name="created_by"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Dòng sản phẩm" name="lines">
+                            <field name="line_ids"
+                                   readonly="status in ('quoted', 'cancelled')">
+                                <tree string="Dòng sản phẩm" editable="bottom">
+                                    <field name="product_type" required="1"/>
+                                    <field name="resolved_product_id" string="Sản phẩm"
+                                           invisible="product_type != 'trading'"
+                                           required="product_type == 'trading'"
+                                           domain="[('product_kind', '=', 'trading')]"/>
+                                    <field name="product_price"
+                                           widget="monetary" options="{'currency_field': 'currency_id'}"
+                                           invisible="product_type != 'trading'"/>
+                                    <field name="product_name"
+                                           invisible="product_type == 'trading'"
+                                           required="product_type == 'manufactured'"/>
+                                    <field name="product_category_id" optional="show"
+                                           invisible="product_type == 'trading'"/>
+                                    <field name="reference_product_id" optional="show"
+                                           invisible="product_type == 'trading'"/>
+                                    <field name="quantity"/>
+                                    <field name="dimension_note" string="Mô tả" optional="show"
+                                           invisible="product_type == 'trading'"/>
+                                </tree>
+                                <form string="Dòng sản phẩm">
+                                    <group>
+                                        <field name="product_type" widget="radio"/>
+                                    </group>
+                                    <group invisible="product_type != 'trading'"
+                                           string="Sản phẩm thương mại">
+                                        <field name="resolved_product_id" string="Sản phẩm"
+                                               required="product_type == 'trading'"
+                                               domain="[('product_kind', '=', 'trading')]"/>
+                                        <field name="product_price"
+                                               widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                        <field name="quantity"/>
+                                    </group>
+                                    <group invisible="product_type != 'manufactured'"
+                                           string="Sản phẩm gia công">
+                                        <field name="product_name"
+                                               required="product_type == 'manufactured'"/>
+                                        <field name="quantity"/>
+                                        <field name="dimension_note" string="Mô tả"/>
+                                        <field name="product_category_id"
+                                               string="Nhóm sản phẩm (tham khảo)"/>
+                                        <field name="reference_product_id"
+                                               string="Sản phẩm (tham khảo)"/>
                                     </group>
                                 </form>
                             </field>
@@ -169,7 +328,17 @@
         <field name="name">RFQ cần xử lý</field>
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_dl_quotation_request_tree_my"/>
         <field name="context">{'search_default_to_process': 1}</field>
+    </record>
+
+    <!-- Tạo RFQ (Sales) — mở thẳng form tạo mới, dùng view_dl_quotation_request_sales_form -->
+    <record id="action_dl_quotation_request_create" model="ir.actions.act_window">
+        <field name="name">Tạo RFQ</field>
+        <field name="res_model">dl.quotation.request</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_dl_quotation_request_sales_form"/>
+        <field name="target">current</field>
     </record>
 
 </odoo>

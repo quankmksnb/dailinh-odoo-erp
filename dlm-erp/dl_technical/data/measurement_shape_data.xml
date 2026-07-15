@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ================================================================
+             Bộ Rule (dl.measurement.type) + Shape (dl.measurement.shape) đầy
+             đủ cho 13→17 công thức hard-code trong dl_bom_line_mixin.py.
+             "Khối lượng" và "Tấm phẳng"/"Ống vuông rỗng" TÁI SỬ DỤNG record đã
+             có sẵn ở dl_product (không tạo trùng) — chỉ thêm mới phần còn thiếu.
+        ================================================================ -->
+
+        <!-- Rule còn thiếu (Khối lượng + Diện tích đã có sẵn ở dl_product) -->
+        <record id="meas_type_perimeter" model="dl.measurement.type">
+            <field name="name">Chu vi</field>
+        </record>
+        <record id="meas_type_volume" model="dl.measurement.type">
+            <field name="name">Thể tích</field>
+        </record>
+        <record id="meas_type_length" model="dl.measurement.type">
+            <field name="name">Chiều dài</field>
+        </record>
+
+        <!-- Khối lượng — 3 shape mới (Tấm phẳng/Ống vuông rỗng đã có ở dl_product) -->
+        <record id="meas_shape_hollow_round_tube" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="dl_product.demo_meas_type_weight"/>
+            <field name="name">Ống tròn rỗng</field>
+            <field name="code">hollow_round_tube</field>
+            <field name="default_coefficient">7850</field>
+            <field name="coefficient_label">Khối lượng riêng (kg/m³)</field>
+        </record>
+        <record id="meas_shape_solid_round_bar" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="dl_product.demo_meas_type_weight"/>
+            <field name="name">Thanh đặc tròn</field>
+            <field name="code">solid_round_bar</field>
+            <field name="default_coefficient">7850</field>
+            <field name="coefficient_label">Khối lượng riêng (kg/m³)</field>
+        </record>
+        <record id="meas_shape_solid_square_bar" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="dl_product.demo_meas_type_weight"/>
+            <field name="name">Thanh đặc vuông</field>
+            <field name="code">solid_square_bar</field>
+            <field name="default_coefficient">7850</field>
+            <field name="coefficient_label">Khối lượng riêng (kg/m³)</field>
+        </record>
+
+        <!-- Diện tích (Rule đã có sẵn ở dl_product, dùng lại) -->
+        <record id="meas_shape_area_rectangle" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="dl_product.demo_meas_type_area"/>
+            <field name="name">Hình chữ nhật</field>
+            <field name="code">area_rectangle</field>
+        </record>
+        <record id="meas_shape_area_square" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="dl_product.demo_meas_type_area"/>
+            <field name="name">Hình vuông</field>
+            <field name="code">area_square</field>
+        </record>
+        <record id="meas_shape_area_circle" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="dl_product.demo_meas_type_area"/>
+            <field name="name">Hình tròn</field>
+            <field name="code">area_circle</field>
+        </record>
+        <record id="meas_shape_area_triangle" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="dl_product.demo_meas_type_area"/>
+            <field name="name">Hình tam giác</field>
+            <field name="code">area_triangle</field>
+        </record>
+
+        <!-- Chu vi -->
+        <record id="meas_shape_perimeter_rectangle" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="meas_type_perimeter"/>
+            <field name="name">Hình chữ nhật</field>
+            <field name="code">perimeter_rectangle</field>
+        </record>
+        <record id="meas_shape_perimeter_square" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="meas_type_perimeter"/>
+            <field name="name">Hình vuông</field>
+            <field name="code">perimeter_square</field>
+        </record>
+        <record id="meas_shape_perimeter_circle" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="meas_type_perimeter"/>
+            <field name="name">Hình tròn</field>
+            <field name="code">perimeter_circle</field>
+        </record>
+
+        <!-- Thể tích -->
+        <record id="meas_shape_volume_box" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="meas_type_volume"/>
+            <field name="name">Hình hộp chữ nhật</field>
+            <field name="code">volume_box</field>
+        </record>
+        <record id="meas_shape_volume_cube" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="meas_type_volume"/>
+            <field name="name">Hình lập phương</field>
+            <field name="code">volume_cube</field>
+        </record>
+        <record id="meas_shape_volume_cylinder" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="meas_type_volume"/>
+            <field name="name">Hình trụ</field>
+            <field name="code">volume_cylinder</field>
+        </record>
+        <record id="meas_shape_volume_sphere" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="meas_type_volume"/>
+            <field name="name">Hình cầu</field>
+            <field name="code">volume_sphere</field>
+        </record>
+
+        <!-- Chiều dài -->
+        <record id="meas_shape_length_segment" model="dl.measurement.shape">
+            <field name="measurement_type_id" ref="meas_type_length"/>
+            <field name="name">Đoạn thẳng</field>
+            <field name="code">length_segment</field>
+        </record>
+
+    </data>
+</odoo>
