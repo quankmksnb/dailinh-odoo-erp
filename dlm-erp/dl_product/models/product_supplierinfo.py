@@ -17,6 +17,12 @@ class ProductSupplierinfo(models.Model):
 
     _inherit = "product.supplierinfo"
 
+    product_image_128 = fields.Image(
+        related="product_tmpl_id.image_128",
+        string="Ảnh sản phẩm",
+        readonly=True,
+    )
+
     approval_state = fields.Selection(
         [
             ("draft", "Nháp"),

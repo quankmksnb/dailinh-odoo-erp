@@ -16,9 +16,9 @@ const CARDS = [
   {
     key: "material_price",
     name: "Bảng giá Vật tư",
-    desc: "Giá NCC theo vật tư / SP thương mại + duyệt giá",
+    desc: "Danh sách Vật tư & giá bán",
     icon: "fa-list-alt",
-    actionXmlId: "dl_product.action_dl_supplierinfo_full",
+    actionXmlId: "dl_product.action_dl_product_pricing_material",
   },
 ];
 

@@ -145,7 +145,12 @@
                                 </tree>
                             </field>
                         </page>
-                        <page string="BOM liên quan" name="boms">
+                        <page
+                            string="BOM liên quan"
+                            name="boms"
+                            groups="dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_tech,dl_base.dl_group_sales_manager"
+                            invisible="product_kind not in ('manufactured', 'material_processed')"
+                        >
                             <div class="text-muted" style="padding:12px">
                                 <i class="fa fa-info-circle" /> BOM sẽ hiển thị ở đây khi module <b>
                                 dl_technical</b> được cài. </div>
