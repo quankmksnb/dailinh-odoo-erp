@@ -1,5 +1,10 @@
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
+
+# Field-level RBAC (giống dl.material): chỉ Kỹ thuật/Admin được quyết định
+# "sản phẩm xác định" / "không khả thi" — đây là đánh giá kỹ thuật, Sales chỉ
+# được nhập yêu cầu (product_name/product_category_id/quantity/dimension_note).
+_TECH_ONLY_LINE_FIELDS = {'resolved_product_id', 'resolved_bom_id', 'is_infeasible', 'infeasible_reason'}
 
 
 class DlQuotationRequest(models.Model):
@@ -80,6 +85,25 @@ class DlQuotationRequest(models.Model):
         string="Danh sách sản phẩm",
     )
 
+    # Hiển thị trên list "RFQ cần xử lý" — gộp từ các dòng (1 RFQ có thể nhiều
+    # dòng, mỗi dòng 1 Product/BOM tham chiếu riêng).
+    resolved_product_ids = fields.Many2many(
+        "product.product",
+        compute="_compute_resolved_refs",
+        string="Product Reference",
+    )
+    resolved_bom_ids = fields.Many2many(
+        "dl.bom",
+        compute="_compute_resolved_refs",
+        string="BOM Reference",
+    )
+
+    @api.depends("line_ids.resolved_product_id", "line_ids.resolved_bom_id")
+    def _compute_resolved_refs(self):
+        for rec in self:
+            rec.resolved_product_ids = rec.line_ids.mapped("resolved_product_id")
+            rec.resolved_bom_ids = rec.line_ids.mapped("resolved_bom_id")
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -99,16 +123,10 @@ class DlQuotationRequest(models.Model):
             if not rec.line_ids:
                 status = "new"
 
-            elif all(
-                line.resolved_product_id or line.is_infeasible
-                for line in rec.line_ids
-            ):
+            elif all(line._is_resolved() for line in rec.line_ids):
                 status = "confirmed"
 
-            elif any(
-                line.resolved_product_id or line.is_infeasible
-                for line in rec.line_ids
-            ):
+            elif any(line._is_resolved() for line in rec.line_ids):
                 status = "processing"
 
             else:
@@ -146,14 +164,39 @@ class DlQuotationRequestLine(models.Model):
         ondelete="cascade",
     )
 
+    # Loại dòng sản phẩm — quyết định phần form Sales phải nhập (Tạo RFQ, §2-4):
+    # trading (thương mại, có sẵn trong hệ thống, không qua BOM) vs manufactured
+    # (gia công, Kỹ thuật xử lý qua BOM). Dùng chung key với product.product's
+    # product_kind để domain resolved_product_id/reference_product_id đơn giản.
+    product_type = fields.Selection(
+        [
+            ("manufactured", "Sản phẩm gia công"),
+            ("trading", "Sản phẩm thương mại"),
+        ],
+        string="Loại sản phẩm",
+        required=True,
+        default="manufactured",
+        tracking=True,
+    )
+
     product_name = fields.Char(
         string="Tên sản phẩm",
-        required=True,
     )
 
     product_category_id = fields.Many2one(
         "product.category",
         string="Nhóm sản phẩm",
+    )
+
+    # Sales có thể không biết chính xác Product khi RFQ là hàng gia công — field
+    # này chỉ mang tính THAM KHẢO, khác resolved_product_id (quyết định chính
+    # thức của Kỹ thuật, RBAC-gated bên dưới).
+    reference_product_id = fields.Many2one(
+        "product.product",
+        string="Sản phẩm tham khảo",
+        domain=[("product_kind", "in", ("manufactured", "material_processed"))],
+        help="Chỉ mang tính tham khảo nếu Sales biết sản phẩm tương tự đã từng "
+             "gia công — Kỹ thuật sẽ xác nhận sản phẩm chính thức sau.",
     )
 
     quantity = fields.Float(
@@ -171,6 +214,36 @@ class DlQuotationRequestLine(models.Model):
         string="Sản phẩm xác định",
     )
 
+    # Màn "Nhận RFQ" (Kỹ thuật) — BOM cụ thể được chọn/tạo để sản xuất
+    # resolved_product_id. Không áp dụng cho dòng thương mại (không qua BOM).
+    resolved_bom_id = fields.Many2one(
+        "dl.bom",
+        string="BOM tham chiếu",
+        help="BOM Kỹ thuật đã chọn hoặc tạo mới khi xử lý RFQ — dùng để sản xuất "
+             "sản phẩm xác định. Chỉ áp dụng cho dòng gia công.",
+    )
+
+    # Hiển thị đơn giá tham khảo khi Sales chọn thẳng Product cho dòng "Sản
+    # phẩm thương mại" (§3 — không qua BOM). Trước dùng purchase_cost (đã bị
+    # đồng nghiệp bỏ ở dl_product, xem product_views.xml) — đổi sang list_price
+    # (Giá bán, field chuẩn Odoo) theo đúng field mới đang dùng cho trading.
+    currency_id = fields.Many2one(
+        "res.currency",
+        string="Tiền tệ",
+        related="resolved_product_id.currency_id",
+        readonly=True,
+    )
+
+    # list_price là Float (digits="Product Price"), không phải Monetary — field
+    # liên kết phải cùng kiểu. currency_id vẫn giữ để hiển thị widget="monetary"
+    # trên view (ký hiệu tiền tệ), theo đúng cách dl_product tự hiển thị list_price.
+    product_price = fields.Float(
+        string="Đơn giá",
+        related="resolved_product_id.list_price",
+        digits="Product Price",
+        readonly=True,
+    )
+
     is_infeasible = fields.Boolean(
         string="Không khả thi",
         default=False,
@@ -180,12 +253,70 @@ class DlQuotationRequestLine(models.Model):
         string="Lý do không khả thi",
     )
 
+    # dùng để readonly field trên view theo nhóm quyền — compute_sudo=True vì
+    # user không thuộc dl_group_tech vẫn phải đọc được field này để tính readonly.
+    is_technician = fields.Boolean(
+        compute='_compute_is_technician', compute_sudo=True,
+        default=lambda self: (
+            self.env.user.has_group('dl_base.dl_group_tech')
+            or self.env.user.has_group('dl_base.dl_group_admin')))
+
+    def _compute_is_technician(self):
+        is_tech = (self.env.user.has_group('dl_base.dl_group_tech')
+                   or self.env.user.has_group('dl_base.dl_group_admin'))
+        for rec in self:
+            rec.is_technician = is_tech
+
+    def _is_resolved(self):
+        """Dòng được coi là đã xử lý xong khi: không khả thi, HOẶC đã có sản
+        phẩm xác định (thương mại không cần BOM; gia công còn phải có thêm
+        BOM tham chiếu — §3 màn Nhận RFQ)."""
+        self.ensure_one()
+        if self.is_infeasible:
+            return True
+        if not self.resolved_product_id:
+            return False
+        if self.product_type == "trading":
+            return True
+        return bool(self.resolved_bom_id)
+
     @api.constrains("quantity")
     def _check_quantity(self):
         for rec in self:
             if rec.quantity <= 0:
                 raise ValidationError(
                     _("Số lượng phải lớn hơn 0.")
+                )
+
+    @api.constrains("product_type", "resolved_bom_id", "resolved_product_id")
+    def _check_resolved_bom(self):
+        for rec in self:
+            if not rec.resolved_bom_id:
+                continue
+            if rec.product_type == "trading":
+                raise ValidationError(
+                    _("Sản phẩm thương mại không cần BOM tham chiếu.")
+                )
+            if rec.resolved_product_id and rec.resolved_bom_id.product_id != rec.resolved_product_id:
+                raise ValidationError(
+                    _("BOM tham chiếu phải thuộc đúng Sản phẩm xác định.")
+                )
+            if rec.resolved_bom_id.status not in ("confirmed", "locked"):
+                raise ValidationError(
+                    _("BOM tham chiếu phải ở trạng thái Đã xác nhận hoặc Đã khóa.")
+                )
+
+    @api.constrains("product_type", "product_name", "resolved_product_id")
+    def _check_product_type_required(self):
+        for rec in self:
+            if rec.product_type == "trading":
+                if not rec.resolved_product_id:
+                    raise ValidationError(
+                        _("Vui lòng chọn Sản phẩm cho dòng Sản phẩm thương mại.")
+                    )
+            elif not rec.product_name:
+                raise ValidationError(
+                    _("Vui lòng nhập Tên sản phẩm cho dòng Sản phẩm gia công.")
                 )
 
     @api.constrains("resolved_product_id", "is_infeasible")
@@ -207,7 +338,8 @@ class DlQuotationRequestLine(models.Model):
     @api.constrains("resolved_product_id")
     def _check_product_has_bom(self):
         for rec in self:
-            if rec.resolved_product_id:
+            # Hàng thương mại không qua BOM (§3) — chỉ bắt buộc BOM cho gia công.
+            if rec.resolved_product_id and rec.product_type != "trading":
                 bom_count = self.env["dl.bom"].search_count([
                     ("product_id", "=", rec.resolved_product_id.id),
                     ("status", "in", ("confirmed", "locked")),
@@ -225,9 +357,27 @@ class DlQuotationRequestLine(models.Model):
         return records
 
     def write(self, vals):
+        gated = _TECH_ONLY_LINE_FIELDS & vals.keys()
+        if not self.env.su and gated:
+            user = self.env.user
+            is_tech = (user.has_group('dl_base.dl_group_tech')
+                       or user.has_group('dl_base.dl_group_admin'))
+            if not is_tech:
+                # Ngoại lệ: dòng "Sản phẩm thương mại" không qua Kỹ thuật (§3)
+                # — Sales được tự chọn thẳng resolved_product_id. is_infeasible/
+                # infeasible_reason vẫn luôn là quyết định của Kỹ thuật.
+                new_type = vals.get('product_type')
+                is_trading_only = gated == {'resolved_product_id'} and not self.filtered(
+                    lambda l: (new_type or l.product_type) != 'trading'
+                )
+                if not is_trading_only:
+                    raise AccessError(_(
+                        'Chỉ Kỹ thuật hoặc Admin được quyết định "Sản phẩm xác định" '
+                        '/ "Không khả thi" — đây là đánh giá kỹ thuật.'))
+
         res = super().write(vals)
 
-        if {"resolved_product_id", "is_infeasible"} & set(vals.keys()):
+        if {"resolved_product_id", "resolved_bom_id", "is_infeasible"} & set(vals.keys()):
             self.mapped("quotation_request_id")._recompute_status_from_lines()
 
         return res
@@ -237,3 +387,15 @@ class DlQuotationRequestLine(models.Model):
         res = super().unlink()
         requests._recompute_status_from_lines()
         return res
+
+    def action_open_resolve_wizard(self):
+        """Màn 'Nhận RFQ' (Kỹ thuật) — mở wizard chọn/tạo Product + BOM cho dòng này."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Xử lý RFQ — %s") % (self.product_name or self.resolved_product_id.display_name),
+            "res_model": "dl.rfq.resolve.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_rfq_line_id": self.id},
+        }

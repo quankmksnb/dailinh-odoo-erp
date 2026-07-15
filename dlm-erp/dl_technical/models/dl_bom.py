@@ -5,24 +5,14 @@ from odoo.exceptions import UserError, ValidationError
 class DlBom(models.Model):
     _name = "dl.bom"
     _description = "BOM"
-    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _inherit = ["mail.thread", "mail.activity.mixin", "dl.bom.header.mixin"]
     _order = "id desc"
 
     _sql_constraints = [
         (
             "product_version_type_uniq",
             "unique(product_id,version,bom_type)",
-            "Phiên bản BOM của thành phẩm đã tồn tại.",
-        ),
-        (
-            "semi_version_type_uniq",
-            "unique(semi_product_id,version,bom_type)",
-            "Phiên bản BOM của bán thành phẩm đã tồn tại.",
-        ),
-        (
-            "category_version_type_uniq",
-            "unique(category_id,version,bom_type)",
-            "Phiên bản BOM mẫu của nhóm sản phẩm đã tồn tại.",
+            "Phiên bản BOM của sản phẩm đã tồn tại.",
         ),
     ]
 
@@ -34,45 +24,26 @@ class DlBom(models.Model):
         tracking=True,
     )
 
-    # Data Model refactor: dl.product/dl.semi.product đã hợp nhất vào
-    # product.product (phân biệt bằng product_kind). product_id giữ nghĩa
-    # "thành phẩm/manufactured", semi_product_id giữ nghĩa "vật tư đã gia
-    # công/material_processed" — cùng trỏ product.product.
-    product_id = fields.Many2one(
-        "product.product",
-        string="Thành phẩm",
-        tracking=True,
-        ondelete="restrict",
-        domain=[("product_kind", "=", "manufactured")],
-    )
-
-    semi_product_id = fields.Many2one(
-        "product.product",
-        string="Bán thành phẩm",
-        tracking=True,
-        ondelete="restrict",
-        domain=[("product_kind", "=", "material_processed")],
-    )
-
+    # Nhóm sản phẩm — CHỈ để lọc nhanh Sản phẩm bên dưới, không phải chủ sở
+    # hữu BOM (BOM theo nhóm sản phẩm dùng model riêng dl.bom.template).
     category_id = fields.Many2one(
         "product.category",
-        string="Nhóm sản phẩm",
+        string="Nhóm sản phẩm (lọc)",
+        ondelete="set null",
+    )
+
+    # Data Model refactor: dl.product/dl.semi.product đã hợp nhất vào
+    # product.product (phân biệt bằng product_kind). Trước đây tách 2 field
+    # product_id (manufactured)/semi_product_id (material_processed) — gộp
+    # lại thành 1 field duy nhất vì đều là product.product, domain bao cả 2.
+    product_id = fields.Many2one(
+        "product.product",
+        string="Sản phẩm",
+        required=True,
         tracking=True,
         ondelete="restrict",
-    )
-
-    version = fields.Integer(
-        string="Phiên bản",
-        default=1,
-        required=True,
-        tracking=True,
-    )
-
-    product_qty = fields.Float(
-        string="Số lượng đầu ra",
-        default=1.0,
-        required=True,
-        digits="Product Unit of Measure",
+        domain="[('product_kind', 'in', ('manufactured', 'material_processed'))]"
+               " + ([('categ_id', '=', category_id)] if category_id else [])",
     )
 
     bom_type = fields.Selection(
@@ -84,19 +55,6 @@ class DlBom(models.Model):
         default="template",
         required=True,
         tracking=True,
-    )
-
-    status = fields.Selection(
-        [
-            ("draft", "Nháp"),
-            ("confirmed", "Đã xác nhận"),
-            ("locked", "Đã khóa"),
-            ("archived", "Lưu trữ"),
-        ],
-        string="Trạng thái",
-        default="draft",
-        tracking=True,
-        copy=False,
     )
 
     line_ids = fields.One2many(
@@ -121,22 +79,6 @@ class DlBom(models.Model):
         for rec in self:
             rec.total_material_cost = sum(rec.line_ids.mapped("subtotal"))
 
-    @api.constrains("product_id", "semi_product_id", "category_id")
-    def _check_owner_xor(self):
-        for rec in self:
-            count = sum(
-                bool(x)
-                for x in [
-                    rec.product_id,
-                    rec.semi_product_id,
-                    rec.category_id,
-                ]
-            )
-            if count != 1:
-                raise ValidationError(
-                    _("BOM chỉ được phép gắn với một trong ba đối tượng: Thành phẩm, Bán thành phẩm hoặc Nhóm sản phẩm.")
-                )
-
     @api.constrains("product_qty")
     def _check_product_qty(self):
         for rec in self:
@@ -150,78 +92,26 @@ class DlBom(models.Model):
                 vals["name"] = self.env["ir.sequence"].next_by_code("dl.bom") or _("New")
         return super().create(vals_list)
 
-    def action_confirm(self):
-        for rec in self:
-            if rec.status != "draft":
-                raise UserError(_("Chỉ BOM ở trạng thái Nháp mới được xác nhận."))
-            if not rec.line_ids:
-                raise UserError(_("BOM phải có ít nhất một dòng vật tư."))
-            rec.status = "confirmed"
-
-    def action_lock(self):
-        for rec in self:
-            if rec.status != "confirmed":
-                raise UserError(_("Chỉ BOM đã xác nhận mới được khóa."))
-            rec.status = "locked"
-
-    def action_archive(self):
-        for rec in self:
-            if rec.status == "locked":
-                raise UserError(_("Không thể lưu trữ BOM đã khóa."))
-            rec.status = "archived"
-
-    def action_reset_draft(self):
-        for rec in self:
-            if rec.status != "confirmed":
-                raise UserError(_("Chỉ BOM đã xác nhận mới được chuyển về Nháp."))
-            rec.status = "draft"
-
-    def action_create_new_version(self):
+    def _version_domain(self):
         self.ensure_one()
+        return [("bom_type", "=", self.bom_type), ("product_id", "=", self.product_id.id)]
 
-        domain = [
-            ("bom_type", "=", self.bom_type),
-        ]
-
+    @api.onchange("product_id", "bom_type")
+    def _onchange_product_version(self):
         if self.product_id:
-            domain.append(("product_id", "=", self.product_id.id))
+            self.version = self._compute_next_version()
 
-        if self.semi_product_id:
-            domain.append(("semi_product_id", "=", self.semi_product_id.id))
-
-        if self.category_id:
-            domain.append(("category_id", "=", self.category_id.id))
-
-        max_version = max(
-            self.search(domain).mapped("version") or [0]
-        )
-
-        new_bom = self.copy({
-            "version": max_version + 1,
-            "status": "draft",
-        })
-
+    def action_create_from_template(self):
+        """Product BOM — nút "Create From BOM Template": mở wizard chọn 1
+        BOM mẫu (dl.bom.template) rồi copy toàn bộ dòng sang BOM này."""
+        self.ensure_one()
+        if self.status != "draft":
+            raise UserError(_("Chỉ BOM ở trạng thái Nháp mới copy được từ BOM mẫu."))
         return {
             "type": "ir.actions.act_window",
-            "res_model": "dl.bom",
+            "name": _("Tạo từ BOM mẫu"),
+            "res_model": "dl.bom.from.template.wizard",
             "view_mode": "form",
-            "res_id": new_bom.id,
-            "target": "current",
+            "target": "new",
+            "context": {"default_bom_id": self.id},
         }
-
-    def write(self, vals):
-        # TDS §3.3 dl.bom.status: "locked chặn UPDATE/DELETE — sửa phải tạo
-        # version mới". Cho phép đổi status (action_archive) và các field nội
-        # bộ của chatter (mail.thread) đi qua bình thường.
-        allowed = {"status", "message_main_attachment_id", "message_follower_ids"}
-        for rec in self:
-            if rec.status == "locked" and set(vals.keys()) - allowed:
-                raise UserError(_(
-                    "BOM đã khóa không thể sửa — hãy tạo phiên bản mới."))
-        return super().write(vals)
-
-    def unlink(self):
-        for rec in self:
-            if rec.status == "locked":
-                raise UserError(_("BOM đã khóa không thể xóa."))
-        return super().unlink()

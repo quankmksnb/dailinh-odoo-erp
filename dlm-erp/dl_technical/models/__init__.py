@@ -1,5 +1,7 @@
 from . import dl_product
 from . import dl_drawing
+from . import dl_bom_header_mixin
+from . import dl_bom_line_mixin
 from . import dl_bom
 from . import dl_bom_line
 from . import dl_bom_template

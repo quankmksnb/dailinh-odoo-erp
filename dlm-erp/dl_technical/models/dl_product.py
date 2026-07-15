@@ -32,6 +32,25 @@ class DlProductTechnical(models.Model):
         # trên dl.bom để các role không có quyền dl.bom (VD: Kế toán) không
         # bị chặn quyền truy cập khi mở SP thương mại/vật tư.
         eligible = self.filtered(lambda p: p.product_kind in BOM_ELIGIBLE_KINDS)
-        boms = self.env["dl.bom"].search([("product_id", "in", eligible.ids)]) if eligible else self.env["dl.bom"]
+        boms = (
+            self.env["dl.bom"].search([("product_id", "in", eligible.ids)])
+            if eligible
+            else self.env["dl.bom"]
+        )
         for product in self:
             product.bom_ids = boms.filtered(lambda b: b.product_id.id == product.id)
+
+    def action_create_bom(self):
+        # bom_ids là computed field (chỉ đọc) — nút này mở form dl.bom mới,
+        # tự set product_id theo sản phẩm đang xem (dl.bom.product_id đã gộp
+        # chung cho cả manufactured lẫn material_processed).
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Tạo BOM",
+            "res_model": "dl.bom",
+            "view_mode": "form",
+            "view_id": self.env.ref("dl_technical.view_dl_bom_form").id,
+            "target": "current",
+            "context": {"default_bom_type": "quotation", "default_product_id": self.id},
+        }

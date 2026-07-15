@@ -50,7 +50,7 @@
                         class="btn-secondary"
                         invisible="not active"
                         confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu cũ giữ nguyên."
-                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
+                        groups="dl_base.dl_group_admin"
                     />
                     <button
                         name="toggle_active"
@@ -58,7 +58,7 @@
                         string="Kích hoạt lại"
                         class="btn-secondary"
                         invisible="active"
-                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
+                        groups="dl_base.dl_group_admin"
                     />
                 </header>
                 <sheet>
@@ -122,29 +122,6 @@
                     </group>
 
                     <notebook>
-                        <page
-                            string="Nhà cung cấp &amp; Bảng giá"
-                            name="sellers"
-                            groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo"
-                        >
-                            <field name="seller_ids">
-                                <tree editable="bottom">
-                                    <field name="company_id" column_invisible="1" />
-                                    <field name="partner_id" string="Nhà cung cấp" />
-                                    <field name="price" />
-                                    <field name="currency_id" column_invisible="1" />
-                                    <field name="date_start" string="Từ ngày" />
-                                    <field name="date_end" string="Đến ngày" />
-                                    <field name="min_qty" string="SL tối thiểu" optional="hide" />
-                                    <field
-                                        name="approval_state"
-                                        widget="badge"
-                                        decoration-success="approval_state == 'approved'"
-                                        decoration-warning="approval_state == 'draft'"
-                                    />
-                                </tree>
-                            </field>
-                        </page>
                         <page
                             string="BOM liên quan"
                             name="boms"
@@ -266,13 +243,12 @@
         <field name="mode">primary</field>
         <field name="arch" type="xml">
             <xpath expr="//group[@name='group_trading_info']" position="replace" />
-            <xpath expr="//page[@name='sellers']" position="replace" />
         </field>
     </record>
 
     <!-- ============ ACTIONS (tách Full / Tech / View theo role) ============ -->
 
-    <!-- Full: Admin, Trưởng KD -->
+    <!-- Full: chỉ Admin (Trưởng KD chuyển sang view-only, xem action_dl_product_view) -->
     <record id="action_dl_product_full" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
@@ -290,6 +266,8 @@
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm sản phẩm đầu tiên!</p>
         </field>
+        <!-- groups_id chặn cả truy cập trực tiếp qua card Trang chủ (bypass menu groups) -->
+        <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_admin')])]" />
     </record>
 
     <!-- Tech: KTV — create/edit OK, delete blocked (ACL 1|1|1|0) -->
@@ -307,9 +285,11 @@
         <field name="search_view_id" ref="view_dl_product_search" />
         <field name="context">{'default_detailed_type': 'product', 'delete': False,
             'search_default_active': 1, 'active_test': False}</field>
+        <field name="groups_id"
+            eval="[(6, 0, [ref('dl_base.dl_group_admin'), ref('dl_base.dl_group_tech')])]" />
     </record>
 
-    <!-- View-only: BA/Sales, CEO, Kế toán -->
+    <!-- View-only: BA/Sales, CEO, Trưởng phòng KD — không gồm Kế toán -->
     <record id="action_dl_product_view" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
@@ -324,5 +304,12 @@
         <field name="search_view_id" ref="view_dl_product_search" />
         <field name="context">{'create': False, 'edit': False, 'delete': False,
             'search_default_active': 1, 'active_test': False}</field>
+        <field name="groups_id"
+            eval="[(6, 0, [
+                ref('dl_base.dl_group_admin'),
+                ref('dl_base.dl_group_ba'),
+                ref('dl_base.dl_group_ceo'),
+                ref('dl_base.dl_group_sales_manager'),
+            ])]" />
     </record>
 </odoo>

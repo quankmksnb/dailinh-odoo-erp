@@ -17,7 +17,7 @@
         action="action_dl_product_full"
         parent="menu_dl_product_root"
         sequence="10"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_admin"
     />
 
     <menuitem
@@ -28,13 +28,15 @@
         sequence="11"
         groups="dl_base.dl_group_tech"
     />
+    <!-- View-only: BA/Sales, CEO, Trưởng phòng KD — không gồm Kế toán (Kế toán
+         thao tác giá qua màn Bảng giá riêng, xem product_pricing_views.xml) -->
     <menuitem
         id="menu_dl_product_view"
         name="Sản phẩm"
         action="action_dl_product_view"
         parent="menu_dl_product_root"
         sequence="12"
-        groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
 
     <!-- ============================================================
