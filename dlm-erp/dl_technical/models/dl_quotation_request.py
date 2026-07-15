@@ -234,10 +234,13 @@ class DlQuotationRequestLine(models.Model):
         readonly=True,
     )
 
-    product_price = fields.Monetary(
+    # list_price là Float (digits="Product Price"), không phải Monetary — field
+    # liên kết phải cùng kiểu. currency_id vẫn giữ để hiển thị widget="monetary"
+    # trên view (ký hiệu tiền tệ), theo đúng cách dl_product tự hiển thị list_price.
+    product_price = fields.Float(
         string="Đơn giá",
         related="resolved_product_id.list_price",
-        currency_field="currency_id",
+        digits="Product Price",
         readonly=True,
     )
 

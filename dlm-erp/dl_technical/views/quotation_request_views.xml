@@ -223,6 +223,7 @@
                                            required="product_type == 'trading'"
                                            domain="[('product_kind', '=', 'trading')]"/>
                                     <field name="product_price"
+                                           widget="monetary" options="{'currency_field': 'currency_id'}"
                                            invisible="product_type != 'trading'"/>
                                     <field name="product_name"
                                            invisible="product_type == 'trading'"
@@ -244,7 +245,8 @@
                                         <field name="resolved_product_id" string="Sản phẩm"
                                                required="product_type == 'trading'"
                                                domain="[('product_kind', '=', 'trading')]"/>
-                                        <field name="product_price"/>
+                                        <field name="product_price"
+                                               widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                         <field name="quantity"/>
                                     </group>
                                     <group invisible="product_type != 'manufactured'"
