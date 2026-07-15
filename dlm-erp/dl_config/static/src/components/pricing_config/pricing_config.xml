@@ -181,38 +181,128 @@
                 </div>
             </t>
 
-            <!-- ============ TAB PHÊ DUYỆT ============ -->
+            <!-- ============ TAB PHÊ DUYỆT (3 màn con — V3 mục 11) ============ -->
             <t t-if="!state.loading and state.tab === 'approval'">
-                <div class="dl-cfg-panel">
+                <div class="dl-pc-subtabs">
+                    <button class="dl-pc-subtab" type="button" t-att-class="{active: state.approvalSub === 'matrix'}" t-on-click="() => this.setApprovalSub('matrix')">
+                        <i class="fa fa-sliders"/> Ma trận duyệt báo giá
+                    </button>
+                    <button class="dl-pc-subtab" type="button" t-att-class="{active: state.approvalSub === 'pending'}" t-on-click="() => this.setApprovalSub('pending')">
+                        <i class="fa fa-hourglass-half"/> Yêu cầu chờ duyệt
+                        <span class="dl-pc-count" t-if="pendingRequests.length" t-esc="pendingRequests.length"/>
+                    </button>
+                    <button class="dl-pc-subtab" type="button" t-att-class="{active: state.approvalSub === 'history'}" t-on-click="() => this.setApprovalSub('history')">
+                        <i class="fa fa-history"/> Lịch sử phê duyệt
+                    </button>
+                </div>
+
+                <!-- Màn con 1: Ma trận duyệt báo giá -->
+                <div class="dl-cfg-panel" t-if="state.approvalSub === 'matrix'">
                     <div class="dl-cfg-panel-head">
-                        <span class="dl-cfg-panel-title">Yêu cầu phê duyệt</span>
+                        <span class="dl-cfg-panel-title">Ma trận phê duyệt theo giá trị báo giá</span>
+                        <button class="dl-cfg-mini" type="button" t-if="canEdit('matrix')" t-on-click="() => this.openCreate('matrix')"><i class="fa fa-plus"/> Thêm mức duyệt</button>
+                    </div>
+                    <p class="dl-pc-hint">
+                        Giá trị xét duyệt = tổng giá bán <b>sau chiết khấu, trước VAT</b>.
+                        Không cần "giá trị đến": hệ thống tự suy khoảng tiền từ ngưỡng kế tiếp.
+                        Báo giá dưới ngưỡng thấp nhất không phát sinh duyệt theo giá trị.
+                    </p>
+                    <table class="dl-cfg-table">
+                        <thead><tr>
+                            <th class="num">Ngưỡng giá trị từ</th><th>Cấp duyệt</th><th>Người duyệt cụ thể</th>
+                            <th>Hiệu lực từ</th><th>Trạng thái</th><th class="num">Rev</th><th class="actw"></th>
+                        </tr></thead>
+                        <tbody>
+                            <t t-foreach="state.rows.matrix" t-as="r" t-key="r.id">
+                                <tr t-att-class="{'is-inactive': r.state !== 'active'}">
+                                    <td class="num mono" t-esc="fmtMoney(r.value_from)"/>
+                                    <td t-esc="lab('approvalLevel', r.approval_level)"/>
+                                    <td t-esc="m2oName(r.approver_user_id) || '(Theo vai trò)'"/>
+                                    <td class="mono" t-esc="fmtDate(r.valid_from)"/>
+                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
+                                    <td class="num" t-esc="r.revision"/>
+                                    <td class="actw">
+                                        <t t-if="canEdit('matrix')">
+                                            <button t-if="r.state === 'draft'" class="dl-pc-act" type="button" t-on-click="() => this.openEdit('matrix', r)"><i class="fa fa-pencil"/> Sửa</button>
+                                            <button t-if="r.state === 'draft'" class="dl-pc-act ok" type="button" t-on-click="() => this.apply('matrix', r.id)"><i class="fa fa-check"/> Áp dụng</button>
+                                            <button t-if="r.state === 'active'" class="dl-pc-act" type="button" t-on-click="() => this.revise('matrix', r.id)"><i class="fa fa-clone"/> Sửa đổi</button>
+                                            <button t-if="r.state === 'active'" class="dl-pc-act danger" type="button" t-on-click="() => this.expire('matrix', r.id)"><i class="fa fa-ban"/> Ngừng</button>
+                                            <button t-if="r.state === 'draft' and !r.used_in_snapshot" class="dl-pc-act danger" type="button" t-on-click="() => this.remove('matrix', r.id)"><i class="fa fa-trash-o"/></button>
+                                        </t>
+                                    </td>
+                                </tr>
+                            </t>
+                            <tr t-if="!state.rows.matrix.length"><td colspan="7" class="dl-cfg-empty">Chưa cấu hình ma trận. Bấm "Thêm mức duyệt" để thêm ngưỡng đầu tiên.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Màn con 2: Yêu cầu chờ duyệt -->
+                <div class="dl-cfg-panel" t-if="state.approvalSub === 'pending'">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Yêu cầu đang chờ duyệt</span>
                     </div>
                     <table class="dl-cfg-table">
                         <thead><tr>
-                            <th>Ngày gửi</th><th>Loại yêu cầu</th><th>Đối tượng</th><th>Thay đổi</th>
-                            <th>Người yêu cầu</th><th>Trạng thái</th><th class="actw"></th>
+                            <th>Ngày gửi</th><th>Loại yêu cầu</th><th>Đối tượng</th><th>Cấp duyệt</th>
+                            <th>Lý do phát sinh / Thay đổi</th><th>Người yêu cầu</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
-                            <t t-foreach="state.rows.approval" t-as="r" t-key="r.id">
+                            <t t-foreach="pendingRequests" t-as="r" t-key="r.id">
                                 <tr>
                                     <td class="mono" t-esc="fmtDate(r.create_date)"/>
                                     <td t-esc="lab('approvalType', r.request_type)"/>
                                     <td t-esc="r.object_label"/>
-                                    <td><span class="dl-pc-diff"><t t-esc="r.old_value"/> → <b t-esc="r.new_value"/></span></td>
+                                    <td><span t-if="r.approval_level" class="dl-pc-badge is-pending" t-esc="lab('approvalLevel', r.approval_level)"/></td>
+                                    <td>
+                                        <ul t-if="r.trigger_reasons" class="dl-pc-reasons">
+                                            <li t-foreach="reasonLines(r.trigger_reasons)" t-as="ln" t-key="ln_index" t-esc="ln"/>
+                                        </ul>
+                                        <span t-else="" class="dl-pc-diff"><t t-esc="r.old_value"/> → <b t-esc="r.new_value"/></span>
+                                    </td>
                                     <td>
                                         <t t-esc="m2oName(r.requester_id)"/>
                                         <span t-if="r.is_self_approval" class="dl-cfg-flag err" title="Người đề xuất tự duyệt">Tự duyệt</span>
                                     </td>
-                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
                                     <td class="actw">
-                                        <t t-if="r.state === 'pending' and canEdit('approval')">
+                                        <t t-if="canEdit('approval')">
                                             <button class="dl-pc-act ok" type="button" t-on-click="() => this.approve(r.id)"><i class="fa fa-check"/> Duyệt</button>
                                             <button class="dl-pc-act danger" type="button" t-on-click="() => this.openReject(r.id)"><i class="fa fa-times"/> Từ chối</button>
                                         </t>
                                     </td>
                                 </tr>
                             </t>
-                            <tr t-if="!state.rows.approval.length"><td colspan="7" class="dl-cfg-empty">Chưa có yêu cầu phê duyệt.</td></tr>
+                            <tr t-if="!pendingRequests.length"><td colspan="7" class="dl-cfg-empty">Không có yêu cầu nào đang chờ duyệt.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Màn con 3: Lịch sử phê duyệt -->
+                <div class="dl-cfg-panel" t-if="state.approvalSub === 'history'">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Lịch sử phê duyệt</span>
+                    </div>
+                    <table class="dl-cfg-table">
+                        <thead><tr>
+                            <th>Ngày gửi</th><th>Loại yêu cầu</th><th>Đối tượng</th><th>Cấp duyệt</th>
+                            <th>Kết quả</th><th>Người xử lý</th><th>Thời điểm</th>
+                        </tr></thead>
+                        <tbody>
+                            <t t-foreach="historyRequests" t-as="r" t-key="r.id">
+                                <tr>
+                                    <td class="mono" t-esc="fmtDate(r.create_date)"/>
+                                    <td t-esc="lab('approvalType', r.request_type)"/>
+                                    <td t-esc="r.object_label"/>
+                                    <td><span t-if="r.approval_level" t-esc="lab('approvalLevel', r.approval_level)"/></td>
+                                    <td>
+                                        <span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/>
+                                        <div t-if="r.state === 'rejected' and r.reject_comment" class="dl-pc-reject-note" t-esc="r.reject_comment"/>
+                                    </td>
+                                    <td t-esc="m2oName(r.resolved_by_id)"/>
+                                    <td class="mono" t-esc="fmtDate(r.resolved_at)"/>
+                                </tr>
+                            </t>
+                            <tr t-if="!historyRequests.length"><td colspan="7" class="dl-cfg-empty">Chưa có lịch sử phê duyệt.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -376,11 +466,28 @@
                             <label class="dl-cfg-f"><span class="k">Chiết khấu tối đa (%)</span>
                                 <input type="number" step="0.1" t-model.number="state.form.max_rate"/></label>
                         </t>
+                        <!-- MA TRẬN PHÊ DUYỆT -->
+                        <t t-if="state.form.section === 'matrix'">
+                            <label class="dl-cfg-f"><span class="k">Ngưỡng giá trị từ (đồng)</span>
+                                <input type="number" step="1" min="0" t-model.number="state.form.value_from"/></label>
+                            <label class="dl-cfg-f"><span class="k">Cấp duyệt / Vai trò</span>
+                                <select t-model="state.form.approval_level">
+                                    <t t-foreach="opt.approvalLevel" t-as="o" t-key="o.v"><option t-att-value="o.v" t-esc="o.label"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f"><span class="k">Người duyệt cụ thể (tùy chọn)</span>
+                                <select t-model.number="state.form.approver_user_id">
+                                    <option value="">(Theo vai trò)</option>
+                                    <t t-foreach="state.options.approvers" t-as="u" t-key="u.id"><option t-att-value="u.id" t-esc="u.name"/></t>
+                                </select></label>
+                            <label class="dl-cfg-f dl-pc-wide"><span class="k">Ghi chú</span>
+                                <input type="text" t-model="state.form.note" placeholder="Mô tả ngắn về mức duyệt"/></label>
+                        </t>
                         <!-- CHUNG -->
                         <label class="dl-cfg-f"><span class="k">Có hiệu lực từ</span>
                             <input type="date" t-model="state.form.valid_from"/></label>
                         <label class="dl-cfg-f dl-pc-wide"><span class="k">Lý do thay đổi
-                                <t t-if="state.form.section === 'profit' or state.form.section === 'discount'"> (bắt buộc để gửi duyệt)</t></span>
+                                <t t-if="state.form.section === 'profit' or state.form.section === 'discount'"> (bắt buộc để gửi duyệt)</t>
+                                <t t-if="state.form.section === 'matrix' and state.form.id"> (bắt buộc khi sửa)</t></span>
                             <input type="text" t-model="state.form.change_reason" placeholder="Ghi lại để truy vết"/></label>
                     </div>
                     <div class="dl-cfg-dialog-foot">

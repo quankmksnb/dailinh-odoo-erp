@@ -56,4 +56,38 @@
     .dl-pc-reason {
         @include dl-input; width: 100%; font-size: 13px; margin-bottom: 16px;
     }
+
+    // Sub-tabs của màn Phê duyệt (Ma trận / Chờ duyệt / Lịch sử)
+    .dl-pc-subtabs {
+        display: flex; gap: 6px; margin-bottom: 14px;
+        border-bottom: 1px solid $dl-border;
+    }
+    .dl-pc-subtab {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: none; background: transparent; cursor: pointer;
+        font-size: 13px; font-weight: 600; color: $dl-text-muted;
+        padding: 8px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+        i { font-size: 12px; }
+        &:hover { color: $dl-primary; }
+        &.active { color: $dl-primary; border-bottom-color: $dl-primary; }
+    }
+    .dl-pc-count {
+        display: inline-block; min-width: 18px; text-align: center;
+        font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+        background: $dl-badge-sent-bg; color: $dl-badge-sent-fg;
+    }
+
+    .dl-pc-hint {
+        font-size: 12px; color: $dl-text-muted; margin: 0 0 12px;
+        line-height: 1.5; b { color: $dl-text-2; }
+    }
+    .dl-pc-reasons {
+        margin: 0; padding-left: 16px; font-size: 12px; color: $dl-text-2;
+        li { margin: 1px 0; }
+    }
+    .dl-pc-reject-note {
+        font-size: 11.5px; color: $dl-danger; margin-top: 3px; font-style: italic;
+    }
+    // Dòng ma trận không còn hiệu lực: làm mờ nhẹ
+    .dl-cfg-table tr.is-inactive td { opacity: 0.55; }
 }

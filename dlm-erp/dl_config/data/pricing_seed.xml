@@ -75,5 +75,34 @@
             <field name="company_id" ref="base.main_company"/>
         </record>
 
+        <!-- Ma trận phê duyệt báo giá theo giá trị (V3 mục 3, dữ liệu mẫu).
+             Chỉ là ví dụ và cho phép cấu hình lại: dưới 20 triệu không cần duyệt
+             theo giá trị nên KHÔNG có dòng; từ 20.000.001đ do Trưởng KD duyệt;
+             từ 100.000.001đ do Giám đốc duyệt. -->
+        <record id="matrix_level_zero" model="dl.pricing.approval.matrix">
+            <field name="value_from">0</field>
+            <field name="approval_level">none</field>
+            <field name="valid_from">2020-01-01</field>
+            <field name="state">active</field>
+            <field name="note">Báo giá nhỏ: không cần phê duyệt theo giá trị.</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="matrix_level_sales_manager" model="dl.pricing.approval.matrix">
+            <field name="value_from">20000001</field>
+            <field name="approval_level">sales_manager</field>
+            <field name="valid_from">2020-01-01</field>
+            <field name="state">active</field>
+            <field name="note">Báo giá vừa: Trưởng kinh doanh phê duyệt.</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="matrix_level_ceo" model="dl.pricing.approval.matrix">
+            <field name="value_from">100000001</field>
+            <field name="approval_level">ceo</field>
+            <field name="valid_from">2020-01-01</field>
+            <field name="state">active</field>
+            <field name="note">Báo giá lớn: Giám đốc phê duyệt.</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+
     </data>
 </odoo>

@@ -29,17 +29,20 @@ const M = {
     discount: "dl.pricing.discount.rule",
     approval: "dl.pricing.approval.request",
     apprset: "dl.pricing.approval.setting",
+    matrix: "dl.pricing.approval.matrix",
     complexity: "dl.pricing.complexity.level",
     opcat: "dl.pricing.operation",
 };
 
 const STATE_LABEL = {
-    draft: "Nháp", active: "Đang áp dụng", expired: "Hết hiệu lực",
+    draft: "Nháp", active: "Đang áp dụng", expired: "Ngừng áp dụng",
     pending: "Chờ duyệt", rejected: "Từ chối", approved: "Đã duyệt",
+    cancelled: "Đã hủy do báo giá thay đổi",
 };
 const STATE_CLS = {
     draft: "is-draft", active: "is-active", expired: "is-expired",
     pending: "is-pending", rejected: "is-rejected", approved: "is-active",
+    cancelled: "is-expired",
 };
 
 const L = {
@@ -65,8 +68,10 @@ const L = {
         profit_config: "Cấu hình lợi nhuận mới", discount_config: "Cấu hình chiết khấu mới",
         quote_discount: "Chiết khấu báo giá vượt mặc định",
         quote_below_floor: "Báo giá dưới giá sàn/vượt trần",
+        quote_over_threshold: "Báo giá vượt ngưỡng giá trị",
     },
     approverRole: { sales_manager: "Trưởng kinh doanh", ceo: "Giám đốc" },
+    approvalLevel: { none: "Không cần duyệt", sales_manager: "Trưởng kinh doanh", ceo: "Giám đốc" },
 };
 
 const asOptions = (map) => Object.keys(map).map((k) => ({ v: k, label: map[k] }));
@@ -87,15 +92,17 @@ export class DlPricingConfig extends Component {
             costMethod: asOptions(L.costMethod),
             customerGroup: asOptions(L.customerGroup),
             approverRole: asOptions(L.approverRole),
+            approvalLevel: asOptions(L.approvalLevel),
         };
         this.state = useState({
             tab: "waste",
+            approvalSub: "matrix", // matrix | pending | history
             loading: true,
             perms: {},
             options: { categories: [], products: [], operations: [], complexity: [], approvers: [] },
             rows: {
                 waste: [], operation: [], cost: [], profit: [], discount: [],
-                approval: [], apprset: [], complexity: [], opcat: [],
+                approval: [], apprset: [], matrix: [], complexity: [], opcat: [],
             },
             form: null, // { section, id, ...fields }
             reject: null, // { id, comment }
@@ -110,7 +117,8 @@ export class DlPricingConfig extends Component {
             await Promise.all([
                 this.load("waste"), this.load("operation"), this.load("cost"),
                 this.load("profit"), this.load("discount"), this.load("approval"),
-                this.load("apprset"), this.load("complexity"), this.load("opcat"),
+                this.load("apprset"), this.load("matrix"), this.load("complexity"),
+                this.load("opcat"),
             ]);
             this.state.loading = false;
         });
@@ -132,9 +140,12 @@ export class DlPricingConfig extends Component {
             discount: ["customer_group", "default_rate", "max_rate", "valid_from", "valid_to",
                 "state", "revision", "change_reason", "write_uid"],
             approval: ["create_date", "request_type", "object_label", "old_value", "new_value",
-                "impact", "requester_id", "requester_role", "resolved_by_id", "reason",
-                "reject_comment", "is_self_approval", "state"],
+                "impact", "requester_id", "requester_role", "resolved_by_id", "resolved_at",
+                "reason", "reject_comment", "is_self_approval", "state", "approval_level",
+                "matrix_revision", "trigger_reasons"],
             apprset: ["request_type", "approver_role", "approver_user_id"],
+            matrix: ["value_from", "approval_level", "approver_user_id", "note", "valid_from",
+                "valid_to", "state", "revision", "change_reason", "used_in_snapshot", "write_uid"],
             complexity: ["name", "factor", "note", "active", "sequence"],
             opcat: ["name", "code", "active", "sequence"],
         }[section];
@@ -143,6 +154,7 @@ export class DlPricingConfig extends Component {
         if (section === "approval") return "create_date desc";
         if (section === "complexity" || section === "opcat") return "sequence, id";
         if (section === "apprset") return "request_type";
+        if (section === "matrix") return "value_from asc, revision desc";
         return "state, valid_from desc";
     }
     async load(section) {
@@ -177,12 +189,28 @@ export class DlPricingConfig extends Component {
         this.state.dialog = { kind: "block", title: "Không thực hiện được", msg };
     }
     canEdit(section) {
-        const map = { profit: "profit", discount: "discount", approval: "approval" };
+        const map = { profit: "profit", discount: "discount", approval: "approval", matrix: "matrix" };
         if (section === "waste" || section === "operation") return this.state.perms.waste;
         if (section === "cost") return this.state.perms.cost;
         if (section === "master" || section === "complexity" || section === "opcat" || section === "apprset")
             return this.state.perms.master;
         return this.state.perms[map[section]] || false;
+    }
+
+    // --- Sub-tab của màn Phê duyệt (Ma trận / Chờ duyệt / Lịch sử) -----------
+    setApprovalSub(k) { this.state.approvalSub = k; }
+    get pendingRequests() {
+        return this.state.rows.approval.filter((r) => r.state === "pending");
+    }
+    get historyRequests() {
+        return this.state.rows.approval.filter((r) => r.state !== "pending");
+    }
+    fmtMoney(v) {
+        if (v == null || v === "") return "";
+        return new Intl.NumberFormat("vi-VN").format(v) + " ₫";
+    }
+    reasonLines(txt) {
+        return (txt || "").split("\n").map((s) => s.trim()).filter(Boolean);
     }
 
     // --- Modal form: mở tạo mới / sửa ---------------------------------------
@@ -207,6 +235,8 @@ export class DlPricingConfig extends Component {
                 "condition_amount", "valid_from", "change_reason"],
             profit: ["target_markup", "min_markup", "valid_from", "change_reason"],
             discount: ["customer_group", "default_rate", "max_rate", "valid_from", "change_reason"],
+            matrix: ["value_from", "approval_level", "approver_user_id", "note", "valid_from",
+                "change_reason"],
         }[section];
     }
     _blank(section) {
@@ -219,6 +249,7 @@ export class DlPricingConfig extends Component {
                 no_discount: false, condition_days: 0, condition_amount: 0 },
             profit: { target_markup: 0, min_markup: 0 },
             discount: { customer_group: "new", default_rate: 0, max_rate: 0 },
+            matrix: { value_from: 0, approval_level: "sales_manager", approver_user_id: false, note: "" },
         }[section];
         return { ...d, ...base };
     }
@@ -233,6 +264,11 @@ export class DlPricingConfig extends Component {
     async saveForm() {
         const f = this.state.form;
         const model = M[f.section];
+        // Ma trận: lý do thay đổi bắt buộc khi sửa (mục 3, 9).
+        if (f.section === "matrix" && f.id && !(f.change_reason || "").trim()) {
+            this.showError({ message: "Bắt buộc nhập lý do thay đổi khi sửa dòng ma trận." });
+            return;
+        }
         try {
             const vals = this._payload(f);
             if (f.id) {

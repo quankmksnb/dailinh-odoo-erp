@@ -60,6 +60,10 @@ access_dl_pricing_appr_req_admin,approval request admin,model_dl_pricing_approva
 access_dl_pricing_appr_req_ba,approval request ba,model_dl_pricing_approval_request,dl_base.dl_group_ba,1,1,1,0
 access_dl_pricing_appr_req_acct,approval request accountant,model_dl_pricing_approval_request,dl_base.dl_group_accountant,1,0,0,0
 access_dl_pricing_appr_req_tech,approval request tech,model_dl_pricing_approval_request,dl_base.dl_group_tech,1,0,0,0
+access_dl_pricing_matrix_ceo,approval matrix ceo,model_dl_pricing_approval_matrix,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_matrix_admin,approval matrix admin,model_dl_pricing_approval_matrix,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_matrix_sm,approval matrix sales manager,model_dl_pricing_approval_matrix,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_matrix_ba,approval matrix ba,model_dl_pricing_approval_matrix,dl_base.dl_group_ba,1,0,0,0
 access_dl_pricing_ui_tech,pricing ui tech,model_dl_pricing_ui,dl_base.dl_group_tech,1,1,1,1
 access_dl_pricing_ui_acct,pricing ui accountant,model_dl_pricing_ui,dl_base.dl_group_accountant,1,1,1,1
 access_dl_pricing_ui_admin,pricing ui admin,model_dl_pricing_ui,dl_base.dl_group_admin,1,1,1,1

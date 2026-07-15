@@ -9,12 +9,14 @@ Người quản trị chỉ chọn vai trò/người duyệt tương ứng ở m
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 
-# 4 loại yêu cầu cố định — mục 8.1.
+# 5 loại yêu cầu cố định. Bốn loại cũ giữ nguyên; V3 bổ sung loại "Báo giá vượt
+# ngưỡng giá trị" gắn với Ma trận phê duyệt theo giá trị (mục 1).
 APPROVAL_TYPE_SELECTION = [
     ("profit_config", "Cấu hình lợi nhuận mới"),
     ("discount_config", "Cấu hình chiết khấu mới"),
     ("quote_discount", "Chiết khấu báo giá vượt mặc định"),
     ("quote_below_floor", "Báo giá dưới giá sàn hoặc vượt trần"),
+    ("quote_over_threshold", "Báo giá vượt ngưỡng giá trị"),
 ]
 
 # Vai trò duyệt gợi ý — ánh xạ sang group trong dl_base.
@@ -96,8 +98,28 @@ class DlPricingApprovalRequest(models.Model):
         help="Nhập trước khi bấm Từ chối.",
     )
     is_self_approval = fields.Boolean("Tự duyệt", readonly=True)
+    # Dành cho loại "Báo giá vượt ngưỡng giá trị" — snapshot ma trận đã dùng và
+    # cấp duyệt cuối được xác định (mục 6, 9).
+    approval_level = fields.Selection(
+        [("sales_manager", "Trưởng kinh doanh"), ("ceo", "Giám đốc")],
+        string="Cấp duyệt xác định", readonly=True,
+    )
+    matrix_row_id = fields.Many2one(
+        "dl.pricing.approval.matrix", string="Dòng ma trận đã dùng", readonly=True,
+        ondelete="restrict",
+    )
+    matrix_revision = fields.Integer("Revision ma trận", readonly=True)
+    trigger_reasons = fields.Text(
+        "Lý do phát sinh duyệt", readonly=True,
+        help="Danh sách điều kiện khiến báo giá phải phê duyệt (mục 6).",
+    )
     state = fields.Selection(
-        [("pending", "Chờ duyệt"), ("approved", "Đã duyệt"), ("rejected", "Từ chối")],
+        [
+            ("pending", "Chờ duyệt"),
+            ("approved", "Đã duyệt"),
+            ("rejected", "Từ chối"),
+            ("cancelled", "Đã hủy do báo giá thay đổi"),
+        ],
         string="Trạng thái", default="pending", required=True, readonly=True,
         tracking=True, index=True,
     )
@@ -141,6 +163,42 @@ class DlPricingApprovalRequest(models.Model):
         })
 
     @api.model
+    def open_quote_approval(self, quotation, evaluation, reason,
+                            old_value="", new_value="", impact=""):
+        """Tạo một yêu cầu "Báo giá vượt ngưỡng giá trị" từ kết quả đánh giá.
+
+        Module báo giá gọi hàm này sau khi ``dl.pricing.approval.matrix.
+        evaluate_quotation`` báo cần duyệt. Mỗi báo giá chỉ có MỘT yêu cầu đang
+        chờ — nếu đã có thì tái sử dụng (mục 10). ``evaluation`` là dict do
+        evaluate_quotation trả về.
+        """
+        existing = self.search([
+            ("res_model", "=", quotation._name),
+            ("res_id", "=", quotation.id),
+            ("state", "=", "pending"),
+        ], limit=1)
+        if existing:
+            return existing
+        reasons = evaluation.get("reasons") or []
+        return self.create({
+            "request_type": "quote_over_threshold",
+            "res_model": quotation._name,
+            "res_id": quotation.id,
+            "object_label": quotation.display_name,
+            "old_value": old_value,
+            "new_value": new_value,
+            "impact": impact,
+            "reason": reason,
+            "approval_level": evaluation.get("level") or False,
+            "matrix_row_id": evaluation.get("matrix_row_id") or False,
+            "matrix_revision": evaluation.get("matrix_revision") or False,
+            "trigger_reasons": "\n".join("• %s" % r for r in reasons),
+            "requester_id": self.env.user.id,
+            "requester_role": self._current_role_label(),
+            "company_id": quotation.company_id.id,
+        })
+
+    @api.model
     def _current_role_label(self):
         user = self.env.user
         for role, xmlid in _ROLE_GROUP.items():
@@ -148,6 +206,18 @@ class DlPricingApprovalRequest(models.Model):
             if group and user in group.users:
                 return dict(APPROVER_ROLE_SELECTION)[role]
         return user.name
+
+    def _quote_allowed_user_ids(self):
+        """Người được phép duyệt yêu cầu "vượt ngưỡng giá trị"."""
+        self.ensure_one()
+        if self.matrix_row_id and self.matrix_row_id.approver_user_id:
+            return self.matrix_row_id.approver_user_id.ids
+        role_group = {
+            "sales_manager": "dl_base.dl_group_sales_manager",
+            "ceo": "dl_base.dl_group_ceo",
+        }.get(self.approval_level)
+        group = self.env.ref(role_group, raise_if_not_found=False) if role_group else None
+        return group.users.ids if group else []
 
     def _setting(self):
         self.ensure_one()
@@ -160,6 +230,17 @@ class DlPricingApprovalRequest(models.Model):
         self.ensure_one()
         user = self.env.user
         if user.has_group("dl_base.dl_group_admin"):
+            return
+        # Loại "Báo giá vượt ngưỡng giá trị": người duyệt do cấp/ma trận quyết
+        # định, không tra ở dl.pricing.approval.setting (mục 4, 8).
+        if self.request_type == "quote_over_threshold":
+            allowed = self._quote_allowed_user_ids()
+            if user.id not in allowed:
+                raise AccessError(_(
+                    "Chỉ %s (hoặc người duyệt được chỉ định) mới được duyệt "
+                    "báo giá này."
+                ) % dict(self._fields["approval_level"].selection).get(
+                    self.approval_level, _("cấp duyệt tương ứng")))
             return
         setting = self._setting()
         allowed = setting._allowed_user_ids() if setting else []
@@ -198,6 +279,20 @@ class DlPricingApprovalRequest(models.Model):
             target = req._target_record()
             if target and hasattr(target, "_on_approval_approved"):
                 target._on_approval_approved(req)
+        return True
+
+    def action_cancel_on_change(self):
+        """Hủy kết quả duyệt cũ khi báo giá thay đổi dữ liệu ảnh hưởng giá (mục 7).
+
+        Module báo giá gọi hàm này thay vì ghi đè yêu cầu cũ. Yêu cầu chuyển sang
+        "Đã hủy do báo giá thay đổi" và giữ nguyên trong lịch sử; một yêu cầu mới
+        sẽ được tạo nếu báo giá vẫn vượt ngưỡng.
+        """
+        for req in self:
+            if req.state not in ("pending", "approved"):
+                continue
+            req.write({"state": "cancelled"})
+            req.message_post(body=_("Kết quả duyệt bị hủy do báo giá thay đổi dữ liệu ảnh hưởng giá."))
         return True
 
     def action_reject(self):

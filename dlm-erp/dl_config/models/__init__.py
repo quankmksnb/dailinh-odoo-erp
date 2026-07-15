@@ -7,4 +7,5 @@ from . import pricing_operation
 from . import pricing_cost
 from . import pricing_approval
 from . import pricing_commercial
+from . import pricing_matrix
 from . import pricing_ui
