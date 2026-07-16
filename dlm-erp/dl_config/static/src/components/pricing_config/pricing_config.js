@@ -83,6 +83,7 @@ export class DlPricingConfig extends Component {
 
     setup() {
         this.orm = useService("orm");
+        this.action = useService("action");
         this.tabs = TABS;
         this.L = L;
         this.opt = {
@@ -145,7 +146,7 @@ export class DlPricingConfig extends Component {
             approval: ["create_date", "request_type", "object_label", "old_value", "new_value",
                 "impact", "requester_id", "requester_role", "resolved_by_id", "resolved_at",
                 "reason", "reject_comment", "is_self_approval", "state", "approval_level",
-                "matrix_revision", "trigger_reasons"],
+                "matrix_revision", "trigger_reasons", "res_model", "res_id"],
             apprset: ["request_type", "approver_role", "approver_user_id"],
             matrix: ["value_from", "approval_level", "approver_user_id", "note", "valid_from",
                 "valid_to", "state", "revision", "change_reason", "used_in_snapshot", "write_uid"],
@@ -385,6 +386,21 @@ export class DlPricingConfig extends Component {
             await Promise.all([this.load("approval"), this.load("profit"), this.load("discount")]);
             this.flash("Đã duyệt.");
         } catch (e) { this.showError(e); }
+    }
+    // Mở đối tượng của yêu cầu (báo giá / cấu hình) để xem chi tiết đầy đủ trước
+    // khi quyết định duyệt. Báo giá mở kèm tab "Phân tích giá thành".
+    openTarget(row) {
+        if (!row.res_model || !row.res_id) {
+            this.flash("Yêu cầu này không gắn với đối tượng cụ thể.");
+            return;
+        }
+        this.action.doAction({
+            type: "ir.actions.act_window",
+            res_model: row.res_model,
+            res_id: row.res_id,
+            views: [[false, "form"]],
+            target: "new",
+        });
     }
     openReject(id) { this.state.reject = { id, comment: "" }; }
     closeReject() { this.state.reject = null; }

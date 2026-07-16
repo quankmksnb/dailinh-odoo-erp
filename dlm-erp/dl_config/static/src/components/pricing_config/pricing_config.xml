@@ -298,6 +298,8 @@
                                         <span t-if="r.is_self_approval" class="dl-cfg-flag err" title="Người đề xuất tự duyệt">Tự duyệt</span>
                                     </td>
                                     <td class="actw">
+                                        <button class="dl-pc-act" type="button" t-if="r.res_id"
+                                                t-on-click="() => this.openTarget(r)"><i class="fa fa-search-plus"/> Xem chi tiết</button>
                                         <t t-if="canEdit('approval')">
                                             <button class="dl-pc-act ok" type="button" t-on-click="() => this.approve(r.id)"><i class="fa fa-check"/> Duyệt</button>
                                             <button class="dl-pc-act danger" type="button" t-on-click="() => this.openReject(r.id)"><i class="fa fa-times"/> Từ chối</button>
