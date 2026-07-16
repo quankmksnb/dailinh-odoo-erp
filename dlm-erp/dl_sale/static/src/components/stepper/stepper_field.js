@@ -4,12 +4,14 @@ import { registry } from "@web/core/registry";
 import { Component } from "@odoo/owl";
 import { standardFieldProps } from "@web/views/fields/standard_field_props";
 
-// rejected không nằm trên trục stepper
-const STEP_ORDER = ["draft", "sent", "approved"];
+// rejected / cancelled không nằm trên trục stepper
+const STEP_ORDER = ["draft", "approved", "sent", "accepted", "ordered"];
 const STEP_LABELS = {
     draft: "Nháp",
-    sent: "Đã gửi",
-    approved: "Đã duyệt",
+    approved: "Duyệt nội bộ",
+    sent: "Đã gửi khách",
+    accepted: "Khách đồng ý",
+    ordered: "Đã lên đơn",
 };
 
 export class DlStepper extends Component {

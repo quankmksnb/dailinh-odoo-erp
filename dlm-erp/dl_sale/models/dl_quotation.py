@@ -1,4 +1,5 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 
 # Nhóm được xem cấu phần giá thành trên dòng báo giá (giống BOM): Kế toán,
 # Trưởng KD, CEO, Admin. Sales (BA) chỉ thấy giá bán/chiết khấu, không thấy chi
@@ -24,10 +25,15 @@ class DlQuotation(models.Model):
                                  tracking=True)
     date_order = fields.Date(string='Ngày báo giá', required=True,
                              default=fields.Date.context_today, tracking=True)
+    # Luồng: nháp → duyệt nội bộ → gửi khách → khách đồng ý → lên đơn bán hàng.
+    # Tách "duyệt nội bộ" (approved) khỏi "khách đồng ý" (accepted): approved là
+    # quyết định bên trong công ty (vượt ngưỡng…), accepted là khách chốt mua.
     state = fields.Selection([
         ('draft', 'Nháp'),
-        ('sent', 'Đã gửi'),
-        ('approved', 'Đã duyệt'),
+        ('approved', 'Đã duyệt nội bộ'),
+        ('sent', 'Đã gửi khách'),
+        ('accepted', 'Khách đồng ý'),
+        ('ordered', 'Đã lên đơn'),
         ('rejected', 'Từ chối'),
         ('cancelled', 'Đã hủy'),
     ], string='Trạng thái', default='draft', tracking=True)
@@ -79,6 +85,19 @@ class DlQuotation(models.Model):
         'dl.quotation.price.component', 'quotation_id',
         string='Cấu phần giá (snapshot)')
 
+    # Link ngược tới đơn bán hàng đã tạo (chiều sở hữu ở dl.sale.order.quotation_id).
+    # Search-based để không nhân đôi nguồn sự thật.
+    sale_order_id = fields.Many2one(
+        'dl.sale.order', string='Đơn bán hàng', compute='_compute_sale_order_id')
+
+    def _compute_sale_order_id(self):
+        Order = self.env['dl.sale.order'].sudo()
+        for rec in self:
+            rec.sale_order_id = Order.search([
+                ('quotation_id', '=', rec.id),
+                ('state', '!=', 'cancelled'),
+            ], limit=1)
+
     def init(self):
         """Partial unique index (Decision C7 + review #1): mỗi RFQ chỉ có tối đa
         một báo giá CHƯA hủy. Không dùng unique tuyệt đối để P2 còn tạo được
@@ -123,17 +142,77 @@ class DlQuotation(models.Model):
                 if total_cost else 0.0
             )
 
+    def action_approve(self):
+        """Duyệt nội bộ — sẵn sàng gửi khách."""
+        self.state = 'approved'
+
     def action_send(self):
+        """Gửi báo giá cho khách hàng."""
         self.state = 'sent'
 
-    def action_approve(self):
-        self.state = 'approved'
+    def action_customer_accept(self):
+        """Khách hàng đồng ý — sẵn sàng chuyển thành đơn bán hàng."""
+        self.state = 'accepted'
 
     def action_reject(self):
         self.state = 'rejected'
 
     def action_reset_draft(self):
         self.state = 'draft'
+
+    def action_create_sale_order(self):
+        """Chuyển báo giá đã được khách đồng ý thành Đơn bán hàng.
+        Snapshot dòng + số tiền sang đơn, khóa báo giá ở trạng thái 'ordered'."""
+        self.ensure_one()
+        if self.state != 'accepted':
+            raise UserError(_(
+                "Chỉ tạo đơn bán hàng khi khách đã đồng ý báo giá."))
+        existing = self.env['dl.sale.order'].search([
+            ('quotation_id', '=', self.id),
+            ('state', '!=', 'cancelled'),
+        ], limit=1)
+        if existing:
+            order = existing
+        else:
+            order = self.env['dl.sale.order'].create({
+                'partner_id': self.partner_id.id,
+                'quotation_id': self.id,
+                'date_order': fields.Date.context_today(self),
+                'currency_id': self.currency_id.id,
+                'discount_pct': self.discount_pct,
+                'vat_pct': self.vat_pct,
+                'note': self.note,
+                'state': 'confirmed',
+                'line_ids': [(0, 0, {
+                    'name': line.name,
+                    'qty': line.qty,
+                    'price_unit': line.price_unit,
+                    'product_id': line.product_id.id,
+                    'line_type': line.line_type,
+                }) for line in self.line_ids],
+            })
+            self.state = 'ordered'
+            self.message_post(body=_("Đã chuyển thành đơn bán hàng %s.") % order.name)
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Đơn bán hàng'),
+            'res_model': 'dl.sale.order',
+            'view_mode': 'form',
+            'res_id': order.id,
+            'target': 'current',
+        }
+
+    def action_open_sale_order(self):
+        self.ensure_one()
+        if not self.sale_order_id:
+            raise UserError(_("Báo giá này chưa có đơn bán hàng."))
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'dl.sale.order',
+            'view_mode': 'form',
+            'res_id': self.sale_order_id.id,
+            'target': 'current',
+        }
 
 
 class DlQuotationLine(models.Model):

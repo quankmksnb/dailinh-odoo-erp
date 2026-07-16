@@ -13,9 +13,10 @@
                 <field name="currency_id" column_invisible="1"/>
                 <field name="state" string="Trạng thái" widget="badge"
                        decoration-warning="state == 'draft'"
-                       decoration-info="state == 'sent'"
-                       decoration-success="state == 'approved'"
-                       decoration-danger="state == 'rejected'"/>
+                       decoration-info="state in ('approved', 'sent')"
+                       decoration-success="state in ('accepted', 'ordered')"
+                       decoration-danger="state == 'rejected'"
+                       decoration-muted="state == 'cancelled'"/>
             </tree>
         </field>
     </record>
@@ -26,18 +27,28 @@
         <field name="arch" type="xml">
             <form string="Báo giá" class="dl-quotation-form" js_class="dl_quotation_form">
                 <header>
-                    <button name="action_send" string="Gửi báo giá"
+                    <button name="action_approve" string="Duyệt nội bộ"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft'"/>
-                    <button name="action_approve" string="Duyệt"
+                            invisible="state != 'draft'"
+                            groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                    <button name="action_send" string="Gửi khách hàng"
+                            type="object" class="btn-primary"
+                            invisible="state != 'approved'"/>
+                    <button name="action_customer_accept" string="Khách đồng ý"
                             type="object" class="btn-primary"
                             invisible="state != 'sent'"/>
+                    <button name="action_create_sale_order" string="Tạo đơn bán hàng"
+                            type="object" class="oe_highlight"
+                            invisible="state != 'accepted'"/>
+                    <button name="action_open_sale_order" string="Mở đơn bán hàng"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'ordered'"/>
                     <button name="action_reject" string="Từ chối"
                             type="object" class="btn-danger"
-                            invisible="state not in ('sent', 'draft')"/>
+                            invisible="state not in ('draft', 'approved', 'sent')"/>
                     <button name="action_reset_draft" string="Về nháp"
                             type="object" class="btn-link"
-                            invisible="state not in ('sent', 'rejected')"/>
+                            invisible="state not in ('approved', 'sent', 'rejected')"/>
                     <field name="state" widget="dl_stepper"/>
                 </header>
                 <sheet>
@@ -159,8 +170,10 @@
                 <field name="name" string="Số BG"/>
                 <field name="partner_id" string="Khách hàng"/>
                 <filter name="draft" string="Nháp" domain="[('state','=','draft')]"/>
-                <filter name="sent" string="Đã gửi" domain="[('state','=','sent')]"/>
-                <filter name="approved" string="Đã duyệt" domain="[('state','=','approved')]"/>
+                <filter name="approved" string="Đã duyệt nội bộ" domain="[('state','=','approved')]"/>
+                <filter name="sent" string="Đã gửi khách" domain="[('state','=','sent')]"/>
+                <filter name="accepted" string="Khách đồng ý" domain="[('state','=','accepted')]"/>
+                <filter name="ordered" string="Đã lên đơn" domain="[('state','=','ordered')]"/>
                 <filter name="rejected" string="Từ chối" domain="[('state','=','rejected')]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_partner" string="Khách hàng"

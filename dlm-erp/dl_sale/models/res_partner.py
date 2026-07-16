@@ -110,12 +110,12 @@ class ResPartnerQuoteStats(models.Model):
         for rec in self:
             quotes = rec.dlm_quotation_ids
             rec.dlm_quotation_count = len(quotes)
-            accepted = len(quotes.filtered(lambda q: q.state == 'approved'))
+            accepted = len(quotes.filtered(lambda q: q.state in ('accepted', 'ordered')))
             lost = len(quotes.filtered(lambda q: q.state == 'rejected'))
             denom = accepted + lost
             rec.dlm_win_rate = (accepted / denom * 100.0) if denom else 0.0
             rec.dlm_open_quote_count = len(
-                quotes.filtered(lambda q: q.state in ('draft', 'sent')))
+                quotes.filtered(lambda q: q.state in ('draft', 'approved', 'sent')))
             recent = quotes.filtered(
                 lambda q: q.date_order and q.date_order >= window_start)
             rec.dlm_recent_quote_count = len(recent)
@@ -136,8 +136,8 @@ class ResPartnerQuoteStats(models.Model):
     @api.depends('partner_role', 'dlm_quotation_ids.state',
                  'dlm_quotation_ids.amount_total')
     def _compute_dlm_customer_group(self):
-        """Chỉ khách hàng mới có nhóm. 'Đơn hàng thành công' = báo giá đã duyệt
-        (approved) — hệ thống chưa có model đơn hàng/thanh toán riêng."""
+        """Chỉ khách hàng mới có nhóm. 'Đơn hàng thành công' = báo giá khách đã
+        đồng ý / đã lên đơn (accepted/ordered) — mốc thắng đơn thực tế."""
         threshold = self._get_potential_threshold()
         for rec in self:
             if rec.partner_role not in _CUSTOMER_ROLES:
@@ -145,11 +145,11 @@ class ResPartnerQuoteStats(models.Model):
                 continue
             # Đọc qua sudo để giá trị lưu độc lập với quyền đọc báo giá của
             # người vô tình kích hoạt tính lại (VD Kỹ thuật không thấy giá).
-            approved = rec.sudo().dlm_quotation_ids.filtered(
-                lambda q: q.state == 'approved')
-            if not approved:
+            won = rec.sudo().dlm_quotation_ids.filtered(
+                lambda q: q.state in ('accepted', 'ordered'))
+            if not won:
                 rec.dlm_customer_group = 'new'
-            elif sum(approved.mapped('amount_total')) > threshold:
+            elif sum(won.mapped('amount_total')) > threshold:
                 rec.dlm_customer_group = 'potential'
             else:
                 rec.dlm_customer_group = 'existing'

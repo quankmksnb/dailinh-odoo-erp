@@ -111,17 +111,17 @@
                     </group>
                     <field name="dlm_quotation_ids" nolabel="1" readonly="1">
                         <tree string="Báo giá" create="false" delete="false"
-                            decoration-success="state == 'approved'"
+                            decoration-success="state in ('accepted', 'ordered')"
                             decoration-danger="state == 'rejected'"
-                            decoration-info="state == 'sent'">
+                            decoration-info="state in ('approved', 'sent')">
                             <field name="name" string="Số BG" />
                             <field name="date_order" string="Ngày" />
                             <field name="amount_total" string="Giá trị" widget="monetary" />
                             <field name="currency_id" column_invisible="1" />
                             <field name="state" string="Trạng thái" widget="badge"
-                                decoration-success="state == 'approved'"
+                                decoration-success="state in ('accepted', 'ordered')"
                                 decoration-danger="state == 'rejected'"
-                                decoration-info="state == 'sent'" />
+                                decoration-info="state in ('approved', 'sent')" />
                         </tree>
                     </field>
                 </page>

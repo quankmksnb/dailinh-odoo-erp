@@ -1,6 +1,6 @@
 {
     'name': 'DL-CRM & Báo giá',
-    'version': '17.0.1.2.0',
+    'version': '17.0.1.3.0',
     'summary': 'Quản lý Khách hàng, NCC, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -10,6 +10,7 @@
         'data/rbac_features.xml',
         'views/customer_views_ext.xml',
         'views/quotation_views.xml',
+        'views/sale_order_views.xml',
         'views/rfq_views_ext.xml',
         'views/quote_actions.xml',
         'views/menus.xml',
@@ -41,16 +42,10 @@
             'dl_sale/static/src/views/supplier_form_controller.js',
             # JS — patch điều hướng
             'dl_sale/static/src/js/nav_patch.js',
-            # Component — Hub Báo giá (RFQ + Yêu cầu khách hàng)
+            # Component — Hub Báo giá (Tạo RFQ · Quản lý RFQ · Báo giá · Đơn bán hàng)
             'dl_sale/static/src/components/quote_home/quote_home.scss',
             'dl_sale/static/src/components/quote_home/quote_home.js',
             'dl_sale/static/src/components/quote_home/quote_home.xml',
-            'dl_sale/static/src/components/rfq/rfq.scss',
-            'dl_sale/static/src/components/rfq/rfq.js',
-            'dl_sale/static/src/components/rfq/rfq.xml',
-            'dl_sale/static/src/components/customer_request/customer_request.scss',
-            'dl_sale/static/src/components/customer_request/customer_request.js',
-            'dl_sale/static/src/components/customer_request/customer_request.xml',
         ],
     },
     'installable': True,
