@@ -1,5 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+
+    <!-- Cột "Nhóm KH" (mới / cũ / tiềm năng) trên danh sách khách hàng.
+         Field dlm_customer_group thuộc dl_sale nên phải chèn qua kế thừa. -->
+    <record id="view_dl_customer_tree_group_ext" model="ir.ui.view">
+        <field name="name">dlm.customer.tree.group.ext</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="dl_partner.view_dl_customer_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_type']" position="after">
+                <field name="dlm_customer_group" string="Nhóm KH" widget="badge"
+                    decoration-info="dlm_customer_group == 'new'"
+                    decoration-success="dlm_customer_group == 'existing'"
+                    decoration-warning="dlm_customer_group == 'potential'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Lọc & nhóm theo nhóm khách hàng trên ô tìm kiếm. -->
+    <record id="view_dl_customer_search_group_ext" model="ir.ui.view">
+        <field name="name">dlm.customer.search.group.ext</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="dl_partner.view_dl_customer_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='filter_dealer']" position="after">
+                <separator/>
+                <filter string="Khách mới" name="filter_group_new"
+                    domain="[('dlm_customer_group', '=', 'new')]"/>
+                <filter string="Khách cũ" name="filter_group_existing"
+                    domain="[('dlm_customer_group', '=', 'existing')]"/>
+                <filter string="Khách tiềm năng" name="filter_group_potential"
+                    domain="[('dlm_customer_group', '=', 'potential')]"/>
+            </xpath>
+            <xpath expr="//filter[@name='group_type']" position="after">
+                <filter string="Nhóm khách hàng" name="group_customer_group"
+                    context="{'group_by': 'dlm_customer_group'}"/>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Mở rộng form Khách hàng (dl_partner) với thống kê báo giá (EX-30, EX-42). -->
 
     <record id="view_dl_customer_form_quote_ext" model="ir.ui.view">
@@ -46,12 +85,23 @@
                 </div>
             </xpath>
 
+            <!-- Badge nhóm khách hàng (auto) ngay dưới nhãn ở đầu form -->
+            <xpath expr="//div[hasclass('dl-cust-head-main')]/field[@name='category_id']" position="after">
+                <field name="dlm_customer_group" widget="badge" nolabel="1" readonly="1"
+                    invisible="not dlm_customer_group"
+                    decoration-info="dlm_customer_group == 'new'"
+                    decoration-success="dlm_customer_group == 'existing'"
+                    decoration-warning="dlm_customer_group == 'potential'"/>
+            </xpath>
+
             <!-- Tab Lịch sử Báo giá — chèn trước tab Ghi chú nội bộ -->
             <xpath expr="//page[@name='notes']" position="before">
                 <page string="Lịch sử Báo giá" name="quote_history"
                     groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech">
                     <group>
                         <group>
+                            <field name="dlm_customer_group" string="Nhóm khách hàng"
+                                readonly="1" />
                             <field name="dlm_quotation_count" string="Tổng số báo giá" />
                         </group>
                         <group groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">

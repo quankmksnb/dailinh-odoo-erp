@@ -108,6 +108,8 @@ export class DlPricingConfig extends Component {
             reject: null, // { id, comment }
             toast: null,
             dialog: null,
+            // Phân loại khách hàng tự động (ngưỡng lên Khách tiềm năng).
+            classification: { threshold: 0, canEdit: false },
         });
 
         onWillStart(async () => {
@@ -118,7 +120,7 @@ export class DlPricingConfig extends Component {
                 this.load("waste"), this.load("operation"), this.load("cost"),
                 this.load("profit"), this.load("discount"), this.load("approval"),
                 this.load("apprset"), this.load("matrix"), this.load("complexity"),
-                this.load("opcat"),
+                this.load("opcat"), this.loadClassification(),
             ]);
             this.state.loading = false;
         });
@@ -166,6 +168,27 @@ export class DlPricingConfig extends Component {
         } catch (e) {
             // Vai trò không có quyền đọc nhóm này → để trống, không làm vỡ cả màn.
             this.state.rows[section] = [];
+        }
+    }
+
+    // --- Phân loại khách hàng tự động (ngưỡng lên Khách tiềm năng) ----------
+    async loadClassification() {
+        try {
+            this.state.classification = await this.orm.call(
+                "res.partner", "get_customer_classification_config", []);
+        } catch (e) {
+            this.state.classification = { threshold: 0, canEdit: false };
+        }
+    }
+    async saveClassification() {
+        try {
+            const val = Number(this.state.classification.threshold) || 0;
+            const saved = await this.orm.call(
+                "res.partner", "set_potential_threshold", [val]);
+            this.state.classification.threshold = saved;
+            this.flash("Đã lưu ngưỡng phân loại khách hàng.");
+        } catch (e) {
+            this.showError(e);
         }
     }
 

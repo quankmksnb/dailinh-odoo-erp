@@ -128,6 +128,27 @@
             <t t-if="!state.loading and state.tab === 'commercial'">
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Phân loại khách hàng tự động</span>
+                    </div>
+                    <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
+                        Khách <b>mới</b> khi vừa tạo · thành khách <b>cũ</b> sau khi có báo giá được duyệt ·
+                        lên <b>tiềm năng</b> khi tổng giá trị báo giá đã duyệt vượt ngưỡng dưới đây.
+                    </div>
+                    <div class="dl-cfg-inline">
+                        <label class="dl-cfg-f">
+                            <span class="k">Ngưỡng lên Khách tiềm năng (đồng)</span>
+                            <input type="number" min="0" step="1000000"
+                                   t-model.number="state.classification.threshold"
+                                   t-att-disabled="!state.classification.canEdit"/>
+                        </label>
+                        <button class="dl-cfg-save" type="button"
+                                t-att-disabled="!state.classification.canEdit"
+                                t-on-click="() => this.saveClassification()">Lưu ngưỡng</button>
+                    </div>
+                </div>
+
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">Lợi nhuận và giá sàn</span>
                         <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('profit')"
                                 t-on-click="() => this.openCreate('profit')"><i class="fa fa-plus"/> Thêm chính sách</button>
