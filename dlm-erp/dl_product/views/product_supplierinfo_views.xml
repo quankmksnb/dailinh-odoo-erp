@@ -13,7 +13,9 @@
             <tree string="Bảng giá NCC" editable="bottom">
                 <field name="company_id" column_invisible="1" />
                 <field name="product_tmpl_id" string="Sản phẩm / Vật tư" />
-                <field name="partner_id" string="Nhà cung cấp" />
+                <field name="partner_id" string="Nhà cung cấp"
+                    domain="[('partner_role', 'in', ['supplier', 'both'])]"
+                    context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
                 <field name="price" />
                 <field name="currency_id" column_invisible="1" />
                 <field name="date_start" string="Từ ngày" />
@@ -85,7 +87,9 @@
 
                     <group>
                         <group string="Nhà cung cấp">
-                            <field name="partner_id" string="Nhà cung cấp" />
+                            <field name="partner_id" string="Nhà cung cấp"
+                                domain="[('partner_role', 'in', ['supplier', 'both'])]"
+                                context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
                         </group>
                         <group string="Giá &amp; Hiệu lực">
                             <field name="price" />
