@@ -55,29 +55,87 @@
                             <label for="date_order" string="Ngày báo giá"/>
                             <field name="date_order" nolabel="1"/>
                         </div>
+                        <div class="dl-field">
+                            <label for="quotation_request_id" string="RFQ nguồn"/>
+                            <field name="quotation_request_id" nolabel="1" readonly="1"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="pricing_date" string="Ngày tính giá"/>
+                            <field name="pricing_date" nolabel="1" readonly="1"/>
+                        </div>
                     </div>
                     <notebook>
                         <page string="Chi tiết báo giá">
                             <field name="line_ids">
                                 <tree editable="bottom">
+                                    <field name="line_type" widget="badge"
+                                           decoration-info="line_type == 'trading'"
+                                           decoration-success="line_type == 'manufactured'"/>
                                     <field name="name"/>
                                     <field name="qty" digits="[16, 0]"/>
+                                    <field name="total_cost" digits="[16, 0]" readonly="1"
+                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                                     <field name="price_unit" digits="[16, 0]"/>
                                     <field name="price_subtotal" readonly="1" digits="[16, 0]"/>
                                 </tree>
                             </field>
+                            <div class="dl-fields-row">
+                                <div class="dl-field">
+                                    <label for="discount_pct" string="Chiết khấu (%)"/>
+                                    <field name="discount_pct" nolabel="1"/>
+                                </div>
+                                <div class="dl-field">
+                                    <label for="vat_pct" string="VAT (%)"/>
+                                    <field name="vat_pct" nolabel="1"/>
+                                </div>
+                            </div>
                             <div class="dl-totals">
                                 <div class="dl-total-row">
-                                    <span class="dl-total-label">Tạm tính</span>
-                                    <field name="amount_total" widget="monetary"
+                                    <span class="dl-total-label">Giá trước chiết khấu</span>
+                                    <field name="amount_untaxed" widget="monetary"
+                                           nolabel="1" class="dl-total-sub"/>
+                                </div>
+                                <div class="dl-total-row">
+                                    <span class="dl-total-label">Chiết khấu</span>
+                                    <field name="discount_amount" widget="monetary"
+                                           nolabel="1" class="dl-total-sub"/>
+                                </div>
+                                <div class="dl-total-row">
+                                    <span class="dl-total-label">Sau chiết khấu, trước VAT</span>
+                                    <field name="amount_before_vat" widget="monetary"
+                                           nolabel="1" class="dl-total-sub"/>
+                                </div>
+                                <div class="dl-total-row">
+                                    <span class="dl-total-label">Tiền VAT</span>
+                                    <field name="vat_amount" widget="monetary"
                                            nolabel="1" class="dl-total-sub"/>
                                 </div>
                                 <div class="dl-total-row dl-total-final-row">
-                                    <span class="dl-total-label">Tổng tiền</span>
+                                    <span class="dl-total-label">Tổng thanh toán</span>
                                     <field name="amount_total" widget="monetary"
                                            nolabel="1" class="dl-total-final"/>
                                 </div>
                             </div>
+                        </page>
+                        <page string="Phân tích giá thành"
+                              groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                            <group>
+                                <field name="total_cost" widget="monetary"/>
+                                <field name="effective_markup"/>
+                            </group>
+                            <field name="component_ids">
+                                <tree string="Cấu phần giá (snapshot)">
+                                    <field name="quotation_line_id"/>
+                                    <field name="component_type"/>
+                                    <field name="material_id"/>
+                                    <field name="qty"/>
+                                    <field name="unit_price" digits="[16, 0]"/>
+                                    <field name="amount" digits="[16, 0]"/>
+                                    <field name="source_model" optional="hide"/>
+                                    <field name="source_id" optional="hide"/>
+                                    <field name="source_revision" optional="hide"/>
+                                </tree>
+                            </field>
                         </page>
                         <page string="Ghi chú">
                             <field name="note" placeholder="Ghi chú thêm..."/>
