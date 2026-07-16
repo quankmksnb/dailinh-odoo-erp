@@ -103,6 +103,7 @@ export class DlPricingConfig extends Component {
             rows: {
                 waste: [], operation: [], cost: [], profit: [], discount: [],
                 approval: [], apprset: [], matrix: [], complexity: [], opcat: [],
+                materials: [],
             },
             form: null, // { section, id, ...fields }
             reject: null, // { id, comment }
@@ -120,7 +121,7 @@ export class DlPricingConfig extends Component {
                 this.load("waste"), this.load("operation"), this.load("cost"),
                 this.load("profit"), this.load("discount"), this.load("approval"),
                 this.load("apprset"), this.load("matrix"), this.load("complexity"),
-                this.load("opcat"), this.loadClassification(),
+                this.load("opcat"), this.loadClassification(), this.loadMaterials(),
             ]);
             this.state.loading = false;
         });
@@ -189,6 +190,39 @@ export class DlPricingConfig extends Component {
             this.flash("Đã lưu ngưỡng phân loại khách hàng.");
         } catch (e) {
             this.showError(e);
+        }
+    }
+
+    // --- Hao hụt theo VẬT TƯ (nguồn thật dùng cho BOM/báo giá) --------------
+    async loadMaterials() {
+        try {
+            this.state.rows.materials = await this.orm.searchRead(
+                "product.product",
+                [["product_kind", "in", ["material", "material_processed"]]],
+                ["display_name", "default_code", "categ_id", "dlm_waste_rate",
+                    "dlm_has_recovery", "dlm_recovery_rate", "dlm_scrap_product_id"],
+                { order: "default_code, id" }
+            );
+        } catch (e) {
+            this.state.rows.materials = [];
+        }
+    }
+    async toggleRecovery(row, checked) {
+        row.dlm_has_recovery = checked;
+        if (!checked) { row.dlm_recovery_rate = 0; }
+        await this.saveMaterial(row);
+    }
+    async saveMaterial(row) {
+        try {
+            await this.orm.call("product.product", "set_dlm_waste", [[row.id], {
+                dlm_waste_rate: Number(row.dlm_waste_rate) || 0,
+                dlm_has_recovery: !!row.dlm_has_recovery,
+                dlm_recovery_rate: row.dlm_has_recovery ? (Number(row.dlm_recovery_rate) || 0) : 0,
+            }]);
+            this.flash("Đã lưu hao hụt vật tư.");
+        } catch (e) {
+            this.showError(e);
+            await this.loadMaterials();
         }
     }
 

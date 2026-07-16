@@ -31,31 +31,43 @@
             <t t-if="!state.loading and state.tab === 'waste'">
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
-                        <span class="dl-cfg-panel-title">Hao hụt và thu hồi</span>
-                        <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('waste')"
-                                t-on-click="() => this.openCreate('waste')"><i class="fa fa-plus"/> Thêm quy tắc</button>
+                        <span class="dl-cfg-panel-title">Hao hụt &amp; thu hồi theo vật tư</span>
                     </div>
                     <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
-                        Cấu hình theo <b>category</b> để mọi vật tư kế thừa, hoặc theo <b>vật tư</b> cụ thể khi khác biệt. Vật tư luôn ưu tiên hơn category.
+                        Hệ số hao hụt của từng vật tư — <b>đây là số thực dùng khi tính báo giá</b>. Sửa trực tiếp tại đây hoặc trên form vật tư (cùng một dữ liệu). Hệ số phức tạp chọn theo từng dòng BOM; sản phẩm phế liệu đặt trên form vật tư.
                     </div>
                     <table class="dl-cfg-table">
                         <thead><tr>
-                            <th>Đối tượng</th><th class="num">Hao hụt (%)</th><th>Thu hồi</th>
-                            <th class="num">Thu hồi (%)</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                            <th>Mã</th><th>Vật tư</th><th>Nhóm</th><th class="num">Hao hụt (%)</th>
+                            <th>Thu hồi</th><th class="num">Thu hồi (%)</th><th>Phế liệu</th>
                         </tr></thead>
                         <tbody>
-                            <t t-foreach="state.rows.waste" t-as="r" t-key="r.id">
+                            <t t-foreach="state.rows.materials" t-as="m" t-key="m.id">
                                 <tr>
-                                    <td class="nm"><span class="dl-pc-tt" t-esc="lab('wasteTarget', r.target_type)"/> · <t t-esc="r.target_label"/></td>
-                                    <td class="num" t-esc="r.waste_rate"/>
-                                    <td><t t-if="r.has_recovery"><i class="fa fa-check text-success"/></t></td>
-                                    <td class="num" t-esc="r.has_recovery ? r.recovery_rate : ''"/>
-                                    <td t-esc="fmtDate(r.valid_from)"/>
-                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
-                                    <td class="actw"><t t-call="dl_config.PcTechActions"/></td>
+                                    <td t-esc="m.default_code"/>
+                                    <td class="nm" t-esc="m.display_name"/>
+                                    <td t-esc="m2oName(m.categ_id)"/>
+                                    <td class="num">
+                                        <input type="number" step="0.1" style="width:80px"
+                                               t-att-disabled="!canEdit('waste')"
+                                               t-model.number="m.dlm_waste_rate"
+                                               t-on-change="() => this.saveMaterial(m)"/>
+                                    </td>
+                                    <td>
+                                        <input type="checkbox" t-att-disabled="!canEdit('waste')"
+                                               t-att-checked="m.dlm_has_recovery"
+                                               t-on-change="(ev) => this.toggleRecovery(m, ev.target.checked)"/>
+                                    </td>
+                                    <td class="num">
+                                        <input t-if="m.dlm_has_recovery" type="number" step="0.1" style="width:80px"
+                                               t-att-disabled="!canEdit('waste')"
+                                               t-model.number="m.dlm_recovery_rate"
+                                               t-on-change="() => this.saveMaterial(m)"/>
+                                    </td>
+                                    <td t-esc="m.dlm_has_recovery ? m2oName(m.dlm_scrap_product_id) : ''"/>
                                 </tr>
                             </t>
-                            <tr t-if="!state.rows.waste.length"><td colspan="7" class="dl-cfg-empty">Chưa có quy tắc hao hụt.</td></tr>
+                            <tr t-if="!state.rows.materials.length"><td colspan="7" class="dl-cfg-empty">Chưa có vật tư nào.</td></tr>
                         </tbody>
                     </table>
                 </div>

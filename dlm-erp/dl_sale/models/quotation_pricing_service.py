@@ -2,7 +2,7 @@ from psycopg2 import IntegrityError
 
 from odoo import fields, models, _
 from odoo.exceptions import UserError
-from odoo.tools import float_is_zero
+from odoo.tools import float_is_zero, float_round
 
 # ---------------------------------------------------------------------------
 # Mã lỗi nghiệp vụ (đặc tả §12 / §17.6). Giữ mã trong thông báo để hỗ trợ và
@@ -13,6 +13,7 @@ QTE_001 = "QTE-001: Chỉ RFQ đã xử lý xong (Đã xác nhận) mới đư�
 QTE_002 = "QTE-002: Sản phẩm gia công '%s' chưa có BOM đã xác nhận/khóa."
 QTE_003 = "QTE-003: Vật tư '%s' chưa có bảng giá đã duyệt và đang áp dụng."
 QTE_004 = "QTE-004: Không thể tính bán thành phẩm '%s' — kiểm tra BOM con hoặc vòng lặp."
+QTE_005 = "QTE-005: Chưa có cấu hình lợi nhuận (markup) đang áp dụng tại ngày báo giá."
 QTE_007 = "QTE-007: Không thể quy đổi định mức '%s' sang đơn vị/tiền tệ giá vật tư (P0 chưa hỗ trợ quy đổi)."
 QTE_008 = "QTE-008: RFQ này đã có báo giá — hãy mở báo giá hiện có hoặc tạo revision."
 QTE_009 = "QTE-009: Sản phẩm thương mại '%s' chưa có giá bán hợp lệ (Giá bán phải > 0)."
@@ -58,9 +59,16 @@ class DlQuotationPricingService(models.AbstractModel):
                 quotation = Quotation.create(self._prepare_header_vals(rfq, context))
                 for rfq_line in rfq.line_ids:
                     self._create_quotation_line(quotation, rfq_line, context)
+                # Chốt cấu hình thương mại + đánh giá phê duyệt (§7–§8).
+                self._apply_commercial_and_approval(quotation, context)
                 quotation.flush_recordset()
         except IntegrityError:
             raise UserError(QTE_008)
+
+        # Đánh dấu rule đã dùng trong snapshot để không cho sửa (mixin bảo vệ).
+        for rule in (context.get("profit_rule"), context.get("discount_rule")):
+            if rule and not rule.used_in_snapshot:
+                rule.sudo().write({"used_in_snapshot": True})
 
         # Chỉ chuyển RFQ sang 'quoted' sau khi báo giá + dòng đã tạo xong.
         rfq.sudo().write({"status": "quoted"})
@@ -78,17 +86,61 @@ class DlQuotationPricingService(models.AbstractModel):
     # Ngữ cảnh & kiểm tra
     # ------------------------------------------------------------------
     def _build_context(self, rfq):
-        """Chốt company/currency/pricing_date và các tỷ lệ header cho lần tính
-        giá. P0: discount_pct/vat_pct nhập tay ở header (mặc định 0); P1 sẽ tự
-        lấy từ discount rule theo nhóm khách."""
+        """Chốt company/currency/pricing_date và tải các cấu hình đang hiệu lực
+        đúng công ty/ngày (§17.5): lợi nhuận (markup/giá sàn), chiết khấu theo
+        nhóm khách, VAT & làm tròn. Các số này được snapshot vào báo giá."""
         company = self.env.company
+        date = fields.Date.context_today(rfq)
+        partner = rfq.customer_id
+
+        profit_rule = self._active_profit_rule(company, date)
+        discount_rule = self._active_discount_rule(company, date, partner)
+        config = self.env["dl.pricing.config"].sudo().search([], limit=1)
+
         return {
             "company": company,
             "currency": company.currency_id,
-            "pricing_date": fields.Date.context_today(rfq),
-            "discount_pct": 0.0,
-            "vat_pct": 0.0,
+            "pricing_date": date,
+            "partner": partner,
+            "profit_rule": profit_rule,
+            "discount_rule": discount_rule,
+            # discount_pct tự điền theo nhóm khách; vat/rounding từ cấu hình S02.
+            "discount_pct": discount_rule.default_rate if discount_rule else 0.0,
+            "vat_pct": config.vat_pct if config else 0.0,
+            "rounding_to": config.rounding_to if config else 0,
         }
+
+    def _active_rule_domain(self, company, date):
+        """Domain lấy quy tắc đang áp dụng, đúng công ty và còn hiệu lực tại ngày."""
+        return [
+            ("state", "=", "active"),
+            ("company_id", "=", company.id),
+            ("valid_from", "<=", date),
+            "|", ("valid_to", "=", False), ("valid_to", ">=", date),
+        ]
+
+    def _active_profit_rule(self, company, date):
+        return self.env["dl.pricing.profit.rule"].sudo().search(
+            self._active_rule_domain(company, date),
+            order="valid_from desc, revision desc", limit=1)
+
+    def _active_discount_rule(self, company, date, partner):
+        group = partner.dlm_customer_group
+        Discount = self.env["dl.pricing.discount.rule"].sudo()
+        if not group:
+            return Discount.browse()
+        return Discount.search(
+            self._active_rule_domain(company, date) + [("customer_group", "=", group)],
+            order="valid_from desc, revision desc", limit=1)
+
+    @staticmethod
+    def _round_price(value, rounding_to):
+        """Làm tròn giá bán mục tiêu tới bội số ``rounding_to`` (đ), ROUND_HALF_UP
+        (§7.4). rounding_to = 0 ⇒ không làm tròn."""
+        if not rounding_to or rounding_to <= 0:
+            return value
+        return float_round(value, precision_rounding=float(rounding_to),
+                           rounding_method="HALF-UP")
 
     def _validate_rfq(self, rfq, context):
         if rfq.status != "confirmed":
@@ -207,18 +259,30 @@ class DlQuotationPricingService(models.AbstractModel):
         qty = rfq_line.quantity
         unit_cost, unit_specs = self._bom_material_cost(bom, context, visited=frozenset())
 
-        # P0: chưa có markup/công đoạn/điều chỉnh → giá bán nền = chi phí vật tư
-        # trên một đơn vị. base_price/price_unit sẽ được P1 cộng markup.
+        profit_rule = context["profit_rule"]
+        if not profit_rule:
+            raise UserError(QTE_005)
+
+        # P1: chưa có công đoạn/điều chỉnh chi phí → giá thành = chi phí vật tư.
+        # F/G/H (§6.1): giá mục tiêu = giá thành × (1 + markup); giá sàn = ×(1 +
+        # min_markup); làm tròn giá bán trước chiết khấu.
+        total_cost = unit_cost
+        target_markup = profit_rule.target_markup
+        min_markup = profit_rule.min_markup
+        target_price = total_cost * (1 + target_markup / 100.0)
+        price_unit = self._round_price(target_price, context["rounding_to"])
+        floor_price = total_cost * (1 + min_markup / 100.0)
+
         vals = {
             "name": rfq_line.resolved_product_id.display_name or rfq_line.product_name,
             "line_type": "manufactured",
             "product_id": rfq_line.resolved_product_id.id,
             "bom_id": bom.id,
             "material_cost": unit_cost,
-            "total_cost": unit_cost,
-            "base_price": unit_cost,
-            "price_unit": unit_cost,
-            "floor_price": 0.0,     # P1: total_cost × (1 + min_markup/100)
+            "total_cost": total_cost,
+            "base_price": target_price,
+            "price_unit": price_unit,
+            "floor_price": floor_price,
         }
 
         comp_specs = []
@@ -235,6 +299,17 @@ class DlQuotationPricingService(models.AbstractModel):
                 "unit_price": spec["unit_price"],
                 "amount": spec["amount"] * qty,
             })
+        # Cấu phần markup: giải trình phần lợi nhuận cộng thêm trên giá thành.
+        comp_specs.append({
+            "component_type": "markup",
+            "source_model": "dl.pricing.profit.rule",
+            "source_id": profit_rule.id,
+            "source_revision": profit_rule.revision,
+            "qty": qty,
+            "unit_price": total_cost,          # cơ sở/đơn vị
+            "rate": target_markup,
+            "amount": (price_unit - total_cost) * qty,
+        })
         return vals, comp_specs
 
     def _bom_material_cost(self, bom, context, visited):
@@ -300,6 +375,24 @@ class DlQuotationPricingService(models.AbstractModel):
             )
             specs.append(spec_base)
 
+            # Thu hồi phế liệu (§5.3) — chỉ vật tư thô, trừ vào chi phí vật tư.
+            if spec_base["component_type"] == "material":
+                recovery = bl._dlm_recovery_value()
+                if recovery:
+                    total_output_cost -= recovery
+                    scrap = material.dlm_scrap_product_id
+                    specs.append({
+                        "component_type": "recovery",
+                        "source_model": "product.product",
+                        "source_id": scrap.id if scrap else 0,
+                        "source_revision": 0,
+                        "material_id": scrap.id if scrap else material.id,
+                        "qty": (bl.effective_qty - bl.quantity)
+                        * material.dlm_recovery_rate / 100.0,
+                        "unit_price": material._dlm_scrap_unit_price(),
+                        "amount": -recovery,
+                    })
+
         unit_cost = total_output_cost / bom.product_qty
         # Quy specs về một đơn vị đầu ra.
         for spec in specs:
@@ -316,6 +409,86 @@ class DlQuotationPricingService(models.AbstractModel):
             raise UserError(QTE_007 % material.display_name)
         if seller and seller.currency_id and seller.currency_id != context["currency"]:
             raise UserError(QTE_007 % material.display_name)
+
+    # ------------------------------------------------------------------
+    # Chiết khấu/VAT header + đánh giá phê duyệt (§7–§8)
+    # ------------------------------------------------------------------
+    def _apply_commercial_and_approval(self, quotation, context):
+        profit = context.get("profit_rule")
+        discount = context.get("discount_rule")
+
+        # Snapshot các tỷ lệ cấu hình đã dùng (phục vụ giải trình + đánh giá lại).
+        quotation.write({
+            "target_markup": profit.target_markup if profit else 0.0,
+            "discount_default_rate": discount.default_rate if discount else 0.0,
+            "discount_max_rate": discount.max_rate if discount else 0.0,
+        })
+
+        # Cấu phần header chiết khấu/VAT (giải trình từng lớp tiền).
+        Component = self.env["dl.quotation.price.component"].sudo()
+        if quotation.discount_pct:
+            Component.create({
+                "quotation_id": quotation.id,
+                "component_type": "discount",
+                "rate": quotation.discount_pct,
+                "amount": -quotation.discount_amount,
+            })
+        if quotation.vat_pct:
+            Component.create({
+                "quotation_id": quotation.id,
+                "component_type": "vat",
+                "rate": quotation.vat_pct,
+                "amount": quotation.vat_amount,
+            })
+
+        # Cờ định tuyến phê duyệt.
+        eps = 1e-6
+        below = self._below_floor(quotation)
+        above_default = bool(discount) and quotation.discount_pct > discount.default_rate + eps
+        above_max = bool(discount) and quotation.discount_pct > discount.max_rate + eps
+
+        evaluation = self.env["dl.pricing.approval.matrix"].sudo().evaluate_quotation(
+            quotation.amount_before_vat,
+            company=context["company"],
+            date=context["pricing_date"],
+            discount_above_default=above_default,
+            discount_above_max=above_max,
+            below_floor=below,
+        )
+
+        quo_vals = {
+            "below_floor": below,
+            "discount_above_default": above_default,
+            "discount_above_max": above_max,
+            "approval_required": evaluation["required"],
+            "approval_level": evaluation.get("level_label") or "",
+            "approval_reasons": "\n".join(
+                "• %s" % r for r in evaluation.get("reasons") or []),
+        }
+        if evaluation["required"]:
+            reason = _("Báo giá %s phát sinh điều kiện cần phê duyệt.") % quotation.name
+            request = self.env["dl.pricing.approval.request"].sudo().open_quote_approval(
+                quotation, evaluation, reason)
+            quo_vals["approval_request_id"] = request.id
+            quo_vals["approval_state"] = "pending"
+        else:
+            quo_vals["approval_state"] = "not_required"
+        quotation.write(quo_vals)
+
+    def _below_floor(self, quotation):
+        """Decision B5: phân bổ chiết khấu header về từng dòng gia công theo tỷ
+        lệ thành tiền, so giá đơn vị sau chiết khấu với giá sàn của dòng."""
+        untaxed = quotation.amount_untaxed
+        disc_amount = quotation.discount_amount
+        for line in quotation.line_ids:
+            if line.line_type != "manufactured" or not line.qty or not line.floor_price:
+                continue
+            gross = line.qty * line.price_unit
+            allocated = disc_amount * (gross / untaxed) if untaxed else 0.0
+            net_unit = (gross - allocated) / line.qty
+            if net_unit < line.floor_price:
+                return True
+        return False
 
 
 class DlQuotationRequest(models.Model):

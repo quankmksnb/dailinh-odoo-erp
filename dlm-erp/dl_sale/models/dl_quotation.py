@@ -80,10 +80,38 @@ class DlQuotation(models.Model):
     effective_markup = fields.Float(
         string='Markup thực (%)', compute='_compute_amount', store=True,
         digits=(16, 2), groups=_COST_GROUPS)
+    floor_amount = fields.Float(
+        string='Tổng giá sàn', compute='_compute_amount', store=True,
+        digits='Product Price', groups=_COST_GROUPS)
 
     component_ids = fields.One2many(
         'dl.quotation.price.component', 'quotation_id',
         string='Cấu phần giá (snapshot)')
+
+    # --- Snapshot cấu hình thương mại đã dùng (để giải trình phê duyệt) ---
+    target_markup = fields.Float(string='Lợi nhuận mục tiêu (%)', digits=(6, 2),
+                                 readonly=True, groups=_COST_GROUPS)
+    discount_default_rate = fields.Float(string='Chiết khấu mặc định (%)',
+                                         digits=(6, 2), readonly=True)
+    discount_max_rate = fields.Float(string='Chiết khấu tối đa (%)',
+                                     digits=(6, 2), readonly=True)
+
+    # --- Định tuyến phê duyệt (đặc tả §8) ---
+    approval_required = fields.Boolean(string='Cần phê duyệt', readonly=True)
+    approval_state = fields.Selection([
+        ('not_required', 'Không cần duyệt'),
+        ('pending', 'Chờ duyệt'),
+        ('approved', 'Đã duyệt'),
+        ('rejected', 'Bị từ chối'),
+    ], string='Trạng thái duyệt', default='not_required', readonly=True, tracking=True)
+    approval_level = fields.Char(string='Cấp duyệt yêu cầu', readonly=True)
+    approval_reasons = fields.Text(string='Lý do phải duyệt', readonly=True)
+    approval_request_id = fields.Many2one(
+        'dl.pricing.approval.request', string='Yêu cầu phê duyệt', readonly=True)
+    below_floor = fields.Boolean(string='Dưới giá sàn', readonly=True,
+                                 groups=_COST_GROUPS)
+    discount_above_default = fields.Boolean(string='Chiết khấu > mặc định', readonly=True)
+    discount_above_max = fields.Boolean(string='Chiết khấu > tối đa', readonly=True)
 
     # Link ngược tới đơn bán hàng đã tạo (chiều sở hữu ở dl.sale.order.quotation_id).
     # Search-based để không nhân đôi nguồn sự thật.
@@ -119,12 +147,14 @@ class DlQuotation(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('dl.quotation') or 'New'
         return super().create(vals_list)
 
-    @api.depends('line_ids.price_subtotal', 'line_ids.total_cost', 'line_ids.qty',
+    @api.depends('line_ids.price_subtotal', 'line_ids.total_cost',
+                 'line_ids.floor_price', 'line_ids.qty',
                  'discount_pct', 'vat_pct')
     def _compute_amount(self):
         for rec in self:
             untaxed = sum(rec.line_ids.mapped('price_subtotal'))
-            # P0: toàn bộ dòng đều chịu chiết khấu (no_discount là P1).
+            # Toàn bộ dòng đều chịu chiết khấu (no_discount dành cho khoản phụ
+            # phí ở phase sau).
             discount = untaxed * (rec.discount_pct or 0.0) / 100.0
             before_vat = untaxed - discount
             vat = before_vat * (rec.vat_pct or 0.0) / 100.0
@@ -133,10 +163,11 @@ class DlQuotation(models.Model):
             rec.amount_before_vat = before_vat
             rec.vat_amount = vat
             rec.amount_total = before_vat + vat
-            # Giá thành = tổng total_cost từng dòng × số lượng (chỉ dòng gia công
-            # có cost; dòng thương mại total_cost = 0).
+            # Giá thành / giá sàn = tổng theo dòng × số lượng (chỉ dòng gia công
+            # có cost/floor; dòng thương mại = 0).
             total_cost = sum(line.total_cost * line.qty for line in rec.line_ids)
             rec.total_cost = total_cost
+            rec.floor_amount = sum(line.floor_price * line.qty for line in rec.line_ids)
             rec.effective_markup = (
                 (before_vat - total_cost) / total_cost * 100.0
                 if total_cost else 0.0
@@ -147,8 +178,37 @@ class DlQuotation(models.Model):
         self.state = 'approved'
 
     def action_send(self):
-        """Gửi báo giá cho khách hàng."""
+        """Gửi báo giá cho khách hàng — chặn nếu đang chờ phê duyệt (§3 bước 7)."""
+        for rec in self:
+            if rec.approval_state == 'pending':
+                raise UserError(_(
+                    "Báo giá đang chờ phê duyệt (%s) — chưa thể gửi khách."
+                ) % (rec.approval_level or ''))
         self.state = 'sent'
+
+    # ------------------------------------------------------------------
+    # Hook được dl.pricing.approval.request gọi lại khi duyệt/từ chối (§8) —
+    # báo giá là "target record" của yêu cầu.
+    # ------------------------------------------------------------------
+    def _on_approval_approved(self, request):
+        self.ensure_one()
+        self.approval_state = 'approved'
+
+    def _on_approval_rejected(self, request):
+        self.ensure_one()
+        self.approval_state = 'rejected'
+
+    def action_open_approval_request(self):
+        self.ensure_one()
+        if not self.approval_request_id:
+            raise UserError(_("Báo giá này không có yêu cầu phê duyệt."))
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'dl.pricing.approval.request',
+            'res_id': self.approval_request_id.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
 
     def action_customer_accept(self):
         """Khách hàng đồng ý — sẵn sàng chuyển thành đơn bán hàng."""

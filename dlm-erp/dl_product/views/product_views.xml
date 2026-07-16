@@ -122,6 +122,21 @@
                         />
                     </group>
 
+                    <group
+                        name="group_waste_info"
+                        string="Hao hụt &amp; thu hồi"
+                        invisible="product_kind not in ('material', 'material_processed')"
+                    >
+                        <field name="dlm_waste_rate"/>
+                        <field name="dlm_has_recovery"/>
+                        <field name="dlm_recovery_rate"
+                               invisible="not dlm_has_recovery"
+                               required="dlm_has_recovery"/>
+                        <field name="dlm_scrap_product_id"
+                               invisible="not dlm_has_recovery"
+                               options="{'no_create': True}"/>
+                    </group>
+
                     <notebook>
                         <page
                             string="BOM liên quan"
