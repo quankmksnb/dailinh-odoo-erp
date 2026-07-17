@@ -101,7 +101,7 @@
                                     <field name="measurement_shape_id" optional="show"/>
                                     <field name="computed_quantity" string="Định mức"/>
                                     <field name="quantity"/>
-                                    <field name="waste_config_id" optional="show"/>
+                                    <field name="complexity_id" optional="show"/>
                                     <field name="waste_rate" string="Hao hụt (%)"/>
                                     <field name="effective_qty" string="SL thực"/>
                                     <field name="uom_id" optional="show"/>
@@ -152,7 +152,7 @@
                                         </group>
                                     </group>
                                     <group string="6. Waste">
-                                        <field name="waste_config_id"/>
+                                        <field name="complexity_id"/>
                                         <field name="waste_rate"/>
                                         <field name="effective_qty" readonly="1"/>
                                     </group>

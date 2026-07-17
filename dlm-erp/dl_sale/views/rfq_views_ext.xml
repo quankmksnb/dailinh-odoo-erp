@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Bridge dl_sale → RFQ (dl_technical): thêm nút "Tạo báo giá" tự động và
+         nút mở báo giá đã tạo. Ẩn nút "Đánh dấu đã tạo báo giá" thủ công cũ vì
+         nay việc chuyển 'quoted' do action_create_quotation lo trong cùng
+         transaction (tránh RFQ quoted mà thiếu báo giá). -->
+    <record id="view_dl_quotation_request_form_quote_btn" model="ir.ui.view">
+        <field name="name">dl.quotation.request.form.quote.btn</field>
+        <field name="model">dl.quotation.request</field>
+        <field name="inherit_id" ref="dl_technical.view_dl_quotation_request_form"/>
+        <field name="arch" type="xml">
+
+            <button name="action_mark_quoted" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </button>
+
+            <button name="action_mark_quoted" position="before">
+                <button name="action_create_quotation" type="object"
+                        string="Tạo báo giá" class="oe_highlight"
+                        invisible="status != 'confirmed'"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                <button name="action_open_quotation" type="object"
+                        string="Mở báo giá"
+                        invisible="status != 'quoted'"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
+            </button>
+
+        </field>
+    </record>
+
+</odoo>

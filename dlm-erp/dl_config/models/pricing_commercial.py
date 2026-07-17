@@ -183,11 +183,7 @@ class DlPricingDiscountRule(models.Model):
                     _("Chiết khấu mặc định không được vượt mức tối đa.")
                 )
 
-
-class ResPartnerCustomerGroup(models.Model):
-    _inherit = "res.partner"
-
-    dlm_customer_group = fields.Selection(
-        CUSTOMER_GROUP_SELECTION, string="Nhóm khách hàng (báo giá)",
-        help="Dùng để tự đề xuất chiết khấu trên báo giá.",
-    )
+# NB: Field res.partner.dlm_customer_group (nhóm khách của từng đối tác) được
+# định nghĩa ở dl_sale/models/res_partner.py — nơi có sẵn dl.quotation để tự
+# động phân loại. CUSTOMER_GROUP_SELECTION ở trên chỉ dùng cho chính sách chiết
+# khấu (dl.pricing.discount.rule); phải giữ đồng bộ key với bản ở dl_sale.

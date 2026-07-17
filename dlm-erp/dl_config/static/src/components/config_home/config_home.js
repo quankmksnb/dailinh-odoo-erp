@@ -31,14 +31,6 @@ const CARDS = [
         actionXmlId: "dl_config.action_dl_pricing_config",
     },
     {
-        key: "sys_config",
-        name: "Cấu hình Hệ thống",
-        desc: "Tham số báo giá, ma trận phê duyệt, SLA, parametric",
-        icon: "fa-cogs",
-        group: "system",
-        actionXmlId: "dl_config.action_dl_sys_config",
-    },
-    {
         key: "user",
         name: "Quản lý User",
         desc: "Tài khoản, gán vai trò, khóa/mở, Backup Approver",

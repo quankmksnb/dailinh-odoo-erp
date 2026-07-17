@@ -85,7 +85,7 @@ DIAMETER_SHAPE_CODES = (
 BOM_LINE_MIXIN_FIELDS = [
     "material_id", "measurement_type_id", "measurement_shape_id",
     "measurement_coefficient", "dim_length", "dim_width", "dim_thickness",
-    "dim_side", "dim_diameter", "dim_height", "quantity", "waste_config_id",
+    "dim_side", "dim_diameter", "dim_height", "quantity", "complexity_id",
     "waste_rate", "is_override", "override_reason",
 ]
 
@@ -106,7 +106,8 @@ class DlBomLineMixin(models.AbstractModel):
          Quantity ở Step 5.
       5. Nhập Quantity (số thực dùng — computed_quantity chỉ để xem kết quả
          hệ thống tính).
-      6. Liên kết Waste Percentage từ Cấu hình (waste_config_id, dl_config).
+      6. Hao hụt: hệ số hao hụt lấy từ VẬT TƯ (material.dlm_waste_rate) × Mức
+         phức tạp (complexity_id) chọn theo dòng; thu hồi phế liệu theo vật tư.
     """
 
     _name = "dl.bom.line.mixin"
@@ -171,17 +172,20 @@ class DlBomLineMixin(models.AbstractModel):
         digits="Product Unit of Measure",
     )
 
-    # Step 6 — liên kết Waste % từ Cấu hình (dl_config.dl.pricing.waste).
-    waste_config_id = fields.Many2one(
-        "dl.pricing.waste",
-        string="Hao hụt (Cấu hình)",
+    # Step 6 — Hao hụt: NGUỒN là hệ số hao hụt trên VẬT TƯ (material.dlm_waste_rate).
+    # Kỹ thuật chọn Mức phức tạp cho dòng này; % hao hụt áp dụng = hao hụt cơ sở
+    # của vật tư × hệ số phức tạp (§5.3). waste_rate vẫn cho sửa tay (ghi đè).
+    complexity_id = fields.Many2one(
+        "dl.pricing.complexity.level",
+        string="Mức phức tạp",
         ondelete="set null",
-        help="Chọn nhóm hao hụt đã khai ở Cấu hình — tự điền % hao hụt, sửa được.",
+        help="Hệ số phức tạp nhân vào tỷ lệ hao hụt cơ sở của vật tư khi tính giá.",
     )
     waste_rate = fields.Float(
         string="Tỷ lệ hao hụt (%)",
         default=0.0,
         digits=(5, 2),
+        help="Tự tính = hao hụt cơ sở của vật tư × hệ số phức tạp; sửa tay được.",
     )
 
     effective_qty = fields.Float(
@@ -234,10 +238,24 @@ class DlBomLineMixin(models.AbstractModel):
     # ONCHANGE
     # ==========================================================
 
-    @api.onchange("waste_config_id")
-    def _onchange_waste_config(self):
-        if self.waste_config_id:
-            self.waste_rate = self.waste_config_id.waste_pct
+    @api.onchange("material_id", "complexity_id")
+    def _onchange_material_waste(self):
+        """Tự tính % hao hụt = hao hụt cơ sở của vật tư × hệ số phức tạp (§5.3)."""
+        if not self.material_id:
+            return
+        factor = self.complexity_id.factor if self.complexity_id else 1.0
+        self.waste_rate = (self.material_id.dlm_waste_rate or 0.0) * factor
+
+    def _dlm_recovery_value(self):
+        """Giá trị phế liệu thu hồi được trừ khỏi chi phí vật tư (§5.3).
+        Tính trên LƯỢNG hao hụt (effective_qty − quantity)."""
+        self.ensure_one()
+        mat = self.material_id
+        if not mat or not mat.dlm_has_recovery or not mat.dlm_recovery_rate:
+            return 0.0
+        waste_qty = self.effective_qty - self.quantity
+        recovered = waste_qty * mat.dlm_recovery_rate / 100.0
+        return recovered * mat._dlm_scrap_unit_price()
 
     @api.onchange("measurement_type_id")
     def _onchange_measurement_type(self):

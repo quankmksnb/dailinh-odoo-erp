@@ -11,8 +11,8 @@
                     <span class="dl-quote-home-subtitle">Lập, xử lý và tiếp nhận yêu cầu báo giá</span>
                 </div>
                 <button class="dl-quote-home-btn primary"
-                        t-on-click="() => this.openCard('dl_sale.action_dl_rfq')">
-                    <i class="fa fa-plus"/> Tạo báo giá mới
+                        t-on-click="() => this.openCard('dl_technical.action_dl_quotation_request_create')">
+                    <i class="fa fa-plus"/> Tạo RFQ mới
                 </button>
             </div>
 

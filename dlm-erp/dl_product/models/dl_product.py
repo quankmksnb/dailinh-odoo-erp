@@ -1,7 +1,7 @@
 import re
 
 from odoo import api, fields, models, _
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, ValidationError
 
 # Data Model PROD-02: default_code validate ^[A-Z0-9\-]+$ (chữ hoa, số, gạch ngang)
 _CODE_RE = re.compile(r"^[A-Z0-9\-]+$")
@@ -46,13 +46,48 @@ class ProductProduct(models.Model):
         "• Vật tư đã gia công (material_processed): cắt/gia công từ vật tư gốc, có BOM riêng",
     )
 
-    # Hàng thương mại (trading): giá vốn nhập dùng trực tiếp làm chi phí khi báo
-    # # giá (không qua BOM). Chỉ áp dụng khi product_kind='trading'.
-    # purchase_cost = fields.Monetary(
-    #     string="Giá vốn nhập",
-    #     currency_field="currency_id",
-    #     help="Chỉ dùng cho hàng thương mại (trading) — làm giá vốn trực tiếp khi báo giá.",
-    # )
+    # ── Hao hụt & thu hồi (chỉ vật tư) ───────────────────────────────────
+    # NGUỒN DUY NHẤT của hao hụt: đặt ngay trên vật tư, kỹ thuật điền khi tạo.
+    # Tự điền mặc định theo NHÓM sản phẩm từ cấu hình (dl.pricing.waste.rule
+    # target_type=category) — xem _onchange_dlm_waste_default; vẫn sửa tay được.
+    # BOM/báo giá đọc thẳng các field này (bỏ model hao hụt cũ dl.pricing.waste).
+    dlm_waste_rate = fields.Float(
+        string="Hao hụt cơ sở (%)", digits=(6, 2),
+        help="Tỷ lệ hao hụt của vật tư này. Hệ số phức tạp chọn theo từng dòng "
+             "BOM sẽ nhân thêm vào tỷ lệ này khi tính giá.",
+    )
+    dlm_has_recovery = fields.Boolean(string="Có thu hồi phế liệu")
+    dlm_recovery_rate = fields.Float(
+        string="Tỷ lệ thu hồi (%)", digits=(6, 2),
+        help="Tính trên LƯỢNG hao hụt (không tính trên lượng vật tư thuần).",
+    )
+    dlm_scrap_product_id = fields.Many2one(
+        "product.product", string="Sản phẩm phế liệu",
+        help="Đơn giá thu hồi lấy từ giá bán (list_price) của sản phẩm phế này.",
+    )
+    # Onchange tự điền mặc định theo nhóm (đọc dl.pricing.waste.rule) nằm ở
+    # dl_technical — module đó mới phụ thuộc dl_config; dl_product KHÔNG được
+    # tham chiếu ngược cấu hình.
+
+    def _dlm_scrap_unit_price(self):
+        """Đơn giá thu hồi/đv (giá bán sản phẩm phế). 0 nếu không cấu hình."""
+        self.ensure_one()
+        return self.dlm_scrap_product_id.list_price if self.dlm_scrap_product_id else 0.0
+
+    def set_dlm_waste(self, vals):
+        """Cập nhật hao hụt vật tư từ màn Cấu hình (sửa inline). Guard quyền
+        (Kỹ thuật/Kế toán/Admin) rồi sudo-ghi để không phụ thuộc quyền write
+        product.product của từng role."""
+        user = self.env.user
+        if not self.env.su and not (
+                user.has_group("dl_base.dl_group_tech")
+                or user.has_group("dl_base.dl_group_accountant")
+                or user.has_group("dl_base.dl_group_admin")):
+            raise AccessError(_("Chỉ Kỹ thuật/Kế toán/Admin được sửa hao hụt vật tư."))
+        allowed = {"dlm_waste_rate", "dlm_has_recovery", "dlm_recovery_rate",
+                   "dlm_scrap_product_id"}
+        self.sudo().write({k: v for k, v in vals.items() if k in allowed})
+        return True
 
     # ── Constraints ──────────────────────────────────────────────────────
     @api.constrains("default_code")
