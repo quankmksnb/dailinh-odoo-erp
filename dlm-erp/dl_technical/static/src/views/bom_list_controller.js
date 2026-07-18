@@ -12,6 +12,21 @@ export class DlBomListController extends DlListBaseController {
     get dlCountNoun() {
         return "BOM";
     }
+
+    get dlFilterDropdowns() {
+        return [
+            {
+                key: "status",
+                label: "Tất cả trạng thái",
+                filters: [
+                    { name: "draft", label: "Nháp" },
+                    { name: "confirmed", label: "Đã xác nhận" },
+                    { name: "locked", label: "Đã khóa" },
+                    { name: "archived", label: "Lưu trữ" },
+                ],
+            },
+        ];
+    }
 }
 
 registry.category("views").add("dl_bom_list", {

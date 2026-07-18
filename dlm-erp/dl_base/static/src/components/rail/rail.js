@@ -3,7 +3,7 @@
 import { Component, useState, useEffect } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService, useBus } from "@web/core/utils/hooks";
-import { sidebarState, toggleSidebar } from "@dl_base/js/sidebar_state";
+import { sidebarState, toggleSidebar, setActiveKey } from "@dl_base/js/sidebar_state";
 
 const DLM_APP_XMLID = "dl_base.menu_dl_root";
 
@@ -62,8 +62,11 @@ export class DlmRail extends Component {
         this.state.expanded[key] = !this.state.expanded[key];
     }
 
-    openModule(actionXmlId) {
+    openModule(actionXmlId, key) {
         if (!actionXmlId) return;
+        if (key) {
+            setActiveKey(key);
+        }
         this.actionService.doAction(actionXmlId, { clearBreadcrumbs: true });
     }
 }

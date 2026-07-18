@@ -11,7 +11,7 @@
         <field name="name">dl.measurement.type.tree</field>
         <field name="model">dl.measurement.type</field>
         <field name="arch" type="xml">
-            <tree string="Loại đo lường" decoration-muted="active == False">
+            <tree string="Loại đo lường" class="dl-meastype-list" js_class="dl_list" decoration-muted="active == False">
                 <field name="name" />
                 <field name="description" optional="show" />
                 <field name="active" column_invisible="1" />
@@ -23,7 +23,7 @@
         <field name="name">dl.measurement.type.form</field>
         <field name="model">dl.measurement.type</field>
         <field name="arch" type="xml">
-            <form string="Loại đo lường">
+            <form string="Loại đo lường" class="dl-meastype-form" js_class="dl_meastype_form">
                 <sheet>
                     <widget name="web_ribbon" title="Lưu trữ" bg_color="text-bg-danger"
                         invisible="active" />
@@ -66,7 +66,7 @@
         <field name="name">dl.measurement.shape.tree</field>
         <field name="model">dl.measurement.shape</field>
         <field name="arch" type="xml">
-            <tree string="Hình dạng đo lường" decoration-muted="active == False">
+            <tree string="Hình dạng đo lường" class="dl-measshape-list" js_class="dl_list" decoration-muted="active == False">
                 <field name="measurement_type_id" />
                 <field name="name" />
                 <field name="active" column_invisible="1" />
@@ -78,7 +78,7 @@
         <field name="name">dl.measurement.shape.form</field>
         <field name="model">dl.measurement.shape</field>
         <field name="arch" type="xml">
-            <form string="Hình dạng đo lường">
+            <form string="Hình dạng đo lường" class="dl-measshape-form" js_class="dl_measshape_form">
                 <sheet>
                     <field name="active" invisible="1" />
                     <div class="oe_title">

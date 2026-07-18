@@ -18,6 +18,10 @@
             # cả dl_sale cũng dựa vào — xem dl_sale/__manifest__.py).
             'dl_base/static/src/scss/variables.scss',
             'dl_base/static/src/scss/mixins.scss',
+            'dl_base/static/src/scss/global_form.scss',
+            'dl_base/static/src/scss/global_list.scss',
+            'dl_base/static/src/scss/global_cp.scss',
+            'dl_base/static/src/scss/global_dialog.scss',
             # State dùng chung sidebar (Home nav + Rail) — nạp trước component
             'dl_base/static/src/js/sidebar_state.js',
             # JS — hạ tầng list/form dùng chung toàn hệ thống (menu ⋮ Thao
@@ -26,6 +30,7 @@
             # tránh phụ thuộc vòng (dl_sale lại depends dl_product).
             'dl_base/static/src/js/actions_menu.js',
             'dl_base/static/src/views/dl_list_controller.js',
+            'dl_base/static/src/views/dl_kanban_controller.js',
             # Component — Home dashboard (client action ir.actions.client)
             'dl_base/static/src/components/home/home.scss',
             'dl_base/static/src/components/home/home.xml',

@@ -75,6 +75,19 @@ export class DlUomListController extends DlListBaseController {
     _chipCount(chip) {
         return chip.key === "all" ? this.dlCounts.all : this.dlCounts[chip.type];
     }
+
+    get dlFilterDropdowns() {
+        return [
+            {
+                key: "status",
+                label: "Tất cả trạng thái",
+                filters: [
+                    { name: "filter_active", label: "Đang dùng" },
+                    { name: "filter_inactive", label: "Đã ẩn" },
+                ],
+            },
+        ];
+    }
 }
 
 registry.category("views").add("dl_uom_list", {

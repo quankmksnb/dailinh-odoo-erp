@@ -63,8 +63,7 @@ export class DlTechnicalHome extends Component {
         if (!actionXmlId) {
             return;
         }
-        // clearBreadcrumbs: reset stack để breadcrumb không tích lũy dài.
-        this.actionService.doAction(actionXmlId, { clearBreadcrumbs: true });
+        this.actionService.doAction(actionXmlId);
     }
 }
 

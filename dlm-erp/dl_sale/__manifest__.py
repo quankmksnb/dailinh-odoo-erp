@@ -36,10 +36,13 @@
             'dl_sale/static/src/views/quotation_list_controller.js',
             'dl_sale/static/src/views/customer_list_controller.js',
             'dl_sale/static/src/views/supplier_list_controller.js',
+            'dl_sale/static/src/views/saleorder_list_controller.js',
+            'dl_sale/static/src/views/customer_kanban_controller.js',
             # Views — form
             'dl_sale/static/src/views/quotation_form_controller.js',
             'dl_sale/static/src/views/customer_form_controller.js',
             'dl_sale/static/src/views/supplier_form_controller.js',
+            'dl_sale/static/src/views/saleorder_form_controller.js',
             # JS — patch điều hướng
             'dl_sale/static/src/js/nav_patch.js',
             # Component — Hub Báo giá (Tạo RFQ · Quản lý RFQ · Báo giá · Đơn bán hàng)

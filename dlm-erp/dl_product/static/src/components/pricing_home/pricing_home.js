@@ -35,7 +35,7 @@ export class DlPricingHome extends Component {
     if (!actionXmlId) {
       return;
     }
-    this.actionService.doAction(actionXmlId, { clearBreadcrumbs: true });
+    this.actionService.doAction(actionXmlId);
   }
 }
 

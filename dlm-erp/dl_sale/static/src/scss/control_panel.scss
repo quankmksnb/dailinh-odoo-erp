@@ -1,129 +1,5 @@
-.o_action_manager:has(.dl-quotation-form),
-.o_action_manager:has(.dl-quotation-list),
-.o_action_manager:has(.dl-customer-form),
-.o_action_manager:has(.dl-customer-list),
-.o_action_manager:has(.dl-cust-kanban),
-.o_action_manager:has(.dl-supplier-form),
-.o_action_manager:has(.dl-supplier-list),
-.o_action_manager:has(.dl-product-form),
-.o_action_manager:has(.dl-product-list),
-.o_action_manager:has(.dl-material-form),
-.o_action_manager:has(.dl-material-list),
-.o_action_manager:has(.dl-material-price-list),
-.o_action_manager:has(.dl-bom-form),
-.o_action_manager:has(.dl-bom-list),
-.o_action_manager:has(.dl-rfq-form),
-.o_action_manager:has(.dl-rfq-list),
-.o_action_manager:has(.dl-drawing-form),
-.o_action_manager:has(.dl-drawing-list) {
-    font-family: $dl-font;
-
-    .o_control_panel {
-        background: $dl-app-bg;
-        border-bottom: 1px solid $dl-border;
-
-        .o_control_panel_main { align-items: center !important; }
-
-        .o_breadcrumb,
-        .breadcrumb-item,
-        .o_last_breadcrumb_item > span,
-        .o_breadcrumb .active {
-            color: $dl-heading;
-            font-weight: 600;
-        }
-
-        .o_breadcrumb {
-            flex-direction: row !important;
-            flex-wrap: nowrap !important;
-            align-items: center !important;
-            justify-content: flex-start !important;
-            gap: 6px;
-
-            .breadcrumb { margin-bottom: 0; align-items: center; }
-            .o_last_breadcrumb_item { font-size: 14px; }
-        }
-
-        .o_breadcrumb:has(.breadcrumb .breadcrumb-item)::before {
-            content: "\25C0";
-            margin-right: 6px;
-            color: $dl-text-2;
-            font-size: 12px;
-        }
-
-        .o_breadcrumb:has(.breadcrumb .breadcrumb-item) .o_last_breadcrumb_item::before {
-            content: "/";
-            margin: 0 6px 0 2px;
-            color: $dl-text-muted;
-            font-weight: 400;
-        }
-
-        .btn-primary {
-            background-color: $dl-primary;
-            border-color: $dl-primary;
-            border-radius: $dl-radius-sm;
-
-            &:hover, &:focus, &:active {
-                background-color: $dl-primary-dark !important;
-                border-color: $dl-primary-dark !important;
-            }
-        }
-
-        .btn-secondary {
-            border-radius: $dl-radius-sm;
-            border-color: $dl-border;
-        }
-
-        .o_form_status_indicator_buttons {
-            gap: 8px;
-            align-items: center;
-        }
-
-        .o_form_button_save {
-            display: inline-flex !important;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 14px !important;
-            border-radius: $dl-radius-sm !important;
-            background: $dl-primary !important;
-            color: #fff !important;
-
-            i.fa { color: #fff !important; }
-            &::after { content: "Lưu"; font-size: 13px; font-weight: 500; }
-            &:hover { background: $dl-primary-dark !important; }
-        }
-
-        .o_form_button_cancel {
-            display: inline-flex !important;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 14px !important;
-            border-radius: $dl-radius-sm !important;
-            border: 1px solid $dl-border !important;
-            background: #fff !important;
-            color: $dl-text-2 !important;
-
-            i.fa { color: $dl-text-2 !important; }
-            &::after { content: "Huỷ"; font-size: 13px; font-weight: 500; }
-            &:hover { background: $dl-divider !important; }
-        }
-
-
-        .o_cp_action_menus {
-            .dropdown-toggle, button { color: $dl-text-2; }
-
-            .fa-cog {
-                font-size: 0;
-
-                &::before {
-                    content: "Thao tác \25BE";
-                    font-family: $dl-font;
-                    font-weight: 500;
-                    font-size: 13px;
-                }
-            }
-        }
-    }
-}
+// dl_sale — Control panel overrides ĐẶC THÙ.
+// Phần chung (breadcrumb, btn, save/cancel) đã nằm ở dl_base/global_cp.scss.
 
 // Ẩn nút "New" boxed chỉ ở form (list/kanban vẫn giữ nút Thêm/Tạo báo giá).
 .o_action_manager:has(.dl-quotation-form) .o_control_panel_main_buttons,
@@ -134,98 +10,19 @@
 .o_action_manager:has(.dl-material-form) .o_control_panel_main_buttons,
 .o_action_manager:has(.dl-bom-form) .o_control_panel_main_buttons,
 .o_action_manager:has(.dl-rfq-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-drawing-form) .o_control_panel_main_buttons {
+.o_action_manager:has(.dl-drawing-form) .o_control_panel_main_buttons,
+.o_action_manager:has(.dl-saleorder-form) .o_control_panel_main_buttons,
+.o_action_manager:has(.dl-supplierinfo-form) .o_control_panel_main_buttons,
+.o_action_manager:has(.dl-bomtpl-form) .o_control_panel_main_buttons,
+.o_action_manager:has(.dl-company-form) .o_control_panel_main_buttons,
+.o_action_manager:has(.dl-meastype-form) .o_control_panel_main_buttons,
+.o_action_manager:has(.dl-measshape-form) .o_control_panel_main_buttons {
     display: none !important;
 }
 
-// Ẩn cog Actions ở form/list (đã thay bằng menu ⋮ phẳng).
-.o_action_manager:has(.dl-quotation-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-quotation-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-customer-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-customer-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-cust-kanban) .o_cp_action_menus,
-.o_action_manager:has(.dl-supplier-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-supplier-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-product-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-product-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-material-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-material-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-material-price-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-bom-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-bom-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-rfq-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-rfq-list) .o_cp_action_menus,
-.o_action_manager:has(.dl-drawing-form) .o_cp_action_menus,
-.o_action_manager:has(.dl-drawing-list) .o_cp_action_menus {
-    display: none !important;
-}
+// CogMenu + Menu ⋮ đã chuyển về dl_base/global_cp.scss
 
-.dl-actions-menu {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    margin-left: 8px;
-    order: -1; 
-
-    .dl-actions-toggle {
-        width: 34px;
-        height: 34px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border: 1px solid $dl-border;
-        border-radius: $dl-radius-sm;
-        background: #fff;
-        color: $dl-text-2;
-        cursor: pointer;
-
-        i.fa { font-size: 16px; }
-        &:hover { background: $dl-divider; color: $dl-heading; }
-    }
-
-    .dl-actions-list {
-        display: none;
-        position: absolute;
-        top: 100%;
-        right: 0;
-        min-width: 190px;
-        background: #fff;
-        border: 1px solid $dl-border;
-        border-radius: $dl-radius;
-        box-shadow: $dl-shadow-pop;
-        padding: 6px;
-        z-index: 1050;
-    }
-
-    &:hover .dl-actions-list,
-    &:focus-within .dl-actions-list { display: block; }
-
-    .dl-actions-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        width: 100%;
-        padding: 8px 12px;
-        border: 0;
-        background: transparent;
-        border-radius: 8px;
-        color: $dl-text;
-        font-size: 13px;
-        text-align: left;
-        cursor: pointer;
-        white-space: nowrap;
-
-        i.fa { width: 16px; text-align: center; color: $dl-text-2; }
-        &:hover { background: $dl-active; }
-
-        &.dl-actions-danger {
-            color: $dl-danger;
-            i.fa { color: $dl-danger; }
-            &:hover { background: $dl-danger-bg; }
-        }
-    }
-}
-
+// Breadcrumb nowrap cho form views
 .o_action_manager:has(.dl-quotation-form),
 .o_action_manager:has(.dl-customer-form),
 .o_action_manager:has(.dl-supplier-form),
@@ -233,7 +30,13 @@
 .o_action_manager:has(.dl-material-form),
 .o_action_manager:has(.dl-bom-form),
 .o_action_manager:has(.dl-rfq-form),
-.o_action_manager:has(.dl-drawing-form) {
+.o_action_manager:has(.dl-drawing-form),
+.o_action_manager:has(.dl-saleorder-form),
+.o_action_manager:has(.dl-supplierinfo-form),
+.o_action_manager:has(.dl-bomtpl-form),
+.o_action_manager:has(.dl-company-form),
+.o_action_manager:has(.dl-meastype-form),
+.o_action_manager:has(.dl-measshape-form) {
     .o_control_panel_main { flex-wrap: nowrap !important; }
     .o_control_panel_breadcrumbs { flex-wrap: nowrap !important; min-width: 0; }
     .o_breadcrumb .o_last_breadcrumb_item { flex-shrink: 0; }
@@ -244,6 +47,7 @@
     }
 }
 
+// Many2one external button trong form
 .dl-quotation-form .dl-field .o_field_many2one,
 .dl-customer-form .dl-field .o_field_many2one {
     position: relative;
@@ -266,53 +70,5 @@
         background: transparent;
     }
 }
-.dl-cp-actions {
-    flex-wrap: nowrap !important;
-    flex-shrink: 0;
-}
-.dl-cp-actions .btn { white-space: nowrap; flex-shrink: 0; }
 
-.dl-cp-actions {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: 16px;
-
-    .btn {
-        border-radius: $dl-radius-sm;
-        font-weight: 500;
-        padding: 5px 16px;
-    }
-
-    .btn-primary {
-        background-color: $dl-primary;
-        border-color: $dl-primary;
-
-        &:hover, &:focus, &:active {
-            background-color: $dl-primary-dark !important;
-            border-color: $dl-primary-dark !important;
-        }
-    }
-
-    .btn-danger {
-        color: $dl-danger;
-        background-color: #fff;
-        border-color: $dl-danger-border;
-
-        &:hover, &:focus {
-            color: $dl-danger;
-            background-color: $dl-danger-bg;
-            border-color: $dl-danger-border;
-        }
-    }
-
-    .btn-link,
-    .btn-secondary {
-        color: $dl-primary;
-        background: transparent;
-        border-color: transparent;
-        text-decoration: none;
-
-        &:hover { text-decoration: underline; background: transparent; }
-    }
-}
+// dl-cp-actions đã chuyển về dl_base/global_cp.scss

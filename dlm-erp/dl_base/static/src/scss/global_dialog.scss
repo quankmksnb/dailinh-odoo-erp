@@ -1,0 +1,197 @@
+// ============================================================================
+// DLM-ERP — Global dialog & notification overrides
+// Đồng bộ modal (xác nhận lưu, cảnh báo…) + toast notification với hệ màu DLM.
+// ============================================================================
+
+// --- Modal / Dialog ----------------------------------------------------------
+.o_dialog .modal-content,
+.modal .modal-content {
+    border-radius: $dl-radius;
+    border: 1px solid $dl-border;
+    box-shadow: $dl-shadow-pop;
+    font-family: $dl-font;
+}
+
+.o_dialog .modal-header,
+.modal .modal-header {
+    border-bottom: 1px solid $dl-divider;
+    padding: 14px 16px;
+
+    .modal-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: $dl-heading;
+    }
+
+    .btn-close {
+        opacity: 0.5;
+        &:hover { opacity: 0.8; }
+    }
+}
+
+.o_dialog .modal-body,
+.modal .modal-body {
+    color: $dl-text;
+    font-size: 14px;
+    padding: 16px;
+}
+
+.o_dialog .modal-footer,
+.modal .modal-footer {
+    border-top: 1px solid $dl-divider;
+    padding: 10px 16px;
+    gap: 8px;
+
+    .btn-primary {
+        background-color: $dl-primary !important;
+        border-color: $dl-primary !important;
+        border-radius: $dl-radius-sm;
+        font-weight: 500;
+
+        &:hover, &:focus, &:active {
+            background-color: $dl-primary-dark !important;
+            border-color: $dl-primary-dark !important;
+        }
+    }
+
+    .btn-secondary {
+        border-color: $dl-border;
+        border-radius: $dl-radius-sm;
+        color: $dl-text-2;
+        font-weight: 500;
+
+        &:hover { background: $dl-divider; }
+    }
+}
+
+// --- Notification / Toast ----------------------------------------------------
+.o_notification_manager {
+    .o_notification {
+        font-family: $dl-font;
+        border-radius: $dl-radius;
+        box-shadow: $dl-shadow-pop;
+    }
+
+    .o_notification_bar {
+        background-color: $dl-primary !important;
+    }
+
+    .o_notification.border-info .o_notification_bar {
+        background-color: $dl-primary !important;
+    }
+
+    .o_notification.border-success .o_notification_bar {
+        background-color: $dl-green !important;
+    }
+
+    .o_notification.border-danger .o_notification_bar {
+        background-color: $dl-danger !important;
+    }
+
+    .o_notification.border-warning .o_notification_bar {
+        background-color: #d68a00 !important;
+    }
+
+    .o_notification_title { font-weight: 600; }
+    .o_notification_content { font-size: 13px; color: $dl-text; }
+
+    .o_notification_close {
+        opacity: 0.5;
+        &:hover { opacity: 0.8; }
+    }
+
+    .o_notification_buttons .btn-primary {
+        background-color: $dl-primary !important;
+        border-color: $dl-primary !important;
+        border-radius: $dl-radius-sm;
+
+        &:hover {
+            background-color: $dl-primary-dark !important;
+            border-color: $dl-primary-dark !important;
+        }
+    }
+}
+
+// --- Confirm dialog (Odoo ConfirmationDialog) --------------------------------
+.o_dialog.o_error_dialog .modal-footer .btn-primary,
+.o_dialog .o_error_dialog .btn-primary {
+    background-color: $dl-danger !important;
+    border-color: $dl-danger !important;
+}
+
+// ============================================================================
+// Chatter — Gửi tin / Ghi chú / Hoạt động + Composer
+// Global scope (không scope trong form) vì OWL mail render riêng biệt.
+// ============================================================================
+
+// Nút "Gửi tin" (active) — đổi từ đỏ/tím sang xanh DLM
+.o-mail-Chatter-sendMessage.btn-primary,
+.o-mail-Chatter-sendMessage.btn.btn-primary,
+.o-mail-Chatter button.btn-primary[title="Send Message"],
+.o-mail-Chatter .btn-primary {
+    background-color: $dl-primary !important;
+    border-color: $dl-primary !important;
+    color: #fff !important;
+
+    &:hover, &:focus, &:active {
+        background-color: $dl-primary-dark !important;
+        border-color: $dl-primary-dark !important;
+    }
+}
+
+// Nút "Ghi chú" / "Hoạt động" (inactive)
+.o-mail-Chatter-logNote.btn-secondary,
+.o-mail-Chatter-logNote.btn.btn-secondary,
+.o-mail-Chatter-activity.btn-secondary,
+.o-mail-Chatter-activity.btn.btn-secondary {
+    color: $dl-text-2 !important;
+    border-color: $dl-border !important;
+
+    &:hover {
+        color: $dl-primary !important;
+        background: $dl-active !important;
+        border-color: $dl-primary !important;
+    }
+}
+
+// Khi tab "Ghi chú" hoặc "Hoạt động" đang active
+.o-mail-Chatter-logNote.btn-primary,
+.o-mail-Chatter-activity.btn-primary {
+    background-color: $dl-primary !important;
+    border-color: $dl-primary !important;
+    color: #fff !important;
+}
+
+// Nút "Ghi nhận" / "Gửi" trong composer box
+.o-mail-Composer-send.btn-primary,
+.o-mail-Composer .btn-primary {
+    background-color: $dl-primary !important;
+    border-color: $dl-primary !important;
+    color: #fff !important;
+    border-radius: $dl-radius-sm;
+
+    &:hover, &:focus {
+        background-color: $dl-primary-dark !important;
+        border-color: $dl-primary-dark !important;
+    }
+}
+
+// Nút "Theo dõi"
+.o-mail-Followers-button {
+    color: $dl-text-2 !important;
+    &:hover { color: $dl-primary !important; }
+}
+
+// Catchall: mọi btn-primary bên trong chatter
+.o-mail-Chatter {
+    .btn-primary:not(.btn-link) {
+        background-color: $dl-primary !important;
+        border-color: $dl-primary !important;
+        color: #fff !important;
+
+        &:hover, &:focus, &:active {
+            background-color: $dl-primary-dark !important;
+            border-color: $dl-primary-dark !important;
+        }
+    }
+}

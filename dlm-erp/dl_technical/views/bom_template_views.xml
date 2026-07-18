@@ -12,6 +12,8 @@
         <field name="model">dl.bom.template</field>
         <field name="arch" type="xml">
             <tree string="BOM Template"
+                  class="dl-bomtpl-list"
+                  js_class="dl_list"
                   decoration-muted="status == 'archived'">
                 <field name="name"/>
                 <field name="product_category_id"/>
@@ -30,7 +32,7 @@
         <field name="name">dl.bom.template.form</field>
         <field name="model">dl.bom.template</field>
         <field name="arch" type="xml">
-            <form string="BOM Template">
+            <form string="BOM Template" class="dl-bomtpl-form" js_class="dl_bomtpl_form">
                 <header>
                     <button name="action_confirm" type="object" string="Xác nhận BOM"
                             class="oe_highlight"
@@ -47,6 +49,7 @@
                             invisible="status not in ('confirmed', 'locked')"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_archive" type="object" string="Lưu trữ"
+                            class="btn-danger"
                             invisible="status in ('locked', 'archived')"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn lưu trữ BOM mẫu này?"/>
