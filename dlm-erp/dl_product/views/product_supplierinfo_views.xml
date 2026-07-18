@@ -10,7 +10,7 @@
         <field name="name">dl.product.supplierinfo.tree</field>
         <field name="model">product.supplierinfo</field>
         <field name="arch" type="xml">
-            <tree string="Bảng giá NCC" editable="bottom">
+            <tree string="Bảng giá NCC" class="dl-supplierinfo-list" js_class="dl_supplierinfo_list" editable="bottom">
                 <field name="company_id" column_invisible="1" />
                 <field name="product_tmpl_id" string="Sản phẩm / Vật tư" />
                 <field name="partner_id" string="Nhà cung cấp" />
@@ -50,7 +50,7 @@
         <field name="name">dl.product.supplierinfo.form</field>
         <field name="model">product.supplierinfo</field>
         <field name="arch" type="xml">
-            <form string="Giá NCC" class="dl-product-form">
+            <form string="Giá NCC" class="dl-supplierinfo-form" js_class="dl_supplierinfo_form">
                 <header>
                     <button name="action_approve" type="object" string="Duyệt giá"
                         class="oe_highlight" invisible="approval_state == 'approved'"

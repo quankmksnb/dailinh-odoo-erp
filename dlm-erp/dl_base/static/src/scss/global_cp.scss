@@ -1,0 +1,368 @@
+// ============================================================================
+// DLM-ERP — Global control panel overrides
+// Áp dụng cho TẤT CẢ action manager chứa view dl-*: breadcrumbs, nút
+// Save/Cancel, btn-primary/secondary, font. Mỗi module chỉ cần bổ sung
+// phần ĐẶC THÙ (ẩn action menus, search bar layout, chipbar...).
+// ============================================================================
+
+.o_action_manager:has([class*="dl-"][class*="-list"]),
+.o_action_manager:has([class*="dl-"][class*="-form"]),
+.o_action_manager:has([class*="dl-"][class*="-kanban"]) {
+    font-family: $dl-font;
+
+    // Ẩn nút "Mới" (New) mặc định của Odoo trên form view — các form DL
+    // dùng breadcrumb riêng ("Thêm …"), nút này thừa.
+    &:has([class*="dl-"][class*="-form"]) .o_form_button_create {
+        display: none !important;
+    }
+
+    .o_control_panel {
+        background: $dl-surface;
+        border-bottom: 1px solid $dl-border;
+
+        .o_control_panel_main {
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+            gap: 8px;
+        }
+
+        .o_control_panel_breadcrumbs {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .o_control_panel_navigation {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .o_breadcrumb {
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 0;
+
+            .breadcrumb {
+                margin-bottom: 0;
+                align-items: center;
+                gap: 0;
+            }
+
+            .breadcrumb-item {
+                font-size: 14px;
+                font-weight: 500;
+
+                a {
+                    color: $dl-primary !important;
+                    text-decoration: none;
+                    &:hover { color: $dl-primary-dark !important; text-decoration: underline; }
+                }
+
+                // Separator "/"
+                & + .breadcrumb-item::before {
+                    content: "/" !important;
+                    color: $dl-text-muted;
+                    font-weight: 400;
+                    padding: 0 6px;
+                }
+            }
+
+            .o_last_breadcrumb_item {
+                font-size: 14px;
+
+                > span {
+                    color: $dl-heading;
+                    font-weight: 600;
+                }
+            }
+
+        }
+
+        // "/" trước item cuối — chỉ hiện khi có breadcrumb cha
+        .o_breadcrumb:has(.breadcrumb .breadcrumb-item) .o_last_breadcrumb_item::before {
+            content: "/" !important;
+            color: $dl-text-muted;
+            font-weight: 400;
+            padding: 0 6px;
+        }
+
+        // Back arrow chỉ hiện khi có breadcrumb cha
+        .o_breadcrumb:has(.breadcrumb .breadcrumb-item)::before {
+            content: "\25C0";
+            margin-right: 6px;
+            color: $dl-text-2;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        // Ẩn separator trước item đầu tiên (sau back arrow)
+        .o_breadcrumb .breadcrumb .breadcrumb-item:first-child::before {
+            display: none !important;
+        }
+
+        .btn-primary {
+            background-color: $dl-primary;
+            border-color: $dl-primary;
+            border-radius: $dl-radius-sm;
+
+            &:hover, &:focus, &:active {
+                background-color: $dl-primary-dark !important;
+                border-color: $dl-primary-dark !important;
+            }
+        }
+
+        .btn-secondary {
+            border-radius: $dl-radius-sm;
+            border-color: $dl-border;
+        }
+
+        .o_form_status_indicator_buttons {
+            gap: 8px;
+            align-items: center;
+        }
+
+        .o_form_button_save {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 14px !important;
+            border-radius: $dl-radius-sm !important;
+            background: $dl-primary !important;
+            color: #fff !important;
+
+            i.fa { color: #fff !important; }
+            &::after { content: "Lưu"; font-size: 13px; font-weight: 500; }
+            &:hover { background: $dl-primary-dark !important; }
+        }
+
+        .o_form_button_cancel {
+            display: inline-flex !important;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 14px !important;
+            border-radius: $dl-radius-sm !important;
+            border: 1px solid $dl-border !important;
+            background: #fff !important;
+            color: $dl-text-2 !important;
+
+            i.fa { color: $dl-text-2 !important; }
+            &::after { content: "Huỷ"; font-size: 13px; font-weight: 500; }
+            &:hover { background: $dl-divider !important; }
+        }
+
+        // ── Ẩn toggle filter + tất cả facets trong search bar ──
+        .o_searchview_dropdown_toggler {
+            display: none !important;
+        }
+
+        .o_searchview .o_searchview_facet {
+            display: none !important;
+        }
+
+        // ── Filter dropdown ngoài search bar ──
+        .dl-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        .dl-filter-select {
+            height: 32px;
+            padding: 0 28px 0 10px;
+            border: 1px solid $dl-border;
+            border-radius: $dl-radius-sm;
+            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235b6b7b'/%3E%3C/svg%3E") no-repeat right 10px center;
+            appearance: none;
+            font-family: $dl-font;
+            font-size: 13px;
+            font-weight: 500;
+            color: $dl-text-2;
+            cursor: pointer;
+            transition: border-color .15s, box-shadow .15s;
+            white-space: nowrap;
+
+            &:focus {
+                outline: none;
+                border-color: $dl-primary;
+                box-shadow: 0 0 0 2px rgba($dl-primary, .14);
+            }
+
+            &:hover {
+                border-color: darken($dl-border, 8%);
+            }
+        }
+
+        .o_cp_action_menus {
+            display: none !important;
+        }
+    }
+}
+
+// ── Nút tạo mới: label cụ thể theo từng trang ──────────────────────────────
+// Base: ẩn text gốc Odoo, style chung cho tất cả nút create
+.o_action_manager:has([class*="dl-"][class*="-list"]),
+.o_action_manager:has([class*="dl-"][class*="-kanban"]) {
+    .dl-create-cluster .o_list_button_add,
+    .o_control_panel .o_kanban_button_new,
+    .o_control_panel .o-kanban-button-new {
+        border-radius: $dl-radius-sm !important;
+        font-weight: 500;
+        font-size: 0 !important;
+
+        &::after {
+            font-size: 13px;
+            font-weight: 500;
+        }
+    }
+}
+
+@mixin dl-create-label($view-class, $label) {
+    .o_action_manager:has(.#{$view-class}) {
+        .dl-create-cluster .o_list_button_add::after,
+        .o_control_panel .o_kanban_button_new::after,
+        .o_control_panel .o-kanban-button-new::after {
+            content: $label;
+        }
+    }
+}
+
+@include dl-create-label("dl-customer-list", "+ Thêm khách hàng");
+@include dl-create-label("dl-cust-kanban", "+ Thêm khách hàng");
+@include dl-create-label("dl-supplier-list", "+ Thêm NCC");
+@include dl-create-label("dl-product-list", "+ Thêm sản phẩm");
+@include dl-create-label("dl-product-kanban", "+ Thêm sản phẩm");
+@include dl-create-label("dl-category-list", "+ Thêm danh mục");
+@include dl-create-label("dl-material-list", "+ Thêm vật tư");
+@include dl-create-label("dl-material-price-list", "+ Thêm bảng giá");
+@include dl-create-label("dl-bom-list", "+ Thêm BOM");
+@include dl-create-label("dl-bomtpl-list", "+ Thêm BOM mẫu");
+@include dl-create-label("dl-rfq-list", "+ Tạo RFQ");
+@include dl-create-label("dl-drawing-list", "+ Thêm bản vẽ");
+@include dl-create-label("dl-saleorder-list", "+ Thêm đơn bán");
+@include dl-create-label("dl-supplierinfo-list", "+ Thêm bảng giá NCC");
+@include dl-create-label("dl-quotation-list", "+ Tạo báo giá");
+@include dl-create-label("dl-meastype-list", "+ Thêm loại đo lường");
+@include dl-create-label("dl-measshape-list", "+ Thêm hình dạng");
+@include dl-create-label("dl-uom-list", "+ Thêm đơn vị");
+@include dl-create-label("dl-company-list", "+ Thêm công ty");
+
+// ── Menu ⋮ phẳng (thay cog Actions) — dùng chung toàn hệ thống ────────────
+.dl-actions-menu {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    order: -1;
+
+    .dl-actions-toggle {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius-sm;
+        background: #fff;
+        color: $dl-text-2;
+        cursor: pointer;
+
+        i.fa { font-size: 16px; }
+        &:hover { background: $dl-divider; color: $dl-heading; }
+    }
+
+    .dl-actions-list {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        min-width: 190px;
+        background: #fff;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        box-shadow: $dl-shadow-pop;
+        padding: 6px;
+        z-index: 1050;
+    }
+
+    &:hover .dl-actions-list,
+    &:focus-within .dl-actions-list { display: block; }
+
+    .dl-actions-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 12px;
+        border: 0;
+        background: transparent;
+        border-radius: 8px;
+        color: $dl-text;
+        font-size: 13px;
+        text-align: left;
+        cursor: pointer;
+        white-space: nowrap;
+
+        i.fa { width: 16px; text-align: center; color: $dl-text-2; }
+        &:hover { background: $dl-active; }
+
+        &.dl-actions-danger {
+            color: $dl-danger;
+            i.fa { color: $dl-danger; }
+            &:hover { background: $dl-danger-bg; }
+        }
+    }
+}
+
+// ── Nút hành động statusbar (di chuyển lên breadcrumb) ─────────────────────
+.dl-cp-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 12px;
+    padding-right: 12px;
+    border-right: 1px solid $dl-border;
+    flex-shrink: 0;
+
+    .btn {
+        border-radius: $dl-radius-sm;
+        font-weight: 500;
+        padding: 4px 12px;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+    .btn-primary {
+        background-color: $dl-primary;
+        border-color: $dl-primary;
+
+        &:hover, &:focus, &:active {
+            background-color: $dl-primary-dark !important;
+            border-color: $dl-primary-dark !important;
+        }
+    }
+
+    .btn-danger {
+        color: $dl-danger;
+        background-color: #fff;
+        border-color: $dl-danger-border;
+
+        &:hover, &:focus {
+            color: $dl-danger;
+            background-color: $dl-danger-bg;
+            border-color: $dl-danger-border;
+        }
+    }
+
+    .btn-link,
+    .btn-secondary {
+        color: $dl-primary;
+        background: transparent;
+        border-color: transparent;
+        text-decoration: none;
+
+        &:hover { text-decoration: underline; background: transparent; }
+    }
+}

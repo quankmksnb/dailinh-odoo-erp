@@ -21,7 +21,7 @@
         <field name="name">dl.company.form</field>
         <field name="model">res.company</field>
         <field name="arch" type="xml">
-            <form string="Công ty" class="dl-company-form" create="true">
+            <form string="Công ty" class="dl-company-form" create="true" js_class="dl_company_form">
                 <sheet>
                     <field name="parent_id" invisible="1"/>
                     <div class="dl-co-head">

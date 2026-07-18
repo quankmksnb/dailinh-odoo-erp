@@ -1,0 +1,167 @@
+// PROD — Kanban Sản phẩm. Card ngang compact: ảnh nhỏ trái, info phải, badge kind góc.
+.dl-product-kanban {
+    font-family: $dl-font;
+
+    &.o_kanban_renderer,
+    .o_kanban_renderer {
+        padding: 4px 16px 16px;
+        gap: 10px !important;
+        align-content: start;
+    }
+
+    .o_kanban_record {
+        padding: 0 !important;
+        margin: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+
+        &:focus,
+        &:focus-within { outline: none; }
+        &::after { display: none !important; }
+    }
+
+    .dl-prod-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 10px 14px;
+        background: $dl-surface;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        box-shadow: $dl-shadow-sm;
+        transition: box-shadow .15s ease, border-color .15s ease, transform .15s ease;
+        min-height: 68px;
+
+        &:hover {
+            border-color: $dl-primary;
+            box-shadow: $dl-shadow-pop;
+            transform: translateY(-1px);
+        }
+    }
+
+    // ── Ảnh sản phẩm ──
+    .dl-prod-img {
+        flex: 0 0 auto;
+        width: 48px;
+        height: 48px;
+
+        img {
+            width: 48px;
+            height: 48px;
+            border-radius: $dl-radius-sm;
+            object-fit: cover;
+            border: 1px solid $dl-divider;
+        }
+    }
+
+    .dl-prod-img__placeholder {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: $dl-radius-sm;
+        background: $dl-app-bg;
+        border: 1px solid $dl-divider;
+        color: $dl-text-muted;
+        font-size: 20px;
+    }
+
+    // ── Info ──
+    .dl-prod-info {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .dl-prod-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: $dl-heading;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dl-prod-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: $dl-text-2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dl-prod-code {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+    }
+
+    .dl-prod-sep {
+        color: $dl-text-muted;
+    }
+
+    .dl-prod-detail {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: $dl-text-muted;
+
+        i.fa {
+            width: 12px;
+            text-align: center;
+            font-size: 11px;
+        }
+    }
+
+    // ── Badge loại SP ──
+    .dl-prod-badge {
+        flex: 0 0 auto;
+        align-self: flex-start;
+        margin-top: 2px;
+        padding: 2px 9px;
+        border-radius: $dl-radius-sm;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+        background: $dl-type-individual-bg;
+        color: $dl-type-individual-fg;
+    }
+
+    .dl-prod-badge--manufactured {
+        background: $dl-badge-sent-bg;
+        color: $dl-badge-sent-fg;
+    }
+
+    .dl-prod-badge--trading {
+        background: $dl-badge-draft-bg;
+        color: $dl-badge-draft-fg;
+    }
+
+    .dl-prod-badge--material {
+        background: $dl-type-individual-bg;
+        color: $dl-type-individual-fg;
+    }
+
+    .dl-prod-badge--material_processed {
+        background: $dl-badge-approved-bg;
+        color: $dl-badge-approved-fg;
+    }
+
+    // ── Card ngừng sử dụng ──
+    .dl-prod-card--off {
+        border-color: $dl-danger-border;
+
+        .dl-prod-name { color: $dl-text-2; }
+        .dl-prod-img img { filter: grayscale(.5); opacity: .85; }
+
+        &:hover { border-color: $dl-danger; }
+    }
+}

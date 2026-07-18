@@ -1,26 +1,35 @@
+// S03 — Form Khách hàng. Phần đặc thù: avatar, mã KH, radio segment loại KH.
 .dl-customer-form {
-    font-family: $dl-font;
-    color: $dl-text;
-    background: $dl-app-bg;
-
     .dl-cust-code {
+        display: inline;
         font-size: 12px;
         font-weight: 600;
         color: $dl-text-muted;
-        margin: 2px 0 6px;
+        margin: 0;
 
         .o_field_widget { font-weight: 700; color: $dl-primary; }
     }
 
-    .o_form_sheet_bg { background: $dl-app-bg; border: 0; }
-    .o_form_sheet {
-        max-width: 100%;
-        border: 0;
-        box-shadow: none;
-        background: $dl-app-bg;
+    .dl-cust-group-badge {
+        display: inline-flex;
+        vertical-align: middle;
+        margin-left: 8px;
+        .badge { font-size: 11px; font-weight: 600; }
     }
 
-    .o_inner_group { row-gap: 4px; }
+    .dl-cust-code + .dl-cust-group-badge { margin-left: 8px; }
+
+    .dl-cust-head-main > .dl-cust-code,
+    .dl-cust-head-main > .dl-cust-group-badge {
+        margin-bottom: 0;
+    }
+
+    .dl-cust-head-main > h1 + .dl-cust-code,
+    .dl-cust-head-main > h1 + .dl-cust-group-badge,
+    .dl-cust-head-main > .dl-cust-code + .dl-cust-group-badge {
+        margin-top: 0;
+        margin-bottom: 6px;
+    }
 
     .dl-cust-head {
         display: flex;
@@ -45,25 +54,7 @@
         min-width: 0;
 
         h1 { margin: 2px 0 10px; }
-        h1 .o_field_widget input { font-size: 18px; font-weight: 700; color: $dl-heading; }
-    }
-
-    .o_form_label,
-    .o_inner_group label { color: $dl-text-2; font-weight: 500; font-size: 13px; }
-
-    .o_group .o_field_widget input.o_input,
-    .o_group .o_field_many2one .o_input,
-    .o_group .o_field_widget .o_input_dropdown input {
-        @include dl-input;
-    }
-
-    .o_horizontal_separator,
-    .o_inner_group > .o_horizontal_separator {
-        color: $dl-primary;
-        text-transform: uppercase;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
+        h1 .o_field_widget input { font-size: 18px; }
     }
 
     .dl-cust-type-seg {

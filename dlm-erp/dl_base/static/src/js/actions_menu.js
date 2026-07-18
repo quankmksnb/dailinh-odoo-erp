@@ -1,6 +1,41 @@
 /** @odoo-module **/
 
 import { useEffect } from "@odoo/owl";
+import { patch } from "@web/core/utils/patch";
+import { SearchBar } from "@web/search/search_bar/search_bar";
+
+patch(SearchBar.prototype, {
+    onSearchKeydown(ev) {
+        if (ev.key !== "Enter" || !this.state.query.trim()) {
+            return super.onSearchKeydown(ev);
+        }
+
+        const focusedItem = this.items[this.state.focusedIndex];
+        if (!focusedItem || focusedItem.unselectable) {
+            return super.onSearchKeydown(ev);
+        }
+
+        ev.preventDefault();
+
+        for (const f of [...this.env.searchModel.facets]) {
+            if (f.type === "field") {
+                this.env.searchModel.deactivateGroup(f.groupId);
+            }
+        }
+
+        const { searchItemId, label, operator, value } = focusedItem;
+        this.env.searchModel.addAutoCompletionValues(searchItemId, {
+            label,
+            operator,
+            value,
+        });
+
+        this.items.length = 0;
+        this.state.expanded = [];
+        this.state.focusedIndex = 0;
+        this.subItems = {};
+    },
+});
 
 export function buildActionsMenu(container, specs, { prepend = false } = {}) {
     if (!container) {
@@ -46,6 +81,21 @@ export function buildActionsMenu(container, specs, { prepend = false } = {}) {
         container.appendChild(menu);
     }
     return menu;
+}
+
+export function setupStatusbarButtons(ctrl) {
+    useEffect(() => {
+        const root = ctrl.rootRef.el;
+        if (!root) return;
+        const buttons = root.querySelector(
+            ".o_form_statusbar .o_statusbar_buttons"
+        );
+        const nav = root.querySelector(".o_control_panel_navigation");
+        if (buttons && nav && buttons.parentElement !== nav) {
+            buttons.classList.add("dl-cp-actions");
+            nav.prepend(buttons);
+        }
+    });
 }
 
 export function setupFormActionsMenu(ctrl) {

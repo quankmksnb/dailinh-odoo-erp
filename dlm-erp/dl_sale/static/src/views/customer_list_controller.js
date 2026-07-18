@@ -39,6 +39,19 @@ export class DlCustomerListController extends DlListBaseController {
         return "khách hàng";
     }
 
+    get dlFilterDropdowns() {
+        return [
+            {
+                key: "status",
+                label: "Tất cả trạng thái",
+                filters: [
+                    { name: "active", label: "Đang hoạt động" },
+                    { name: "inactive", label: "Không hoạt động" },
+                ],
+            },
+        ];
+    }
+
     _dlRenderChrome(root) {
         super._dlRenderChrome(root);
         this._renderAvatars(root);

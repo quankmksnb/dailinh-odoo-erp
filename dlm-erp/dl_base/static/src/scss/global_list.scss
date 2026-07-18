@@ -1,0 +1,66 @@
+// ============================================================================
+// DLM-ERP — Global list/tree overrides
+// Áp dụng cho TẤT CẢ list view có class dl-*-list: table card, thead,
+// tbody hover, ẩn checkbox/tfoot, badge, font.
+// Mỗi list riêng chỉ cần bổ sung column widths và phần ĐẶC THÙ.
+// ============================================================================
+
+.o_list_view[class*="dl-"][class*="-list"] {
+    font-family: $dl-font;
+
+    .o_list_renderer {
+        height: auto !important;
+        max-height: 100%;
+        margin: 4px 16px 16px;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        background: #fff;
+        overflow: auto;
+    }
+
+    .o_list_table thead th {
+        background-color: $dl-table-head-bg;
+        color: $dl-text-2;
+        font-weight: 500;
+        border-bottom: 1px solid $dl-border;
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+
+    .o_list_table td.o_data_cell {
+        padding-top: 5px;
+        padding-bottom: 5px;
+        vertical-align: middle;
+    }
+
+    .o_list_table tbody tr.o_data_row td {
+        border-top: 1px solid $dl-divider;
+    }
+    .o_list_table tbody tr.o_data_row:first-child td {
+        border-top: 0;
+    }
+    .o_list_table tbody tr.o_data_row:hover {
+        background-color: $dl-app-bg;
+    }
+
+    // Ẩn checkbox column, cột active, tfoot
+    .o_list_table {
+        thead th:not([data-name]) { display: none !important; }
+        tbody td:not([name]) { display: none !important; }
+        th[data-name="active"], td[name="active"] { display: none !important; }
+        tfoot { display: none !important; }
+        tbody td { background-color: transparent !important; }
+    }
+
+    .o_list_table td.o_data_cell[name="name"] {
+        font-weight: 600;
+        color: $dl-heading;
+    }
+
+    .badge {
+        font-weight: 500;
+        border-radius: $dl-radius-sm;
+    }
+
+    .o_field_email a { color: $dl-primary; }
+}

@@ -8,20 +8,20 @@ import { registry } from "@web/core/registry";
 import { _t } from "@web/core/l10n/translation";
 import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
-import { setupFormActionsMenu } from "@dl_base/js/actions_menu";
+import { setupFormActionsMenu, setupStatusbarButtons } from "@dl_base/js/actions_menu";
 
 export class DlBomFormController extends FormController {
     setup() {
         super.setup();
+        setupStatusbarButtons(this);
         setupFormActionsMenu(this);
     }
 
     displayName() {
-        return (
-            this.model.root.data.display_name?.split("\n")[0] ||
-            (this.model.root.isNew && _t("Thêm BOM")) ||
-            ""
-        );
+        if (this.model.root.isNew) {
+            return _t("Thêm BOM");
+        }
+        return this.model.root.data.display_name?.split("\n")[0] || "";
     }
 }
 

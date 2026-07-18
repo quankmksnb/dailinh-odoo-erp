@@ -1,0 +1,173 @@
+// ============================================================================
+// DLM-ERP — Global form overrides
+// Áp dụng cho TẤT CẢ form view có class dl-*-form: font, nền, sheet,
+// input, label, section separator, notebook tab, statusbar, chatter.
+// Mỗi form riêng chỉ cần bổ sung phần ĐẶC THÙ (avatar, code, totals...).
+// ============================================================================
+
+.o_form_view[class*="dl-"][class*="-form"] {
+    font-family: $dl-font;
+    color: $dl-text;
+    background: $dl-app-bg;
+
+    // --- Sheet ---------------------------------------------------------------
+    .o_form_sheet_bg { background: $dl-app-bg; border: 0; }
+    .o_form_sheet {
+        max-width: 100%;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        box-shadow: none;
+        background: $dl-surface;
+    }
+
+    .o_inner_group { row-gap: 4px; }
+
+    // --- Title ---------------------------------------------------------------
+    .oe_title { margin-bottom: 12px !important; }
+    .oe_title h1 {
+        .o_field_widget, input {
+            font-size: 20px;
+            font-weight: 700;
+            color: $dl-heading;
+        }
+    }
+
+    // --- Label ---------------------------------------------------------------
+    .o_form_label,
+    .o_inner_group label {
+        color: $dl-text-2;
+        font-weight: 500;
+        font-size: 13px;
+    }
+
+    // --- Input (dl-input mixin) ----------------------------------------------
+    .o_group .o_field_widget input.o_input,
+    .o_group .o_field_many2one .o_input,
+    .o_group .o_field_date input,
+    .o_group .o_field_widget .o_input_dropdown input,
+    .o_group textarea.o_input {
+        @include dl-input;
+    }
+
+    // --- Section separator ---------------------------------------------------
+    .o_horizontal_separator,
+    .o_inner_group > .o_horizontal_separator {
+        color: $dl-primary;
+        text-transform: uppercase;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    // --- Notebook tabs -------------------------------------------------------
+    .o_notebook .o_notebook_headers .nav-tabs {
+        border-bottom: 1px solid $dl-border;
+
+        .nav-link {
+            color: $dl-text-2;
+            border: 0;
+            padding: 8px 4px;
+            margin-right: 20px;
+            font-size: 14px;
+        }
+
+        .nav-link.active {
+            color: $dl-primary;
+            font-weight: 600;
+            border-bottom: 2px solid $dl-primary;
+            background: transparent;
+        }
+    }
+    .o_notebook .tab-content { padding-top: 7px; }
+
+    // --- Statusbar -----------------------------------------------------------
+    // Nút hành động đã chuyển lên breadcrumb (setupStatusbarButtons).
+    // Statusbar chỉ còn pipeline trạng thái → gọn 1 dòng.
+    .o_form_statusbar {
+        background: transparent;
+        border-bottom: 1px solid $dl-divider;
+        padding: 6px 0 8px;
+        gap: 0;
+        flex-direction: row;
+        align-items: center;
+
+        .o_statusbar_buttons:empty { display: none; }
+
+        .o_statusbar_buttons {
+            gap: 8px;
+
+            .btn {
+                border-radius: $dl-radius-sm;
+                font-weight: 500;
+                padding: 6px 16px;
+            }
+
+            .btn-primary {
+                background-color: $dl-primary;
+                border-color: $dl-primary;
+
+                &:hover, &:focus, &:active {
+                    background-color: $dl-primary-dark !important;
+                    border-color: $dl-primary-dark !important;
+                }
+            }
+
+            .btn-danger {
+                color: $dl-danger;
+                background-color: #fff;
+                border-color: $dl-danger-border;
+
+                &:hover, &:focus {
+                    color: $dl-danger;
+                    background-color: $dl-danger-bg;
+                    border-color: $dl-danger-border;
+                }
+            }
+
+            .btn-link,
+            .btn-secondary {
+                color: $dl-primary;
+                background: transparent;
+                border-color: transparent;
+                text-decoration: none;
+
+                &:hover { text-decoration: underline; background: transparent; }
+            }
+        }
+    }
+
+    // --- Chatter (border only — color overrides moved to global_dialog.scss) --
+    .o-mail-Chatter .o-mail-Chatter-topbar {
+        border-bottom: 1px solid $dl-divider;
+    }
+
+    // --- x2many sub-table ----------------------------------------------------
+    .o_field_x2many .o_list_renderer {
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+    }
+
+    .o_field_x2many .o_list_table {
+        thead th {
+            background: $dl-search-bg;
+            color: $dl-text-2;
+            font-weight: 500;
+            border-bottom: 0;
+        }
+        .o_data_row td { border-top: 1px solid $dl-divider; }
+        th, td { vertical-align: middle; }
+    }
+
+    .o_field_x2many .o_list_table td.o_list_record_remove button { visibility: hidden; }
+    .o_field_x2many .o_list_table tr.o_data_row:hover td.o_list_record_remove button {
+        visibility: visible;
+    }
+
+    .o_field_x2many .o_field_x2many_list_row_add a {
+        color: $dl-primary;
+        font-weight: 500;
+    }
+
+    // --- Subtotal footer (oe_subtotal_footer) --------------------------------
+    .oe_subtotal_footer .o_field_widget { font-weight: 700; color: $dl-heading; }
+}
