@@ -39,6 +39,33 @@
         groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
 
+    <menuitem
+        id="menu_dl_material_full"
+        name="Vật tư"
+        action="action_dl_material_full"
+        parent="menu_dl_product_root"
+        sequence="20"
+        groups="dl_base.dl_group_admin"
+    />
+    <menuitem
+        id="menu_dl_material_tech"
+        name="Vật tư"
+        action="action_dl_material_tech"
+        parent="menu_dl_product_root"
+        sequence="21"
+        groups="dl_base.dl_group_tech"
+    />
+    <!-- Không có dl_group_ba — BA/Sales không xem Vật tư -->
+    <menuitem
+        id="menu_dl_material_view"
+        name="Vật tư"
+        action="action_dl_material_view"
+        parent="menu_dl_product_root"
+        sequence="22"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+    />
+
+
     <!-- ============================================================
          NHÓM SẢN PHẨM (product.category)
     ============================================================ -->

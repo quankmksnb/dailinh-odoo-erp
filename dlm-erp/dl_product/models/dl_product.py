@@ -33,7 +33,7 @@ class ProductProduct(models.Model):
             ("manufactured", "Sản phẩm gia công"),
             ("trading", "Sản phẩm thương mại"),
             ("material", "Vật tư"),
-            ("material_processed", "Vật tư đã gia công"),
+            ("material_processed", "Bán thành phẩm"),
         ],
         string="Loại sản phẩm",
         required=True,
@@ -43,7 +43,7 @@ class ProductProduct(models.Model):
         "• Gia công (manufactured): tự sản xuất theo BOM\n"
         "• Thương mại (trading): nhập về bán thẳng, tra giá NCC\n"
         "• Vật tư (material): NVL thô, tra giá NCC\n"
-        "• Vật tư đã gia công (material_processed): cắt/gia công từ vật tư gốc, có BOM riêng",
+        "• Bán thành phẩm (material_processed): cắt/gia công từ vật tư gốc, có BOM riêng",
     )
 
     # ── Hao hụt & thu hồi (chỉ vật tư) ───────────────────────────────────

@@ -12,6 +12,7 @@
         "data/material_category_data.xml",
         "data/dl_demo_data.xml",
         "views/product_views.xml",
+        "views/material_views.xml",
         "views/product_pricing_views.xml",
         "views/category_views.xml",
         "views/product_supplierinfo_views.xml",

@@ -127,14 +127,14 @@
                         string="Hao hụt &amp; thu hồi"
                         invisible="product_kind not in ('material', 'material_processed')"
                     >
-                        <field name="dlm_waste_rate"/>
-                        <field name="dlm_has_recovery"/>
+                        <field name="dlm_waste_rate" />
+                        <field name="dlm_has_recovery" />
                         <field name="dlm_recovery_rate"
-                               invisible="not dlm_has_recovery"
-                               required="dlm_has_recovery"/>
+                            invisible="not dlm_has_recovery"
+                            required="dlm_has_recovery" />
                         <field name="dlm_scrap_product_id"
-                               invisible="not dlm_has_recovery"
-                               options="{'no_create': True}"/>
+                            invisible="not dlm_has_recovery"
+                            options="{'no_create': True}" />
                     </group>
 
                     <notebook>
@@ -194,7 +194,7 @@
                     domain="[('product_kind', '=', 'trading')]" />
                 <filter string="Vật tư" name="f_material"
                     domain="[('product_kind', '=', 'material')]" />
-                <filter string="Vật tư đã gia công" name="f_material_processed"
+                <filter string="Bán thành phẩm" name="f_material_processed"
                     domain="[('product_kind', '=', 'material_processed')]" />
                 <group expand="0" string="Nhóm theo">
                     <filter string="Nhóm SP" name="group_category"
@@ -281,8 +281,10 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
-        <field name="context">{'default_detailed_type': 'product', 'search_default_active': 1,
-            'active_test': False}</field>
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
+        <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
+            'manufactured',
+            'search_default_active': 1, 'search_default_group_kind': 1, 'active_test': False}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm sản phẩm đầu tiên!</p>
         </field>
@@ -303,8 +305,11 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_tech_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
-        <field name="context">{'default_detailed_type': 'product', 'delete': False,
-            'search_default_active': 1, 'active_test': False}</field>
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
+        <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
+            'manufactured',
+            'delete': False, 'search_default_active': 1, 'search_default_group_kind': 1,
+            'active_test': False}</field>
         <field name="groups_id"
             eval="[(6, 0, [ref('dl_base.dl_group_admin'), ref('dl_base.dl_group_tech')])]" />
     </record>
@@ -322,8 +327,9 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
         <field name="context">{'create': False, 'edit': False, 'delete': False,
-            'search_default_active': 1, 'active_test': False}</field>
+            'search_default_active': 1, 'search_default_group_kind': 1, 'active_test': False}</field>
         <field name="groups_id"
             eval="[(6, 0, [
                 ref('dl_base.dl_group_admin'),

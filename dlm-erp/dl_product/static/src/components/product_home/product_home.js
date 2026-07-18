@@ -8,10 +8,17 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 const CARDS = [
   {
     key: "products",
-    name: "Danh sách Sản phẩm / Vật tư",
-    desc: "Danh sách Sản phẩm gia công / Thương mại và Vật tư / Vật tư đã gia công",
+    name: "Sản phẩm",
+    desc: "Sản phẩm gia công / Thương mại",
     icon: "fa-cube",
     actionXmlId: "dl_product.action_dl_product_full",
+  },
+  {
+    key: "materials",
+    name: "Vật tư",
+    desc: "Vật tư / Bán thành phẩm",
+    icon: "fa-industry",
+    actionXmlId: "dl_product.action_dl_material_full",
   },
   {
     key: "categories",
