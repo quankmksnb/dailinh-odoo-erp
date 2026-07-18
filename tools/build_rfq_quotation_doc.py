@@ -9,7 +9,7 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "docs" / "Dac_ta_luong_tao_bao_gia_tu_RFQ_BOM.docx"
+OUT = ROOT / "docs" / "Dac_ta_luong_tao_bao_gia_tu_RFQ_BOM_v1.1.docx"
 
 BLUE = "2E74B5"
 DARK_BLUE = "1F4D78"
@@ -254,7 +254,7 @@ def build():
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p.paragraph_format.space_before = Pt(50)
-    set_font(p.add_run("Phiên bản tài liệu: 1.0  |  Ngày rà soát: 16/07/2026"), size=10, color=GRAY)
+    set_font(p.add_run("Phiên bản tài liệu: 1.1  |  Cập nhật Decision log & kế hoạch P0: 16/07/2026"), size=10, color=GRAY)
     doc.add_page_break()
 
     doc.add_heading("1. Mục tiêu và phạm vi", level=1)
@@ -394,6 +394,7 @@ def build():
     doc.add_paragraph("Markup là phần trăm cộng trên giá thành, không phải margin trên doanh thu. Vì model dùng target_markup/min_markup, công thức phải là cost × (1 + rate/100). Không dùng cost/(1−rate) trừ khi đổi hẳn ý nghĩa cấu hình sang gross margin.")
     doc.add_heading("7.3. Chiết khấu", level=2)
     doc.add_paragraph("Discount rule active được chọn theo partner.dlm_customer_group. default_rate tự điền; max_rate là ngưỡng ngoại lệ. Khuyến nghị hỗ trợ discount_pct ở header và có thể override theo line, nhưng phải snapshot tỷ lệ thực dùng.")
+    add_callout(doc, "Phân bổ chiết khấu để kiểm tra giá sàn:", "Chiết khấu header được phân bổ pro-rata theo subtotal trước chiết khấu của từng dòng: allocated_discount_i = header_discount_amount × line_subtotal_i / discountable_amount. Với dòng gia công, net_line_amount = line_subtotal − allocated_discount_i và net_unit_price = net_line_amount / qty; nếu net_unit_price < floor_price thì below_floor=True. Khoản no_discount không tham gia mẫu số phân bổ.", PALE_GREEN)
     add_table(doc, ["Giá trị", "Công thức"], [
         ["discountable_amount", "Tổng các khoản chịu chiết khấu"],
         ["discount_amount", "discountable_amount × discount_pct/100"],
@@ -474,6 +475,15 @@ def build():
         ["Tổng thanh toán", "", "12.790.800"],
     ], [2.0, 2.1, 2.4])
     add_callout(doc, "Giá sàn dòng gia công:", "Nếu min_markup = 8%, floor_unit = 825.000 × 1,08 = 891.000đ. Giá sau chiết khấu quy về dòng phải được so với sàn; nếu thấp hơn, đánh cờ below_floor và chuyển CEO.", PALE_GREEN)
+    doc.add_heading("11.1. Ví dụ riêng cho setup_fee theo lô", level=2)
+    doc.add_paragraph("Một dòng gia công có số lượng 10, công đoạn Cắt có price_rate theo sản phẩm là 40.000đ/đơn vị và setup_fee là 300.000đ/lô. Quyết định B3 xác định mỗi dòng gia công là một lô độc lập.")
+    add_table(doc, ["Khoản", "Cách tính", "Kết quả"], [
+        ["Chi phí biến đổi", "10 × 40.000", "400.000đ/lô"],
+        ["Setup", "Cộng đúng một lần cho dòng", "300.000đ/lô"],
+        ["Tổng công đoạn", "400.000 + 300.000", "700.000đ/lô"],
+        ["Phân bổ về đơn vị", "700.000 / 10", "70.000đ/đơn vị"],
+    ], [1.65, 2.85, 2.0], 9.0)
+    add_callout(doc, "Ràng buộc:", "Khi quantity thay đổi, setup_fee vẫn giữ nguyên cho lô nhưng phần setup phân bổ trên một đơn vị thay đổi. Không cộng setup_fee cho từng đơn vị.", PALE_YELLOW)
 
     doc.add_heading("12. Validation và thông báo lỗi", level=1)
     add_table(doc, ["Mã gợi ý", "Tình huống", "Thông báo người dùng"], [
@@ -529,12 +539,159 @@ def build():
         "dlm-erp/dl_config/models/pricing_matrix.py, pricing_approval.py — đánh giá và xử lý phê duyệt.",
         "dlm-erp/dl_config/models/pricing_config.py — cấu hình tổng quan, VAT, làm tròn và ma trận/SLA cũ.",
     ]: bullet(doc, t)
-    add_callout(doc, "Quyết định kiến trúc cần chốt trước khi code:", "Chọn một nguồn cấu hình chính cho hao hụt và phê duyệt (model V3 hay cấu hình cũ), định nghĩa rõ per-batch ở cấp dòng hay cấp toàn báo giá, và chốt discount/VAT có áp dụng cho hàng thương mại hay không. Tài liệu đang dùng phương án: hàng thương mại giữ giá gốc list_price nhưng vẫn tham gia chiết khấu/VAT cấp báo giá.", PALE_YELLOW)
+    add_callout(doc, "Trạng thái quyết định:", "Tám quyết định kiến trúc/nghiệp vụ đã được chốt tại Decision log bên dưới. Các quyết định này thay thế những điểm còn để mở ở phiên bản 1.0 và là đầu vào chính thức cho kế hoạch P0/P1.", PALE_GREEN)
 
-    doc.core_properties.title = "Đặc tả tạo báo giá từ RFQ và BOM"
+    doc.add_heading("16. Decision log - các quyết định đã chốt", level=1)
+    doc.add_paragraph("Decision log có hiệu lực từ phiên bản 1.1 của tài liệu. Khi thay đổi một quyết định, phải tạo revision mới, ghi lý do và đánh giá ảnh hưởng tới báo giá/snapshot đã tồn tại.")
+    decisions = [
+        ["A1", "Nguồn hao hụt", "V3 dl.pricing.waste.rule là nguồn chân lý đích. P0/P1 tạm dùng waste_rate trên BOM; P2 chuyển resolver sang V3 và ngừng mở rộng dl.pricing.waste cũ.", "P0 kiến trúc / P2 chuyển đổi"],
+        ["A2", "Snapshot giá", "Khi tạo báo giá, copy giá trị vô hướng vào dl.quotation.price.component; không compute lại theo BOM, sellerinfo hoặc rule sống.", "P0 - blocker"],
+        ["B3", "per_batch/setup_fee", "Tính ở cấp dòng gia công; mỗi dòng là một lô. Phân bổ setup_fee về đơn giá bằng setup_fee/qty.", "P1"],
+        ["B4", "CK/VAT hàng thương mại", "Giá gốc giữ nguyên list_price; vẫn tham gia chiết khấu và VAT cấp báo giá. Không áp BOM/chi phí gia công.", "P0"],
+        ["B5", "Phân bổ CK để so sàn", "Phân bổ pro-rata theo subtotal chịu chiết khấu; so net_unit_price từng dòng gia công với floor_price.", "P1"],
+        ["B6", "Dòng infeasible", "Chặn tạo báo giá cho toàn RFQ; Sales phải xác nhận/làm rõ lại phạm vi.", "P0 validation"],
+        ["C7", "Chống tạo trùng", "Dùng search trước cho UX và UNIQUE DB trên quotation_request_id để chống race condition.", "P0 - blocker"],
+        ["C8", "UoM/currency", "P0 chặn cứng khi khác UoM/currency bằng QTE-007; P1 triển khai quy đổi cơ bản, không để sai số âm thầm.", "P0 guard / P1 conversion"],
+    ]
+    add_table(doc, ["ID", "Chủ đề", "Quyết định chính thức", "Mốc"], decisions, [0.5, 1.2, 3.95, 0.85], 8.2)
+
+    doc.add_heading("16.1. Hệ quả kiến trúc", level=2)
+    for t in [
+        "dl.quotation và các price component là hồ sơ bất biến của lần tính giá; BOM/rule là nguồn đầu vào, không phải nguồn hiển thị động của báo giá đã tạo.",
+        "Model hao hụt cũ chỉ là cầu nối tạm thời. Không bổ sung recovery/complexity hoặc logic mới vào dl.pricing.waste.",
+        "Giá thương mại có cùng pipeline chiết khấu/VAT với giá gia công, nhưng không đi qua pricing cost engine.",
+        "Mọi phép so giá sàn dùng giá sau chiết khấu đã phân bổ ở cấp dòng, giúp nêu chính xác dòng nào tạo yêu cầu CEO.",
+        "P0 ưu tiên tính đúng và chặn dữ liệu không tương thích; chưa quy đổi thì báo lỗi thay vì tự giả định.",
+    ]:
+        bullet(doc, t)
+
+    doc.add_heading("16.2. Quy tắc ưu tiên khi có xung đột", level=2)
+    add_table(doc, ["Xung đột", "Quy tắc xử lý"], [
+        ["Tài liệu cũ khác Decision log", "Decision log phiên bản mới hơn được ưu tiên."],
+        ["Rule đang active đổi sau khi tạo báo giá", "Báo giá cũ giữ snapshot; báo giá mới dùng revision mới."],
+        ["list_price thay đổi sau khi tạo", "Dòng thương mại cũ giữ base_price snapshot."],
+        ["RFQ/BOM thay đổi sau khi có báo giá", "Không sửa ngầm báo giá; tạo revision/tính lại và hủy duyệt cũ."],
+        ["Có nhiều điều kiện duyệt", "Chọn cấp cao nhất; giữ toàn bộ reasons để audit."],
+    ], [2.3, 4.2], 9.0)
+
+    doc.add_heading("17. Kế hoạch triển khai P0 chi tiết", level=1)
+    add_callout(doc, "Mục tiêu P0:", "Từ một RFQ confirmed, tạo đúng một báo giá draft có các dòng thương mại/gia công, snapshot giá nền bất biến, tổng tiền/chiết khấu/VAT cơ bản và validation an toàn. P0 chưa tính operation/cost adjustment V3 đầy đủ, nhưng thiết kế dữ liệu không được cản P1.", PALE_BLUE)
+
+    doc.add_heading("17.1. Phạm vi P0", level=2)
+    add_table(doc, ["Trong P0", "Chưa thuộc P0"], [
+        ["Liên kết RFQ - quotation; chống trùng bằng DB", "6 phương pháp công đoạn và setup_fee thực tế"],
+        ["Trading = list_price snapshot", "6 phương pháp cost adjustment"],
+        ["Manufactured = BOM material cost snapshot/đơn vị", "Waste V3: complexity, recovery, scrap"],
+        ["Chiết khấu/VAT header cơ bản", "Quy đổi UoM/currency đầy đủ (P1)"],
+        ["Chặn infeasible, thiếu BOM/giá, UoM/currency khác", "Phê duyệt chi tiết theo line floor (P1 nếu cần breakdown đầy đủ)"],
+        ["Price component snapshot cho nguồn giá P0", "Revision báo giá và báo cáo breakdown nâng cao"],
+    ], [3.25, 3.25], 8.8)
+
+    doc.add_heading("17.2. Thay đổi model", level=2)
+    add_table(doc, ["Model", "Field/constraint P0", "Quy tắc"], [
+        ["dl.quotation", "quotation_request_id (Many2one, required, index)", "Nguồn RFQ; ondelete=restrict."],
+        ["dl.quotation", "SQL UNIQUE(quotation_request_id)", "Bảo đảm một RFQ chỉ có một báo giá P0."],
+        ["dl.quotation", "company_id, pricing_date, currency_id", "Snapshot ngữ cảnh tính giá."],
+        ["dl.quotation", "discount_pct, vat_pct", "Tỷ lệ header đã dùng."],
+        ["dl.quotation", "amount_untaxed, discount_amount, amount_before_vat, vat_amount, amount_total", "Compute từ line snapshot, không đọc rule sống."],
+        ["dl.quotation.line", "rfq_line_id, product_id, bom_id, line_type", "Truy vết và phân loại."],
+        ["dl.quotation.line", "base_price, price_unit, floor_price, total_cost", "P0: base/price snapshot; floor có thể để 0 nếu profit rule chưa đưa vào P0."],
+        ["dl.quotation.price.component", "quotation_line_id, component_type, source_model, source_id, source_revision", "Metadata truy vết nguồn."],
+        ["dl.quotation.price.component", "qty, unit_price, rate, amount, no_discount", "Giá trị vô hướng bất biến."],
+        ["dl.quotation.request", "quotation_id (computed hoặc related/search)", "Mở nhanh báo giá đã tạo; tránh lưu hai chiều nếu không cần."],
+    ], [1.35, 2.55, 2.6], 8.2)
+
+    doc.add_heading("17.3. Các loại price component P0", level=2)
+    add_table(doc, ["component_type", "Áp dụng", "Giá trị snapshot"], [
+        ["trading_base", "Dòng thương mại", "qty RFQ, list_price tại thời điểm tạo, subtotal."],
+        ["material", "Mỗi dòng vật tư thô", "material_id/source sellerinfo, effective_qty quy về 1 output, unit_price, amount."],
+        ["processed_material", "BOM con", "child_bom_id/version, child total snapshot, child product_qty, unit cost."],
+        ["discount", "Header hoặc phân bổ line", "rate và amount thực dùng."],
+        ["vat", "Header", "rate và amount thực dùng."],
+    ], [1.45, 2.0, 3.05], 8.8)
+    add_callout(doc, "Không dùng compute động:", "Sau khi component được tạo, thay đổi supplierinfo.price, is_applied, BOM.total_material_cost, list_price hoặc rule active không được làm thay đổi amount của báo giá. Tính lại phải là một action có chủ đích và tạo revision/hủy duyệt cũ ở phase sau.", PALE_YELLOW)
+
+    doc.add_heading("17.4. Pricing service P0", level=2)
+    doc.add_paragraph("Nên tách logic khỏi model action thành service/model abstract, ví dụ dl.quotation.pricing.service, để kiểm thử độc lập và tái sử dụng khi tính lại báo giá.")
+    add_table(doc, ["Hàm gợi ý", "Trách nhiệm"], [
+        ["build_context(rfq)", "Chốt company, currency, pricing_date, discount_pct, vat_pct và rule IDs/revisions P0."],
+        ["validate_rfq(rfq, context)", "Kiểm tra status, infeasible, product/BOM, giá, UoM/currency và báo giá trùng."],
+        ["price_trading(line, context)", "Snapshot list_price; trả line values + trading_base component."],
+        ["price_bom(line, context, visited)", "Tính material cost đệ quy; phát hiện loop; chia child_bom.product_qty."],
+        ["aggregate(quotation)", "Tính subtotal, discount, trước VAT, VAT và total từ snapshot."],
+        ["create_from_rfq(rfq)", "Điều phối transaction và trả quotation/action."],
+    ], [2.25, 4.25], 8.8)
+
+    doc.add_heading("17.5. Trình tự action_create_quotation", level=2)
+    p0_steps = [
+        "ensure_one và kiểm quyền Sales/Admin; kiểm tra RFQ.status == confirmed.",
+        "Search báo giá theo quotation_request_id để trả lỗi thân thiện trước khi insert.",
+        "Build pricing context và chạy validate_rfq; chặn toàn RFQ nếu có bất kỳ dòng is_infeasible.",
+        "Tạo dl.quotation header trong trạng thái draft.",
+        "Tạo từng quotation line và component snapshot; trading không gọi BOM engine.",
+        "Với manufactured, tính BOM theo đơn vị đầu ra; vật tư thiếu giá hoặc BOM con lỗi làm rollback toàn bộ.",
+        "Tính discount/VAT. Hàng thương mại tham gia cùng discountable_amount và VAT.",
+        "Ghi quotation_id/trạng thái quoted cho RFQ chỉ sau khi tất cả line/tổng tiền thành công.",
+        "Bắt IntegrityError của UNIQUE để chuyển thành UserError 'RFQ đã có báo giá' trong race condition.",
+        "Trả action mở form báo giá mới; không commit thủ công trong method Odoo.",
+    ]
+    for s in p0_steps:
+        number(doc, s)
+
+    doc.add_heading("17.6. Validation P0 theo Decision log", level=2)
+    add_table(doc, ["Check", "Hành vi P0"], [
+        ["RFQ có is_infeasible", "Chặn toàn bộ bằng lỗi nghiệp vụ; không bỏ qua dòng."],
+        ["Trading thiếu/zero list_price", "Chặn QTE-003 tương đương nguồn giá bán không hợp lệ."],
+        ["Manufactured thiếu BOM confirmed/locked", "Chặn QTE-002."],
+        ["Supplierinfo không approved/is_applied hoặc price ≤ 0", "Chặn QTE-003."],
+        ["BOM child product_qty ≤ 0 hoặc vòng lặp", "Chặn QTE-004."],
+        ["UoM khác mà chưa có conversion P0", "Chặn QTE-007; không nhân trực tiếp."],
+        ["Currency supplierinfo khác quotation/company", "Chặn QTE-007 trong P0."],
+        ["quotation_request_id đã tồn tại", "Chặn bằng search và UNIQUE DB."],
+    ], [2.7, 3.8], 8.8)
+
+    doc.add_heading("17.7. File dự kiến thay đổi", level=2)
+    add_table(doc, ["File", "Thay đổi P0"], [
+        ["dl_sale/models/dl_quotation.py", "Mở rộng header/line, totals, constraint và action hỗ trợ."],
+        ["dl_sale/models/quotation_pricing_service.py", "File mới: validate và tính snapshot trading/BOM."],
+        ["dl_sale/models/quotation_price_component.py", "File mới: model component snapshot."],
+        ["dl_sale/models/__init__.py", "Import service/component."],
+        ["dl_sale/views/quotation_views.xml", "Hiển thị RFQ nguồn, totals, breakdown nội bộ và trạng thái."],
+        ["dl_sale/security/ir.model.access.csv", "Quyền model component; che giá thành theo role."],
+        ["dl_technical/models/dl_quotation_request.py", "Thêm action_create_quotation hoặc bridge gọi model dl_sale; xem lưu ý dependency."],
+        ["dl_technical/views/quotation_request_views.xml", "Nút Tạo báo giá chỉ hiện khi confirmed."],
+        ["dl_sale/__manifest__.py / dl_technical/__manifest__.py", "Chốt chiều dependency để tránh vòng phụ thuộc."],
+    ], [2.65, 3.85], 8.5)
+    add_callout(doc, "Lưu ý dependency Odoo:", "Hiện RFQ nằm trong dl_technical còn quotation nằm trong dl_sale. Không để dl_technical phụ thuộc dl_sale đồng thời dl_sale lại phụ thuộc dl_technical. Phương án khuyến nghị: dl_sale depends dl_technical và kế thừa dl.quotation.request để thêm action_create_quotation/nút view trong dl_sale; model gốc RFQ không import ngược quotation.", PALE_YELLOW)
+
+    doc.add_heading("17.8. Definition of Done P0", level=2)
+    for t in [
+        "Tạo được báo giá từ RFQ mixed trading/manufactured bằng một thao tác.",
+        "Mỗi RFQ chỉ tạo được một báo giá kể cả hai request đồng thời.",
+        "Giá trading và material components giữ nguyên sau khi đổi list_price/supplierinfo/BOM nguồn.",
+        "BOM con có product_qty > 1 được quy đổi unit cost đúng.",
+        "Mọi trường hợp infeasible, thiếu giá/BOM, loop hoặc khác UoM/currency đều rollback và có thông báo rõ.",
+        "Tổng trước chiết khấu, chiết khấu, trước VAT, VAT và tổng thanh toán đúng; trading có tham gia CK/VAT.",
+        "RFQ chỉ chuyển quoted sau khi quotation, lines và components được tạo đầy đủ.",
+        "Có automated tests tối thiểu cho TC01, TC02, TC03, TC09, TC11 và TC12.",
+    ]:
+        bullet(doc, t)
+
+    doc.add_heading("17.9. Thứ tự thực hiện P0", level=2)
+    add_table(doc, ["Thứ tự", "Work package", "Phụ thuộc"], [
+        ["1", "Chốt chiều module dependency và schema quotation/component", "A1, A2, C7 đã chốt"],
+        ["2", "Migration/model fields + SQL constraint + ACL", "WP1"],
+        ["3", "Pricing service: validation, trading, BOM recursion", "WP2"],
+        ["4", "action_create_quotation và transaction flow", "WP3"],
+        ["5", "Views/nút thao tác/breakdown nội bộ", "WP4"],
+        ["6", "Unit/integration/concurrency tests", "WP3-WP5"],
+        ["7", "UAT với một RFQ hỗn hợp và dữ liệu giá thật", "WP6"],
+    ], [0.7, 3.6, 2.2], 8.8)
+
+    doc.core_properties.title = "Đặc tả tạo báo giá từ RFQ và BOM - Decision log và kế hoạch P0"
     doc.core_properties.subject = "DLM ERP - RFQ, BOM, giá vật tư và cấu hình tính giá"
     doc.core_properties.author = "DLM ERP Project"
-    doc.core_properties.keywords = "RFQ, BOM, quotation, pricing, Odoo"
+    doc.core_properties.keywords = "RFQ, BOM, quotation, pricing, Odoo, decision log, P0"
     doc.save(OUT)
     print(OUT)
 

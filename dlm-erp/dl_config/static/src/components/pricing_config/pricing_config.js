@@ -83,6 +83,7 @@ export class DlPricingConfig extends Component {
 
     setup() {
         this.orm = useService("orm");
+        this.action = useService("action");
         this.tabs = TABS;
         this.L = L;
         this.opt = {
@@ -103,11 +104,14 @@ export class DlPricingConfig extends Component {
             rows: {
                 waste: [], operation: [], cost: [], profit: [], discount: [],
                 approval: [], apprset: [], matrix: [], complexity: [], opcat: [],
+                materials: [],
             },
             form: null, // { section, id, ...fields }
             reject: null, // { id, comment }
             toast: null,
             dialog: null,
+            // Phân loại khách hàng tự động (ngưỡng lên Khách tiềm năng).
+            classification: { threshold: 0, canEdit: false },
         });
 
         onWillStart(async () => {
@@ -118,7 +122,7 @@ export class DlPricingConfig extends Component {
                 this.load("waste"), this.load("operation"), this.load("cost"),
                 this.load("profit"), this.load("discount"), this.load("approval"),
                 this.load("apprset"), this.load("matrix"), this.load("complexity"),
-                this.load("opcat"),
+                this.load("opcat"), this.loadClassification(), this.loadMaterials(),
             ]);
             this.state.loading = false;
         });
@@ -142,7 +146,7 @@ export class DlPricingConfig extends Component {
             approval: ["create_date", "request_type", "object_label", "old_value", "new_value",
                 "impact", "requester_id", "requester_role", "resolved_by_id", "resolved_at",
                 "reason", "reject_comment", "is_self_approval", "state", "approval_level",
-                "matrix_revision", "trigger_reasons"],
+                "matrix_revision", "trigger_reasons", "res_model", "res_id"],
             apprset: ["request_type", "approver_role", "approver_user_id"],
             matrix: ["value_from", "approval_level", "approver_user_id", "note", "valid_from",
                 "valid_to", "state", "revision", "change_reason", "used_in_snapshot", "write_uid"],
@@ -166,6 +170,60 @@ export class DlPricingConfig extends Component {
         } catch (e) {
             // Vai trò không có quyền đọc nhóm này → để trống, không làm vỡ cả màn.
             this.state.rows[section] = [];
+        }
+    }
+
+    // --- Phân loại khách hàng tự động (ngưỡng lên Khách tiềm năng) ----------
+    async loadClassification() {
+        try {
+            this.state.classification = await this.orm.call(
+                "res.partner", "get_customer_classification_config", []);
+        } catch (e) {
+            this.state.classification = { threshold: 0, canEdit: false };
+        }
+    }
+    async saveClassification() {
+        try {
+            const val = Number(this.state.classification.threshold) || 0;
+            const saved = await this.orm.call(
+                "res.partner", "set_potential_threshold", [val]);
+            this.state.classification.threshold = saved;
+            this.flash("Đã lưu ngưỡng phân loại khách hàng.");
+        } catch (e) {
+            this.showError(e);
+        }
+    }
+
+    // --- Hao hụt theo VẬT TƯ (nguồn thật dùng cho BOM/báo giá) --------------
+    async loadMaterials() {
+        try {
+            this.state.rows.materials = await this.orm.searchRead(
+                "product.product",
+                [["product_kind", "in", ["material", "material_processed"]]],
+                ["display_name", "default_code", "categ_id", "dlm_waste_rate",
+                    "dlm_has_recovery", "dlm_recovery_rate", "dlm_scrap_product_id"],
+                { order: "default_code, id" }
+            );
+        } catch (e) {
+            this.state.rows.materials = [];
+        }
+    }
+    async toggleRecovery(row, checked) {
+        row.dlm_has_recovery = checked;
+        if (!checked) { row.dlm_recovery_rate = 0; }
+        await this.saveMaterial(row);
+    }
+    async saveMaterial(row) {
+        try {
+            await this.orm.call("product.product", "set_dlm_waste", [[row.id], {
+                dlm_waste_rate: Number(row.dlm_waste_rate) || 0,
+                dlm_has_recovery: !!row.dlm_has_recovery,
+                dlm_recovery_rate: row.dlm_has_recovery ? (Number(row.dlm_recovery_rate) || 0) : 0,
+            }]);
+            this.flash("Đã lưu hao hụt vật tư.");
+        } catch (e) {
+            this.showError(e);
+            await this.loadMaterials();
         }
     }
 
@@ -328,6 +386,21 @@ export class DlPricingConfig extends Component {
             await Promise.all([this.load("approval"), this.load("profit"), this.load("discount")]);
             this.flash("Đã duyệt.");
         } catch (e) { this.showError(e); }
+    }
+    // Mở đối tượng của yêu cầu (báo giá / cấu hình) để xem chi tiết đầy đủ trước
+    // khi quyết định duyệt. Báo giá mở kèm tab "Phân tích giá thành".
+    openTarget(row) {
+        if (!row.res_model || !row.res_id) {
+            this.flash("Yêu cầu này không gắn với đối tượng cụ thể.");
+            return;
+        }
+        this.action.doAction({
+            type: "ir.actions.act_window",
+            res_model: row.res_model,
+            res_id: row.res_id,
+            views: [[false, "form"]],
+            target: "new",
+        });
     }
     openReject(id) { this.state.reject = { id, comment: "" }; }
     closeReject() { this.state.reject = null; }

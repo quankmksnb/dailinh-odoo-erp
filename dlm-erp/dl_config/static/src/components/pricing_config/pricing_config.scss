@@ -20,6 +20,15 @@
         &.is-expired { background: $dl-type-individual-bg; color: $dl-type-individual-fg; }
     }
 
+    // Hàng cấu hình nội tuyến (ô nhập + nút Lưu) — dùng cho ngưỡng phân loại KH.
+    .dl-cfg-inline {
+        display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+        padding: 4px 0 2px;
+        .dl-cfg-f { display: flex; flex-direction: column; gap: 4px; }
+        .dl-cfg-f .k { font-size: 12px; font-weight: 600; color: $dl-text-2; }
+        .dl-cfg-f input { @include dl-input; font-size: 13px; width: 240px; }
+    }
+
     // Loại đối tượng (category/vật tư)
     .dl-pc-tt {
         font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
