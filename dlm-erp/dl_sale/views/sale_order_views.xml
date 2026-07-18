@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_dl_sale_order_tree" model="ir.ui.view">
+        <field name="name">dl.sale.order.tree</field>
+        <field name="model">dl.sale.order</field>
+        <field name="arch" type="xml">
+            <tree string="Đơn bán hàng" decoration-muted="state == 'cancelled'">
+                <field name="name" string="Số đơn"/>
+                <field name="partner_id" string="Khách hàng"/>
+                <field name="quotation_id" string="Báo giá nguồn" optional="show"/>
+                <field name="date_order" string="Ngày"/>
+                <field name="amount_total" string="Tổng tiền" widget="monetary"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" string="Trạng thái" widget="badge"
+                       decoration-warning="state == 'draft'"
+                       decoration-info="state == 'confirmed'"
+                       decoration-success="state == 'done'"
+                       decoration-muted="state == 'cancelled'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_sale_order_form" model="ir.ui.view">
+        <field name="name">dl.sale.order.form</field>
+        <field name="model">dl.sale.order</field>
+        <field name="arch" type="xml">
+            <form string="Đơn bán hàng">
+                <header>
+                    <button name="action_confirm" string="Xác nhận"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_done" string="Hoàn tất"
+                            type="object" class="btn-primary"
+                            invisible="state != 'confirmed'"/>
+                    <button name="action_open_quotation" string="Mở báo giá nguồn"
+                            type="object" class="btn-secondary"
+                            invisible="not quotation_id"/>
+                    <button name="action_cancel" string="Hủy"
+                            type="object" class="btn-danger"
+                            invisible="state in ('done', 'cancelled')"
+                            confirm="Bạn có chắc muốn hủy đơn bán hàng này?"/>
+                    <button name="action_reset_draft" string="Về nháp"
+                            type="object" class="btn-link"
+                            invisible="state not in ('confirmed', 'cancelled')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,done"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Đã hủy"
+                            bg_color="text-bg-danger" invisible="state != 'cancelled'"/>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <field name="currency_id" invisible="1"/>
+                    <group>
+                        <group>
+                            <field name="partner_id"
+                                context="{'default_partner_role': 'customer', 'default_partner_type': 'company'}"/>
+                            <field name="date_order"/>
+                        </group>
+                        <group>
+                            <field name="quotation_id" readonly="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Chi tiết đơn">
+                            <field name="line_ids">
+                                <tree editable="bottom">
+                                    <field name="line_type" widget="badge"
+                                           decoration-info="line_type == 'trading'"
+                                           decoration-success="line_type == 'manufactured'"/>
+                                    <field name="name"/>
+                                    <field name="qty" digits="[16, 0]"/>
+                                    <field name="price_unit" digits="[16, 0]"/>
+                                    <field name="price_subtotal" readonly="1" digits="[16, 0]"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="discount_pct"/>
+                                <field name="vat_pct"/>
+                                <field name="amount_untaxed" widget="monetary"/>
+                                <field name="discount_amount" widget="monetary"/>
+                                <field name="amount_before_vat" widget="monetary"/>
+                                <field name="vat_amount" widget="monetary"/>
+                                <field name="amount_total" widget="monetary"
+                                       class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                        <page string="Ghi chú">
+                            <field name="note" placeholder="Ghi chú thêm..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_sale_order_search" model="ir.ui.view">
+        <field name="name">dl.sale.order.search</field>
+        <field name="model">dl.sale.order</field>
+        <field name="arch" type="xml">
+            <search string="Tìm đơn bán hàng">
+                <field name="name" string="Số đơn"/>
+                <field name="partner_id" string="Khách hàng"/>
+                <field name="quotation_id" string="Báo giá nguồn"/>
+                <filter name="draft" string="Nháp" domain="[('state','=','draft')]"/>
+                <filter name="confirmed" string="Đã xác nhận" domain="[('state','=','confirmed')]"/>
+                <filter name="done" string="Hoàn tất" domain="[('state','=','done')]"/>
+                <separator/>
+                <filter name="not_cancelled" string="Chưa hủy" domain="[('state','!=','cancelled')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_partner" string="Khách hàng"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_state" string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_sale_order" model="ir.actions.act_window">
+        <field name="name">Đơn bán hàng</field>
+        <field name="res_model">dl.sale.order</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_dl_sale_order_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có đơn bán hàng nào.</p>
+            <p>Đơn bán hàng được tạo từ báo giá khi khách hàng đồng ý.</p>
+        </field>
+    </record>
+
+    <record id="seq_dl_sale_order" model="ir.sequence">
+        <field name="name">DL Đơn bán hàng</field>
+        <field name="code">dl.sale.order</field>
+        <field name="prefix">DH/%(year)s/</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
+    </record>
+
+</odoo>

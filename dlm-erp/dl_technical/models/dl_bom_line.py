@@ -26,6 +26,17 @@ class DlBomLine(models.Model):
                "dl_base.dl_group_sales_manager",
     )
 
+    recovery_value = fields.Float(
+        string="Giá trị thu hồi",
+        compute="_compute_recovery_value",
+        store=True,
+        digits="Product Price",
+        groups="dl_base.dl_group_ceo,"
+               "dl_base.dl_group_admin,"
+               "dl_base.dl_group_accountant,"
+               "dl_base.dl_group_sales_manager",
+    )
+
     subtotal = fields.Float(
         string="Thành tiền",
         compute="_compute_subtotal",
@@ -76,7 +87,14 @@ class DlBomLine(models.Model):
 
             rec.price_snapshot = price
 
-    @api.depends("effective_qty", "price_snapshot")
+    @api.depends("effective_qty", "quantity", "material_id.dlm_has_recovery",
+                 "material_id.dlm_recovery_rate",
+                 "material_id.dlm_scrap_product_id.list_price")
+    def _compute_recovery_value(self):
+        for rec in self:
+            rec.recovery_value = rec._dlm_recovery_value()
+
+    @api.depends("effective_qty", "price_snapshot", "recovery_value")
     def _compute_subtotal(self):
         for rec in self:
-            rec.subtotal = rec.effective_qty * rec.price_snapshot
+            rec.subtotal = rec.effective_qty * rec.price_snapshot - rec.recovery_value

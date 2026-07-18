@@ -1,11 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- "Báo giá" mở màn Hub (Tạo RFQ · Quản lý RFQ · Danh sách báo giá · Đơn
+         bán hàng). Danh sách báo giá thuần túy vẫn dùng được qua card trong hub. -->
     <menuitem
         id="menu_dl_sale_quotation"
         name="Báo giá"
         parent="dl_base.menu_dl_sale"
         sequence="30"
-        action="action_dl_quotation"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech"
+        action="action_dl_quotation_home"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_sales_manager"
+    />
+
+    <menuitem
+        id="menu_dl_sale_order"
+        name="Đơn bán hàng"
+        parent="dl_base.menu_dl_sale"
+        sequence="35"
+        action="action_dl_sale_order"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_sales_manager"
     />
 </odoo>

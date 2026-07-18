@@ -40,6 +40,33 @@ class DlProductTechnical(models.Model):
         for product in self:
             product.bom_ids = boms.filtered(lambda b: b.product_id.id == product.id)
 
+    # ── Hao hụt: tự điền mặc định theo nhóm (field ở dl_product; logic đọc
+    # dl.pricing.waste.rule phải ở đây vì dl_technical mới depends dl_config) ──
+    @api.onchange("categ_id", "product_kind")
+    def _onchange_dlm_waste_default(self):
+        """Khi chọn nhóm cho vật tư mà chưa nhập hao hụt: điền mặc định từ quy
+        tắc hao hụt theo NHÓM đang áp dụng (dl.pricing.waste.rule)."""
+        if self.product_kind not in ("material", "material_processed"):
+            return
+        if self.dlm_waste_rate:
+            return
+        rule = self._dlm_category_waste_rule()
+        if rule:
+            self.dlm_waste_rate = rule.waste_rate
+            self.dlm_has_recovery = rule.has_recovery
+            self.dlm_recovery_rate = rule.recovery_rate
+            self.dlm_scrap_product_id = rule.scrap_product_id
+
+    def _dlm_category_waste_rule(self):
+        self.ensure_one()
+        if not self.categ_id:
+            return self.env["dl.pricing.waste.rule"].browse()
+        return self.env["dl.pricing.waste.rule"].sudo().search([
+            ("state", "=", "active"),
+            ("target_type", "=", "category"),
+            ("category_id", "=", self.categ_id.id),
+        ], order="valid_from desc, revision desc", limit=1)
+
     def action_create_bom(self):
         # bom_ids là computed field (chỉ đọc) — nút này mở form dl.bom mới,
         # tự set product_id theo sản phẩm đang xem (dl.bom.product_id đã gộp
