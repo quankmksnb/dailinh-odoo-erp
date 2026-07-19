@@ -19,7 +19,7 @@
             <t t-if="item.children and item.children.length">
                 <div class="dlm-rail-item has-children"
                      t-att-title="item.name"
-                     t-att-class="{ 'expanded': state.expanded[item.key] }"
+                     t-att-class="{ 'expanded': state.expanded[item.key], 'active': sidebar.activeKey === item.key }"
                      t-on-click="() => this.toggleSubmenu(item.key)">
                     <span class="dlm-rail-icon"><i t-att-class="'fa ' + item.icon"/></span>
                     <span class="dlm-rail-label" t-esc="item.name"/>
@@ -29,7 +29,7 @@
                     <t t-foreach="item.children" t-as="child" t-key="child.key">
                         <div class="dlm-rail-item dlm-rail-subitem"
                              t-att-title="child.name"
-                             t-on-click.stop="() => this.openModule(child.actionXmlId)">
+                             t-on-click.stop="() => this.openModule(child.actionXmlId, item.key)">
                             <span class="dlm-rail-icon"/>
                             <span class="dlm-rail-label" t-esc="child.name"/>
                         </div>
@@ -38,8 +38,8 @@
             </t>
             <t t-else="">
                 <div class="dlm-rail-item" t-att-title="item.name"
-                     t-att-class="{ 'disabled': !item.actionXmlId }"
-                     t-on-click="() => this.openModule(item.actionXmlId)">
+                     t-att-class="{ 'disabled': !item.actionXmlId, 'active': sidebar.activeKey === item.key }"
+                     t-on-click="() => this.openModule(item.actionXmlId, item.key)">
                     <span class="dlm-rail-icon"><i t-att-class="'fa ' + item.icon"/></span>
                     <span class="dlm-rail-label" t-esc="item.name"/>
                 </div>

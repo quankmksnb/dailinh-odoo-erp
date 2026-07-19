@@ -7,6 +7,7 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 import { Dropdown } from "@web/core/dropdown/dropdown";
 import { DropdownItem } from "@web/core/dropdown/dropdown_item";
 import { ErrorHandler } from "@web/core/utils/components";
+import { setActiveKey } from "@dl_base/js/sidebar_state";
 
 const systrayRegistry = registry.category("systray");
 
@@ -159,6 +160,8 @@ export class DlHome extends Component {
     openCard(card) {
         const menu = this._resolveCardMenu(card);
         if (!menu) return;
+        // Ghi lại card đang active để rail/sidebar highlight (đồng bộ develop).
+        setActiveKey(card.key);
         const target = this._findFirstActionMenu(menu);
         if (target) this.menuService.selectMenu(target);
     }

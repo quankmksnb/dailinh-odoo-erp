@@ -26,7 +26,7 @@
             <form string="NCC / Thầu phụ" class="dl-supplier-form" js_class="dl_supplier_form">
                 <header>
                     <button name="toggle_active" type="object" string="Vô hiệu hóa NCC"
-                            class="btn-secondary" invisible="not active"
+                            class="btn-danger" invisible="not active"
                             confirm="Vô hiệu hóa NCC này? Lịch sử giá cũ được giữ nguyên; NCC sẽ không xuất hiện khi cập nhật giá vật tư mới."
                             groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/>
                     <button name="toggle_active" type="object" string="Kích hoạt lại"

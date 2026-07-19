@@ -5,7 +5,7 @@
         <field name="name">dl.sale.order.tree</field>
         <field name="model">dl.sale.order</field>
         <field name="arch" type="xml">
-            <tree string="Đơn bán hàng" decoration-muted="state == 'cancelled'">
+            <tree string="Đơn bán hàng" class="dl-saleorder-list" js_class="dl_saleorder_list" decoration-muted="state == 'cancelled'">
                 <field name="name" string="Số đơn"/>
                 <field name="partner_id" string="Khách hàng"/>
                 <field name="quotation_id" string="Báo giá nguồn" optional="show"/>
@@ -25,7 +25,7 @@
         <field name="name">dl.sale.order.form</field>
         <field name="model">dl.sale.order</field>
         <field name="arch" type="xml">
-            <form string="Đơn bán hàng">
+            <form string="Đơn bán hàng" class="dl-saleorder-form" js_class="dl_saleorder_form">
                 <header>
                     <button name="action_confirm" string="Xác nhận"
                             type="object" class="btn-primary"

@@ -1,74 +1,28 @@
-// .dl-quotation-list là DIV GỐC của view (bọc cả control panel + nội dung) nên
-// STYLE CARD phải đặt vào .o_list_renderer, KHÔNG lên .dl-quotation-list.
+// S09 — Danh sách Báo giá. Phần đặc thù: column widths, state alignment, badge colors.
+// Phần chung (list card, thead, tbody) ở dl_base/global_list.scss.
 .dl-quotation-list {
-    font-family: $dl-font;
-
-    .o_list_renderer {
-        height: auto !important;
-        max-height: 100%;
-        margin: 4px 16px 16px;
-        border: 1px solid $dl-border;
-        border-radius: $dl-radius;
-        background: #fff;
-        overflow: auto;
-    }
-
-    .o_list_table thead th {
-        background-color: $dl-table-head-bg;
-        color: $dl-text-2;
-        font-weight: 500;
-        border-bottom: 1px solid $dl-border;
-        padding-top: 6px;
-        padding-bottom: 6px;
-    }
-    .o_list_table thead th[data-name="name"]  { border-top-left-radius: $dl-radius; }
+    .o_list_table thead th[data-name="name"] { border-top-left-radius: $dl-radius; }
     .o_list_table thead th[data-name="state"] { border-top-right-radius: $dl-radius; }
 
-    .o_list_table td.o_data_cell {
-        padding-top: 5px;
-        padding-bottom: 5px;
-        vertical-align: middle;
-    }
-    .o_list_table tbody tr.o_data_row td { border-top: 1px solid $dl-divider; }
-    .o_list_table tbody tr.o_data_row:first-child td { border-top: 0; }
-    .o_list_table tbody tr.o_data_row:hover { background-color: $dl-app-bg; }
-
-    // Ẩn mọi cột KHÔNG phải field: header field có [data-name], body field có
-    // [name] ⇒ chỉ chừa 5 cột field, không còn cột rỗng bên phải.
-    .o_list_table {
-        thead th:not([data-name]) { display: none !important; }
-        tbody td:not([name])      { display: none !important; }
-
-        tfoot { display: none !important; } // đã có footer riêng
-    }
-
-    // % + table-layout:fixed !important ⇒ bảng luôn full bề ngang. Odoo mặc
-    // định table-layout:auto + đóng băng width bằng JS nên bắt buộc !important.
     .o_list_table {
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="name"]         { width: 11% !important; }
-        th[data-name="partner_id"]   { width: 44% !important; }
-        th[data-name="date_order"]   { width: 15% !important; }
+        th[data-name="name"] { width: 11% !important; }
+        th[data-name="partner_id"] { width: 44% !important; }
+        th[data-name="date_order"] { width: 15% !important; }
         th[data-name="amount_total"] { width: 22% !important; }
-        th[data-name="state"]        { width: 8%  !important; }
+        th[data-name="state"] { width: 8% !important; }
 
-        th[data-name="name"],  td[name="name"]  { padding-left: 24px !important; }
+        th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
         th[data-name="state"], td[name="state"] { padding-right: 20px !important; }
+        th[data-name="amount_total"], td[name="amount_total"] { padding-right: 16px !important; }
 
-        th[data-name="amount_total"],
-        td[name="amount_total"] { padding-right: 16px !important; }
-
-        // Header Odoo là [span nhãn (flex-grow)] [i caret] → dồn phải + nhãn
-        // không giãn + đảo thứ tự caret (order:-1) ⇒ [v][Trạng thái] sát mép phải.
+        // State column: right-aligned with sort indicator
         th[data-name="state"] { text-align: right !important; }
         th[data-name="state"] > div { justify-content: flex-end !important; }
         th[data-name="state"] > div > span { flex: 0 0 auto !important; }
-        th[data-name="state"] > div > i {
-            order: -1 !important;
-            margin: 0 4px 0 0 !important;
-        }
+        th[data-name="state"] > div > i { order: -1 !important; margin: 0 4px 0 0 !important; }
         td[name="state"] { text-align: right !important; }
 
         td[name="name"], td[name="partner_id"] {
@@ -77,147 +31,13 @@
             white-space: nowrap;
         }
         td[name="date_order"] { white-space: nowrap; }
-
-        // Bỏ tô nền cột đang sort
-        tbody td { background-color: transparent !important; }
     }
 
-    .o_list_table td.o_data_cell[name="name"] {
-        font-weight: 600;
-        color: $dl-heading;
-    }
-
+    // Badge colors: trạng thái báo giá
     .badge.rounded-pill { font-weight: 500; }
-    .badge.text-bg-warning { background-color: $dl-badge-draft-bg    !important; color: $dl-badge-draft-fg    !important; }
-    .badge.text-bg-info    { background-color: $dl-badge-sent-bg     !important; color: $dl-badge-sent-fg     !important; }
+    .badge.text-bg-warning { background-color: $dl-badge-draft-bg !important; color: $dl-badge-draft-fg !important; }
+    .badge.text-bg-info { background-color: $dl-badge-sent-bg !important; color: $dl-badge-sent-fg !important; }
     .badge.text-bg-success { background-color: $dl-badge-approved-bg !important; color: $dl-badge-approved-fg !important; }
-    .badge.text-bg-danger  { background-color: $dl-badge-rejected-bg !important; color: $dl-badge-rejected-fg !important; }
+    .badge.text-bg-danger { background-color: $dl-badge-rejected-bg !important; color: $dl-badge-rejected-fg !important; }
 }
 
-.o_action_manager:has(.dl-quotation-list) {
-
-    .o_control_panel .o_control_panel_main {
-        justify-content: flex-start !important;
-        align-items: center !important;
-        flex-wrap: nowrap !important;
-        gap: 16px;
-    }
-
-    .o_control_panel_breadcrumbs {
-        flex: 0 0 auto;
-
-        .me-auto { display: none !important; } // bỏ spacer đẩy giãn của Odoo
-        .o_last_breadcrumb_item span { font-size: 18px; font-weight: 700; }
-    }
-
-    // Cụm actions chứa cả nút tạo (JS chuyển vào đây)
-    .o_control_panel_actions {
-        justify-content: flex-start !important;
-        width: auto !important;
-        max-width: none !important;
-        flex: 0 1 auto;
-        gap: 12px;
-    }
-
-    .o_cp_searchview {
-        width: 300px;
-        max-width: 40vw;
-        flex: 0 1 auto;
-        flex-wrap: nowrap !important;
-        align-items: center;
-        border: 1px solid $dl-border;
-        border-radius: $dl-radius-sm;
-        background: #fff;
-        padding-right: 4px;
-
-        &:focus-within {
-            border-color: $dl-primary;
-            box-shadow: 0 0 0 2px rgba($dl-primary, 0.14);
-        }
-
-        .o_searchview {
-            border: 0 !important;
-            background: transparent !important;
-            box-shadow: none !important;
-            flex: 1 1 auto;
-        }
-
-        // caret luôn hiện; hover mở menu xử lý ở dl_quotation_list.js
-        .o_searchview_dropdown_toggler {
-            border: 0 !important;
-            background: transparent !important;
-            color: $dl-text-muted !important;
-            border-radius: $dl-radius-sm !important;
-            padding: 2px 10px;
-            transition: color .15s, background .15s;
-
-            &:hover,
-            &.show,
-            &[aria-expanded="true"] {
-                color: $dl-primary !important;
-                background: $dl-divider !important;
-            }
-        }
-    }
-
-    // Nút New gốc → đổi nhãn "+ Tạo báo giá"
-    .dl-create-cluster .o_list_button_add {
-        border-radius: $dl-radius-sm;
-        font-weight: 500;
-        font-size: 0;
-
-        &::after {
-            content: "+ Tạo báo giá";
-            font-size: 13px;
-            font-weight: 500;
-        }
-    }
-
-    .dl-chipbar {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 2px 0 0;
-
-        .dl-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 14px;
-            border: 1px solid $dl-border;
-            border-radius: $dl-radius-sm;
-            background: #fff;
-            color: $dl-text-2;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background .15s, border-color .15s, color .15s;
-
-            .dl-chip-count { color: $dl-text-muted; font-weight: 400; }
-
-            &:hover { background: $dl-divider; }
-
-            &.is-active {
-                background: $dl-active;
-                border-color: $dl-primary;
-                color: $dl-primary;
-
-                .dl-chip-count { color: $dl-primary; }
-            }
-        }
-    }
-
-    .dl-list-footer {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        padding: 12px 16px;
-        color: $dl-text-2;
-        font-size: 13px;
-        border-top: 1px solid $dl-divider;
-
-        .dl-list-count { font-weight: 500; }
-
-        .o_cp_pager { margin: 0; } // pager gốc được JS chuyển vào đây
-    }
-}
