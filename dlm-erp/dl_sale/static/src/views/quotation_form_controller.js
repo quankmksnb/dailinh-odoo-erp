@@ -9,32 +9,23 @@
 // ============================================================
 
 import { registry } from "@web/core/registry";
+import { _t } from "@web/core/l10n/translation";
 import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
-import { useEffect } from "@odoo/owl";
-import { setupFormActionsMenu } from "@dl_base/js/actions_menu";
+import { setupFormActionsMenu, setupStatusbarButtons } from "@dl_base/js/actions_menu";
 
 export class DlQuotationFormController extends FormController {
     setup() {
         super.setup();
-        // Chuyển nút hành động ở statusbar sang ngay sau breadcrumb.
-        useEffect(() => {
-            const root = this.rootRef.el;
-            if (!root) {
-                return;
-            }
-            const buttons = root.querySelector(
-                ".o_form_statusbar .o_statusbar_buttons"
-            );
-            const target =
-                root.querySelector(".o_control_panel_breadcrumbs .o_breadcrumb") ||
-                root.querySelector(".o_control_panel_breadcrumbs");
-            if (buttons && target && buttons.parentElement !== target) {
-                buttons.classList.add("dl-cp-actions");
-                target.appendChild(buttons);
-            }
-        });
+        setupStatusbarButtons(this);
         setupFormActionsMenu(this);
+    }
+
+    displayName() {
+        if (this.model.root.isNew) {
+            return _t("Tạo báo giá");
+        }
+        return this.model.root.data.display_name?.split("\n")[0] || "";
     }
 }
 

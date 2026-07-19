@@ -242,6 +242,13 @@ class ResPartner(models.Model):
             return [(p.id, p.name) for p in partners]
         return super().name_search(name=name, args=args, operator=operator, limit=limit)
 
+    def get_formview_id(self, access_uid=None):
+        if self.partner_role in _CUSTOMER_ROLES:
+            return self.env.ref('dl_partner.view_dl_customer_form').id
+        elif self.partner_role == 'supplier':
+            return self.env.ref('dl_partner.view_dl_supplier_form').id
+        return super().get_formview_id(access_uid=access_uid)
+
     def _process_pending_link(self):
         for rec in self:
             if not rec.pending_link_partner_id:

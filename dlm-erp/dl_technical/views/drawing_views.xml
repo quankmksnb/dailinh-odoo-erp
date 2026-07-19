@@ -40,6 +40,7 @@
                             invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_archive" type="object" string="Lưu trữ"
+                            class="btn-danger"
                             invisible="status == 'archived'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <field name="status" widget="statusbar"

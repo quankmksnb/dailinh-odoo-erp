@@ -85,9 +85,10 @@
                 </div>
             </xpath>
 
-            <!-- Badge nhóm khách hàng (auto) ngay dưới nhãn ở đầu form -->
-            <xpath expr="//div[hasclass('dl-cust-head-main')]/field[@name='category_id']" position="after">
+            <!-- Badge nhóm khách hàng (auto) cạnh mã KH -->
+            <xpath expr="//div[hasclass('dl-cust-code')]" position="after">
                 <field name="dlm_customer_group" widget="badge" nolabel="1" readonly="1"
+                    class="dl-cust-group-badge"
                     invisible="not dlm_customer_group"
                     decoration-info="dlm_customer_group == 'new'"
                     decoration-success="dlm_customer_group == 'existing'"
