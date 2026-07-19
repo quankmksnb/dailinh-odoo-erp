@@ -57,7 +57,7 @@ access_dl_pricing_appr_setting_sm,approval setting sales manager,model_dl_pricin
 access_dl_pricing_appr_req_ceo,approval request ceo,model_dl_pricing_approval_request,dl_base.dl_group_ceo,1,1,1,1
 access_dl_pricing_appr_req_sm,approval request sales manager,model_dl_pricing_approval_request,dl_base.dl_group_sales_manager,1,1,1,0
 access_dl_pricing_appr_req_admin,approval request admin,model_dl_pricing_approval_request,dl_base.dl_group_admin,1,1,1,1
-access_dl_pricing_appr_req_ba,approval request ba,model_dl_pricing_approval_request,dl_base.dl_group_ba,1,1,1,0
+access_dl_pricing_appr_req_ba,approval request ba,model_dl_pricing_approval_request,dl_base.dl_group_ba,1,0,0,0
 access_dl_pricing_appr_req_acct,approval request accountant,model_dl_pricing_approval_request,dl_base.dl_group_accountant,1,0,0,0
 access_dl_pricing_appr_req_tech,approval request tech,model_dl_pricing_approval_request,dl_base.dl_group_tech,1,0,0,0
 access_dl_pricing_matrix_ceo,approval matrix ceo,model_dl_pricing_approval_matrix,dl_base.dl_group_ceo,1,1,1,1

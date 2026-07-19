@@ -60,6 +60,36 @@
     />
 
     <!-- ============================================================
+         BẢNG GIÁ (SP thương mại / Vật tư) — chủ sở hữu: Kế toán nội bộ;
+         CEO/Trưởng KD chỉ xem (ACL write=0); KTV không được vào.
+         Trước đây 2 action bảng giá KHÔNG có menu nào trỏ tới (mồ côi).
+    ============================================================ -->
+    <menuitem
+        id="menu_dl_pricing_root"
+        name="Bảng giá"
+        parent="dl_base.menu_dl_product"
+        sequence="20"
+        action="action_dl_pricing_home"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+    />
+    <menuitem
+        id="menu_dl_pricing_trading"
+        name="Bảng giá SP thương mại"
+        action="action_dl_product_pricing"
+        parent="menu_dl_pricing_root"
+        sequence="10"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+    />
+    <menuitem
+        id="menu_dl_pricing_material"
+        name="Bảng giá Vật tư"
+        action="action_dl_product_pricing_material"
+        parent="menu_dl_pricing_root"
+        sequence="20"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+    />
+
+    <!-- ============================================================
          ĐO LƯỜNG (PROD-04/05/06) — master data kỹ thuật
     ============================================================ -->
     <menuitem

@@ -173,17 +173,81 @@ class DlQuotation(models.Model):
                 if total_cost else 0.0
             )
 
+    # Field ảnh hưởng giá — đổi giá trị là phải đánh giá lại phê duyệt (mục 7).
+    _REEVAL_TRIGGER_FIELDS = {'discount_pct', 'line_ids', 'partner_id'}
+
+    def write(self, vals):
+        # Khóa re-eval ở cấp dòng: sửa dòng qua form đi qua write header (lệnh
+        # one2many) nên chỉ đánh giá lại MỘT lần ở đây.
+        res = super(DlQuotation, self.with_context(dl_skip_line_reeval=True)).write(vals)
+        if self._REEVAL_TRIGGER_FIELDS & set(vals):
+            for rec in self:
+                # Trạng thái cuối (ordered/cancelled/rejected) không đánh giá
+                # lại — báo giá đã chốt hoặc đã đóng.
+                if rec.state in ('draft', 'approved', 'sent'):
+                    rec._reevaluate_approval()
+        return res
+
+    def _reevaluate_approval(self):
+        """Đánh giá lại phê duyệt khi dữ liệu giá thay đổi (mục 7). Nếu phát
+        sinh điều kiện duyệt mà báo giá đã qua bước duyệt nội bộ/gửi khách
+        (chỉ xảy ra khi ghi thẳng qua RPC — UI đã khóa field ngoài Nháp) thì
+        kéo về Nháp để đi lại luồng."""
+        self.ensure_one()
+        evaluation = self.env['dl.quotation.pricing.service'].reevaluate_quotation(self)
+        if evaluation['required'] and self.state in ('approved', 'sent'):
+            self.sudo().write({'state': 'draft'})
+            self.message_post(body=_(
+                "Dữ liệu giá thay đổi làm phát sinh điều kiện phê duyệt — "
+                "báo giá quay về Nháp."))
+
+    def _check_internal_approver(self):
+        # Ngoài 3 vai trò cố định, chấp nhận op-group "Duyệt báo giá" — công
+        # tắc mà màn Phân quyền tick cho vai trò khác (dl.rbac.operation).
+        user = self.env.user
+        if not self.env.su and not (
+            user.has_group('dl_base.dl_group_ceo')
+            or user.has_group('dl_base.dl_group_sales_manager')
+            or user.has_group('dl_base.dl_group_admin')
+            or user.has_group('dl_sale.dl_group_op_quote_approve')
+        ):
+            raise UserError(_(
+                "Chỉ Giám đốc, Trưởng KD, Admin hoặc người được cấp thao tác "
+                "'Duyệt báo giá' được duyệt nội bộ báo giá."))
+
     def action_approve(self):
-        """Duyệt nội bộ — sẵn sàng gửi khách."""
-        self.state = 'approved'
+        """Duyệt nội bộ — sẵn sàng gửi khách. Kiểm quyền server-side (nút chỉ
+        ẩn ở UI) và không cho vượt mặt luồng phê duyệt theo ma trận (§8)."""
+        self._check_internal_approver()
+        for rec in self:
+            if rec.state != 'draft':
+                raise UserError(_("Chỉ duyệt nội bộ báo giá ở trạng thái Nháp."))
+            if rec.approval_state == 'pending':
+                raise UserError(_(
+                    "Báo giá đang chờ phê duyệt (%s) — chưa thể duyệt nội bộ."
+                ) % (rec.approval_level or ''))
+            if rec.approval_state == 'rejected':
+                raise UserError(_(
+                    "Yêu cầu phê duyệt đã bị từ chối — cần chỉnh sửa báo giá "
+                    "để đánh giá lại trước khi duyệt."))
+        # sudo: Trưởng KD được duyệt nội bộ nhưng ACL model chỉ cho đọc —
+        # quyền đã kiểm ở trên.
+        self.sudo().write({'state': 'approved'})
 
     def action_send(self):
-        """Gửi báo giá cho khách hàng — chặn nếu đang chờ phê duyệt (§3 bước 7)."""
+        """Gửi báo giá cho khách hàng — chặn nếu đang chờ phê duyệt hoặc yêu
+        cầu duyệt đã bị từ chối (§3 bước 7)."""
         for rec in self:
             if rec.approval_state == 'pending':
                 raise UserError(_(
                     "Báo giá đang chờ phê duyệt (%s) — chưa thể gửi khách."
                 ) % (rec.approval_level or ''))
+            if rec.approval_state == 'rejected':
+                raise UserError(_(
+                    "Yêu cầu phê duyệt đã bị từ chối — cần chỉnh sửa báo giá "
+                    "trước khi gửi khách."))
+            if rec.state != 'approved':
+                raise UserError(_("Chỉ gửi khách báo giá đã duyệt nội bộ."))
         self.state = 'sent'
 
     # ------------------------------------------------------------------
@@ -192,11 +256,13 @@ class DlQuotation(models.Model):
     # ------------------------------------------------------------------
     def _on_approval_approved(self, request):
         self.ensure_one()
-        self.approval_state = 'approved'
+        # sudo: người duyệt (vd Trưởng KD) chỉ có quyền đọc trên báo giá —
+        # quyền duyệt đã được _check_can_resolve của yêu cầu kiểm trước đó.
+        self.sudo().write({'approval_state': 'approved'})
 
     def _on_approval_rejected(self, request):
         self.ensure_one()
-        self.approval_state = 'rejected'
+        self.sudo().write({'approval_state': 'rejected'})
 
     def action_open_approval_request(self):
         self.ensure_one()
@@ -212,9 +278,20 @@ class DlQuotation(models.Model):
 
     def action_customer_accept(self):
         """Khách hàng đồng ý — sẵn sàng chuyển thành đơn bán hàng."""
+        for rec in self:
+            if rec.state != 'sent':
+                raise UserError(_(
+                    "Chỉ ghi nhận khách đồng ý trên báo giá đã gửi khách."))
         self.state = 'accepted'
 
     def action_reject(self):
+        # Hủy yêu cầu phê duyệt còn treo — không để tồn đọng trong hàng chờ
+        # của người duyệt khi báo giá đã bị từ chối.
+        for rec in self:
+            req = rec.approval_request_id
+            if req and req.state == 'pending':
+                req.sudo().action_cancel_on_change(note=_(
+                    "Yêu cầu bị hủy do báo giá %s đã bị từ chối.") % rec.name)
         self.state = 'rejected'
 
     def action_reset_draft(self):
@@ -232,7 +309,10 @@ class DlQuotation(models.Model):
             ('state', '!=', 'cancelled'),
         ], limit=1)
         if existing:
+            # Đơn đã tồn tại (vd tạo từ phiên trước rồi báo giá bị reset):
+            # vẫn phải khóa báo giá ở 'ordered' cho nhất quán.
             order = existing
+            self.state = 'ordered'
         else:
             order = self.env['dl.sale.order'].create({
                 'partner_id': self.partner_id.id,
@@ -313,3 +393,26 @@ class DlQuotationLine(models.Model):
     def _compute_subtotal(self):
         for line in self:
             line.price_subtotal = line.qty * line.price_unit
+
+    # Field ảnh hưởng giá trên dòng — sửa/xóa thẳng dòng (RPC, không qua write
+    # header) cũng phải đánh giá lại phê duyệt. Khi sửa qua form, header đã
+    # re-eval và đặt cờ dl_skip_line_reeval để không chạy trùng.
+    _LINE_REEVAL_FIELDS = {'price_unit', 'qty'}
+
+    def write(self, vals):
+        res = super().write(vals)
+        if (self._LINE_REEVAL_FIELDS & set(vals)
+                and not self.env.context.get('dl_skip_line_reeval')):
+            for quo in self.mapped('quotation_id'):
+                if quo.state in ('draft', 'approved', 'sent'):
+                    quo._reevaluate_approval()
+        return res
+
+    def unlink(self):
+        quotations = self.mapped('quotation_id')
+        res = super().unlink()
+        if not self.env.context.get('dl_skip_line_reeval'):
+            for quo in quotations.exists():
+                if quo.state in ('draft', 'approved', 'sent'):
+                    quo._reevaluate_approval()
+        return res

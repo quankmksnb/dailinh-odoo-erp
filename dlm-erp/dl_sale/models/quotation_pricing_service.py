@@ -415,13 +415,11 @@ class DlQuotationPricingService(models.AbstractModel):
     # ------------------------------------------------------------------
     def _apply_commercial_and_approval(self, quotation, context):
         profit = context.get("profit_rule")
-        discount = context.get("discount_rule")
 
-        # Snapshot các tỷ lệ cấu hình đã dùng (phục vụ giải trình + đánh giá lại).
+        # Snapshot markup mục tiêu đã dùng (phục vụ giải trình + đánh giá lại);
+        # snapshot chiết khấu do reevaluate_quotation ghi.
         quotation.write({
             "target_markup": profit.target_markup if profit else 0.0,
-            "discount_default_rate": discount.default_rate if discount else 0.0,
-            "discount_max_rate": discount.max_rate if discount else 0.0,
         })
 
         # Cấu phần header chiết khấu/VAT (giải trình từng lớp tiền).
@@ -441,6 +439,28 @@ class DlQuotationPricingService(models.AbstractModel):
                 "amount": quotation.vat_amount,
             })
 
+        self.reevaluate_quotation(
+            quotation,
+            reason=_("Báo giá %s phát sinh điều kiện cần phê duyệt.") % quotation.name,
+        )
+
+    def reevaluate_quotation(self, quotation, reason=None):
+        """Đánh giá (lại) điều kiện phê duyệt cho một báo giá (§8, mục 7).
+
+        Dùng chung cho lúc TẠO báo giá và khi báo giá THAY ĐỔI dữ liệu ảnh hưởng
+        giá (chiết khấu, dòng, khách hàng): hủy kết quả duyệt cũ (pending lẫn
+        approved) rồi đánh giá lại theo đúng logic lúc tạo — rule chiết khấu
+        hiệu lực tại ngày tính giá, ma trận giá trị, cờ giá sàn.
+
+        sudo vì người sửa (Sales) không có quyền trên các field chi phí
+        (groups=) và model yêu cầu phê duyệt.
+        """
+        quotation.ensure_one()
+        quotation = quotation.sudo()
+        company = quotation.company_id or self.env.company
+        date = quotation.pricing_date or fields.Date.context_today(quotation)
+        discount = self._active_discount_rule(company, date, quotation.partner_id)
+
         # Cờ định tuyến phê duyệt.
         eps = 1e-6
         below = self._below_floor(quotation)
@@ -449,14 +469,22 @@ class DlQuotationPricingService(models.AbstractModel):
 
         evaluation = self.env["dl.pricing.approval.matrix"].sudo().evaluate_quotation(
             quotation.amount_before_vat,
-            company=context["company"],
-            date=context["pricing_date"],
+            company=company,
+            date=date,
             discount_above_default=above_default,
             discount_above_max=above_max,
             below_floor=below,
         )
 
+        # Kết quả duyệt cũ hết giá trị khi dữ liệu giá đã đổi (mục 7) — hủy và
+        # giữ lịch sử, không ghi đè.
+        old_request = quotation.approval_request_id
+        if old_request and old_request.state in ("pending", "approved"):
+            old_request.action_cancel_on_change()
+
         quo_vals = {
+            "discount_default_rate": discount.default_rate if discount else 0.0,
+            "discount_max_rate": discount.max_rate if discount else 0.0,
             "below_floor": below,
             "discount_above_default": above_default,
             "discount_above_max": above_max,
@@ -466,14 +494,18 @@ class DlQuotationPricingService(models.AbstractModel):
                 "• %s" % r for r in evaluation.get("reasons") or []),
         }
         if evaluation["required"]:
-            reason = _("Báo giá %s phát sinh điều kiện cần phê duyệt.") % quotation.name
+            reason = reason or _(
+                "Báo giá %s thay đổi dữ liệu giá — đánh giá lại điều kiện phê duyệt."
+            ) % quotation.name
             request = self.env["dl.pricing.approval.request"].sudo().open_quote_approval(
                 quotation, evaluation, reason)
             quo_vals["approval_request_id"] = request.id
             quo_vals["approval_state"] = "pending"
         else:
+            quo_vals["approval_request_id"] = False
             quo_vals["approval_state"] = "not_required"
         quotation.write(quo_vals)
+        return evaluation
 
     def _below_floor(self, quotation):
         """Decision B5: phân bổ chiết khấu header về từng dòng gia công theo tỷ
