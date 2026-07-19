@@ -106,8 +106,11 @@
                                     <field name="effective_qty" string="SL thực"/>
                                     <field name="uom_id" optional="show"/>
                                 </tree>
-                                <form string="Dòng BOM">
+                                <form string="Dòng BOM" class="dl-bom-line-form">
                                     <field name="shape_code" invisible="1"/>
+                                    <div class="row">
+                                      <!-- Trái: nhập vật tư / kích thước / định mức cho dòng -->
+                                      <div class="col-12 col-lg-7">
                                     <group>
                                         <group string="1. Material">
                                             <field name="material_id"
@@ -156,6 +159,18 @@
                                         <field name="waste_rate"/>
                                         <field name="effective_qty" readonly="1"/>
                                     </group>
+                                      </div>
+                                      <!-- Phải: bản vẽ kỹ thuật của SP (PDF/ảnh xem trực tiếp).
+                                           Chỉ nhóm đọc được bản vẽ (Tech/Admin/CEO) mới nạp —
+                                           tránh AccessError cho BA/Trưởng KD. -->
+                                      <div class="col-12 col-lg-5"
+                                           groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo">
+                                          <field name="drawing_mimetype" invisible="1"/>
+                                          <field name="drawing_filename" invisible="1"/>
+                                          <field name="drawing_attachment_id"
+                                                 widget="dl_drawing_preview" nolabel="1"/>
+                                      </div>
+                                    </div>
                                 </form>
                             </field>
 
