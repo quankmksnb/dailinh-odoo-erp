@@ -14,6 +14,14 @@ class DlBomLine(models.Model):
         ondelete="cascade",
     )
 
+    # Bản vẽ kỹ thuật của sản phẩm (lấy từ BOM cha) — hiển thị ngay trên form
+    # tạo/sửa dòng vật tư để KTV vừa xem bản vẽ vừa nhập kích thước/định mức.
+    # related qua bom_id.product_id nên hoạt động cả khi BOM cha chưa lưu.
+    drawing_attachment_id = fields.Many2one(
+        related="bom_id.drawing_attachment_id", string="File bản vẽ", readonly=True)
+    drawing_mimetype = fields.Char(related="bom_id.drawing_mimetype", readonly=True)
+    drawing_filename = fields.Char(related="bom_id.drawing_filename", readonly=True)
+
     price_snapshot = fields.Float(
         string="Đơn giá snapshot",
         compute="_compute_price_snapshot",

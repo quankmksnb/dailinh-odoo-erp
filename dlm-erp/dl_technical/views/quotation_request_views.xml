@@ -103,7 +103,9 @@
                                     <field name="quantity"/>
                                     <field name="dimension_note" optional="show"/>
                                     <field name="resolved_product_id" string="Product Reference"
-                                           readonly="not is_technician"/>
+                                           readonly="not is_technician"
+                                           options="{'no_quick_create': True}"
+                                           context="{'form_view_ref': 'dl_product.view_dl_product_tech_form', 'default_product_kind': 'manufactured'}"/>
                                     <field name="resolved_bom_id" string="BOM Reference"
                                            readonly="not is_technician"
                                            domain="[('product_id', '=', resolved_product_id)]"/>
@@ -130,7 +132,9 @@
                                                     groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                                             <field name="resolved_product_id" string="Product Reference"
                                                    invisible="is_infeasible"
-                                                   readonly="not is_technician"/>
+                                                   readonly="not is_technician"
+                                                   options="{'no_quick_create': True}"
+                                                   context="{'form_view_ref': 'dl_product.view_dl_product_tech_form', 'default_product_kind': 'manufactured'}"/>
                                             <field name="resolved_bom_id" string="BOM Reference"
                                                    invisible="is_infeasible"
                                                    readonly="not is_technician"

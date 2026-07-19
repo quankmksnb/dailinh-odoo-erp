@@ -176,7 +176,6 @@ class DlQuotationRequestLine(models.Model):
         string="Loại sản phẩm",
         required=True,
         default="manufactured",
-        tracking=True,
     )
 
     product_name = fields.Char(
