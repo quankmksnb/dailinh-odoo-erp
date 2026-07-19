@@ -22,8 +22,8 @@ const CARDS = [
   },
   {
     key: "categories",
-    name: "Danh mục sản phẩm",
-    desc: "Quản lý danh mục Sản phẩm / Vật tư",
+    name: "Danh mục",
+    desc: "Quản lý Danh mục Sản phẩm và Vật tư",
     icon: "fa-cubes",
     actionXmlId: "dl_product.action_dl_category_full",
   },

@@ -38,8 +38,8 @@ const MODULE_CARDS = [
     },
     {
         key: "product",
-        name: "Sản phẩm / Vật tư",
-        description: "Quản lý Sản phẩm / Vật tư",
+        name: "Sản phẩm & Vật tư",
+        description: "Quản lý Sản phẩm và Vật tư",
         icon: "fa-cube",
         color: "#1a9e6f",
         actionXmlId: "dl_product.action_dl_product_home",

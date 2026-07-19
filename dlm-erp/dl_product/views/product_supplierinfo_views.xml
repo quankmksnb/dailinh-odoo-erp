@@ -12,7 +12,7 @@
         <field name="arch" type="xml">
             <tree string="Bảng giá NCC" class="dl-supplierinfo-list" js_class="dl_supplierinfo_list" editable="bottom">
                 <field name="company_id" column_invisible="1" />
-                <field name="product_tmpl_id" string="Sản phẩm / Vật tư" />
+                <field name="product_tmpl_id" string="Sản phẩm &amp; Vật tư" />
                 <field name="partner_id" string="Nhà cung cấp"
                     domain="[('partner_role', 'in', ['supplier', 'both'])]"
                     context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
@@ -79,9 +79,9 @@
                     />
 
                     <div class="oe_title">
-                        <label for="product_tmpl_id" string="Sản phẩm / Vật tư" />
+                        <label for="product_tmpl_id" string="Sản phẩm &amp; Vật tư" />
                         <h1>
-                            <field name="product_tmpl_id" string="Sản phẩm / Vật tư" />
+                            <field name="product_tmpl_id" string="Sản phẩm &amp; Vật tư" />
                         </h1>
                     </div>
 
@@ -110,7 +110,7 @@
         <field name="model">product.supplierinfo</field>
         <field name="arch" type="xml">
             <search string="Tìm bảng giá NCC">
-                <field name="product_tmpl_id" string="Sản phẩm / Vật tư" />
+                <field name="product_tmpl_id" string="Sản phẩm &amp; Vật tư" />
                 <field name="partner_id" string="Nhà cung cấp" />
                 <separator />
                 <filter name="draft" string="Chờ duyệt"

@@ -11,7 +11,7 @@ const RAIL_ITEMS = [
     { key: "customer", name: "Khách hàng", icon: "fa-users", actionXmlId: "dl_partner.action_dl_customer" },
     { key: "supplier", name: "NCC / Thầu phụ", icon: "fa-truck", actionXmlId: "dl_partner.action_dl_supplier" },
     { key: "quotation", name: "Báo giá", icon: "fa-file-text-o", actionXmlId: "dl_sale.action_dl_quotation" },
-    { key: "product", name: "Sản phẩm / Vật tư", icon: "fa-cube", actionXmlId: null },
+    { key: "product", name: "Sản phẩm & Vật tư", icon: "fa-cube", actionXmlId: null },
     { key: "technical", name: "Kỹ thuật", icon: "fa-cogs", actionXmlId: null },
     { key: "pricing", name: "Bảng giá", icon: "fa-money", actionXmlId: null },
     { key: "report", name: "Báo cáo", icon: "fa-bar-chart", actionXmlId: null },
