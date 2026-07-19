@@ -11,6 +11,10 @@ import { setActiveKey } from "@dl_base/js/sidebar_state";
 
 const systrayRegistry = registry.category("systray");
 
+// Card = một menu đích (menuXmlIds: cái ĐẦU TIÊN user thấy được sẽ dùng).
+// Server đã lọc cây menu theo groups ⇒ card không tìm thấy menu nào là user
+// không có quyền → ẨN card (RBAC hiển thị đồng nhất với menu, không cần
+// hasGroup phía client).
 const MODULE_CARDS = [
     {
         key: "customer",
@@ -18,7 +22,7 @@ const MODULE_CARDS = [
         description: "Danh bạ khách hàng & liên hệ",
         icon: "fa-users",
         color: "#7c5caf",
-        actionXmlId: "dl_partner.action_dl_customer",
+        menuXmlIds: ["dl_partner.menu_dl_sale_customer"],
     },
     {
         key: "supplier",
@@ -26,7 +30,11 @@ const MODULE_CARDS = [
         description: "Nhà cung cấp & thầu phụ",
         icon: "fa-truck",
         color: "#2a8c82",
-        actionXmlId: "dl_partner.action_dl_supplier",
+        // Trưởng KD chỉ có bản chỉ-đọc — menu nào thấy được thì mở menu đó.
+        menuXmlIds: [
+            "dl_partner.menu_dl_sale_supplier",
+            "dl_partner.menu_dl_sale_supplier_readonly",
+        ],
     },
     {
         key: "quotation",
@@ -34,7 +42,9 @@ const MODULE_CARDS = [
         description: "Yêu cầu báo giá & Báo giá",
         icon: "fa-file-text-o",
         color: "#4a90d9",
-        actionXmlId: "dl_sale.action_dl_quotation_home",
+        // Trỏ thẳng menu hub Báo giá — trỏ menu cha "CRM & Báo giá" sẽ mở
+        // nhầm menu con đầu tiên (Khách hàng).
+        menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
     },
     {
         key: "product",
@@ -42,7 +52,7 @@ const MODULE_CARDS = [
         description: "Quản lý Sản phẩm và Vật tư",
         icon: "fa-cube",
         color: "#1a9e6f",
-        actionXmlId: "dl_product.action_dl_product_home",
+        menuXmlIds: ["dl_base.menu_dl_product"],
     },
     {
         key: "technical",
@@ -50,7 +60,7 @@ const MODULE_CARDS = [
         description: "BOM, bản vẽ & công thức tham số",
         icon: "fa-cogs",
         color: "#7c5caf",
-        actionXmlId: "dl_technical.action_dl_technical_home",
+        menuXmlIds: ["dl_base.menu_dl_technical"],
     },
     {
         key: "pricing",
@@ -58,7 +68,7 @@ const MODULE_CARDS = [
         description: "Bảng giá SP Thương mại / Vật tư",
         icon: "fa-money",
         color: "#c49052",
-        actionXmlId: "dl_product.action_dl_pricing_home",
+        menuXmlIds: ["dl_product.menu_dl_pricing_root"],
     },
     {
         key: "config",
@@ -66,7 +76,7 @@ const MODULE_CARDS = [
         description: "Tham số giá, phân quyền & danh mục dùng chung",
         icon: "fa-sliders",
         color: "#5a6a6a",
-        actionXmlId: "dl_config.action_dl_config_home",
+        menuXmlIds: ["dl_base.menu_dl_config"],
     },
 ];
 
@@ -78,7 +88,6 @@ export class DlHome extends Component {
     setup() {
         this.actionService = useService("action");
         this.menuService = useService("menu");
-        this.cards = MODULE_CARDS;
 
         this._dlmApp = this.menuService
             .getApps()
@@ -86,6 +95,37 @@ export class DlHome extends Component {
         if (this._dlmApp && this.menuService.getCurrentApp()?.id !== this._dlmApp.id) {
             this.menuService.setCurrentMenu(this._dlmApp);
         }
+    }
+
+    // Chỉ hiện card mà user thấy được menu đích (cây menu đã lọc theo groups).
+    get cards() {
+        return MODULE_CARDS.filter((card) => this._resolveCardMenu(card));
+    }
+
+    get _level1Menus() {
+        if (!this._dlmApp) return [];
+        const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
+        return tree?.childrenTree || [];
+    }
+
+    _findMenuByXmlId(node, xmlid) {
+        if (!node) return null;
+        if (node.xmlid === xmlid) return node;
+        for (const child of node.childrenTree || []) {
+            const found = this._findMenuByXmlId(child, xmlid);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    _resolveCardMenu(card) {
+        if (!this._dlmApp) return null;
+        const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
+        for (const xmlid of card.menuXmlIds || []) {
+            const menu = this._findMenuByXmlId(tree, xmlid);
+            if (menu) return menu;
+        }
+        return null;
     }
 
     get systrayItems() {
@@ -118,9 +158,21 @@ export class DlHome extends Component {
     }
 
     openCard(card) {
-        if (!card.actionXmlId) return;
+        const menu = this._resolveCardMenu(card);
+        if (!menu) return;
+        // Ghi lại card đang active để rail/sidebar highlight (đồng bộ develop).
         setActiveKey(card.key);
-        this.actionService.doAction(card.actionXmlId, { clearBreadcrumbs: true });
+        const target = this._findFirstActionMenu(menu);
+        if (target) this.menuService.selectMenu(target);
+    }
+
+    _findFirstActionMenu(menu) {
+        if (menu.actionID) return menu;
+        for (const child of menu.childrenTree || []) {
+            const found = this._findFirstActionMenu(child);
+            if (found) return found;
+        }
+        return null;
     }
 }
 

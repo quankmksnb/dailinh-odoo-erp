@@ -116,6 +116,25 @@ class DlPricingApprovalMatrix(models.Model):
             if rec.value_from < 0:
                 raise ValidationError(_("Ngưỡng giá trị không được âm."))
 
+    @api.constrains("approver_user_id", "approval_level")
+    def _check_approver_in_role(self):
+        """Người duyệt cụ thể phải thuộc đúng nhóm vai trò của cấp duyệt —
+        tránh chỉ định người không có quyền đọc/duyệt báo giá (họ sẽ kẹt khi
+        xử lý yêu cầu)."""
+        for rec in self:
+            if not rec.approver_user_id or rec.approval_level not in _ROLE_GROUP:
+                continue
+            group = self.env.ref(_ROLE_GROUP[rec.approval_level],
+                                 raise_if_not_found=False)
+            if group and rec.approver_user_id not in group.users:
+                raise ValidationError(_(
+                    "Người duyệt '%(user)s' không thuộc vai trò '%(level)s'. "
+                    "Hãy chọn người trong đúng nhóm hoặc để trống."
+                ) % {
+                    "user": rec.approver_user_id.name,
+                    "level": dict(APPROVAL_LEVEL_SELECTION).get(rec.approval_level),
+                })
+
     @api.constrains("value_from", "state", "company_id")
     def _check_unique_threshold(self):
         """Không cho hai dòng đang áp dụng có cùng ngưỡng bắt đầu (mục 10)."""

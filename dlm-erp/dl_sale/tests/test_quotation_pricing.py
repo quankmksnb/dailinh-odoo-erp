@@ -264,6 +264,86 @@ class TestQuotationPricing(TransactionCase):
         self.assertFalse(quo.approval_required)
         self.assertEqual(quo.approval_state, "not_required")
 
+    def test_reeval_on_discount_change(self):
+        """Mục 7: sửa chiết khấu sau khi tạo phải đánh giá lại phê duyệt —
+        vượt mặc định → Trưởng KD, vượt tối đa → CEO, hạ về mặc định → hết duyệt."""
+        rfq = self._make_rfq([(0, 0, {
+            "product_type": "trading", "product_name": "Hàng TM",
+            "quantity": 2, "resolved_product_id": self.trading.id,
+        })])
+        rfq.action_create_quotation()
+        quo = rfq.quotation_id
+        self.assertEqual(quo.approval_state, "not_required")
+
+        quo.discount_pct = 10.0            # > default 5%, <= max 15%
+        self.assertTrue(quo.approval_required)
+        self.assertEqual(quo.approval_state, "pending")
+        req_sm = quo.approval_request_id
+        self.assertEqual(req_sm.approval_level, "sales_manager")
+
+        quo.discount_pct = 20.0            # > max 15% → cấp CEO
+        self.assertEqual(req_sm.state, "cancelled")   # yêu cầu cũ bị hủy, giữ lịch sử
+        req_ceo = quo.approval_request_id
+        self.assertNotEqual(req_ceo, req_sm)
+        self.assertEqual(req_ceo.approval_level, "ceo")
+
+        quo.discount_pct = 5.0             # về mặc định → hết cần duyệt
+        self.assertEqual(req_ceo.state, "cancelled")
+        self.assertFalse(quo.approval_required)
+        self.assertEqual(quo.approval_state, "not_required")
+
+    def test_approved_result_cancelled_on_price_change(self):
+        """Mục 7: kết quả duyệt đã approve bị hủy khi dữ liệu giá đổi; báo giá
+        đã duyệt nội bộ bị kéo về Nháp để đi lại luồng."""
+        matrix = self.env["dl.pricing.approval.matrix"].create({
+            "value_from": 1000.0, "approval_level": "sales_manager"})
+        matrix.action_apply()
+        rfq = self._make_rfq([(0, 0, {
+            "product_type": "trading", "product_name": "Hàng TM",
+            "quantity": 2, "resolved_product_id": self.trading.id,
+        })])
+        rfq.action_create_quotation()
+        quo = rfq.quotation_id
+        req = quo.approval_request_id
+        quo._on_approval_approved(req)
+        quo.action_approve()
+        self.assertEqual(quo.state, "approved")
+
+        quo.line_ids.write({"price_unit": 2000.0})   # đổi giá sau khi duyệt
+        self.assertEqual(req.state, "cancelled")
+        self.assertEqual(quo.approval_state, "pending")
+        self.assertNotEqual(quo.approval_request_id, req)
+        self.assertEqual(quo.state, "draft")         # quay về nháp đi lại luồng
+
+    def test_approve_and_send_blocked_by_approval_state(self):
+        """Không vượt mặt luồng duyệt: đang chờ hoặc bị từ chối thì không được
+        duyệt nội bộ / gửi khách; sửa lại dữ liệu giá mới mở lại luồng."""
+        matrix = self.env["dl.pricing.approval.matrix"].create({
+            "value_from": 1000.0, "approval_level": "sales_manager"})
+        matrix.action_apply()
+        rfq = self._make_rfq([(0, 0, {
+            "product_type": "trading", "product_name": "Hàng TM",
+            "quantity": 2, "resolved_product_id": self.trading.id,
+        })])
+        rfq.action_create_quotation()
+        quo = rfq.quotation_id
+        self.assertEqual(quo.approval_state, "pending")
+        with self.assertRaises(UserError):
+            quo.action_approve()
+        with self.assertRaises(UserError):
+            quo.action_send()
+
+        quo._on_approval_rejected(quo.approval_request_id)
+        with self.assertRaises(UserError):
+            quo.action_approve()
+        with self.assertRaises(UserError):
+            quo.action_send()
+
+        # Sửa dữ liệu giá → đánh giá lại, phát sinh yêu cầu duyệt mới.
+        quo.discount_pct = 0.0
+        self.assertEqual(quo.approval_state, "pending")
+        self.assertTrue(quo.approval_request_id)
+
     def test_round_price_helper(self):
         svc = self.env["dl.quotation.pricing.service"]
         self.assertEqual(svc._round_price(123400.0, 1000), 123000.0)
