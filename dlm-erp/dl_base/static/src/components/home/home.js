@@ -7,6 +7,7 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 import { Dropdown } from "@web/core/dropdown/dropdown";
 import { DropdownItem } from "@web/core/dropdown/dropdown_item";
 import { ErrorHandler } from "@web/core/utils/components";
+import { setActiveKey } from "@dl_base/js/sidebar_state";
 
 const systrayRegistry = registry.category("systray");
 
@@ -33,7 +34,7 @@ const MODULE_CARDS = [
         description: "Yêu cầu báo giá & Báo giá",
         icon: "fa-file-text-o",
         color: "#4a90d9",
-        menuXmlId: "dl_base.menu_dl_sale",
+        actionXmlId: "dl_sale.action_dl_quotation_home",
     },
     {
         key: "product",
@@ -41,7 +42,7 @@ const MODULE_CARDS = [
         description: "Quản lý Sản phẩm / Vật tư",
         icon: "fa-cube",
         color: "#1a9e6f",
-        menuXmlId: null,
+        actionXmlId: "dl_product.action_dl_product_home",
     },
     {
         key: "technical",
@@ -49,7 +50,7 @@ const MODULE_CARDS = [
         description: "BOM, bản vẽ & công thức tham số",
         icon: "fa-cogs",
         color: "#7c5caf",
-        menuXmlId: "dl_base.menu_dl_technical",
+        actionXmlId: "dl_technical.action_dl_technical_home",
     },
     {
         key: "pricing",
@@ -57,7 +58,7 @@ const MODULE_CARDS = [
         description: "Bảng giá SP Thương mại / Vật tư",
         icon: "fa-money",
         color: "#c49052",
-        menuXmlId: null,
+        actionXmlId: "dl_product.action_dl_pricing_home",
     },
     {
         key: "config",
@@ -65,7 +66,7 @@ const MODULE_CARDS = [
         description: "Tham số giá, phân quyền & danh mục dùng chung",
         icon: "fa-sliders",
         color: "#5a6a6a",
-        menuXmlId: "dl_base.menu_dl_config",
+        actionXmlId: "dl_config.action_dl_config_home",
     },
 ];
 
@@ -85,12 +86,6 @@ export class DlHome extends Component {
         if (this._dlmApp && this.menuService.getCurrentApp()?.id !== this._dlmApp.id) {
             this.menuService.setCurrentMenu(this._dlmApp);
         }
-    }
-
-    get _level1Menus() {
-        if (!this._dlmApp) return [];
-        const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
-        return tree?.childrenTree || [];
     }
 
     get systrayItems() {
@@ -123,24 +118,9 @@ export class DlHome extends Component {
     }
 
     openCard(card) {
-        if (card.actionXmlId) {
-            this.actionService.doAction(card.actionXmlId, { clearBreadcrumbs: true });
-            return;
-        }
-        if (!card.menuXmlId) return;
-        const menu = this._level1Menus.find((m) => m.xmlid === card.menuXmlId);
-        if (!menu) return;
-        const target = this._findFirstActionMenu(menu);
-        if (target) this.menuService.selectMenu(target);
-    }
-
-    _findFirstActionMenu(menu) {
-        if (menu.actionID) return menu;
-        for (const child of menu.childrenTree || []) {
-            const found = this._findFirstActionMenu(child);
-            if (found) return found;
-        }
-        return null;
+        if (!card.actionXmlId) return;
+        setActiveKey(card.key);
+        this.actionService.doAction(card.actionXmlId, { clearBreadcrumbs: true });
     }
 }
 

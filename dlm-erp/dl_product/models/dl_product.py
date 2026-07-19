@@ -112,3 +112,6 @@ class ProductProduct(models.Model):
                 raise ValidationError(
                     _("Mã sản phẩm '%s' đã tồn tại (%s).") % (code, dup.display_name)
                 )
+
+    def get_formview_id(self, access_uid=None):
+        return self.env.ref('dl_product.view_dl_product_form').id

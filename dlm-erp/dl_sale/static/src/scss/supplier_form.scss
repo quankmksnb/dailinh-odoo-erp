@@ -1,21 +1,5 @@
-// S04 — Form NCC / Thầu phụ. Nền phẳng theo app-bg + dòng mã NCC.
+// S04 — Form NCC / Thầu phụ. Phần đặc thù: mã NCC.
 .dl-supplier-form {
-    font-family: $dl-font;
-    color: $dl-text;
-    background: $dl-app-bg;
-
-    .o_form_sheet_bg { background: $dl-app-bg; border: 0; }
-    .o_form_sheet {
-        max-width: 100%;
-        border: 1px solid $dl-border;
-        border-radius: $dl-radius;
-        box-shadow: none;
-        background: $dl-surface;
-    }
-
-    .oe_title h1 .o_field_widget { font-size: 22px; font-weight: 700; color: $dl-heading; }
-
-    // Mã NCC tự sinh hiển thị dưới tên
     .dl-sup-code {
         font-size: 12px;
         font-weight: 600;
@@ -24,6 +8,4 @@
 
         .o_field_widget { font-weight: 700; color: $dl-primary; }
     }
-
-    .o_notebook .nav-link.active { color: $dl-primary; border-bottom-color: $dl-primary; }
 }

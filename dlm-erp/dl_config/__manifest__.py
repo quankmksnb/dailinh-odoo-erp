@@ -51,6 +51,7 @@
             'dl_config/static/src/scss/company_list.scss',
             'dl_config/static/src/scss/company_form.scss',
             'dl_config/static/src/views/company_list_controller.js',
+            'dl_config/static/src/views/company_form_controller.js',
         ],
     },
     'installable': True,

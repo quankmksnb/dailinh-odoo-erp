@@ -47,7 +47,7 @@
                         name="toggle_active"
                         type="object"
                         string="Vô hiệu hóa SP"
-                        class="btn-secondary"
+                        class="btn-danger"
                         invisible="not active"
                         confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu cũ giữ nguyên."
                         groups="dl_base.dl_group_admin"
@@ -212,7 +212,8 @@
         <field name="arch" type="xml">
             <kanban
                 string="Sản phẩm"
-                class="o_dl_product_kanban"
+                class="dl-product-kanban"
+                js_class="dl_product_kanban"
                 sample="1"
             >
                 <field name="id" />
@@ -222,32 +223,33 @@
                 <field name="product_kind" />
                 <field name="uom_id" />
                 <field name="active" />
+                <field name="image_128" />
                 <templates>
                     <t t-name="kanban-box">
-                        <div
-                            t-attf-class="oe_kanban_global_click o_kanban_record_has_image_fill #{record.active.raw_value ? '' : 'oe_kanban_card_muted'}"
-                        >
-                            <div class="o_kanban_image_fill_left">
-                                <img
+                        <div t-attf-class="oe_kanban_global_click dl-prod-card #{record.active.raw_value ? '' : 'dl-prod-card--off'}">
+                            <div class="dl-prod-img">
+                                <img t-if="record.image_128.raw_value"
                                     t-att-src="kanban_image('product.product', 'image_128', record.id.raw_value)"
-                                    alt="Ảnh sản phẩm"
-                                    class="o_kanban_image_fill"
-                                />
+                                    alt="" />
+                                <span t-else="" class="dl-prod-img__placeholder">
+                                    <i class="fa fa-cube" />
+                                </span>
                             </div>
-                            <div class="oe_kanban_details">
-                                <strong class="o_kanban_record_title">
-                                    <field name="name" />
-                                </strong>
-                                <div class="text-muted">
-                                    <field name="default_code" />
+                            <div class="dl-prod-info">
+                                <span class="dl-prod-name" t-esc="record.name.value" />
+                                <div class="dl-prod-meta">
+                                    <span class="dl-prod-code" t-if="record.default_code.value"
+                                        t-esc="record.default_code.value" />
+                                    <span class="dl-prod-sep" t-if="record.default_code.value and record.categ_id.value">·</span>
+                                    <span t-if="record.categ_id.value" t-esc="record.categ_id.value" />
                                 </div>
-                                <div class="text-muted">
-                                    <field name="categ_id" />
-                                </div>
-                                <div class="mt-1">
-                                    <field name="product_kind" widget="badge" />
+                                <div class="dl-prod-detail" t-if="record.uom_id.value">
+                                    <i class="fa fa-balance-scale" />
+                                    <span t-esc="record.uom_id.value" />
                                 </div>
                             </div>
+                            <span t-attf-class="dl-prod-badge dl-prod-badge--#{record.product_kind.raw_value}"
+                                t-esc="record.product_kind.value" />
                         </div>
                     </t>
                 </templates>

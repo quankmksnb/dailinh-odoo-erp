@@ -25,9 +25,7 @@
         "web.assets_backend": [
             # Đồng bộ UI danh sách/form với các màn dl_sale/dl_product.
             "dl_technical/static/src/scss/bom_list.scss",
-            "dl_technical/static/src/scss/bom_form.scss",
             "dl_technical/static/src/scss/rfq_list.scss",
-            "dl_technical/static/src/scss/rfq_form.scss",
             "dl_technical/static/src/scss/drawing_list.scss",
             "dl_technical/static/src/scss/drawing_form.scss",
             "dl_technical/static/src/views/bom_list_controller.js",
@@ -36,6 +34,7 @@
             "dl_technical/static/src/views/rfq_form_controller.js",
             "dl_technical/static/src/views/drawing_list_controller.js",
             "dl_technical/static/src/views/drawing_form_controller.js",
+            "dl_technical/static/src/views/bomtpl_form_controller.js",
             # Dashboard "Kỹ thuật"
             "dl_technical/static/src/components/technical_home/technical_home.scss",
             "dl_technical/static/src/components/technical_home/technical_home.xml",

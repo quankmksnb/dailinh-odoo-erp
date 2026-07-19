@@ -114,6 +114,14 @@ $dl-rail-bg:      $dl-nav-bg;
             color: $dl-primary;
         }
 
+        &.active {
+            background: $dl-active;
+            color: $dl-primary;
+            border-left-color: $dl-primary;
+
+            i.fa { color: $dl-primary; }
+        }
+
         // Module Phase sau (chưa có action) → mờ, không bấm
         &.disabled {
             opacity: 0.45;

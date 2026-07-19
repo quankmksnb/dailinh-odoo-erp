@@ -1,50 +1,5 @@
+// CFG — Form Đơn vị tính. Phần đặc thù: radio segment.
 .dl-uom-form {
-    font-family: $dl-font;
-    color: $dl-text;
-    background: $dl-app-bg;
-
-    .o_form_sheet_bg { background: $dl-app-bg; border: 0; }
-    .o_form_sheet {
-        max-width: 100%;
-        border: 0;
-        box-shadow: none;
-        background: $dl-app-bg;
-        padding: 6px 18px 20px;
-    }
-
-    .o_inner_group { row-gap: 4px; }
-
-    .oe_title { margin-bottom: 12px !important; }
-    .oe_title h1 {
-        .o_field_widget, input {
-            font-size: 20px;
-            font-weight: 700;
-            color: $dl-heading;
-        }
-    }
-
-    .o_form_label,
-    .o_inner_group label {
-        color: $dl-text-2;
-        font-weight: 500;
-        font-size: 13px;
-    }
-
-    .o_horizontal_separator,
-    .o_inner_group > .o_horizontal_separator {
-        color: $dl-primary;
-        text-transform: uppercase;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-    }
-
-    .o_group .o_field_widget input.o_input,
-    .o_group .o_field_many2one .o_input,
-    .o_group .o_field_widget .o_input_dropdown input {
-        @include dl-input;
-    }
-
     .dl-seg {
         .o_radio_input,
         input[type="radio"] { display: none; }
