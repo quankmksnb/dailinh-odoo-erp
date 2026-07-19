@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Cho phép Trưởng KD nhìn thấy menu cha; các menu con khác vẫn giữ
-         groups riêng nên chỉ màn Báo giá được hiển thị cho vai trò này. -->
+    <!-- Mở menu cha cho MỌI vai trò có ít nhất một menu con bên trong (Odoo
+         yêu cầu pass groups cả tổ tiên): Trưởng KD/KTV/Kế toán/BA được cấp
+         menu "Cấu hình Báo giá" bên dưới nên phải thấy được menu cha; các menu
+         con khác vẫn giữ groups riêng (Quản lý User/Phân quyền chỉ Admin...). -->
     <record id="dl_base.menu_dl_config" model="ir.ui.menu">
-        <field name="groups_id" eval="[(4, ref('dl_base.dl_group_sales_manager'))]"/>
+        <field name="groups_id" eval="[
+            (4, ref('dl_base.dl_group_sales_manager')),
+            (4, ref('dl_base.dl_group_tech')),
+            (4, ref('dl_base.dl_group_accountant')),
+            (4, ref('dl_base.dl_group_ba')),
+        ]"/>
     </record>
 
     <menuitem

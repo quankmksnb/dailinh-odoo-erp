@@ -281,18 +281,20 @@ class DlPricingApprovalRequest(models.Model):
                 target._on_approval_approved(req)
         return True
 
-    def action_cancel_on_change(self):
+    def action_cancel_on_change(self, note=None):
         """Hủy kết quả duyệt cũ khi báo giá thay đổi dữ liệu ảnh hưởng giá (mục 7).
 
         Module báo giá gọi hàm này thay vì ghi đè yêu cầu cũ. Yêu cầu chuyển sang
         "Đã hủy do báo giá thay đổi" và giữ nguyên trong lịch sử; một yêu cầu mới
-        sẽ được tạo nếu báo giá vẫn vượt ngưỡng.
+        sẽ được tạo nếu báo giá vẫn vượt ngưỡng. ``note`` cho phép nơi gọi ghi
+        rõ lý do hủy khác (vd báo giá bị từ chối).
         """
         for req in self:
             if req.state not in ("pending", "approved"):
                 continue
             req.write({"state": "cancelled"})
-            req.message_post(body=_("Kết quả duyệt bị hủy do báo giá thay đổi dữ liệu ảnh hưởng giá."))
+            req.message_post(body=note or _(
+                "Kết quả duyệt bị hủy do báo giá thay đổi dữ liệu ảnh hưởng giá."))
         return True
 
     def action_reject(self):

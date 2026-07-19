@@ -27,10 +27,12 @@
         <field name="arch" type="xml">
             <form string="Báo giá" class="dl-quotation-form" js_class="dl_quotation_form">
                 <header>
+                    <!-- Op-group dl_group_op_quote_approve: màn Phân quyền tick
+                         "Duyệt báo giá" cho vai trò khác là mở được nút này. -->
                     <button name="action_approve" string="Duyệt nội bộ"
                             type="object" class="btn-primary"
                             invisible="state != 'draft'"
-                            groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                            groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_sale.dl_group_op_quote_approve"/>
                     <button name="action_send" string="Gửi khách hàng"
                             type="object" class="btn-primary"
                             invisible="state != 'approved'"/>
@@ -79,6 +81,7 @@
                         <div class="dl-field">
                             <label for="partner_id" string="Khách hàng"/>
                             <field name="partner_id" nolabel="1"
+                                readonly="state != 'draft'"
                                 context="{'default_partner_role': 'customer', 'default_partner_type': 'company'}"/>
                         </div>
                         <div class="dl-field">
@@ -96,7 +99,9 @@
                     </div>
                     <notebook>
                         <page string="Chi tiết báo giá">
-                            <field name="line_ids">
+                            <!-- Khóa dữ liệu giá ngoài trạng thái Nháp: muốn sửa
+                                 phải Về nháp để đi lại luồng đánh giá phê duyệt. -->
+                            <field name="line_ids" readonly="state != 'draft'">
                                 <tree editable="bottom">
                                     <field name="line_type" widget="badge"
                                            decoration-info="line_type == 'trading'"
@@ -112,11 +117,13 @@
                             <div class="dl-fields-row">
                                 <div class="dl-field">
                                     <label for="discount_pct" string="Chiết khấu (%)"/>
-                                    <field name="discount_pct" nolabel="1"/>
+                                    <field name="discount_pct" nolabel="1"
+                                           readonly="state != 'draft'"/>
                                 </div>
                                 <div class="dl-field">
                                     <label for="vat_pct" string="VAT (%)"/>
-                                    <field name="vat_pct" nolabel="1"/>
+                                    <field name="vat_pct" nolabel="1"
+                                           readonly="state != 'draft'"/>
                                 </div>
                             </div>
                             <div class="dl-totals">

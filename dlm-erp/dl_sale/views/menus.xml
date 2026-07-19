@@ -8,7 +8,7 @@
         parent="dl_base.menu_dl_sale"
         sequence="30"
         action="action_dl_quotation_home"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_sales_manager,-dl_base.dl_group_tech"
     />
 
     <menuitem
