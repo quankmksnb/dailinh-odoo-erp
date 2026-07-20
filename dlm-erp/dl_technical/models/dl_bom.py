@@ -146,3 +146,40 @@ class DlBom(models.Model):
             "target": "new",
             "context": {"default_bom_id": self.id},
         }
+
+    def action_create_bom_template(self):
+        """Chiều ngược của "Create From BOM Template": lấy chính BOM này làm
+        BOM mẫu cho NHÓM sản phẩm mà sản phẩm của BOM đang thuộc về. Điều kiện:
+        sản phẩm đã được gán 1 nhóm sản phẩm (categ_id). Copy toàn bộ dòng vật
+        tư sang 1 BOM mẫu mới (nháp) để Kỹ thuật rà soát/điều chỉnh."""
+        self.ensure_one()
+        category = self.product_id.categ_id
+        if not category:
+            raise UserError(_(
+                'Sản phẩm "%s" chưa được gán Nhóm sản phẩm — hãy gán nhóm cho '
+                'sản phẩm trước khi lấy BOM này làm BOM mẫu cho nhóm.'
+            ) % self.product_id.display_name)
+        if not self.line_ids:
+            raise UserError(_("BOM này chưa có dòng vật tư nào để tạo BOM mẫu."))
+
+        Template = self.env["dl.bom.template"]
+        existing = Template.search([("product_category_id", "=", category.id)])
+        version = (max(existing.mapped("version")) + 1) if existing else 1
+
+        template = Template.create({
+            "name": _("BOM mẫu - %s (từ %s)") % (category.name, self.name),
+            "product_category_id": category.id,
+            "product_qty": self.product_qty,
+            "version": version,
+            "status": "draft",
+            "line_ids": [(0, 0, line._mixin_copy_vals()) for line in self.line_ids],
+        })
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("BOM mẫu"),
+            "res_model": "dl.bom.template",
+            "res_id": template.id,
+            "view_mode": "form",
+            "target": "current",
+        }
