@@ -84,7 +84,8 @@
                     <group>
                         <group string="Thông tin yêu cầu">
                             <field name="customer_id" readonly="status != 'new'"
-                                context="{'default_partner_role': 'customer', 'default_partner_type': 'company'}"/>
+                                options="{'no_quick_create': True}"
+                                context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
                             <field name="requested_date" readonly="status != 'new'"/>
                             <field name="deadline"/>
                             <field name="created_by"/>
@@ -211,7 +212,8 @@
                     <group>
                         <group string="Thông tin yêu cầu">
                             <field name="customer_id" readonly="status != 'new'"
-                                context="{'default_partner_role': 'customer', 'default_partner_type': 'company'}"/>
+                                options="{'no_quick_create': True}"
+                                context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
                             <field name="requested_date" readonly="status != 'new'"/>
                             <field name="deadline"/>
                             <field name="created_by"/>

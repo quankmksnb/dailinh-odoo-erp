@@ -43,6 +43,10 @@
                             string="Create From BOM Template"
                             invisible="status != 'draft'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_create_bom_template" type="object"
+                            string="Tạo BOM mẫu cho nhóm"
+                            invisible="not product_id or not line_ids"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_confirm" type="object" string="Xác nhận BOM"
                             class="oe_highlight"
                             invisible="status != 'draft'"

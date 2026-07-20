@@ -4,7 +4,7 @@
     "summary": "Quản lý BOM, Bản vẽ, Bán thành phẩm, công thức",
     "author": "Dai Linh",
     "category": "Hidden",
-    "depends": ["dl_base", "dl_product", "uom", "dl_config"],
+    "depends": ["dl_base", "dl_product", "dl_partner", "uom", "dl_config"],
     "data": [
         "security/ir.model.access.csv",
         "data/rbac_features.xml",
