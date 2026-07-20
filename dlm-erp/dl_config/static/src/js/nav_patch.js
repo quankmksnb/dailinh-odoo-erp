@@ -16,7 +16,7 @@ function wireConfig(items) {
 patch(DlHome.prototype, {
     setup() {
         super.setup(...arguments);
-        wireConfig(this.navItems);
+        wireConfig(this.cards);
     },
 });
 

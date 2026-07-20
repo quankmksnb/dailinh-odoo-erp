@@ -16,7 +16,7 @@ function wireQuote(items) {
 patch(DlHome.prototype, {
     setup() {
         super.setup(...arguments);
-        wireQuote(this.navItems);
+        wireQuote(this.cards);
     },
 });
 

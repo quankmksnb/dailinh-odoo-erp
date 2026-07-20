@@ -16,7 +16,7 @@ function wireTechnical(items) {
 patch(DlHome.prototype, {
     setup() {
         super.setup(...arguments);
-        wireTechnical(this.navItems);
+        wireTechnical(this.cards);
     },
 });
 
