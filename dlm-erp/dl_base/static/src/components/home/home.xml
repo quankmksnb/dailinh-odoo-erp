@@ -35,7 +35,6 @@
             <div class="dl-home-grid">
                 <t t-foreach="cards" t-as="card" t-key="card.key">
                     <div class="dl-home-card"
-                         t-att-class="{ 'is-disabled': !card.actionXmlId }"
                          t-on-click="() => this.openCard(card)">
                         <div class="dl-home-card-icon" t-attf-style="background: {{ card.color }}">
                             <i t-att-class="'fa ' + card.icon"/>
