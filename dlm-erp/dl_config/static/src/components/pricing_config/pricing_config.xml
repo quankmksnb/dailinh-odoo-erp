@@ -144,11 +144,11 @@
                     </div>
                     <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
                         Khách <b>mới</b> khi vừa tạo · thành khách <b>cũ</b> sau khi có báo giá được duyệt ·
-                        lên <b>tiềm năng</b> khi tổng giá trị báo giá đã duyệt vượt ngưỡng dưới đây.
+                        lên <b>thân thiết</b> khi tổng giá trị báo giá đã duyệt vượt ngưỡng dưới đây.
                     </div>
                     <div class="dl-cfg-inline">
                         <label class="dl-cfg-f">
-                            <span class="k">Ngưỡng lên Khách tiềm năng (đồng)</span>
+                            <span class="k">Ngưỡng lên Khách thân thiết (đồng)</span>
                             <input type="number" min="0" step="1000000"
                                    t-model.number="state.classification.threshold"
                                    t-att-disabled="!state.classification.canEdit"/>

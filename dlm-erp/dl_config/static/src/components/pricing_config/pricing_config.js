@@ -63,7 +63,7 @@ const L = {
         per_unit: "đồng/sản phẩm", per_batch: "đồng/lô", fixed: "Tiền cố định",
         factor: "Hệ số nhân",
     },
-    customerGroup: { new: "Khách mới", existing: "Khách cũ", potential: "Khách tiềm năng" },
+    customerGroup: { new: "Khách mới", existing: "Khách cũ", loyal: "Khách thân thiết" },
     approvalType: {
         profit_config: "Cấu hình lợi nhuận mới", discount_config: "Cấu hình chiết khấu mới",
         quote_discount: "Chiết khấu báo giá vượt mặc định",
@@ -110,7 +110,7 @@ export class DlPricingConfig extends Component {
             reject: null, // { id, comment }
             toast: null,
             dialog: null,
-            // Phân loại khách hàng tự động (ngưỡng lên Khách tiềm năng).
+            // Phân loại khách hàng tự động (ngưỡng lên Khách thân thiết).
             classification: { threshold: 0, canEdit: false },
         });
 
@@ -173,7 +173,7 @@ export class DlPricingConfig extends Component {
         }
     }
 
-    // --- Phân loại khách hàng tự động (ngưỡng lên Khách tiềm năng) ----------
+    // --- Phân loại khách hàng tự động (ngưỡng lên Khách thân thiết) ---------
     async loadClassification() {
         try {
             this.state.classification = await this.orm.call(
@@ -186,7 +186,7 @@ export class DlPricingConfig extends Component {
         try {
             const val = Number(this.state.classification.threshold) || 0;
             const saved = await this.orm.call(
-                "res.partner", "set_potential_threshold", [val]);
+                "res.partner", "set_loyal_threshold", [val]);
             this.state.classification.threshold = saved;
             this.flash("Đã lưu ngưỡng phân loại khách hàng.");
         } catch (e) {

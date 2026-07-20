@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Cột "Nhóm KH" (mới / cũ / tiềm năng) trên danh sách khách hàng.
+    <!-- Cột "Nhóm KH" (mới / cũ / thân thiết) trên danh sách khách hàng.
          Field dlm_customer_group thuộc dl_sale nên phải chèn qua kế thừa. -->
     <record id="view_dl_customer_tree_group_ext" model="ir.ui.view">
         <field name="name">dlm.customer.tree.group.ext</field>
@@ -12,7 +12,7 @@
                 <field name="dlm_customer_group" string="Nhóm KH" widget="badge"
                     decoration-info="dlm_customer_group == 'new'"
                     decoration-success="dlm_customer_group == 'existing'"
-                    decoration-warning="dlm_customer_group == 'potential'"/>
+                    decoration-warning="dlm_customer_group == 'loyal'"/>
             </xpath>
         </field>
     </record>
@@ -29,8 +29,8 @@
                     domain="[('dlm_customer_group', '=', 'new')]"/>
                 <filter string="Khách cũ" name="filter_group_existing"
                     domain="[('dlm_customer_group', '=', 'existing')]"/>
-                <filter string="Khách tiềm năng" name="filter_group_potential"
-                    domain="[('dlm_customer_group', '=', 'potential')]"/>
+                <filter string="Khách thân thiết" name="filter_group_loyal"
+                    domain="[('dlm_customer_group', '=', 'loyal')]"/>
             </xpath>
             <xpath expr="//filter[@name='group_type']" position="after">
                 <filter string="Nhóm khách hàng" name="group_customer_group"
@@ -92,7 +92,7 @@
                     invisible="not dlm_customer_group"
                     decoration-info="dlm_customer_group == 'new'"
                     decoration-success="dlm_customer_group == 'existing'"
-                    decoration-warning="dlm_customer_group == 'potential'"/>
+                    decoration-warning="dlm_customer_group == 'loyal'"/>
             </xpath>
 
             <!-- Tab Lịch sử Báo giá — chèn trước tab Ghi chú nội bộ -->

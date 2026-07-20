@@ -3,7 +3,7 @@
 
 Đây là nhóm cấu hình THƯƠNG MẠI duy nhất và BẮT BUỘC phê duyệt trước khi có hiệu
 lực. Cố định phương pháp "Markup trên giá thành"; chiết khấu chỉ theo 3 nhóm
-khách hàng: Khách mới, Khách cũ, Khách tiềm năng.
+khách hàng: Khách mới, Khách cũ, Khách thân thiết.
 """
 
 from odoo import api, fields, models, _
@@ -15,7 +15,7 @@ from .pricing_rule import COMMERCIAL_STATE_SELECTION
 CUSTOMER_GROUP_SELECTION = [
     ("new", "Khách mới"),
     ("existing", "Khách cũ"),
-    ("potential", "Khách tiềm năng"),
+    ("loyal", "Khách thân thiết"),
 ]
 
 

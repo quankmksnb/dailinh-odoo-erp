@@ -14,14 +14,14 @@ _CUSTOMER_ROLES = ('customer', 'both')
 CUSTOMER_GROUP_SELECTION = [
     ('new', 'Khách mới'),
     ('existing', 'Khách cũ'),
-    ('potential', 'Khách tiềm năng'),
+    ('loyal', 'Khách thân thiết'),
 ]
 
-# Ngưỡng doanh số để khách cũ tự lên "Khách tiềm năng". CEO/Admin sửa được ở
+# Ngưỡng doanh số để khách cũ tự lên "Khách thân thiết". CEO/Admin sửa được ở
 # màn Cấu hình báo giá (tab Lợi nhuận & chiết khấu). Lưu ir.config_parameter —
 # mặc định 150 triệu; không cần seed vì get_param đã có fallback.
-_POTENTIAL_THRESHOLD_KEY = 'dl_sale.potential_customer_threshold'
-_POTENTIAL_THRESHOLD_DEFAULT = 150_000_000.0
+_LOYAL_THRESHOLD_KEY = 'dl_sale.loyal_customer_threshold'
+_LOYAL_THRESHOLD_DEFAULT = 150_000_000.0
 
 
 class ResPartnerQuoteStats(models.Model):
@@ -72,16 +72,16 @@ class ResPartnerQuoteStats(models.Model):
         currency_field='dlm_currency_id',
     )
 
-    # ── Nhóm khách hàng tự động (Khách mới / cũ / tiềm năng) ───────────────
+    # ── Nhóm khách hàng tự động (Khách mới / cũ / thân thiết) ──────────────
     # Mới khi tạo (chưa có báo giá duyệt) → Cũ khi đã có ≥1 báo giá duyệt →
-    # Tiềm năng khi tổng giá trị báo giá đã duyệt vượt ngưỡng cấu hình.
+    # Thân thiết khi tổng giá trị báo giá đã duyệt vượt ngưỡng cấu hình.
     # Field lưu (store) để lọc/nhóm/hiển thị nhanh trên danh sách khách hàng;
     # tính lại tự động khi báo giá đổi trạng thái/giá trị.
     dlm_customer_group = fields.Selection(
         CUSTOMER_GROUP_SELECTION, string='Nhóm khách hàng',
         compute='_compute_dlm_customer_group', store=True,
         help='Tự động: Khách mới (chưa có báo giá duyệt) → Khách cũ (đã có báo '
-             'giá duyệt) → Khách tiềm năng (tổng báo giá duyệt vượt ngưỡng cấu hình).',
+             'giá duyệt) → Khách thân thiết (tổng báo giá duyệt vượt ngưỡng cấu hình).',
     )
 
     def _compute_dlm_currency(self):
@@ -138,7 +138,7 @@ class ResPartnerQuoteStats(models.Model):
     def _compute_dlm_customer_group(self):
         """Chỉ khách hàng mới có nhóm. 'Đơn hàng thành công' = báo giá khách đã
         đồng ý / đã lên đơn (accepted/ordered) — mốc thắng đơn thực tế."""
-        threshold = self._get_potential_threshold()
+        threshold = self._get_loyal_threshold()
         for rec in self:
             if rec.partner_role not in _CUSTOMER_ROLES:
                 rec.dlm_customer_group = False
@@ -150,18 +150,18 @@ class ResPartnerQuoteStats(models.Model):
             if not won:
                 rec.dlm_customer_group = 'new'
             elif sum(won.mapped('amount_total')) > threshold:
-                rec.dlm_customer_group = 'potential'
+                rec.dlm_customer_group = 'loyal'
             else:
                 rec.dlm_customer_group = 'existing'
 
     @api.model
-    def _get_potential_threshold(self):
+    def _get_loyal_threshold(self):
         param = self.env['ir.config_parameter'].sudo().get_param(
-            _POTENTIAL_THRESHOLD_KEY, _POTENTIAL_THRESHOLD_DEFAULT)
+            _LOYAL_THRESHOLD_KEY, _LOYAL_THRESHOLD_DEFAULT)
         try:
             return float(param)
         except (TypeError, ValueError):
-            return _POTENTIAL_THRESHOLD_DEFAULT
+            return _LOYAL_THRESHOLD_DEFAULT
 
     def _can_edit_classification(self):
         u = self.env.user
@@ -172,13 +172,13 @@ class ResPartnerQuoteStats(models.Model):
     def get_customer_classification_config(self):
         """OWL màn Cấu hình báo giá gọi để nạp ngưỡng + quyền sửa."""
         return {
-            'threshold': self._get_potential_threshold(),
+            'threshold': self._get_loyal_threshold(),
             'canEdit': self._can_edit_classification(),
         }
 
     @api.model
-    def set_potential_threshold(self, value):
-        """Lưu ngưỡng lên Khách tiềm năng rồi phân loại lại toàn bộ khách hàng.
+    def set_loyal_threshold(self, value):
+        """Lưu ngưỡng lên Khách thân thiết rồi phân loại lại toàn bộ khách hàng.
         Ngưỡng nằm ngoài @api.depends nên phải tính lại thủ công."""
         if not self._can_edit_classification():
             raise AccessError(_(
@@ -190,8 +190,8 @@ class ResPartnerQuoteStats(models.Model):
         if val < 0:
             raise ValidationError(_('Ngưỡng doanh số không được âm.'))
         self.env['ir.config_parameter'].sudo().set_param(
-            _POTENTIAL_THRESHOLD_KEY, val)
+            _LOYAL_THRESHOLD_KEY, val)
         partners = self.sudo().search([('partner_role', 'in', _CUSTOMER_ROLES)])
         partners._compute_dlm_customer_group()
         partners.flush_recordset(['dlm_customer_group'])
-        return self._get_potential_threshold()
+        return self._get_loyal_threshold()
