@@ -12,6 +12,21 @@
             <field name="perm_unlink">0</field>
         </record>
 
+        <!-- Sales (BA) được TẠO/SỬA nhưng CHỈ với Sản phẩm thương mại (luồng:
+             Sales tạo SP thương mại → Kế toán nhập giá → Sales kích hoạt).
+             perm_read=0 ⇒ không đụng quyền đọc (Sales vẫn xem mọi SP để tham
+             khảo khi tạo RFQ). Không đụng SP gia công/vật tư/BTP. -->
+        <record id="rule_product_ba_trading_write_create" model="ir.rule">
+            <field name="name">Sales: chỉ tạo/sửa Sản phẩm thương mại</field>
+            <field name="model_id" ref="product.model_product_product" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_ba'))]" />
+            <field name="domain_force">[('product_kind', '=', 'trading')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
 
     </data>
 

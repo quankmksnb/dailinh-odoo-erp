@@ -38,6 +38,15 @@
         sequence="12"
         groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
+    <!-- Sales: màn tạo/quản lý riêng cho SP thương mại (create bật) -->
+    <menuitem
+        id="menu_dl_product_trading_ba"
+        name="Sản phẩm thương mại"
+        action="action_dl_product_trading_ba"
+        parent="menu_dl_product_root"
+        sequence="13"
+        groups="dl_base.dl_group_ba"
+    />
 
     <menuitem
         id="menu_dl_material_full"

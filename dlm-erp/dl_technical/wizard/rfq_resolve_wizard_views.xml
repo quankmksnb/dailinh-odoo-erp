@@ -29,7 +29,18 @@
 
                 <!-- A. Product đã từng gia công -->
                 <group invisible="mode != 'existing'" string="Chọn Product có sẵn">
-                    <field name="product_id" placeholder="Tìm theo tên sản phẩm..."/>
+                    <field name="allowed_product_ids" invisible="1"/>
+                    <field name="product_id" placeholder="Tìm theo tên sản phẩm..."
+                           domain="[('id', 'in', allowed_product_ids)]"
+                           context="{'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': request_category_id}"/>
+                    <div colspan="2" class="text-muted" invisible="not product_id">
+                        <i class="fa fa-info-circle"/>
+                        Giống y hệt: chọn BOM có sẵn bên dưới. Chỉ đổi vật liệu/kích
+                        thước: bấm "Clone thành biến thể mới" để tạo phiên bản Nháp riêng.
+                    </div>
+                    <button name="action_clone_variant" type="object"
+                            string="Clone thành biến thể mới (đổi vật liệu/kích thước)"
+                            class="btn-secondary" invisible="not product_id"/>
                 </group>
 
                 <group invisible="mode != 'existing' or not product_id" string="BOM Version">
