@@ -74,7 +74,10 @@
                         <field name="attachment_id" nolabel="1"/>
                     </group>
                 </sheet>
-                <div class="oe_chatter">
+                <!-- Log/chatter cho quản lý (CEO, Admin) và đội sở hữu bản vẽ
+                     (Kỹ thuật) — Trưởng KD không có quyền đọc bản vẽ. -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_tech">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
                     <field name="message_ids"/>

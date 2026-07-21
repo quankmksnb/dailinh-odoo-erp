@@ -161,7 +161,10 @@
                         </page>
                     </notebook>
                 </sheet>
-                <div class="oe_chatter">
+                <!-- Log/chatter cho quản lý (CEO, Trưởng KD, Admin) và đội sở
+                     hữu RFQ (BA + Kỹ thuật cùng cộng tác). -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
                     <field name="message_ids"/>
@@ -283,7 +286,10 @@
                         </page>
                     </notebook>
                 </sheet>
-                <div class="oe_chatter">
+                <!-- Log/chatter cho quản lý (CEO, Trưởng KD, Admin) và đội sở
+                     hữu RFQ (BA + Kỹ thuật cùng cộng tác). -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
                     <field name="message_ids"/>

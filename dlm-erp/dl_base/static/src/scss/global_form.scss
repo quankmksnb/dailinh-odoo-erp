@@ -136,7 +136,24 @@
         }
     }
 
-    // --- Chatter (border only — color overrides moved to global_dialog.scss) --
+    // --- Chatter ---------------------------------------------------------------
+    // Odoo core tự chuyển chatter sang nằm CẠNH sheet (o-aside, rộng cố định
+    // 530px) khi màn hình >= ~1534px: lúc đó .o_form_renderer nhận class
+    // bootstrap `d-flex flex-nowrap` (xem web/form_compiler.js) rồi sheet_bg và
+    // chatter xếp thành 2 cột. Trên laptop 1536–1920px chatter ăn gần nửa bề
+    // ngang, đặc biệt bóp nghẹt màn tạo mới. Ép về xếp DỌC: chatter nằm dưới
+    // sheet, full width — log/follower/activity vẫn đầy đủ, chỉ đổi vị trí.
+    &.o_xxl_form_view .o_form_renderer {
+        flex-direction: column !important;
+
+        .o_form_sheet_bg { flex: 0 1 auto !important; }
+    }
+
+    .o-mail-Form-chatter.o-aside {
+        width: 100% !important;
+        flex: 0 0 auto !important;
+    }
+
     .o-mail-Chatter .o-mail-Chatter-topbar {
         border-bottom: 1px solid $dl-divider;
     }

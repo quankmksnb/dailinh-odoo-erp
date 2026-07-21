@@ -194,7 +194,11 @@
                         </page>
                     </notebook>
                 </sheet>
-                <div class="oe_chatter">
+                <!-- Log/chatter chỉ hiển thị cho quản lý (CEO, Trưởng KD, Admin)
+                     và đội sở hữu báo giá (BA/Sales) — dữ liệu vẫn lưu đầy đủ,
+                     chỉ giới hạn người xem để phục vụ truy xuất. -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_ba">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
                     <field name="message_ids"/>
