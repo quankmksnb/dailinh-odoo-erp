@@ -58,6 +58,7 @@ class DlQuotationRequest(models.Model):
             ("new", "Mới"),
             ("processing", "Đang xử lý"),
             ("returned", "Trả lại bổ sung"),
+            ("supplemented", "Đã bổ sung"),
             ("confirmed", "Đã xử lý xong"),
             ("quoted", "Đã tạo báo giá"),
             ("cancelled", "Đã hủy"),
@@ -145,25 +146,42 @@ class DlQuotationRequest(models.Model):
     def _recompute_status_from_lines(self):
         for rec in self:
 
-            # 'returned' là trạng thái chờ Sales bổ sung — không tự thoát ra do
-            # KTV/Sales sửa dòng; chỉ nút "Gửi lại" (action_resubmit) mới đưa ra.
+            # Các trạng thái "chốt" hoặc chờ thao tác người dùng — không tự đổi:
+            #  - returned: chờ Sales bổ sung (chỉ action_resubmit đưa ra).
+            #  - quoted/cancelled: đã kết thúc.
             if rec.status in ("returned", "quoted", "cancelled"):
                 continue
 
-            if not rec.line_ids:
-                status = "new"
+            lines = rec.line_ids
 
-            elif all(line._is_resolved() for line in rec.line_ids):
+            # Xử lý xong TẤT CẢ dòng → "Đã xử lý xong".
+            if lines and all(line._is_resolved() for line in lines):
                 status = "confirmed"
 
-            elif any(line._is_resolved() for line in rec.line_ids):
+            # KTV ĐÃ bắt đầu xử lý nhưng chưa xong hết → "Đang xử lý". Coi là đã
+            # bắt đầu khi: đã bấm "Nhận RFQ"/"Xử lý RFQ" (status đang processing/
+            # confirmed cũ), HOẶC ít nhất 1 dòng đã chọn Sản phẩm / đánh dấu không
+            # khả thi. (Hàng gia công cần cả Product + BOM mới coi là "xong", nên
+            # riêng việc chọn Product đã tính là đang xử lý.)
+            elif rec.status in ("processing", "confirmed") or any(
+                    line.resolved_product_id or line.is_infeasible for line in lines):
                 status = "processing"
 
+            # new / supplemented: chưa ai đụng tới → GIỮ NGUYÊN.
             else:
-                status = "new"
+                status = rec.status
 
             if rec.status != status:
                 rec.status = status
+
+    def action_receive(self):
+        """KTV: nhận RFQ để bắt đầu xử lý (Mới / Đã bổ sung → Đang xử lý)."""
+        for rec in self:
+            if rec.status not in ("new", "supplemented"):
+                raise UserError(_(
+                    "Chỉ RFQ ở trạng thái 'Mới' hoặc 'Đã bổ sung' mới nhận để xử lý."))
+            rec.status = "processing"
+            rec.message_post(body=_("Kỹ thuật đã nhận RFQ để xử lý."))
 
     def action_cancel(self):
         self.write({
@@ -186,14 +204,14 @@ class DlQuotationRequest(models.Model):
         }
 
     def action_resubmit(self):
-        """Sales: sau khi bổ sung, gửi lại RFQ cho Kỹ thuật xử lý tiếp."""
+        """Sales: sau khi bổ sung, gửi lại RFQ cho Kỹ thuật xử lý tiếp. Trạng
+        thái chuyển sang 'Đã bổ sung' (KTV lại bấm 'Nhận RFQ' để xử lý tiếp)."""
         for rec in self:
             if rec.status != "returned":
                 raise UserError(_(
                     "Chỉ RFQ đang ở trạng thái 'Trả lại bổ sung' mới gửi lại được."))
-            rec.status = "new"
+            rec.status = "supplemented"
             rec.message_post(body=_("Sales đã bổ sung và gửi lại RFQ."))
-        self._recompute_status_from_lines()
 
     def action_mark_quoted(self):
         for rec in self:
@@ -286,6 +304,19 @@ class DlQuotationRequestLine(models.Model):
         for rec in self:
             rec.image_count = len(rec.image_ids)
 
+    # § Tạo RFQ (1d + 2b): Ảnh & file đính kèm gộp chung vào attachment_ids
+    # (many2many_binary). preview_image = ảnh đầu tiên trong file đính kèm — dùng
+    # để hiển thị THUMBNAIL ở list thay vì hiện số lượng.
+    preview_image = fields.Image(
+        string="Ảnh", compute="_compute_preview_image", attachment=False)
+
+    @api.depends("attachment_ids")
+    def _compute_preview_image(self):
+        for rec in self:
+            img = rec.attachment_ids.filtered(
+                lambda a: a.mimetype and a.mimetype.startswith("image/"))[:1]
+            rec.preview_image = img.datas if img else False
+
     resolved_product_id = fields.Many2one(
         "product.product",
         string="Sản phẩm xác định",
@@ -308,6 +339,45 @@ class DlQuotationRequestLine(models.Model):
             if rec.product_category_id:
                 domain.append(("categ_id", "child_of", rec.product_category_id.id))
             rec.resolvable_product_ids = Product.search(domain)
+
+    # § Tạo RFQ (1a): danh sách Nhóm SP cho Sales chọn = TẤT CẢ nhóm, chỉ loại
+    # các nhóm hệ thống Odoo (All / Internal / Expense). product.category không có
+    # field phân loại (đã bỏ category_kind) và lúc tạo RFQ sản phẩm chưa tồn tại
+    # nên KHÔNG lọc theo SP (tránh danh sách rỗng "No records").
+    selectable_category_ids = fields.Many2many(
+        "product.category", compute="_compute_selectable_category_ids",
+        string="Nhóm SP chọn được")
+
+    @api.depends_context("uid")
+    def _compute_selectable_category_ids(self):
+        excluded = []
+        for xmlid in ("product.product_category_all",
+                      "product.product_category_1",
+                      "product.cat_expense"):
+            cat = self.env.ref(xmlid, raise_if_not_found=False)
+            if cat:
+                excluded.append(cat.id)
+        cats = self.env["product.category"].search([("id", "not in", excluded)])
+        for rec in self:
+            rec.selectable_category_ids = cats
+
+    # § Tạo RFQ (1b): SP tham khảo lọc theo Nhóm SP đã chọn của dòng (chỉ SP gia
+    # công đang active). Domain của reference_product_id ở view trỏ vào field này.
+    reference_product_ids = fields.Many2many(
+        "product.product", compute="_compute_reference_product_ids",
+        string="SP tham khảo hợp lệ")
+
+    @api.depends("product_category_id")
+    def _compute_reference_product_ids(self):
+        Product = self.env["product.product"]
+        for rec in self:
+            domain = [
+                ("product_kind", "in", ("manufactured", "material_processed")),
+                ("dlm_lifecycle_state", "=", "active"),
+            ]
+            if rec.product_category_id:
+                domain.append(("categ_id", "child_of", rec.product_category_id.id))
+            rec.reference_product_ids = Product.search(domain)
 
     # Màn "Nhận RFQ" (Kỹ thuật) — BOM cụ thể được chọn/tạo để sản xuất
     # resolved_product_id. Không áp dụng cho dòng thương mại (không qua BOM).
@@ -498,8 +568,12 @@ class DlQuotationRequestLine(models.Model):
         return res
 
     def action_open_resolve_wizard(self):
-        """Màn 'Nhận RFQ' (Kỹ thuật) — mở wizard chọn/tạo Product + BOM cho dòng này."""
+        """Màn 'Nhận RFQ' (Kỹ thuật) — mở wizard chọn/tạo Product + BOM cho dòng này.
+        Bắt đầu xử lý = RFQ chuyển sang 'Đang xử lý' ngay (nếu đang Mới/Đã bổ sung)."""
         self.ensure_one()
+        request = self.quotation_request_id
+        if request.status in ("new", "supplemented"):
+            request.status = "processing"
         return {
             "type": "ir.actions.act_window",
             "name": _("Xử lý RFQ — %s") % (self.product_name or self.resolved_product_id.display_name),

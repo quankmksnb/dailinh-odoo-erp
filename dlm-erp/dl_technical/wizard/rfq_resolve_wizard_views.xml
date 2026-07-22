@@ -8,20 +8,26 @@
         <field name="name">dl.rfq.resolve.wizard.form</field>
         <field name="model">dl.rfq.resolve.wizard</field>
         <field name="arch" type="xml">
-            <form string="Xử lý RFQ">
-                <group string="Yêu cầu từ Sales">
-                    <group>
-                        <field name="request_product_name"/>
-                        <field name="request_category_id"/>
-                        <field name="request_quantity"/>
-                    </group>
-                    <group>
-                        <field name="request_reference_product_id"/>
-                        <field name="request_dimension_note"/>
-                    </group>
-                </group>
-
+            <form string="Xử lý RFQ" class="dl-rfq-resolve">
                 <field name="rfq_line_id" invisible="1"/>
+
+                <!-- Khối yêu cầu từ Sales — gộp gọn để KTV xem nhanh trên cùng 1 màn. -->
+                <div class="alert alert-info" role="alert">
+                    <group>
+                        <group>
+                            <field name="request_product_name"/>
+                            <field name="request_category_id"/>
+                            <field name="request_quantity"/>
+                        </group>
+                        <group>
+                            <field name="request_reference_product_id"/>
+                            <field name="request_dimension_note"/>
+                        </group>
+                    </group>
+                    <field name="request_attachment_ids" widget="many2many_binary"
+                           readonly="1" nolabel="1"
+                           invisible="not request_attachment_ids"/>
+                </div>
 
                 <group>
                     <field name="mode" widget="radio"/>
@@ -32,7 +38,7 @@
                     <field name="allowed_product_ids" invisible="1"/>
                     <field name="product_id" placeholder="Tìm theo tên sản phẩm..."
                            domain="[('id', 'in', allowed_product_ids)]"
-                           context="{'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': request_category_id}"/>
+                           context="{'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': request_category_id, 'default_name': request_product_name}"/>
                     <div colspan="2" class="text-muted" invisible="not product_id">
                         <i class="fa fa-info-circle"/>
                         Giống y hệt: chọn BOM có sẵn bên dưới. Chỉ đổi vật liệu/kích
@@ -88,9 +94,22 @@
                             string="Tạo Product" class="oe_highlight"/>
                 </group>
 
+                <!-- Hoặc: kết luận dòng này KHÔNG khả thi (không cần Product/BOM). -->
+                <separator string="Hoặc — không khả thi"/>
+                <group>
+                    <field name="is_infeasible"/>
+                    <field name="infeasible_reason"
+                           invisible="not is_infeasible"
+                           required="is_infeasible"/>
+                    <button name="action_mark_infeasible" type="object"
+                            string="Xác nhận không khả thi" class="btn-warning"
+                            invisible="not is_infeasible"/>
+                </group>
+
                 <footer>
                     <button name="action_confirm" type="object"
-                            string="Xác nhận" class="oe_highlight"/>
+                            string="Xác nhận" class="oe_highlight"
+                            invisible="is_infeasible"/>
                     <button string="Hủy" special="cancel"/>
                 </footer>
             </form>

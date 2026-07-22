@@ -38,3 +38,9 @@
     flex: 1 1 auto !important;
     justify-content: center !important;
 }
+
+// §1c — ô "Yêu cầu / Mô tả" trong form dòng gia công cao & rộng hơn cho dễ nhập.
+// Dùng selector trực tiếp vì form dòng mở trong dialog (nằm ngoài .dl-rfq-form).
+.dl-rfq-desc textarea {
+    min-height: 120px !important;
+}

@@ -78,6 +78,11 @@ class DlBom(models.Model):
     # Tra theo product_id để KTV vừa xem bản vẽ vừa nhập vật tư vào BOM ngay
     # trên cùng màn (cả màn tạo BOM sản phẩm lẫn wizard tạo BOM khi nhận RFQ).
     # Chỉ đọc, không đụng dữ liệu bản vẽ — ưu tiên bản vẽ đã xác nhận, mới nhất.
+    drawing_id = fields.Many2one(
+        "dl.drawing",
+        string="Bản vẽ kỹ thuật",
+        compute="_compute_drawing_ref",
+    )
     drawing_attachment_id = fields.Many2one(
         "ir.attachment",
         string="File bản vẽ",
@@ -101,9 +106,40 @@ class DlBom(models.Model):
                     order="version desc", limit=1,
                 ) or Drawing.search(domain, order="version desc", limit=1)
             att = drawing.attachment_id
+            rec.drawing_id = drawing
             rec.drawing_attachment_id = att
             rec.drawing_mimetype = att.mimetype if att else False
             rec.drawing_filename = att.name if att else False
+
+    def action_view_drawing(self):
+        """§4a — XEM trực tiếp file bản vẽ (mở PDF/ảnh trong tab mới), không mở
+        form thêm bản vẽ. download=false để trình duyệt render xem tại chỗ."""
+        self.ensure_one()
+        if not self.drawing_attachment_id:
+            raise UserError(_("Sản phẩm chưa có bản vẽ kỹ thuật."))
+        return {
+            "type": "ir.actions.act_url",
+            "url": "/web/content/%s?download=false" % self.drawing_attachment_id.id,
+            "target": "new",
+        }
+
+    def action_upload_drawing(self):
+        """§4b — tải lên bản vẽ ngay từ màn BOM (mở form Bản vẽ trong dialog, tự
+        gắn Sản phẩm hiện tại). Dùng chung cho cả màn Tạo BOM & Nhận RFQ."""
+        self.ensure_one()
+        if not self.product_id:
+            raise UserError(_("Vui lòng chọn Sản phẩm trước khi tải bản vẽ."))
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Tải lên bản vẽ"),
+            "res_model": "dl.drawing",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_product_id": self.product_id.id,
+                "default_name": self.product_id.display_name,
+            },
+        }
 
     @api.depends("line_ids.subtotal")
     def _compute_total_material_cost(self):
