@@ -83,7 +83,8 @@
         ]" />
         <field name="search_view_id" ref="view_dl_product_pricing_search" />
         <field name="domain">[('product_kind', '=', 'trading')]</field>
-        <field name="context">{'create': False, 'delete': False, 'search_default_active': 1}</field>
+        <field name="context">{'create': False, 'delete': False,
+            'dl_kind_scope': ['trading'], 'search_default_active': 1}</field>
         <!-- KTV không được vào Bảng giá; Kế toán toàn quyền sửa (ACL/ir.rule),
              CEO/Trưởng phòng KD chỉ xem (ACL write=0) -->
         <field name="groups_id"
@@ -137,7 +138,8 @@
         ]" />
         <field name="search_view_id" ref="view_dl_product_pricing_search" />
         <field name="domain">[('product_kind', '=', 'material')]</field>
-        <field name="context">{'create': False, 'delete': False, 'search_default_active': 1}</field>
+        <field name="context">{'create': False, 'delete': False,
+            'dl_kind_scope': ['material'], 'search_default_active': 1}</field>
         <field name="groups_id"
             eval="[(6, 0, [
                 ref('dl_base.dl_group_admin'),
