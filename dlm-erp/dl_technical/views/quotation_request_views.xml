@@ -53,6 +53,16 @@
         <field name="arch" type="xml">
             <form string="Yêu cầu báo giá" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
+                    <!-- Kỹ thuật trả RFQ về Sales bổ sung (thiếu thông tin) -->
+                    <button name="action_open_return_wizard" type="object"
+                            string="Gửi lại Sales (bổ sung)"
+                            invisible="status in ('returned', 'quoted', 'cancelled')"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <!-- Sales gửi lại sau khi đã bổ sung -->
+                    <button name="action_resubmit" type="object"
+                            string="Gửi lại (đã bổ sung)" class="oe_highlight"
+                            invisible="status != 'returned'"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <!-- Sale đánh dấu đã tạo báo giá (tạm thời thủ công, xem
                          docstring model — D3 chưa có quotation_request_id) -->
                     <button name="action_mark_quoted" type="object"
@@ -66,7 +76,7 @@
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn hủy RFQ này?"/>
                     <field name="status" widget="statusbar"
-                           statusbar_visible="new,processing,confirmed,quoted"
+                           statusbar_visible="new,processing,returned,confirmed,quoted"
                            readonly="1"/>
                 </header>
                 <sheet>
@@ -74,6 +84,11 @@
                             bg_color="text-bg-danger" invisible="status != 'cancelled'"/>
                     <widget name="web_ribbon" title="Đã tạo báo giá"
                             bg_color="text-bg-success" invisible="status != 'quoted'"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="status != 'returned'">
+                        <strong>Đã trả lại Sales để bổ sung:</strong>
+                        <field name="return_reason" readonly="1" nolabel="1"/>
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>
@@ -103,10 +118,14 @@
                                     <field name="product_category_id"/>
                                     <field name="quantity"/>
                                     <field name="dimension_note" optional="show"/>
+                                    <field name="reference_product_id" string="SP tham khảo"
+                                           optional="show"/>
+                                    <field name="image_count" string="Ảnh" optional="show"/>
+                                    <field name="resolvable_product_ids" column_invisible="1"/>
                                     <field name="resolved_product_id" string="Product Reference"
                                            readonly="not is_technician"
-                                           options="{'no_quick_create': True}"
-                                           context="{'form_view_ref': 'dl_product.view_dl_product_tech_form', 'default_product_kind': 'manufactured'}"/>
+                                           domain="[('id', 'in', resolvable_product_ids)]"
+                                           context="{'form_view_ref': 'dl_product.view_dl_product_tech_form', 'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': product_category_id}"/>
                                     <field name="resolved_bom_id" string="BOM Reference"
                                            readonly="not is_technician"
                                            domain="[('product_id', '=', resolved_product_id)]"/>
@@ -119,9 +138,13 @@
                                     <field name="is_technician" invisible="1"/>
                                     <field name="product_type" invisible="1"/>
                                     <group>
-                                        <group string="Yêu cầu">
+                                        <group string="Yêu cầu (Sales)">
                                             <field name="product_name" required="1"/>
                                             <field name="product_category_id"/>
+                                            <field name="reference_product_id"
+                                                   string="Sản phẩm tham khảo"
+                                                   options="{'no_create': True}"
+                                                   invisible="product_type == 'trading'"/>
                                             <field name="quantity"/>
                                             <field name="dimension_note"/>
                                         </group>
@@ -131,11 +154,12 @@
                                                     class="btn-secondary"
                                                     invisible="not id or is_infeasible or product_type == 'trading'"
                                                     groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                            <field name="resolvable_product_ids" invisible="1"/>
                                             <field name="resolved_product_id" string="Product Reference"
                                                    invisible="is_infeasible"
                                                    readonly="not is_technician"
-                                                   options="{'no_quick_create': True}"
-                                                   context="{'form_view_ref': 'dl_product.view_dl_product_tech_form', 'default_product_kind': 'manufactured'}"/>
+                                                   domain="[('id', 'in', resolvable_product_ids)]"
+                                                   context="{'form_view_ref': 'dl_product.view_dl_product_tech_form', 'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': product_category_id}"/>
                                             <field name="resolved_bom_id" string="BOM Reference"
                                                    invisible="is_infeasible"
                                                    readonly="not is_technician"
@@ -146,6 +170,23 @@
                                                    readonly="not is_technician"/>
                                         </group>
                                     </group>
+                                    <!-- Ảnh + file (Sales bổ sung được khi RFQ bị
+                                         trả lại; KTV cũng xem để xử lý). -->
+                                    <separator string="File đính kèm"
+                                               invisible="product_type == 'trading'"/>
+                                    <field name="attachment_ids" widget="many2many_binary"
+                                           invisible="product_type == 'trading'"/>
+                                    <separator string="Ảnh"
+                                               invisible="product_type == 'trading'"/>
+                                    <field name="image_ids"
+                                           invisible="product_type == 'trading'">
+                                        <tree editable="bottom">
+                                            <field name="sequence" widget="handle"/>
+                                            <field name="image" widget="image"
+                                                   options="{'size': [80, 80]}"/>
+                                            <field name="name"/>
+                                        </tree>
+                                    </field>
                                 </form>
                             </field>
                         </page>
@@ -187,6 +228,10 @@
         <field name="arch" type="xml">
             <form string="Tạo RFQ" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
+                    <button name="action_resubmit" type="object"
+                            string="Gửi lại (đã bổ sung)" class="oe_highlight"
+                            invisible="status != 'returned'"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <button name="action_mark_quoted" type="object"
                             string="Đánh dấu đã tạo báo giá" class="oe_highlight"
                             invisible="status != 'confirmed'"
@@ -197,7 +242,7 @@
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn hủy RFQ này?"/>
                     <field name="status" widget="statusbar"
-                           statusbar_visible="new,processing,confirmed,quoted"
+                           statusbar_visible="new,processing,returned,confirmed,quoted"
                            readonly="1"/>
                 </header>
                 <sheet>
@@ -205,6 +250,11 @@
                             bg_color="text-bg-danger" invisible="status != 'cancelled'"/>
                     <widget name="web_ribbon" title="Đã tạo báo giá"
                             bg_color="text-bg-success" invisible="status != 'quoted'"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="status != 'returned'">
+                        <strong>Kỹ thuật trả lại để bổ sung:</strong>
+                        <field name="return_reason" readonly="1" nolabel="1"/>
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>
@@ -225,52 +275,66 @@
 
                     <notebook>
                         <page string="Dòng sản phẩm" name="lines">
-                            <field name="line_ids"
+                            <!-- BẢNG 1: Sản phẩm thương mại (chọn thẳng, có giá) -->
+                            <separator string="Sản phẩm thương mại"/>
+                            <field name="trading_line_ids"
                                    readonly="status in ('quoted', 'cancelled')">
-                                <tree string="Dòng sản phẩm" editable="bottom">
-                                    <field name="product_type" required="1"/>
+                                <tree string="Sản phẩm thương mại" editable="bottom">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="product_type" column_invisible="1"/>
                                     <field name="resolved_product_id" string="Sản phẩm"
-                                           invisible="product_type != 'trading'"
-                                           required="product_type == 'trading'"
-                                           domain="[('product_kind', '=', 'trading')]"/>
-                                    <field name="product_price"
-                                           widget="monetary" options="{'currency_field': 'currency_id'}"
-                                           invisible="product_type != 'trading'"/>
-                                    <field name="product_name"
-                                           invisible="product_type == 'trading'"
-                                           required="product_type == 'manufactured'"/>
-                                    <field name="product_category_id" optional="show"
-                                           invisible="product_type == 'trading'"/>
-                                    <field name="reference_product_id" optional="show"
-                                           invisible="product_type == 'trading'"/>
-                                    <field name="quantity"/>
-                                    <field name="dimension_note" string="Mô tả" optional="show"
-                                           invisible="product_type == 'trading'"/>
+                                           required="1"
+                                           options="{'no_create': True}"
+                                           domain="[('product_kind', '=', 'trading'), ('dlm_lifecycle_state', '=', 'active')]"/>
+                                    <field name="product_price" string="Đơn giá"
+                                           widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="quantity" string="Số lượng"/>
+                                    <field name="price_subtotal" string="Thành tiền"
+                                           widget="monetary" options="{'currency_field': 'currency_id'}"/>
                                 </tree>
-                                <form string="Dòng sản phẩm">
+                            </field>
+
+                            <!-- BẢNG 2: Sản phẩm gia công (mô tả + ảnh + file) -->
+                            <separator string="Sản phẩm gia công"/>
+                            <field name="manufactured_line_ids"
+                                   readonly="status in ('quoted', 'cancelled')">
+                                <tree string="Sản phẩm gia công">
+                                    <field name="product_type" column_invisible="1"/>
+                                    <field name="product_name" string="Tên sản phẩm"/>
+                                    <field name="product_category_id" string="Nhóm sản phẩm"/>
+                                    <field name="reference_product_id" string="Sản phẩm tham khảo"/>
+                                    <field name="quantity" string="Số lượng"/>
+                                    <field name="dimension_note" string="Mô tả"/>
+                                    <field name="image_count" string="Ảnh"/>
+                                </tree>
+                                <form string="Sản phẩm gia công">
+                                    <field name="product_type" invisible="1"/>
                                     <group>
-                                        <field name="product_type" widget="radio"/>
+                                        <group string="Thông tin">
+                                            <field name="product_name" required="1"/>
+                                            <field name="product_category_id"
+                                                   options="{'no_create': True}"/>
+                                            <field name="reference_product_id"
+                                                   options="{'no_create': True}"/>
+                                            <field name="quantity"/>
+                                        </group>
+                                        <group string="Yêu cầu / Mô tả">
+                                            <field name="dimension_note" nolabel="1"
+                                                   placeholder="Kích thước, yêu cầu kỹ thuật..."/>
+                                        </group>
                                     </group>
-                                    <group invisible="product_type != 'trading'"
-                                           string="Sản phẩm thương mại">
-                                        <field name="resolved_product_id" string="Sản phẩm"
-                                               required="product_type == 'trading'"
-                                               domain="[('product_kind', '=', 'trading')]"/>
-                                        <field name="product_price"
-                                               widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                                        <field name="quantity"/>
-                                    </group>
-                                    <group invisible="product_type != 'manufactured'"
-                                           string="Sản phẩm gia công">
-                                        <field name="product_name"
-                                               required="product_type == 'manufactured'"/>
-                                        <field name="quantity"/>
-                                        <field name="dimension_note" string="Mô tả"/>
-                                        <field name="product_category_id"
-                                               string="Nhóm sản phẩm (tham khảo)"/>
-                                        <field name="reference_product_id"
-                                               string="Sản phẩm (tham khảo)"/>
-                                    </group>
+                                    <separator string="File đính kèm"/>
+                                    <field name="attachment_ids" widget="many2many_binary"
+                                           string="File đính kèm"/>
+                                    <separator string="Ảnh (nhiều ảnh)"/>
+                                    <field name="image_ids">
+                                        <tree editable="bottom">
+                                            <field name="sequence" widget="handle"/>
+                                            <field name="image" widget="image"
+                                                   options="{'size': [80, 80]}"/>
+                                            <field name="name" string="Mô tả ảnh"/>
+                                        </tree>
+                                    </field>
                                 </form>
                             </field>
                         </page>

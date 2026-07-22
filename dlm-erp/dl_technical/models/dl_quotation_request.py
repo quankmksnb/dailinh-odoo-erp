@@ -57,12 +57,22 @@ class DlQuotationRequest(models.Model):
         [
             ("new", "Mới"),
             ("processing", "Đang xử lý"),
+            ("returned", "Trả lại bổ sung"),
             ("confirmed", "Đã xử lý xong"),
             ("quoted", "Đã tạo báo giá"),
             ("cancelled", "Đã hủy"),
         ],
         string="Trạng thái",
         default="new",
+        readonly=True,
+        copy=False,
+        tracking=True,
+    )
+
+    # Lý do KTV trả lại RFQ cho Sales bổ sung (giữ lý do gần nhất; lịch sử đầy
+    # đủ nằm ở chatter).
+    return_reason = fields.Text(
+        string="Lý do trả lại",
         readonly=True,
         copy=False,
         tracking=True,
@@ -83,6 +93,24 @@ class DlQuotationRequest(models.Model):
         "dl.quotation.request.line",
         "quotation_request_id",
         string="Danh sách sản phẩm",
+    )
+
+    # Màn Tạo RFQ tách 2 bảng riêng (trên/dưới) để cột không trùng nhau — cùng
+    # trỏ line_ids, lọc + mặc định theo product_type. line_ids gốc vẫn dùng cho
+    # status/logic.
+    manufactured_line_ids = fields.One2many(
+        "dl.quotation.request.line",
+        "quotation_request_id",
+        string="Sản phẩm gia công",
+        domain=[("product_type", "=", "manufactured")],
+        context={"default_product_type": "manufactured"},
+    )
+    trading_line_ids = fields.One2many(
+        "dl.quotation.request.line",
+        "quotation_request_id",
+        string="Sản phẩm thương mại",
+        domain=[("product_type", "=", "trading")],
+        context={"default_product_type": "trading"},
     )
 
     # Hiển thị trên list "RFQ cần xử lý" — gộp từ các dòng (1 RFQ có thể nhiều
@@ -117,7 +145,9 @@ class DlQuotationRequest(models.Model):
     def _recompute_status_from_lines(self):
         for rec in self:
 
-            if rec.status in ("quoted", "cancelled"):
+            # 'returned' là trạng thái chờ Sales bổ sung — không tự thoát ra do
+            # KTV/Sales sửa dòng; chỉ nút "Gửi lại" (action_resubmit) mới đưa ra.
+            if rec.status in ("returned", "quoted", "cancelled"):
                 continue
 
             if not rec.line_ids:
@@ -139,6 +169,31 @@ class DlQuotationRequest(models.Model):
         self.write({
             "status": "cancelled",
         })
+
+    def action_open_return_wizard(self):
+        """KTV: mở wizard nhập lý do để trả RFQ về cho Sales bổ sung."""
+        self.ensure_one()
+        if self.status in ("quoted", "cancelled"):
+            raise UserError(_(
+                "Không thể trả lại RFQ đã tạo báo giá hoặc đã hủy."))
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Trả lại RFQ để bổ sung"),
+            "res_model": "dl.rfq.return.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_request_id": self.id},
+        }
+
+    def action_resubmit(self):
+        """Sales: sau khi bổ sung, gửi lại RFQ cho Kỹ thuật xử lý tiếp."""
+        for rec in self:
+            if rec.status != "returned":
+                raise UserError(_(
+                    "Chỉ RFQ đang ở trạng thái 'Trả lại bổ sung' mới gửi lại được."))
+            rec.status = "new"
+            rec.message_post(body=_("Sales đã bổ sung và gửi lại RFQ."))
+        self._recompute_status_from_lines()
 
     def action_mark_quoted(self):
         for rec in self:
@@ -193,7 +248,8 @@ class DlQuotationRequestLine(models.Model):
     reference_product_id = fields.Many2one(
         "product.product",
         string="Sản phẩm tham khảo",
-        domain=[("product_kind", "in", ("manufactured", "material_processed"))],
+        domain=[("product_kind", "in", ("manufactured", "material_processed")),
+                ("dlm_lifecycle_state", "=", "active")],
         help="Chỉ mang tính tham khảo nếu Sales biết sản phẩm tương tự đã từng "
              "gia công — Kỹ thuật sẽ xác nhận sản phẩm chính thức sau.",
     )
@@ -208,10 +264,50 @@ class DlQuotationRequestLine(models.Model):
         string="Kích thước / Yêu cầu",
     )
 
+    # Ảnh (nhiều) + file đính kèm cho dòng gia công (§ màn Tạo RFQ). Ảnh dùng
+    # model con để hiển thị thumbnail; file dùng ir.attachment (many2many_binary).
+    image_ids = fields.One2many(
+        "dl.quotation.request.line.image",
+        "line_id",
+        string="Ảnh",
+    )
+    image_count = fields.Integer(
+        string="Số ảnh", compute="_compute_image_count")
+    attachment_ids = fields.Many2many(
+        "ir.attachment",
+        "dl_rfq_line_ir_attachment_rel",
+        "line_id",
+        "attachment_id",
+        string="File đính kèm",
+    )
+
+    @api.depends("image_ids")
+    def _compute_image_count(self):
+        for rec in self:
+            rec.image_count = len(rec.image_ids)
+
     resolved_product_id = fields.Many2one(
         "product.product",
         string="Sản phẩm xác định",
     )
+
+    # SP hợp lệ để CHỌN khi resolve (gia công): lọc theo Nhóm SP của dòng RFQ
+    # (KHÔNG lọc theo trạng thái vòng đời — chọn được cả draft lẫn active).
+    # Domain của resolved_product_id ở form Kỹ thuật (view) trỏ vào field này.
+    resolvable_product_ids = fields.Many2many(
+        "product.product", compute="_compute_resolvable_product_ids",
+        string="SP hợp lệ để chọn")
+
+    @api.depends("product_category_id")
+    def _compute_resolvable_product_ids(self):
+        Product = self.env["product.product"]
+        for rec in self:
+            domain = [
+                ("product_kind", "in", ("manufactured", "material_processed")),
+            ]
+            if rec.product_category_id:
+                domain.append(("categ_id", "child_of", rec.product_category_id.id))
+            rec.resolvable_product_ids = Product.search(domain)
 
     # Màn "Nhận RFQ" (Kỹ thuật) — BOM cụ thể được chọn/tạo để sản xuất
     # resolved_product_id. Không áp dụng cho dòng thương mại (không qua BOM).
@@ -242,6 +338,20 @@ class DlQuotationRequestLine(models.Model):
         digits="Product Price",
         readonly=True,
     )
+
+    # Thành tiền cho dòng thương mại (đơn giá × số lượng) — hiển thị ở bảng
+    # thương mại màn Tạo RFQ.
+    price_subtotal = fields.Float(
+        string="Thành tiền",
+        compute="_compute_price_subtotal",
+        digits="Product Price",
+        readonly=True,
+    )
+
+    @api.depends("product_price", "quantity")
+    def _compute_price_subtotal(self):
+        for rec in self:
+            rec.price_subtotal = (rec.product_price or 0.0) * (rec.quantity or 0.0)
 
     is_infeasible = fields.Boolean(
         string="Không khả thi",
@@ -398,3 +508,19 @@ class DlQuotationRequestLine(models.Model):
             "target": "new",
             "context": {"default_rfq_line_id": self.id},
         }
+
+
+class DlQuotationRequestLineImage(models.Model):
+    _name = "dl.quotation.request.line.image"
+    _description = "Ảnh dòng yêu cầu báo giá"
+    _order = "sequence, id"
+
+    line_id = fields.Many2one(
+        "dl.quotation.request.line",
+        string="Dòng RFQ",
+        required=True,
+        ondelete="cascade",
+    )
+    sequence = fields.Integer(string="Thứ tự", default=10)
+    name = fields.Char(string="Mô tả ảnh")
+    image = fields.Image(string="Ảnh", required=True, max_width=1920, max_height=1920)

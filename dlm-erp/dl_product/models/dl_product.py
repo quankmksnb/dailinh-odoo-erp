@@ -1,7 +1,7 @@
 import re
 
 from odoo import api, fields, models, _
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 # Data Model PROD-02: default_code validate ^[A-Z0-9\-]+$ (chữ hoa, số, gạch ngang)
 _CODE_RE = re.compile(r"^[A-Z0-9\-]+$")
@@ -45,6 +45,84 @@ class ProductProduct(models.Model):
         "• Vật tư (material): NVL thô, tra giá NCC\n"
         "• Bán thành phẩm (material_processed): cắt/gia công từ vật tư gốc, có BOM riêng",
     )
+
+    # ── Trạng thái vòng đời (dùng chung mọi loại SP) ─────────────────────
+    # Tránh "rác" danh mục: SP mới do Kỹ thuật (RFQ) / Sales (thương mại) tạo
+    # nằm ở 'draft' — CHƯA tái sử dụng được. Chỉ lên 'active' khi được duyệt
+    # (đơn hàng chốt tự promote — dl_sale; hoặc bấm tay). 'obsolete' = ngừng
+    # nhận nhưng vẫn giữ lịch sử. default='active' để dữ liệu cũ khi nâng cấp
+    # tự thành SP chính thức; luồng tạo mới sẽ set 'draft' tường minh.
+    dlm_lifecycle_state = fields.Selection(
+        [
+            ("draft", "Nháp / Kỹ thuật"),
+            ("active", "Đã duyệt"),
+            ("obsolete", "Ngừng"),
+        ],
+        string="Trạng thái vòng đời",
+        default="active",
+        required=True,
+        tracking=True,
+        copy=False,
+        help="• Nháp: vừa tạo khi xử lý RFQ / khai báo SP thương mại — chưa tái "
+             "sử dụng được.\n"
+             "• Đã duyệt: đã chốt (đơn hàng xác nhận hoặc duyệt tay) — nằm trong "
+             "danh mục để tái sử dụng.\n"
+             "• Ngừng: không còn nhận làm/bán nữa, vẫn giữ lịch sử.",
+    )
+
+    # Chỉ Kế toán/Admin được nhập Giá bán SP thương mại (Sales tạo SP nhưng
+    # KHÔNG tự đặt giá) — dùng để readonly ô giá trên form theo role.
+    dlm_is_price_editor = fields.Boolean(
+        compute="_compute_dlm_is_price_editor", compute_sudo=True)
+
+    def _compute_dlm_is_price_editor(self):
+        user = self.env.user
+        editor = (user.has_group("dl_base.dl_group_accountant")
+                  or user.has_group("dl_base.dl_group_admin"))
+        for rec in self:
+            rec.dlm_is_price_editor = editor
+
+    def _check_lifecycle_manager(self):
+        """Ai được đổi trạng thái vòng đời: SP gia công/BTP → Kỹ thuật/Admin;
+        SP thương mại → Sales(BA)/Admin. sudo (auto-promote từ đơn hàng) bỏ qua."""
+        self.ensure_one()
+        if self.env.su:
+            return
+        user = self.env.user
+        if user.has_group("dl_base.dl_group_admin"):
+            return
+        if self.product_kind == "trading":
+            if not user.has_group("dl_base.dl_group_ba"):
+                raise AccessError(
+                    _("Chỉ Sales/Admin được đổi trạng thái Sản phẩm thương mại."))
+        else:
+            if not user.has_group("dl_base.dl_group_tech"):
+                raise AccessError(
+                    _("Chỉ Kỹ thuật/Admin được đổi trạng thái Sản phẩm gia công."))
+
+    def action_lifecycle_activate(self):
+        """Duyệt SP lên 'active' (tái sử dụng được). SP thương mại phải có giá
+        bán (do Kế toán nhập) trước khi Sales kích hoạt."""
+        for rec in self:
+            rec._check_lifecycle_manager()
+            if rec.product_kind == "trading" and rec.list_price <= 0:
+                raise UserError(_(
+                    "Sản phẩm thương mại phải có Giá bán > 0 (Kế toán nhập) "
+                    "trước khi kích hoạt."))
+            rec.sudo().write({"dlm_lifecycle_state": "active"})
+        return True
+
+    def action_lifecycle_obsolete(self):
+        for rec in self:
+            rec._check_lifecycle_manager()
+            rec.sudo().write({"dlm_lifecycle_state": "obsolete"})
+        return True
+
+    def action_lifecycle_reset_draft(self):
+        for rec in self:
+            rec._check_lifecycle_manager()
+            rec.sudo().write({"dlm_lifecycle_state": "draft"})
+        return True
 
     # ── Hao hụt & thu hồi (chỉ vật tư) ───────────────────────────────────
     # NGUỒN DUY NHẤT của hao hụt: đặt ngay trên vật tư, kỹ thuật điền khi tạo.

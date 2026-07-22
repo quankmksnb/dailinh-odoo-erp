@@ -52,6 +52,24 @@ class DlRfqResolveWizard(models.TransientModel):
         domain=[("product_kind", "in", ("manufactured", "material_processed"))],
     )
 
+    # Danh sách SP hợp lệ để CHỌN: lọc theo Nhóm SP của RFQ (KHÔNG lọc theo
+    # trạng thái vòng đời — chọn được cả draft lẫn active). Dùng làm domain cho
+    # product_id (giống pattern bom_ids→selected_bom_id).
+    allowed_product_ids = fields.Many2many(
+        "product.product", compute="_compute_allowed_product_ids",
+        string="SP hợp lệ")
+
+    @api.depends("request_category_id")
+    def _compute_allowed_product_ids(self):
+        Product = self.env["product.product"]
+        for rec in self:
+            domain = [
+                ("product_kind", "in", ("manufactured", "material_processed")),
+            ]
+            if rec.request_category_id:
+                domain.append(("categ_id", "child_of", rec.request_category_id.id))
+            rec.allowed_product_ids = Product.search(domain)
+
     new_product_name = fields.Char(string="Tên sản phẩm mới")
     new_product_category_id = fields.Many2one(
         "product.category", string="Nhóm sản phẩm")
@@ -94,9 +112,34 @@ class DlRfqResolveWizard(models.TransientModel):
             "name": self.new_product_name,
             "categ_id": self.new_product_category_id.id,
             "product_kind": "manufactured",
+            # Case B "hoàn toàn mới": SP nằm ở Nháp cho tới khi đơn chốt/duyệt.
+            "dlm_lifecycle_state": "draft",
         })
         self.product_id = product.id
         self.mode = "existing"
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "dl.rfq.resolve.wizard",
+            "res_id": self.id,
+            "view_mode": "form",
+            "target": "new",
+        }
+
+    def action_clone_variant(self):
+        """Case 'chỉ đổi vật liệu/kích thước' — clone SP đang chọn thành một
+        biến thể (variant) MỚI ở trạng thái Nháp, để Kỹ thuật sửa vật liệu/
+        kích thước + tạo BOM mới cho nó mà không đụng SP gốc."""
+        self.ensure_one()
+        if not self.product_id:
+            raise UserError(_("Vui lòng chọn Sản phẩm gốc để clone."))
+        clone = self.product_id.copy({
+            "name": _("%s (biến thể)") % self.product_id.name,
+            "default_code": False,
+            "dlm_lifecycle_state": "draft",
+        })
+        self.product_id = clone.id
+        self.mode = "existing"
+        self.selected_bom_id = False
         return {
             "type": "ir.actions.act_window",
             "res_model": "dl.rfq.resolve.wizard",

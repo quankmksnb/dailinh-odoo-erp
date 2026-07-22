@@ -27,6 +27,11 @@
                 <field name="name" string="Tên SP" />
                 <field name="categ_id" string="Nhóm SP" />
                 <field name="product_kind" string="Loại SP" />
+                <field name="dlm_lifecycle_state" string="Vòng đời" widget="badge"
+                    decoration-info="dlm_lifecycle_state == 'draft'"
+                    decoration-success="dlm_lifecycle_state == 'active'"
+                    decoration-muted="dlm_lifecycle_state == 'obsolete'"
+                    optional="show" />
                 <field name="uom_id" string="ĐVT" optional="show" />
                 <field name="active" column_invisible="1" />
             </tree>
@@ -43,6 +48,43 @@
                 js_class="dl_product_form"
             >
                 <header>
+                    <!-- Vòng đời: SP gia công/BTP do Kỹ thuật duyệt; SP thương
+                         mại do Sales duyệt (sau khi Kế toán nhập giá). Model tự
+                         chặn quyền (_check_lifecycle_manager) — 'groups' ở đây
+                         chỉ ẩn/hiện cho gọn UI. -->
+                    <button
+                        name="action_lifecycle_activate"
+                        type="object"
+                        string="Duyệt (Active)"
+                        class="oe_highlight"
+                        invisible="dlm_lifecycle_state != 'draft' or product_kind != 'trading'"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_admin"
+                    />
+                    <button
+                        name="action_lifecycle_activate"
+                        type="object"
+                        string="Duyệt (Active)"
+                        class="oe_highlight"
+                        invisible="dlm_lifecycle_state != 'draft' or product_kind == 'trading'"
+                        groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
+                    />
+                    <button
+                        name="action_lifecycle_obsolete"
+                        type="object"
+                        string="Ngừng sử dụng"
+                        class="btn-secondary"
+                        confirm="Đưa sản phẩm này về trạng thái Ngừng? SP sẽ không còn được chọn để tái sử dụng."
+                        invisible="dlm_lifecycle_state != 'active'"
+                        groups="dl_base.dl_group_tech,dl_base.dl_group_ba,dl_base.dl_group_admin"
+                    />
+                    <button
+                        name="action_lifecycle_reset_draft"
+                        type="object"
+                        string="Đưa về Nháp"
+                        class="btn-secondary"
+                        invisible="dlm_lifecycle_state != 'obsolete'"
+                        groups="dl_base.dl_group_tech,dl_base.dl_group_ba,dl_base.dl_group_admin"
+                    />
                     <button
                         name="toggle_active"
                         type="object"
@@ -59,6 +101,11 @@
                         class="btn-secondary"
                         invisible="active"
                         groups="dl_base.dl_group_admin"
+                    />
+                    <field
+                        name="dlm_lifecycle_state"
+                        widget="statusbar"
+                        statusbar_visible="draft,active,obsolete"
                     />
                 </header>
                 <sheet>
@@ -114,11 +161,14 @@
                         invisible="product_kind != 'trading'"
                     >
                         <field name="currency_id" invisible="1" />
+                        <field name="dlm_is_price_editor" invisible="1" />
                         <field
                             name="list_price"
                             string="Giá bán"
                             widget="monetary"
                             options="{'currency_field': 'currency_id'}"
+                            readonly="not dlm_is_price_editor"
+                            help="Do Kế toán nhập. Sales tạo SP rồi kích hoạt sau khi có giá."
                         />
                     </group>
 
@@ -191,6 +241,13 @@
                 <filter string="Đang dùng" name="active" domain="[('active', '=', True)]" />
                 <filter string="Ngừng" name="inactive" domain="[('active', '=', False)]" />
                 <separator />
+                <filter string="Nháp / Kỹ thuật" name="f_lc_draft"
+                    domain="[('dlm_lifecycle_state', '=', 'draft')]" />
+                <filter string="Đã duyệt" name="f_lc_active"
+                    domain="[('dlm_lifecycle_state', '=', 'active')]" />
+                <filter string="Ngừng (vòng đời)" name="f_lc_obsolete"
+                    domain="[('dlm_lifecycle_state', '=', 'obsolete')]" />
+                <separator />
                 <filter string="Gia công" name="f_manufactured"
                     domain="[('product_kind', '=', 'manufactured')]" />
                 <filter string="Thương mại" name="f_trading"
@@ -204,6 +261,8 @@
                         context="{'group_by': 'categ_id'}" />
                     <filter string="Loại SP" name="group_kind"
                         context="{'group_by': 'product_kind'}" />
+                    <filter string="Trạng thái vòng đời" name="group_lifecycle"
+                        context="{'group_by': 'dlm_lifecycle_state'}" />
                 </group>
             </search>
         </field>
@@ -288,8 +347,9 @@
         <field name="search_view_id" ref="view_dl_product_search" />
         <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
         <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
-            'manufactured',
-            'search_default_active': 1, 'search_default_group_kind': 1, 'active_test': False}</field>
+            'manufactured', 'default_dlm_lifecycle_state': 'draft',
+            'search_default_active': 1, 'search_default_group_lifecycle': 1,
+            'active_test': False}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm sản phẩm đầu tiên!</p>
         </field>
@@ -312,8 +372,8 @@
         <field name="search_view_id" ref="view_dl_product_search" />
         <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
         <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
-            'manufactured',
-            'delete': False, 'search_default_active': 1, 'search_default_group_kind': 1,
+            'manufactured', 'default_dlm_lifecycle_state': 'draft',
+            'delete': False, 'search_default_active': 1, 'search_default_group_lifecycle': 1,
             'active_test': False}</field>
         <field name="groups_id"
             eval="[(6, 0, [ref('dl_base.dl_group_admin'), ref('dl_base.dl_group_tech')])]" />
@@ -334,7 +394,8 @@
         <field name="search_view_id" ref="view_dl_product_search" />
         <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
         <field name="context">{'create': False, 'edit': False, 'delete': False,
-            'search_default_active': 1, 'search_default_group_kind': 1, 'active_test': False}</field>
+            'search_default_active': 1, 'search_default_f_lc_active': 1,
+            'search_default_group_kind': 1, 'active_test': False}</field>
         <field name="groups_id"
             eval="[(6, 0, [
                 ref('dl_base.dl_group_admin'),
@@ -342,5 +403,33 @@
                 ref('dl_base.dl_group_ceo'),
                 ref('dl_base.dl_group_sales_manager'),
             ])]" />
+    </record>
+
+    <!-- Sales (BA): tạo/sửa SP THƯƠNG MẠI (ir.rule chặn ngoài trading). SP mới
+         ở trạng thái Nháp; Kế toán nhập giá; Sales bấm Duyệt để Active. -->
+    <record id="action_dl_product_trading_ba" model="ir.actions.act_window">
+        <field name="name">Sản phẩm thương mại</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_ids"
+            eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="domain">[('product_kind', '=', 'trading')]</field>
+        <field name="context">{'default_detailed_type': 'product',
+            'default_product_kind': 'trading',
+            'default_dlm_lifecycle_state': 'draft',
+            'default_list_price': 0.0,
+            'delete': False, 'search_default_active': 1,
+            'search_default_group_lifecycle': 1, 'active_test': False}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Thêm sản phẩm thương mại đầu tiên!</p>
+        </field>
+        <field name="groups_id"
+            eval="[(6, 0, [ref('dl_base.dl_group_ba'), ref('dl_base.dl_group_admin')])]" />
     </record>
 </odoo>

@@ -63,7 +63,20 @@ class DlSaleOrder(models.Model):
             if vals.get('name', 'New') == 'New':
                 vals['name'] = self.env['ir.sequence'].next_by_code(
                     'dl.sale.order') or 'New'
-        return super().create(vals_list)
+        orders = super().create(vals_list)
+        # Đơn có thể sinh ra THẲNG ở 'confirmed' (luồng Báo giá → Tạo đơn dùng
+        # create với state='confirmed', KHÔNG qua action_confirm) — vẫn phải
+        # promote SP gia công còn Nháp.
+        orders.filtered(lambda o: o.state == 'confirmed')._promote_draft_products()
+        return orders
+
+    def write(self, vals):
+        res = super().write(vals)
+        # Bao mọi đường chuyển sang 'confirmed' (action_confirm, sửa tay trên
+        # form) — promote SP gia công còn Nháp.
+        if vals.get('state') == 'confirmed':
+            self._promote_draft_products()
+        return res
 
     @api.depends('line_ids.price_subtotal', 'line_ids.qty',
                  'discount_pct', 'vat_pct')
@@ -80,7 +93,17 @@ class DlSaleOrder(models.Model):
             rec.amount_total = before_vat + vat
 
     def action_confirm(self):
+        # write() lo phần promote SP gia công (state → 'confirmed').
         self.write({'state': 'confirmed'})
+
+    def _promote_draft_products(self):
+        """Đơn chốt ⇒ các SP còn ở Nháp (Kỹ thuật tạo khi xử lý RFQ) được nâng
+        lên 'Đã duyệt' để chính thức vào danh mục tái sử dụng. sudo vì người
+        chốt đơn (Sales) không có quyền write product.product của SP gia công."""
+        products = self.mapped('line_ids.product_id').filtered(
+            lambda p: p.dlm_lifecycle_state == 'draft')
+        if products:
+            products.sudo().write({'dlm_lifecycle_state': 'active'})
 
     def action_done(self):
         self.write({'state': 'done'})

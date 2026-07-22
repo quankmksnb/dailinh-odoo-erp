@@ -16,6 +16,7 @@
         "views/bom_template_views.xml",
         "views/quotation_request_views.xml",
         "wizard/rfq_resolve_wizard_views.xml",
+        "wizard/rfq_return_wizard_views.xml",
         "wizard/bom_from_template_wizard_views.xml",
         "views/technical_home.xml",
         "views/menus.xml",
