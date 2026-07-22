@@ -8,6 +8,7 @@
         <field name="arch" type="xml">
             <form string="Tạo từ BOM mẫu">
                 <field name="bom_id" invisible="1"/>
+                <field name="product_category_id" invisible="1"/>
                 <group>
                     <field name="template_id"/>
                 </group>

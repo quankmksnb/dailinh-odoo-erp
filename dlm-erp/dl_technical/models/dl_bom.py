@@ -168,12 +168,44 @@ class DlBom(models.Model):
         if self.product_id:
             self.version = self._compute_next_version()
 
+    def action_open_form_modal(self):
+        """Mở chính BOM này bằng form dl.bom mặc định dưới dạng modal Ở CHẾ ĐỘ
+        SỬA — dùng cho nút bút chì trên bảng BOM Version của màn Nhận RFQ
+        (bấm thẳng vào dòng chỉ mở chế độ xem vì bom_ids là computed readonly)."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "dl.bom",
+            "res_id": self.id,
+            "view_mode": "form",
+            "target": "new",
+        }
+
     def action_create_from_template(self):
         """Product BOM — nút "Create From BOM Template": mở wizard chọn 1
         BOM mẫu (dl.bom.template) rồi copy toàn bộ dòng sang BOM này."""
         self.ensure_one()
         if self.status != "draft":
             raise UserError(_("Chỉ BOM ở trạng thái Nháp mới copy được từ BOM mẫu."))
+        category = self.product_id.categ_id
+        if not category:
+            raise UserError(_(
+                'Sản phẩm "%s" chưa được gán Nhóm sản phẩm — hãy gán nhóm cho '
+                'sản phẩm trước khi tạo BOM từ BOM mẫu.'
+            ) % self.product_id.display_name)
+        has_template = self.env["dl.bom.template"].search(
+            [
+                ("product_category_id", "=", category.id),
+                ("status", "!=", "archived"),
+            ],
+            limit=1,
+        )
+        if not has_template:
+            raise UserError(_(
+                'Nhóm sản phẩm "%s" chưa có BOM mẫu nào. Hãy tạo BOM mẫu cho '
+                'nhóm này trước (menu BOM mẫu), hoặc nhập dòng vật tư trực tiếp '
+                'vào BOM.'
+            ) % category.display_name)
         return {
             "type": "ir.actions.act_window",
             "name": _("Tạo từ BOM mẫu"),

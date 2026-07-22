@@ -125,15 +125,17 @@ class DlRfqResolveWizard(models.TransientModel):
         self.ensure_one()
         if not self.new_product_name:
             raise UserError(_("Vui lòng nhập Tên sản phẩm mới."))
-        if not self.new_product_category_id:
-            raise UserError(_("Vui lòng chọn Nhóm sản phẩm."))
-        product = self.env["product.product"].create({
+        vals = {
             "name": self.new_product_name,
-            "categ_id": self.new_product_category_id.id,
             "product_kind": "manufactured",
             # Case B "hoàn toàn mới": SP nằm ở Nháp cho tới khi đơn chốt/duyệt.
             "dlm_lifecycle_state": "draft",
-        })
+        }
+        # Nhóm sản phẩm KHÔNG bắt buộc — bỏ trống thì dùng nhóm mặc định của
+        # Odoo (All), gán lại sau cũng được.
+        if self.new_product_category_id:
+            vals["categ_id"] = self.new_product_category_id.id
+        product = self.env["product.product"].create(vals)
         self.product_id = product.id
         self.mode = "existing"
         return {
@@ -144,32 +146,10 @@ class DlRfqResolveWizard(models.TransientModel):
             "target": "new",
         }
 
-    def action_clone_variant(self):
-        """Case 'chỉ đổi vật liệu/kích thước' — clone SP đang chọn thành một
-        biến thể (variant) MỚI ở trạng thái Nháp, để Kỹ thuật sửa vật liệu/
-        kích thước + tạo BOM mới cho nó mà không đụng SP gốc."""
-        self.ensure_one()
-        if not self.product_id:
-            raise UserError(_("Vui lòng chọn Sản phẩm gốc để clone."))
-        clone = self.product_id.copy({
-            "name": _("%s (biến thể)") % self.product_id.name,
-            "default_code": False,
-            "dlm_lifecycle_state": "draft",
-        })
-        self.product_id = clone.id
-        self.mode = "existing"
-        self.selected_bom_id = False
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "dl.rfq.resolve.wizard",
-            "res_id": self.id,
-            "view_mode": "form",
-            "target": "new",
-        }
-
     def action_create_bom(self):
-        """Tạo BOM mới (trống) cho product_id, mở form BOM để Kỹ thuật khai
-        báo dòng vật tư bằng đúng UI BOM hiện có."""
+        """Tạo BOM mới cho product_id rồi mở NGUYÊN màn Product BOM (form
+        dl.bom mặc định) dưới dạng modal — khai báo dòng vật tư / Create From
+        BOM Template... bằng đúng UI BOM hiện có."""
         self.ensure_one()
         if not self.product_id:
             raise UserError(_("Vui lòng chọn hoặc tạo Product trước."))

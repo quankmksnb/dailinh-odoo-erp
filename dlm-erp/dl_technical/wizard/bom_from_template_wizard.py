@@ -11,16 +11,26 @@ class DlBomFromTemplateWizard(models.TransientModel):
     _description = "Tạo BOM từ BOM mẫu"
 
     bom_id = fields.Many2one("dl.bom", string="BOM đích", required=True, readonly=True)
+    product_category_id = fields.Many2one(
+        related="bom_id.product_id.categ_id",
+        string="Nhóm sản phẩm",
+    )
     template_id = fields.Many2one(
         "dl.bom.template",
         string="BOM mẫu",
         required=True,
+        domain="[('product_category_id', '=', product_category_id),"
+               " ('status', '!=', 'archived')]",
     )
 
     def action_confirm(self):
         self.ensure_one()
         if self.bom_id.status != "draft":
             raise UserError(_("Chỉ BOM ở trạng thái Nháp mới copy được từ BOM mẫu."))
+        if self.template_id.product_category_id != self.bom_id.product_id.categ_id:
+            raise UserError(_(
+                'BOM mẫu "%s" thuộc nhóm sản phẩm khác với sản phẩm của BOM này.'
+            ) % self.template_id.name)
         if not self.template_id.line_ids:
             raise UserError(_("BOM mẫu này chưa có dòng nào để copy."))
 
