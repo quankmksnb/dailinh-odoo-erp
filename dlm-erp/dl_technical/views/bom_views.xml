@@ -96,6 +96,31 @@
                         </group>
                     </group>
 
+                    <!-- §4a/§4b — Bản vẽ kỹ thuật của sản phẩm ngay trên màn BOM:
+                         "Xem bản vẽ" mở dialog xem/tải file; "Tải lên bản vẽ" mở form
+                         Bản vẽ (dialog) đã gắn sẵn Sản phẩm. Chỉ nhóm được đọc bản vẽ
+                         (Tech/Admin/CEO) mới thấy — tránh AccessError cho BA/Trưởng KD. -->
+                    <group string="Bản vẽ kỹ thuật"
+                           groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo">
+                        <field name="drawing_id" invisible="1"/>
+                        <field name="drawing_attachment_id" invisible="1"/>
+                        <div colspan="2" class="o_row">
+                            <field name="drawing_filename" readonly="1" nolabel="1"
+                                   invisible="not drawing_attachment_id"/>
+                            <span class="text-muted" invisible="drawing_attachment_id">
+                                Sản phẩm chưa có bản vẽ kỹ thuật.
+                            </span>
+                            <button name="action_view_drawing" type="object"
+                                    string="Xem bản vẽ" class="btn-secondary ms-2"
+                                    icon="fa-file-image-o"
+                                    invisible="not drawing_attachment_id"/>
+                            <button name="action_upload_drawing" type="object"
+                                    string="Tải lên bản vẽ" class="btn-secondary ms-2"
+                                    icon="fa-upload"
+                                    invisible="not product_id"/>
+                        </div>
+                    </group>
+
                     <notebook>
                         <page string="Dòng BOM" name="bom_lines">
                             <field name="line_ids"

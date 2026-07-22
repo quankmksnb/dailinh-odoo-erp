@@ -20,6 +20,7 @@ export class DlRfqListController extends DlListBaseController {
                 filters: [
                     { name: "new", label: "Mới" },
                     { name: "processing", label: "Đang xử lý" },
+                    { name: "supplemented", label: "Đã bổ sung" },
                     { name: "confirmed", label: "Chờ báo giá" },
                     { name: "quoted", label: "Đã tạo BG" },
                     { name: "overdue", label: "Quá hạn" },

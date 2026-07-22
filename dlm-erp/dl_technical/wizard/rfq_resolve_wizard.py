@@ -34,6 +34,13 @@ class DlRfqResolveWizard(models.TransientModel):
         related="rfq_line_id.dimension_note", string="Kích thước / Yêu cầu", readonly=True)
     request_reference_product_id = fields.Many2one(
         related="rfq_line_id.reference_product_id", string="Sản phẩm tham khảo (Sales)", readonly=True)
+    # Ảnh / file Sales gửi kèm — cho KTV xem ngay trên màn xử lý (readonly).
+    request_attachment_ids = fields.Many2many(
+        related="rfq_line_id.attachment_ids", string="Ảnh / File Sales gửi", readonly=True)
+
+    # Đánh dấu "không khả thi" ngay trên màn xử lý (thay vì phải ra form dòng).
+    is_infeasible = fields.Boolean(string="Không khả thi")
+    infeasible_reason = fields.Text(string="Lý do không khả thi")
 
     # ── A/B ──────────────────────────────────────────────────────────────
     mode = fields.Selection(
@@ -94,6 +101,18 @@ class DlRfqResolveWizard(models.TransientModel):
     @api.onchange("product_id", "mode")
     def _onchange_product_id(self):
         self.selected_bom_id = False
+
+    @api.model
+    def default_get(self, fields_list):
+        """§3c — lấy luôn Tên sản phẩm Sales đã nhập ở RFQ làm tên mặc định khi
+        Kỹ thuật tạo sản phẩm mới (khỏi phải gõ lại)."""
+        res = super().default_get(fields_list)
+        line_id = res.get("rfq_line_id") or self.env.context.get("default_rfq_line_id")
+        if line_id and not res.get("new_product_name"):
+            line = self.env["dl.quotation.request.line"].browse(line_id)
+            if line.exists() and line.product_name:
+                res["new_product_name"] = line.product_name
+        return res
 
     def _next_version(self, product, bom_type="quotation"):
         existing = self.env["dl.bom"].search([
@@ -180,6 +199,20 @@ class DlRfqResolveWizard(models.TransientModel):
         self.selected_bom_id = result.get("res_id")
         result["target"] = "new"
         return result
+
+    def action_mark_infeasible(self):
+        """Kết luận dòng RFQ là không khả thi — ghi thẳng lên dòng, xóa Product/
+        BOM đã chọn (nếu có) và đóng màn."""
+        self.ensure_one()
+        if not (self.infeasible_reason or "").strip():
+            raise UserError(_("Vui lòng nhập lý do không khả thi."))
+        self.rfq_line_id.write({
+            "is_infeasible": True,
+            "infeasible_reason": self.infeasible_reason,
+            "resolved_product_id": False,
+            "resolved_bom_id": False,
+        })
+        return {"type": "ir.actions.act_window_close"}
 
     def action_confirm(self):
         self.ensure_one()
