@@ -19,6 +19,7 @@
         'views/user_admin_views.xml',
         'views/role_perm_views.xml',
         'views/pricing_config_views.xml',
+        'views/pricing_matrix_views.xml',
         'views/menus.xml',
     ],
     'assets': {

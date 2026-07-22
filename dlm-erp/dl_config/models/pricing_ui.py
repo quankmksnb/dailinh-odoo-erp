@@ -44,8 +44,10 @@ class DlPricingUi(models.TransientModel):
                 "profit": self._has("ceo", "admin"),
                 "discount": self._has("sales_manager", "ceo", "admin"),
                 "approval": self._has("ceo", "sales_manager", "admin"),
-                # Ma trận phê duyệt: chỉ Giám đốc/Admin được thêm/sửa (mục 8).
+                # Ma trận phê duyệt: chỉ Giám đốc/Admin được kích hoạt/ngừng;
+                # Trưởng KD được ĐỀ XUẤT (tạo/sửa bản Nháp) — guard ở model.
                 "matrix": self._has("ceo", "admin"),
+                "matrix_propose": self._has("sales_manager", "ceo", "admin"),
                 "master": self._has("tech", "accountant", "admin"),
             },
             "options": {

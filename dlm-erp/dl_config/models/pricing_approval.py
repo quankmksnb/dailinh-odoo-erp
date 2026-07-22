@@ -17,6 +17,7 @@ APPROVAL_TYPE_SELECTION = [
     ("quote_discount", "Chiết khấu báo giá vượt mặc định"),
     ("quote_below_floor", "Báo giá dưới giá sàn hoặc vượt trần"),
     ("quote_over_threshold", "Báo giá vượt ngưỡng giá trị"),
+    ("matrix_config", "Thay đổi ma trận phê duyệt"),
 ]
 
 # Vai trò duyệt gợi ý — ánh xạ sang group trong dl_base.
@@ -28,6 +29,20 @@ _ROLE_GROUP = {
     "sales_manager": "dl_base.dl_group_sales_manager",
     "ceo": "dl_base.dl_group_ceo",
 }
+# Thứ bậc vai trò — dùng cho nguyên tắc phân cấp: vai trò cao hơn luôn duyệt
+# thay được yêu cầu của cấp thấp hơn (vd Giám đốc duyệt được mức Trưởng KD).
+_ROLE_RANK = {"sales_manager": 1, "ceo": 2}
+
+
+def _users_with_min_rank(env, min_rank):
+    """User thuộc các vai trò có thứ bậc >= min_rank."""
+    users = env["res.users"]
+    for role, xmlid in _ROLE_GROUP.items():
+        if _ROLE_RANK.get(role, 0) >= min_rank:
+            group = env.ref(xmlid, raise_if_not_found=False)
+            if group:
+                users |= group.users
+    return users
 
 
 class DlPricingApprovalSetting(models.Model):
@@ -60,12 +75,17 @@ class DlPricingApprovalSetting(models.Model):
     ]
 
     def _allowed_user_ids(self):
-        """Tập user được phép duyệt loại yêu cầu này."""
+        """Tập user được phép duyệt loại yêu cầu này.
+
+        Vai trò cao hơn vai trò cấu hình luôn duyệt thay được; nếu chỉ định
+        người duyệt cụ thể thì người đó + các vai trò cao hơn.
+        """
         self.ensure_one()
+        rank = _ROLE_RANK.get(self.approver_role, 0)
         if self.approver_user_id:
-            return self.approver_user_id.ids
-        group = self.env.ref(_ROLE_GROUP[self.approver_role], raise_if_not_found=False)
-        return group.users.ids if group else []
+            higher = _users_with_min_rank(self.env, rank + 1)
+            return list(set(higher.ids) | {self.approver_user_id.id})
+        return _users_with_min_rank(self.env, rank).ids if rank else []
 
 
 class DlPricingApprovalRequest(models.Model):
@@ -123,6 +143,24 @@ class DlPricingApprovalRequest(models.Model):
         string="Trạng thái", default="pending", required=True, readonly=True,
         tracking=True, index=True,
     )
+    can_resolve = fields.Boolean(
+        "Được duyệt yêu cầu này", compute="_compute_can_resolve",
+        help="Người dùng hiện tại có quyền Duyệt/Từ chối yêu cầu này không — "
+             "UI dựa vào đây để ẩn nút (vd Trưởng KD không duyệt thay đổi "
+             "ma trận, Admin không duyệt báo giá).",
+    )
+
+    @api.depends_context("uid")
+    def _compute_can_resolve(self):
+        for req in self:
+            if req.state != "pending":
+                req.can_resolve = False
+                continue
+            try:
+                req._check_can_resolve()
+                req.can_resolve = True
+            except AccessError:
+                req.can_resolve = False
     company_id = fields.Many2one(
         "res.company", string="Công ty", required=True, index=True,
         default=lambda self: self.env.company,
@@ -208,16 +246,18 @@ class DlPricingApprovalRequest(models.Model):
         return user.name
 
     def _quote_allowed_user_ids(self):
-        """Người được phép duyệt yêu cầu "vượt ngưỡng giá trị"."""
+        """Người được phép duyệt yêu cầu "vượt ngưỡng giá trị".
+
+        Cấp cao hơn cấp yêu cầu luôn duyệt thay được (vd Giám đốc duyệt được
+        yêu cầu mức Trưởng KD). Nếu ma trận chỉ định người duyệt cụ thể thì
+        người đó + các cấp cao hơn được duyệt.
+        """
         self.ensure_one()
+        rank = _ROLE_RANK.get(self.approval_level, 0)
         if self.matrix_row_id and self.matrix_row_id.approver_user_id:
-            return self.matrix_row_id.approver_user_id.ids
-        role_group = {
-            "sales_manager": "dl_base.dl_group_sales_manager",
-            "ceo": "dl_base.dl_group_ceo",
-        }.get(self.approval_level)
-        group = self.env.ref(role_group, raise_if_not_found=False) if role_group else None
-        return group.users.ids if group else []
+            higher = _users_with_min_rank(self.env, rank + 1)
+            return list(set(higher.ids) | {self.matrix_row_id.approver_user_id.id})
+        return _users_with_min_rank(self.env, rank).ids if rank else []
 
     def _setting(self):
         self.ensure_one()
@@ -229,7 +269,11 @@ class DlPricingApprovalRequest(models.Model):
     def _check_can_resolve(self):
         self.ensure_one()
         user = self.env.user
-        if user.has_group("dl_base.dl_group_admin"):
+        # Admin là vai trò KỸ THUẬT: được bypass với yêu cầu cấu hình thương mại,
+        # nhưng KHÔNG được duyệt báo giá và KHÔNG phê duyệt thay đổi ma trận
+        # (bảng phân quyền màn Ma trận — hai việc đó thuộc TrKD/Giám đốc).
+        if (self.request_type not in ("quote_over_threshold", "matrix_config")
+                and user.has_group("dl_base.dl_group_admin")):
             return
         # Loại "Báo giá vượt ngưỡng giá trị": người duyệt do cấp/ma trận quyết
         # định, không tra ở dl.pricing.approval.setting (mục 4, 8).
@@ -237,8 +281,8 @@ class DlPricingApprovalRequest(models.Model):
             allowed = self._quote_allowed_user_ids()
             if user.id not in allowed:
                 raise AccessError(_(
-                    "Chỉ %s (hoặc người duyệt được chỉ định) mới được duyệt "
-                    "báo giá này."
+                    "Chỉ %s trở lên (hoặc người duyệt được chỉ định) mới được "
+                    "duyệt báo giá này."
                 ) % dict(self._fields["approval_level"].selection).get(
                     self.approval_level, _("cấp duyệt tương ứng")))
             return

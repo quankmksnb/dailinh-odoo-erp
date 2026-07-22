@@ -98,6 +98,7 @@ export class DlPricingConfig extends Component {
         this.state = useState({
             tab: "waste",
             approvalSub: "matrix", // matrix | pending | history
+            matrixShowHistory: false, // hiện các dòng "Ngừng áp dụng" trong ma trận
             loading: true,
             perms: {},
             options: { categories: [], products: [], operations: [], complexity: [], approvers: [] },
@@ -149,10 +150,11 @@ export class DlPricingConfig extends Component {
             approval: ["create_date", "request_type", "object_label", "old_value", "new_value",
                 "impact", "requester_id", "requester_role", "resolved_by_id", "resolved_at",
                 "reason", "reject_comment", "is_self_approval", "state", "approval_level",
-                "matrix_revision", "trigger_reasons", "res_model", "res_id"],
+                "matrix_revision", "trigger_reasons", "res_model", "res_id", "can_resolve"],
             apprset: ["request_type", "approver_role", "approver_user_id"],
             matrix: ["value_from", "approval_level", "approver_user_id", "note", "valid_from",
-                "valid_to", "state", "revision", "change_reason", "used_in_snapshot", "write_uid"],
+                "valid_to", "state", "revision", "change_reason", "used_in_snapshot", "write_uid",
+                "has_pending_request"],
             complexity: ["name", "factor", "note", "active", "sequence"],
             opcat: ["name", "code", "active", "sequence"],
         }[section];
@@ -309,6 +311,14 @@ export class DlPricingConfig extends Component {
         const msg = (e && e.data && e.data.message) || (e && e.message) || "Có lỗi xảy ra.";
         this.state.dialog = { kind: "block", title: "Không thực hiện được", msg };
     }
+    // Trưởng KD được đề xuất trên ma trận (tạo/sửa/xóa bản Nháp, tạo Sửa đổi);
+    // kích hoạt/ngừng vẫn theo canEdit('matrix') = Giám đốc/Admin.
+    // Fallback về quyền matrix khi bootstrap cũ chưa có key này (server chưa
+    // nạp lại Python) — tránh mất nút "Thêm mức duyệt" với CEO/Admin.
+    canPropose() {
+        const p = this.state.perms.matrix_propose;
+        return p === undefined ? this.canEdit("matrix") : p;
+    }
     canEdit(section) {
         const map = { profit: "profit", discount: "discount", approval: "approval", matrix: "matrix" };
         if (section === "waste" || section === "operation") return this.state.perms.waste;
@@ -325,6 +335,30 @@ export class DlPricingConfig extends Component {
     }
     get historyRequests() {
         return this.state.rows.approval.filter((r) => r.state !== "pending");
+    }
+    // Mặc định ẩn các dòng "Ngừng áp dụng" cho đỡ rối — bấm "Lịch sử" để xem.
+    get matrixRows() {
+        const rows = this.state.rows.matrix;
+        return this.state.matrixShowHistory
+            ? rows : rows.filter((r) => r.state !== "expired");
+    }
+    get matrixHistoryCount() {
+        return this.state.rows.matrix.filter((r) => r.state === "expired").length;
+    }
+    toggleMatrixHistory() {
+        this.state.matrixShowHistory = !this.state.matrixShowHistory;
+    }
+    // Cảnh báo mềm: thang đang áp dụng không kết thúc bằng Giám đốc — báo giá
+    // giá trị rất lớn sẽ chỉ cần cấp thấp hơn duyệt (hoặc không cần duyệt).
+    get matrixLadderWarning() {
+        const actives = this.state.rows.matrix.filter((r) => r.state === "active");
+        if (!actives.length) return "";
+        const top = actives.reduce((a, b) => (b.value_from > a.value_from ? b : a));
+        if (top.approval_level === "ceo") return "";
+        const topLabel = this.lab("approvalLevel", top.approval_level);
+        return top.approval_level === "none"
+            ? "Thang chưa có mức duyệt nào ngoài \"Không cần duyệt\" — mọi báo giá sẽ không cần phê duyệt theo giá trị."
+            : `Thang chưa có mức Giám đốc: báo giá vượt ${this.fmtMoney(top.value_from)} sẽ chỉ cần ${topLabel} duyệt. Cân nhắc thêm ngưỡng cao nhất cho Giám đốc.`;
     }
     fmtMoney(v) {
         if (v == null || v === "") return "";
@@ -425,7 +459,22 @@ export class DlPricingConfig extends Component {
             onOk: () => this.runAction(section, id, "action_expire"),
         };
     }
-    revise(section, id) { this.runAction(section, id, "action_create_revision"); }
+    async revise(section, id) {
+        try {
+            const res = await this.orm.call(M[section], "action_create_revision", [[id]]);
+            await this.load(section);
+            // Ma trận: mở luôn form của bản Nháp mới cho đỡ phải đi tìm dòng.
+            const newId = res && res.res_id;
+            const row = newId && this.state.rows[section].find((r) => r.id === newId);
+            if (section === "matrix" && row) {
+                this.openEdit(section, row);
+            } else {
+                this.flash("Đã tạo bản sửa đổi (Nháp).");
+            }
+        } catch (e) {
+            this.showError(e);
+        }
+    }
     submit(section, id) { this.runAction(section, id, "action_submit_approval", "approval"); }
     remove(section, id) {
         this.state.dialog = {
