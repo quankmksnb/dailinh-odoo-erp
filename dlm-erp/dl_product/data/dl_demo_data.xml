@@ -42,6 +42,9 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">3.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">60.0</field>
         </record>
         <record id="demo_product_ong_vuong" model="product.product">
             <field name="name">Ống thép vuông 25×25×1.5mm</field>
@@ -51,6 +54,9 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">4.5</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
         </record>
         <record id="demo_product_oc_vit" model="product.product">
             <field name="name">Ốc vít M6</field>
@@ -60,6 +66,8 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="uom_po_id" ref="uom.product_uom_unit" />
+            <field name="dlm_waste_rate">1.0</field>
+            <field name="dlm_has_recovery">0</field>
         </record>
 
         <!-- (4) material_processed — vật tư đã gia công, có BOM riêng -->

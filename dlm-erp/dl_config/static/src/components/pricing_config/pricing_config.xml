@@ -32,44 +32,103 @@
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">Hao hụt &amp; thu hồi theo vật tư</span>
+                        <span class="dl-pc-matcount">
+                            <t t-esc="filteredMaterials.length"/> / <t t-esc="state.rows.materials.length"/> vật tư
+                        </span>
                     </div>
                     <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
-                        Hệ số hao hụt của từng vật tư — <b>đây là số thực dùng khi tính báo giá</b>. Sửa trực tiếp tại đây hoặc trên form vật tư (cùng một dữ liệu). Hệ số phức tạp chọn theo từng dòng BOM; sản phẩm phế liệu đặt trên form vật tư.
+                        Hệ số hao hụt của từng vật tư — <b>đây là số thực dùng khi tính báo giá</b>. Sửa trực tiếp tại đây hoặc trên form vật tư (cùng một dữ liệu). Bấm tên nhóm để thu gọn/mở rộng; sản phẩm phế liệu đặt trên form vật tư.
                     </div>
-                    <table class="dl-cfg-table">
-                        <thead><tr>
-                            <th>Mã</th><th>Vật tư</th><th>Nhóm</th><th class="num">Hao hụt (%)</th>
-                            <th>Thu hồi</th><th class="num">Thu hồi (%)</th><th>Phế liệu</th>
-                        </tr></thead>
-                        <tbody>
-                            <t t-foreach="state.rows.materials" t-as="m" t-key="m.id">
-                                <tr>
-                                    <td t-esc="m.default_code"/>
-                                    <td class="nm" t-esc="m.display_name"/>
-                                    <td t-esc="m2oName(m.categ_id)"/>
-                                    <td class="num">
-                                        <input type="number" step="0.1" style="width:80px"
-                                               t-att-disabled="!canEdit('waste')"
-                                               t-model.number="m.dlm_waste_rate"
-                                               t-on-change="() => this.saveMaterial(m)"/>
-                                    </td>
-                                    <td>
-                                        <input type="checkbox" t-att-disabled="!canEdit('waste')"
-                                               t-att-checked="m.dlm_has_recovery"
-                                               t-on-change="(ev) => this.toggleRecovery(m, ev.target.checked)"/>
-                                    </td>
-                                    <td class="num">
-                                        <input t-if="m.dlm_has_recovery" type="number" step="0.1" style="width:80px"
-                                               t-att-disabled="!canEdit('waste')"
-                                               t-model.number="m.dlm_recovery_rate"
-                                               t-on-change="() => this.saveMaterial(m)"/>
-                                    </td>
-                                    <td t-esc="m.dlm_has_recovery ? m2oName(m.dlm_scrap_product_id) : ''"/>
-                                </tr>
+
+                    <!-- Thanh công cụ: tìm nhanh + lọc nhóm + chip lọc -->
+                    <div class="dl-pc-mattools">
+                        <div class="dl-pc-matsearch">
+                            <i class="fa fa-search"/>
+                            <input type="text" placeholder="Tìm theo mã hoặc tên vật tư…"
+                                   t-model="state.wasteFilter.q"
+                                   t-on-input="expandWasteGroups"/>
+                            <button t-if="state.wasteFilter.q" type="button" class="clear" title="Xóa tìm kiếm"
+                                    t-on-click="() => state.wasteFilter.q = ''">×</button>
+                        </div>
+                        <select class="dl-pc-matcateg"
+                                t-on-change="(ev) => this.setWasteCateg(ev.target.value)">
+                            <option value="">Tất cả nhóm</option>
+                            <t t-foreach="wasteCategories" t-as="c" t-key="c.v">
+                                <option t-att-value="c.v" t-att-selected="state.wasteFilter.categ === c.v" t-esc="c.label"/>
                             </t>
-                            <tr t-if="!state.rows.materials.length"><td colspan="7" class="dl-cfg-empty">Chưa có vật tư nào.</td></tr>
-                        </tbody>
-                    </table>
+                        </select>
+                        <div class="dl-pc-chips">
+                            <button type="button" class="dl-pc-chip"
+                                    t-att-class="{ 'is-active': state.wasteFilter.mode === 'all' }"
+                                    t-on-click="() => this.setWasteMode('all')">Tất cả</button>
+                            <button type="button" class="dl-pc-chip"
+                                    t-att-class="{ 'is-active': state.wasteFilter.mode === 'recovery' }"
+                                    t-on-click="() => this.setWasteMode('recovery')">
+                                Có thu hồi <span class="cnt" t-esc="'(' + wasteRecoveryCount + ')'"/>
+                            </button>
+                            <button type="button" class="dl-pc-chip warn"
+                                    t-att-class="{ 'is-active': state.wasteFilter.mode === 'missing' }"
+                                    t-on-click="() => this.setWasteMode('missing')">
+                                Chưa khai hao hụt <span class="cnt" t-esc="'(' + wasteMissingCount + ')'"/>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bảng gom nhóm theo category, header dính khi cuộn -->
+                    <div class="dl-pc-matwrap">
+                        <table class="dl-cfg-table">
+                            <thead><tr>
+                                <th>Mã</th><th>Vật tư</th><th class="num">Hao hụt (%)</th>
+                                <th>Thu hồi</th><th class="num">Thu hồi (%)</th><th>Phế liệu</th>
+                            </tr></thead>
+                            <tbody>
+                                <t t-foreach="materialGroups" t-as="g" t-key="g.id">
+                                    <tr class="dl-pc-group" t-on-click="() => this.toggleWasteGroup(g.id)">
+                                        <td colspan="6">
+                                            <i class="fa" t-att-class="state.wasteCollapsed[g.id] ? 'fa-caret-right' : 'fa-caret-down'"/>
+                                            <b t-esc="g.name"/>
+                                            <span class="cnt" t-esc="g.rows.length + ' vật tư'"/>
+                                        </td>
+                                    </tr>
+                                    <t t-if="!state.wasteCollapsed[g.id]">
+                                        <t t-foreach="g.rows" t-as="m" t-key="m.id">
+                                            <tr>
+                                                <td t-esc="m.default_code"/>
+                                                <td class="nm" t-esc="m.display_name"/>
+                                                <td class="num">
+                                                    <input type="number" step="0.1" style="width:80px"
+                                                           t-att-disabled="!canEdit('waste')"
+                                                           t-model.number="m.dlm_waste_rate"
+                                                           t-on-change="() => this.saveMaterial(m)"/>
+                                                </td>
+                                                <td>
+                                                    <input type="checkbox" t-att-disabled="!canEdit('waste')"
+                                                           t-att-checked="m.dlm_has_recovery"
+                                                           t-on-change="(ev) => this.toggleRecovery(m, ev.target.checked)"/>
+                                                </td>
+                                                <td class="num">
+                                                    <input t-if="m.dlm_has_recovery" type="number" step="0.1" style="width:80px"
+                                                           t-att-disabled="!canEdit('waste')"
+                                                           t-model.number="m.dlm_recovery_rate"
+                                                           t-on-change="() => this.saveMaterial(m)"/>
+                                                </td>
+                                                <td t-esc="m.dlm_has_recovery ? m2oName(m.dlm_scrap_product_id) : ''"/>
+                                            </tr>
+                                        </t>
+                                    </t>
+                                </t>
+                                <tr t-if="!state.rows.materials.length"><td colspan="6" class="dl-cfg-empty">Chưa có vật tư nào.</td></tr>
+                                <tr t-elif="!filteredMaterials.length">
+                                    <td colspan="6" class="dl-cfg-empty">
+                                        Không có vật tư khớp bộ lọc.
+                                        <button type="button" class="dl-cfg-mini" t-on-click="clearWasteFilter">
+                                            <i class="fa fa-times"/> Xóa bộ lọc
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </t>
 

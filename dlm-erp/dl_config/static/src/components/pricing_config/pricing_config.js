@@ -107,6 +107,9 @@ export class DlPricingConfig extends Component {
                 materials: [],
             },
             form: null, // { section, id, ...fields }
+            // Bộ lọc màn Hao hụt: tìm nhanh + nhóm vật tư + chế độ lọc.
+            wasteFilter: { q: "", categ: 0, mode: "all" }, // mode: all | recovery | missing
+            wasteCollapsed: {}, // { [categId]: true } — nhóm đang thu gọn
             reject: null, // { id, comment }
             toast: null,
             dialog: null,
@@ -225,6 +228,66 @@ export class DlPricingConfig extends Component {
             this.showError(e);
             await this.loadMaterials();
         }
+    }
+
+    // --- Lọc & gom nhóm bảng hao hụt (UX khi danh sách vật tư dài) ----------
+    get wasteCategories() {
+        const seen = new Map();
+        for (const m of this.state.rows.materials) {
+            const id = this.m2oId(m.categ_id);
+            if (id && !seen.has(id)) { seen.set(id, this.m2oName(m.categ_id)); }
+        }
+        return [...seen].map(([v, label]) => ({ v, label }))
+            .sort((a, b) => a.label.localeCompare(b.label, "vi"));
+    }
+    get wasteRecoveryCount() {
+        return this.state.rows.materials.filter((m) => m.dlm_has_recovery).length;
+    }
+    get wasteMissingCount() {
+        return this.state.rows.materials.filter((m) => !(Number(m.dlm_waste_rate) > 0)).length;
+    }
+    get filteredMaterials() {
+        const f = this.state.wasteFilter;
+        const q = f.q.trim().toLowerCase();
+        return this.state.rows.materials.filter((m) => {
+            if (f.categ && this.m2oId(m.categ_id) !== f.categ) { return false; }
+            if (f.mode === "recovery" && !m.dlm_has_recovery) { return false; }
+            if (f.mode === "missing" && Number(m.dlm_waste_rate) > 0) { return false; }
+            if (q) {
+                const hay = `${m.default_code || ""} ${m.display_name || ""}`.toLowerCase();
+                if (!hay.includes(q)) { return false; }
+            }
+            return true;
+        });
+    }
+    get materialGroups() {
+        const groups = new Map();
+        for (const m of this.filteredMaterials) {
+            const id = this.m2oId(m.categ_id) || 0;
+            if (!groups.has(id)) {
+                groups.set(id, { id, name: this.m2oName(m.categ_id) || "Chưa phân nhóm", rows: [] });
+            }
+            groups.get(id).rows.push(m);
+        }
+        return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    }
+    toggleWasteGroup(id) {
+        this.state.wasteCollapsed[id] = !this.state.wasteCollapsed[id];
+    }
+    // Đổi bộ lọc/tìm kiếm → mở lại mọi nhóm để kết quả không bị giấu;
+    // sau đó vẫn thu gọn từng nhóm bằng tay bình thường.
+    expandWasteGroups() { this.state.wasteCollapsed = {}; }
+    setWasteCateg(v) {
+        this.state.wasteFilter.categ = v ? Number(v) : 0;
+        this.expandWasteGroups();
+    }
+    setWasteMode(m) {
+        this.state.wasteFilter.mode = m;
+        this.expandWasteGroups();
+    }
+    clearWasteFilter() {
+        this.state.wasteFilter = { q: "", categ: 0, mode: "all" };
+        this.expandWasteGroups();
     }
 
     // --- Helpers hiển thị ---------------------------------------------------
