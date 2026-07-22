@@ -81,8 +81,25 @@ export class DlListBaseController extends ListController {
     }
 
     // ── Filter dropdowns (external <select>) ──────────────────────────────
+    // Chỉ hiện các filter thực sự có trong search view của action hiện tại —
+    // cùng 1 js_class được nhiều action dùng lại với search view khác nhau
+    // (VD: màn Sản phẩm lọc Gia công/Thương mại, màn Vật tư lọc Vật tư/BTP,
+    // màn Bảng giá không có filter loại SP).
+    _dlAvailableDropdowns() {
+        const sm = this.env.searchModel;
+        const available = new Set(
+            sm.getSearchItems((i) => i.type === "filter").map((i) => i.name)
+        );
+        return this.dlFilterDropdowns
+            .map((dd) => ({
+                ...dd,
+                filters: dd.filters.filter((f) => available.has(f.name)),
+            }))
+            .filter((dd) => dd.filters.length);
+    }
+
     _renderFilterDropdowns(root) {
-        const dropdowns = this.dlFilterDropdowns;
+        const dropdowns = this._dlAvailableDropdowns();
         if (!dropdowns.length) {
             return;
         }
