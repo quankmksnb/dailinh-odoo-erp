@@ -2,9 +2,19 @@ import re
 
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools.safe_eval import safe_eval
 
 # Data Model PROD-02: default_code validate ^[A-Z0-9\-]+$ (chữ hoa, số, gạch ngang)
 _CODE_RE = re.compile(r"^[A-Z0-9\-]+$")
+
+# Data Model PROD-02: 4 loại nghiệp vụ. Danh sách đầy đủ; từng màn giới hạn
+# dropdown qua context 'dl_kind_scope' (xem _dl_product_kind_selection).
+_PRODUCT_KIND_SELECTION = [
+    ("manufactured", "Sản phẩm gia công"),
+    ("trading", "Sản phẩm thương mại"),
+    ("material", "Vật tư"),
+    ("material_processed", "Bán thành phẩm"),
+]
 
 
 class ProductProduct(models.Model):
@@ -29,12 +39,7 @@ class ProductProduct(models.Model):
     _inherit = ["product.product", "mail.thread", "mail.activity.mixin"]
 
     product_kind = fields.Selection(
-        [
-            ("manufactured", "Sản phẩm gia công"),
-            ("trading", "Sản phẩm thương mại"),
-            ("material", "Vật tư"),
-            ("material_processed", "Bán thành phẩm"),
-        ],
+        selection=lambda self: self._dl_product_kind_selection(),
         string="Loại sản phẩm",
         required=True,
         default="manufactured",
@@ -45,6 +50,43 @@ class ProductProduct(models.Model):
         "• Vật tư (material): NVL thô, tra giá NCC\n"
         "• Bán thành phẩm (material_processed): cắt/gia công từ vật tư gốc, có BOM riêng",
     )
+
+    @api.model
+    def _dl_product_kind_selection(self):
+        """Dropdown Loại sản phẩm theo từng màn: action đặt context
+        ``dl_kind_scope`` = list các kind được phép (VD màn Sản phẩm
+        ['manufactured', 'trading'], màn Vật tư ['material',
+        'material_processed']). Không đặt (BOM, RFQ, import, shell…) → đủ 4.
+
+        Lưu ý: selection callable được đánh giá lại theo context cả khi GHI —
+        ghi một kind ngoài scope của màn hiện tại sẽ bị ORM chặn (ValueError),
+        đúng chủ đích chặn tạo chéo loại giữa các màn.
+        """
+        scope = self.env.context.get("dl_kind_scope")
+        if scope:
+            return [(k, v) for k, v in _PRODUCT_KIND_SELECTION if k in scope]
+        return list(_PRODUCT_KIND_SELECTION)
+
+    @api.model
+    def get_views(self, views, options=None):
+        """Web client (view_service.loadViews) LỌC context trước khi gọi
+        get_views — chỉ giữ 'lang' và '*_view_ref' — nên ``dl_kind_scope``
+        đặt trong context action KHÔNG tới được fields_get, dropdown Loại SP
+        vẫn đủ 4 loại. Bù lại get_views nhận ``options['action_id']``: đọc
+        lại context của chính action đó rồi bơm scope trước khi dựng fields.
+        (Các RPC ghi/onchange không bị lọc context nên validation theo scope
+        ở _dl_product_kind_selection vốn đã hoạt động.)"""
+        action_id = (options or {}).get("action_id")
+        if action_id and "dl_kind_scope" not in self.env.context:
+            action = self.env["ir.actions.act_window"].sudo().browse(action_id).exists()
+            try:
+                action_ctx = safe_eval(action.context) if action and action.context else {}
+            except Exception:
+                action_ctx = {}
+            scope = action_ctx.get("dl_kind_scope") if isinstance(action_ctx, dict) else None
+            if scope:
+                self = self.with_context(dl_kind_scope=scope)
+        return super().get_views(views, options)
 
     # ── Trạng thái vòng đời (dùng chung mọi loại SP) ─────────────────────
     # Tránh "rác" danh mục: SP mới do Kỹ thuật (RFQ) / Sales (thương mại) tạo
