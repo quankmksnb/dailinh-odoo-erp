@@ -292,39 +292,61 @@
                 <div class="dl-cfg-panel" t-if="state.approvalSub === 'matrix'">
                     <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">Ma trận phê duyệt theo giá trị báo giá</span>
-                        <button class="dl-cfg-mini" type="button" t-if="canEdit('matrix')" t-on-click="() => this.openCreate('matrix')"><i class="fa fa-plus"/> Thêm mức duyệt</button>
+                        <button class="dl-cfg-mini" type="button" t-if="matrixHistoryCount" t-on-click="() => this.toggleMatrixHistory()">
+                            <i class="fa fa-history"/>
+                            <t t-esc="state.matrixShowHistory ? 'Ẩn lịch sử' : 'Lịch sử (' + matrixHistoryCount + ')'"/>
+                        </button>
+                        <button class="dl-cfg-mini" type="button" t-if="canPropose()" t-on-click="() => this.openCreate('matrix')"><i class="fa fa-plus"/> Thêm mức duyệt</button>
                     </div>
                     <p class="dl-pc-hint">
                         Giá trị xét duyệt = tổng giá bán <b>sau chiết khấu, trước VAT</b>.
                         Không cần "giá trị đến": hệ thống tự suy khoảng tiền từ ngưỡng kế tiếp.
                         Báo giá dưới ngưỡng thấp nhất không phát sinh duyệt theo giá trị.
+                        Trưởng kinh doanh <b>đề xuất</b>: tạo bản Nháp rồi bấm <b>Gửi duyệt</b> —
+                        Giám đốc duyệt là dòng tự kích hoạt (từ chối thì trả về Nháp để sửa tiếp).
+                        Chỉ Giám đốc/Admin được <b>Áp dụng</b> trực tiếp hoặc <b>Ngừng</b>.
                     </p>
+                    <div class="dl-pc-warnbox" t-if="matrixLadderWarning">
+                        <i class="fa fa-exclamation-triangle" title="Cảnh báo cấu hình"/>
+                        <span t-esc="matrixLadderWarning"/>
+                    </div>
                     <table class="dl-cfg-table">
                         <thead><tr>
                             <th class="num">Ngưỡng giá trị từ</th><th>Cấp duyệt</th><th>Người duyệt cụ thể</th>
                             <th>Hiệu lực từ</th><th>Trạng thái</th><th class="num">Rev</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
-                            <t t-foreach="state.rows.matrix" t-as="r" t-key="r.id">
-                                <tr t-att-class="{'is-inactive': r.state !== 'active'}">
+                            <t t-foreach="matrixRows" t-as="r" t-key="r.id">
+                                <tr t-att-class="{'is-inactive': r.state === 'expired'}">
                                     <td class="num mono" t-esc="fmtMoney(r.value_from)"/>
                                     <td t-esc="lab('approvalLevel', r.approval_level)"/>
                                     <td t-esc="m2oName(r.approver_user_id) || '(Theo vai trò)'"/>
                                     <td class="mono" t-esc="fmtDate(r.valid_from)"/>
-                                    <td><span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/></td>
+                                    <td>
+                                        <span class="dl-pc-badge" t-att-class="stCls(r.state)" t-esc="stLabel(r.state)"/>
+                                        <span t-if="r.has_pending_request" class="dl-pc-badge is-pending">Chờ duyệt</span>
+                                    </td>
                                     <td class="num" t-esc="r.revision"/>
                                     <td class="actw">
-                                        <t t-if="canEdit('matrix')">
-                                            <button t-if="r.state === 'draft'" class="dl-pc-act" type="button" t-on-click="() => this.openEdit('matrix', r)"><i class="fa fa-pencil"/> Sửa</button>
-                                            <button t-if="r.state === 'draft'" class="dl-pc-act ok" type="button" t-on-click="() => this.apply('matrix', r.id)"><i class="fa fa-check"/> Áp dụng</button>
+                                        <!-- Đề xuất (bản Nháp / tạo Sửa đổi): TrKD + CEO/Admin.
+                                             Bản đã Gửi duyệt bị khóa cho tới khi Giám đốc xử lý. -->
+                                        <t t-if="canPropose()">
+                                            <button t-if="r.state === 'draft' and !r.has_pending_request" class="dl-pc-act" type="button" t-on-click="() => this.openEdit('matrix', r)"><i class="fa fa-pencil"/> Sửa</button>
+                                            <button t-if="r.state === 'draft' and !r.has_pending_request and !canEdit('matrix')" class="dl-pc-act ok" type="button" t-on-click="() => this.submit('matrix', r.id)"><i class="fa fa-paper-plane"/> Gửi duyệt</button>
                                             <button t-if="r.state === 'active'" class="dl-pc-act" type="button" t-on-click="() => this.revise('matrix', r.id)"><i class="fa fa-clone"/> Sửa đổi</button>
+                                            <button t-if="r.state === 'draft' and !r.has_pending_request and !r.used_in_snapshot" class="dl-pc-act danger" type="button" t-on-click="() => this.remove('matrix', r.id)"><i class="fa fa-trash-o"/></button>
+                                        </t>
+                                        <!-- Kích hoạt/Ngừng (= phê duyệt thay đổi): chỉ CEO/Admin.
+                                             Áp dụng bản đang chờ duyệt sẽ tự đóng yêu cầu như đã duyệt. -->
+                                        <t t-if="canEdit('matrix')">
+                                            <button t-if="r.state === 'draft'" class="dl-pc-act ok" type="button" t-on-click="() => this.apply('matrix', r.id)"><i class="fa fa-check"/> Áp dụng</button>
                                             <button t-if="r.state === 'active'" class="dl-pc-act danger" type="button" t-on-click="() => this.expire('matrix', r.id)"><i class="fa fa-ban"/> Ngừng</button>
-                                            <button t-if="r.state === 'draft' and !r.used_in_snapshot" class="dl-pc-act danger" type="button" t-on-click="() => this.remove('matrix', r.id)"><i class="fa fa-trash-o"/></button>
                                         </t>
                                     </td>
                                 </tr>
                             </t>
                             <tr t-if="!state.rows.matrix.length"><td colspan="7" class="dl-cfg-empty">Chưa cấu hình ma trận. Bấm "Thêm mức duyệt" để thêm ngưỡng đầu tiên.</td></tr>
+                            <tr t-if="state.rows.matrix.length and !matrixRows.length"><td colspan="7" class="dl-cfg-empty">Không có dòng nào đang dùng — bấm "Lịch sử" để xem các dòng đã ngừng.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -350,7 +372,10 @@
                                         <ul t-if="r.trigger_reasons" class="dl-pc-reasons">
                                             <li t-foreach="reasonLines(r.trigger_reasons)" t-as="ln" t-key="ln_index" t-esc="ln"/>
                                         </ul>
-                                        <span t-else="" class="dl-pc-diff"><t t-esc="r.old_value"/> → <b t-esc="r.new_value"/></span>
+                                        <div t-else="" class="dl-pc-diff">
+                                            <t t-esc="r.old_value"/> → <b t-esc="r.new_value"/>
+                                            <div t-if="r.impact" class="dl-pc-impact" t-esc="r.impact"/>
+                                        </div>
                                     </td>
                                     <td>
                                         <t t-esc="m2oName(r.requester_id)"/>
@@ -359,7 +384,9 @@
                                     <td class="actw">
                                         <button class="dl-pc-act" type="button" t-if="r.res_id"
                                                 t-on-click="() => this.openTarget(r)"><i class="fa fa-search-plus"/> Xem chi tiết</button>
-                                        <t t-if="canEdit('approval')">
+                                        <!-- Nút duyệt hiện theo quyền TỪNG yêu cầu (server tính):
+                                             TrKD không duyệt thay đổi ma trận, Admin không duyệt báo giá. -->
+                                        <t t-if="r.can_resolve">
                                             <button class="dl-pc-act ok" type="button" t-on-click="() => this.approve(r.id)"><i class="fa fa-check"/> Duyệt</button>
                                             <button class="dl-pc-act danger" type="button" t-on-click="() => this.openReject(r.id)"><i class="fa fa-times"/> Từ chối</button>
                                         </t>

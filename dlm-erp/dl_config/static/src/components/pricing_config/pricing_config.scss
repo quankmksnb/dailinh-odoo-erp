@@ -20,6 +20,15 @@
         &.is-expired { background: $dl-type-individual-bg; color: $dl-type-individual-fg; }
     }
 
+    // Hộp cảnh báo mềm (thang ma trận chưa kết thúc bằng Giám đốc...)
+    .dl-pc-warnbox {
+        display: flex; align-items: flex-start; gap: 8px;
+        background: $dl-badge-draft-bg; color: $dl-badge-draft-fg;
+        border: 1px solid #e6c68a; border-radius: $dl-radius-sm;
+        font-size: 12.5px; font-weight: 600; padding: 8px 12px; margin: 0 0 10px;
+        i { margin-top: 2px; }
+    }
+
     // Hàng cấu hình nội tuyến (ô nhập + nút Lưu) — dùng cho ngưỡng phân loại KH.
     .dl-cfg-inline {
         display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
@@ -35,6 +44,7 @@
         color: $dl-text-muted;
     }
     .dl-pc-diff { font-size: 12px; color: $dl-text-2; b { color: $dl-heading; } }
+    .dl-pc-impact { font-size: 11.5px; color: $dl-text-muted; margin-top: 2px; font-style: italic; }
 
     // Nút hành động theo dòng
     .dl-pc-act {

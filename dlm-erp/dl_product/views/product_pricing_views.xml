@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
     <!-- ============================================================
@@ -54,6 +54,22 @@
         </field>
     </record>
 
+    <!-- Search riêng cho 2 màn Bảng giá: bỏ filter/group-by Loại SP —
+         domain action đã cố định 1 loại (trading hoặc material) -->
+    <record id="view_dl_product_pricing_search" model="ir.ui.view">
+        <field name="name">dl.product.pricing.search</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_search" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='f_lc_obsolete']/following-sibling::separator[1]"
+                position="replace" />
+            <filter name="f_manufactured" position="replace" />
+            <filter name="f_trading" position="replace" />
+            <filter name="group_kind" position="replace" />
+        </field>
+    </record>
+
     <record id="action_dl_product_pricing" model="ir.actions.act_window">
         <field name="name">Bảng giá Sản phẩm thương mại</field>
         <field name="res_model">product.product</field>
@@ -65,9 +81,10 @@
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_form')}),
         ]" />
-        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="search_view_id" ref="view_dl_product_pricing_search" />
         <field name="domain">[('product_kind', '=', 'trading')]</field>
-        <field name="context">{'create': False, 'delete': False, 'search_default_active': 1}</field>
+        <field name="context">{'create': False, 'delete': False,
+            'dl_kind_scope': ['trading'], 'search_default_active': 1}</field>
         <!-- KTV không được vào Bảng giá; Kế toán toàn quyền sửa (ACL/ir.rule),
              CEO/Trưởng phòng KD chỉ xem (ACL write=0) -->
         <field name="groups_id"
@@ -119,9 +136,10 @@
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_material_form')}),
         ]" />
-        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="search_view_id" ref="view_dl_product_pricing_search" />
         <field name="domain">[('product_kind', '=', 'material')]</field>
-        <field name="context">{'create': False, 'delete': False, 'search_default_active': 1}</field>
+        <field name="context">{'create': False, 'delete': False,
+            'dl_kind_scope': ['material'], 'search_default_active': 1}</field>
         <field name="groups_id"
             eval="[(6, 0, [
                 ref('dl_base.dl_group_admin'),
