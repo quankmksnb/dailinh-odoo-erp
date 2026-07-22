@@ -248,14 +248,13 @@
                 <filter string="Ngừng (vòng đời)" name="f_lc_obsolete"
                     domain="[('dlm_lifecycle_state', '=', 'obsolete')]" />
                 <separator />
+                <!-- Màn Sản phẩm chỉ lọc 2 loại; màn Vật tư dùng
+                     view_dl_material_search, màn Bảng giá dùng
+                     view_dl_product_pricing_search (không lọc loại SP) -->
                 <filter string="Gia công" name="f_manufactured"
                     domain="[('product_kind', '=', 'manufactured')]" />
                 <filter string="Thương mại" name="f_trading"
                     domain="[('product_kind', '=', 'trading')]" />
-                <filter string="Vật tư" name="f_material"
-                    domain="[('product_kind', '=', 'material')]" />
-                <filter string="Bán thành phẩm" name="f_material_processed"
-                    domain="[('product_kind', '=', 'material_processed')]" />
                 <group expand="0" string="Nhóm theo">
                     <filter string="Nhóm SP" name="group_category"
                         context="{'group_by': 'categ_id'}" />

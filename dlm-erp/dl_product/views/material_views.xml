@@ -1,9 +1,28 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ============================================================
          VẬT TƯ — dùng lại view Sản phẩm (view_dl_product_*), chỉ khác
          domain lọc theo product_kind (material / material_processed).
     ============================================================ -->
+
+    <!-- Search riêng cho màn Vật tư: thay cặp filter Gia công/Thương mại
+         của search Sản phẩm bằng Vật tư/Bán thành phẩm -->
+    <record id="view_dl_material_search" model="ir.ui.view">
+        <field name="name">dl.material.search</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_search" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <filter name="f_manufactured" position="replace">
+                <filter string="Vật tư" name="f_material"
+                    domain="[('product_kind', '=', 'material')]" />
+            </filter>
+            <filter name="f_trading" position="replace">
+                <filter string="Bán thành phẩm" name="f_material_processed"
+                    domain="[('product_kind', '=', 'material_processed')]" />
+            </filter>
+        </field>
+    </record>
 
     <record id="action_dl_material_full" model="ir.actions.act_window">
         <field name="name">Vật tư</field>
@@ -15,7 +34,7 @@
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
-        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="search_view_id" ref="view_dl_material_search" />
         <field name="domain">
             [('product_kind', 'in', ['material', 'material_processed'])]
         </field>
@@ -41,7 +60,7 @@
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_tech_form')}),
         ]" />
-        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="search_view_id" ref="view_dl_material_search" />
         <field name="domain">
             [('product_kind', 'in', ['material', 'material_processed'])]
         </field>
@@ -62,7 +81,7 @@
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
-        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="search_view_id" ref="view_dl_material_search" />
         <field name="domain">[('product_kind', 'in', ['material', 'material_processed'])]</field>
         <field name="context">{'create': False, 'edit': False, 'delete': False,
             'search_default_active': 1, 'search_default_group_kind': 1, 'active_test': False}</field>

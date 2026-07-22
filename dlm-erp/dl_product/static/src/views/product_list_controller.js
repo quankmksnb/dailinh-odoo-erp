@@ -12,13 +12,15 @@ export class DlProductListController extends DlListBaseController {
     get dlFilterDropdowns() {
         return [
             {
+                // Đủ 4 loại — base controller tự lược theo filter có trong
+                // search view từng màn (Sản phẩm / Vật tư / Bảng giá)
                 key: "kind",
                 label: "Tất cả loại SP",
                 filters: [
                     { name: "f_manufactured", label: "Gia công" },
                     { name: "f_trading", label: "Thương mại" },
                     { name: "f_material", label: "Vật tư" },
-                    { name: "f_material_processed", label: "Vật tư đã gia công" },
+                    { name: "f_material_processed", label: "Bán thành phẩm" },
                 ],
             },
             {
