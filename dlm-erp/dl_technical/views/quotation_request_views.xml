@@ -118,6 +118,9 @@
                                     <field name="product_category_id"/>
                                     <field name="quantity"/>
                                     <field name="dimension_note" optional="show"/>
+                                    <field name="reference_product_id" string="SP tham khảo"
+                                           optional="show"/>
+                                    <field name="image_count" string="Ảnh" optional="show"/>
                                     <field name="resolvable_product_ids" column_invisible="1"/>
                                     <field name="resolved_product_id" string="Product Reference"
                                            readonly="not is_technician"
@@ -135,9 +138,13 @@
                                     <field name="is_technician" invisible="1"/>
                                     <field name="product_type" invisible="1"/>
                                     <group>
-                                        <group string="Yêu cầu">
+                                        <group string="Yêu cầu (Sales)">
                                             <field name="product_name" required="1"/>
                                             <field name="product_category_id"/>
+                                            <field name="reference_product_id"
+                                                   string="Sản phẩm tham khảo"
+                                                   options="{'no_create': True}"
+                                                   invisible="product_type == 'trading'"/>
                                             <field name="quantity"/>
                                             <field name="dimension_note"/>
                                         </group>

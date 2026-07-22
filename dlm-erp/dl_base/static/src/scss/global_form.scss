@@ -143,10 +143,13 @@
     // chatter xếp thành 2 cột. Trên laptop 1536–1920px chatter ăn gần nửa bề
     // ngang, đặc biệt bóp nghẹt màn tạo mới. Ép về xếp DỌC: chatter nằm dưới
     // sheet, full width — log/follower/activity vẫn đầy đủ, chỉ đổi vị trí.
+    // Bỏ layout 2 cột (sheet | chatter) của Odoo ở màn xxl: cho renderer về
+    // block flow tự nhiên → sheet hiển thị đủ chiều cao, chatter nằm DƯỚI full
+    // width, cả trang cuộn bình thường. (Trước dùng flex-direction:column +
+    // sheet flex:0 1 auto → khi chatter/log dài, flex bóp sheet co lại còn 1 ô
+    // cuộn nhỏ, đẩy log lên quá cao.)
     &.o_xxl_form_view .o_form_renderer {
-        flex-direction: column !important;
-
-        .o_form_sheet_bg { flex: 0 1 auto !important; }
+        display: block !important;
     }
 
     .o-mail-Form-chatter.o-aside {
