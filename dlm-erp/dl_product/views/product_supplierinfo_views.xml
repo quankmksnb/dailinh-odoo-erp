@@ -10,8 +10,11 @@
         <field name="name">dl.product.supplierinfo.tree</field>
         <field name="model">product.supplierinfo</field>
         <field name="arch" type="xml">
-            <tree string="Bảng giá NCC" class="dl-supplierinfo-list" js_class="dl_supplierinfo_list" editable="bottom">
+            <tree string="Bảng giá NCC" class="dl-supplierinfo-list" js_class="dl_supplierinfo_list" editable="bottom"
+                decoration-muted="display_state == 'draft'">
                 <field name="company_id" column_invisible="1" />
+                <field name="approval_state" column_invisible="1" />
+                <field name="is_applied" column_invisible="1" />
                 <field name="product_tmpl_id" string="Sản phẩm &amp; Vật tư" />
                 <field name="partner_id" string="Nhà cung cấp"
                     domain="[('partner_role', 'in', ['supplier', 'both'])]"
@@ -22,27 +25,25 @@
                 <field name="date_end" string="Đến ngày" />
                 <field name="min_qty" string="SL tối thiểu" optional="hide" />
                 <field
-                    name="approval_state"
+                    name="display_state"
                     widget="badge"
-                    decoration-success="approval_state == 'approved'"
-                    decoration-warning="approval_state == 'draft'"
+                    decoration-success="display_state == 'applied'"
+                    decoration-info="display_state == 'approved'"
+                    decoration-warning="display_state == 'draft'"
                 />
-                <field
-                    name="is_applied"
-                    widget="boolean_toggle"
-                    string="Đang áp dụng"
-                />
+                <!-- Mỗi trạng thái đúng 1 hành động chính:
+                     Nháp → Duyệt; Đã duyệt → Áp dụng; Đang áp dụng → Bỏ áp dụng -->
                 <button name="action_approve" type="object" string="Duyệt"
                     icon="fa-check" invisible="approval_state == 'approved'"
-                    groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
-                <button name="action_reset_draft" type="object" string="Hủy duyệt"
-                    icon="fa-undo" invisible="approval_state != 'approved'"
                     groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
                 <button name="action_set_applied" type="object" string="Áp dụng"
                     icon="fa-star" invisible="approval_state != 'approved' or is_applied"
                     groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
                 <button name="action_unset_applied" type="object" string="Bỏ áp dụng"
                     icon="fa-star-o" invisible="not is_applied"
+                    groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                <button name="action_reset_draft" type="object" string="Hủy duyệt"
+                    icon="fa-undo" invisible="approval_state != 'approved' or is_applied"
                     groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
             </tree>
         </field>
@@ -54,11 +55,13 @@
         <field name="arch" type="xml">
             <form string="Giá NCC" class="dl-supplierinfo-form" js_class="dl_supplierinfo_form">
                 <header>
+                    <field name="approval_state" invisible="1" />
+                    <field name="is_applied" invisible="1" />
+                    <!-- Mỗi trạng thái đúng 1 nút primary (oe_highlight), hành
+                         động phụ hạ xuống nút thường — người mới chỉ cần bấm
+                         nút sáng nhất là đi đúng luồng. -->
                     <button name="action_approve" type="object" string="Duyệt giá"
                         class="oe_highlight" invisible="approval_state == 'approved'"
-                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
-                    <button name="action_reset_draft" type="object" string="Về nháp"
-                        invisible="approval_state != 'approved'"
                         groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
                     <button name="action_set_applied" type="object" string="Áp dụng bảng giá này"
                         class="oe_highlight"
@@ -67,7 +70,11 @@
                     <button name="action_unset_applied" type="object" string="Bỏ áp dụng"
                         invisible="not is_applied"
                         groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
-                    <field name="approval_state" widget="statusbar" />
+                    <button name="action_reset_draft" type="object" string="Về nháp"
+                        invisible="approval_state != 'approved' or is_applied"
+                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                    <field name="display_state" widget="statusbar"
+                        statusbar_visible="draft,approved,applied" />
                 </header>
                 <sheet>
                     <field name="company_id" invisible="1" />
@@ -97,7 +104,6 @@
                             <field name="date_start" string="Từ ngày" />
                             <field name="date_end" string="Đến ngày" />
                             <field name="min_qty" string="SL tối thiểu" />
-                            <field name="is_applied" readonly="1" />
                         </group>
                     </group>
                 </sheet>
@@ -122,8 +128,8 @@
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_partner" string="Nhà cung cấp"
                         context="{'group_by': 'partner_id'}" />
-                    <filter name="group_state" string="Trạng thái duyệt"
-                        context="{'group_by': 'approval_state'}" />
+                    <filter name="group_state" string="Trạng thái"
+                        context="{'group_by': 'display_state'}" />
                 </group>
             </search>
         </field>

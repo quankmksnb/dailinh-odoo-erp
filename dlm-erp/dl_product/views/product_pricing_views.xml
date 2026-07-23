@@ -20,9 +20,24 @@
                     name="sellers"
                     groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo"
                 >
+                    <!-- Banner hướng dẫn ngữ cảnh: chỉ hiện khi còn dòng giá Nháp,
+                         nhắc người mới bước tiếp theo thay vì bắt họ tự đoán. -->
+                    <field name="dlm_has_draft_seller" invisible="1" />
+                    <div class="alert alert-info" role="alert"
+                        invisible="not dlm_has_draft_seller"
+                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin">
+                        <i class="fa fa-lightbulb-o me-2" />
+                        Giá NCC phải được <b>Duyệt</b> mới dùng được để tính giá
+                        trong BOM / báo giá. Nhập xong dòng giá, bấm nút
+                        <b>Duyệt</b> ở cuối dòng — bảng giá đầu tiên của vật tư
+                        sẽ tự động được áp dụng.
+                    </div>
                     <field name="seller_ids">
-                        <tree editable="bottom">
+                        <tree editable="bottom"
+                            decoration-muted="display_state == 'draft'">
                             <field name="company_id" column_invisible="1" />
+                            <field name="approval_state" column_invisible="1" />
+                            <field name="is_applied" column_invisible="1" />
                             <field name="partner_id" string="Nhà cung cấp"
                                 domain="[('partner_role', 'in', ['supplier', 'both'])]"
                                 context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
@@ -32,12 +47,14 @@
                             <field name="date_end" string="Đến ngày" />
                             <field name="min_qty" string="SL tối thiểu" optional="hide" />
                             <field
-                                name="approval_state"
+                                name="display_state"
                                 widget="badge"
-                                decoration-success="approval_state == 'approved'"
-                                decoration-warning="approval_state == 'draft'"
+                                decoration-success="display_state == 'applied'"
+                                decoration-info="display_state == 'approved'"
+                                decoration-warning="display_state == 'draft'"
                             />
-                            <field name="is_applied" widget="boolean_toggle" string="Đang áp dụng" />
+                            <!-- Mỗi trạng thái đúng 1 hành động chính:
+                                 Nháp → Duyệt; Đã duyệt → Áp dụng; Đang áp dụng → Bỏ áp dụng -->
                             <button name="action_approve" type="object" string="Duyệt"
                                 icon="fa-check" invisible="approval_state == 'approved'"
                                 groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />

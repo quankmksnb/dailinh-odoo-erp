@@ -124,6 +124,17 @@ class ProductProduct(models.Model):
         for rec in self:
             rec.dlm_is_price_editor = editor
 
+    # UX màn Bảng giá: banner hướng dẫn trên tab "Nhà cung cấp & Bảng giá" —
+    # chỉ hiện khi còn dòng giá ở Nháp (nhắc người mới bước tiếp theo là Duyệt).
+    dlm_has_draft_seller = fields.Boolean(
+        compute="_compute_dlm_has_draft_seller", compute_sudo=True)
+
+    @api.depends("seller_ids.approval_state")
+    def _compute_dlm_has_draft_seller(self):
+        for rec in self:
+            rec.dlm_has_draft_seller = any(
+                s.approval_state == "draft" for s in rec.seller_ids)
+
     def _check_lifecycle_manager(self):
         """Ai được đổi trạng thái vòng đời: SP gia công/BTP → Kỹ thuật/Admin;
         SP thương mại → Sales(BA)/Admin. sudo (auto-promote từ đơn hàng) bỏ qua."""
