@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Màn "Phê duyệt báo giá" cho Trưởng KD / Giám đốc.
+         Kế thừa form yêu cầu duyệt (dl_config) để nhúng CHI TIẾT báo giá:
+         dòng + giá thành + markup + giá sàn + chiết khấu + cấu phần snapshot —
+         người duyệt thấy toàn cảnh báo giá cấu thành từ gì trong MỘT màn. -->
+
+    <record id="view_dl_pricing_approval_request_form_quote" model="ir.ui.view">
+        <field name="name">dl.pricing.approval.request.form.quote</field>
+        <field name="model">dl.pricing.approval.request</field>
+        <field name="inherit_id" ref="dl_config.view_dl_pricing_approval_request_form"/>
+        <field name="arch" type="xml">
+            <!-- Đồng bộ chrome UI với các form khác (nút lên breadcrumb, menu ⋮).
+                 Gắn ở view kế thừa dl_sale vì js_class nằm trong asset dl_sale. -->
+            <xpath expr="//form" position="attributes">
+                <attribute name="class">dl-quote-approval-form</attribute>
+                <attribute name="js_class">dl_quote_approval_form</attribute>
+            </xpath>
+            <xpath expr="//header" position="inside">
+                <button name="action_open_quotation" string="Mở báo giá đầy đủ"
+                        type="object" class="btn-secondary"
+                        invisible="not quotation_id"/>
+            </xpath>
+            <xpath expr="//sheet" position="inside">
+                <field name="quotation_id" invisible="1"/>
+                <field name="q_currency_id" invisible="1"/>
+                <group invisible="not quotation_id">
+                    <group string="Báo giá được duyệt">
+                        <field name="q_partner_id" readonly="1"/>
+                        <field name="q_date_order" readonly="1"/>
+                        <field name="q_state" readonly="1"/>
+                    </group>
+                    <group string="Giá thành &amp; lợi nhuận (nội bộ)"
+                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                        <field name="q_total_cost" widget="monetary" readonly="1"
+                               string="Tổng giá thành (vật tư)"/>
+                        <field name="q_target_markup" readonly="1"
+                               string="Markup mục tiêu (%)"/>
+                        <field name="q_effective_markup" readonly="1"
+                               string="Markup thực (%)"/>
+                        <field name="q_floor_amount" widget="monetary" readonly="1"
+                               string="Tổng giá sàn"/>
+                        <field name="q_below_floor" readonly="1"
+                               string="Dưới giá sàn"/>
+                    </group>
+                </group>
+                <notebook invisible="not quotation_id">
+                    <page string="Dòng báo giá">
+                        <field name="q_line_ids" readonly="1">
+                            <tree>
+                                <field name="line_type" widget="badge"
+                                       decoration-info="line_type == 'trading'"
+                                       decoration-success="line_type == 'manufactured'"/>
+                                <field name="name"/>
+                                <field name="qty" digits="[16, 0]"/>
+                                <field name="material_cost" digits="[16, 0]" string="CP vật tư/đv"
+                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                <field name="total_cost" digits="[16, 0]" string="Giá thành/đv"
+                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                <field name="floor_price" digits="[16, 0]" string="Giá sàn/đv"
+                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                <field name="price_unit" digits="[16, 0]"/>
+                                <field name="price_subtotal" digits="[16, 0]"/>
+                            </tree>
+                        </field>
+                        <group class="oe_subtotal_footer">
+                            <field name="q_amount_untaxed" widget="monetary" readonly="1"
+                                   string="Giá trước chiết khấu"/>
+                            <field name="q_discount_pct" readonly="1"/>
+                            <field name="q_discount_amount" widget="monetary" readonly="1"
+                                   string="Tiền chiết khấu"/>
+                            <field name="q_amount_before_vat" widget="monetary" readonly="1"
+                                   string="Sau chiết khấu, trước VAT"/>
+                            <field name="q_vat_pct" readonly="1"/>
+                            <field name="q_vat_amount" widget="monetary" readonly="1"
+                                   string="Tiền VAT"/>
+                            <field name="q_amount_total" widget="monetary" readonly="1"
+                                   string="Tổng thanh toán" class="oe_subtotal_footer_separator"/>
+                        </group>
+                        <group>
+                            <group string="Khung chiết khấu áp dụng">
+                                <field name="q_discount_default_rate" readonly="1"
+                                       string="Chiết khấu mặc định (%)"/>
+                                <field name="q_discount_max_rate" readonly="1"
+                                       string="Chiết khấu tối đa (%)"/>
+                                <field name="q_discount_above_default" readonly="1"
+                                       string="Vượt mặc định"/>
+                                <field name="q_discount_above_max" readonly="1"
+                                       string="Vượt tối đa"/>
+                            </group>
+                        </group>
+                    </page>
+                    <page string="Cấu phần giá (snapshot)"
+                          groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                        <!-- Giá thành hiện gồm chi phí VẬT TƯ theo BOM (± thu hồi)
+                             + markup; chi phí công đoạn/chi phí chung sẽ bổ sung
+                             ở phase sau — người duyệt cần biết giới hạn này. -->
+                        <div class="alert alert-info" role="alert">
+                            Giá thành = chi phí vật tư theo BOM (đã trừ thu hồi phế liệu).
+                            Chi phí công đoạn và chi phí chung/hệ số chưa được cộng ở phase này.
+                        </div>
+                        <field name="q_component_ids" readonly="1">
+                            <tree>
+                                <field name="quotation_line_id"/>
+                                <field name="component_type"/>
+                                <field name="material_id"/>
+                                <field name="qty"/>
+                                <field name="unit_price" digits="[16, 0]"/>
+                                <field name="rate"/>
+                                <field name="amount" digits="[16, 0]"/>
+                                <field name="source_model" optional="hide"/>
+                                <field name="source_revision" optional="hide"/>
+                            </tree>
+                        </field>
+                    </page>
+                </notebook>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Tree riêng cho hòm phê duyệt báo giá: thêm cột khách hàng/giá trị. -->
+    <record id="view_dl_quote_approval_tree" model="ir.ui.view">
+        <field name="name">dl.pricing.approval.request.tree.quote</field>
+        <field name="model">dl.pricing.approval.request</field>
+        <field name="arch" type="xml">
+            <tree string="Phê duyệt báo giá" create="false" delete="false"
+                  class="dl-quote-approval-list" js_class="dl_quote_approval_list">
+                <field name="create_date" string="Ngày gửi" widget="date"/>
+                <field name="object_label" string="Báo giá"/>
+                <field name="q_partner_id" string="Khách hàng"/>
+                <field name="q_currency_id" column_invisible="1"/>
+                <field name="q_amount_total" string="Tổng thanh toán"
+                       widget="monetary" options="{'currency_field': 'q_currency_id'}"/>
+                <field name="approval_level" string="Cấp duyệt"/>
+                <field name="requester_id" string="Người gửi" widget="many2one_avatar_user"/>
+                <field name="activity_ids" widget="list_activity" optional="hide"/>
+                <field name="state" string="Trạng thái" widget="badge"
+                       decoration-warning="state == 'pending'"
+                       decoration-success="state == 'approved'"
+                       decoration-danger="state == 'rejected'"
+                       decoration-muted="state == 'cancelled'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_dl_quote_approval" model="ir.actions.act_window">
+        <field name="name">Phê duyệt báo giá</field>
+        <field name="res_model">dl.pricing.approval.request</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('request_type', '=', 'quote_over_threshold')]</field>
+        <field name="context">{'search_default_pending': 1}</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_quote_approval_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('dl_config.view_dl_pricing_approval_request_form')}),
+        ]"/>
+        <field name="search_view_id" ref="dl_config.view_dl_pricing_approval_request_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Không có báo giá nào chờ phê duyệt.</p>
+        </field>
+    </record>
+</odoo>

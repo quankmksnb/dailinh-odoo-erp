@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- View native cho Yêu cầu phê duyệt (dl.pricing.approval.request).
+         Form là nơi người duyệt (Trưởng KD / Giám đốc) xử lý: xem lý do phát
+         sinh, Duyệt hoặc nhập lý do rồi Từ chối. Bản ghi do hệ thống tạo —
+         không cho tạo/xóa tay; các field nghiệp vụ đều readonly ở model. -->
+
+    <record id="view_dl_pricing_approval_request_tree" model="ir.ui.view">
+        <field name="name">dl.pricing.approval.request.tree</field>
+        <field name="model">dl.pricing.approval.request</field>
+        <field name="arch" type="xml">
+            <tree string="Yêu cầu phê duyệt" create="false" delete="false">
+                <field name="create_date" string="Ngày gửi" widget="date"/>
+                <field name="request_type" string="Loại yêu cầu"/>
+                <field name="object_label" string="Đối tượng"/>
+                <field name="approval_level" string="Cấp duyệt"/>
+                <field name="requester_id" string="Người yêu cầu" widget="many2one_avatar_user"/>
+                <field name="resolved_by_id" string="Người xử lý" optional="hide"/>
+                <field name="resolved_at" string="Thời điểm xử lý" optional="hide"/>
+                <field name="state" string="Trạng thái" widget="badge"
+                       decoration-warning="state == 'pending'"
+                       decoration-success="state == 'approved'"
+                       decoration-danger="state == 'rejected'"
+                       decoration-muted="state == 'cancelled'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_pricing_approval_request_form" model="ir.ui.view">
+        <field name="name">dl.pricing.approval.request.form</field>
+        <field name="model">dl.pricing.approval.request</field>
+        <field name="arch" type="xml">
+            <form string="Yêu cầu phê duyệt" create="false" delete="false">
+                <header>
+                    <field name="can_resolve" invisible="1"/>
+                    <button name="action_approve" string="Phê duyệt" type="object"
+                            class="btn-success"
+                            invisible="state != 'pending' or not can_resolve"
+                            confirm="Xác nhận PHÊ DUYỆT yêu cầu này?"/>
+                    <button name="action_reject" string="Từ chối" type="object"
+                            class="btn-danger"
+                            invisible="state != 'pending' or not can_resolve"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,approved"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="title" readonly="1"/></h1>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not trigger_reasons">
+                        <strong>Lý do phát sinh phê duyệt</strong>
+                        <field name="trigger_reasons" readonly="1" nolabel="1"/>
+                    </div>
+                    <group>
+                        <group string="Nội dung yêu cầu">
+                            <field name="request_type" readonly="1"/>
+                            <field name="object_label" readonly="1"/>
+                            <field name="approval_level" readonly="1"
+                                   invisible="not approval_level"/>
+                            <field name="matrix_row_id" readonly="1"
+                                   invisible="not matrix_row_id"/>
+                            <field name="matrix_revision" readonly="1"
+                                   invisible="not matrix_row_id"/>
+                            <field name="old_value" readonly="1" invisible="not old_value"/>
+                            <field name="new_value" readonly="1" invisible="not new_value"/>
+                            <field name="impact" readonly="1" invisible="not impact"/>
+                        </group>
+                        <group string="Người yêu cầu &amp; xử lý">
+                            <field name="requester_id" readonly="1" widget="many2one_avatar_user"/>
+                            <field name="requester_role" readonly="1"/>
+                            <field name="create_date" readonly="1" string="Ngày gửi"/>
+                            <field name="resolved_by_id" readonly="1"
+                                   invisible="not resolved_by_id"/>
+                            <field name="resolved_at" readonly="1"
+                                   invisible="not resolved_at"/>
+                            <field name="is_self_approval" readonly="1"
+                                   invisible="not is_self_approval"/>
+                            <field name="company_id" readonly="1"
+                                   groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group string="Lý do gửi duyệt">
+                        <field name="reason" readonly="1" nolabel="1"/>
+                    </group>
+                    <!-- Từ chối bắt buộc nhập lý do (validate ở model). -->
+                    <group string="Lý do từ chối"
+                           invisible="state not in ('pending', 'rejected') or (state == 'pending' and not can_resolve)">
+                        <field name="reject_comment" nolabel="1"
+                               readonly="state != 'pending'"
+                               placeholder="Nhập lý do trước khi bấm Từ chối..."/>
+                    </group>
+                </sheet>
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_ba">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_pricing_approval_request_search" model="ir.ui.view">
+        <field name="name">dl.pricing.approval.request.search</field>
+        <field name="model">dl.pricing.approval.request</field>
+        <field name="arch" type="xml">
+            <search string="Tìm yêu cầu phê duyệt">
+                <field name="object_label" string="Đối tượng"/>
+                <field name="requester_id" string="Người yêu cầu"/>
+                <filter name="pending" string="Chờ duyệt" domain="[('state','=','pending')]"/>
+                <filter name="approved" string="Đã duyệt" domain="[('state','=','approved')]"/>
+                <filter name="rejected" string="Từ chối" domain="[('state','=','rejected')]"/>
+                <filter name="cancelled" string="Đã hủy" domain="[('state','=','cancelled')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_type" string="Loại yêu cầu"
+                            context="{'group_by': 'request_type'}"/>
+                    <filter name="group_state" string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_requester" string="Người yêu cầu"
+                            context="{'group_by': 'requester_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+</odoo>

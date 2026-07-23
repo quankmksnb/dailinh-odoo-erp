@@ -45,6 +45,16 @@
                     <button name="action_open_sale_order" string="Mở đơn bán hàng"
                             type="object" class="btn-secondary"
                             invisible="state != 'ordered'"/>
+                    <!-- Duyệt nhanh cho người có quyền trên yêu cầu đang treo
+                         (server tính can_resolve — đúng cấp theo ma trận). -->
+                    <field name="approval_can_resolve" invisible="1"/>
+                    <button name="action_approval_approve" string="Phê duyệt"
+                            type="object" class="btn-success"
+                            invisible="approval_state != 'pending' or not approval_can_resolve"
+                            confirm="Xác nhận PHÊ DUYỆT báo giá này?"/>
+                    <button name="action_approval_open_reject" string="Từ chối duyệt"
+                            type="object" class="btn-danger"
+                            invisible="approval_state != 'pending' or not approval_can_resolve"/>
                     <button name="action_open_approval_request" string="Xem yêu cầu duyệt"
                             type="object" class="btn-warning"
                             invisible="not approval_request_id"/>

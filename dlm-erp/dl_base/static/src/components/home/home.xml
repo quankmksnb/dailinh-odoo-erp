@@ -43,6 +43,9 @@
                             <span class="dl-home-card-name" t-esc="card.name"/>
                             <span class="dl-home-card-desc" t-esc="card.description"/>
                         </div>
+                        <!-- Badge việc đang chờ (vd số yêu cầu chờ phê duyệt) -->
+                        <span t-if="badgeCounts[card.key]" class="dl-home-card-badge"
+                              t-esc="badgeCounts[card.key]"/>
                     </div>
                 </t>
             </div>

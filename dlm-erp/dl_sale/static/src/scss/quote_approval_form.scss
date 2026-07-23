@@ -1,0 +1,43 @@
+// Màn Phê duyệt báo giá — form yêu cầu duyệt. Đồng bộ style với form Báo giá:
+// section thẳng hàng, bảng x2many fixed, khối tổng tiền nhấn mạnh.
+.dl-quote-approval-form {
+    // Bỏ thụt lề/tràn riêng của Odoo để mọi section thẳng hàng.
+    .oe_title,
+    .o_notebook,
+    .o_notebook_headers,
+    .o_notebook .tab-content,
+    .o_notebook .tab-pane,
+    .o_field_x2many,
+    .o_field_x2many .o_list_renderer {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        width: 100%;
+    }
+
+    .oe_title { margin-bottom: 18px !important; }
+    .o_notebook { margin-bottom: 18px !important; }
+
+    .o_field_x2many .o_list_table {
+        table-layout: fixed;
+        width: 100% !important;
+
+        th, td { width: auto !important; min-width: 0 !important; }
+    }
+
+    // Khối tổng tiền (oe_subtotal_footer) — nhấn dòng Tổng thanh toán.
+    .oe_subtotal_footer {
+        .oe_subtotal_footer_separator {
+            font-weight: 700;
+            font-size: 15px;
+            border-top: 1px solid $dl-border;
+            padding-top: 6px;
+        }
+    }
+
+    // Badge trạng thái trong statusbar dùng chung palette hệ thống.
+    .o_statusbar_status .o_arrow_button_current {
+        font-weight: 600;
+    }
+}

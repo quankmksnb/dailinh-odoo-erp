@@ -91,7 +91,9 @@ class DlPricingApprovalSetting(models.Model):
 class DlPricingApprovalRequest(models.Model):
     _name = "dl.pricing.approval.request"
     _description = "Yêu cầu phê duyệt cấu hình thương mại / báo giá"
-    _inherit = ["mail.thread"]
+    # activity.mixin: gửi Việc cần làm (activity) tới đúng người duyệt khi phát
+    # sinh yêu cầu — "tự gửi phê duyệt đến" thay vì chờ người duyệt tự vào xem.
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "create_date desc, id desc"
     _rec_name = "title"
 
@@ -186,7 +188,7 @@ class DlPricingApprovalRequest(models.Model):
         ], limit=1)
         if existing:
             return existing
-        return self.create({
+        request = self.create({
             "request_type": request_type,
             "res_model": record._name,
             "res_id": record.id,
@@ -199,6 +201,8 @@ class DlPricingApprovalRequest(models.Model):
             "requester_role": self._current_role_label(),
             "company_id": record.company_id.id,
         })
+        request._notify_approvers()
+        return request
 
     @api.model
     def open_quote_approval(self, quotation, evaluation, reason,
@@ -218,7 +222,7 @@ class DlPricingApprovalRequest(models.Model):
         if existing:
             return existing
         reasons = evaluation.get("reasons") or []
-        return self.create({
+        request = self.create({
             "request_type": "quote_over_threshold",
             "res_model": quotation._name,
             "res_id": quotation.id,
@@ -235,6 +239,49 @@ class DlPricingApprovalRequest(models.Model):
             "requester_role": self._current_role_label(),
             "company_id": quotation.company_id.id,
         })
+        request._notify_approvers()
+        return request
+
+    # ------------------------------------------------------------------
+    # Thông báo người duyệt (activity + chuông inbox)
+    # ------------------------------------------------------------------
+    def _approver_user_ids(self):
+        """Danh sách id user được phép duyệt yêu cầu này — dùng để gửi thông báo."""
+        self.ensure_one()
+        if self.request_type == "quote_over_threshold":
+            return self._quote_allowed_user_ids()
+        setting = self._setting()
+        allowed = setting._allowed_user_ids() if setting else []
+        if not allowed:
+            ceo = self.env.ref("dl_base.dl_group_ceo", raise_if_not_found=False)
+            allowed = ceo.users.ids if ceo else []
+        return allowed
+
+    def _notify_approvers(self):
+        """Gửi 'Việc cần làm' tới từng người duyệt hợp lệ ngay khi phát sinh
+        yêu cầu. Người yêu cầu được subscribe để nhận kết quả duyệt qua chatter.
+        sudo: hàm thường chạy trong luồng của Sales — không có quyền ghi
+        activity/follower trên model này."""
+        for req in self.sudo():
+            if req.requester_id.partner_id:
+                req.message_subscribe(partner_ids=req.requester_id.partner_id.ids)
+            users = self.env["res.users"].sudo().browse(
+                req._approver_user_ids()
+            ).filtered(lambda u: u.active and not u.share)
+            labels = dict(APPROVAL_TYPE_SELECTION)
+            for user in users:
+                req.activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    user_id=user.id,
+                    summary=_("Cần phê duyệt: %s") % (req.object_label or
+                                                      labels.get(req.request_type, "")),
+                    note=req.trigger_reasons or req.reason or "",
+                )
+
+    def _clear_approver_activities(self):
+        """Gỡ các activity 'Cần phê duyệt' còn treo khi yêu cầu đã được xử lý
+        hoặc bị hủy — không để việc chết nằm trong inbox người duyệt."""
+        self.sudo().activity_unlink(["mail.mail_activity_data_todo"])
 
     @api.model
     def _current_role_label(self):
@@ -315,6 +362,7 @@ class DlPricingApprovalRequest(models.Model):
                 "resolved_at": fields.Datetime.now(),
                 "is_self_approval": self_approval,
             })
+            req._clear_approver_activities()
             if self_approval:
                 req.message_post(body=_(
                     "⚠️ Người đề xuất tự duyệt yêu cầu của mình. "
@@ -337,6 +385,7 @@ class DlPricingApprovalRequest(models.Model):
             if req.state not in ("pending", "approved"):
                 continue
             req.write({"state": "cancelled"})
+            req._clear_approver_activities()
             req.message_post(body=note or _(
                 "Kết quả duyệt bị hủy do báo giá thay đổi dữ liệu ảnh hưởng giá."))
         return True
@@ -353,6 +402,7 @@ class DlPricingApprovalRequest(models.Model):
                 "resolved_by_id": self.env.user.id,
                 "resolved_at": fields.Datetime.now(),
             })
+            req._clear_approver_activities()
             target = req._target_record()
             if target and hasattr(target, "_on_approval_rejected"):
                 target._on_approval_rejected(req)

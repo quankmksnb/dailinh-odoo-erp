@@ -1,6 +1,6 @@
 /** @odoo-module **/
 
-import { Component } from "@odoo/owl";
+import { Component, onWillStart, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
@@ -47,6 +47,24 @@ const MODULE_CARDS = [
         menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
     },
     {
+        key: "approval",
+        name: "Phê duyệt",
+        description: "Báo giá vượt ngưỡng chờ duyệt",
+        icon: "fa-check-square-o",
+        color: "#c05c43",
+        // Menu chỉ cấp cho CEO/Trưởng KD/op-group "Duyệt báo giá" — user khác
+        // không thấy menu ⇒ card tự ẩn (cơ chế lọc chung ở trên).
+        menuXmlIds: ["dl_sale.menu_dl_sale_quote_approval"],
+        // Badge: số yêu cầu duyệt báo giá đang chờ — chỉ đếm khi card hiển thị.
+        badge: {
+            model: "dl.pricing.approval.request",
+            domain: [
+                ["request_type", "=", "quote_over_threshold"],
+                ["state", "=", "pending"],
+            ],
+        },
+    },
+    {
         key: "product",
         name: "Sản phẩm & Vật tư",
         description: "Quản lý Sản phẩm và Vật tư",
@@ -88,6 +106,9 @@ export class DlHome extends Component {
     setup() {
         this.actionService = useService("action");
         this.menuService = useService("menu");
+        this.orm = useService("orm");
+        // Số đếm badge theo card.key (vd Phê duyệt: số yêu cầu đang chờ).
+        this.badgeCounts = useState({});
 
         this._dlmApp = this.menuService
             .getApps()
@@ -95,6 +116,25 @@ export class DlHome extends Component {
         if (this._dlmApp && this.menuService.getCurrentApp()?.id !== this._dlmApp.id) {
             this.menuService.setCurrentMenu(this._dlmApp);
         }
+
+        onWillStart(() => this._loadBadges());
+    }
+
+    async _loadBadges() {
+        // Chỉ đếm cho card user thấy được; lỗi (vd thiếu quyền đọc) thì bỏ
+        // badge, không làm vỡ trang chủ.
+        await Promise.all(
+            this.cards
+                .filter((card) => card.badge)
+                .map(async (card) => {
+                    try {
+                        this.badgeCounts[card.key] = await this.orm.searchCount(
+                            card.badge.model, card.badge.domain);
+                    } catch {
+                        this.badgeCounts[card.key] = 0;
+                    }
+                })
+        );
     }
 
     // Chỉ hiện card mà user thấy được menu đích (cây menu đã lọc theo groups).

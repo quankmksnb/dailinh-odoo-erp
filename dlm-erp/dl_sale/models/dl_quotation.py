@@ -108,6 +108,15 @@ class DlQuotation(models.Model):
     approval_reasons = fields.Text(string='Lý do phải duyệt', readonly=True)
     approval_request_id = fields.Many2one(
         'dl.pricing.approval.request', string='Yêu cầu phê duyệt', readonly=True)
+    # Quyền duyệt của user hiện tại trên yêu cầu đang treo — server tính
+    # (_check_can_resolve), UI dựa vào để hiện nút Phê duyệt/Từ chối nhanh.
+    # related_sudo=False BẮT BUỘC: can_resolve phụ thuộc ngữ cảnh user
+    # (depends_context uid) — tính bằng sudo sẽ ghi cache dưới khóa su=True
+    # trong khi request web đọc bằng su=False ⇒ "Compute method failed to
+    # assign". Mọi vai trò đều có quyền đọc request nên không cần sudo.
+    approval_can_resolve = fields.Boolean(
+        string='Được duyệt yêu cầu này',
+        related='approval_request_id.can_resolve', related_sudo=False)
     below_floor = fields.Boolean(string='Dưới giá sàn', readonly=True,
                                  groups=_COST_GROUPS)
     discount_above_default = fields.Boolean(string='Chiết khấu > mặc định', readonly=True)
@@ -258,7 +267,21 @@ class DlQuotation(models.Model):
         self.ensure_one()
         # sudo: người duyệt (vd Trưởng KD) chỉ có quyền đọc trên báo giá —
         # quyền duyệt đã được _check_can_resolve của yêu cầu kiểm trước đó.
-        self.sudo().write({'approval_state': 'approved'})
+        vals = {'approval_state': 'approved'}
+        # Gộp bước (quyết định 2026-07-24): người duyệt ma trận đã xác nhận thì
+        # báo giá TỰ chuyển "Đã duyệt nội bộ" — không bắt duyệt 2 lần. Chỉ áp
+        # dụng khi còn Nháp; trạng thái khác giữ nguyên.
+        if self.state == 'draft':
+            vals['state'] = 'approved'
+        self.sudo().write(vals)
+        if vals.get('state'):
+            # sudo: _mail_post_access mặc định đòi quyền write mà người duyệt
+            # (TrKD) chỉ có read trên báo giá; uid giữ nguyên nên tác giả vẫn
+            # hiển thị đúng là người duyệt.
+            self.sudo().message_post(body=_(
+                "Yêu cầu phê duyệt đã được %s chấp thuận — báo giá tự chuyển "
+                "sang Đã duyệt nội bộ, sẵn sàng gửi khách."
+            ) % (request.resolved_by_id.name or _("người duyệt")))
 
     def _on_approval_rejected(self, request):
         self.ensure_one()
@@ -274,6 +297,30 @@ class DlQuotation(models.Model):
             'res_id': self.approval_request_id.id,
             'view_mode': 'form',
             'target': 'current',
+        }
+
+    def action_approval_approve(self):
+        """Duyệt nhanh yêu cầu phê duyệt ngay trên form báo giá — quyền do
+        _check_can_resolve của yêu cầu kiểm (nút chỉ ẩn/hiện ở UI)."""
+        self.ensure_one()
+        req = self.approval_request_id
+        if not req or req.state != 'pending':
+            raise UserError(_("Báo giá không có yêu cầu phê duyệt đang chờ."))
+        req.action_approve()
+
+    def action_approval_open_reject(self):
+        """Mở yêu cầu duyệt dạng dialog để nhập lý do rồi Từ chối."""
+        self.ensure_one()
+        req = self.approval_request_id
+        if not req or req.state != 'pending':
+            raise UserError(_("Báo giá không có yêu cầu phê duyệt đang chờ."))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Từ chối phê duyệt'),
+            'res_model': 'dl.pricing.approval.request',
+            'res_id': req.id,
+            'view_mode': 'form',
+            'target': 'new',
         }
 
     def action_customer_accept(self):

@@ -1,6 +1,6 @@
 {
     'name': 'DL-CRM & Báo giá',
-    'version': '17.0.1.4.0',
+    'version': '17.0.1.5.0',
     'summary': 'Quản lý Khách hàng, NCC, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -10,6 +10,7 @@
         'data/rbac_features.xml',
         'views/customer_views_ext.xml',
         'views/quotation_views.xml',
+        'views/quote_approval_views.xml',
         'views/sale_order_views.xml',
         'views/rfq_views_ext.xml',
         'views/quote_actions.xml',
@@ -22,6 +23,8 @@
             'dl_sale/static/src/scss/control_panel.scss',
             'dl_sale/static/src/scss/quotation_form.scss',
             'dl_sale/static/src/scss/quotation_list.scss',
+            'dl_sale/static/src/scss/quote_approval_list.scss',
+            'dl_sale/static/src/scss/quote_approval_form.scss',
             'dl_sale/static/src/scss/customer_list.scss',
             'dl_sale/static/src/scss/customer_kanban.scss',
             'dl_sale/static/src/scss/customer_form.scss',
@@ -34,6 +37,8 @@
             # Views — list (lớp cơ sở DlListBaseController + actions_menu nằm
             # ở dl_base, nạp trước theo thứ tự phụ thuộc)
             'dl_sale/static/src/views/quotation_list_controller.js',
+            'dl_sale/static/src/views/quote_approval_list_controller.js',
+            'dl_sale/static/src/views/quote_approval_form_controller.js',
             'dl_sale/static/src/views/customer_list_controller.js',
             'dl_sale/static/src/views/supplier_list_controller.js',
             'dl_sale/static/src/views/saleorder_list_controller.js',
