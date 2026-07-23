@@ -2,12 +2,17 @@
 <odoo>
     <data noupdate="1">
 
-        <!-- ============ NHÓM SẢN PHẨM (product.category) ============ -->
+        <!-- ============ NHÓM SẢN PHẨM (product.category) ============
+             Nhóm THÀNH PHẨM demo — nằm dưới gốc "Thành phẩm"
+             (material_category_data.xml). Vật tư/BTP demo dùng nhóm vật tư
+             chuẩn có sẵn, KHÔNG nhét chung vào nhóm thành phẩm. -->
         <record id="categ_khung_thep_han" model="product.category">
             <field name="name">Khung thép hàn</field>
+            <field name="parent_id" ref="categ_root_finished"/>
         </record>
         <record id="categ_ban_ghe_sat" model="product.category">
             <field name="name">Bàn ghế sắt</field>
+            <field name="parent_id" ref="categ_root_finished"/>
         </record>
 
         <!-- ============ PROD-02 — SẢN PHẨM (product.product) ============ -->
@@ -33,36 +38,39 @@
             <field name="uom_po_id" ref="uom.product_uom_unit" />
         </record>
 
-        <!-- (3) material — vật tư thô, tra giá NCC -->
+        <!-- (3) material — vật tư thô, tra giá NCC. Nhóm = nhóm VẬT TƯ chuẩn
+             (material_category_data.xml), mã theo convention seed VT-<nhóm>-<spec>. -->
         <record id="demo_product_thep_cuon" model="product.product">
             <field name="name">Thép cuộn CT3</field>
-            <field name="default_code">VT-001</field>
+            <field name="default_code">VT-TT-CT3-CUON</field>
             <field name="product_kind">material</field>
-            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="categ_id" ref="material_categ_steel_sheet" />
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
             <field name="dlm_waste_rate">3.0</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">60.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="demo_product_ong_vuong" model="product.product">
-            <field name="name">Ống thép vuông 25×25×1.5mm</field>
-            <field name="default_code">VT-014</field>
+            <field name="name">Thép hộp vuông 25×25×1.5mm</field>
+            <field name="default_code">VT-TH-25</field>
             <field name="product_kind">material</field>
-            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="categ_id" ref="material_categ_steel_box" />
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
             <field name="dlm_waste_rate">4.5</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="demo_product_oc_vit" model="product.product">
             <field name="name">Ốc vít M6</field>
-            <field name="default_code">VT-032</field>
+            <field name="default_code">VT-OCVIT-M6</field>
             <field name="product_kind">material</field>
-            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="categ_id" ref="material_categ_consumable" />
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="uom_po_id" ref="uom.product_uom_unit" />
@@ -70,21 +78,22 @@
             <field name="dlm_has_recovery">0</field>
         </record>
 
-        <!-- (4) material_processed — vật tư đã gia công, có BOM riêng -->
+        <!-- (4) material_processed — bán thành phẩm (có BOM riêng), nhóm
+             "Bán thành phẩm" dưới gốc Vật tư. -->
         <record id="demo_product_tam_sat" model="product.product">
             <field name="name">Tấm sắt phủ sơn 600×400×2mm</field>
             <field name="default_code">BTP-TAMSAT-01</field>
             <field name="product_kind">material_processed</field>
-            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="categ_id" ref="material_categ_semi" />
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="uom_po_id" ref="uom.product_uom_unit" />
         </record>
         <record id="demo_product_khung_ong" model="product.product">
-            <field name="name">Khung ống vuông 25×25×1.5mm (bộ)</field>
+            <field name="name">Khung hàn thép hộp 25×25×1.5mm (bộ)</field>
             <field name="default_code">BTP-KHUNGONG-01</field>
             <field name="product_kind">material_processed</field>
-            <field name="categ_id" ref="categ_khung_thep_han" />
+            <field name="categ_id" ref="material_categ_semi" />
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="uom_po_id" ref="uom.product_uom_unit" />

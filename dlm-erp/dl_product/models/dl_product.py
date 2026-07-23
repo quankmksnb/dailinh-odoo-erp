@@ -51,6 +51,46 @@ class ProductProduct(models.Model):
         "• Bán thành phẩm (material_processed): cắt/gia công từ vật tư gốc, có BOM riêng",
     )
 
+    # Nhánh danh mục KỲ VỌNG theo Loại SP — output (gia công/thương mại) chỉ
+    # nhận nhóm nhánh Thành phẩm, input (vật tư/BTP) chỉ nhận nhánh Vật tư.
+    # Dùng làm domain động của categ_id trên form + validate cứng bên dưới.
+    dl_categ_branch = fields.Selection(
+        [("finished", "Thành phẩm"), ("material", "Vật tư")],
+        compute="_compute_dl_categ_branch",
+        string="Nhánh nhóm kỳ vọng",
+    )
+
+    @api.depends("product_kind")
+    def _compute_dl_categ_branch(self):
+        for rec in self:
+            rec.dl_categ_branch = (
+                "finished" if rec.product_kind in ("manufactured", "trading")
+                else "material"
+            )
+
+    @api.constrains("categ_id", "product_kind")
+    def _check_categ_branch(self):
+        """Chặn cứng: Nhóm phải cùng nhánh với Loại SP. Nhóm ngoài 2 nhánh
+        chuẩn (dl_branch='other', VD 'All' mặc định của core) không chặn —
+        coi là 'chưa phân nhóm', tránh vỡ các luồng core tạo product ngầm."""
+        for rec in self:
+            branch = rec.categ_id.dl_branch
+            if branch not in ("finished", "material"):
+                continue
+            if branch != rec.dl_categ_branch:
+                kind_label = dict(
+                    rec._fields["product_kind"].get_description(rec.env)["selection"]
+                ).get(rec.product_kind, rec.product_kind)
+                raise ValidationError(_(
+                    "Nhóm '%s' thuộc nhánh %s — không dùng được cho sản phẩm "
+                    "loại '%s'. Chọn nhóm thuộc nhánh %s."
+                ) % (
+                    rec.categ_id.display_name,
+                    "Thành phẩm" if branch == "finished" else "Vật tư",
+                    kind_label,
+                    "Thành phẩm" if rec.dl_categ_branch == "finished" else "Vật tư",
+                ))
+
     @api.model
     def _dl_product_kind_selection(self):
         """Dropdown Loại sản phẩm theo từng màn: action đặt context

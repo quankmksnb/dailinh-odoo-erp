@@ -22,12 +22,15 @@ class DlBomTemplate(models.Model):
     ]
 
     name = fields.Char(string="Tên BOM mẫu", required=True, tracking=True)
+    # Chỉ nhóm thuộc 2 nhánh chuẩn (Thành phẩm cho SP gia công, Vật tư cho
+    # nhóm Bán thành phẩm — BTP cũng có BOM); loại nhóm hệ thống/mồ côi.
     product_category_id = fields.Many2one(
         "product.category",
         string="Nhóm sản phẩm",
         required=True,
         ondelete="restrict",
         tracking=True,
+        domain=[("dl_branch", "in", ("finished", "material"))],
     )
     line_ids = fields.One2many(
         "dl.bom.template.line", "bom_template_id", string="Dòng mẫu"

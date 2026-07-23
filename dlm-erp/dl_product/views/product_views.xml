@@ -142,11 +142,16 @@
                                 placeholder="VD: CT-200, VT-001"
                             />
                             <field name="product_kind" />
+                            <!-- Nhóm lọc ĐỘNG theo Loại SP: gia công/thương mại →
+                                 nhánh Thành phẩm; vật tư/BTP → nhánh Vật tư.
+                                 no_create: nhóm mới phải tạo ở màn Nhóm sản phẩm
+                                 (có chọn nhóm cha) để không sinh nhóm ngoài nhánh. -->
+                            <field name="dl_categ_branch" invisible="1" />
                             <field
                                 name="categ_id"
                                 string="Nhóm SP"
-                                options="{'no_open': True}"
-                                domain="[('id', 'not in', [%(product.product_category_all)d, %(product.product_category_1)d, %(product.cat_expense)d])]"
+                                options="{'no_open': True, 'no_create': True}"
+                                domain="[('dl_branch', '=', dl_categ_branch)]"
                             />
                         </group>
                         <group string="Đơn vị tính">

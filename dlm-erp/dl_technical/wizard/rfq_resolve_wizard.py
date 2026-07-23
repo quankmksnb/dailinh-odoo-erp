@@ -78,8 +78,10 @@ class DlRfqResolveWizard(models.TransientModel):
             rec.allowed_product_ids = Product.search(domain)
 
     new_product_name = fields.Char(string="Tên sản phẩm mới")
+    # SP tạo mới từ resolve là manufactured → chỉ nhóm nhánh Thành phẩm.
     new_product_category_id = fields.Many2one(
-        "product.category", string="Nhóm sản phẩm")
+        "product.category", string="Nhóm sản phẩm",
+        domain=[("dl_branch", "=", "finished")])
 
     bom_ids = fields.Many2many(
         "dl.bom", compute="_compute_bom_ids", string="BOM Version")

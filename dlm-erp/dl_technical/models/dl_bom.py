@@ -30,6 +30,9 @@ class DlBom(models.Model):
         "product.category",
         string="Nhóm sản phẩm (lọc)",
         ondelete="set null",
+        # SP trên BOM là manufactured (nhánh Thành phẩm) hoặc BTP (nhánh Vật
+        # tư) — filter chỉ hiện nhóm 2 nhánh chuẩn, khỏi lẫn nhóm hệ thống.
+        domain=[("dl_branch", "in", ("finished", "material"))],
     )
 
     # Data Model refactor: dl.product/dl.semi.product đã hợp nhất vào

@@ -3,6 +3,9 @@
 
     <!-- ============================================================
          PROD-01 — dl.product.category (kế thừa product.category)
+         1 màn danh mục CHUNG nhưng phân nhánh rõ: cột "Nhánh" (Thành
+         phẩm / Vật tư — suy ra từ gốc cây), filter + group-by theo
+         nhánh, mặc định nhóm theo nhánh để không lẫn input/output.
     ============================================================ -->
 
     <record id="view_product_category_tree" model="ir.ui.view">
@@ -16,6 +19,10 @@
                 js_class="dl_category_list"
             >
                 <field name="display_name" string="Tên nhóm" />
+                <field name="dl_branch" string="Nhánh" widget="badge"
+                    decoration-success="dl_branch == 'finished'"
+                    decoration-info="dl_branch == 'material'"
+                    decoration-warning="dl_branch == 'other'" />
                 <field name="product_count" string="Số SP" />
             </tree>
         </field>
@@ -31,7 +38,17 @@
                     <group>
                         <group>
                             <field name="name" string="Tên nhóm" />
-                            <field name="parent_id" string="Nhóm cha" />
+                            <!-- Bắt buộc gắn vào cây: chọn gốc Thành phẩm / Vật tư
+                                 (hoặc nhóm con của chúng) — nhánh tự suy ra, không nhập tay.
+                                 2 nhóm gốc do hệ thống seed nên không cần tạo từ form này. -->
+                            <!-- required khi TẠO MỚI (2 nhóm gốc seed sẵn không có cha,
+                                 vẫn mở sửa tên được) -->
+                            <field name="parent_id" string="Nhóm cha"
+                                required="not id"
+                                domain="[('dl_branch', 'in', ('finished', 'material'))]"
+                                options="{'no_create': True}"
+                                placeholder="Thành phẩm / Vật tư / nhóm con..." />
+                            <field name="dl_branch" string="Nhánh" readonly="1" />
                         </group>
                         <group>
                             <field name="active" invisible="1" />
@@ -50,6 +67,16 @@
             <search string="Tìm nhóm sản phẩm">
                 <field name="name" string="Tên nhóm" />
                 <field name="parent_id" string="Nhóm cha" />
+                <filter string="Nhánh Thành phẩm" name="branch_finished"
+                    domain="[('dl_branch', '=', 'finished')]" />
+                <filter string="Nhánh Vật tư" name="branch_material"
+                    domain="[('dl_branch', '=', 'material')]" />
+                <group expand="0" string="Nhóm theo">
+                    <filter string="Nhánh" name="group_branch"
+                        context="{'group_by': 'dl_branch'}" />
+                    <filter string="Nhóm cha" name="group_parent"
+                        context="{'group_by': 'parent_id'}" />
+                </group>
             </search>
         </field>
     </record>
@@ -62,6 +89,7 @@
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
         <field name="domain" eval="[('id', 'not in', [ref('product.product_category_all'), ref('product.product_category_1'), ref('product.cat_expense')])]" />
+        <field name="context">{'search_default_group_branch': 1}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_product_category_tree')}),
@@ -85,7 +113,7 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_product_category_form')}),
         ]" />
         <field name="search_view_id" ref="view_product_category_search" />
-        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False, 'search_default_group_branch': 1}</field>
     </record>
 
 </odoo>

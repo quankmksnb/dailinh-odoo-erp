@@ -258,15 +258,22 @@ class DlQuotationRequestLine(models.Model):
     product_category_id = fields.Many2one(
         "product.category",
         string="Nhóm sản phẩm",
+        # Khách đặt THÀNH PHẨM — chỉ nhóm nhánh Thành phẩm, loại nhóm gốc
+        # container (đồng bộ selectable_category_ids, chặn cả cell tree
+        # không khai domain).
+        domain=[("dl_branch", "=", "finished"), ("parent_id", "!=", False)],
     )
 
     # Sales có thể không biết chính xác Product khi RFQ là hàng gia công — field
     # này chỉ mang tính THAM KHẢO, khác resolved_product_id (quyết định chính
     # thức của Kỹ thuật, RBAC-gated bên dưới).
+    # Chỉ SP GIA CÔNG (manufactured) — "sản phẩm đã từng gia công" theo đúng
+    # nghĩa Sales tham khảo; BTP (material_processed) là cấu phần BOM, không
+    # phải hàng tham khảo cho khách.
     reference_product_id = fields.Many2one(
         "product.product",
         string="Sản phẩm tham khảo",
-        domain=[("product_kind", "in", ("manufactured", "material_processed")),
+        domain=[("product_kind", "=", "manufactured"),
                 ("dlm_lifecycle_state", "=", "active")],
         help="Chỉ mang tính tham khảo nếu Sales biết sản phẩm tương tự đã từng "
              "gia công — Kỹ thuật sẽ xác nhận sản phẩm chính thức sau.",
@@ -340,9 +347,10 @@ class DlQuotationRequestLine(models.Model):
                 domain.append(("categ_id", "child_of", rec.product_category_id.id))
             rec.resolvable_product_ids = Product.search(domain)
 
-    # § Tạo RFQ (1a): danh sách Nhóm SP cho Sales chọn = TẤT CẢ nhóm, chỉ loại
-    # các nhóm hệ thống Odoo (All / Internal / Expense). product.category không có
-    # field phân loại (đã bỏ category_kind) và lúc tạo RFQ sản phẩm chưa tồn tại
+    # § Tạo RFQ (1a): danh sách Nhóm SP cho Sales chọn = nhánh THÀNH PHẨM
+    # (dl_branch='finished' — khách đặt hàng thành phẩm, không đặt vật tư/BTP).
+    # Nhánh suy từ cây danh mục nên tự loại luôn nhóm hệ thống Odoo
+    # (All/Internal/Expense đều là 'other'). Lúc tạo RFQ sản phẩm chưa tồn tại
     # nên KHÔNG lọc theo SP (tránh danh sách rỗng "No records").
     selectable_category_ids = fields.Many2many(
         "product.category", compute="_compute_selectable_category_ids",
@@ -350,14 +358,10 @@ class DlQuotationRequestLine(models.Model):
 
     @api.depends_context("uid")
     def _compute_selectable_category_ids(self):
-        excluded = []
-        for xmlid in ("product.product_category_all",
-                      "product.product_category_1",
-                      "product.cat_expense"):
-            cat = self.env.ref(xmlid, raise_if_not_found=False)
-            if cat:
-                excluded.append(cat.id)
-        cats = self.env["product.category"].search([("id", "not in", excluded)])
+        # parent_id != False: loại nhóm GỐC "Thành phẩm" (container của cây,
+        # không phải nhóm sản phẩm thật để Sales chọn).
+        cats = self.env["product.category"].search(
+            [("dl_branch", "=", "finished"), ("parent_id", "!=", False)])
         for rec in self:
             rec.selectable_category_ids = cats
 
@@ -371,8 +375,10 @@ class DlQuotationRequestLine(models.Model):
     def _compute_reference_product_ids(self):
         Product = self.env["product.product"]
         for rec in self:
+            # Chỉ SP GIA CÔNG đang active (khớp domain reference_product_id) —
+            # không lẫn BTP/vật tư vào danh sách tham khảo của Sales.
             domain = [
-                ("product_kind", "in", ("manufactured", "material_processed")),
+                ("product_kind", "=", "manufactured"),
                 ("dlm_lifecycle_state", "=", "active"),
             ]
             if rec.product_category_id:
