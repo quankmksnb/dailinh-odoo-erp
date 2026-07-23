@@ -183,6 +183,19 @@ class DlQuotationRequest(models.Model):
             rec.status = "processing"
             rec.message_post(body=_("Kỹ thuật đã nhận RFQ để xử lý."))
 
+    def action_open_history(self):
+        """Nút "Lịch sử" trên list RFQ (Sales & Kỹ thuật) — mở modal timeline
+        chỉ đọc: từ lúc tạo, RFQ đổi trạng thái/field gì, ghi chú nào."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Lịch sử %s") % self.name,
+            "res_model": "dl.rfq.history.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_request_id": self.id},
+        }
+
     def action_cancel(self):
         self.write({
             "status": "cancelled",

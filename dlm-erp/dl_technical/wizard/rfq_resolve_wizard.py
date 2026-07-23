@@ -167,6 +167,8 @@ class DlRfqResolveWizard(models.TransientModel):
             "res_id": bom.id,
             "view_mode": "form",
             "target": "new",
+            # Form BOM hiện nút "Quay lại Xử lý RFQ" quay đúng wizard này.
+            "context": {"rfq_resolve_wizard_id": self.id},
         }
 
     def action_edit_selected_bom(self):
@@ -177,7 +179,10 @@ class DlRfqResolveWizard(models.TransientModel):
             raise UserError(_("Vui lòng chọn 1 BOM trước khi chỉnh sửa."))
         result = self.selected_bom_id.action_create_new_version()
         self.selected_bom_id = result.get("res_id")
+        result["name"] = _("Chỉnh sửa BOM cho RFQ")
         result["target"] = "new"
+        # Form BOM hiện nút "Quay lại Xử lý RFQ" quay đúng wizard này.
+        result["context"] = {"rfq_resolve_wizard_id": self.id}
         return result
 
     def action_mark_infeasible(self):

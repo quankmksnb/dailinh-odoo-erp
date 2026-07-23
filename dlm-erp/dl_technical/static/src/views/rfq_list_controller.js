@@ -12,6 +12,14 @@ import { useService } from "@web/core/utils/hooks";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
 export class DlRfqListController extends DlListBaseController {
+    // "+ Tạo RFQ" → mở đúng màn Tạo RFQ của Sales (2 bảng thương mại/gia
+    // công — action_dl_quotation_request_create) thay vì form mặc định.
+    async createRecord() {
+        return this.actionService.doAction(
+            "dl_technical.action_dl_quotation_request_create"
+        );
+    }
+
     get dlCountNoun() {
         return "yêu cầu báo giá";
     }

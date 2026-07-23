@@ -24,6 +24,10 @@
                        decoration-danger="status == 'returned'"
                        decoration-success="status == 'confirmed'"
                        decoration-muted="status in ('quoted', 'cancelled')"/>
+                <!-- Modal lịch sử RFQ (timeline chỉ đọc) — tree "RFQ cần xử lý"
+                     kế thừa tree này nên cả 2 màn Sales & Kỹ thuật cùng có. -->
+                <button name="action_open_history" type="object" string="Lịch sử"
+                        class="btn-link"/>
             </tree>
         </field>
     </record>

@@ -2,42 +2,44 @@
 // Phần chung (list card, thead, tbody) ở dl_base/global_list.scss.
 .dl-rfq-list {
     .o_list_table thead th[data-name="name"] { border-top-left-radius: $dl-radius; }
-    .o_list_table thead th[data-name="status"] { border-top-right-radius: $dl-radius; }
+    // Cột cuối là cột nút (Lịch sử / Nhận RFQ) — bo góc phải ở đó.
+    .o_list_table thead th.o_list_button { border-top-right-radius: $dl-radius; }
 
     .o_list_table {
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="name"] { width: 16% !important; }
-        th[data-name="customer_id"] { width: 28% !important; }
-        th[data-name="requested_date"] { width: 18% !important; }
-        th[data-name="deadline"] { width: 18% !important; }
+        // Tổng width các cột (kể cả cột nút) phải ĐÚNG 100% — table-layout
+        // fixed: vượt 100% là bảng phình ra ngoài, tràn scroll ngang.
+        th[data-name="name"] { width: 14% !important; }
+        th[data-name="customer_id"] { width: 24% !important; }
+        th[data-name="requested_date"] { width: 17% !important; }
+        th[data-name="deadline"] { width: 15% !important; }
         th[data-name="status"] { width: 20% !important; }
 
-        // Cột nút "Nhận RFQ" (th.o_list_button, không có data-name) —
-        // table-layout fixed + các cột trên tổng 100% sẽ bóp cột nút về 0px
-        // nếu không cấp width riêng.
+        // Cột nút "Lịch sử" (th.o_list_button, không có data-name) — phải cấp
+        // width riêng, nếu không table-layout fixed bóp về 0px (ẩn nút).
         thead th.o_list_button {
-            width: 110px !important;
+            width: 10% !important;
         }
 
         td[name="customer_id"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     }
 }
 
-// "RFQ cần xử lý" — 7 cột, chia lại width
+// "RFQ cần xử lý" — 7 cột + cột nút (Nhận RFQ + Lịch sử), tổng đúng 100%
 .dl-rfq-list-my {
     .o_list_table {
         th[data-name="status"] { border-top-right-radius: 0; }
-        th[data-name="resolved_bom_ids"] { border-top-right-radius: $dl-radius; }
 
-        th[data-name="name"] { width: 12% !important; }
-        th[data-name="customer_id"] { width: 16% !important; }
-        th[data-name="requested_date"] { width: 14% !important; }
-        th[data-name="deadline"] { width: 12% !important; }
-        th[data-name="status"] { width: 12% !important; }
-        th[data-name="resolved_product_ids"] { width: 17% !important; }
-        th[data-name="resolved_bom_ids"] { width: 17% !important; }
+        th[data-name="name"] { width: 11% !important; }
+        th[data-name="customer_id"] { width: 13% !important; }
+        th[data-name="requested_date"] { width: 12% !important; }
+        th[data-name="deadline"] { width: 10% !important; }
+        th[data-name="status"] { width: 10% !important; }
+        th[data-name="resolved_product_ids"] { width: 15% !important; }
+        th[data-name="resolved_bom_ids"] { width: 15% !important; }
+        thead th.o_list_button { width: 14% !important; }
     }
 }
 

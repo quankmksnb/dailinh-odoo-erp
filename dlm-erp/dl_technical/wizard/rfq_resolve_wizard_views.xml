@@ -47,7 +47,11 @@
                 </group>
 
                 <group invisible="mode != 'existing' or not product_id" string="BOM Version">
-                    <field name="bom_ids" nolabel="1" colspan="2">
+                    <!-- context: truyền id wizard xuống các nút trên dòng BOM để
+                         form BOM (modal) có nút "Quay lại Xử lý RFQ" quay đúng
+                         màn này thay vì rơi về form dòng sản phẩm. -->
+                    <field name="bom_ids" nolabel="1" colspan="2"
+                           context="{'rfq_resolve_wizard_id': id}">
                         <tree>
                             <field name="name"/>
                             <field name="version"/>
@@ -57,6 +61,13 @@
                                  nút bút chì mở form BOM sản phẩm dạng modal SỬA được. -->
                             <button name="action_open_form_modal" type="object"
                                     icon="fa-pencil" title="Mở BOM để chỉnh sửa"/>
+                            <!-- Copy BOM: tạo phiên bản MỚI (Nháp) giống hệt BOM
+                                 dòng này (khác Tạo BOM từ BOM mẫu — nguồn là 1
+                                 version có sẵn của chính sản phẩm), tự chọn làm
+                                 "BOM đã chọn" rồi mở form sửa tiếp. -->
+                            <button name="action_copy_version_modal" type="object"
+                                    icon="fa-copy"
+                                    title="Copy BOM — tạo phiên bản Nháp mới giống BOM này"/>
                         </tree>
                     </field>
                 </group>
