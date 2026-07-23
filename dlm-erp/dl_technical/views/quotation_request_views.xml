@@ -24,6 +24,10 @@
                        decoration-danger="status == 'returned'"
                        decoration-success="status == 'confirmed'"
                        decoration-muted="status in ('quoted', 'cancelled')"/>
+                <!-- Modal lịch sử RFQ (timeline chỉ đọc) — tree "RFQ cần xử lý"
+                     kế thừa tree này nên cả 2 màn Sales & Kỹ thuật cùng có. -->
+                <button name="action_open_history" type="object" string="Lịch sử"
+                        class="btn-link"/>
             </tree>
         </field>
     </record>
@@ -39,13 +43,18 @@
             <xpath expr="//tree" position="attributes">
                 <attribute name="create">0</attribute>
                 <attribute name="class">dl-rfq-list dl-rfq-list-my</attribute>
+                <!-- js_class riêng: chặn mở chi tiết RFQ chưa nhận (Mới/Đã bổ
+                     sung) — chỉ áp dụng màn Kỹ thuật này, list Sales mở tự do. -->
+                <attribute name="js_class">dl_rfq_list_my</attribute>
             </xpath>
             <xpath expr="//field[@name='status']" position="after">
                 <field name="resolved_product_ids" widget="many2many_tags" string="Product Reference"/>
                 <field name="resolved_bom_ids" widget="many2many_tags" string="BOM Reference"/>
-                <!-- §3d — KTV nhận RFQ ngay trên list: Mới/Đã bổ sung → Đang xử lý -->
+                <!-- §3d — KTV nhận RFQ ngay trên list: Mới/Đã bổ sung → Đang
+                     xử lý, sau đó mới mở được chi tiết. KHÔNG đặt icon (button
+                     list có icon sẽ chỉ hiện icon, chữ thành tooltip). -->
                 <button name="action_receive" type="object" string="Nhận RFQ"
-                        icon="fa-inbox" class="btn-link"
+                        class="btn-link"
                         invisible="status not in ('new', 'supplemented')"
                         groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
             </xpath>
@@ -59,11 +68,8 @@
         <field name="arch" type="xml">
             <form string="Yêu cầu báo giá" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
-                    <!-- Kỹ thuật nhận RFQ để bắt đầu xử lý (Mới/Đã bổ sung → Đang xử lý) -->
-                    <button name="action_receive" type="object"
-                            string="Nhận RFQ" class="oe_highlight"
-                            invisible="status not in ('new', 'supplemented')"
-                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <!-- Nút "Nhận RFQ" đã chuyển ra LIST (từng dòng) — KTV phải
+                         nhận trên list thì mới mở được chi tiết RFQ. -->
                     <!-- Kỹ thuật trả RFQ về Sales bổ sung (thiếu thông tin) -->
                     <button name="action_open_return_wizard" type="object"
                             string="Gửi lại Sales (bổ sung)"

@@ -127,17 +127,15 @@ class DlRfqResolveWizard(models.TransientModel):
         self.ensure_one()
         if not self.new_product_name:
             raise UserError(_("Vui lòng nhập Tên sản phẩm mới."))
-        vals = {
+        if not self.new_product_category_id:
+            raise UserError(_("Vui lòng chọn Nhóm sản phẩm."))
+        product = self.env["product.product"].create({
             "name": self.new_product_name,
+            "categ_id": self.new_product_category_id.id,
             "product_kind": "manufactured",
             # Case B "hoàn toàn mới": SP nằm ở Nháp cho tới khi đơn chốt/duyệt.
             "dlm_lifecycle_state": "draft",
-        }
-        # Nhóm sản phẩm KHÔNG bắt buộc — bỏ trống thì dùng nhóm mặc định của
-        # Odoo (All), gán lại sau cũng được.
-        if self.new_product_category_id:
-            vals["categ_id"] = self.new_product_category_id.id
-        product = self.env["product.product"].create(vals)
+        })
         self.product_id = product.id
         self.mode = "existing"
         return {
@@ -169,6 +167,8 @@ class DlRfqResolveWizard(models.TransientModel):
             "res_id": bom.id,
             "view_mode": "form",
             "target": "new",
+            # Form BOM hiện nút "Quay lại Xử lý RFQ" quay đúng wizard này.
+            "context": {"rfq_resolve_wizard_id": self.id},
         }
 
     def action_edit_selected_bom(self):
@@ -179,7 +179,10 @@ class DlRfqResolveWizard(models.TransientModel):
             raise UserError(_("Vui lòng chọn 1 BOM trước khi chỉnh sửa."))
         result = self.selected_bom_id.action_create_new_version()
         self.selected_bom_id = result.get("res_id")
+        result["name"] = _("Chỉnh sửa BOM cho RFQ")
         result["target"] = "new"
+        # Form BOM hiện nút "Quay lại Xử lý RFQ" quay đúng wizard này.
+        result["context"] = {"rfq_resolve_wizard_id": self.id}
         return result
 
     def action_mark_infeasible(self):

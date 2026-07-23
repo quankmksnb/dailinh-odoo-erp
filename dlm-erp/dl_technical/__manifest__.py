@@ -17,6 +17,7 @@
         "views/quotation_request_views.xml",
         "wizard/rfq_resolve_wizard_views.xml",
         "wizard/rfq_return_wizard_views.xml",
+        "wizard/rfq_history_wizard_views.xml",
         "wizard/bom_from_template_wizard_views.xml",
         "views/technical_home.xml",
         "views/menus.xml",
@@ -27,6 +28,7 @@
             # Đồng bộ UI danh sách/form với các màn dl_sale/dl_product.
             "dl_technical/static/src/scss/bom_list.scss",
             "dl_technical/static/src/scss/rfq_list.scss",
+            "dl_technical/static/src/scss/rfq_history.scss",
             "dl_technical/static/src/scss/drawing_list.scss",
             "dl_technical/static/src/scss/drawing_form.scss",
             "dl_technical/static/src/views/bom_list_controller.js",

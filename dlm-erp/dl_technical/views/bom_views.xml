@@ -39,6 +39,13 @@
         <field name="arch" type="xml">
             <form string="Bill of Materials" class="dl-bom-form" js_class="dl_bom_form">
                 <header>
+                    <field name="show_back_to_rfq" invisible="1"/>
+                    <!-- Chỉ hiện khi form BOM mở từ màn Xử lý RFQ (modal) —
+                         quay đúng wizard đang dở thay vì rơi về form dòng SP. -->
+                    <button name="action_back_to_rfq_wizard" type="object"
+                            string="← Quay lại Xử lý RFQ"
+                            class="oe_highlight"
+                            invisible="not show_back_to_rfq"/>
                     <button name="action_create_from_template" type="object"
                             string="Create From BOM Template"
                             invisible="status != 'draft'"
