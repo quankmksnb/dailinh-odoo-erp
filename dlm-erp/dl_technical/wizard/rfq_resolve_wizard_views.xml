@@ -41,12 +41,9 @@
                            context="{'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': request_category_id, 'default_name': request_product_name}"/>
                     <div colspan="2" class="text-muted" invisible="not product_id">
                         <i class="fa fa-info-circle"/>
-                        Giống y hệt: chọn BOM có sẵn bên dưới. Chỉ đổi vật liệu/kích
-                        thước: bấm "Clone thành biến thể mới" để tạo phiên bản Nháp riêng.
+                        Giống y hệt: chọn BOM có sẵn bên dưới. Cần chỉnh sửa: bấm
+                        "Chỉnh sửa BOM cho RFQ này" để tạo phiên bản Nháp riêng.
                     </div>
-                    <button name="action_clone_variant" type="object"
-                            string="Clone thành biến thể mới (đổi vật liệu/kích thước)"
-                            class="btn-secondary" invisible="not product_id"/>
                 </group>
 
                 <group invisible="mode != 'existing' or not product_id" string="BOM Version">
@@ -56,6 +53,10 @@
                             <field name="version"/>
                             <field name="status" widget="badge"/>
                             <field name="create_date" string="Ngày tạo"/>
+                            <!-- Bấm vào dòng chỉ XEM (bom_ids computed readonly) —
+                                 nút bút chì mở form BOM sản phẩm dạng modal SỬA được. -->
+                            <button name="action_open_form_modal" type="object"
+                                    icon="fa-pencil" title="Mở BOM để chỉnh sửa"/>
                         </tree>
                     </field>
                 </group>
