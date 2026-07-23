@@ -14,6 +14,13 @@
         th[data-name="deadline"] { width: 18% !important; }
         th[data-name="status"] { width: 20% !important; }
 
+        // Cột nút "Nhận RFQ" (th.o_list_button, không có data-name) —
+        // table-layout fixed + các cột trên tổng 100% sẽ bóp cột nút về 0px
+        // nếu không cấp width riêng.
+        thead th.o_list_button {
+            width: 110px !important;
+        }
+
         td[name="customer_id"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     }
 }

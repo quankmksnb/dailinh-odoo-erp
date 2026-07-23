@@ -89,8 +89,8 @@
 
                 <!-- B. Product chưa từng gia công -->
                 <group invisible="mode != 'new'" string="Tạo Product mới">
-                    <field name="new_product_name"/>
-                    <field name="new_product_category_id"/>
+                    <field name="new_product_name" required="mode == 'new'"/>
+                    <field name="new_product_category_id" required="mode == 'new'"/>
                     <button name="action_create_product" type="object"
                             string="Tạo Product" class="oe_highlight"/>
                 </group>
