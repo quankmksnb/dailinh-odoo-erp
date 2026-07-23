@@ -1,0 +1,82 @@
+// Modal "Lịch sử RFQ" — timeline dọc: chấm mốc màu theo loại sự kiện + đường
+// nối, badge trạng thái cùng bảng màu với badge trên list RFQ.
+.dl-rfq-history {
+    padding: 4px 2px;
+
+    .dl-rfqh-item {
+        position: relative;
+        padding: 0 0 18px 26px;
+
+        // Đường nối các mốc
+        &::before {
+            content: "";
+            position: absolute;
+            left: 7px;
+            top: 6px;
+            bottom: -6px;
+            width: 2px;
+            background: $dl-divider;
+        }
+        &:last-child { padding-bottom: 2px; }
+        &:last-child::before { display: none; }
+    }
+
+    .dl-rfqh-dot {
+        position: absolute;
+        left: 0;
+        top: 3px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 3px solid $dl-surface;
+        box-shadow: 0 0 0 1px $dl-border;
+        background: $dl-text-muted;
+    }
+    // Màu chấm theo loại sự kiện
+    .dl-rfqh-create > .dl-rfqh-dot { background: $dl-primary; }
+    .dl-rfqh-status > .dl-rfqh-dot { background: #f59e0b; }
+    .dl-rfqh-change > .dl-rfqh-dot { background: #38bdf8; }
+    .dl-rfqh-note   > .dl-rfqh-dot { background: #9ca3af; }
+
+    .dl-rfqh-meta {
+        font-size: 12px;
+        color: $dl-text-muted;
+        margin-bottom: 3px;
+
+        b { color: $dl-text; font-weight: 600; }
+    }
+
+    .dl-rfqh-body {
+        background: $dl-surface;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius-sm;
+        padding: 8px 12px;
+        font-size: 13px;
+        color: $dl-text;
+    }
+    .dl-rfqh-line {
+        padding: 2px 0;
+        white-space: pre-line;
+
+        .fa-long-arrow-right { color: $dl-text-muted; font-size: 11px; }
+    }
+    .dl-rfqh-old { color: $dl-text-muted; }
+
+    // Badge trạng thái — cùng tông màu badge list (info/warning/danger/success/muted)
+    .dl-rfqh-badge {
+        display: inline-block;
+        padding: 1px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 18px;
+    }
+    .dl-rfqh-st-new          { background: #d1ecf1; color: #0c5460; }
+    .dl-rfqh-st-processing,
+    .dl-rfqh-st-supplemented { background: #fff3cd; color: #856404; }
+    .dl-rfqh-st-returned     { background: #f8d7da; color: #721c24; }
+    .dl-rfqh-st-confirmed    { background: #d4edda; color: #155724; }
+    .dl-rfqh-st-quoted,
+    .dl-rfqh-st-cancelled,
+    .dl-rfqh-st-none         { background: #e9ecef; color: #6c757d; }
+}

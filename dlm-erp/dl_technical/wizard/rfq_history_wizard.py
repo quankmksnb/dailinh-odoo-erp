@@ -45,6 +45,14 @@ class DlRfqHistoryWizard(models.TransientModel):
             return ""
         return fields.Datetime.context_timestamp(self, dt).strftime("%d/%m/%Y %H:%M")
 
+    def _status_badge(self, req, label):
+        """Badge trạng thái đúng màu như badge trên list — map ngược label
+        (mail lưu label hiển thị) về key của selection."""
+        selection = req._fields["status"].selection
+        key = {lbl: k for k, lbl in selection}.get(label, "")
+        return "<span class='dl-rfqh-badge dl-rfqh-st-%s'>%s</span>" % (
+            escape(key or "none"), escape(label or _("(trống)")))
+
     @api.depends("request_id")
     def _compute_history_html(self):
         Message = self.env["mail.message"]
@@ -54,13 +62,15 @@ class DlRfqHistoryWizard(models.TransientModel):
                 rec.history_html = ""
                 continue
 
-            entries = []  # [(when, who, [dòng nội dung html-safe])]
+            # entries: [(when, who, kind, [dòng html-safe])]
+            # kind: create/status/change/note — đổi màu chấm mốc + icon.
+            entries = []
 
-            # Mốc đầu tiên: RFQ được tạo.
             who = (req.created_by or req.create_uid).name or ""
             entries.append((
-                req.create_date, who,
-                ["<b>%s</b>" % escape(_("RFQ được tạo — trạng thái: Mới"))],
+                req.create_date, who, "create",
+                ["%s %s" % (escape(_("RFQ được tạo — trạng thái:")),
+                            rec._status_badge(req, _("Mới")))],
             ))
 
             # Chatter: tracking (đổi trạng thái/field) + ghi chú/trao đổi.
@@ -69,34 +79,55 @@ class DlRfqHistoryWizard(models.TransientModel):
                 order="date asc, id asc")
             for msg in msgs:
                 lines = []
+                kind = "note"
                 # sudo: mail.tracking.value giới hạn quyền đọc theo field —
                 # user xem được RFQ thì cho xem lịch sử của chính nó.
                 for tv in msg.sudo().tracking_value_ids:
                     desc = tv.field_id.field_description or tv.field_id.name
-                    old = rec._tv_display(tv, "old") or _("(trống)")
-                    new = rec._tv_display(tv, "new") or _("(trống)")
-                    lines.append(
-                        "%s: <span class='text-muted'>%s</span> → <b>%s</b>"
-                        % (escape(desc), escape(old), escape(new)))
+                    old = rec._tv_display(tv, "old")
+                    new = rec._tv_display(tv, "new")
+                    if tv.field_id.name == "status":
+                        kind = "status"
+                        lines.append(
+                            "%s: %s <i class='fa fa-long-arrow-right mx-1'></i> %s"
+                            % (escape(desc),
+                               rec._status_badge(req, old),
+                               rec._status_badge(req, new)))
+                    else:
+                        if kind != "status":
+                            kind = "change"
+                        lines.append(
+                            "%s: <span class='dl-rfqh-old'>%s</span>"
+                            " <i class='fa fa-long-arrow-right mx-1'></i> <b>%s</b>"
+                            % (escape(desc),
+                               escape(old or _("(trống)")),
+                               escape(new or _("(trống)"))))
                 body = html2plaintext(msg.body or "").strip()
                 if body:
-                    lines.append(escape(body))
+                    lines.append(
+                        "<i class='fa fa-comment-o me-1 text-muted'></i>%s"
+                        % escape(body))
                 if lines:
                     entries.append((
-                        msg.date, (msg.author_id.name or ""), lines))
+                        msg.date, (msg.author_id.name or ""), kind, lines))
 
-            # Render timeline (mới nhất ở DƯỚI — đọc từ trên xuống theo thời gian).
+            # Render timeline dọc: chấm mốc + đường nối, thời gian — người
+            # thao tác, nội dung. Đọc từ trên xuống theo thời gian.
             parts = ["<div class='dl-rfq-history'>"]
-            for when, author, lines in entries:
+            for when, author, kind, lines in entries:
                 parts.append(
-                    "<div style='border-left:3px solid #d0d5dd;"
-                    "padding:2px 0 10px 12px;margin-left:4px;'>"
-                    "<div class='text-muted' style='font-size:12px;'>%s%s</div>%s"
+                    "<div class='dl-rfqh-item dl-rfqh-%s'>"
+                    "<span class='dl-rfqh-dot'></span>"
+                    "<div class='dl-rfqh-meta'>"
+                    "<i class='fa fa-clock-o me-1'></i>%s%s</div>"
+                    "<div class='dl-rfqh-body'>%s</div>"
                     "</div>"
                     % (
+                        escape(kind),
                         escape(rec._fmt_when(when)),
                         " — <b>%s</b>" % escape(author) if author else "",
-                        "".join("<div>%s</div>" % l for l in lines),
+                        "".join("<div class='dl-rfqh-line'>%s</div>" % l
+                                for l in lines),
                     ))
             parts.append("</div>")
             rec.history_html = "".join(parts)
