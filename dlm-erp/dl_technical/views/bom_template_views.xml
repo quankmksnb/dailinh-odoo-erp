@@ -95,6 +95,9 @@
                                 </tree>
                                 <form string="Dòng mẫu">
                                     <field name="shape_code" invisible="1"/>
+                                    <field name="material_uom_category_id" invisible="1"/>
+                                    <field name="rule_applicable" invisible="1"/>
+                                    <field name="shape_coefficient_label" invisible="1"/>
                                     <group>
                                         <group string="1. Material">
                                             <field name="material_id"
@@ -102,13 +105,40 @@
                                                    context="{'default_product_kind': 'material'}"/>
                                             <field name="uom_id" readonly="1"/>
                                         </group>
+                                    </group>
+
+                                    <!-- Vật tư dùng đơn vị đếm (Cái/Con/Bộ...) — không có
+                                         Rule nào tương thích: ẩn hẳn khối Rule/Shape/Kích
+                                         thước, chỉ còn nhập tay Số lượng. -->
+                                    <div invisible="rule_applicable">
+                                        <div class="text-muted mb-2">
+                                            <i class="fa fa-info-circle me-1"/>Vật tư này dùng
+                                            đơn vị đếm (vd: Cái/Con/Bộ) — nhập trực tiếp Số
+                                            lượng bên dưới.
+                                        </div>
+                                        <group>
+                                            <label for="quantity" string="Số lượng"/>
+                                            <div class="o_row">
+                                                <field name="quantity" nolabel="1"/>
+                                                <field name="uom_id" readonly="1" nolabel="1"/>
+                                            </div>
+                                        </group>
+                                    </div>
+
+                                    <div invisible="not rule_applicable">
+                                    <group>
                                         <group string="2-3. Calculation Rule / Shape">
                                             <field name="measurement_type_id"
+                                                   domain="[('formula_uom_id.category_id', '=', material_uom_category_id)]"
                                                    options="{'no_create': True, 'no_create_edit': True}"/>
                                             <field name="measurement_shape_id"
                                                    options="{'no_create': True, 'no_create_edit': True}"/>
                                             <field name="measurement_coefficient"
                                                    invisible="shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar')"/>
+                                            <div class="text-muted" style="font-size:11px;"
+                                                 invisible="not shape_coefficient_label or shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar')">
+                                                <field name="shape_coefficient_label" readonly="1" nolabel="1"/>
+                                            </div>
                                         </group>
                                     </group>
                                     <group string="4. Kích thước (theo Shape đã chọn)"
@@ -128,16 +158,26 @@
                                     </group>
                                     <group>
                                         <group string="Kết quả">
-                                            <field name="computed_quantity"/>
+                                            <label for="computed_quantity" string="Định mức"/>
+                                            <div class="o_row">
+                                                <field name="computed_quantity" nolabel="1"/>
+                                                <field name="uom_id" readonly="1" nolabel="1"/>
+                                            </div>
                                         </group>
                                         <group string="5. Quantity (dùng thực tế — sửa được)">
-                                            <field name="quantity"/>
+                                            <label for="quantity" string="Số lượng"/>
+                                            <div class="o_row">
+                                                <field name="quantity" nolabel="1"/>
+                                                <field name="uom_id" readonly="1" nolabel="1"/>
+                                            </div>
                                             <field name="is_override"/>
                                             <field name="override_reason"
                                                    invisible="not is_override"
                                                    required="is_override"/>
                                         </group>
                                     </group>
+                                    </div>
+
                                     <group string="6. Waste">
                                         <field name="complexity_id"/>
                                         <field name="waste_rate"/>

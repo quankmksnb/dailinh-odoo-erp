@@ -12,12 +12,15 @@
         <!-- Rule còn thiếu (Khối lượng + Diện tích đã có sẵn ở dl_product) -->
         <record id="meas_type_perimeter" model="dl.measurement.type">
             <field name="name">Chu vi</field>
+            <field name="formula_uom_id" ref="uom.product_uom_meter" />
         </record>
         <record id="meas_type_volume" model="dl.measurement.type">
             <field name="name">Thể tích</field>
+            <field name="formula_uom_id" ref="uom.product_uom_cubic_meter" />
         </record>
         <record id="meas_type_length" model="dl.measurement.type">
             <field name="name">Chiều dài</field>
+            <field name="formula_uom_id" ref="uom.product_uom_meter" />
         </record>
 
         <!-- Khối lượng — 3 shape mới (Tấm phẳng/Ống vuông rỗng đã có ở dl_product) -->
