@@ -18,6 +18,11 @@ CUSTOMER_GROUP_SELECTION = [
     ("loyal", "Khách thân thiết"),
 ]
 
+# Thứ bậc gắn bó tăng dần: khách gắn bó lâu hơn phải được chiết khấu KHÔNG THẤP
+# hơn khách mới hơn (mới ≤ cũ ≤ thân thiết). Dùng để so bậc khi kiểm tra thang
+# chiết khấu — tương tự _LEVEL_RANK của ma trận phê duyệt.
+GROUP_RANK = {"new": 0, "existing": 1, "loyal": 2}
+
 
 class DlPricingCommercialMixin(models.AbstractModel):
     """Gộp luồng phê duyệt dùng chung cho lợi nhuận và chiết khấu."""
@@ -126,12 +131,17 @@ class DlPricingDiscountRule(models.Model):
     _name = "dl.pricing.discount.rule"
     _description = "Chính sách chiết khấu theo nhóm khách hàng"
     _inherit = ["dl.pricing.commercial.mixin"]
+    _order = "group_rank asc, state, valid_from desc, id desc"
     _rec_name = "name"
 
     name = fields.Char("Tên", compute="_compute_name", store=True)
     customer_group = fields.Selection(
         CUSTOMER_GROUP_SELECTION, string="Nhóm khách hàng", required=True,
         default="new", tracking=True,
+    )
+    group_rank = fields.Integer(
+        "Bậc gắn bó", compute="_compute_group_rank", store=True,
+        help="Dùng nội bộ để sắp xếp và so bậc thang chiết khấu (mới→cũ→thân thiết).",
     )
     default_rate = fields.Float(
         "Chiết khấu mặc định (%)", required=True, digits=(6, 2), tracking=True,
@@ -154,6 +164,11 @@ class DlPricingDiscountRule(models.Model):
                 labels.get(rule.customer_group, ""),
                 rule.default_rate, rule.max_rate, rule.revision,
             )
+
+    @api.depends("customer_group")
+    def _compute_group_rank(self):
+        for rule in self:
+            rule.group_rank = GROUP_RANK.get(rule.customer_group, 0)
 
     def _target_domain(self):
         self.ensure_one()
@@ -182,6 +197,64 @@ class DlPricingDiscountRule(models.Model):
                 raise ValidationError(
                     _("Chiết khấu mặc định không được vượt mức tối đa.")
                 )
+
+    # ------------------------------------------------------------------
+    # Thang chiết khấu theo độ gắn bó (yêu cầu chính): mới ≤ cũ ≤ thân thiết
+    # ------------------------------------------------------------------
+    def _assert_fits_group_ladder(self):
+        """Bản ghi này (coi như sẽ áp dụng) phải khớp thang chiết khấu hiện tại:
+        khách gắn bó lâu hơn KHÔNG được chiết khấu thấp hơn khách mới hơn — cả
+        mức mặc định lẫn mức tối đa. So từng cặp với các chính sách ĐANG ÁP DỤNG
+        của nhóm khác (tương tự _assert_fits_ladder của ma trận phê duyệt).
+
+        Dùng cho constraint lúc kích hoạt và kiểm tra SỚM lúc Gửi duyệt — đề
+        xuất đảo bậc bị chặn ngay, không làm loãng hàng chờ của Giám đốc.
+        """
+        self.ensure_one()
+        labels = dict(CUSTOMER_GROUP_SELECTION)
+        my_rank = GROUP_RANK[self.customer_group]
+        others = self.search([
+            ("id", "not in", self.ids),
+            ("state", "=", "active"),
+            ("company_id", "=", self.company_id.id),
+            ("customer_group", "!=", self.customer_group),
+        ])
+        for other in others:
+            # lower = nhóm ít gắn bó hơn, higher = nhóm gắn bó hơn.
+            lower, higher = ((self, other)
+                             if my_rank < GROUP_RANK[other.customer_group]
+                             else (other, self))
+            for field, metric in (
+                ("default_rate", _("chiết khấu mặc định")),
+                ("max_rate", _("chiết khấu tối đa")),
+            ):
+                if lower[field] > higher[field] + 1e-9:
+                    raise ValidationError(_(
+                        "Bậc chiết khấu bị đảo: %(low)s đang có %(metric)s "
+                        "%(low_rate)s%% nhưng %(high)s (gắn bó hơn) chỉ "
+                        "%(high_rate)s%%. Khách gắn bó lâu hơn không được chiết "
+                        "khấu thấp hơn khách mới hơn — hãy chỉnh để %(low)s "
+                        "≤ %(high)s."
+                    ) % {
+                        "low": labels.get(lower.customer_group, ""),
+                        "high": labels.get(higher.customer_group, ""),
+                        "metric": metric,
+                        "low_rate": lower[field],
+                        "high_rate": higher[field],
+                    })
+
+    @api.constrains("customer_group", "default_rate", "max_rate", "state", "company_id")
+    def _check_group_ladder(self):
+        """Chỉ xét các chính sách đang áp dụng vì chúng mới thực sự áp lên báo giá."""
+        for rule in self:
+            if rule.state == "active":
+                rule._assert_fits_group_ladder()
+
+    def action_submit_approval(self):
+        """Chặn SỚM đề xuất đảo bậc chiết khấu ngay khi Gửi duyệt."""
+        self.ensure_one()
+        self._assert_fits_group_ladder()
+        return super().action_submit_approval()
 
 # NB: Field res.partner.dlm_customer_group (nhóm khách của từng đối tác) được
 # định nghĩa ở dl_sale/models/res_partner.py — nơi có sẵn dl.quotation để tự

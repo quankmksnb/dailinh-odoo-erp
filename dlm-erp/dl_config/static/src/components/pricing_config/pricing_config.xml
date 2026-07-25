@@ -245,11 +245,26 @@
                             <tr t-if="!state.rows.profit.length"><td colspan="5" class="dl-cfg-empty">Chưa có chính sách lợi nhuận.</td></tr>
                         </tbody>
                     </table>
+                </div>
 
-                    <div class="dl-cfg-subhead">
-                        <span>Chiết khấu theo nhóm khách hàng</span>
-                        <button class="dl-cfg-mini" type="button" t-att-disabled="!canEdit('discount')"
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Chiết khấu theo nhóm khách hàng</span>
+                        <button class="dl-cfg-mini" type="button" t-if="discountHistoryCount" t-on-click="() => this.toggleDiscountHistory()">
+                            <i class="fa fa-history"/>
+                            <t t-esc="state.discountShowHistory ? 'Ẩn lịch sử' : 'Lịch sử (' + discountHistoryCount + ')'"/>
+                        </button>
+                        <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('discount')"
                                 t-on-click="() => this.openCreate('discount')"><i class="fa fa-plus"/> Thêm chính sách</button>
+                    </div>
+                    <p class="dl-pc-hint">
+                        Xếp theo độ gắn bó: <b>Khách mới → Khách cũ → Khách thân thiết</b>.
+                        Chiết khấu (cả mặc định lẫn tối đa) phải <b>không giảm dần</b> theo thứ tự đó —
+                        khách gắn bó lâu hơn không được ưu đãi thấp hơn khách mới. Thay đổi phải <b>gửi duyệt</b> mới có hiệu lực.
+                    </p>
+                    <div class="dl-pc-warnbox" t-if="discountLadderWarning">
+                        <i class="fa fa-exclamation-triangle" title="Cảnh báo cấu hình"/>
+                        <span t-esc="discountLadderWarning"/>
                     </div>
                     <table class="dl-cfg-table">
                         <thead><tr>
@@ -257,7 +272,7 @@
                             <th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
-                            <t t-foreach="state.rows.discount" t-as="r" t-key="r.id">
+                            <t t-foreach="discountRows" t-as="r" t-key="r.id">
                                 <tr>
                                     <td class="nm" t-esc="lab('customerGroup', r.customer_group)"/>
                                     <td class="num" t-esc="r.default_rate"/>
@@ -267,7 +282,7 @@
                                     <td class="actw"><t t-call="dl_config.PcCommActions"><t t-set="section" t-value="'discount'"/></t></td>
                                 </tr>
                             </t>
-                            <tr t-if="!state.rows.discount.length"><td colspan="6" class="dl-cfg-empty">Chưa có chính sách chiết khấu.</td></tr>
+                            <tr t-if="!discountRows.length"><td colspan="6" class="dl-cfg-empty">Chưa có chính sách chiết khấu đang áp dụng.</td></tr>
                         </tbody>
                     </table>
                 </div>
