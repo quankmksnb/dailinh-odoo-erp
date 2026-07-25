@@ -134,7 +134,9 @@
                         <div class="dl-cust-head-main">
                             <label for="name" string="Tên khách hàng" />
                             <h1>
-                                <field name="name" placeholder="Tên khách hàng..."
+                                <field name="name" string="Tên khách hàng"
+                                    placeholder="Tên khách hàng..."
+                                    required="1"
                                     readonly="not active" />
                             </h1>
                             <div class="dl-cust-code" invisible="not dlm_code">Mã KH: <field
@@ -151,12 +153,26 @@
                                 readonly="not active" />
                         </div>
 
+                    </div>
+
+                    <!-- Gộp hồ sơ khi đối tác đã là NCC — chỉ hiện lúc tạo mới -->
+                    <div class="alert alert-info dl-cust-mergebox" role="status"
+                        invisible="id">
+                        <div class="fw-bold mb-1">
+                            <i class="fa fa-link me-1"/>Đối tác này đã là Nhà cung cấp của công ty?
+                        </div>
+                        <div class="text-muted small mb-2">
+                            Nếu công ty / người này đã có sẵn trong hệ thống với vai trò
+                            <b>Nhà cung cấp</b>, hãy chọn đúng tên họ ở ô bên dưới. Hệ thống
+                            sẽ <b>gộp thành một hồ sơ chung "Khách hàng &amp; NCC"</b> và tự
+                            điền sẵn thông tin (SĐT, email, MST, địa chỉ...) để tránh nhập
+                            trùng. Nếu đây là khách hàng mới hoàn toàn, cứ <b>để trống</b> ô này.
+                        </div>
                         <field name="pending_link_partner_id"
-                            string="NCC trùng tên (nếu có)"
+                            nolabel="1"
                             context="{'dl_link_search_role': 'supplier'}"
                             options="{'no_open': True, 'no_create': True}"
-                            invisible="id"
-                            placeholder="Tìm NCC..."/>
+                            placeholder="Gõ tên Nhà cung cấp để tìm và gộp..."/>
                     </div>
 
                     <group>

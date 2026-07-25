@@ -46,7 +46,7 @@
                         <div class="dl-cust-head-main">
                             <label for="name" string="Tên NCC / Thầu phụ"/>
                             <h1>
-                                <field name="name" placeholder="Tên NCC / Thầu phụ..."/>
+                                <field name="name" string="Tên NCC / Thầu phụ" placeholder="Tên NCC / Thầu phụ..." required="1"/>
                             </h1>
                             <field name="partner_type" widget="radio"
                                    options="{'horizontal': true}" nolabel="1"
