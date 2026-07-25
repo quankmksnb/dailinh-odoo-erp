@@ -1,62 +1,16 @@
-// S03 — Form Khách hàng. Phần đặc thù: avatar, mã KH, radio segment loại KH.
-.dl-customer-form {
-  .dl-cust-code {
-    display: inline;
-    font-size: 12px;
-    font-weight: 600;
-    color: $dl-text-muted;
-    margin: 0;
+// S03/S04 — Form Khách hàng & NCC.
+// Layout dùng chung (avatar, đầu form, radio segment loại, khối gộp hồ sơ) áp cho
+// CẢ HAI form vì hai màn dùng chung bộ class dl-cust-*. Phần đặc thù (mã KH, badge
+// nhóm khách) giữ riêng ở .dl-customer-form.
 
-    .o_field_widget {
-      font-weight: 700;
-      color: $dl-primary;
-    }
-  }
-
-  .dl-cust-group-badge {
-    display: inline-flex;
-    vertical-align: middle;
-    margin-left: 8px;
-    .badge {
-      font-size: 11px;
-      font-weight: 600;
-    }
-  }
-
-  .dl-cust-code + .dl-cust-group-badge {
-    margin-left: 8px;
-  }
-
-  .dl-cust-head-main > .dl-cust-code,
-  .dl-cust-head-main > .dl-cust-group-badge {
-    margin-bottom: 0;
-  }
-
-  .dl-cust-head-main > h1 + .dl-cust-code,
-  .dl-cust-head-main > h1 + .dl-cust-group-badge,
-  .dl-cust-head-main > .dl-cust-code + .dl-cust-group-badge {
-    margin-top: 0;
-    margin-bottom: 6px;
-  }
-
+// ── Layout dùng chung cho cả 2 form ────────────────────────────────────
+.dl-customer-form,
+.dl-supplier-form {
   .dl-cust-head {
     display: flex;
     align-items: flex-start;
     gap: 16px;
     margin-bottom: 12px;
-  }
-
-  // Khối "gộp hồ sơ NCC" — ô tìm rộng vừa đủ đọc hết placeholder, không kéo dài cả form
-  .dl-cust-mergebox {
-    .o_field_widget,
-    .o_field_many2one {
-      width: 100%;
-      max-width: 480px;
-    }
-    .o_input_dropdown,
-    .o_input_dropdown input {
-      width: 100%;
-    }
   }
 
   .dl-cust-form-avatar {
@@ -114,5 +68,60 @@
       color: #fff;
       font-weight: 500;
     }
+  }
+
+  // Khối "gộp hồ sơ" — ô tìm rộng vừa đủ đọc hết placeholder, không kéo dài cả form
+  .dl-cust-mergebox {
+    .o_field_widget,
+    .o_field_many2one {
+      width: 100%;
+      max-width: 480px;
+    }
+    .o_input_dropdown,
+    .o_input_dropdown input {
+      width: 100%;
+    }
+  }
+}
+
+// ── Riêng form Khách hàng: mã KH + badge nhóm khách ─────────────────────
+.dl-customer-form {
+  .dl-cust-code {
+    display: inline;
+    font-size: 12px;
+    font-weight: 600;
+    color: $dl-text-muted;
+    margin: 0;
+
+    .o_field_widget {
+      font-weight: 700;
+      color: $dl-primary;
+    }
+  }
+
+  .dl-cust-group-badge {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 8px;
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+    }
+  }
+
+  .dl-cust-code + .dl-cust-group-badge {
+    margin-left: 8px;
+  }
+
+  .dl-cust-head-main > .dl-cust-code,
+  .dl-cust-head-main > .dl-cust-group-badge {
+    margin-bottom: 0;
+  }
+
+  .dl-cust-head-main > h1 + .dl-cust-code,
+  .dl-cust-head-main > h1 + .dl-cust-group-badge,
+  .dl-cust-head-main > .dl-cust-code + .dl-cust-group-badge {
+    margin-top: 0;
+    margin-bottom: 6px;
   }
 }

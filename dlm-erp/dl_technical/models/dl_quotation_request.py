@@ -143,6 +143,22 @@ class DlQuotationRequest(models.Model):
                 )
         return super().create(vals_list)
 
+    @api.constrains("deadline", "requested_date")
+    def _check_deadline(self):
+        """Hạn xử lý RFQ không được nằm trước ngày tiếp nhận yêu cầu — neo vào
+        requested_date (không phải "hôm nay") để RFQ cũ đã qua hạn hợp lệ vẫn
+        sửa được, còn RFQ mới (requested_date mặc định = hiện tại) thì tương
+        đương "không được chọn ngày quá khứ"."""
+        for rec in self:
+            if not rec.deadline or not rec.requested_date:
+                continue
+            requested = fields.Date.to_date(rec.requested_date)
+            if rec.deadline < requested:
+                raise ValidationError(_(
+                    "Hạn yêu cầu (%(deadline)s) không được trước ngày nhận "
+                    "yêu cầu (%(requested)s).",
+                    deadline=rec.deadline, requested=requested))
+
     def _recompute_status_from_lines(self):
         for rec in self:
 

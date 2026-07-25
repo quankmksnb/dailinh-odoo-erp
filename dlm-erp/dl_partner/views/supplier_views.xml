@@ -53,12 +53,26 @@
                                    class="dl-cust-type-seg"/>
                         </div>
 
+                    </div>
+
+                    <!-- Gộp hồ sơ khi đối tác đã là Khách hàng — chỉ hiện lúc tạo mới -->
+                    <div class="alert alert-info dl-cust-mergebox" role="status"
+                         invisible="id">
+                        <div class="fw-bold mb-1">
+                            <i class="fa fa-link me-1"/>Đối tác này đã là Khách hàng của công ty?
+                        </div>
+                        <div class="text-muted small mb-2">
+                            Nếu công ty / người này đã có sẵn trong hệ thống với vai trò
+                            <b>Khách hàng</b>, hãy chọn đúng tên họ ở ô bên dưới. Hệ thống
+                            sẽ <b>gộp thành một hồ sơ chung "Khách hàng &amp; NCC"</b> và tự
+                            điền sẵn thông tin (SĐT, email, MST, địa chỉ...) để tránh nhập
+                            trùng. Nếu đây là NCC mới hoàn toàn, cứ <b>để trống</b> ô này.
+                        </div>
                         <field name="pending_link_partner_id"
-                            string="Khách hàng trùng tên (nếu có)"
+                            nolabel="1"
                             context="{'dl_link_search_role': 'customer'}"
                             options="{'no_open': True, 'no_create': True}"
-                            invisible="id"
-                            placeholder="Tìm Khách Hàng..."/>
+                            placeholder="Gõ tên Khách hàng để tìm và gộp..."/>
                     </div>
 
                     <group>
