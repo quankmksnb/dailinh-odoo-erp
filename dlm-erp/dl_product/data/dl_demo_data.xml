@@ -103,10 +103,12 @@
         <record id="demo_meas_type_weight" model="dl.measurement.type">
             <field name="name">Khối lượng (Weight)</field>
             <field name="description">Đo theo kg — vật tư kim loại tính theo trọng lượng.</field>
+            <field name="formula_uom_id" ref="uom.product_uom_kgm" />
         </record>
         <record id="demo_meas_type_area" model="dl.measurement.type">
             <field name="name">Diện tích (Area)</field>
             <field name="description">Đo theo m² — vật tư dạng tấm/khối lưu kho theo diện tích.</field>
+            <field name="formula_uom_id" ref="uom.uom_square_meter" />
         </record>
 
         <record id="demo_meas_shape_flat" model="dl.measurement.shape">

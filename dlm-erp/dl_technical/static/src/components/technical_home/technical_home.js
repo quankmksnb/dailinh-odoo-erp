@@ -34,21 +34,10 @@ const CARDS = [
         icon: "fa-file-pdf-o",
         actionXmlId: "dl_technical.action_dl_drawing",
     },
-    {
-        key: "measurement_shape",
-        name: "Hình dạng đo lường (Shape)",
-        desc: "Quản lý Shape dùng để tính định mức trên dòng BOM",
-        icon: "fa-cube",
-        actionXmlId: "dl_product.action_dl_measurement_shape",
-    },
-    {
-        key: "measurement_type",
-        name: "Loại đo lường (Rule)",
-        desc: "Quản lý Rule (Area, Khối lượng...) — cha của Shape",
-        icon: "fa-calculator",
-        actionXmlId: "dl_product.action_dl_measurement_type",
-    },
 ];
+// Loại đo lường (Rule) / Hình dạng đo lường (Shape) — bỏ khỏi trang chủ Kỹ
+// thuật (dữ liệu cấu hình, ít dùng hằng ngày). Vẫn truy cập đầy đủ qua menu
+// "Sản phẩm & Vật tư > Đo lường" (dl_product/views/menus.xml).
 
 export class DlTechnicalHome extends Component {
     static template = "dl_technical.DlTechnicalHome";

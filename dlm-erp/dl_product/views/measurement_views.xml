@@ -34,6 +34,9 @@
                     </div>
                     <group>
                         <field name="description" placeholder="Mô tả cách đo, đơn vị áp dụng..." />
+                        <field name="formula_uom_id"
+                               placeholder="vd: kg, m², m³..."
+                               options="{'no_create': True}" />
                     </group>
                     <notebook>
                         <page string="Hình dạng" name="shapes">

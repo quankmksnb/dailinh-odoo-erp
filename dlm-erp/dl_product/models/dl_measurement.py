@@ -17,6 +17,19 @@ class DlMeasurementType(models.Model):
     description = fields.Text(string="Mô tả")
     active = fields.Boolean(string="Đang sử dụng", default=True)
 
+    # Đơn vị VẬT LÝ mà công thức Shape thuộc Rule này trả về (vd kg cho Khối
+    # lượng, m² cho Diện tích, m³ cho Thể tích) — dùng để: (1) lọc Rule hiển
+    # thị trên dòng BOM theo NHÓM đơn vị (uom.category) của vật tư đang chọn;
+    # (2) tự quy đổi kết quả công thức sang đúng UoM của vật tư (vd Tấn thay
+    # vì kg). Để trống thì Rule không xuất hiện ở bất kỳ dòng BOM nào.
+    formula_uom_id = fields.Many2one(
+        "uom.uom",
+        string="Đơn vị công thức",
+        help="Đơn vị vật lý mà công thức của Rule này trả về (vd kg, m², m³). "
+             "Dùng để lọc Rule theo UoM vật tư và tự quy đổi kết quả. Để trống "
+             "= Rule không hiện ở dòng BOM nào.",
+    )
+
     shape_ids = fields.One2many(
         "dl.measurement.shape", "measurement_type_id", string="Hình dạng"
     )
