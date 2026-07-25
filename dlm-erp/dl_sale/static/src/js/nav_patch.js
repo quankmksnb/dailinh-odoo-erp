@@ -5,11 +5,20 @@ import { DlHome } from "@dl_base/components/home/home";
 import { DlmRail } from "@dl_base/components/rail/rail";
 
 const QUOTE_HOME_ACTION = "dl_sale.action_dl_quotation_home";
+const APPROVAL_ACTION = "dl_sale.action_dl_quote_approval";
 
 function wireQuote(items) {
     const item = items && items.find((i) => i.key === "quotation");
     if (item) {
         item.actionXmlId = QUOTE_HOME_ACTION;
+    }
+}
+
+// Gán action cho mục "Phê duyệt" của rail (Home dùng card riêng, không đụng).
+function wireApproval(items) {
+    const item = items && items.find((i) => i.key === "approval");
+    if (item && !item.actionXmlId) {
+        item.actionXmlId = APPROVAL_ACTION;
     }
 }
 
@@ -24,5 +33,6 @@ patch(DlmRail.prototype, {
     setup() {
         super.setup(...arguments);
         wireQuote(this.railItems);
+        wireApproval(this.railItems);
     },
 });

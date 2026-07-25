@@ -4,7 +4,7 @@
 <t t-name="dl_base.DlmRail">
     <div class="dlm-rail" t-if="state.visible" t-att-class="{ collapsed: sidebar.collapsed }">
         <div class="dlm-rail-head">
-            <div class="dlm-rail-logo"
+            <div class="dlm-rail-logo" title="Trang chủ"
                  t-on-click="() => this.openModule('dl_base.action_dl_home')">
                 <span class="dlm-rail-icon">◆</span>
                 <span class="dlm-rail-label">DLM-ERP</span>
@@ -15,7 +15,7 @@
             </button>
         </div>
 
-        <t t-foreach="railItems" t-as="item" t-key="item.key">
+        <t t-foreach="visibleItems" t-as="item" t-key="item.key">
             <t t-if="item.children and item.children.length">
                 <div class="dlm-rail-item has-children"
                      t-att-title="item.name"
@@ -42,6 +42,7 @@
                      t-on-click="() => this.openModule(item.actionXmlId, item.key)">
                     <span class="dlm-rail-icon"><i t-att-class="'fa ' + item.icon"/></span>
                     <span class="dlm-rail-label" t-esc="item.name"/>
+                    <span class="dlm-rail-soon" t-if="!item.actionXmlId">Sắp có</span>
                 </div>
             </t>
         </t>

@@ -124,9 +124,24 @@ $dl-rail-bg:      $dl-nav-bg;
 
         // Module Phase sau (chưa có action) → mờ, không bấm
         &.disabled {
-            opacity: 0.45;
+            opacity: 0.6;
             cursor: default;
             &:hover { background: transparent; color: $dl-text-muted; }
+        }
+
+        // Chip "Sắp có" — báo mục là tính năng tương lai, không phải lỗi.
+        .dlm-rail-soon {
+            margin-left: auto;
+            flex-shrink: 0;
+            font-size: 9.5px;
+            font-weight: 600;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            color: $dl-text-muted;
+            background: $dl-search-bg;
+            border-radius: 999px;
+            padding: 1px 7px;
+            pointer-events: none;
         }
 
         &.has-children {
@@ -158,7 +173,19 @@ $dl-rail-bg:      $dl-nav-bg;
         width: $dl-sidebar-w-collapsed;
 
         .dlm-rail-label { display: none; }
-        .dlm-rail-logo { display: none; }
+        .dlm-rail-soon { display: none; }
+
+        // Xếp head theo cột: giữ logo làm nút Home (chỉ icon) phía trên, nút
+        // thu/mở phía dưới. Trước đây ẩn hẳn logo nên thu gọn thì MẤT lối về
+        // Trang chủ — phải mở rộng rail mới bấm được.
+        .dlm-rail-head {
+            flex-direction: column;
+            gap: 4px;
+        }
+        .dlm-rail-logo {
+            justify-content: center;
+            .dlm-rail-icon { margin: 0; }
+        }
         .dlm-rail-toggle { margin-left: 0; }
         .dlm-rail-chevron { display: none; }
         .dlm-rail-submenu { display: none; }

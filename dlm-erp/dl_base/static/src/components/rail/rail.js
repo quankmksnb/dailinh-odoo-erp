@@ -11,6 +11,15 @@ const RAIL_ITEMS = [
     { key: "customer", name: "Khách hàng", icon: "fa-users", actionXmlId: "dl_partner.action_dl_customer" },
     { key: "supplier", name: "NCC / Thầu phụ", icon: "fa-truck", actionXmlId: "dl_partner.action_dl_supplier" },
     { key: "quotation", name: "Báo giá", icon: "fa-file-text-o", actionXmlId: "dl_sale.action_dl_quotation" },
+    // Phê duyệt — chỉ hiện với user thấy được menu (CEO/Trưởng KD/vai trò duyệt).
+    // menuXmlIds ⇒ rail LỌC RBAC đồng bộ Home; actionXmlId do dl_sale nav_patch gán.
+    {
+        key: "approval",
+        name: "Phê duyệt",
+        icon: "fa-check-square-o",
+        actionXmlId: null,
+        menuXmlIds: ["dl_sale.menu_dl_sale_quote_approval"],
+    },
     { key: "product", name: "Sản phẩm & Vật tư", icon: "fa-cube", actionXmlId: null },
     { key: "technical", name: "Kỹ thuật", icon: "fa-cogs", actionXmlId: null },
     { key: "pricing", name: "Bảng giá", icon: "fa-money", actionXmlId: null },
@@ -26,6 +35,7 @@ export class DlmRail extends Component {
         this.actionService = useService("action");
         this.menuService = useService("menu");
         this.railItems = RAIL_ITEMS;
+        this._dlmApp = this.menuService.getApps().find((app) => app.xmlid === DLM_APP_XMLID);
         this.state = useState({ visible: this._inDlmApp(), expanded: {} });
         this.sidebar = useState(sidebarState);
 
@@ -56,6 +66,32 @@ export class DlmRail extends Component {
     _inDlmApp() {
         const app = this.menuService.getCurrentApp();
         return !!app && app.xmlid === DLM_APP_XMLID;
+    }
+
+    // Mục KHÔNG khai báo menuXmlIds → luôn hiện (giữ nguyên hành vi cũ). Mục CÓ
+    // khai báo (vd Phê duyệt) → chỉ hiện khi user thấy được menu đích trong cây
+    // menu đã lọc theo groups ⇒ rail đồng bộ RBAC với các card ở Trang chủ.
+    get visibleItems() {
+        return this.railItems.filter((item) => {
+            if (!item.menuXmlIds || !item.menuXmlIds.length) return true;
+            return item.menuXmlIds.some((xmlid) => this._menuVisible(xmlid));
+        });
+    }
+
+    _menuVisible(xmlid) {
+        if (!this._dlmApp) return false;
+        const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
+        return !!this._findMenuByXmlId(tree, xmlid);
+    }
+
+    _findMenuByXmlId(node, xmlid) {
+        if (!node) return null;
+        if (node.xmlid === xmlid) return node;
+        for (const child of node.childrenTree || []) {
+            const found = this._findMenuByXmlId(child, xmlid);
+            if (found) return found;
+        }
+        return null;
     }
 
     toggleSubmenu(key) {
