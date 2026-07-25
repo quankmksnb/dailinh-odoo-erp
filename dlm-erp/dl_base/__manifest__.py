@@ -22,6 +22,10 @@
             'dl_base/static/src/scss/global_list.scss',
             'dl_base/static/src/scss/global_cp.scss',
             'dl_base/static/src/scss/global_dialog.scss',
+            # Spinner tải dữ liệu — thay chỉ báo "Loading" gốc bằng spinner
+            # xoay ở giữa màn hình (override template web.LoadingIndicator).
+            'dl_base/static/src/components/loading_indicator/loading_indicator.scss',
+            'dl_base/static/src/components/loading_indicator/loading_indicator.xml',
             # State dùng chung sidebar (Home nav + Rail) — nạp trước component
             'dl_base/static/src/js/sidebar_state.js',
             # JS — hạ tầng list/form dùng chung toàn hệ thống (menu ⋮ Thao
