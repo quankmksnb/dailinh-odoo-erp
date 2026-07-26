@@ -217,6 +217,77 @@ class ProductProduct(models.Model):
             rec.sudo().write({"dlm_lifecycle_state": "draft"})
         return True
 
+    # ── Chuẩn hóa khi promote (đơn chốt tự duyệt SP gia công từ Nháp) ────────
+    def _dlm_standardize_on_promote(self):
+        """Chuẩn hóa SP khi được nâng Nháp→Đã duyệt (gọi từ luồng chốt đơn ở
+        dl_sale): sinh Mã SP chính thức nếu còn trống + gọn tên. sudo an toàn —
+        người chốt đơn (Sales) không có quyền write SP gia công."""
+        for rec in self:
+            vals = {}
+            # Gọn tên: bỏ khoảng trắng thừa (đầu/cuối + gộp liên tiếp).
+            name = rec.name and " ".join(rec.name.split())
+            if name and name != rec.name:
+                vals["name"] = name
+            # Mã chính thức: SP tạo lúc xử lý RFQ chưa có mã — sinh TP-00001.
+            if not rec.default_code:
+                vals["default_code"] = self.env["ir.sequence"].next_by_code(
+                    "dl.product.manufactured")
+            if vals:
+                rec.sudo().write(vals)
+        return True
+
+    # ── Nháp mồ côi: SP gia công còn Nháp nhưng RFQ không chốt thành đơn ──────
+    @api.model
+    def _dlm_orphan_draft_domain(self, older_than_days=None):
+        """Domain SP gia công/BTP còn Nháp, KHÔNG dòng đơn bán nào tham chiếu.
+        older_than_days: chỉ lấy SP tạo trước mốc đó (rác đã 'nguội')."""
+        # dl_product không depends dl_sale — model đơn bán chỉ có khi dl_sale
+        # đã cài; nếu chưa thì coi như không SP nào đang được dùng.
+        used_product_ids = []
+        if "dl.sale.order.line" in self.env:
+            used_product_ids = self.env["dl.sale.order.line"].sudo().search([
+                ("order_id.state", "!=", "cancelled"),
+            ]).mapped("product_id").ids
+        domain = [
+            ("dlm_lifecycle_state", "=", "draft"),
+            ("product_kind", "in", ("manufactured", "material_processed")),
+            ("id", "not in", used_product_ids),
+        ]
+        if older_than_days:
+            cutoff = fields.Datetime.subtract(
+                fields.Datetime.now(), days=older_than_days)
+            domain.append(("create_date", "<", cutoff))
+        return domain
+
+    @api.model
+    def _cron_obsolete_orphan_drafts(self):
+        """Cron: rà nháp mồ côi quá hạn → chuyển 'obsolete' (giữ lịch sử, reset
+        lại được). Ngưỡng ngày lấy từ ir.config_parameter (mặc định 30)."""
+        days = int(self.env["ir.config_parameter"].sudo().get_param(
+            "dl_product.orphan_draft_days", 30))
+        orphans = self.sudo().search(self._dlm_orphan_draft_domain(days))
+        if orphans:
+            orphans.write({"dlm_lifecycle_state": "obsolete"})
+            for rec in orphans:
+                rec.message_post(body=_(
+                    "Tự động chuyển 'Ngừng' — SP còn Nháp quá %s ngày và không "
+                    "có đơn bán nào sử dụng (nháp mồ côi).") % days)
+        return True
+
+    @api.model
+    def action_dlm_review_orphan_drafts(self):
+        """Nút/menu 'Rà soát nháp mồ côi' — mở danh sách SP nháp mồ côi (mọi
+        tuổi) để Kỹ thuật xem và tự chuyển 'Ngừng' (nút Ngừng có sẵn)."""
+        orphan_ids = self.sudo().search(self._dlm_orphan_draft_domain()).ids
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Nháp mồ côi (rà soát)"),
+            "res_model": "product.product",
+            "view_mode": "tree,form",
+            "domain": [("id", "in", orphan_ids)],
+            "target": "current",
+        }
+
     # ── Hao hụt & thu hồi (chỉ vật tư) ───────────────────────────────────
     # NGUỒN DUY NHẤT của hao hụt: đặt ngay trên vật tư, kỹ thuật điền khi tạo.
     # Tự điền mặc định theo NHÓM sản phẩm từ cấu hình (dl.pricing.waste.rule

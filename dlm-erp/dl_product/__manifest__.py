@@ -1,6 +1,6 @@
 {
     "name": "DL-Product",
-    "version": "17.0.2.3.0",
+    "version": "17.0.2.4.0",
     "summary": "Sản phẩm hợp nhất (product.product), bảng giá NCC, đo lường - theo Data Model TDS 4",
     "author": "Dai Linh",
     "category": "Hidden",
@@ -23,6 +23,8 @@
         "views/product_home.xml",
         "views/pricing_home.xml",
         "views/menus.xml",
+        # Sau menus.xml — tham chiếu menu_dl_product_root (sequence, cron, rà soát)
+        "data/dl_product_data.xml",
     ],
     "assets": {
         "web.assets_backend": [

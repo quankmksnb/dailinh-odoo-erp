@@ -72,6 +72,7 @@
                                            decoration-info="line_type == 'trading'"
                                            decoration-success="line_type == 'manufactured'"/>
                                     <field name="name"/>
+                                    <field name="bom_id" optional="hide"/>
                                     <field name="qty" digits="[16, 0]"/>
                                     <field name="price_unit" digits="[16, 0]"/>
                                     <field name="price_subtotal" readonly="1" digits="[16, 0]"/>

@@ -98,12 +98,21 @@ class DlSaleOrder(models.Model):
 
     def _promote_draft_products(self):
         """Đơn chốt ⇒ các SP còn ở Nháp (Kỹ thuật tạo khi xử lý RFQ) được nâng
-        lên 'Đã duyệt' để chính thức vào danh mục tái sử dụng. sudo vì người
-        chốt đơn (Sales) không có quyền write product.product của SP gia công."""
+        lên 'Đã duyệt' để chính thức vào danh mục tái sử dụng, đồng thời chuẩn
+        hóa (sinh Mã SP chính thức, gọn tên) và xác nhận BOM đi kèm. sudo vì
+        người chốt đơn (Sales) không có quyền write SP/BOM gia công."""
         products = self.mapped('line_ids.product_id').filtered(
             lambda p: p.dlm_lifecycle_state == 'draft')
         if products:
+            # Chuẩn hóa TRƯỚC (sinh mã/gọn tên) rồi mới nâng trạng thái.
+            products.sudo()._dlm_standardize_on_promote()
             products.sudo().write({'dlm_lifecycle_state': 'active'})
+        # BOM còn Nháp (có dòng vật tư) → 'Đã xác nhận'. BOM rỗng bỏ qua vì
+        # action_confirm bắt buộc có line_ids (không để crash luồng chốt đơn).
+        boms = self.mapped('line_ids.bom_id').filtered(
+            lambda b: b.status == 'draft' and b.line_ids)
+        if boms:
+            boms.sudo().action_confirm()
 
     def action_done(self):
         self.write({'state': 'done'})
@@ -139,6 +148,9 @@ class DlSaleOrderLine(models.Model):
     price_subtotal = fields.Float(string='Thành tiền', compute='_compute_subtotal',
                                   store=True, digits='Product Price')
     product_id = fields.Many2one('product.product', string='Sản phẩm', readonly=True)
+    # BOM đã chốt cho dòng gia công (snapshot từ báo giá) — dùng để tự xác nhận
+    # BOM khi đơn chốt (xem _promote_draft_products) + truy vết.
+    bom_id = fields.Many2one('dl.bom', string='BOM', readonly=True)
     line_type = fields.Selection([
         ('trading', 'Thương mại'),
         ('manufactured', 'Gia công'),

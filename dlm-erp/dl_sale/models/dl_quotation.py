@@ -375,6 +375,7 @@ class DlQuotation(models.Model):
                     'qty': line.qty,
                     'price_unit': line.price_unit,
                     'product_id': line.product_id.id,
+                    'bom_id': line.bom_id.id,
                     'line_type': line.line_type,
                 }) for line in self.line_ids],
             })
