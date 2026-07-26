@@ -6,6 +6,24 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 # được nhập yêu cầu (product_name/product_category_id/quantity/dimension_note).
 _TECH_ONLY_LINE_FIELDS = {'resolved_product_id', 'resolved_bom_id', 'is_infeasible', 'infeasible_reason'}
 
+# Chiều ngược lại: thông tin YÊU CẦU do Sales sở hữu. Kỹ thuật khi nhận RFQ chỉ
+# xử lý phần kỹ thuật (Product/BOM/vật tư/bản vẽ nằm ở model dl.product/dl.bom),
+# KHÔNG được sửa nội dung yêu cầu của dòng...
+_SALES_ONLY_LINE_FIELDS = {
+    'product_type', 'product_name', 'product_category_id',
+    'reference_product_id', 'quantity', 'dimension_note', 'attachment_ids',
+}
+# ...cũng như thông tin thương mại ở header (khách hàng, ngày nhận, hạn yêu cầu).
+_SALES_ONLY_HEADER_FIELDS = {'customer_id', 'requested_date', 'deadline'}
+
+
+def _user_is_sales(env):
+    """Sales sở hữu thông tin yêu cầu = BA / Trưởng phòng KD / Admin."""
+    user = env.user
+    return (user.has_group('dl_base.dl_group_ba')
+            or user.has_group('dl_base.dl_group_sales_manager')
+            or user.has_group('dl_base.dl_group_admin'))
+
 
 class DlQuotationRequest(models.Model):
     _name = "dl.quotation.request"
@@ -133,6 +151,18 @@ class DlQuotationRequest(models.Model):
             rec.resolved_product_ids = rec.line_ids.mapped("resolved_product_id")
             rec.resolved_bom_ids = rec.line_ids.mapped("resolved_bom_id")
 
+    # Field-level RBAC (đối xứng với dòng RFQ): True nếu user là Kỹ thuật/Admin —
+    # dùng để khóa readonly các field YÊU CẦU (khách hàng / ngày nhận / hạn) trên
+    # form xử lý. compute_sudo vì user ngoài nhóm vẫn cần đọc để tính readonly.
+    is_technician = fields.Boolean(
+        compute="_compute_is_technician", compute_sudo=True)
+
+    def _compute_is_technician(self):
+        is_tech = (self.env.user.has_group("dl_base.dl_group_tech")
+                   or self.env.user.has_group("dl_base.dl_group_admin"))
+        for rec in self:
+            rec.is_technician = is_tech
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -189,6 +219,18 @@ class DlQuotationRequest(models.Model):
 
             if rec.status != status:
                 rec.status = status
+
+    def write(self, vals):
+        # RBAC: thông tin thương mại/yêu cầu (khách hàng, ngày nhận, hạn) do
+        # Sales quản lý — Kỹ thuật nhận RFQ chỉ xử lý phần kỹ thuật, không được
+        # đổi các field này (chặn cả qua RPC/import, không chỉ readonly ở view).
+        if not self.env.su:
+            gated = _SALES_ONLY_HEADER_FIELDS & vals.keys()
+            if gated and not _user_is_sales(self.env):
+                raise AccessError(_(
+                    "Thông tin khách hàng / ngày nhận / hạn yêu cầu do Sales "
+                    "quản lý — Kỹ thuật không được chỉnh sửa."))
+        return super().write(vals)
 
     def action_receive(self):
         """KTV: nhận RFQ để bắt đầu xử lý (Mới / Đã bổ sung → Đang xử lý)."""
@@ -564,10 +606,22 @@ class DlQuotationRequestLine(models.Model):
                         _("Sản phẩm phải có BOM ở trạng thái Đã xác nhận hoặc Đã khóa.")
                     )
 
+    def _stamp_attachments(self):
+        """Widget many2many_binary tạo ir.attachment với res_id=0 (file được
+        upload trước khi dòng có id). Attachment res_id=0 chỉ NGƯỜI TẠO + admin
+        đọc được (cơ chế lọc của ir.attachment) ⇒ user khác mở RFQ có đính kèm sẽ
+        bị AccessError. Gắn res_model/res_id về đúng dòng RFQ để: ai đọc được dòng
+        thì đọc được file (Sales tạo → Kỹ thuật/CEO/TrKD xem được)."""
+        for rec in self:
+            orphan = rec.attachment_ids.filtered(lambda a: not a.res_id)
+            if orphan:
+                orphan.sudo().write({"res_model": rec._name, "res_id": rec.id})
+
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
         records.mapped("quotation_request_id")._recompute_status_from_lines()
+        records._stamp_attachments()
         return records
 
     def write(self, vals):
@@ -589,7 +643,18 @@ class DlQuotationRequestLine(models.Model):
                         'Chỉ Kỹ thuật hoặc Admin được quyết định "Sản phẩm xác định" '
                         '/ "Không khả thi" — đây là đánh giá kỹ thuật.'))
 
+        # Chiều ngược lại: thông tin yêu cầu (tên/nhóm/SL/mô tả/đính kèm) do Sales
+        # sở hữu — Kỹ thuật (không kiêm Sales) không được sửa nội dung yêu cầu.
+        sales_gated = _SALES_ONLY_LINE_FIELDS & vals.keys()
+        if not self.env.su and sales_gated and not _user_is_sales(self.env):
+            raise AccessError(_(
+                'Thông tin yêu cầu (tên / nhóm SP / số lượng / mô tả / đính kèm) '
+                'do Sales quản lý — Kỹ thuật không được chỉnh sửa.'))
+
         res = super().write(vals)
+
+        if "attachment_ids" in vals:
+            self._stamp_attachments()
 
         if {"resolved_product_id", "resolved_bom_id", "is_infeasible"} & set(vals.keys()):
             self.mapped("quotation_request_id")._recompute_status_from_lines()

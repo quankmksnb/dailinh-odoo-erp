@@ -50,12 +50,13 @@
             <xpath expr="//field[@name='status']" position="after">
                 <field name="resolved_product_ids" widget="many2many_tags" string="Product Reference"/>
                 <field name="resolved_bom_ids" widget="many2many_tags" string="BOM Reference"/>
-                <!-- §3d — KTV nhận RFQ ngay trên list: Mới/Đã bổ sung → Đang
-                     xử lý, sau đó mới mở được chi tiết. KHÔNG đặt icon (button
+                <!-- §3d — KTV nhận RFQ mới ngay trên list: Mới → Đang xử lý, sau
+                     đó mới mở được chi tiết. RFQ "Đã bổ sung" đã tiếp nhận ở vòng
+                     trước nên mở thẳng, không hiện nút này. KHÔNG đặt icon (button
                      list có icon sẽ chỉ hiện icon, chữ thành tooltip). -->
                 <button name="action_receive" type="object" string="Nhận RFQ"
                         class="btn-link"
-                        invisible="status not in ('new', 'supplemented')"
+                        invisible="status != 'new'"
                         groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
             </xpath>
         </field>
@@ -97,6 +98,9 @@
                            readonly="1"/>
                 </header>
                 <sheet>
+                    <!-- Kỹ thuật (is_technician) chỉ đọc thông tin yêu cầu, chỉ
+                         sửa phần "Kết quả xử lý (Kỹ thuật)" ở từng dòng. -->
+                    <field name="is_technician" invisible="1"/>
                     <widget name="web_ribbon" title="Đã hủy"
                             bg_color="text-bg-danger" invisible="status != 'cancelled'"/>
                     <widget name="web_ribbon" title="Đã tạo báo giá"
@@ -115,11 +119,12 @@
 
                     <group>
                         <group string="Thông tin yêu cầu">
-                            <field name="customer_id" readonly="status != 'new'"
+                            <field name="customer_id" readonly="is_technician or status != 'new'"
                                 options="{'no_quick_create': True}"
                                 context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
-                            <field name="requested_date" readonly="status != 'new'"/>
-                            <field name="deadline" options="{'min_date': 'today'}"/>
+                            <field name="requested_date" readonly="is_technician or status != 'new'"/>
+                            <field name="deadline" options="{'min_date': 'today'}"
+                                   readonly="is_technician"/>
                             <field name="created_by"/>
                         </group>
                     </group>
@@ -185,19 +190,23 @@
                                             <label for="product_name" string="Tên sản phẩm"/>
                                             <h2>
                                                 <field name="product_name" required="1"
+                                                       readonly="is_technician"
                                                        placeholder="Tên sản phẩm..."/>
                                             </h2>
                                         </div>
                                         <group>
+                                            <!-- Thông tin do Sales nhập — Kỹ thuật chỉ đọc. -->
                                             <group string="Yêu cầu (Sales)">
                                                 <field name="product_category_id"
+                                                       readonly="is_technician"
                                                        domain="[('id', 'in', selectable_category_ids)]"/>
                                                 <field name="reference_product_id"
                                                        string="Sản phẩm tham khảo"
+                                                       readonly="is_technician"
                                                        options="{'no_create': True}"
                                                        domain="[('id', 'in', reference_product_ids)]"
                                                        invisible="product_type == 'trading'"/>
-                                                <field name="quantity"/>
+                                                <field name="quantity" readonly="is_technician"/>
                                             </group>
                                             <group string="Kết quả xử lý (Kỹ thuật)">
                                                 <div colspan="2" class="text-muted"
@@ -224,14 +233,17 @@
                                         <separator string="Yêu cầu / Mô tả"/>
                                         <field name="dimension_note" nolabel="1"
                                                class="dl-rfq-desc"
+                                               readonly="is_technician"
                                                placeholder="Kích thước, yêu cầu kỹ thuật..."/>
                                         <!-- §1d — Ảnh & file đính kèm gộp chung 1 trường
                                              (many2many_binary hiển thị cả thumbnail ảnh lẫn
-                                             file). Sales bổ sung được khi RFQ bị trả lại. -->
+                                             file). Sales bổ sung được khi RFQ bị trả lại;
+                                             Kỹ thuật chỉ xem (bản vẽ kỹ thuật nằm ở Product/BOM). -->
                                         <separator string="Ảnh / File đính kèm"
                                                    invisible="product_type == 'trading'"/>
                                         <field name="attachment_ids" widget="many2many_binary"
                                                nolabel="1"
+                                               readonly="is_technician"
                                                invisible="product_type == 'trading'"/>
                                     </sheet>
                                 </form>
@@ -423,12 +435,16 @@
                         domain="[('status', '=', 'new')]"/>
                 <filter name="processing" string="Đang xử lý"
                         domain="[('status', '=', 'processing')]"/>
+                <filter name="returned" string="Trả lại bổ sung"
+                        domain="[('status', '=', 'returned')]"/>
                 <filter name="supplemented" string="Đã bổ sung"
                         domain="[('status', '=', 'supplemented')]"/>
-                <filter name="confirmed" string="Chờ báo giá"
+                <filter name="confirmed" string="Đã xử lý xong"
                         domain="[('status', '=', 'confirmed')]"/>
                 <filter name="quoted" string="Đã tạo BG"
                         domain="[('status', '=', 'quoted')]"/>
+                <filter name="cancelled" string="Đã hủy"
+                        domain="[('status', '=', 'cancelled')]"/>
                 <separator/>
                 <filter name="overdue" string="Quá hạn"
                         domain="[('deadline', '&lt;', context_today().strftime('%Y-%m-%d')), ('status', 'not in', ('quoted', 'cancelled'))]"/>
@@ -449,7 +465,7 @@
         <field name="name">Yêu cầu báo giá</field>
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'search_default_new': 1, 'search_default_processing': 1, 'search_default_supplemented': 1}</field>
+        <field name="context">{'search_default_to_process': 1}</field>
     </record>
 
     <record id="action_dl_quotation_request_my" model="ir.actions.act_window">
