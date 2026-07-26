@@ -14,18 +14,17 @@ import { serializeDate, today } from "@web/core/l10n/dates";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
 // Chip lọc trạng thái RFQ (single-select, có số đếm) — thay dropdown ẩn cũ.
-// "Cần xử lý" (to_process = Mới+Đang xử lý+Đã bổ sung) là chip mặc định khi
-// mở màn: đúng ý "chỉ hiện RFQ còn phải làm", lại đặt tên trung thực cho
-// composite mà dropdown single-select trước đây không thể hiển thị nổi (bật 3
-// filter nhưng chỉ khoe được "Mới"). key CHÍNH LÀ name filter trong search view
-// để bật/tắt đồng bộ với bộ lọc gốc Odoo.
+// Gom theo MỐC QUYẾT ĐỊNH cho thanh chip gọn (không 1 chip / status):
+//  - "Cần xử lý" (to_process) GỘP Mới + Đang xử lý + Đã bổ sung — cùng bản chất
+//    "RFQ đang ở phía Kỹ thuật để xử lý"; là chip mặc định.
+//  - Các mốc còn lại tách riêng vì bóng ở người khác / trạng thái chốt:
+//    Trả lại bổ sung (chờ Sales) · Đã xử lý xong (chờ tạo BG) · Đã tạo BG · Đã hủy.
+// Vẫn lọc lẻ Mới/Đang xử lý/Đã bổ sung được qua ô Search nâng cao (filter vẫn
+// còn trong search view). key CHÍNH LÀ name filter trong search view.
 const CHIPS = [
     { key: "all", label: "Tất cả" },
     { key: "to_process", label: "Cần xử lý" },
-    { key: "new", label: "Mới" },
-    { key: "processing", label: "Đang xử lý" },
     { key: "returned", label: "Trả lại bổ sung" },
-    { key: "supplemented", label: "Đã bổ sung" },
     { key: "confirmed", label: "Đã xử lý xong" },
     { key: "quoted", label: "Đã tạo BG" },
     { key: "cancelled", label: "Đã hủy" },

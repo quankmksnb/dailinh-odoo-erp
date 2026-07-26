@@ -112,9 +112,12 @@ class DlRfqHistoryWizard(models.TransientModel):
                         msg.date, (msg.author_id.name or ""), kind, lines))
 
             # Render timeline dọc: chấm mốc + đường nối, thời gian — người
-            # thao tác, nội dung. Đọc từ trên xuống theo thời gian.
+            # thao tác, nội dung. Sắp MỚI NHẤT TRÊN CÙNG (khớp chatter Odoo +
+            # convention audit-log): mở ra thấy ngay việc gần nhất, "RFQ được
+            # tạo" là gốc nằm dưới cùng. entries dựng theo thời gian tăng dần rồi
+            # đảo lại lúc render.
             parts = ["<div class='dl-rfq-history'>"]
-            for when, author, kind, lines in entries:
+            for when, author, kind, lines in reversed(entries):
                 parts.append(
                     "<div class='dl-rfqh-item dl-rfqh-%s'>"
                     "<span class='dl-rfqh-dot'></span>"
