@@ -39,5 +39,40 @@
     .badge.text-bg-info { background-color: $dl-badge-sent-bg !important; color: $dl-badge-sent-fg !important; }
     .badge.text-bg-success { background-color: $dl-badge-approved-bg !important; color: $dl-badge-approved-fg !important; }
     .badge.text-bg-danger { background-color: $dl-badge-rejected-bg !important; color: $dl-badge-rejected-fg !important; }
+
+    // Chipbar lọc theo trạng thái (chip có số đếm) — mirror style màn Khách hàng.
+    // Nhiều chip nên flex-wrap để xuống dòng gọn thay vì tràn ngang.
+    .dl-chipbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 2px 0 0;
+
+        .dl-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 14px;
+            border: 1px solid $dl-border;
+            border-radius: $dl-radius-sm;
+            background: #fff;
+            color: $dl-text-2;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background .15s, border-color .15s, color .15s;
+
+            .dl-chip-count { color: $dl-text-muted; font-weight: 400; }
+            &:hover { background: $dl-divider; }
+
+            &.is-active {
+                background: $dl-active;
+                border-color: $dl-primary;
+                color: $dl-primary;
+                .dl-chip-count { color: $dl-primary; }
+            }
+        }
+    }
 }
 

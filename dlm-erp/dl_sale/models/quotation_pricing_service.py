@@ -73,13 +73,39 @@ class DlQuotationPricingService(models.AbstractModel):
         # Chỉ chuyển RFQ sang 'quoted' sau khi báo giá + dòng đã tạo xong.
         rfq.sudo().write({"status": "quoted"})
 
-        return {
+        open_quotation = {
             "type": "ir.actions.act_window",
             "name": _("Báo giá"),
             "res_model": "dl.quotation",
+            # Khai báo tường minh 'views' (không chỉ 'view_mode'): action này
+            # được nhét vào params.next của display_notification nên KHÔNG đi qua
+            # clean_action ở server — client sẽ gọi doAction thẳng, và
+            # _preprocessAction làm action.views.map() → vỡ nếu thiếu 'views'.
+            "views": [(False, "form")],
             "view_mode": "form",
             "res_id": quotation.id,
             "target": "current",
+        }
+        # Toast xác nhận + hướng dẫn bước tiếp theo, tùy báo giá có cần duyệt
+        # không: dưới ngưỡng thì gửi khách ngay, vượt ngưỡng thì chờ phê duyệt.
+        if quotation.approval_required:
+            message = _(
+                "Đã tạo báo giá %(name)s. Giá trị vượt ngưỡng — cần phê duyệt "
+                "(%(level)s) trước khi gửi khách.",
+                name=quotation.name, level=quotation.approval_level or "")
+        else:
+            message = _(
+                "Đã tạo báo giá %(name)s — sẵn sàng gửi khách hàng ngay.",
+                name=quotation.name)
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "type": "success",
+                "title": _("Tạo báo giá thành công"),
+                "message": message,
+                "next": open_quotation,
+            },
         }
 
     # ------------------------------------------------------------------
@@ -146,10 +172,14 @@ class DlQuotationPricingService(models.AbstractModel):
         if rfq.status != "confirmed":
             raise UserError(QTE_001)
 
+        # Chặn tạo trùng chỉ khi RFQ còn báo giá ĐANG HIỆU LỰC. Báo giá đã đóng
+        # (từ chối / hết hiệu lực / đã thay bản mới / đã hủy) không chặn — cho
+        # phép báo giá lại từ RFQ (vd đổi vật liệu → BOM mới → báo giá mới).
+        closed = list(self.env["dl.quotation"]._CLOSED_STATES)
         existing = self.env["dl.quotation"].sudo().search(
             [
                 ("quotation_request_id", "=", rfq.id),
-                ("state", "!=", "cancelled"),
+                ("state", "not in", closed),
             ],
             limit=1,
         )
@@ -573,3 +603,20 @@ class DlQuotationRequest(models.Model):
             "res_id": self.quotation_id.id,
             "target": "current",
         }
+
+    def action_reopen_for_revision(self, note=None):
+        """Mở lại RFQ đã 'Đã tạo báo giá' về 'Đang xử lý' để Kỹ thuật điều chỉnh
+        BOM khi khách yêu cầu đổi vật liệu/kỹ thuật (gọi từ báo giá). sudo để
+        Sales kích hoạt được — đây là chuyển tiếp luồng, không phải sửa nội dung
+        yêu cầu."""
+        for rec in self:
+            if rec.status != "quoted":
+                raise UserError(_(
+                    "Chỉ mở lại RFQ đã tạo báo giá để điều chỉnh kỹ thuật."))
+            rec.sudo().write({"status": "processing"})
+            body = _("Mở lại RFQ để Kỹ thuật điều chỉnh BOM — khách yêu cầu đổi "
+                     "vật liệu/kỹ thuật.")
+            if note:
+                body += "<br/>%s" % note
+            rec.message_post(body=body)
+        return True

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Cron: mỗi ngày chuyển báo giá Đã gửi khách quá Hạn hiệu lực sang
+         Hết hiệu lực (Trường hợp 5 — khách không phản hồi). -->
+    <record id="cron_dl_quotation_expire" model="ir.cron">
+        <field name="name">Báo giá: tự động hết hiệu lực khi quá hạn</field>
+        <field name="model_id" ref="model_dl_quotation"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_expire_quotations()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active" eval="True"/>
+    </record>
+
+</odoo>
