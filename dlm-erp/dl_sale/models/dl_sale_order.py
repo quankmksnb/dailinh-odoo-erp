@@ -71,6 +71,21 @@ class DlSaleOrder(models.Model):
         return orders
 
     def write(self, vals):
+        # Khoá cứng khách hàng: đơn là bản chốt thương mại của một báo giá đã được
+        # khách đồng ý. Đổi khách sau khi đơn đã gắn báo giá nguồn (hoặc rời khỏi
+        # Nháp) sẽ phá vỡ truy vết đơn↔báo giá và làm sai snapshot giá/chiết khấu
+        # (vốn tính theo nhóm khách nguồn). readonly ở form chỉ chặn UI — chặn ở
+        # đây để bịt cả đường API/import. Cho phép nếu giá trị không đổi thật sự.
+        if 'partner_id' in vals:
+            for order in self:
+                if order.partner_id.id == vals['partner_id']:
+                    continue
+                if order.quotation_id or order.state != 'draft':
+                    raise UserError(_(
+                        'Không thể đổi khách hàng của đơn "%s": đơn đã chốt từ '
+                        'báo giá nguồn (hoặc không còn ở trạng thái Nháp). '
+                        'Nếu cần đổi khách, hãy tạo đơn mới từ báo giá tương ứng.'
+                    ) % order.name)
         res = super().write(vals)
         # Bao mọi đường chuyển sang 'confirmed' (action_confirm, sửa tay trên
         # form) — promote SP gia công còn Nháp.
