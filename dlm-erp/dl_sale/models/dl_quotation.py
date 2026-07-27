@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 # Nhóm được xem cấu phần giá thành trên dòng báo giá (giống BOM): Kế toán,
 # Trưởng KD, CEO, Admin. Sales (BA) chỉ thấy giá bán/chiết khấu, không thấy chi
@@ -354,6 +354,20 @@ class DlQuotation(models.Model):
             'dl_sale.quotation_validity_days', 30))
         base = self.date_order or fields.Date.context_today(self)
         return fields.Date.add(base, days=days)
+
+    @api.constrains('date_order', 'validity_date')
+    def _check_validity_after_order(self):
+        """Hạn hiệu lực không được TRƯỚC ngày báo giá — một báo giá "hết hạn
+        trước cả khi phát hành" là vô nghĩa. Kiểm tương đối theo ngày báo giá
+        (KHÔNG so với hôm nay) để không phá bản ghi đã Hết hiệu lực: khi ấy
+        validity_date nằm ở quá khứ là đúng bản chất."""
+        for rec in self:
+            if rec.validity_date and rec.date_order \
+                    and rec.validity_date < rec.date_order:
+                raise ValidationError(_(
+                    'Hạn hiệu lực (%(hh)s) không được trước ngày báo giá '
+                    '(%(nbg)s).') % {
+                        'hh': rec.validity_date, 'nbg': rec.date_order})
 
     # ------------------------------------------------------------------
     # Hook được dl.pricing.approval.request gọi lại khi duyệt/từ chối (§8) —

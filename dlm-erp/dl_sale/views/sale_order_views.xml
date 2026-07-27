@@ -58,7 +58,7 @@
                             <field name="partner_id"
                                 readonly="quotation_id != False or state != 'draft'"
                                 context="{'default_partner_role': 'customer', 'default_partner_type': 'company'}"/>
-                            <field name="date_order"/>
+                            <field name="date_order" options="{'min_date': 'today'}"/>
                         </group>
                         <group>
                             <field name="quotation_id" readonly="1"/>

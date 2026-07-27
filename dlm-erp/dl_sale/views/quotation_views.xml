@@ -181,6 +181,7 @@
                         <div class="dl-field">
                             <label for="validity_date" string="Hạn hiệu lực"/>
                             <field name="validity_date" nolabel="1"
+                                   options="{'min_date': 'today'}"
                                    readonly="state not in ('draft', 'expired')"/>
                         </div>
                         <div class="dl-field">

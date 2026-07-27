@@ -1,5 +1,5 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class DlSaleOrder(models.Model):
@@ -106,6 +106,21 @@ class DlSaleOrder(models.Model):
             rec.amount_before_vat = before_vat
             rec.vat_amount = vat
             rec.amount_total = before_vat + vat
+
+    @api.constrains('date_order', 'quotation_id')
+    def _check_order_after_quotation(self):
+        """Ngày lên đơn không được TRƯỚC ngày báo giá nguồn — không thể chốt đơn
+        trước khi báo giá tồn tại. Neo vào ngày báo giá (KHÔNG so hôm nay), y như
+        cách RFQ neo hạn xử lý vào ngày tiếp nhận: đơn cũ vẫn sửa được, còn đơn
+        mới (báo giá vừa lập) thì tương đương 'không được chọn ngày quá khứ'."""
+        for order in self:
+            if order.date_order and order.quotation_id.date_order \
+                    and order.date_order < order.quotation_id.date_order:
+                raise ValidationError(_(
+                    'Ngày lên đơn (%(nld)s) không được trước ngày báo giá nguồn '
+                    '(%(nbg)s).') % {
+                        'nld': order.date_order,
+                        'nbg': order.quotation_id.date_order})
 
     def action_confirm(self):
         # write() lo phần promote SP gia công (state → 'confirmed').
