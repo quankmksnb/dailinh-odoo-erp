@@ -1,4 +1,5 @@
 from . import res_partner
+from . import dl_bom_ext
 from . import dl_quotation
 from . import dl_sale_order
 from . import quotation_price_component

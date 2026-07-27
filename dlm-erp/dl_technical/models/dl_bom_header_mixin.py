@@ -39,6 +39,20 @@ class DlBomHeaderMixin(models.AbstractModel):
         copy=False,
     )
 
+    # ── Truy vết người/ngày duyệt (thiết kế BOM truy xuất §5.1) ──────────────
+    # Điền khi action_confirm. Không copy sang phiên bản mới (bản mới phải được
+    # xác nhận lại). Dùng để stamp sang dòng báo giá/đơn và audit.
+    approved_by = fields.Many2one(
+        "res.users", string="Người duyệt", readonly=True, copy=False, tracking=True)
+    approved_date = fields.Datetime(
+        string="Ngày duyệt", readonly=True, copy=False, tracking=True)
+
+    # ── Phiên bản hiện hành (§4.3) ──────────────────────────────────────────
+    # Mỗi phạm vi (_version_domain) chỉ có 1 bản is_current. Confirm bản mới sẽ
+    # tự bỏ cờ ở bản cũ (auto-supersede, chỉ bỏ cờ — KHÔNG lưu trữ bản cũ).
+    is_current = fields.Boolean(
+        string="Phiên bản hiện hành", readonly=True, copy=False, default=False)
+
     def _version_domain(self):
         """Override ở model cụ thể: domain tìm các phiên bản cùng 1 BOM (dùng
         để tính version tiếp theo + là cơ sở cho SQL constraint unique)."""
@@ -59,6 +73,10 @@ class DlBomHeaderMixin(models.AbstractModel):
             if not rec.line_ids:
                 raise UserError(_("%s phải có ít nhất một dòng vật tư.") % rec._description)
             rec.status = "confirmed"
+            rec.approved_by = rec.env.user
+            rec.approved_date = fields.Datetime.now()
+            # Xác nhận = trở thành phiên bản hiện hành, bỏ cờ ở bản cũ.
+            rec._set_current_version()
 
     def action_lock(self):
         for rec in self:
@@ -67,16 +85,38 @@ class DlBomHeaderMixin(models.AbstractModel):
             rec.status = "locked"
 
     def action_archive(self):
+        # Cho phép lưu trữ BOM đã khóa để retire bản cũ đã bị phiên bản mới thay
+        # thế (§6 — trước đây khóa là ngõ cụt). BOM lưu trữ không còn là hiện hành.
         for rec in self:
-            if rec.status == "locked":
-                raise UserError(_("Không thể lưu trữ %s đã khóa.") % rec._description)
             rec.status = "archived"
+            rec.is_current = False
 
     def action_reset_draft(self):
         for rec in self:
             if rec.status != "confirmed":
                 raise UserError(_("Chỉ %s đã xác nhận mới được chuyển về Nháp.") % rec._description)
+            # Chặn cứng nếu BOM đã được báo giá/đơn chốt tham chiếu (hook được
+            # dl_sale override — bảo toàn lịch sử: sửa = tạo phiên bản mới).
+            rec._check_can_reset_draft()
             rec.status = "draft"
+            rec.is_current = False
+
+    def _check_can_reset_draft(self):
+        """Hook chặn hạ-nháp. Mặc định no-op (BOM mẫu không bị đơn tham chiếu);
+        dl_sale override cho dl.bom để chặn khi đã dùng cho báo giá/đơn chốt."""
+        return
+
+    def _set_current_version(self):
+        """Đặt bản ghi này làm phiên bản hiện hành của phạm vi (_version_domain),
+        bỏ cờ is_current ở mọi bản khác cùng phạm vi (chỉ bỏ cờ, không đổi trạng
+        thái/lưu trữ bản cũ)."""
+        for rec in self:
+            others = rec.search(rec._version_domain()) - rec
+            current_others = others.filtered("is_current")
+            if current_others:
+                current_others.write({"is_current": False})
+            if not rec.is_current:
+                rec.is_current = True
 
     def action_create_new_version(self):
         self.ensure_one()
@@ -90,7 +130,12 @@ class DlBomHeaderMixin(models.AbstractModel):
         }
 
     def write(self, vals):
-        allowed = {"status", "message_main_attachment_id", "message_follower_ids"}
+        # is_current/approved_* là cờ hệ thống — bản khóa vẫn cho đổi (auto-
+        # supersede có thể bỏ cờ hiện hành ở một bản đã khóa khi có bản mới).
+        allowed = {
+            "status", "is_current", "approved_by", "approved_date",
+            "message_main_attachment_id", "message_follower_ids",
+        }
         for rec in self:
             if rec.status == "locked" and set(vals.keys()) - allowed:
                 raise UserError(_("%s đã khóa không thể sửa — hãy tạo phiên bản mới.") % rec._description)

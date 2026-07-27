@@ -308,6 +308,11 @@ class DlQuotationPricingService(models.AbstractModel):
             "line_type": "manufactured",
             "product_id": rfq_line.resolved_product_id.id,
             "bom_id": bom.id,
+            # Dấu vết BOM tại thời điểm tạo báo giá (§5.2) — stamp scalar, không
+            # related sống về bom.version.
+            "bom_version": bom.version,
+            "bom_approved_by": bom.approved_by.id,
+            "bom_confirmed_date": bom.approved_date,
             "material_cost": unit_cost,
             "total_cost": total_cost,
             "base_price": target_price,

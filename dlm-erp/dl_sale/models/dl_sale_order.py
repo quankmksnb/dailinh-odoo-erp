@@ -107,12 +107,18 @@ class DlSaleOrder(models.Model):
             # Chuẩn hóa TRƯỚC (sinh mã/gọn tên) rồi mới nâng trạng thái.
             products.sudo()._dlm_standardize_on_promote()
             products.sudo().write({'dlm_lifecycle_state': 'active'})
-        # BOM còn Nháp (có dòng vật tư) → 'Đã xác nhận'. BOM rỗng bỏ qua vì
-        # action_confirm bắt buộc có line_ids (không để crash luồng chốt đơn).
-        boms = self.mapped('line_ids.bom_id').filtered(
-            lambda b: b.status == 'draft' and b.line_ids)
-        if boms:
-            boms.sudo().action_confirm()
+        # Đóng băng BOM tại thời điểm lên đơn (thiết kế BOM truy xuất §4.2):
+        # 1) BOM còn Nháp (có dòng vật tư) → 'Đã xác nhận' (BOM rỗng bỏ qua vì
+        #    action_confirm bắt buộc có line_ids — không để crash luồng chốt đơn).
+        # 2) Mọi BOM đã xác nhận trên đơn → 'Đã khóa' để bất biến: đơn cũ luôn
+        #    truy được đúng phiên bản đã dùng, sửa thiết kế sau phải tạo bản mới.
+        boms = self.mapped('line_ids.bom_id').filtered(lambda b: b.line_ids).sudo()
+        draft_boms = boms.filtered(lambda b: b.status == 'draft')
+        if draft_boms:
+            draft_boms.action_confirm()
+        to_lock = boms.filtered(lambda b: b.status == 'confirmed')
+        if to_lock:
+            to_lock.action_lock()
 
     def action_done(self):
         self.write({'state': 'done'})
@@ -151,6 +157,13 @@ class DlSaleOrderLine(models.Model):
     # BOM đã chốt cho dòng gia công (snapshot từ báo giá) — dùng để tự xác nhận
     # BOM khi đơn chốt (xem _promote_draft_products) + truy vết.
     bom_id = fields.Many2one('dl.bom', string='BOM', readonly=True)
+    # Dấu vết BOM đã dùng cho đơn (thiết kế BOM truy xuất §5.3) — copy scalar từ
+    # dòng báo giá, lưu để audit/truy xuất, KHÔNG hiển thị trên form.
+    bom_version = fields.Integer(string='Phiên bản BOM', readonly=True, copy=False)
+    bom_approved_by = fields.Many2one(
+        'res.users', string='Người duyệt BOM', readonly=True, copy=False)
+    bom_confirmed_date = fields.Datetime(
+        string='Ngày duyệt BOM', readonly=True, copy=False)
     line_type = fields.Selection([
         ('trading', 'Thương mại'),
         ('manufactured', 'Gia công'),

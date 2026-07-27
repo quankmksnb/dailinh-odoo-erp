@@ -14,7 +14,9 @@
             <tree string="BOM Template"
                   class="dl-bomtpl-list"
                   js_class="dl_list"
-                  decoration-muted="status == 'archived'">
+                  decoration-muted="status == 'archived'"
+                  decoration-bf="is_current">
+                <field name="is_current" column_invisible="1"/>
                 <field name="name"/>
                 <field name="product_category_id"/>
                 <field name="version"/>
@@ -50,7 +52,7 @@
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_archive" type="object" string="Lưu trữ"
                             class="btn-danger"
-                            invisible="status in ('locked', 'archived')"
+                            invisible="status == 'archived'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn lưu trữ BOM mẫu này?"/>
                     <field name="status" widget="statusbar"
@@ -70,7 +72,13 @@
                     <group>
                         <group string="Thông tin BOM">
                             <field name="version" readonly="1"/>
+                            <field name="is_current" readonly="1"
+                                   string="Phiên bản hiện hành"/>
                             <field name="product_qty" string="Output Quantity"/>
+                            <field name="approved_by" readonly="1"
+                                   invisible="not approved_by"/>
+                            <field name="approved_date" readonly="1"
+                                   invisible="not approved_date"/>
                         </group>
                         <group string="Product Group">
                             <field name="product_category_id" readonly="status != 'draft'"/>

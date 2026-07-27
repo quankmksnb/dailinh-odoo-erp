@@ -700,6 +700,10 @@ class DlQuotation(models.Model):
                     'price_unit': line.price_unit,
                     'product_id': line.product_id.id,
                     'bom_id': line.bom_id.id,
+                    # Dấu vết BOM: copy scalar từ dòng báo giá sang dòng đơn (§5.3).
+                    'bom_version': line.bom_version,
+                    'bom_approved_by': line.bom_approved_by.id,
+                    'bom_confirmed_date': line.bom_confirmed_date,
                     'line_type': line.line_type,
                 }) for line in self.line_ids],
             })
@@ -743,6 +747,14 @@ class DlQuotationLine(models.Model):
                                   ondelete='set null', readonly=True)
     product_id = fields.Many2one('product.product', string='Sản phẩm', readonly=True)
     bom_id = fields.Many2one('dl.bom', string='BOM', readonly=True)
+    # Dấu vết BOM tại thời điểm tạo báo giá (thiết kế BOM truy xuất §5.2) — lưu
+    # để audit/truy xuất, KHÔNG hiển thị trên form. Không related sống về
+    # bom_id.version (BOM có thể lên phiên bản mới sau này).
+    bom_version = fields.Integer(string='Phiên bản BOM', readonly=True, copy=False)
+    bom_approved_by = fields.Many2one(
+        'res.users', string='Người duyệt BOM', readonly=True, copy=False)
+    bom_confirmed_date = fields.Datetime(
+        string='Ngày duyệt BOM', readonly=True, copy=False)
     line_type = fields.Selection([
         ('trading', 'Thương mại'),
         ('manufactured', 'Gia công'),
