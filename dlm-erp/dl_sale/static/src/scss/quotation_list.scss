@@ -8,11 +8,14 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="name"] { width: 11% !important; }
-        th[data-name="partner_id"] { width: 44% !important; }
-        th[data-name="date_order"] { width: 15% !important; }
-        th[data-name="amount_total"] { width: 22% !important; }
-        th[data-name="state"] { width: 8% !important; }
+        // Tổng đúng 100%, bao gồm cả Hạn hiệu lực. Trước đây 5 cột khác đã
+        // chiếm đủ 100% khiến validity_date chỉ còn vài pixel.
+        th[data-name="name"] { width: 14% !important; }
+        th[data-name="partner_id"] { width: 29% !important; }
+        th[data-name="date_order"] { width: 12% !important; }
+        th[data-name="validity_date"] { width: 12% !important; }
+        th[data-name="amount_total"] { width: 20% !important; }
+        th[data-name="state"] { width: 13% !important; }
 
         th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
         th[data-name="state"], td[name="state"] { padding-right: 20px !important; }
@@ -30,7 +33,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        td[name="date_order"] { white-space: nowrap; }
+        td[name="date_order"], td[name="validity_date"] { white-space: nowrap; }
     }
 
     // Badge colors: trạng thái báo giá

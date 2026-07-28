@@ -143,7 +143,7 @@
                     <table class="dl-cfg-table">
                         <thead><tr>
                             <th>Công đoạn</th><th>Phương pháp</th><th class="num">Đơn giá/Tỷ lệ</th>
-                            <th class="num">Phí setup</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                            <th class="num">Phí chuẩn bị</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
                             <t t-foreach="state.rows.operation" t-as="r" t-key="r.id">
@@ -174,7 +174,7 @@
                     <table class="dl-cfg-table">
                         <thead><tr>
                             <th>Tên khoản</th><th>Loại</th><th>Cách tính</th><th class="num">Giá trị</th>
-                            <th>Không CK</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                            <th>Không áp dụng chiết khấu</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
                             <t t-foreach="state.rows.cost" t-as="r" t-key="r.id">
@@ -328,7 +328,7 @@
                     <table class="dl-cfg-table">
                         <thead><tr>
                             <th class="num">Ngưỡng giá trị từ</th><th>Cấp duyệt</th><th>Người duyệt cụ thể</th>
-                            <th>Hiệu lực từ</th><th>Trạng thái</th><th class="num">Rev</th><th class="actw"></th>
+                            <th>Hiệu lực từ</th><th>Trạng thái</th><th class="num">Phiên bản</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
                             <t t-foreach="matrixRows" t-as="r" t-key="r.id">
@@ -452,7 +452,7 @@
                         <button class="dl-cfg-mini" type="button" t-att-disabled="!canEdit('master')" t-on-click="addComplexity"><i class="fa fa-plus"/> Thêm mức</button>
                     </div>
                     <table class="dl-cfg-table">
-                        <thead><tr><th>Mức</th><th class="num">Hệ số</th><th>Gợi ý</th><th>Dùng</th><th class="act"></th></tr></thead>
+                        <thead><tr><th>Mức</th><th class="num">Hệ số</th><th>Gợi ý</th><th>Đang dùng</th><th class="act"></th></tr></thead>
                         <tbody>
                             <t t-foreach="state.rows.complexity" t-as="r" t-key="r.id">
                                 <tr>
@@ -471,7 +471,7 @@
                         <button class="dl-cfg-mini" type="button" t-att-disabled="!canEdit('master')" t-on-click="addOperation"><i class="fa fa-plus"/> Thêm công đoạn</button>
                     </div>
                     <table class="dl-cfg-table">
-                        <thead><tr><th>Mã</th><th>Tên công đoạn</th><th>Dùng</th><th class="act"></th></tr></thead>
+                        <thead><tr><th>Mã</th><th>Tên công đoạn</th><th>Đang dùng</th><th class="act"></th></tr></thead>
                         <tbody>
                             <t t-foreach="state.rows.opcat" t-as="r" t-key="r.id">
                                 <tr>
@@ -560,7 +560,7 @@
                                 </select></label>
                             <label class="dl-cfg-f"><span class="k">Đơn giá / Tỷ lệ</span>
                                 <input type="number" step="0.01" t-model.number="state.form.price_rate"/></label>
-                            <label class="dl-cfg-f"><span class="k">Phí setup/lô</span>
+                            <label class="dl-cfg-f"><span class="k">Phí chuẩn bị/lô</span>
                                 <input type="number" step="1000" t-model.number="state.form.setup_fee"/></label>
                         </t>
                         <!-- COST -->

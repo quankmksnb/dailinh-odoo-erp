@@ -59,7 +59,7 @@
             <xpath expr="//div[hasclass('dl-cust-head')]" position="before">
                 <div class="alert alert-danger" role="alert"
                     invisible="active or dlm_open_quote_count == 0">
-                    <i class="fa fa-ban" />
+                    <i class="fa fa-ban" title="Đang chặn báo giá" />
                     <strong>KH đã ngừng hợp tác.</strong> Vẫn còn <field
                         name="dlm_open_quote_count" class="oe_inline" /> báo giá chưa đóng — các
                     báo giá này tiếp tục quy trình bình thường, nhưng không thể tạo báo giá/RFQ
@@ -75,7 +75,7 @@
 
                 <div class="alert alert-warning" role="alert"
                     invisible="not dlm_split_warning">
-                    <i class="fa fa-exclamation-triangle" />
+                    <i class="fa fa-exclamation-triangle" title="Cảnh báo" />
                     <strong>Cảnh báo gộp đơn:</strong>
                     KH này có <field name="dlm_recent_quote_count" class="oe_inline" /> báo giá
                     trong 7 ngày gần đây với tổng <field name="dlm_recent_quote_total"

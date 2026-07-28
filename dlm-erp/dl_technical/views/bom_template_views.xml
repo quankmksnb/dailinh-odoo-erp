@@ -135,7 +135,7 @@
 
                                     <div invisible="not rule_applicable">
                                     <group>
-                                        <group string="2-3. Calculation Rule / Shape">
+                                        <group string="2-3. Quy tắc tính / Hình dạng">
                                             <field name="measurement_type_id"
                                                    domain="[('formula_uom_id.category_id', '=', material_uom_category_id)]"
                                                    options="{'no_create': True, 'no_create_edit': True}"/>
@@ -149,7 +149,7 @@
                                             </div>
                                         </group>
                                     </group>
-                                    <group string="4. Kích thước (theo Shape đã chọn)"
+                                    <group string="4. Kích thước (theo hình dạng đã chọn)"
                                            invisible="not measurement_shape_id or shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar', 'area_rectangle', 'area_square', 'area_circle', 'area_triangle', 'perimeter_rectangle', 'perimeter_square', 'perimeter_circle', 'volume_box', 'volume_cube', 'volume_cylinder', 'volume_sphere', 'length_segment')">
                                         <field name="dim_length"
                                                invisible="shape_code in ('area_circle', 'perimeter_circle', 'volume_cylinder', 'area_square', 'perimeter_square', 'volume_cube', 'volume_sphere')"/>

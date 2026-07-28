@@ -123,7 +123,7 @@ class DlBomLineMixin(models.AbstractModel):
     # Step 2 — Rule (đại lượng đo: Area/Length/Width/Height/Perimeter/Volume...).
     measurement_type_id = fields.Many2one(
         "dl.measurement.type",
-        string="Rule",
+        string="Quy tắc tính",
         help="Đại lượng đo dùng để tính định mức (vd Area, Length, Volume...). "
              "Danh sách quản lý sẵn trong hệ thống, không tạo mới ở đây.",
     )
@@ -131,14 +131,14 @@ class DlBomLineMixin(models.AbstractModel):
     # Step 3 (optional) — Shape, lọc theo Rule đã chọn ở trên.
     measurement_shape_id = fields.Many2one(
         "dl.measurement.shape",
-        string="Shape",
+        string="Hình dạng",
         domain="[('measurement_type_id', '=', measurement_type_id)]",
         help="Chọn hình dạng để nhập kích thước và tự tính định mức theo công "
              "thức. Danh sách quản lý sẵn trong hệ thống, không tạo mới ở đây.",
     )
     # Related để dùng trong invisible= của view (ẩn/hiện field kích thước đúng
     # theo Shape) — không thể tham chiếu measurement_shape_id.code trực tiếp.
-    shape_code = fields.Char(related="measurement_shape_id.code", string="Mã Shape")
+    shape_code = fields.Char(related="measurement_shape_id.code", string="Mã hình dạng")
 
     measurement_coefficient = fields.Float(
         string="Hệ số",
@@ -221,7 +221,7 @@ class DlBomLineMixin(models.AbstractModel):
     # (Cái/Con/Bộ...) không map Rule nào thì ẨN HẲN khối Rule/Shape/Kích
     # thước, chỉ còn nhập tay Số lượng (xem view: bom_views.xml/bom_template_views.xml).
     rule_applicable = fields.Boolean(
-        string="Có Rule phù hợp", compute="_compute_rule_applicable")
+        string="Có quy tắc phù hợp", compute="_compute_rule_applicable")
 
     # Nhãn hệ số hiển thị theo Shape đã chọn (vd "Khối lượng riêng (kg/m³)")
     # — field coefficient_label có sẵn trên dl.measurement.shape nhưng trước

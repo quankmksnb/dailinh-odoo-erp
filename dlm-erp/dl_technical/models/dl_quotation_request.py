@@ -77,7 +77,7 @@ class DlQuotationRequest(models.Model):
             ("processing", "Đang xử lý"),
             ("returned", "Trả lại bổ sung"),
             ("supplemented", "Đã bổ sung"),
-            ("confirmed", "Đã xử lý xong"),
+            ("confirmed", "Đã xử lý xong – chờ tạo báo giá"),
             ("quoted", "Đã tạo báo giá"),
             ("cancelled", "Đã hủy"),
         ],
@@ -200,7 +200,7 @@ class DlQuotationRequest(models.Model):
 
             lines = rec.line_ids
 
-            # Xử lý xong TẤT CẢ dòng → "Đã xử lý xong".
+            # Xử lý xong TẤT CẢ dòng → chờ Sales kiểm tra và tạo báo giá.
             if lines and all(line._is_resolved() for line in lines):
                 status = "confirmed"
 
@@ -365,7 +365,7 @@ class DlQuotationRequestLine(models.Model):
     image_ids = fields.One2many(
         "dl.quotation.request.line.image",
         "line_id",
-        string="Ảnh",
+        string="Thư viện ảnh",
     )
     image_count = fields.Integer(
         string="Số ảnh", compute="_compute_image_count")
@@ -386,7 +386,7 @@ class DlQuotationRequestLine(models.Model):
     # (many2many_binary). preview_image = ảnh đầu tiên trong file đính kèm — dùng
     # để hiển thị THUMBNAIL ở list thay vì hiện số lượng.
     preview_image = fields.Image(
-        string="Ảnh", compute="_compute_preview_image", attachment=False)
+        string="Ảnh xem trước", compute="_compute_preview_image", attachment=False)
 
     @api.depends("attachment_ids")
     def _compute_preview_image(self):

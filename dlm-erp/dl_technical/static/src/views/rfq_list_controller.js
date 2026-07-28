@@ -18,14 +18,14 @@ import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 //  - "Cần xử lý" (to_process) GỘP Mới + Đang xử lý + Đã bổ sung — cùng bản chất
 //    "RFQ đang ở phía Kỹ thuật để xử lý"; là chip mặc định.
 //  - Các mốc còn lại tách riêng vì bóng ở người khác / trạng thái chốt:
-//    Trả lại bổ sung (chờ Sales) · Đã xử lý xong (chờ tạo BG) · Đã tạo BG · Đã hủy.
+//    Trả lại bổ sung (chờ Sales) · Đã xử lý xong – chờ tạo báo giá · Đã tạo BG · Đã hủy.
 // Vẫn lọc lẻ Mới/Đang xử lý/Đã bổ sung được qua ô Search nâng cao (filter vẫn
 // còn trong search view). key CHÍNH LÀ name filter trong search view.
 const CHIPS = [
     { key: "all", label: "Tất cả" },
     { key: "to_process", label: "Cần xử lý" },
     { key: "returned", label: "Trả lại bổ sung" },
-    { key: "confirmed", label: "Đã xử lý xong" },
+    { key: "confirmed", label: "Đã xử lý xong – chờ tạo báo giá" },
     { key: "quoted", label: "Đã tạo BG" },
     { key: "cancelled", label: "Đã hủy" },
     { key: "overdue", label: "Quá hạn" },

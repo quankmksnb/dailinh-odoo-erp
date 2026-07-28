@@ -80,11 +80,13 @@
                                    groups="base.group_multi_company"/>
                         </group>
                     </group>
-                    <group string="Lý do gửi duyệt">
+                    <group string="Lý do gửi duyệt" col="1" colspan="2"
+                           class="dl-approval-reason">
                         <field name="reason" readonly="1" nolabel="1"/>
                     </group>
                     <!-- Từ chối bắt buộc nhập lý do (validate ở model). -->
-                    <group string="Lý do từ chối"
+                    <group string="Lý do từ chối" col="1" colspan="2"
+                           class="dl-approval-reason"
                            invisible="state not in ('pending', 'rejected') or (state == 'pending' and not can_resolve)">
                         <field name="reject_comment" nolabel="1"
                                readonly="state != 'pending'"
