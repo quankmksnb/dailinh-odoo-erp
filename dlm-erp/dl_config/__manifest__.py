@@ -13,6 +13,7 @@
         'data/rbac_features.xml',
         'data/pricing_config_data.xml',
         'data/pricing_seed.xml',
+        'views/login_templates.xml',
         'views/config_home.xml',
         'views/uom_views.xml',
         'views/company_views.xml',

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="dl_login_labels" inherit_id="web.login" name="DLM Login Vietnamese">
+        <xpath expr="//label[@for='login']" position="replace">
+            <label for="login" class="form-label">Tên đăng nhập</label>
+        </xpath>
+        <xpath expr="//input[@id='login']" position="attributes">
+            <attribute name="placeholder">Email hoặc tên đăng nhập</attribute>
+        </xpath>
+        <xpath expr="//label[@for='password']" position="replace">
+            <label for="password" class="form-label">Mật khẩu</label>
+        </xpath>
+        <xpath expr="//input[@id='password']" position="attributes">
+            <attribute name="placeholder">Mật khẩu</attribute>
+        </xpath>
+        <xpath expr="//button[@type='submit' and not(@name)]" position="replace">
+            <button type="submit" class="btn btn-primary">Đăng nhập</button>
+        </xpath>
+        <!-- Đây là màn cho người dùng cuối, không đưa thao tác kỹ thuật vào luồng chính. -->
+        <xpath expr="//button[@name='redirect']" position="replace" />
+    </template>
+
+    <template id="dl_login_footer" inherit_id="web.login_layout" name="DLM Login Footer">
+        <xpath expr="//div[contains(concat(' ', normalize-space(@class), ' '), ' o_brand_promotion ') or contains(concat(' ', normalize-space(@class), ' '), ' border-top ')]" position="replace" />
+    </template>
+</odoo>

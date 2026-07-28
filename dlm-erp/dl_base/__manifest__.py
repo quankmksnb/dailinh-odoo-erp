@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Base',
-    'version': '17.0.1.0.0',
+    'version': '17.0.1.1.3',
     'summary': 'App gốc — định nghĩa Groups (CEO/Admin/BA/Tech) và menu chính 5 module Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -9,6 +9,8 @@
         'security/groups.xml',
         'security/ir.model.access.csv',
         'data/language_data.xml',
+        'data/currency_data.xml',
+        'views/login_templates.xml',
         'views/actions.xml',
         'views/menus.xml',
         'data/demo_users_data.xml',
@@ -50,5 +52,6 @@
     'installable': True,
     'application': True,
     'auto_install': False,
+    'post_init_hook': 'post_init_hook',
     'license': 'LGPL-3',
 }
