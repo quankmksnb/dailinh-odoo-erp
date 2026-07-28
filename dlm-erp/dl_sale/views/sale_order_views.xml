@@ -40,9 +40,10 @@
                             type="object" class="btn-danger"
                             invisible="state in ('done', 'cancelled')"
                             confirm="Bạn có chắc muốn hủy đơn bán hàng này?"/>
-                    <button name="action_reset_draft" string="Về nháp"
+                    <button name="action_reset_draft" string="Đưa về nháp"
                             type="object" class="btn-link"
-                            invisible="state not in ('confirmed', 'cancelled')"/>
+                            invisible="state != 'confirmed' or quotation_id"
+                            groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,confirmed,done"/>
                 </header>
@@ -92,6 +93,12 @@
                         </page>
                         <page string="Ghi chú">
                             <field name="note" placeholder="Ghi chú thêm..."/>
+                            <group string="Lần đưa về nháp gần nhất"
+                                   invisible="not reset_draft_reason">
+                                <field name="reset_draft_reason" readonly="1"/>
+                                <field name="reset_draft_by" readonly="1"/>
+                                <field name="reset_draft_at" readonly="1"/>
+                            </group>
                         </page>
                     </notebook>
                 </sheet>

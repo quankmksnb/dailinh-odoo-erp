@@ -1,6 +1,6 @@
 {
     'name': 'DL-CRM & Báo giá',
-    'version': '17.0.1.13.0',
+    'version': '17.0.1.17.0',
     'summary': 'Quản lý Khách hàng, NCC, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -11,6 +11,7 @@
         'data/quotation_cron.xml',
         'wizard/quotation_reject_wizard_views.xml',
         'wizard/quotation_revision_wizard_views.xml',
+        'wizard/sale_order_reset_draft_wizard_views.xml',
         'views/customer_views_ext.xml',
         'views/quotation_views.xml',
         'views/quote_approval_views.xml',

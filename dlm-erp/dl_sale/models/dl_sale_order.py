@@ -1,5 +1,7 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
+from markupsafe import escape
+
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 class DlSaleOrder(models.Model):
@@ -30,6 +32,13 @@ class DlSaleOrder(models.Model):
         ('cancelled', 'Đã hủy'),
     ], string='Trạng thái', default='draft', tracking=True, copy=False)
     note = fields.Text(string='Ghi chú')
+    reset_draft_reason = fields.Text(
+        string='Lý do đưa về nháp gần nhất', readonly=True,
+        copy=False, tracking=True)
+    reset_draft_by = fields.Many2one(
+        'res.users', string='Người đưa về nháp', readonly=True, copy=False)
+    reset_draft_at = fields.Datetime(
+        string='Thời điểm đưa về nháp', readonly=True, copy=False)
     currency_id = fields.Many2one(
         'res.currency', string='Tiền tệ',
         default=lambda self: self.env.company.currency_id)
@@ -156,8 +165,96 @@ class DlSaleOrder(models.Model):
     def action_cancel(self):
         self.write({'state': 'cancelled'})
 
+    def _reset_draft_blockers(self):
+        """Tìm chứng từ lưu trữ có Many2one trỏ trực tiếp tới đơn.
+
+        Phase 1 chưa có giao hàng/hóa đơn/lệnh sản xuất. Cách dò theo metadata
+        giúp điều kiện "chưa có chứng từ sau đơn" tiếp tục có hiệu lực khi các
+        module phase sau được cài, đồng thời module sau vẫn có thể override nếu
+        cần quy tắc chi tiết hơn.
+        """
+        self.ensure_one()
+        excluded_models = {
+            'dl.sale.order',
+            'dl.sale.order.line',
+            'dl.sale.order.reset.draft.wizard',
+        }
+        relation_fields = self.env['ir.model.fields'].sudo().search([
+            ('relation', '=', self._name),
+            ('ttype', '=', 'many2one'),
+            ('store', '=', True),
+            ('model', 'not in', list(excluded_models)),
+        ])
+        blockers = []
+        for relation_field in relation_fields:
+            model_name = relation_field.model
+            if not self.env.registry.get(model_name):
+                continue
+            Model = self.env[model_name]
+            if Model._transient or relation_field.name not in Model._fields:
+                continue
+            count = Model.sudo().search_count([
+                (relation_field.name, '=', self.id),
+            ], limit=1)
+            if count:
+                blockers.append(relation_field.model_id.name or model_name)
+        return blockers
+
+    def _check_can_reset_draft(self):
+        self.ensure_one()
+        user = self.env.user
+        if not self.env.su and not (
+                user.has_group('dl_base.dl_group_sales_manager')
+                or user.has_group('dl_base.dl_group_admin')):
+            raise AccessError(_(
+                'Chỉ Trưởng phòng Kinh doanh hoặc Admin được đưa đơn về nháp.'))
+        if self.quotation_id:
+            raise UserError(_(
+                'Đơn %s được tạo từ báo giá đã được khách đồng ý nên không được '
+                'đưa về nháp. Hãy hủy đơn, lập bản điều chỉnh báo giá và tạo đơn mới.'
+            ) % self.name)
+        if self.state != 'confirmed':
+            raise UserError(_(
+                'Chỉ đơn bán trực tiếp đang ở trạng thái Đã xác nhận mới được '
+                'đưa về nháp.'))
+        blockers = self._reset_draft_blockers()
+        if blockers:
+            raise UserError(_(
+                'Không thể đưa đơn về nháp vì đã phát sinh chứng từ sau đơn: %s.'
+            ) % ', '.join(sorted(set(blockers))))
+        return True
+
     def action_reset_draft(self):
-        self.write({'state': 'draft'})
+        """Mở wizard bắt buộc nhập lý do; không đổi trạng thái trực tiếp."""
+        self._check_can_reset_draft()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Đưa đơn bán hàng về nháp'),
+            'res_model': 'dl.sale.order.reset.draft.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_order_id': self.id},
+        }
+
+    def _reset_to_draft_with_reason(self, reason):
+        self._check_can_reset_draft()
+        reason = (reason or '').strip()
+        if not reason:
+            raise ValidationError(_('Vui lòng nhập lý do đưa đơn về nháp.'))
+        now = fields.Datetime.now()
+        self.write({
+            'state': 'draft',
+            'reset_draft_reason': reason,
+            'reset_draft_by': self.env.user.id,
+            'reset_draft_at': now,
+        })
+        self.message_post(body=_(
+            'Đơn được đưa về Nháp bởi %(user)s.<br/>'
+            '<strong>Lý do:</strong> %(reason)s',
+            user=escape(self.env.user.display_name),
+            reason=escape(reason),
+        ))
+        return True
 
     def action_open_quotation(self):
         self.ensure_one()
