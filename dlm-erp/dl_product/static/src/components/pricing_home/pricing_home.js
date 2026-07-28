@@ -9,7 +9,7 @@ const CARDS = [
   {
     key: "trading_price",
     name: "Bảng giá Sản phẩm thương mại",
-    desc: "Giá bán SP thương mại (lst_price) — Kế toán cập nhật",
+    desc: "Giá bán sản phẩm thương mại — Kế toán cập nhật",
     icon: "fa-tags",
     actionXmlId: "dl_product.action_dl_product_pricing",
     menuXmlIds: ["dl_product.menu_dl_pricing_trading"],
@@ -17,10 +17,13 @@ const CARDS = [
   {
     key: "material_price",
     name: "Bảng giá Vật tư",
-    desc: "Danh sách Vật tư & giá bán",
+    desc: "Giá mua theo nhà cung cấp và thời gian hiệu lực",
     icon: "fa-list-alt",
     actionXmlId: "dl_product.action_dl_product_pricing_material",
-    menuXmlIds: ["dl_product.menu_dl_pricing_material"],
+    menuXmlIds: [
+      "dl_product.menu_dl_pricing_material",
+      "dl_product.menu_dl_pricing_material_view",
+    ],
   },
 ];
 
@@ -37,7 +40,20 @@ export class DlPricingHome extends Component {
   }
 
   get cards() {
-    return CARDS.filter((card) => this._resolveCardMenu(card));
+    return CARDS.map((card) => {
+      const menu = this._resolveCardMenu(card);
+      if (!menu) {
+        return null;
+      }
+      return {
+        ...card,
+        // The visible menu has already been filtered by Odoo according to the
+        // current user's groups. Reusing its numeric action keeps the card in
+        // sync with those permissions (editable for Accounting/Admin, read-only
+        // for CEO/Sales Manager) and avoids resolving a forbidden XML ID.
+        resolvedActionId: menu.actionID || card.actionXmlId,
+      };
+    }).filter(Boolean);
   }
 
   _resolveCardMenu(card) {
@@ -60,11 +76,11 @@ export class DlPricingHome extends Component {
     return null;
   }
 
-  openCard(actionXmlId) {
-    if (!actionXmlId) {
+  openCard(actionId) {
+    if (!actionId) {
       return;
     }
-    this.actionService.doAction(actionXmlId);
+    this.actionService.doAction(actionId);
   }
 }
 
