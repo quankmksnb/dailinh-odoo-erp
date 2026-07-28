@@ -34,7 +34,7 @@
                 </group>
 
                 <!-- A. Product đã từng gia công -->
-                <group invisible="mode != 'existing'" string="Chọn Product có sẵn">
+                <group invisible="mode != 'existing'" string="Chọn sản phẩm có sẵn">
                     <field name="allowed_product_ids" invisible="1"/>
                     <field name="product_id" placeholder="Tìm theo tên sản phẩm..."
                            domain="[('id', 'in', allowed_product_ids)]"
@@ -46,7 +46,7 @@
                     </div>
                 </group>
 
-                <group invisible="mode != 'existing' or not product_id" string="BOM Version">
+                <group invisible="mode != 'existing' or not product_id" string="Phiên bản định mức">
                     <!-- context: truyền id wizard xuống các nút trên dòng BOM để
                          form BOM (modal) có nút "Quay lại Xử lý RFQ" quay đúng
                          màn này thay vì rơi về form dòng sản phẩm. -->
@@ -67,7 +67,7 @@
                                  "BOM đã chọn" rồi mở form sửa tiếp. -->
                             <button name="action_copy_version_modal" type="object"
                                     icon="fa-copy"
-                                    title="Copy BOM — tạo phiên bản Nháp mới giống BOM này"/>
+                                    title="Sao chép định mức — tạo phiên bản Nháp mới giống định mức này"/>
                         </tree>
                     </field>
                 </group>
@@ -99,11 +99,11 @@
                 </notebook>
 
                 <!-- B. Product chưa từng gia công -->
-                <group invisible="mode != 'new'" string="Tạo Product mới">
+                <group invisible="mode != 'new'" string="Tạo sản phẩm mới">
                     <field name="new_product_name" required="mode == 'new'"/>
                     <field name="new_product_category_id" required="mode == 'new'"/>
                     <button name="action_create_product" type="object"
-                            string="Tạo Product" class="oe_highlight"/>
+                            string="Tạo sản phẩm" class="oe_highlight"/>
                 </group>
 
                 <!-- Hoặc: kết luận dòng này KHÔNG khả thi (không cần Product/BOM). -->

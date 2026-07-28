@@ -48,8 +48,8 @@
                 <attribute name="js_class">dl_rfq_list_my</attribute>
             </xpath>
             <xpath expr="//field[@name='status']" position="after">
-                <field name="resolved_product_ids" widget="many2many_tags" string="Product Reference"/>
-                <field name="resolved_bom_ids" widget="many2many_tags" string="BOM Reference"/>
+                <field name="resolved_product_ids" widget="many2many_tags" string="Sản phẩm đã xác định"/>
+                <field name="resolved_bom_ids" widget="many2many_tags" string="Định mức đã xác định"/>
                 <!-- §3d — KTV nhận RFQ mới ngay trên list: Mới → Đang xử lý, sau
                      đó mới mở được chi tiết. RFQ "Đã bổ sung" đã tiếp nhận ở vòng
                      trước nên mở thẳng, không hiện nút này. KHÔNG đặt icon (button
@@ -147,11 +147,11 @@
                                     <field name="preview_image" widget="image"
                                            options="{'size': [40, 40]}" string="Ảnh" optional="show"/>
                                     <field name="resolvable_product_ids" column_invisible="1"/>
-                                    <field name="resolved_product_id" string="Product Reference"
+                                    <field name="resolved_product_id" string="Sản phẩm đã xác định"
                                            readonly="not is_technician"
                                            domain="[('id', 'in', resolvable_product_ids)]"
                                            context="{'form_view_ref': 'dl_product.view_dl_product_tech_form', 'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': product_category_id, 'default_name': product_name}"/>
-                                    <field name="resolved_bom_id" string="BOM Reference"
+                                    <field name="resolved_bom_id" string="Định mức đã xác định"
                                            readonly="not is_technician"
                                            domain="[('product_id', '=', resolved_product_id)]"/>
                                     <field name="is_infeasible" readonly="not is_technician"/>

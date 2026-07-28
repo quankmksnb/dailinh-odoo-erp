@@ -39,7 +39,7 @@
             <t t-else="">
                 <div class="dlm-rail-item" t-att-title="item.name"
                      t-att-class="{ 'disabled': !item.actionXmlId, 'active': sidebar.activeKey === item.key }"
-                     t-on-click="() => this.openModule(item.actionXmlId, item.key)">
+                     t-on-click="() => this.openItem(item)">
                     <span class="dlm-rail-icon"><i t-att-class="'fa ' + item.icon"/></span>
                     <span class="dlm-rail-label" t-esc="item.name"/>
                     <span class="dlm-rail-soon" t-if="!item.actionXmlId">Sắp có</span>

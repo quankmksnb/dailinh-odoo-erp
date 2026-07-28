@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- DLM-ERP vận hành bằng tiếng Việt; kích hoạt ngôn ngữ để người dùng mới
+         có thể dùng ngay bản dịch chuẩn của Odoo. -->
+    <record id="base.lang_vi_VN" model="res.lang">
+        <field name="active" eval="True"/>
+    </record>
+</odoo>

@@ -8,9 +8,11 @@
     'data': [
         'security/groups.xml',
         'security/ir.model.access.csv',
+        'data/language_data.xml',
         'views/actions.xml',
         'views/menus.xml',
         'data/demo_users_data.xml',
+        'data/demo_user_language_data.xml',
     ],
     'assets': {
         'web.assets_backend': [

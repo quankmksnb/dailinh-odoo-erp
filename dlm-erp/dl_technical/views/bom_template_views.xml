@@ -20,7 +20,7 @@
                 <field name="name"/>
                 <field name="product_category_id"/>
                 <field name="version"/>
-                <field name="product_qty" string="Output Quantity"/>
+                <field name="product_qty" string="Số lượng thành phẩm"/>
                 <field name="status" widget="badge"
                        decoration-info="status == 'draft'"
                        decoration-success="status == 'confirmed'"
@@ -74,13 +74,13 @@
                             <field name="version" readonly="1"/>
                             <field name="is_current" readonly="1"
                                    string="Phiên bản hiện hành"/>
-                            <field name="product_qty" string="Output Quantity"/>
+                            <field name="product_qty" string="Số lượng thành phẩm"/>
                             <field name="approved_by" readonly="1"
                                    invisible="not approved_by"/>
                             <field name="approved_date" readonly="1"
                                    invisible="not approved_date"/>
                         </group>
-                        <group string="Product Group">
+                        <group string="Nhóm sản phẩm">
                             <field name="product_category_id" readonly="status != 'draft'"/>
                         </group>
                     </group>
@@ -186,7 +186,7 @@
                                     </group>
                                     </div>
 
-                                    <group string="6. Waste">
+                                    <group string="6. Hao hụt">
                                         <field name="complexity_id"/>
                                         <field name="waste_rate"/>
                                         <field name="effective_qty" readonly="1"/>

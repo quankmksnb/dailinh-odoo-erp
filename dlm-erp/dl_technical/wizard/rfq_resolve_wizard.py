@@ -161,7 +161,7 @@ class DlRfqResolveWizard(models.TransientModel):
         BOM Template... bằng đúng UI BOM hiện có."""
         self.ensure_one()
         if not self.product_id:
-            raise UserError(_("Vui lòng chọn hoặc tạo Product trước."))
+            raise UserError(_("Vui lòng chọn hoặc tạo sản phẩm trước."))
         bom = self.env["dl.bom"].create({
             "product_id": self.product_id.id,
             "version": self._next_version(self.product_id),
@@ -214,11 +214,11 @@ class DlRfqResolveWizard(models.TransientModel):
             raise UserError(_(
                 "Dòng Sản phẩm thương mại không xử lý qua màn này."))
         if not self.product_id:
-            raise UserError(_("Vui lòng chọn hoặc tạo Product trước khi xác nhận."))
+            raise UserError(_("Vui lòng chọn hoặc tạo sản phẩm trước khi xác nhận."))
         if not self.selected_bom_id:
             raise UserError(_("Vui lòng chọn hoặc tạo BOM trước khi xác nhận."))
         if self.selected_bom_id.product_id != self.product_id:
-            raise UserError(_("BOM đã chọn không thuộc Product đã chọn."))
+            raise UserError(_("Định mức đã chọn không thuộc sản phẩm đã chọn."))
 
         self.rfq_line_id.write({
             "resolved_product_id": self.product_id.id,

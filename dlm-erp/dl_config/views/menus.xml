@@ -16,7 +16,7 @@
 
     <menuitem
         id="menu_dl_config_user_admin"
-        name="Quản lý User"
+        name="Quản lý người dùng"
         parent="dl_base.menu_dl_config"
         sequence="5"
         action="action_dl_user_admin"

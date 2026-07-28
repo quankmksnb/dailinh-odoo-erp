@@ -22,7 +22,7 @@
                 <field name="category_id" optional="show"/>
                 <field name="product_id"/>
                 <field name="version"/>
-                <field name="product_qty" string="Output Quantity"/>
+                <field name="product_qty" string="Số lượng thành phẩm"/>
                 <field name="total_material_cost" string="Chi phí VT"
                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
                 <field name="status" widget="badge"
@@ -99,7 +99,7 @@
                             <field name="version" readonly="1"/>
                             <field name="is_current" readonly="1"
                                    string="Phiên bản hiện hành"/>
-                            <field name="product_qty" string="Output Quantity"/>
+                            <field name="product_qty" string="Số lượng thành phẩm"/>
                             <field name="approved_by" readonly="1"
                                    invisible="not approved_by"/>
                             <field name="approved_date" readonly="1"
@@ -241,7 +241,7 @@
                                     </group>
                                     </div>
 
-                                    <group string="6. Waste">
+                                    <group string="6. Hao hụt">
                                         <field name="complexity_id"/>
                                         <field name="waste_rate"/>
                                         <field name="effective_qty" readonly="1"/>

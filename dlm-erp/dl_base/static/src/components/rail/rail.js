@@ -8,9 +8,32 @@ import { sidebarState, toggleSidebar, setActiveKey } from "@dl_base/js/sidebar_s
 const DLM_APP_XMLID = "dl_base.menu_dl_root";
 
 const RAIL_ITEMS = [
-    { key: "customer", name: "Khách hàng", icon: "fa-users", actionXmlId: "dl_partner.action_dl_customer" },
-    { key: "supplier", name: "NCC / Thầu phụ", icon: "fa-truck", actionXmlId: "dl_partner.action_dl_supplier" },
-    { key: "quotation", name: "Báo giá", icon: "fa-file-text-o", actionXmlId: "dl_sale.action_dl_quotation" },
+    {
+        key: "customer",
+        name: "Khách hàng",
+        icon: "fa-users",
+        actionXmlId: "dl_partner.action_dl_customer",
+        menuXmlIds: ["dl_partner.menu_dl_sale_customer"],
+    },
+    {
+        key: "supplier",
+        name: "NCC / Thầu phụ",
+        icon: "fa-truck",
+        actionXmlId: "dl_partner.action_dl_supplier",
+        menuXmlIds: [
+            "dl_partner.menu_dl_sale_supplier",
+            "dl_partner.menu_dl_sale_supplier_readonly",
+        ],
+        // Trưởng KD dùng action chỉ đọc; luôn mở action của menu thực tế theo vai trò.
+        preferMenu: true,
+    },
+    {
+        key: "quotation",
+        name: "Báo giá",
+        icon: "fa-file-text-o",
+        actionXmlId: "dl_sale.action_dl_quotation",
+        menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
+    },
     // Phê duyệt — chỉ hiện với user thấy được menu (CEO/Trưởng KD/vai trò duyệt).
     // menuXmlIds ⇒ rail LỌC RBAC đồng bộ Home; actionXmlId do dl_sale nav_patch gán.
     {
@@ -20,11 +43,41 @@ const RAIL_ITEMS = [
         actionXmlId: null,
         menuXmlIds: ["dl_sale.menu_dl_sale_quote_approval"],
     },
-    { key: "product", name: "Sản phẩm & Vật tư", icon: "fa-cube", actionXmlId: null },
-    { key: "technical", name: "Kỹ thuật", icon: "fa-cogs", actionXmlId: null },
-    { key: "pricing", name: "Bảng giá", icon: "fa-money", actionXmlId: null },
-    { key: "report", name: "Báo cáo", icon: "fa-bar-chart", actionXmlId: null },
-    { key: "config", name: "Cấu hình", icon: "fa-sliders", actionXmlId: null },
+    {
+        key: "product",
+        name: "Sản phẩm & Vật tư",
+        icon: "fa-cube",
+        actionXmlId: null,
+        menuXmlIds: ["dl_base.menu_dl_product"],
+    },
+    {
+        key: "technical",
+        name: "Kỹ thuật",
+        icon: "fa-cogs",
+        actionXmlId: null,
+        menuXmlIds: ["dl_base.menu_dl_technical"],
+    },
+    {
+        key: "pricing",
+        name: "Bảng giá",
+        icon: "fa-money",
+        actionXmlId: null,
+        menuXmlIds: ["dl_product.menu_dl_pricing_root"],
+    },
+    {
+        key: "report",
+        name: "Báo cáo",
+        icon: "fa-bar-chart",
+        actionXmlId: null,
+        menuXmlIds: ["dl_base.menu_dl_report"],
+    },
+    {
+        key: "config",
+        name: "Cấu hình",
+        icon: "fa-sliders",
+        actionXmlId: null,
+        menuXmlIds: ["dl_base.menu_dl_config"],
+    },
 ];
 
 export class DlmRail extends Component {
@@ -68,20 +121,43 @@ export class DlmRail extends Component {
         return !!app && app.xmlid === DLM_APP_XMLID;
     }
 
-    // Mục KHÔNG khai báo menuXmlIds → luôn hiện (giữ nguyên hành vi cũ). Mục CÓ
-    // khai báo (vd Phê duyệt) → chỉ hiện khi user thấy được menu đích trong cây
-    // menu đã lọc theo groups ⇒ rail đồng bộ RBAC với các card ở Trang chủ.
+    // Chỉ hiện mục khi user thấy menu đích và menu đó thực sự mở được một màn
+    // (trực tiếp hoặc qua menu con). Nhờ đó không còn mục dẫn tới trang trắng.
     get visibleItems() {
         return this.railItems.filter((item) => {
-            if (!item.menuXmlIds || !item.menuXmlIds.length) return true;
-            return item.menuXmlIds.some((xmlid) => this._menuVisible(xmlid));
+            if (!item.menuXmlIds || !item.menuXmlIds.length) return false;
+            return item.menuXmlIds.some((xmlid) => {
+                const menu = this._findVisibleMenu(xmlid);
+                return menu && this._hasActionableMenu(menu);
+            });
         });
     }
 
     _menuVisible(xmlid) {
-        if (!this._dlmApp) return false;
+        const menu = this._findVisibleMenu(xmlid);
+        return !!menu && this._hasActionableMenu(menu);
+    }
+
+    _findVisibleMenu(xmlid) {
+        if (!this._dlmApp) return null;
         const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
-        return !!this._findMenuByXmlId(tree, xmlid);
+        return this._findMenuByXmlId(tree, xmlid);
+    }
+
+    _hasActionableMenu(menu) {
+        if (!menu) return false;
+        if (menu.actionID) return true;
+        return (menu.childrenTree || []).some((child) => this._hasActionableMenu(child));
+    }
+
+    _resolveItemMenu(item) {
+        if (!this._dlmApp) return null;
+        const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
+        for (const xmlid of item.menuXmlIds || []) {
+            const menu = this._findMenuByXmlId(tree, xmlid);
+            if (menu && this._hasActionableMenu(menu)) return menu;
+        }
+        return null;
     }
 
     _findMenuByXmlId(node, xmlid) {
@@ -104,6 +180,18 @@ export class DlmRail extends Component {
             setActiveKey(key);
         }
         this.actionService.doAction(actionXmlId, { clearBreadcrumbs: true });
+    }
+
+    openItem(item) {
+        setActiveKey(item.key);
+        if (item.preferMenu) {
+            const menu = this._resolveItemMenu(item);
+            if (menu) {
+                this.menuService.selectMenu(menu);
+                return;
+            }
+        }
+        this.openModule(item.actionXmlId, item.key);
     }
 }
 

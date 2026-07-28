@@ -163,9 +163,15 @@ export class DlHome extends Component {
         const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
         for (const xmlid of card.menuXmlIds || []) {
             const menu = this._findMenuByXmlId(tree, xmlid);
-            if (menu) return menu;
+            if (menu && this._hasActionableMenu(menu)) return menu;
         }
         return null;
+    }
+
+    _hasActionableMenu(menu) {
+        if (!menu) return false;
+        if (menu.actionID) return true;
+        return (menu.childrenTree || []).some((child) => this._hasActionableMenu(child));
     }
 
     get systrayItems() {

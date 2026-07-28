@@ -9,7 +9,7 @@
             <div class="dl-rperm-head">
                 <div class="dl-rperm-head-main">
                     <h1 class="dl-rperm-title">Phân quyền Vai trò</h1>
-                    <span class="dl-rperm-subtitle">Định nghĩa vai trò và quyền Xem/Thêm/Sửa/Xóa + thao tác đặc biệt theo từng chức năng (RBAC)</span>
+                    <span class="dl-rperm-subtitle">Định nghĩa vai trò, quyền Xem/Thêm/Sửa/Xóa và thao tác đặc biệt theo từng chức năng</span>
                 </div>
                 <button class="dl-rperm-btn-new" type="button" t-on-click="openCreate">
                     <i class="fa fa-plus"/> Tạo vai trò
@@ -27,7 +27,7 @@
                              t-on-click="() => this.selectRole(r.id)">
                             <div class="dl-rperm-role-main">
                                 <span class="dl-rperm-role-name" t-esc="r.name"/>
-                                <span class="dl-rperm-role-meta"><t t-esc="r.user_count"/> user</span>
+                        <span class="dl-rperm-role-meta"><t t-esc="r.user_count"/> người dùng</span>
                             </div>
                             <span t-if="r.system" class="dl-rperm-role-badge">Mặc định</span>
                         </div>
