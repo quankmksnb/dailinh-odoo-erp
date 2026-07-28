@@ -51,4 +51,53 @@
         </field>
     </record>
 
+    <!-- Action "Tạo RFQ" dùng một form riêng và trình duyệt giữ nguyên view đó
+         sau khi lưu/F5. Vì vậy phải thay nút thủ công trên cả form Sales, không
+         chỉ form quản lý mặc định ở trên. -->
+    <record id="view_dl_quotation_request_sales_form_quote_btn" model="ir.ui.view">
+        <field name="name">dl.quotation.request.sales.form.quote.btn</field>
+        <field name="model">dl.quotation.request</field>
+        <field name="inherit_id" ref="dl_technical.view_dl_quotation_request_sales_form"/>
+        <field name="arch" type="xml">
+
+            <button name="action_mark_quoted" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </button>
+
+            <button name="action_mark_quoted" position="before">
+                <button name="action_create_quotation" type="object"
+                        string="Tạo báo giá" class="oe_highlight"
+                        invisible="status != 'confirmed' or auto_quote_error"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                <button name="action_create_quotation" type="object"
+                        string="Thử tạo lại báo giá" class="oe_highlight"
+                        invisible="status != 'confirmed' or not auto_quote_error"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                <button name="action_open_quotation" type="object"
+                        string="Mở báo giá"
+                        invisible="status != 'quoted'"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
+            </button>
+
+            <xpath expr="//sheet/notebook" position="before">
+                <field name="auto_quote_error" invisible="1"/>
+                <field name="auto_quote_failed_at" invisible="1"/>
+                <div class="alert alert-danger" role="alert"
+                     invisible="status != 'confirmed' or not auto_quote_error">
+                    <strong>Chưa tạo được báo giá.</strong>
+                    <p class="mb-1">
+                        Kết quả Kỹ thuật vẫn được lưu. Sales/Kế toán bổ sung dữ liệu giá,
+                        sau đó Sales bấm “Thử tạo lại báo giá”.
+                    </p>
+                    <field name="auto_quote_error" readonly="1" nolabel="1"/>
+                    <div invisible="not auto_quote_failed_at">
+                        <span>Lần thử gần nhất: </span>
+                        <field name="auto_quote_failed_at" readonly="1" nolabel="1"/>
+                    </div>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
 </odoo>
