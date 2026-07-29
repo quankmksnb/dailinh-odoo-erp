@@ -114,16 +114,22 @@ class DlRfqResolveWizard(models.TransientModel):
 
     @api.onchange("product_id", "mode")
     def _onchange_product_id(self):
-        # Mặc định chọn sẵn phiên bản BOM hiện hành (is_current) của sản phẩm —
+        # Mặc định chọn sẵn phiên bản BOM có version CAO NHẤT đang ở trạng thái
+        # Đã xác nhận/Đã khóa của sản phẩm (không dựa vào cờ is_current — cờ này
+        # theo "confirm sau cùng thắng" nên có thể trỏ về bản version thấp hơn).
         # KTV vẫn đổi sang version khác được (thiết kế BOM truy xuất §4.3).
         # Khi mở lại dòng đã xử lý, giữ đúng BOM đã gắn thay vì tự đổi sang
-        # version hiện hành; khi đổi sang Product khác, BOM cũ tự bị thay.
+        # version mới nhất; khi đổi sang Product khác, BOM cũ tự bị thay.
         if self.mode == "existing" and self.product_id:
             if (self.selected_bom_id
                     and self.selected_bom_id.product_id == self.product_id):
                 return
             current = self.env["dl.bom"].search(
-                [("product_id", "=", self.product_id.id), ("is_current", "=", True)],
+                [
+                    ("product_id", "=", self.product_id.id),
+                    ("status", "in", ("confirmed", "locked")),
+                ],
+                order="version desc",
                 limit=1,
             )
             self.selected_bom_id = current.id or False
