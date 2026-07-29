@@ -15,12 +15,24 @@ class DlRfqResolveWizard(models.TransientModel):
 
     _name = "dl.rfq.resolve.wizard"
     _description = "Xử lý RFQ — chọn/tạo Product và BOM"
+    _rec_name = "request_product_name"
 
     rfq_line_id = fields.Many2one(
         "dl.quotation.request.line",
         string="Dòng RFQ",
         required=True,
         readonly=True,
+    )
+
+    step = fields.Selection(
+        [
+            ("product", "1. Xác định sản phẩm"),
+            ("bom", "2. Định mức BOM"),
+            ("confirm", "3. Xác nhận"),
+        ],
+        string="Công đoạn",
+        default="product",
+        required=True,
     )
 
     # ── Thông tin yêu cầu (chỉ để tham khảo, readonly) ──────────────────────
@@ -142,7 +154,83 @@ class DlRfqResolveWizard(models.TransientModel):
                         })
                     if line.resolved_bom_id:
                         res["selected_bom_id"] = line.resolved_bom_id.id
+                    if line.resolved_product_id and line.resolved_bom_id:
+                        res["step"] = "confirm"
         return res
+
+    def _action_open_self(self):
+        """Nạp lại workspace hiện tại mà không quay về dialog."""
+        self.ensure_one()
+        view = self.env.ref("dl_technical.view_dl_rfq_resolve_wizard_form")
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Xử lý RFQ — %s") % self.request_product_name,
+            "res_model": self._name,
+            "res_id": self.id,
+            "view_mode": "form",
+            "views": [(view.id, "form")],
+            "target": "current",
+        }
+
+    def _action_return_to_rfq(self):
+        """Kết thúc workspace và trở về đúng RFQ nguồn."""
+        self.ensure_one()
+        request = self.rfq_line_id.quotation_request_id
+        view = self.env.ref("dl_technical.view_dl_quotation_request_form")
+        return {
+            "type": "ir.actions.act_window",
+            "name": request.display_name,
+            "res_model": "dl.quotation.request",
+            "res_id": request.id,
+            "view_mode": "form",
+            "views": [(view.id, "form")],
+            "target": "current",
+        }
+
+    def _validate_product_step(self):
+        self.ensure_one()
+        if not self.product_id:
+            if self.mode == "new":
+                raise UserError(_(
+                    "Vui lòng tạo sản phẩm mới trước khi sang bước Định mức BOM."))
+            raise UserError(_(
+                "Vui lòng chọn sản phẩm trước khi sang bước Định mức BOM."))
+
+    def _validate_bom_step(self):
+        self.ensure_one()
+        if not self.selected_bom_id:
+            raise UserError(_(
+                "Vui lòng chọn hoặc tạo BOM trước khi sang bước Xác nhận."))
+        if self.selected_bom_id.product_id != self.product_id:
+            raise UserError(_("Định mức đã chọn không thuộc sản phẩm đã chọn."))
+        if self.selected_bom_id.status not in ("confirmed", "locked"):
+            raise UserError(_(
+                "BOM phải ở trạng thái Đã xác nhận hoặc Đã khóa trước khi tiếp tục."))
+
+    def action_next_step(self):
+        self.ensure_one()
+        if self.is_infeasible:
+            raise UserError(_(
+                "Hãy xác nhận Không khả thi hoặc bỏ lựa chọn này để tiếp tục."))
+        if self.step == "product":
+            self._validate_product_step()
+            self.step = "bom"
+        elif self.step == "bom":
+            self._validate_product_step()
+            self._validate_bom_step()
+            self.step = "confirm"
+        return self._action_open_self()
+
+    def action_previous_step(self):
+        self.ensure_one()
+        if self.step == "confirm":
+            self.step = "bom"
+        elif self.step == "bom":
+            self.step = "product"
+        return self._action_open_self()
+
+    def action_cancel(self):
+        return self._action_return_to_rfq()
 
     def _next_version(self, product, bom_type="quotation"):
         existing = self.env["dl.bom"].search([
@@ -166,13 +254,7 @@ class DlRfqResolveWizard(models.TransientModel):
         })
         self.product_id = product.id
         self.mode = "existing"
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "dl.rfq.resolve.wizard",
-            "res_id": self.id,
-            "view_mode": "form",
-            "target": "new",
-        }
+        return self._action_open_self()
 
     def action_create_bom(self):
         """Tạo BOM mới cho product_id rồi mở NGUYÊN màn Product BOM (form
@@ -225,19 +307,15 @@ class DlRfqResolveWizard(models.TransientModel):
             "resolved_product_id": False,
             "resolved_bom_id": False,
         })
-        return {"type": "ir.actions.act_window_close"}
+        return self._action_return_to_rfq()
 
     def action_confirm(self):
         self.ensure_one()
         if self.rfq_line_id.product_type == "trading":
             raise UserError(_(
                 "Dòng Sản phẩm thương mại không xử lý qua màn này."))
-        if not self.product_id:
-            raise UserError(_("Vui lòng chọn hoặc tạo sản phẩm trước khi xác nhận."))
-        if not self.selected_bom_id:
-            raise UserError(_("Vui lòng chọn hoặc tạo BOM trước khi xác nhận."))
-        if self.selected_bom_id.product_id != self.product_id:
-            raise UserError(_("Định mức đã chọn không thuộc sản phẩm đã chọn."))
+        self._validate_product_step()
+        self._validate_bom_step()
 
         self.rfq_line_id.write({
             "resolved_product_id": self.product_id.id,
@@ -247,4 +325,4 @@ class DlRfqResolveWizard(models.TransientModel):
             "is_infeasible": False,
             "infeasible_reason": False,
         })
-        return {"type": "ir.actions.act_window_close"}
+        return self._action_return_to_rfq()

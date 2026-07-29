@@ -241,7 +241,7 @@ class DlBom(models.Model):
             "res_model": "dl.rfq.resolve.wizard",
             "res_id": wiz.id,
             "view_mode": "form",
-            "target": "new",
+            "target": "current",
         }
 
     def action_open_form_modal(self):

@@ -1,129 +1,184 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ================================================================
-         Nhận RFQ (Kỹ thuật) — wizard chọn/tạo Product + BOM cho 1 dòng RFQ.
-    ================================================================ -->
+    <!-- Workspace xử lý một dòng RFQ — full-page, ba công đoạn tuyến tính. -->
     <record id="view_dl_rfq_resolve_wizard_form" model="ir.ui.view">
         <field name="name">dl.rfq.resolve.wizard.form</field>
         <field name="model">dl.rfq.resolve.wizard</field>
         <field name="arch" type="xml">
-            <form string="Xử lý RFQ" class="dl-rfq-resolve">
-                <field name="rfq_line_id" invisible="1"/>
-
-                <!-- Khối yêu cầu từ Sales — gộp gọn để KTV xem nhanh trên cùng 1 màn. -->
-                <div class="alert alert-info" role="alert">
-                    <group>
-                        <group>
-                            <field name="request_product_name"/>
-                            <field name="request_category_id"/>
-                            <field name="request_quantity"/>
-                        </group>
-                        <group>
-                            <field name="request_reference_product_id"/>
-                            <field name="request_dimension_note"/>
-                        </group>
-                    </group>
-                    <field name="request_attachment_ids" widget="many2many_binary"
-                           readonly="1" nolabel="1"
-                           invisible="not request_attachment_ids"/>
-                </div>
-
-                <group>
-                    <field name="mode" widget="radio"/>
-                </group>
-
-                <!-- A. Product đã từng gia công -->
-                <group invisible="mode != 'existing'" string="Chọn sản phẩm có sẵn">
-                    <field name="allowed_product_ids" invisible="1"/>
-                    <field name="product_id" placeholder="Tìm theo tên sản phẩm..."
-                           domain="[('id', 'in', allowed_product_ids)]"
-                           context="{'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': request_category_id, 'default_name': request_product_name}"/>
-                    <div colspan="2" class="text-muted" invisible="not product_id">
-                        <i class="fa fa-info-circle"/>
-                        Giống y hệt: chọn BOM có sẵn bên dưới. Cần chỉnh sửa: bấm
-                        "Chỉnh sửa BOM cho RFQ này" để tạo phiên bản Nháp riêng.
-                    </div>
-                </group>
-
-                <group invisible="mode != 'existing' or not product_id" string="Phiên bản định mức">
-                    <!-- context: truyền id wizard xuống các nút trên dòng BOM để
-                         form BOM (modal) có nút "Quay lại Xử lý RFQ" quay đúng
-                         màn này thay vì rơi về form dòng sản phẩm. -->
-                    <field name="bom_ids" nolabel="1" colspan="2"
-                           context="{'rfq_resolve_wizard_id': id}">
-                        <tree>
-                            <field name="name"/>
-                            <field name="version"/>
-                            <field name="status" widget="badge"/>
-                            <field name="create_date" string="Ngày tạo"/>
-                            <!-- Bấm vào dòng chỉ XEM (bom_ids computed readonly) —
-                                 nút bút chì mở form BOM sản phẩm dạng modal SỬA được. -->
-                            <button name="action_open_form_modal" type="object"
-                                    icon="fa-pencil" title="Mở BOM để chỉnh sửa"/>
-                            <!-- Copy BOM: tạo phiên bản MỚI (Nháp) giống hệt BOM
-                                 dòng này (khác Tạo BOM từ BOM mẫu — nguồn là 1
-                                 version có sẵn của chính sản phẩm), tự chọn làm
-                                 "BOM đã chọn" rồi mở form sửa tiếp. -->
-                            <button name="action_copy_version_modal" type="object"
-                                    icon="fa-copy"
-                                    title="Sao chép định mức — tạo phiên bản Nháp mới giống định mức này"/>
-                        </tree>
-                    </field>
-                </group>
-
-                <group invisible="mode != 'existing' or not product_id">
-                    <field name="selected_bom_id"/>
-                    <button name="action_edit_selected_bom" type="object"
-                            string="Chỉnh sửa BOM cho RFQ này"
-                            class="btn-secondary"
-                            invisible="not selected_bom_id"/>
-                    <button name="action_create_bom" type="object"
-                            string="Tạo BOM mới"
+            <form string="Xử lý RFQ" class="dl-rfq-resolve" create="0" delete="0">
+                <header>
+                    <button name="action_cancel" type="object"
+                            string="Quay lại RFQ" icon="fa-arrow-left"
                             class="btn-secondary"/>
-                </group>
-
-                <notebook invisible="mode != 'existing' or not selected_bom_id">
-                    <page string="Chi tiết BOM (xem trước)">
-                        <field name="selected_bom_line_ids" readonly="1">
-                            <tree>
-                                <field name="material_id"/>
-                                <field name="measurement_shape_id"/>
-                                <field name="quantity"/>
-                                <field name="waste_rate"/>
-                                <field name="effective_qty"/>
-                                <field name="subtotal"/>
-                            </tree>
-                        </field>
-                    </page>
-                </notebook>
-
-                <!-- B. Product chưa từng gia công -->
-                <group invisible="mode != 'new'" string="Tạo sản phẩm mới">
-                    <field name="new_product_name" required="mode == 'new'"/>
-                    <field name="new_product_category_id" required="mode == 'new'"/>
-                    <button name="action_create_product" type="object"
-                            string="Tạo sản phẩm" class="oe_highlight"/>
-                </group>
-
-                <!-- Hoặc: kết luận dòng này KHÔNG khả thi (không cần Product/BOM). -->
-                <separator string="Hoặc — không khả thi"/>
-                <group>
-                    <field name="is_infeasible"/>
-                    <field name="infeasible_reason"
-                           invisible="not is_infeasible"
-                           required="is_infeasible"/>
+                    <button name="action_previous_step" type="object"
+                            string="Bước trước"
+                            invisible="step == 'product'"/>
+                    <button name="action_next_step" type="object"
+                            string="Tiếp tục" class="oe_highlight"
+                            invisible="step == 'confirm' or is_infeasible"/>
+                    <button name="action_confirm" type="object"
+                            string="Hoàn tất dòng" class="oe_highlight"
+                            invisible="step != 'confirm' or is_infeasible"/>
                     <button name="action_mark_infeasible" type="object"
                             string="Xác nhận không khả thi" class="btn-warning"
                             invisible="not is_infeasible"/>
-                </group>
+                    <field name="step" widget="statusbar"
+                           statusbar_visible="product,bom,confirm"
+                           options="{'clickable': False}"/>
+                </header>
 
-                <footer>
-                    <button name="action_confirm" type="object"
-                            string="Xác nhận" class="oe_highlight"
-                            invisible="is_infeasible"/>
-                    <button string="Hủy" special="cancel"/>
-                </footer>
+                <sheet>
+                    <field name="rfq_line_id" invisible="1"/>
+
+                    <div class="oe_title">
+                        <label for="request_product_name" string="Dòng RFQ đang xử lý"/>
+                        <h1>
+                            <field name="request_product_name" readonly="1"/>
+                        </h1>
+                    </div>
+
+                    <div class="dl-rfq-request-summary" role="region"
+                         aria-label="Thông tin yêu cầu từ Sales">
+                        <div class="dl-rfq-section-title">
+                            <i class="fa fa-file-text-o me-1"/>Yêu cầu từ Sales
+                        </div>
+                        <group>
+                            <group>
+                                <field name="request_category_id" readonly="1"/>
+                                <field name="request_quantity" readonly="1"/>
+                            </group>
+                            <group>
+                                <field name="request_reference_product_id" readonly="1"/>
+                                <field name="request_dimension_note" readonly="1"/>
+                            </group>
+                        </group>
+                        <field name="request_attachment_ids" widget="many2many_binary"
+                               readonly="1" nolabel="1"
+                               invisible="not request_attachment_ids"/>
+                    </div>
+
+                    <!-- Bước 1: xác định Product. -->
+                    <div class="dl-rfq-step-panel" invisible="step != 'product'">
+                        <h2><span class="badge text-bg-primary me-2">1</span>Xác định sản phẩm</h2>
+                        <p class="text-muted">
+                            Chọn sản phẩm đã từng gia công hoặc tạo sản phẩm mới từ yêu cầu của Sales.
+                        </p>
+
+                        <group>
+                            <field name="mode" widget="radio"/>
+                        </group>
+
+                        <group invisible="mode != 'existing'" string="Chọn sản phẩm có sẵn">
+                            <field name="allowed_product_ids" invisible="1"/>
+                            <field name="product_id" placeholder="Tìm theo tên sản phẩm..."
+                                   domain="[('id', 'in', allowed_product_ids)]"
+                                   options="{'no_create': True}"
+                                   context="{'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': request_category_id, 'default_name': request_product_name}"/>
+                        </group>
+
+                        <group invisible="mode != 'new'" string="Tạo sản phẩm mới">
+                            <field name="new_product_name" required="mode == 'new'"/>
+                            <field name="new_product_category_id" required="mode == 'new'"/>
+                            <button name="action_create_product" type="object"
+                                    string="Tạo sản phẩm" class="oe_highlight"/>
+                        </group>
+                    </div>
+
+                    <!-- Bước 2: chọn/tạo/chỉnh BOM. Các đường BOM chi tiết sẽ
+                         được chuẩn hóa riêng ở Mức 5. -->
+                    <div class="dl-rfq-step-panel" invisible="step != 'bom'">
+                        <h2><span class="badge text-bg-primary me-2">2</span>Định mức BOM</h2>
+                        <p class="text-muted">
+                            Chọn BOM đã xác nhận/đã khóa hoặc tạo phiên bản phù hợp với yêu cầu này.
+                        </p>
+
+                        <group string="Sản phẩm đã xác định">
+                            <field name="product_id" readonly="1"/>
+                        </group>
+
+                        <group string="Phiên bản định mức">
+                            <field name="bom_ids" nolabel="1" colspan="2"
+                                   context="{'rfq_resolve_wizard_id': id}">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="version"/>
+                                    <field name="status" widget="badge"/>
+                                    <field name="create_date" string="Ngày tạo"/>
+                                    <button name="action_open_form_modal" type="object"
+                                            icon="fa-pencil" title="Mở BOM để chỉnh sửa"/>
+                                    <button name="action_copy_version_modal" type="object"
+                                            icon="fa-copy"
+                                            title="Sao chép định mức thành phiên bản Nháp mới"/>
+                                </tree>
+                            </field>
+                        </group>
+
+                        <group>
+                            <field name="selected_bom_id"/>
+                            <button name="action_edit_selected_bom" type="object"
+                                    string="Chỉnh sửa BOM cho RFQ này"
+                                    class="btn-secondary"
+                                    invisible="not selected_bom_id"/>
+                            <button name="action_create_bom" type="object"
+                                    string="Tạo BOM mới" class="btn-secondary"/>
+                        </group>
+
+                        <notebook invisible="not selected_bom_id">
+                            <page string="Chi tiết BOM (xem trước)">
+                                <field name="selected_bom_line_ids" readonly="1">
+                                    <tree>
+                                        <field name="material_id"/>
+                                        <field name="measurement_shape_id"/>
+                                        <field name="quantity"/>
+                                        <field name="waste_rate"/>
+                                        <field name="effective_qty"/>
+                                        <field name="subtotal"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </div>
+
+                    <!-- Bước 3: rà soát trước khi ghi kết quả về dòng RFQ. -->
+                    <div class="dl-rfq-step-panel" invisible="step != 'confirm'">
+                        <h2><span class="badge text-bg-primary me-2">3</span>Xác nhận phương án</h2>
+                        <div class="alert alert-success" role="status">
+                            Kiểm tra lại Product và BOM trước khi bấm <b>Hoàn tất dòng</b>.
+                        </div>
+                        <group string="Phương án kỹ thuật">
+                            <field name="product_id" readonly="1"/>
+                            <field name="selected_bom_id" readonly="1"/>
+                        </group>
+                        <notebook invisible="not selected_bom_id">
+                            <page string="Chi tiết BOM đã chọn">
+                                <field name="selected_bom_line_ids" readonly="1">
+                                    <tree>
+                                        <field name="material_id"/>
+                                        <field name="measurement_shape_id"/>
+                                        <field name="quantity"/>
+                                        <field name="waste_rate"/>
+                                        <field name="effective_qty"/>
+                                        <field name="subtotal"/>
+                                    </tree>
+                                </field>
+                            </page>
+                        </notebook>
+                    </div>
+
+                    <!-- Kết luận không khả thi luôn sẵn ở mọi bước; khi bật,
+                         nút xác nhận riêng xuất hiện trên header. -->
+                    <div class="dl-rfq-infeasible-panel">
+                        <separator string="Hoặc — kết luận không khả thi"/>
+                        <group>
+                            <field name="is_infeasible"/>
+                            <field name="infeasible_reason"
+                                   invisible="not is_infeasible"
+                                   required="is_infeasible"
+                                   placeholder="Nêu rõ lý do để Sales trao đổi lại với khách hàng..."/>
+                        </group>
+                    </div>
+                </sheet>
             </form>
         </field>
     </record>

@@ -818,13 +818,18 @@ class DlQuotationRequestLine(models.Model):
         if request.status not in ("processing", "confirmed"):
             raise UserError(_(
                 "RFQ ở trạng thái hiện tại không thể xử lý kỹ thuật."))
+        wizard = self.env["dl.rfq.resolve.wizard"].with_context(
+            default_rfq_line_id=self.id,
+        ).create({})
+        view = self.env.ref("dl_technical.view_dl_rfq_resolve_wizard_form")
         return {
             "type": "ir.actions.act_window",
             "name": _("Xử lý RFQ — %s") % (self.product_name or self.resolved_product_id.display_name),
             "res_model": "dl.rfq.resolve.wizard",
+            "res_id": wizard.id,
             "view_mode": "form",
-            "target": "new",
-            "context": {"default_rfq_line_id": self.id},
+            "views": [(view.id, "form")],
+            "target": "current",
         }
 
 

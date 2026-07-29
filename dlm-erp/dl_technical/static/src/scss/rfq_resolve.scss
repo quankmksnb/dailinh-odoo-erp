@@ -1,0 +1,46 @@
+// Workspace xử lý một dòng RFQ: giữ phần yêu cầu và từng công đoạn thành
+// các khối riêng, dễ rà soát hơn trên màn hình rộng lẫn màn hình nhỏ.
+.dl-rfq-resolve {
+    .o_form_sheet {
+        max-width: 1440px !important;
+    }
+
+    .dl-rfq-request-summary {
+        margin-bottom: 20px;
+        padding: 16px 18px;
+        border: 1px solid $dl-border;
+        border-left: 4px solid $dl-primary;
+        border-radius: $dl-radius;
+        background: #f5f9ff;
+    }
+
+    .dl-rfq-section-title {
+        margin-bottom: 8px;
+        color: $dl-primary;
+        font-weight: 600;
+    }
+
+    .dl-rfq-step-panel {
+        margin-bottom: 18px;
+        padding: 20px 22px;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        background: #fff;
+
+        h2 {
+            margin-bottom: 6px;
+        }
+    }
+
+    .dl-rfq-infeasible-panel {
+        margin-top: 18px;
+        padding: 0 4px;
+    }
+
+    @media (max-width: 767.98px) {
+        .dl-rfq-request-summary,
+        .dl-rfq-step-panel {
+            padding: 14px;
+        }
+    }
+}
