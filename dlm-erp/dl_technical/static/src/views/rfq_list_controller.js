@@ -2,14 +2,14 @@
 // ============================================================
 //  DL RFQ List — đồng bộ giao diện danh sách Yêu cầu báo giá (D1).
 //  - dl_rfq_list: list Sales/chung — mở chi tiết tự do mọi trạng thái.
-//  - dl_rfq_list_my: list "RFQ cần xử lý" (Kỹ thuật) — RFQ "Mới" phải bấm
-//    "Nhận RFQ" (status → Đang xử lý) rồi mới mở được chi tiết. RFQ "Đã bổ
-//    sung" (đã tiếp nhận trước đó, quay lại sau vòng trả-bổ-sung) mở tự do.
+//  - dl_rfq_list_my: list "RFQ cần xử lý" (Kỹ thuật) — cũng mở tự do. Việc
+//    "nhận xử lý" (Mới → Đang xử lý) KHÔNG còn chặn click mở: KTV xem thoải
+//    mái, cổng kiểm soát chuyển vào FORM (nút "Nhận xử lý" + khóa field kết
+//    quả tới khi nhận). Xem quotation_request_views.xml.
 // ============================================================
 
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
-import { useService } from "@web/core/utils/hooks";
 import { serializeDate, today } from "@web/core/l10n/dates";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
@@ -110,29 +110,10 @@ export class DlRfqListController extends DlListBaseController {
     }
 }
 
-// "RFQ cần xử lý" (Kỹ thuật): chỉ RFQ "Mới" phải bấm nút "Nhận RFQ" trên dòng
-// trước (status → Đang xử lý) mới mở được chi tiết — đánh dấu KTV đã tiếp nhận
-// lần đầu. RFQ "Đã bổ sung" đã được tiếp nhận ở vòng trước (processing →
-// returned → supplemented) nên mở thẳng, không bắt nhận lại; badge trạng thái +
-// dòng chatter "Sales đã bổ sung" vẫn báo hiệu có thông tin mới.
-export class DlRfqListMyController extends DlRfqListController {
-    setup() {
-        super.setup();
-        this.dlNotification = useService("notification");
-    }
-
-    async openRecord(record) {
-        if (record.data.status === "new") {
-            this.dlNotification.add(
-                "Bấm nút 'Nhận RFQ' trên dòng để nhận xử lý trước khi mở chi tiết. " +
-                    "Trạng thái RFQ sẽ chuyển sang 'Đang xử lý'.",
-                { type: "warning", title: "Chưa nhận RFQ" }
-            );
-            return;
-        }
-        return super.openRecord(record);
-    }
-}
+// "RFQ cần xử lý" (Kỹ thuật) dùng chung controller với list chung: mở chi tiết
+// tự do mọi trạng thái (kể cả "Mới") — đúng phản xạ "click = mở". Cổng "nhận
+// xử lý" đã chuyển vào form: RFQ "Mới" hiện banner + nút "Nhận xử lý" và khóa
+// các field kết quả cho tới khi KTV nhận (Mới → Đang xử lý).
 
 registry.category("views").add("dl_rfq_list", {
     ...listView,
@@ -141,5 +122,5 @@ registry.category("views").add("dl_rfq_list", {
 
 registry.category("views").add("dl_rfq_list_my", {
     ...listView,
-    Controller: DlRfqListMyController,
+    Controller: DlRfqListController,
 });

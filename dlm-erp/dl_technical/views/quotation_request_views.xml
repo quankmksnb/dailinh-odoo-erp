@@ -24,6 +24,8 @@
                        decoration-danger="status == 'returned'"
                        decoration-success="status == 'confirmed'"
                        decoration-muted="status in ('quoted', 'cancelled')"/>
+                <!-- Ai đang xử lý (bấm "Nhận xử lý") — Sales thấy ngay trên list. -->
+                <field name="received_by" optional="show"/>
                 <!-- Modal lịch sử RFQ (timeline chỉ đọc) — tree "RFQ cần xử lý"
                      kế thừa tree này nên cả 2 màn Sales & Kỹ thuật cùng có. -->
                 <button name="action_open_history" type="object" string="Lịch sử"
@@ -43,17 +45,18 @@
             <xpath expr="//tree" position="attributes">
                 <attribute name="create">0</attribute>
                 <attribute name="class">dl-rfq-list dl-rfq-list-my</attribute>
-                <!-- js_class riêng: chặn mở chi tiết RFQ chưa nhận (Mới/Đã bổ
-                     sung) — chỉ áp dụng màn Kỹ thuật này, list Sales mở tự do. -->
+                <!-- js_class riêng cho màn Kỹ thuật (chip lọc + đếm). KHÔNG còn
+                     chặn mở chi tiết: RFQ "Mới" mở xem tự do, cổng tiếp nhận
+                     nằm trong form (nút "Nhận xử lý" + khóa field kết quả). -->
                 <attribute name="js_class">dl_rfq_list_my</attribute>
             </xpath>
             <xpath expr="//field[@name='status']" position="after">
                 <field name="resolved_product_ids" widget="many2many_tags" string="Sản phẩm đã xác định"/>
                 <field name="resolved_bom_ids" widget="many2many_tags" string="Định mức đã xác định"/>
-                <!-- §3d — KTV nhận RFQ mới ngay trên list: Mới → Đang xử lý, sau
-                     đó mới mở được chi tiết. RFQ "Đã bổ sung" đã tiếp nhận ở vòng
-                     trước nên mở thẳng, không hiện nút này. KHÔNG đặt icon (button
-                     list có icon sẽ chỉ hiện icon, chữ thành tooltip). -->
+                <!-- Nhận nhanh ngay trên list (Mới → Đang xử lý) không cần mở chi
+                     tiết — tiện khi xử lý hàng loạt. Mở chi tiết vẫn có nút "Nhận
+                     xử lý" trong form. KHÔNG đặt icon (button list có icon sẽ chỉ
+                     hiện icon, chữ thành tooltip). -->
                 <button name="action_receive" type="object" string="Nhận RFQ"
                         class="btn-link"
                         invisible="status != 'new'"
@@ -69,8 +72,15 @@
         <field name="arch" type="xml">
             <form string="Yêu cầu báo giá" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
-                    <!-- Nút "Nhận RFQ" đã chuyển ra LIST (từng dòng) — KTV phải
-                         nhận trên list thì mới mở được chi tiết RFQ. -->
+                    <!-- Nhận xử lý: KTV mở RFQ "Mới" xem tự do, nhưng phải bấm
+                         nút này (Mới → Đang xử lý) mới thao tác được các field
+                         kết quả bên dưới — cổng tiếp nhận nằm ở form, không chặn
+                         click mở ở list. Nút "Nhận RFQ" trên list vẫn giữ để
+                         nhận nhanh không cần mở. -->
+                    <button name="action_receive" type="object"
+                            string="Nhận xử lý" class="oe_highlight"
+                            invisible="status != 'new'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <!-- Kỹ thuật trả RFQ về Sales bổ sung (thiếu thông tin) -->
                     <button name="action_open_return_wizard" type="object"
                             string="Gửi lại Sales (bổ sung)"
@@ -110,6 +120,31 @@
                         <strong>Đã trả lại Sales để bổ sung:</strong>
                         <field name="return_reason" readonly="1" nolabel="1"/>
                     </div>
+                    <!-- Banner tiếp nhận: chỉ Kỹ thuật/Admin thấy khi RFQ còn
+                         "Mới". Người dùng vẫn xem được toàn bộ nội dung; bấm
+                         "Nhận xử lý" (trên header) mới mở khóa thao tác kết quả. -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="status != 'new'"
+                         groups="dl_base.dl_group_tech,dl_base.dl_group_admin">
+                        <i class="fa fa-hand-paper-o me-1" title="Chưa nhận xử lý"/>
+                        <strong>RFQ này chưa được nhận xử lý.</strong>
+                        Bạn vẫn xem được đầy đủ thông tin bên dưới. Bấm
+                        <em>Nhận xử lý</em> ở trên để bắt đầu — trạng thái chuyển
+                        sang <em>Đang xử lý</em> và mở khóa các thao tác chọn/tạo
+                        Sản phẩm &amp; BOM.
+                    </div>
+                    <!-- Cảnh báo mềm "đang do anh A xử lý từ HH:MM": hiện cho
+                         BẤT KỲ ai mở RFQ đã có người khác tiếp nhận (Sales cũng
+                         thấy → biết ai đang xử lý; KTV khác thấy → tránh làm
+                         trùng). Không chặn xem/thao tác, chỉ nhắc. -->
+                    <field name="received_by_other" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not received_by_other">
+                        <i class="fa fa-user-o me-1" title="Đang được xử lý"/>
+                        <strong><field name="received_info" nolabel="1" readonly="1" class="d-inline"/></strong>
+                        Tránh xử lý trùng — hãy trao đổi với người đang phụ trách
+                        trước khi thao tác trên RFQ này.
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>
@@ -137,6 +172,7 @@
                                      con dạng dialog (dễ quan sát/xử lý). -->
                                 <tree string="Dòng sản phẩm">
                                     <field name="is_technician" column_invisible="1"/>
+                                    <field name="request_status" column_invisible="1"/>
                                     <field name="product_type"/>
                                     <field name="product_name" required="1"/>
                                     <field name="product_category_id"/>
@@ -147,27 +183,31 @@
                                     <field name="preview_image" widget="image"
                                            options="{'size': [40, 40]}" string="Ảnh" optional="hide"/>
                                     <field name="resolvable_product_ids" column_invisible="1"/>
+                                    <!-- Khóa field kết quả cho tới khi RFQ được nhận
+                                         xử lý (không còn 'Mới') — cổng tiếp nhận. -->
                                     <field name="resolved_product_id" string="Sản phẩm đã xác định"
-                                           readonly="not is_technician"
+                                           readonly="not is_technician or request_status == 'new'"
                                            domain="[('id', 'in', resolvable_product_ids)]"
                                            context="{'form_view_ref': 'dl_product.view_dl_product_tech_form', 'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': product_category_id, 'default_name': product_name}"/>
                                     <field name="resolved_bom_id" string="Định mức đã xác định" optional="hide"
-                                           readonly="not is_technician"
+                                           readonly="not is_technician or request_status == 'new'"
                                            domain="[('product_id', '=', resolved_product_id)]"/>
-                                    <field name="is_infeasible" readonly="not is_technician"/>
+                                    <field name="is_infeasible" readonly="not is_technician or request_status == 'new'"/>
                                     <field name="infeasible_reason"
                                            invisible="not is_infeasible"
-                                           readonly="not is_technician" optional="show"/>
+                                           readonly="not is_technician or request_status == 'new'" optional="show"/>
                                     <!-- §gộp màn — mở thẳng màn Xử lý RFQ (1 dialog
-                                         duy nhất) từ dòng, khỏi qua form dòng trước. -->
+                                         duy nhất) từ dòng, khỏi qua form dòng trước.
+                                         Ẩn khi RFQ chưa nhận — buộc bấm "Nhận xử lý". -->
                                     <button name="action_open_resolve_wizard" type="object"
                                             string="Xử lý RFQ" icon="fa-cogs"
                                             class="btn-link"
-                                            invisible="is_infeasible or product_type == 'trading'"
+                                            invisible="is_infeasible or product_type == 'trading' or request_status == 'new'"
                                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                                 </tree>
                                 <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
                                     <field name="is_technician" invisible="1"/>
+                                    <field name="request_status" invisible="1"/>
                                     <field name="product_type" invisible="1"/>
                                     <field name="selectable_category_ids" invisible="1"/>
                                     <field name="reference_product_ids" invisible="1"/>
@@ -176,7 +216,7 @@
                                         <button name="action_open_resolve_wizard" type="object"
                                                 string="Xử lý RFQ" icon="fa-cogs"
                                                 class="oe_highlight"
-                                                invisible="not id or is_infeasible or product_type == 'trading'"
+                                                invisible="not id or is_infeasible or product_type == 'trading' or request_status == 'new'"
                                                 groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                                     </header>
                                     <sheet>
@@ -209,25 +249,33 @@
                                                 <field name="quantity" readonly="is_technician"/>
                                             </group>
                                             <group string="Kết quả xử lý (Kỹ thuật)">
+                                                <!-- RFQ chưa nhận: nhắc bấm "Nhận xử lý"
+                                                     ở header trước khi thao tác. -->
                                                 <div colspan="2" class="text-muted"
-                                                     invisible="is_infeasible or resolved_product_id or product_type == 'trading'">
+                                                     invisible="request_status != 'new'"
+                                                     groups="dl_base.dl_group_tech,dl_base.dl_group_admin">
+                                                    <i class="fa fa-hand-paper-o me-1" title="Chưa nhận xử lý"/>RFQ chưa được nhận —
+                                                    bấm <b>Nhận xử lý</b> ở trên để mở khóa thao tác.
+                                                </div>
+                                                <div colspan="2" class="text-muted"
+                                                     invisible="request_status == 'new' or is_infeasible or resolved_product_id or product_type == 'trading'">
                                                     <i class="fa fa-info-circle me-1"/>Chưa xử lý — bấm
                                                     <b>Xử lý RFQ</b> để chọn/tạo Sản phẩm &amp; BOM.
                                                 </div>
                                                 <field name="resolved_product_id" string="Sản phẩm xác định"
                                                        invisible="is_infeasible"
-                                                       readonly="not is_technician"
+                                                       readonly="not is_technician or request_status == 'new'"
                                                        domain="[('id', 'in', resolvable_product_ids)]"
                                                        context="{'form_view_ref': 'dl_product.view_dl_product_tech_form', 'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': product_category_id, 'default_name': product_name}"/>
                                                 <field name="resolved_bom_id" string="BOM"
                                                        invisible="is_infeasible"
-                                                       readonly="not is_technician"
+                                                       readonly="not is_technician or request_status == 'new'"
                                                        domain="[('product_id', '=', resolved_product_id)]"/>
-                                                <field name="is_infeasible" readonly="not is_technician"/>
+                                                <field name="is_infeasible" readonly="not is_technician or request_status == 'new'"/>
                                                 <field name="infeasible_reason"
                                                        invisible="not is_infeasible"
                                                        required="is_infeasible"
-                                                       readonly="not is_technician"/>
+                                                       readonly="not is_technician or request_status == 'new'"/>
                                             </group>
                                         </group>
                                         <separator string="Yêu cầu / Mô tả"/>

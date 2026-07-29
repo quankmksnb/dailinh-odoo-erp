@@ -104,6 +104,50 @@ class DlQuotationRequest(models.Model):
         default=lambda self: self.env.user,
     )
 
+    # Tiếp nhận: ai bấm "Nhận xử lý" + lúc nào. Để Sales thấy "đang do ai xử lý"
+    # và chống hai KTV làm song song một RFQ (nhất là tránh tạo product Draft
+    # trùng khi cùng xử lý custom lines). Gán ở action_receive.
+    received_by = fields.Many2one(
+        "res.users",
+        string="Người tiếp nhận",
+        readonly=True,
+        copy=False,
+        tracking=True,
+    )
+    received_date = fields.Datetime(
+        string="Thời điểm tiếp nhận",
+        readonly=True,
+        copy=False,
+    )
+
+    # Cờ + câu cảnh báo mềm cho banner "đang do anh A xử lý từ HH:MM": hiện khi
+    # RFQ đã có người tiếp nhận và người đang mở KHÔNG phải người đó. Người mở
+    # sau vẫn xem/thao tác được — chỉ nhắc để tránh xử lý trùng.
+    received_by_other = fields.Boolean(
+        string="Đã có người khác tiếp nhận",
+        compute="_compute_received_info",
+    )
+    received_info = fields.Char(
+        string="Thông tin tiếp nhận",
+        compute="_compute_received_info",
+    )
+
+    @api.depends("received_by", "received_date")
+    def _compute_received_info(self):
+        for rec in self:
+            rec.received_by_other = (
+                bool(rec.received_by) and rec.received_by != self.env.user)
+            if rec.received_by:
+                when = ""
+                if rec.received_date:
+                    local_dt = fields.Datetime.context_timestamp(
+                        rec, rec.received_date)
+                    when = _(" từ %s") % local_dt.strftime("%H:%M %d/%m/%Y")
+                rec.received_info = _("Đang do %s xử lý%s.") % (
+                    rec.received_by.name, when)
+            else:
+                rec.received_info = ""
+
     note = fields.Text(
         string="Ghi chú",
     )
@@ -233,13 +277,21 @@ class DlQuotationRequest(models.Model):
         return super().write(vals)
 
     def action_receive(self):
-        """KTV: nhận RFQ để bắt đầu xử lý (Mới / Đã bổ sung → Đang xử lý)."""
+        """KTV: nhận RFQ để bắt đầu xử lý (Mới / Đã bổ sung → Đang xử lý).
+
+        Gán người tiếp nhận + thời điểm để Sales thấy "ai đang xử lý" và để
+        cảnh báo khi người khác mở cùng RFQ (tránh xử lý trùng)."""
         for rec in self:
             if rec.status not in ("new", "supplemented"):
                 raise UserError(_(
                     "Chỉ RFQ ở trạng thái 'Mới' hoặc 'Đã bổ sung' mới nhận để xử lý."))
-            rec.status = "processing"
-            rec.message_post(body=_("Kỹ thuật đã nhận RFQ để xử lý."))
+            rec.write({
+                "status": "processing",
+                "received_by": self.env.user.id,
+                "received_date": fields.Datetime.now(),
+            })
+            rec.message_post(
+                body=_("%s đã nhận RFQ để xử lý.") % self.env.user.name)
 
     def action_open_history(self):
         """Nút "Lịch sử" trên list RFQ (Sales & Kỹ thuật) — mở modal timeline
@@ -507,6 +559,15 @@ class DlQuotationRequestLine(models.Model):
 
     infeasible_reason = fields.Text(
         string="Lý do không khả thi",
+    )
+
+    # Trạng thái RFQ cha — để view khóa các field kết quả khi RFQ chưa được
+    # nhận xử lý ("Mới"). KTV mở xem tự do, phải bấm "Nhận xử lý" (Mới → Đang
+    # xử lý) mới thao tác được — xem quotation_request_views.xml.
+    request_status = fields.Selection(
+        related="quotation_request_id.status",
+        string="Trạng thái RFQ",
+        store=False,
     )
 
     # dùng để readonly field trên view theo nhóm quyền — compute_sudo=True vì
