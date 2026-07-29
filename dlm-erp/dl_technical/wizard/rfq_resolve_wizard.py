@@ -104,7 +104,12 @@ class DlRfqResolveWizard(models.TransientModel):
     def _onchange_product_id(self):
         # Mặc định chọn sẵn phiên bản BOM hiện hành (is_current) của sản phẩm —
         # KTV vẫn đổi sang version khác được (thiết kế BOM truy xuất §4.3).
+        # Khi mở lại dòng đã xử lý, giữ đúng BOM đã gắn thay vì tự đổi sang
+        # version hiện hành; khi đổi sang Product khác, BOM cũ tự bị thay.
         if self.mode == "existing" and self.product_id:
+            if (self.selected_bom_id
+                    and self.selected_bom_id.product_id == self.product_id):
+                return
             current = self.env["dl.bom"].search(
                 [("product_id", "=", self.product_id.id), ("is_current", "=", True)],
                 limit=1,
@@ -115,14 +120,28 @@ class DlRfqResolveWizard(models.TransientModel):
 
     @api.model
     def default_get(self, fields_list):
-        """§3c — lấy luôn Tên sản phẩm Sales đã nhập ở RFQ làm tên mặc định khi
-        Kỹ thuật tạo sản phẩm mới (khỏi phải gõ lại)."""
+        """Nạp kết quả hiện tại để wizard là cửa duy nhất cho cả xử lý mới và
+        sửa kết luận đã có; đồng thời lấy tên Sales nhập làm tên SP mới mặc định."""
         res = super().default_get(fields_list)
         line_id = res.get("rfq_line_id") or self.env.context.get("default_rfq_line_id")
-        if line_id and not res.get("new_product_name"):
+        if line_id:
             line = self.env["dl.quotation.request.line"].browse(line_id)
-            if line.exists() and line.product_name:
-                res["new_product_name"] = line.product_name
+            if line.exists():
+                if line.product_name and not res.get("new_product_name"):
+                    res["new_product_name"] = line.product_name
+                if line.is_infeasible:
+                    res.update({
+                        "is_infeasible": True,
+                        "infeasible_reason": line.infeasible_reason,
+                    })
+                else:
+                    if line.resolved_product_id:
+                        res.update({
+                            "mode": "existing",
+                            "product_id": line.resolved_product_id.id,
+                        })
+                    if line.resolved_bom_id:
+                        res["selected_bom_id"] = line.resolved_bom_id.id
         return res
 
     def _next_version(self, product, bom_type="quotation"):
@@ -223,5 +242,9 @@ class DlRfqResolveWizard(models.TransientModel):
         self.rfq_line_id.write({
             "resolved_product_id": self.product_id.id,
             "resolved_bom_id": self.selected_bom_id.id,
+            # Cho phép sửa một kết luận "Không khả thi" thành phương án khả thi
+            # ngay trong cùng cửa xử lý, không cần mở field kết quả trực tiếp.
+            "is_infeasible": False,
+            "infeasible_reason": False,
         })
         return {"type": "ir.actions.act_window_close"}
