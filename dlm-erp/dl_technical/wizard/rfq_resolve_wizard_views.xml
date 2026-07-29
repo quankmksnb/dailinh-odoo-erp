@@ -98,18 +98,15 @@
                         </group>
 
                         <group string="Phiên bản định mức">
-                            <field name="bom_ids" nolabel="1" colspan="2"
-                                   context="{'rfq_resolve_wizard_id': id}">
+                            <field name="bom_ids" nolabel="1" colspan="2">
                                 <tree>
                                     <field name="name"/>
                                     <field name="version"/>
                                     <field name="status" widget="badge"/>
                                     <field name="create_date" string="Ngày tạo"/>
-                                    <button name="action_open_form_modal" type="object"
-                                            icon="fa-pencil" title="Mở BOM để chỉnh sửa"/>
-                                    <button name="action_copy_version_modal" type="object"
-                                            icon="fa-copy"
-                                            title="Sao chép định mức thành phiên bản Nháp mới"/>
+                                    <button name="action_open_form" type="object"
+                                            icon="fa-external-link"
+                                            title="Mở BOM trên trang đầy đủ"/>
                                 </tree>
                             </field>
                         </group>

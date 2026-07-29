@@ -158,18 +158,17 @@ class DlRfqResolveWizard(models.TransientModel):
                         res["step"] = "confirm"
         return res
 
-    def _action_open_self(self):
-        """Nạp lại workspace hiện tại mà không quay về dialog."""
+    def _action_reload(self):
+        """Nạp lại controller hiện tại mà không tải lại toàn bộ trang.
+
+        ``soft_reload`` giữ nguyên action stack nên breadcrumb Workspace RFQ ↔ BOM
+        vẫn quay lại được; client action ``reload`` sẽ tải lại browser và làm mất
+        stack này.
+        """
         self.ensure_one()
-        view = self.env.ref("dl_technical.view_dl_rfq_resolve_wizard_form")
         return {
-            "type": "ir.actions.act_window",
-            "name": _("Xử lý RFQ — %s") % self.request_product_name,
-            "res_model": self._name,
-            "res_id": self.id,
-            "view_mode": "form",
-            "views": [(view.id, "form")],
-            "target": "current",
+            "type": "ir.actions.client",
+            "tag": "soft_reload",
         }
 
     def _action_return_to_rfq(self):
@@ -219,7 +218,7 @@ class DlRfqResolveWizard(models.TransientModel):
             self._validate_product_step()
             self._validate_bom_step()
             self.step = "confirm"
-        return self._action_open_self()
+        return self._action_reload()
 
     def action_previous_step(self):
         self.ensure_one()
@@ -227,7 +226,7 @@ class DlRfqResolveWizard(models.TransientModel):
             self.step = "bom"
         elif self.step == "bom":
             self.step = "product"
-        return self._action_open_self()
+        return self._action_reload()
 
     def action_cancel(self):
         return self._action_return_to_rfq()
@@ -236,6 +235,20 @@ class DlRfqResolveWizard(models.TransientModel):
         existing = self.env["dl.bom"].search([
             ("product_id", "=", product.id), ("bom_type", "=", bom_type)])
         return (max(existing.mapped("version")) + 1) if existing else 1
+
+    def _action_open_bom(self, bom, name=None):
+        """Đẩy form BOM lên breadcrumb, giữ workspace hiện tại ở phía sau."""
+        self.ensure_one()
+        view = self.env.ref("dl_technical.view_dl_bom_form")
+        return {
+            "type": "ir.actions.act_window",
+            "name": name or bom.display_name,
+            "res_model": "dl.bom",
+            "res_id": bom.id,
+            "view_mode": "form",
+            "views": [(view.id, "form")],
+            "target": "current",
+        }
 
     def action_create_product(self):
         """Case B — tạo Product mới (không tạo trùng: dùng chính product_id
@@ -254,12 +267,10 @@ class DlRfqResolveWizard(models.TransientModel):
         })
         self.product_id = product.id
         self.mode = "existing"
-        return self._action_open_self()
+        return self._action_reload()
 
     def action_create_bom(self):
-        """Tạo BOM mới cho product_id rồi mở NGUYÊN màn Product BOM (form
-        dl.bom mặc định) dưới dạng modal — khai báo dòng vật tư / Create From
-        BOM Template... bằng đúng UI BOM hiện có."""
+        """Tạo BOM nháp rồi mở form BOM full-page trên breadcrumb workspace."""
         self.ensure_one()
         if not self.product_id:
             raise UserError(_("Vui lòng chọn hoặc tạo sản phẩm trước."))
@@ -270,30 +281,22 @@ class DlRfqResolveWizard(models.TransientModel):
             "status": "draft",
         })
         self.selected_bom_id = bom.id
-        return {
-            "type": "ir.actions.act_window",
-            "name": _("BOM mới"),
-            "res_model": "dl.bom",
-            "res_id": bom.id,
-            "view_mode": "form",
-            "target": "new",
-            # Form BOM hiện nút "Quay lại Xử lý RFQ" quay đúng wizard này.
-            "context": {"rfq_resolve_wizard_id": self.id},
-        }
+        return self._action_open_bom(bom, _("BOM mới"))
 
     def action_edit_selected_bom(self):
-        """Sửa BOM theo yêu cầu khách — KHÔNG đụng bản gốc: tự tạo phiên bản
-        mới (reuse dl.bom.action_create_new_version) rồi mở form để sửa."""
+        """Mở BOM nháp để sửa; BOM đã duyệt thì sao chép thành version nháp.
+
+        Không tạo thêm version nếu người dùng đang chỉnh chính một BOM nháp.
+        """
         self.ensure_one()
         if not self.selected_bom_id:
             raise UserError(_("Vui lòng chọn 1 BOM trước khi chỉnh sửa."))
-        result = self.selected_bom_id.action_create_new_version()
-        self.selected_bom_id = result.get("res_id")
-        result["name"] = _("Chỉnh sửa BOM cho RFQ")
-        result["target"] = "new"
-        # Form BOM hiện nút "Quay lại Xử lý RFQ" quay đúng wizard này.
-        result["context"] = {"rfq_resolve_wizard_id": self.id}
-        return result
+        bom = self.selected_bom_id
+        if bom.status != "draft":
+            result = bom.action_create_new_version()
+            bom = self.env["dl.bom"].browse(result["res_id"])
+            self.selected_bom_id = bom.id
+        return self._action_open_bom(bom, _("Chỉnh sửa BOM cho RFQ"))
 
     def action_mark_infeasible(self):
         """Kết luận dòng RFQ là không khả thi — ghi thẳng lên dòng, xóa Product/

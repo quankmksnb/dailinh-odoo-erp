@@ -175,116 +175,22 @@ class DlBom(models.Model):
         if self.product_id:
             self.version = self._compute_next_version()
 
-    # ── Liên kết ngược về màn "Xử lý RFQ" ────────────────────────────────
-    # Khi form BOM được mở dạng modal TỪ wizard Xử lý RFQ (context có
-    # rfq_resolve_wizard_id), hiện nút "Quay lại Xử lý RFQ" — vì dialog mới
-    # THAY THẾ dialog wizard trong stack, đóng modal BOM sẽ rơi về form dòng
-    # sản phẩm chứ không về wizard (UX khó chịu).
-    show_back_to_rfq = fields.Boolean(compute="_compute_show_back_to_rfq")
+    def action_open_form(self):
+        """Mở BOM trên trang đầy đủ.
 
-    def _compute_show_back_to_rfq(self):
-        # Chỉ hiện nút khi form được mở TỪ màn Xử lý RFQ: các entry point từ
-        # wizard đều đánh dấu context (rfq_bom_modal — nút bút chì/copy;
-        # rfq_resolve_wizard_id — nút Tạo BOM mới/Chỉnh sửa BOM;
-        # default_rfq_line_id — action gốc của wizard). Mở BOM từ menu
-        # "BOM sản phẩm / BTP" không có cờ nào → luôn ẩn.
-        ctx = self.env.context
-        from_wizard = bool(
-            ctx.get("rfq_bom_modal")
-            or ctx.get("rfq_resolve_wizard_id")
-            or ctx.get("default_rfq_line_id")
-        )
-        for rec in self:
-            rec.show_back_to_rfq = from_wizard and bool(rec._rfq_wizard())
-
-    def _rfq_wizard(self):
-        """Wizard Xử lý RFQ đã mở form BOM này (nếu có).
-
-        3 tầng (context qua nút trên dòng x2many không đáng tin — client không
-        chắc truyền đủ):
-        1. id truyền thẳng qua context (rfq_resolve_wizard_id);
-        2. default_rfq_line_id trong context (action gốc của wizard) → wizard
-           mới nhất của dòng RFQ đó;
-        3. wizard mới nhất trỏ đúng SẢN PHẨM của BOM này — bảng BOM Version
-           trong wizard chỉ chứa BOM của product wizard đang chọn nên tra
-           ngược theo product là đúng wizard đang mở. Wizard là bản ghi tạm
-           (transient, tự dọn sau ~1h) nên không dính wizard của phiên cũ."""
+        Khi gọi từ workspace RFQ, web client tự giữ workspace trong breadcrumb;
+        không cần context dò ngược hay nút quay lại riêng trên form BOM.
+        """
         self.ensure_one()
-        Wizard = self.env["dl.rfq.resolve.wizard"]
-        wid = self.env.context.get("rfq_resolve_wizard_id")
-        if wid:
-            wiz = Wizard.browse(wid)
-            if wiz.exists():
-                return wiz
-        line_id = self.env.context.get("default_rfq_line_id")
-        if line_id:
-            wiz = Wizard.search(
-                [("rfq_line_id", "=", line_id)], order="id desc", limit=1)
-            if wiz:
-                return wiz
-        if self.product_id:
-            wiz = Wizard.search(
-                [("product_id", "=", self.product_id.id)],
-                order="id desc", limit=1)
-            if wiz:
-                return wiz
-        return None
-
-    def action_back_to_rfq_wizard(self):
-        """Quay lại đúng màn Xử lý RFQ đang dở (giữ nguyên mọi lựa chọn)."""
-        self.ensure_one()
-        wiz = self._rfq_wizard()
-        if not wiz:
-            return {"type": "ir.actions.act_window_close"}
+        view = self.env.ref("dl_technical.view_dl_bom_form")
         return {
             "type": "ir.actions.act_window",
-            "res_model": "dl.rfq.resolve.wizard",
-            "res_id": wiz.id,
-            "view_mode": "form",
-            "target": "current",
-        }
-
-    def action_open_form_modal(self):
-        """Mở chính BOM này bằng form dl.bom mặc định dưới dạng modal Ở CHẾ ĐỘ
-        SỬA — dùng cho nút bút chì trên bảng BOM Version của màn Nhận RFQ
-        (bấm thẳng vào dòng chỉ mở chế độ xem vì bom_ids là computed readonly).
-        Giữ nguyên context để form BOM còn biết đường quay lại wizard."""
-        self.ensure_one()
-        # Cờ "mở từ wizard Xử lý RFQ" — nút này chỉ tồn tại trên bảng BOM
-        # Version của wizard nên gắn thẳng tại đây (xem show_back_to_rfq).
-        ctx = dict(self.env.context, rfq_bom_modal=True)
-        return {
-            "type": "ir.actions.act_window",
-            "name": _("Chỉnh sửa %s") % self.display_name,
+            "name": self.display_name,
             "res_model": "dl.bom",
             "res_id": self.id,
             "view_mode": "form",
-            "target": "new",
-            "context": ctx,
-        }
-
-    def action_copy_version_modal(self):
-        """Copy BOM — nút bên cạnh bút chì trên bảng BOM Version của màn Xử lý
-        RFQ: tạo 1 PHIÊN BẢN MỚI (Nháp) giống hệt BOM này (reuse
-        action_create_new_version — copy cả dòng vật tư), chọn luôn làm "BOM
-        đã chọn" của wizard rồi mở form sửa tiếp. Khác "Tạo BOM từ BOM mẫu":
-        nguồn copy là 1 version BOM có sẵn của chính sản phẩm."""
-        self.ensure_one()
-        result = self.action_create_new_version()
-        new_id = result.get("res_id")
-        wiz = self._rfq_wizard()
-        if wiz:
-            wiz.selected_bom_id = new_id
-        # Cờ "mở từ wizard Xử lý RFQ" — như action_open_form_modal.
-        ctx = dict(self.env.context, rfq_bom_modal=True)
-        return {
-            "type": "ir.actions.act_window",
-            "name": _("Copy BOM — phiên bản mới"),
-            "res_model": "dl.bom",
-            "res_id": new_id,
-            "view_mode": "form",
-            "target": "new",
-            "context": ctx,
+            "views": [(view.id, "form")],
+            "target": "current",
         }
 
     def action_create_from_template(self):
