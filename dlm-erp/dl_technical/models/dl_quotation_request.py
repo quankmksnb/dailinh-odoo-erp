@@ -158,6 +158,50 @@ class DlQuotationRequest(models.Model):
         string="Danh sách sản phẩm",
     )
 
+    # Tiến độ dành riêng cho phần việc Kỹ thuật: chỉ tính dòng gia công vì dòng
+    # thương mại đã được Sales chọn sản phẩm và không đi qua BOM.
+    technical_total_line_count = fields.Integer(
+        string="Tổng dòng gia công",
+        compute="_compute_technical_progress",
+    )
+    technical_done_line_count = fields.Integer(
+        string="Dòng gia công đã xử lý",
+        compute="_compute_technical_progress",
+    )
+    technical_progress_percent = fields.Float(
+        string="Phần trăm tiến độ kỹ thuật",
+        compute="_compute_technical_progress",
+    )
+    technical_progress_label = fields.Char(
+        string="Tiến độ kỹ thuật",
+        compute="_compute_technical_progress",
+    )
+
+    @api.depends(
+        "line_ids.product_type",
+        "line_ids.resolved_product_id",
+        "line_ids.resolved_bom_id",
+        "line_ids.is_infeasible",
+    )
+    def _compute_technical_progress(self):
+        for rec in self:
+            technical_lines = rec.line_ids.filtered(
+                lambda line: line.product_type == "manufactured")
+            total = len(technical_lines)
+            done = len(technical_lines.filtered(
+                lambda line: line.is_infeasible
+                or bool(line.resolved_product_id and line.resolved_bom_id)))
+
+            rec.technical_total_line_count = total
+            rec.technical_done_line_count = done
+            rec.technical_progress_percent = (done * 100.0 / total) if total else 0.0
+            rec.technical_progress_label = (
+                _("Đã xử lý %(done)s/%(total)s dòng gia công",
+                  done=done, total=total)
+                if total
+                else _("Không có dòng gia công cần xử lý")
+            )
+
     # Màn Tạo RFQ tách 2 bảng riêng (trên/dưới) để cột không trùng nhau — cùng
     # trỏ line_ids, lọc + mặc định theo product_type. line_ids gốc vẫn dùng cho
     # status/logic.
@@ -249,7 +293,7 @@ class DlQuotationRequest(models.Model):
                 status = "confirmed"
 
             # KTV ĐÃ bắt đầu xử lý nhưng chưa xong hết → "Đang xử lý". Coi là đã
-            # bắt đầu khi: đã bấm "Nhận RFQ"/"Xử lý RFQ" (status đang processing/
+            # bắt đầu khi: đã bấm "Nhận xử lý" (status đang processing/
             # confirmed cũ), HOẶC ít nhất 1 dòng đã chọn Sản phẩm / đánh dấu không
             # khả thi. (Hàng gia công cần cả Product + BOM mới coi là "xong", nên
             # riêng việc chọn Product đã tính là đang xử lý.)
@@ -328,7 +372,7 @@ class DlQuotationRequest(models.Model):
 
     def action_resubmit(self):
         """Sales: sau khi bổ sung, gửi lại RFQ cho Kỹ thuật xử lý tiếp. Trạng
-        thái chuyển sang 'Đã bổ sung' (KTV lại bấm 'Nhận RFQ' để xử lý tiếp)."""
+        thái chuyển sang 'Đã bổ sung' (KTV lại bấm 'Nhận xử lý' để xử lý tiếp)."""
         for rec in self:
             if rec.status != "returned":
                 raise UserError(_(
@@ -561,9 +605,40 @@ class DlQuotationRequestLine(models.Model):
         string="Lý do không khả thi",
     )
 
+    technical_status = fields.Selection(
+        [
+            ("pending", "Chưa xử lý"),
+            ("processing", "Đang xử lý"),
+            ("done", "Đã xử lý"),
+            ("infeasible", "Không khả thi"),
+            ("not_required", "Không cần Kỹ thuật"),
+        ],
+        string="Trạng thái kỹ thuật",
+        compute="_compute_technical_status",
+    )
+
+    @api.depends(
+        "product_type",
+        "resolved_product_id",
+        "resolved_bom_id",
+        "is_infeasible",
+    )
+    def _compute_technical_status(self):
+        for rec in self:
+            if rec.product_type == "trading":
+                rec.technical_status = "not_required"
+            elif rec.is_infeasible:
+                rec.technical_status = "infeasible"
+            elif rec.resolved_product_id and rec.resolved_bom_id:
+                rec.technical_status = "done"
+            elif rec.resolved_product_id or rec.resolved_bom_id:
+                rec.technical_status = "processing"
+            else:
+                rec.technical_status = "pending"
+
     # Trạng thái RFQ cha — để view khóa các field kết quả khi RFQ chưa được
-    # nhận xử lý ("Mới"). KTV mở xem tự do, phải bấm "Nhận xử lý" (Mới → Đang
-    # xử lý) mới thao tác được — xem quotation_request_views.xml.
+    # nhận xử lý ("Mới"/"Đã bổ sung"). KTV mở xem tự do, phải bấm "Nhận xử lý"
+    # (→ Đang xử lý) mới thao tác được — xem quotation_request_views.xml.
     request_status = fields.Selection(
         related="quotation_request_id.status",
         string="Trạng thái RFQ",
@@ -729,12 +804,20 @@ class DlQuotationRequestLine(models.Model):
         return res
 
     def action_open_resolve_wizard(self):
-        """Màn 'Nhận RFQ' (Kỹ thuật) — mở wizard chọn/tạo Product + BOM cho dòng này.
-        Bắt đầu xử lý = RFQ chuyển sang 'Đang xử lý' ngay (nếu đang Mới/Đã bổ sung)."""
+        """Mở wizard chọn/tạo Product + BOM sau khi RFQ đã được tiếp nhận.
+
+        Việc tiếp nhận phải đi qua ``action_receive`` để luôn ghi đủ người và
+        thời điểm nhận. Không tự đổi trạng thái ở đây vì sẽ tạo đường vòng bỏ
+        qua bước nhận việc, đặc biệt với RFQ Sales vừa gửi lại bổ sung.
+        """
         self.ensure_one()
         request = self.quotation_request_id
         if request.status in ("new", "supplemented"):
-            request.status = "processing"
+            raise UserError(_(
+                "Vui lòng bấm 'Nhận xử lý' trước khi xử lý dòng RFQ này."))
+        if request.status not in ("processing", "confirmed"):
+            raise UserError(_(
+                "RFQ ở trạng thái hiện tại không thể xử lý kỹ thuật."))
         return {
             "type": "ir.actions.act_window",
             "name": _("Xử lý RFQ — %s") % (self.product_name or self.resolved_product_id.display_name),

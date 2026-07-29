@@ -3,7 +3,7 @@
 //  DL RFQ List — đồng bộ giao diện danh sách Yêu cầu báo giá (D1).
 //  - dl_rfq_list: list Sales/chung — mở chi tiết tự do mọi trạng thái.
 //  - dl_rfq_list_my: list "RFQ cần xử lý" (Kỹ thuật) — cũng mở tự do. Việc
-//    "nhận xử lý" (Mới → Đang xử lý) KHÔNG còn chặn click mở: KTV xem thoải
+//    "nhận xử lý" (Mới/Đã bổ sung → Đang xử lý) KHÔNG còn chặn click mở: KTV xem thoải
 //    mái, cổng kiểm soát chuyển vào FORM (nút "Nhận xử lý" + khóa field kết
 //    quả tới khi nhận). Xem quotation_request_views.xml.
 // ============================================================
@@ -111,9 +111,9 @@ export class DlRfqListController extends DlListBaseController {
 }
 
 // "RFQ cần xử lý" (Kỹ thuật) dùng chung controller với list chung: mở chi tiết
-// tự do mọi trạng thái (kể cả "Mới") — đúng phản xạ "click = mở". Cổng "nhận
-// xử lý" đã chuyển vào form: RFQ "Mới" hiện banner + nút "Nhận xử lý" và khóa
-// các field kết quả cho tới khi KTV nhận (Mới → Đang xử lý).
+// tự do mọi trạng thái (kể cả "Mới/Đã bổ sung") — đúng phản xạ "click = mở".
+// Cổng "nhận xử lý" đã chuyển vào form: hiện banner + nút "Nhận xử lý" và khóa
+// các field kết quả cho tới khi KTV nhận (→ Đang xử lý).
 
 registry.category("views").add("dl_rfq_list", {
     ...listView,

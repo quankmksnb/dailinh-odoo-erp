@@ -11,11 +11,13 @@
 
         // Tổng width các cột (kể cả cột nút) phải ĐÚNG 100% — table-layout
         // fixed: vượt 100% là bảng phình ra ngoài, tràn scroll ngang.
-        th[data-name="name"] { width: 14% !important; }
-        th[data-name="customer_id"] { width: 24% !important; }
-        th[data-name="requested_date"] { width: 17% !important; }
-        th[data-name="deadline"] { width: 15% !important; }
-        th[data-name="status"] { width: 20% !important; }
+        th[data-name="name"] { width: 11% !important; }
+        th[data-name="customer_id"] { width: 17% !important; }
+        th[data-name="requested_date"] { width: 12% !important; }
+        th[data-name="deadline"] { width: 10% !important; }
+        th[data-name="status"] { width: 12% !important; }
+        th[data-name="technical_progress_label"] { width: 17% !important; }
+        th[data-name="received_by"] { width: 11% !important; }
 
         // Cột nút "Lịch sử" (th.o_list_button, không có data-name) — phải cấp
         // width riêng, nếu không table-layout fixed bóp về 0px (ẩn nút).
@@ -27,19 +29,23 @@
     }
 }
 
-// "RFQ cần xử lý" — 7 cột + cột nút (Nhận RFQ + Lịch sử), tổng đúng 100%
+// "RFQ cần xử lý" — thêm tiến độ kỹ thuật nhưng vẫn giữ tổng width đúng 100%.
 .dl-rfq-list-my {
     .o_list_table {
         th[data-name="status"] { border-top-right-radius: 0; }
 
-        th[data-name="name"] { width: 11% !important; }
-        th[data-name="customer_id"] { width: 13% !important; }
-        th[data-name="requested_date"] { width: 12% !important; }
-        th[data-name="deadline"] { width: 10% !important; }
-        th[data-name="status"] { width: 10% !important; }
-        th[data-name="resolved_product_ids"] { width: 15% !important; }
-        th[data-name="resolved_bom_ids"] { width: 15% !important; }
-        thead th.o_list_button { width: 14% !important; }
+        th[data-name="name"] { width: 8% !important; }
+        th[data-name="customer_id"] { width: 10% !important; }
+        th[data-name="requested_date"] { width: 9% !important; }
+        th[data-name="deadline"] { width: 8% !important; }
+        th[data-name="status"] { width: 9% !important; }
+        th[data-name="technical_progress_label"] { width: 12% !important; }
+        th[data-name="received_by"] { width: 9% !important; }
+        th[data-name="resolved_product_ids"] { width: 10% !important; }
+        th[data-name="resolved_bom_ids"] { width: 9% !important; }
+        // Odoo tạo một cột riêng cho từng button (Nhận xử lý, Lịch sử).
+        // Hai cột 8% cộng với các cột dữ liệu 84% = đúng 100%.
+        thead th.o_list_button { width: 8% !important; }
     }
 }
 
