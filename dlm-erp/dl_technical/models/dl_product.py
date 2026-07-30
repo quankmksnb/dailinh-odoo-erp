@@ -1,7 +1,7 @@
 import logging
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 from .rfq_provisional_utils import has_stored_many2one_reference
 
@@ -68,6 +68,32 @@ class DlProductTechnical(models.Model):
                 and (not b.is_rfq_provisional
                      or (product.is_rfq_provisional
                          and b.rfq_source_line_id == product.rfq_source_line_id)))
+
+    @api.constrains("name", "product_kind", "is_rfq_provisional")
+    def _check_dlm_name_duplicate(self):
+        """Chặn cứng SP gia công/BTP TRÙNG HỆT tên (đã chuẩn hoá) với SP chính
+        thức đã có — bảo vệ MỌI đường tạo (form SP, RPC, import), không chỉ
+        wizard RFQ. SP tạm từ RFQ (is_rfq_provisional) xử lý mềm ở wizard nên
+        bỏ qua khi CÒN tạm; khi chính thức hóa (cờ tạm tắt) mới soi lại để chặn
+        hai dòng RFQ cùng chốt một tên trùng. Bỏ qua khi context
+        'dl_skip_name_dup_check' (seed/migration)."""
+        if self.env.context.get("dl_skip_name_dup_check"):
+            return
+        for rec in self:
+            if rec.product_kind not in BOM_ELIGIBLE_KINDS or not rec.name:
+                continue
+            if rec.is_rfq_provisional:
+                continue
+            matches = rec._dlm_find_name_matches(
+                rec.name, kinds=BOM_ELIGIBLE_KINDS, exclude_ids=rec.ids,
+                extra_domain=[("is_rfq_provisional", "=", False)])
+            if matches["exact"]:
+                dup = matches["exact"][0]
+                raise ValidationError(_(
+                    "Đã tồn tại sản phẩm cùng tên “%(name)s” (nhóm %(categ)s). "
+                    "Hãy dùng lại sản phẩm đó thay vì tạo bản trùng.",
+                    name=dup.display_name,
+                    categ=dup.categ_id.display_name or _("chưa phân nhóm")))
 
     def action_lifecycle_activate(self):
         provisional = self.filtered("is_rfq_provisional")

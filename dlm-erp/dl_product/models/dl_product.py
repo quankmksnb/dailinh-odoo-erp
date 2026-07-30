@@ -1,3 +1,4 @@
+import difflib
 import re
 
 from odoo import api, fields, models, _
@@ -330,6 +331,61 @@ class ProductProduct(models.Model):
                    "dlm_scrap_product_id"}
         self.sudo().write({k: v for k, v in vals.items() if k in allowed})
         return True
+
+    # ── Chống trùng tên sản phẩm (dùng chung wizard RFQ + form SP) ────────
+    @api.model
+    def _dlm_normalize_name(self, name):
+        """Chuẩn hoá tên để so trùng: gộp/khử khoảng trắng thừa + hạ chữ thường.
+        GIỮ NGUYÊN dấu tiếng Việt (chốt thiết kế) — vì vậy 'Khung máy ABC' và
+        'khung  máy   abc ' tính TRÙNG HỆT, còn 'Khung may ABC' (thiếu dấu) chỉ
+        tính GẦN GIỐNG."""
+        if not name:
+            return ""
+        return " ".join(name.split()).lower()
+
+    @api.model
+    def _dlm_find_name_matches(self, name, kinds=None, exclude_ids=None,
+                               extra_domain=None, similar_threshold=0.82):
+        """Tìm SP trùng/gần giống theo TÊN đã chuẩn hoá.
+
+        Trả về dict ``{'exact': recordset, 'similar': recordset}``:
+        • exact  — tên chuẩn hoá bằng nhau (khác hoa/thường hay thừa khoảng
+          trắng vẫn tính trùng).
+        • similar — một tên chứa TRỌN các token của tên kia, HOẶC độ tương đồng
+          difflib ≥ ngưỡng (bắt cả trường hợp thiếu dấu / thêm hậu tố năm...).
+
+        Chỉ soi SP đang hoạt động (active) thuộc ``kinds``. ``exclude_ids`` bỏ
+        chính bản ghi đang kiểm; ``extra_domain`` để thu hẹp (VD loại SP tạm RFQ).
+        """
+        Product = self.env["product.product"]
+        empty = Product.browse()
+        norm = self._dlm_normalize_name(name)
+        if not norm:
+            return {"exact": empty, "similar": empty}
+        domain = [("product_kind", "in", list(
+            kinds or [k for k, _label in _PRODUCT_KIND_SELECTION]))]
+        if exclude_ids:
+            domain.append(("id", "not in", list(exclude_ids)))
+        if extra_domain:
+            domain += list(extra_domain)
+        candidates = Product.search(domain)
+        norm_tokens = set(norm.split())
+        exact = empty
+        similar_ids = []
+        for prod in candidates:
+            cnorm = self._dlm_normalize_name(prod.name)
+            if not cnorm:
+                continue
+            if cnorm == norm:
+                exact |= prod
+                continue
+            ctokens = set(cnorm.split())
+            token_subset = bool(norm_tokens) and bool(ctokens) and (
+                norm_tokens <= ctokens or ctokens <= norm_tokens)
+            ratio = difflib.SequenceMatcher(None, norm, cnorm).ratio()
+            if token_subset or ratio >= similar_threshold:
+                similar_ids.append(prod.id)
+        return {"exact": exact, "similar": Product.browse(similar_ids)}
 
     # ── Constraints ──────────────────────────────────────────────────────
     @api.constrains("default_code")

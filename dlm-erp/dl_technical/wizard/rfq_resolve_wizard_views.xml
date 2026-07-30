@@ -90,8 +90,38 @@
                         <group invisible="mode != 'new'" string="Tạo sản phẩm mới">
                             <field name="new_product_name" required="mode == 'new'"/>
                             <field name="new_product_category_id" required="mode == 'new'"/>
+                            <field name="name_dup_state" invisible="1"/>
+                            <field name="name_dup_exact_id" invisible="1"/>
+
+                            <!-- Trùng hệt: chặn tạo, mời chọn lại SP có sẵn. -->
+                            <div class="alert alert-danger" colspan="2" role="alert"
+                                 invisible="name_dup_state != 'exact'">
+                                <i class="fa fa-ban me-1" title="Trùng"/>
+                                <field name="name_dup_message" nolabel="1" readonly="1"/>
+                                <div class="mt-2">
+                                    <button name="action_use_duplicate_product" type="object"
+                                            string="Dùng sản phẩm này"
+                                            class="btn-primary btn-sm"/>
+                                </div>
+                            </div>
+
+                            <!-- Gần giống: cảnh báo mềm, cần tick xác nhận. -->
+                            <div class="alert alert-warning" colspan="2" role="alert"
+                                 invisible="name_dup_state != 'similar'">
+                                <i class="fa fa-exclamation-triangle me-1" title="Gần giống"/>
+                                <field name="name_dup_message" nolabel="1" readonly="1"/>
+                                <div class="mt-2">
+                                    <field name="confirm_similar_name"
+                                           class="d-inline-block me-1"/>
+                                    <label for="confirm_similar_name"
+                                           string="Xác nhận đây thực sự là sản phẩm khác"
+                                           class="fw-normal"/>
+                                </div>
+                            </div>
+
                             <button name="action_create_product" type="object"
-                                    string="Tạo sản phẩm" class="oe_highlight"/>
+                                    string="Tạo sản phẩm" class="oe_highlight"
+                                    invisible="name_dup_state == 'exact'"/>
                         </group>
                     </div>
 

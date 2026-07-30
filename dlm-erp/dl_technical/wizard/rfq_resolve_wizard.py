@@ -108,6 +108,53 @@ class DlRfqResolveWizard(models.TransientModel):
         "product.category", string="Nhóm sản phẩm",
         domain=[("dl_branch", "=", "finished")])
 
+    # ── Soi trùng/gần giống tên khi tạo SP mới (Case B) ───────────────────
+    # exact → chặn cứng (chọn lại SP có sẵn); similar → cảnh báo mềm, KTV tick
+    # xác nhận mới tạo được. Soi trên toàn bộ SP gia công/BTP chính thức.
+    name_dup_state = fields.Selection(
+        [("none", "Không trùng"), ("exact", "Trùng hệt"), ("similar", "Gần giống")],
+        string="Kết quả soi trùng tên", compute="_compute_name_dup")
+    name_dup_message = fields.Char(
+        string="Cảnh báo trùng tên", compute="_compute_name_dup")
+    name_dup_exact_id = fields.Many2one(
+        "product.product", string="SP trùng hệt", compute="_compute_name_dup")
+    name_dup_similar_ids = fields.Many2many(
+        "product.product", string="SP gần giống", compute="_compute_name_dup")
+    confirm_similar_name = fields.Boolean(
+        string="Xác nhận đây thực sự là sản phẩm khác")
+
+    @api.depends("new_product_name", "mode")
+    def _compute_name_dup(self):
+        Product = self.env["product.product"]
+        for rec in self:
+            rec.name_dup_state = "none"
+            rec.name_dup_message = False
+            rec.name_dup_exact_id = False
+            rec.name_dup_similar_ids = Product.browse()
+            if rec.mode != "new" or not rec.new_product_name:
+                continue
+            matches = Product._dlm_find_name_matches(
+                rec.new_product_name,
+                kinds=("manufactured", "material_processed"),
+                extra_domain=[("is_rfq_provisional", "=", False)],
+            )
+            if matches["exact"]:
+                dup = matches["exact"][0]
+                rec.name_dup_state = "exact"
+                rec.name_dup_exact_id = dup.id
+                rec.name_dup_message = _(
+                    "Đã có sản phẩm “%(name)s” (nhóm %(categ)s). Không tạo trùng "
+                    "— hãy chọn lại sản phẩm này.",
+                    name=dup.display_name,
+                    categ=dup.categ_id.display_name or _("chưa phân nhóm"))
+            elif matches["similar"]:
+                rec.name_dup_state = "similar"
+                rec.name_dup_similar_ids = matches["similar"]
+                names = ", ".join(matches["similar"][:5].mapped("display_name"))
+                rec.name_dup_message = _(
+                    "Có sản phẩm gần giống: %s. Nếu đây thực sự là sản phẩm "
+                    "khác, tick xác nhận bên dưới rồi bấm Tạo sản phẩm.") % names
+
     bom_ids = fields.Many2many(
         "dl.bom", compute="_compute_bom_ids", string="BOM Version")
     selected_bom_id = fields.Many2one(
@@ -316,6 +363,27 @@ class DlRfqResolveWizard(models.TransientModel):
             raise UserError(_("Vui lòng nhập Tên sản phẩm mới."))
         if not self.new_product_category_id:
             raise UserError(_("Vui lòng chọn Nhóm sản phẩm."))
+        # Soi trùng LẠI ngay lúc bấm (không tin state đã compute) — chặn tạo SP
+        # trùng hệt, và đòi xác nhận nếu chỉ gần giống.
+        matches = self.env["product.product"]._dlm_find_name_matches(
+            self.new_product_name,
+            kinds=("manufactured", "material_processed"),
+            extra_domain=[("is_rfq_provisional", "=", False)],
+        )
+        if matches["exact"]:
+            dup = matches["exact"][0]
+            raise UserError(_(
+                "Đã tồn tại sản phẩm “%(name)s” (nhóm %(categ)s). Không tạo "
+                "trùng — chuyển sang “Sản phẩm đã từng gia công” và chọn lại "
+                "sản phẩm này (nút “Dùng sản phẩm này”).",
+                name=dup.display_name,
+                categ=dup.categ_id.display_name or _("chưa phân nhóm")))
+        if matches["similar"] and not self.confirm_similar_name:
+            names = ", ".join(matches["similar"][:5].mapped("display_name"))
+            raise UserError(_(
+                "Có sản phẩm gần giống: %s.\nNếu đây thực sự là sản phẩm khác, "
+                "hãy tick “Xác nhận đây thực sự là sản phẩm khác” rồi tạo lại.")
+                % names)
         self.rfq_line_id._cleanup_rfq_provisional_records()
         product = self.env["product.product"].create({
             "name": self.new_product_name,
@@ -328,6 +396,19 @@ class DlRfqResolveWizard(models.TransientModel):
         })
         self.product_id = product.id
         self.mode = "existing"
+        return self._action_reload()
+
+    def action_use_duplicate_product(self):
+        """Từ cảnh báo trùng hệt: chọn lại SP có sẵn thay vì tạo bản trùng."""
+        self.ensure_one()
+        if not self.name_dup_exact_id:
+            raise UserError(_("Không xác định được sản phẩm trùng để chọn lại."))
+        self.write({
+            "mode": "existing",
+            "product_id": self.name_dup_exact_id.id,
+            "new_product_name": False,
+            "confirm_similar_name": False,
+        })
         return self._action_reload()
 
     def action_create_bom(self):
