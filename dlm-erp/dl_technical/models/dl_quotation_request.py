@@ -321,10 +321,11 @@ class DlQuotationRequest(models.Model):
         return super().write(vals)
 
     def action_receive(self):
-        """KTV: nhận RFQ để bắt đầu xử lý (Mới / Đã bổ sung → Đang xử lý).
+        """Ghi nhận KTV bắt đầu xử lý (Mới / Đã bổ sung → Đang xử lý).
 
         Gán người tiếp nhận + thời điểm để Sales thấy "ai đang xử lý" và để
-        cảnh báo khi người khác mở cùng RFQ (tránh xử lý trùng)."""
+        cảnh báo khi người khác mở cùng RFQ. Luồng chính gọi hàm này tự động
+        khi KTV bấm ``Xử lý`` trên một dòng gia công."""
         for rec in self:
             if rec.status not in ("new", "supplemented"):
                 raise UserError(_(
@@ -372,7 +373,7 @@ class DlQuotationRequest(models.Model):
 
     def action_resubmit(self):
         """Sales: sau khi bổ sung, gửi lại RFQ cho Kỹ thuật xử lý tiếp. Trạng
-        thái chuyển sang 'Đã bổ sung' (KTV lại bấm 'Nhận xử lý' để xử lý tiếp)."""
+        thái chuyển sang 'Đã bổ sung'; lần bấm 'Xử lý' tiếp theo sẽ tự tiếp nhận."""
         for rec in self:
             if rec.status != "returned":
                 raise UserError(_(
@@ -804,17 +805,16 @@ class DlQuotationRequestLine(models.Model):
         return res
 
     def action_open_resolve_wizard(self):
-        """Mở wizard chọn/tạo Product + BOM sau khi RFQ đã được tiếp nhận.
+        """Mở workspace Product + BOM và tự tiếp nhận RFQ khi cần.
 
-        Việc tiếp nhận phải đi qua ``action_receive`` để luôn ghi đủ người và
-        thời điểm nhận. Không tự đổi trạng thái ở đây vì sẽ tạo đường vòng bỏ
-        qua bước nhận việc, đặc biệt với RFQ Sales vừa gửi lại bổ sung.
+        Với RFQ Mới/Đã bổ sung, chính thao tác Xử lý là ý định nhận việc rõ
+        ràng nên hệ thống ghi người + thời điểm trước khi mở workspace. RFQ đã
+        Đang xử lý/Đã xử lý xong chỉ được mở lại, không đổi người phụ trách.
         """
         self.ensure_one()
         request = self.quotation_request_id
         if request.status in ("new", "supplemented"):
-            raise UserError(_(
-                "Vui lòng bấm 'Nhận xử lý' trước khi xử lý dòng RFQ này."))
+            request.action_receive()
         if request.status not in ("processing", "confirmed"):
             raise UserError(_(
                 "RFQ ở trạng thái hiện tại không thể xử lý kỹ thuật."))
