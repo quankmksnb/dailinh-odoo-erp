@@ -312,7 +312,8 @@
                             </field>
                         </page>
                         <page string="Ghi chú">
-                            <field name="note" placeholder="Ghi chú thêm..."/>
+                            <field name="note" nolabel="1" class="dl-textarea-lg"
+                                   placeholder="Ghi chú thêm..."/>
                         </page>
                     </notebook>
                 </sheet>

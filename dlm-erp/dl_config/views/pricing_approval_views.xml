@@ -88,7 +88,7 @@
                     <group string="Lý do từ chối" col="1" colspan="2"
                            class="dl-approval-reason"
                            invisible="state not in ('pending', 'rejected') or (state == 'pending' and not can_resolve)">
-                        <field name="reject_comment" nolabel="1"
+                        <field name="reject_comment" nolabel="1" class="dl-textarea-lg"
                                readonly="state != 'pending'"
                                placeholder="Nhập lý do trước khi bấm Từ chối..."/>
                     </group>

@@ -10,10 +10,11 @@
                 <field name="quotation_id" invisible="1"/>
                 <group>
                     <field name="reason"/>
-                    <field name="note"
-                           placeholder="Nêu rõ nguyên nhân (bắt buộc khi chọn 'Lý do khác')."
-                           required="reason == 'other'"/>
                 </group>
+                <separator string="Chi tiết lý do"/>
+                <field name="note" nolabel="1" class="dl-textarea-lg"
+                       placeholder="Nêu rõ nguyên nhân (bắt buộc khi chọn 'Lý do khác')."
+                       required="reason == 'other'"/>
                 <footer>
                     <button name="action_confirm" type="object"
                             string="Xác nhận từ chối" class="btn-danger"/>

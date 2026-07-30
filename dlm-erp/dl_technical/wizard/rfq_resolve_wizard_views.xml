@@ -179,11 +179,12 @@
                         <separator string="Hoặc — kết luận không khả thi"/>
                         <group>
                             <field name="is_infeasible"/>
-                            <field name="infeasible_reason"
-                                   invisible="not is_infeasible"
-                                   required="is_infeasible"
-                                   placeholder="Nêu rõ lý do để Sales trao đổi lại với khách hàng..."/>
                         </group>
+                        <field name="infeasible_reason" nolabel="1"
+                               class="dl-textarea-lg"
+                               invisible="not is_infeasible"
+                               required="is_infeasible"
+                               placeholder="Nêu rõ lý do để Sales trao đổi lại với khách hàng..."/>
                     </div>
                 </sheet>
             </form>

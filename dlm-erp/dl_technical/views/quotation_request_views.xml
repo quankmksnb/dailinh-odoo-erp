@@ -293,13 +293,11 @@
                         </page>
 
                         <page string="Ghi chú" name="notes">
-                            <group>
-                                <field name="description" nolabel="1"
-                                       placeholder="Ghi chú tổng thể: hẹn nhận hàng, điều khoản thanh toán..."/>
-                            </group>
-                            <group string="Ghi chú nội bộ">
-                                <field name="note" nolabel="1"/>
-                            </group>
+                            <separator string="Ghi chú chung"/>
+                            <field name="description" nolabel="1" class="dl-textarea-lg"
+                                   placeholder="Ghi chú tổng thể: hẹn nhận hàng, điều khoản thanh toán..."/>
+                            <separator string="Ghi chú nội bộ"/>
+                            <field name="note" nolabel="1" class="dl-textarea-lg"/>
                         </page>
                     </notebook>
                 </sheet>
@@ -458,13 +456,11 @@
                         </page>
 
                         <page string="Ghi chú" name="notes">
-                            <group>
-                                <field name="description" nolabel="1"
-                                       placeholder="Ghi chú tổng thể: hẹn nhận hàng, điều khoản thanh toán..."/>
-                            </group>
-                            <group string="Ghi chú nội bộ">
-                                <field name="note" nolabel="1"/>
-                            </group>
+                            <separator string="Ghi chú chung"/>
+                            <field name="description" nolabel="1" class="dl-textarea-lg"
+                                   placeholder="Ghi chú tổng thể: hẹn nhận hàng, điều khoản thanh toán..."/>
+                            <separator string="Ghi chú nội bộ"/>
+                            <field name="note" nolabel="1" class="dl-textarea-lg"/>
                         </page>
                     </notebook>
                 </sheet>

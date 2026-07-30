@@ -92,7 +92,8 @@
                             </group>
                         </page>
                         <page string="Ghi chú">
-                            <field name="note" placeholder="Ghi chú thêm..."/>
+                            <field name="note" nolabel="1" class="dl-textarea-lg"
+                                   placeholder="Ghi chú thêm..."/>
                             <group string="Lần đưa về nháp gần nhất"
                                    invisible="not reset_draft_reason">
                                 <field name="reset_draft_reason" readonly="1"/>

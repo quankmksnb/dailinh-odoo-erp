@@ -10,9 +10,10 @@
                 <field name="quotation_id" invisible="1"/>
                 <group>
                     <field name="adjust_type" widget="radio"/>
-                    <field name="note"
-                           placeholder="Ví dụ: khách muốn giảm giá còn ~X, hoặc đổi thép 3mm xuống 2mm, hoặc giao sớm hơn 1 tuần..."/>
                 </group>
+                <separator string="Nội dung khách yêu cầu"/>
+                <field name="note" nolabel="1" class="dl-textarea-lg"
+                       placeholder="Ví dụ: khách muốn giảm giá còn ~X, hoặc đổi thép 3mm xuống 2mm, hoặc giao sớm hơn 1 tuần..."/>
                 <div class="alert alert-info" role="alert"
                      invisible="adjust_type != 'commercial'">
                     Sau khi lưu, bấm <em>Sửa &amp; gửi lại</em> để chỉnh chiết khấu/đơn giá

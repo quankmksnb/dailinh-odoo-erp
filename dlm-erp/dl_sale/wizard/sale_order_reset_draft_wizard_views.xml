@@ -5,11 +5,12 @@
         <field name="model">dl.sale.order.reset.draft.wizard</field>
         <field name="arch" type="xml">
             <form string="Đưa đơn bán hàng về nháp">
-                <group col="1">
+                <group>
                     <field name="order_id"/>
-                    <field name="reason"
-                           placeholder="Ví dụ: Xác nhận nhầm số lượng, cần sửa trước khi triển khai đơn..."/>
                 </group>
+                <separator string="Lý do đưa về nháp"/>
+                <field name="reason" nolabel="1" class="dl-textarea-lg"
+                       placeholder="Ví dụ: Xác nhận nhầm số lượng, cần sửa trước khi triển khai đơn..."/>
                 <div class="alert alert-warning" role="alert">
                     Chỉ thực hiện khi đơn chưa phát sinh lệnh sản xuất, mua hàng,
                     giao hàng hoặc hóa đơn.
