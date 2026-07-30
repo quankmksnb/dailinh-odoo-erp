@@ -1,5 +1,12 @@
+import logging
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+
+from .rfq_provisional_utils import has_stored_many2one_reference
+
+
+_logger = logging.getLogger(__name__)
 
 
 class DlBom(models.Model):
@@ -15,6 +22,23 @@ class DlBom(models.Model):
             "Phiên bản BOM của sản phẩm đã tồn tại.",
         ),
     ]
+
+    is_rfq_provisional = fields.Boolean(
+        string="Dữ liệu tạm từ RFQ",
+        default=False,
+        copy=False,
+        index=True,
+        tracking=True,
+        help="BOM được tạo/copy trong workspace RFQ nhưng dòng RFQ chưa hoàn tất.",
+    )
+    rfq_source_line_id = fields.Many2one(
+        "dl.quotation.request.line",
+        string="Dòng RFQ nguồn",
+        ondelete="set null",
+        copy=False,
+        index=True,
+        tracking=True,
+    )
 
     name = fields.Char(
         string="Mã BOM",
@@ -170,6 +194,54 @@ class DlBom(models.Model):
         self.ensure_one()
         return [("bom_type", "=", self.bom_type), ("product_id", "=", self.product_id.id)]
 
+    def _should_set_current_version(self):
+        self.ensure_one()
+        return not self.is_rfq_provisional
+
+    def action_lock(self):
+        if self.filtered("is_rfq_provisional"):
+            raise UserError(_(
+                "BOM tạm từ RFQ chưa thể khóa. Hãy quay lại workspace và bấm "
+                "'Hoàn tất dòng' trước."))
+        return super().action_lock()
+
+    def action_archive(self):
+        if self.filtered("is_rfq_provisional"):
+            raise UserError(_(
+                "Không thể lưu trữ BOM tạm từ RFQ. Hãy hoàn tất hoặc bỏ phương án "
+                "trên dòng RFQ nguồn."))
+        return super().action_archive()
+
+    def action_create_new_version(self):
+        self.ensure_one()
+        result = super().action_create_new_version()
+        if self.is_rfq_provisional:
+            self.browse(result["res_id"]).write({
+                "is_rfq_provisional": True,
+                "rfq_source_line_id": self.rfq_source_line_id.id,
+            })
+        return result
+
+    def _cleanup_unused_rfq_provisional(self):
+        """Delete unused RFQ BOMs without touching locked/current/history data."""
+        deleted = 0
+        ignored = {("dl.bom.line", "bom_id")}
+        for bom in self.sudo().exists():
+            if (not bom.is_rfq_provisional
+                    or bom.status not in ("draft", "confirmed")
+                    or bom.is_current):
+                continue
+            if has_stored_many2one_reference(bom, ignored=ignored):
+                continue
+            try:
+                with self.env.cr.savepoint():
+                    bom.unlink()
+                deleted += 1
+            except Exception:
+                _logger.exception(
+                    "Không thể dọn BOM tạm RFQ %s; giữ lại để an toàn.", bom.id)
+        return deleted
+
     @api.onchange("product_id", "bom_type")
     def _onchange_product_version(self):
         if self.product_id:
@@ -233,6 +305,10 @@ class DlBom(models.Model):
         sản phẩm đã được gán 1 nhóm sản phẩm (categ_id). Copy toàn bộ dòng vật
         tư sang 1 BOM mẫu mới (nháp) để Kỹ thuật rà soát/điều chỉnh."""
         self.ensure_one()
+        if self.is_rfq_provisional:
+            raise UserError(_(
+                "BOM này vẫn là dữ liệu tạm của RFQ. Hãy hoàn tất dòng RFQ trước "
+                "khi dùng nó để tạo BOM mẫu."))
         category = self.product_id.categ_id
         if not category:
             raise UserError(_(

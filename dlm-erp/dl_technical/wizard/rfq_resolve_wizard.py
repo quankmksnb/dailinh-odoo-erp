@@ -70,6 +70,11 @@ class DlRfqResolveWizard(models.TransientModel):
         string="Product",
         domain=[("product_kind", "in", ("manufactured", "material_processed"))],
     )
+    product_is_rfq_provisional = fields.Boolean(
+        related="product_id.is_rfq_provisional",
+        string="Sản phẩm đang tạm từ RFQ",
+        readonly=True,
+    )
 
     # Danh sách SP hợp lệ để CHỌN: lọc theo Nhóm SP của RFQ (KHÔNG lọc theo
     # trạng thái vòng đời — chọn được cả draft lẫn active). Dùng làm domain cho
@@ -87,6 +92,14 @@ class DlRfqResolveWizard(models.TransientModel):
             ]
             if rec.request_category_id:
                 domain.append(("categ_id", "child_of", rec.request_category_id.id))
+            if rec.rfq_line_id:
+                domain.extend([
+                    "|",
+                    ("is_rfq_provisional", "=", False),
+                    ("rfq_source_line_id", "=", rec.rfq_line_id.id),
+                ])
+            else:
+                domain.append(("is_rfq_provisional", "=", False))
             rec.allowed_product_ids = Product.search(domain)
 
     new_product_name = fields.Char(string="Tên sản phẩm mới")
@@ -99,6 +112,11 @@ class DlRfqResolveWizard(models.TransientModel):
         "dl.bom", compute="_compute_bom_ids", string="BOM Version")
     selected_bom_id = fields.Many2one(
         "dl.bom", string="BOM đã chọn", domain="[('id', 'in', bom_ids)]")
+    selected_bom_is_rfq_provisional = fields.Boolean(
+        related="selected_bom_id.is_rfq_provisional",
+        string="BOM đang tạm từ RFQ",
+        readonly=True,
+    )
     selected_bom_line_ids = fields.One2many(
         related="selected_bom_id.line_ids", string="Chi tiết BOM", readonly=True)
 
@@ -107,8 +125,16 @@ class DlRfqResolveWizard(models.TransientModel):
         Bom = self.env["dl.bom"]
         for rec in self:
             if rec.mode == "existing" and rec.product_id:
-                rec.bom_ids = Bom.search(
-                    [("product_id", "=", rec.product_id.id)], order="version desc")
+                domain = [("product_id", "=", rec.product_id.id)]
+                if rec.rfq_line_id:
+                    domain.extend([
+                        "|",
+                        ("is_rfq_provisional", "=", False),
+                        ("rfq_source_line_id", "=", rec.rfq_line_id.id),
+                    ])
+                else:
+                    domain.append(("is_rfq_provisional", "=", False))
+                rec.bom_ids = Bom.search(domain, order="version desc")
             else:
                 rec.bom_ids = Bom.browse()
 
@@ -128,6 +154,9 @@ class DlRfqResolveWizard(models.TransientModel):
                 [
                     ("product_id", "=", self.product_id.id),
                     ("status", "in", ("confirmed", "locked")),
+                    "|",
+                    ("is_rfq_provisional", "=", False),
+                    ("rfq_source_line_id", "=", self.rfq_line_id.id),
                 ],
                 order="version desc",
                 limit=1,
@@ -162,6 +191,27 @@ class DlRfqResolveWizard(models.TransientModel):
                         res["selected_bom_id"] = line.resolved_bom_id.id
                     if line.resolved_product_id and line.resolved_bom_id:
                         res["step"] = "confirm"
+                    if not line.resolved_product_id:
+                        provisional_bom = self.env["dl.bom"].sudo().search([
+                            ("is_rfq_provisional", "=", True),
+                            ("rfq_source_line_id", "=", line.id),
+                        ], order="write_date desc, id desc", limit=1)
+                        provisional_product = provisional_bom.product_id
+                        if not provisional_product:
+                            provisional_product = self.env["product.product"].sudo().search([
+                                ("is_rfq_provisional", "=", True),
+                                ("rfq_source_line_id", "=", line.id),
+                            ], order="write_date desc, id desc", limit=1)
+                        if provisional_product:
+                            res.update({
+                                "mode": "existing",
+                                "product_id": provisional_product.id,
+                                "step": "bom",
+                            })
+                        if provisional_bom:
+                            res["selected_bom_id"] = provisional_bom.id
+                            if provisional_bom.status in ("confirmed", "locked"):
+                                res["step"] = "confirm"
         return res
 
     def _action_reload(self):
@@ -235,6 +285,8 @@ class DlRfqResolveWizard(models.TransientModel):
         return self._action_reload()
 
     def action_cancel(self):
+        # Giữ bản tạm để KTV có thể mở lại đúng dòng và tiếp tục. Cron sẽ chỉ
+        # dọn bản không dùng sau khoảng an toàn cấu hình.
         return self._action_return_to_rfq()
 
     def _next_version(self, product, bom_type="quotation"):
@@ -264,12 +316,15 @@ class DlRfqResolveWizard(models.TransientModel):
             raise UserError(_("Vui lòng nhập Tên sản phẩm mới."))
         if not self.new_product_category_id:
             raise UserError(_("Vui lòng chọn Nhóm sản phẩm."))
+        self.rfq_line_id._cleanup_rfq_provisional_records()
         product = self.env["product.product"].create({
             "name": self.new_product_name,
             "categ_id": self.new_product_category_id.id,
             "product_kind": "manufactured",
             # Case B "hoàn toàn mới": SP nằm ở Nháp cho tới khi đơn chốt/duyệt.
             "dlm_lifecycle_state": "draft",
+            "is_rfq_provisional": True,
+            "rfq_source_line_id": self.rfq_line_id.id,
         })
         self.product_id = product.id
         self.mode = "existing"
@@ -280,11 +335,15 @@ class DlRfqResolveWizard(models.TransientModel):
         self.ensure_one()
         if not self.product_id:
             raise UserError(_("Vui lòng chọn hoặc tạo sản phẩm trước."))
+        self.rfq_line_id._cleanup_rfq_provisional_records(
+            keep_product_ids=self.product_id.ids)
         bom = self.env["dl.bom"].create({
             "product_id": self.product_id.id,
             "version": self._next_version(self.product_id),
             "bom_type": "quotation",
             "status": "draft",
+            "is_rfq_provisional": True,
+            "rfq_source_line_id": self.rfq_line_id.id,
         })
         self.selected_bom_id = bom.id
         return self._action_open_bom(bom, _("BOM mới"))
@@ -301,7 +360,15 @@ class DlRfqResolveWizard(models.TransientModel):
         if bom.status != "draft":
             result = bom.action_create_new_version()
             bom = self.env["dl.bom"].browse(result["res_id"])
+            bom.write({
+                "is_rfq_provisional": True,
+                "rfq_source_line_id": self.rfq_line_id.id,
+            })
             self.selected_bom_id = bom.id
+            self.rfq_line_id._cleanup_rfq_provisional_records(
+                keep_product_ids=self.product_id.ids,
+                keep_bom_ids=bom.ids,
+            )
         return self._action_open_bom(bom, _("Chỉnh sửa BOM cho RFQ"))
 
     def action_mark_infeasible(self):
@@ -316,6 +383,7 @@ class DlRfqResolveWizard(models.TransientModel):
             "resolved_product_id": False,
             "resolved_bom_id": False,
         })
+        self.rfq_line_id._cleanup_rfq_provisional_records()
         return self._action_return_to_rfq()
 
     def action_confirm(self):
@@ -334,4 +402,18 @@ class DlRfqResolveWizard(models.TransientModel):
             "is_infeasible": False,
             "infeasible_reason": False,
         })
+        if self.product_id.is_rfq_provisional:
+            self.product_id.write({"is_rfq_provisional": False})
+            self.product_id.message_post(body=_(
+                "Sản phẩm tạm đã được chính thức hóa khi hoàn tất dòng RFQ %s.")
+                % self.rfq_line_id.display_name)
+        if self.selected_bom_id.is_rfq_provisional:
+            self.selected_bom_id.write({"is_rfq_provisional": False})
+            # Xác nhận BOM trong workspace chỉ duyệt nội dung; đến đây mới được
+            # phép thay thế phiên bản hiện hành của sản phẩm.
+            self.selected_bom_id._set_current_version()
+            self.selected_bom_id.message_post(body=_(
+                "BOM tạm đã được chính thức hóa khi hoàn tất dòng RFQ %s.")
+                % self.rfq_line_id.display_name)
+        self.rfq_line_id._cleanup_rfq_provisional_records()
         return self._action_return_to_rfq()

@@ -76,7 +76,13 @@ class DlBomHeaderMixin(models.AbstractModel):
             rec.approved_by = rec.env.user
             rec.approved_date = fields.Datetime.now()
             # Xác nhận = trở thành phiên bản hiện hành, bỏ cờ ở bản cũ.
-            rec._set_current_version()
+            if rec._should_set_current_version():
+                rec._set_current_version()
+
+    def _should_set_current_version(self):
+        """Hook: RFQ provisional BOMs become current only after RFQ completion."""
+        self.ensure_one()
+        return True
 
     def action_lock(self):
         for rec in self:

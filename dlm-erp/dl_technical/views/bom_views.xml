@@ -18,6 +18,7 @@
                   decoration-warning="status == 'locked'"
                   decoration-bf="is_current">
                 <field name="is_current" column_invisible="1"/>
+                <field name="is_rfq_provisional" column_invisible="1"/>
                 <field name="name"/>
                 <field name="category_id" optional="show"/>
                 <field name="product_id"/>
@@ -75,10 +76,20 @@
                            readonly="1"/>
                 </header>
                 <sheet>
+                    <field name="is_rfq_provisional" invisible="1"/>
+                    <widget name="web_ribbon" title="Tạm từ RFQ"
+                            bg_color="text-bg-info" invisible="not is_rfq_provisional"/>
                     <widget name="web_ribbon" title="Đã khóa"
                             bg_color="text-bg-warning" invisible="status != 'locked'"/>
                     <widget name="web_ribbon" title="Lưu trữ"
                             bg_color="text-bg-danger" invisible="status != 'archived'"/>
+                    <div class="alert alert-info" role="status"
+                         invisible="not is_rfq_provisional">
+                        BOM này đang thuộc một phương án RFQ chưa hoàn tất. Việc xác nhận
+                        tại đây chỉ duyệt nội dung; BOM sẽ trở thành phiên bản hiện hành khi
+                        Kỹ thuật bấm <strong>Hoàn tất dòng</strong> trong workspace RFQ.
+                        <field name="rfq_source_line_id" readonly="1"/>
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>
@@ -314,6 +325,7 @@
         <field name="name">BOM sản phẩm / BTP</field>
         <field name="res_model">dl.bom</field>
         <field name="view_mode">tree,form</field>
+        <field name="domain">[('is_rfq_provisional', '=', False)]</field>
     </record>
 
     <!-- action_dl_bom_template chuyển sang model dl.bom.template (bom_template_views.xml) -->

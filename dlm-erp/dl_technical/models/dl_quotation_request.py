@@ -396,6 +396,7 @@ class DlQuotationRequest(models.Model):
 class DlQuotationRequestLine(models.Model):
     _name = "dl.quotation.request.line"
     _description = "Dòng yêu cầu báo giá"
+    _rec_name = "product_name"
     _order = "id"
 
     quotation_request_id = fields.Many2one(
@@ -513,6 +514,11 @@ class DlQuotationRequestLine(models.Model):
             ]
             if rec.product_category_id:
                 domain.append(("categ_id", "child_of", rec.product_category_id.id))
+            domain.extend([
+                "|",
+                ("is_rfq_provisional", "=", False),
+                ("rfq_source_line_id", "=", rec.id),
+            ])
             rec.resolvable_product_ids = Product.search(domain)
 
     # § Tạo RFQ (1a): danh sách Nhóm SP cho Sales chọn = nhánh THÀNH PHẨM
@@ -799,10 +805,66 @@ class DlQuotationRequestLine(models.Model):
         return res
 
     def unlink(self):
+        provisional_boms = self.env["dl.bom"].sudo().search([
+            ("is_rfq_provisional", "=", True),
+            ("rfq_source_line_id", "in", self.ids),
+        ])
+        provisional_products = self.env["product.product"].sudo().search([
+            ("is_rfq_provisional", "=", True),
+            ("rfq_source_line_id", "in", self.ids),
+        ])
         requests = self.mapped("quotation_request_id")
         res = super().unlink()
+        provisional_boms._cleanup_unused_rfq_provisional()
+        provisional_products._cleanup_unused_rfq_provisional()
         requests._recompute_status_from_lines()
         return res
+
+    def _cleanup_rfq_provisional_records(
+            self, keep_product_ids=None, keep_bom_ids=None):
+        """Clean unused temporary master data created by these RFQ lines."""
+        line_ids = self.ids
+        if not line_ids:
+            return {"boms": 0, "products": 0}
+        keep_product_ids = set(keep_product_ids or [])
+        keep_bom_ids = set(keep_bom_ids or [])
+        boms = self.env["dl.bom"].sudo().search([
+            ("is_rfq_provisional", "=", True),
+            ("rfq_source_line_id", "in", line_ids),
+            ("id", "not in", list(keep_bom_ids)),
+        ])
+        deleted_boms = boms._cleanup_unused_rfq_provisional()
+        products = self.env["product.product"].sudo().with_context(
+            active_test=False).search([
+                ("is_rfq_provisional", "=", True),
+                ("rfq_source_line_id", "in", line_ids),
+                ("id", "not in", list(keep_product_ids)),
+            ])
+        deleted_products = products._cleanup_unused_rfq_provisional()
+        return {"boms": deleted_boms, "products": deleted_products}
+
+    @api.model
+    def _cron_cleanup_rfq_provisional_records(self):
+        """Daily fail-safe cleanup for abandoned RFQ provisional records."""
+        raw_days = self.env["ir.config_parameter"].sudo().get_param(
+            "dl_technical.rfq_provisional_cleanup_days", 7)
+        try:
+            days = max(int(raw_days), 1)
+        except (TypeError, ValueError):
+            days = 7
+        cutoff = fields.Datetime.subtract(fields.Datetime.now(), days=days)
+        boms = self.env["dl.bom"].sudo().search([
+            ("is_rfq_provisional", "=", True),
+            ("write_date", "<", cutoff),
+        ], limit=500)
+        boms._cleanup_unused_rfq_provisional()
+        products = self.env["product.product"].sudo().with_context(
+            active_test=False).search([
+                ("is_rfq_provisional", "=", True),
+                ("write_date", "<", cutoff),
+            ], limit=500)
+        products._cleanup_unused_rfq_provisional()
+        return True
 
     def action_open_resolve_wizard(self):
         """Mở workspace Product + BOM và tự tiếp nhận RFQ khi cần.

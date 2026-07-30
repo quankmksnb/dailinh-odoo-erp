@@ -1,4 +1,12 @@
-from odoo import api, fields, models
+import logging
+
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
+
+from .rfq_provisional_utils import has_stored_many2one_reference
+
+
+_logger = logging.getLogger(__name__)
 
 BOM_ELIGIBLE_KINDS = ("manufactured", "material_processed")
 
@@ -19,6 +27,23 @@ class DlProductTechnical(models.Model):
     # Data Model refactor: dl.product = product.product (mở rộng thuần).
     _inherit = "product.product"
 
+    is_rfq_provisional = fields.Boolean(
+        string="Dữ liệu tạm từ RFQ",
+        default=False,
+        copy=False,
+        index=True,
+        tracking=True,
+        help="Sản phẩm được tạo trong workspace RFQ nhưng dòng RFQ chưa hoàn tất.",
+    )
+    rfq_source_line_id = fields.Many2one(
+        "dl.quotation.request.line",
+        string="Dòng RFQ nguồn",
+        ondelete="set null",
+        copy=False,
+        index=True,
+        tracking=True,
+    )
+
     bom_ids = fields.One2many(
         "dl.bom",
         "product_id",
@@ -38,7 +63,39 @@ class DlProductTechnical(models.Model):
             else self.env["dl.bom"]
         )
         for product in self:
-            product.bom_ids = boms.filtered(lambda b: b.product_id.id == product.id)
+            product.bom_ids = boms.filtered(
+                lambda b: b.product_id.id == product.id
+                and (not b.is_rfq_provisional
+                     or (product.is_rfq_provisional
+                         and b.rfq_source_line_id == product.rfq_source_line_id)))
+
+    def action_lifecycle_activate(self):
+        provisional = self.filtered("is_rfq_provisional")
+        if provisional:
+            raise UserError(_(
+                "Sản phẩm tạm từ RFQ chỉ được chính thức hóa khi Kỹ thuật bấm "
+                "'Hoàn tất dòng' trong workspace RFQ."))
+        return super().action_lifecycle_activate()
+
+    def _cleanup_unused_rfq_provisional(self):
+        """Delete only unused RFQ-created draft products; fail closed on doubt."""
+        deleted = 0
+        for product in self.sudo().with_context(active_test=False).exists():
+            if (not product.is_rfq_provisional
+                    or product.dlm_lifecycle_state != "draft"):
+                continue
+            if has_stored_many2one_reference(product):
+                continue
+            try:
+                with self.env.cr.savepoint():
+                    product.unlink()
+                deleted += 1
+            except Exception:
+                _logger.exception(
+                    "Không thể dọn sản phẩm tạm RFQ %s; giữ lại để an toàn.",
+                    product.id,
+                )
+        return deleted
 
     # ── Hao hụt: tự điền mặc định theo nhóm (field ở dl_product; logic đọc
     # dl.pricing.waste.rule phải ở đây vì dl_technical mới depends dl_config) ──
