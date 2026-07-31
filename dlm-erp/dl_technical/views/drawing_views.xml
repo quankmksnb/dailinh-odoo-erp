@@ -32,15 +32,19 @@
         <field name="arch" type="xml">
             <form string="Bản vẽ kỹ thuật" class="dl-drawing-form" js_class="dl_drawing_form">
                 <header>
+                    <!-- 1 CTA chính/trạng thái + Lưu trữ TRUNG TÍNH (review UX
+                         drawing #f2): archive không xóa dữ liệu nên không dùng
+                         màu đỏ nguy hiểm. -->
                     <button name="action_confirm" type="object" string="Xác nhận"
-                            class="oe_highlight"
+                            class="btn-primary"
                             invisible="status != 'draft'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_reset_draft" type="object" string="Về nháp"
+                            class="btn-secondary"
                             invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_archive" type="object" string="Lưu trữ"
-                            class="btn-danger"
+                            class="btn-secondary"
                             invisible="status == 'archived'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <field name="status" widget="statusbar"
@@ -48,7 +52,7 @@
                 </header>
                 <sheet>
                     <widget name="web_ribbon" title="Lưu trữ"
-                            bg_color="text-bg-danger" invisible="status != 'archived'"/>
+                            bg_color="text-bg-secondary" invisible="status != 'archived'"/>
                     <div class="oe_title">
                         <label for="drawing_code"/>
                         <h1>
@@ -60,6 +64,11 @@
                             <field name="name" placeholder="Tên bản vẽ..."/>
                         </h2>
                     </div>
+                    <!-- Bản vẽ là NỘI DUNG CHÍNH (review UX drawing #f1): đưa file
+                         lên đầu, thông tin phụ xuống dưới. -->
+                    <group string="File bản vẽ">
+                        <field name="attachment_id" nolabel="1"/>
+                    </group>
                     <group>
                         <group string="Thông tin">
                             <field name="product_id"/>
@@ -69,9 +78,6 @@
                         <group string="Xác nhận">
                             <field name="confirmed_date"/>
                         </group>
-                    </group>
-                    <group string="File đính kèm">
-                        <field name="attachment_id" nolabel="1"/>
                     </group>
                 </sheet>
                 <!-- Log/chatter cho quản lý (CEO, Admin) và đội sở hữu bản vẽ

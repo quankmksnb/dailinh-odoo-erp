@@ -155,18 +155,13 @@
 
                     </div>
 
-                    <!-- Gộp hồ sơ khi đối tác đã là NCC — chỉ hiện lúc tạo mới -->
+                    <!-- Gộp hồ sơ khi đối tác đã là NCC — chỉ hiện lúc tạo mới.
+                         Rút gọn còn 1 dòng (review UX cust #f1); chi tiết đã nằm
+                         trong placeholder ô chọn. -->
                     <div class="alert alert-info dl-cust-mergebox" role="status"
                         invisible="id">
-                        <div class="fw-bold mb-1">
-                            <i class="fa fa-link me-1"/>Đối tác này đã là Nhà cung cấp của công ty?
-                        </div>
-                        <div class="text-muted small mb-2">
-                            Nếu công ty / người này đã có sẵn trong hệ thống với vai trò
-                            <b>Nhà cung cấp</b>, hãy chọn đúng tên họ ở ô bên dưới. Hệ thống
-                            sẽ <b>gộp thành một hồ sơ chung "Khách hàng &amp; NCC"</b> và tự
-                            điền sẵn thông tin (SĐT, email, MST, địa chỉ...) để tránh nhập
-                            trùng. Nếu đây là khách hàng mới hoàn toàn, cứ <b>để trống</b> ô này.
+                        <div class="fw-bold mb-2">
+                            <i class="fa fa-link me-1"/>Đã là Nhà cung cấp? Chọn tên bên dưới để gộp thành một hồ sơ chung — để trống nếu là khách mới.
                         </div>
                         <field name="pending_link_partner_id"
                             nolabel="1"

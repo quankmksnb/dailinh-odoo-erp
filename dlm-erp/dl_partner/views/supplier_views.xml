@@ -55,18 +55,12 @@
 
                     </div>
 
-                    <!-- Gộp hồ sơ khi đối tác đã là Khách hàng — chỉ hiện lúc tạo mới -->
+                    <!-- Gộp hồ sơ khi đối tác đã là Khách hàng — chỉ hiện lúc tạo
+                         mới. Rút gọn còn 1 dòng (review UX supplier #f3). -->
                     <div class="alert alert-info dl-cust-mergebox" role="status"
                          invisible="id">
-                        <div class="fw-bold mb-1">
-                            <i class="fa fa-link me-1"/>Đối tác này đã là Khách hàng của công ty?
-                        </div>
-                        <div class="text-muted small mb-2">
-                            Nếu công ty / người này đã có sẵn trong hệ thống với vai trò
-                            <b>Khách hàng</b>, hãy chọn đúng tên họ ở ô bên dưới. Hệ thống
-                            sẽ <b>gộp thành một hồ sơ chung "Khách hàng &amp; NCC"</b> và tự
-                            điền sẵn thông tin (SĐT, email, MST, địa chỉ...) để tránh nhập
-                            trùng. Nếu đây là NCC mới hoàn toàn, cứ <b>để trống</b> ô này.
+                        <div class="fw-bold mb-2">
+                            <i class="fa fa-link me-1"/>Đã là Khách hàng? Chọn tên bên dưới để gộp thành một hồ sơ chung — để trống nếu là NCC mới.
                         </div>
                         <field name="pending_link_partner_id"
                             nolabel="1"
