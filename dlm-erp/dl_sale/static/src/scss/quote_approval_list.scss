@@ -8,17 +8,21 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="create_date"] { width: 10% !important; }
-        th[data-name="object_label"] { width: 16% !important; }
-        th[data-name="q_partner_id"] { width: 26% !important; }
-        th[data-name="q_amount_total"] { width: 16% !important; }
-        th[data-name="approval_level"] { width: 12% !important; }
-        th[data-name="requester_id"] { width: 10% !important; }
-        th[data-name="state"] { width: 10% !important; }
+        th[data-name="create_date"] { width: 9% !important; }
+        th[data-name="waiting_days"] { width: 7% !important; }
+        th[data-name="object_label"] { width: 13% !important; }
+        th[data-name="q_partner_id"] { width: 19% !important; }
+        th[data-name="q_amount_total"] { width: 14% !important; }
+        th[data-name="approval_level"] { width: 10% !important; }
+        th[data-name="risk_summary"] { width: 12% !important; }
+        th[data-name="requester_id"] { width: 8% !important; }
+        th[data-name="state"] { width: 8% !important; }
 
         th[data-name="create_date"], td[name="create_date"] { padding-left: 24px !important; }
         th[data-name="state"], td[name="state"] { padding-right: 20px !important; }
         th[data-name="q_amount_total"], td[name="q_amount_total"] { padding-right: 16px !important; }
+
+        td[name="risk_summary"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         // State column: right-aligned with sort indicator
         th[data-name="state"] { text-align: right !important; }
@@ -33,6 +37,15 @@
             white-space: nowrap;
         }
         td[name="create_date"] { white-space: nowrap; }
+    }
+
+    // Tổng giá trị hàng chờ ở footer (review UX inbox #f3).
+    .dl-list-footer .dl-list-amount {
+        margin-left: 16px;
+        padding-left: 16px;
+        border-left: 1px solid $dl-border;
+        color: $dl-heading;
+        font-weight: 600;
     }
 
     // Badge colors: trạng thái yêu cầu duyệt (đồng bộ palette báo giá)

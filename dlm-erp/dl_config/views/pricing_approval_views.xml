@@ -37,7 +37,7 @@
                             class="btn-success"
                             invisible="state != 'pending' or not can_resolve"
                             confirm="Xác nhận PHÊ DUYỆT yêu cầu này?"/>
-                    <button name="action_reject" string="Từ chối" type="object"
+                    <button name="action_open_reject_wizard" string="Từ chối" type="object"
                             class="btn-danger"
                             invisible="state != 'pending' or not can_resolve"/>
                     <field name="state" widget="statusbar"
@@ -84,13 +84,13 @@
                            class="dl-approval-reason">
                         <field name="reason" readonly="1" nolabel="1"/>
                     </group>
-                    <!-- Từ chối bắt buộc nhập lý do (validate ở model). -->
+                    <!-- Lý do từ chối chỉ nhập trong dialog khi bấm "Từ chối"
+                         (action_open_reject_wizard). Sau khi đã từ chối, hiển thị
+                         lại lý do để truy vết. -->
                     <group string="Lý do từ chối" col="1" colspan="2"
                            class="dl-approval-reason"
-                           invisible="state not in ('pending', 'rejected') or (state == 'pending' and not can_resolve)">
-                        <field name="reject_comment" nolabel="1" class="dl-textarea-lg"
-                               readonly="state != 'pending'"
-                               placeholder="Nhập lý do trước khi bấm Từ chối..."/>
+                           invisible="state != 'rejected'">
+                        <field name="reject_comment" readonly="1" nolabel="1"/>
                     </group>
                 </sheet>
                 <div class="oe_chatter"

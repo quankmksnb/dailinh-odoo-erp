@@ -390,6 +390,22 @@ class DlPricingApprovalRequest(models.Model):
                 "Kết quả duyệt bị hủy do báo giá thay đổi dữ liệu ảnh hưởng giá."))
         return True
 
+    def action_open_reject_wizard(self):
+        """Mở dialog nhập lý do rồi mới từ chối — ô lý do chỉ hiện khi người
+        duyệt thực sự chọn Từ chối (không để thường trực trên form)."""
+        self.ensure_one()
+        if self.state != "pending":
+            raise UserError(_("Yêu cầu đã được xử lý."))
+        self._check_can_resolve()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Từ chối yêu cầu phê duyệt"),
+            "res_model": "dl.pricing.approval.reject.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_request_id": self.id},
+        }
+
     def action_reject(self):
         for req in self:
             if req.state != "pending":

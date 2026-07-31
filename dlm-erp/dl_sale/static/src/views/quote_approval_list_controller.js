@@ -9,6 +9,8 @@
 
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
+import { useEffect } from "@odoo/owl";
+import { formatMonetary } from "@web/views/fields/formatters";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
 const CHIPS = [
@@ -21,6 +23,62 @@ const CHIPS = [
 const STATE_KEYS = ["pending", "approved", "rejected", "cancelled"];
 
 export class DlQuoteApprovalListController extends DlListBaseController {
+    setup() {
+        super.setup();
+        // Tổng giá trị hàng chờ theo bộ lọc hiện tại (review UX inbox #f3).
+        // q_amount_total là related non-stored → readGroup không sum được; đọc
+        // qua searchRead trên đúng domain rồi cộng ở client (hàng chờ duyệt nhỏ).
+        useEffect(
+            () => {
+                this._refreshQueueTotal();
+            },
+            () => [JSON.stringify(this.model.root.domain)]
+        );
+    }
+
+    async _refreshQueueTotal() {
+        const domain = this.model.root.domain || [];
+        const rows = await this.orm.searchRead(
+            "dl.pricing.approval.request",
+            domain,
+            ["q_amount_total", "q_currency_id"]
+        );
+        let sum = 0;
+        let currencyId = false;
+        for (const r of rows) {
+            sum += r.q_amount_total || 0;
+            if (!currencyId && r.q_currency_id) {
+                currencyId = r.q_currency_id[0];
+            }
+        }
+        this.dlAmountText = `Tổng giá trị chờ: ${formatMonetary(sum, { currencyId })}`;
+        const el =
+            this.rootRef.el && this.rootRef.el.querySelector(".dl-list-amount");
+        if (el) {
+            el.textContent = this.dlAmountText;
+        }
+    }
+
+    _renderFooter(root) {
+        super._renderFooter(root);
+        const footer = root.querySelector(".dl-list-footer");
+        if (!footer) {
+            return;
+        }
+        let amt = footer.querySelector(".dl-list-amount");
+        if (!amt) {
+            amt = document.createElement("span");
+            amt.className = "dl-list-amount";
+            const count = footer.querySelector(".dl-list-count");
+            if (count) {
+                count.after(amt);
+            } else {
+                footer.appendChild(amt);
+            }
+        }
+        amt.textContent = this.dlAmountText || "";
+    }
+
     get dlChips() {
         return CHIPS;
     }

@@ -21,9 +21,41 @@
                         type="object" class="btn-secondary"
                         invisible="not quotation_id"/>
             </xpath>
+            <!-- Tóm tắt quyết định LÊN ĐẦU, cạnh nút Duyệt/Từ chối (review UX
+                 aform #f2/#f4): người duyệt thấy ngay giá trị, markup vs giá sàn
+                 và cờ rủi ro dạng chip nổi bật (thay true/false). Lý do từ chối
+                 (#f1) nhập trong dialog khi bấm Từ chối, không để thường trực. -->
+            <xpath expr="//div[hasclass('oe_title')]" position="after">
+                <div class="dl-decision" invisible="not quotation_id">
+                    <div class="dl-decision-head">
+                        <div class="dl-decision-cell">
+                            <span class="dl-decision-lbl">Tổng thanh toán</span>
+                            <field name="q_amount_total" widget="monetary"
+                                   options="{'currency_field': 'q_currency_id'}"
+                                   nolabel="1" readonly="1" class="dl-decision-val"/>
+                        </div>
+                        <div class="dl-decision-cell"
+                             groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                            <span class="dl-decision-lbl">Markup thực / mục tiêu</span>
+                            <span class="dl-decision-val2">
+                                <field name="q_effective_markup" readonly="1" nolabel="1" class="oe_inline"/>% /
+                                <field name="q_target_markup" readonly="1" nolabel="1" class="oe_inline"/>%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="dl-decision-risks">
+                        <span class="badge text-bg-danger" invisible="not q_discount_above_max">Vượt trần chiết khấu</span>
+                        <span class="badge text-bg-warning" invisible="q_discount_above_max or not q_discount_above_default">Cao hơn chiết khấu mặc định</span>
+                        <span class="badge text-bg-danger" invisible="not q_below_floor"
+                              groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">Dưới giá sàn</span>
+                        <span class="badge text-bg-success" invisible="not q_in_safe_range">Trong ngưỡng an toàn</span>
+                    </div>
+                </div>
+            </xpath>
             <xpath expr="//sheet" position="inside">
                 <field name="quotation_id" invisible="1"/>
                 <field name="q_currency_id" invisible="1"/>
+                <field name="q_in_safe_range" invisible="1"/>
                 <group invisible="not quotation_id">
                     <group string="Báo giá được duyệt">
                         <field name="q_partner_id" readonly="1"/>
@@ -124,14 +156,22 @@
         <field name="model">dl.pricing.approval.request</field>
         <field name="arch" type="xml">
             <tree string="Phê duyệt báo giá" create="false" delete="false"
-                  class="dl-quote-approval-list" js_class="dl_quote_approval_list">
+                  class="dl-quote-approval-list" js_class="dl_quote_approval_list"
+                  decoration-danger="state == 'pending' and waiting_days &gt;= 4"
+                  decoration-warning="state == 'pending' and waiting_days &gt;= 2 and waiting_days &lt; 4">
                 <field name="create_date" string="Ngày gửi" widget="date"/>
+                <field name="waiting_days" string="Chờ (ngày)"/>
                 <field name="object_label" string="Báo giá"/>
                 <field name="q_partner_id" string="Khách hàng"/>
                 <field name="q_currency_id" column_invisible="1"/>
                 <field name="q_amount_total" string="Tổng thanh toán"
                        widget="monetary" options="{'currency_field': 'q_currency_id'}"/>
                 <field name="approval_level" string="Cấp duyệt"/>
+                <!-- Lý do vượt ngưỡng ngay trên dòng thay vì phải mở từng bản ghi
+                     (review UX inbox #f2). Gated theo _COST_GROUPS vì gộp cả
+                     "Dưới giá sàn". -->
+                <field name="risk_summary" string="Rủi ro"
+                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                 <field name="requester_id" string="Người gửi" widget="many2one_avatar_user"/>
                 <field name="activity_ids" widget="list_activity" optional="hide"/>
                 <field name="state" string="Trạng thái" widget="badge"

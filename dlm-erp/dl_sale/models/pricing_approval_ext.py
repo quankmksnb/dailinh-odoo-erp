@@ -60,6 +60,54 @@ class DlPricingApprovalRequest(models.Model):
     q_below_floor = fields.Boolean(related="quotation_id.below_floor",
                                    groups=_COST_GROUPS)
 
+    # --- SLA: tuổi chờ duyệt cho hòm phê duyệt (review UX inbox #f1) ---
+    # Người duyệt cần biết yêu cầu đã chờ bao lâu để ưu tiên; sắp theo "tuổi"
+    # tương đương sắp theo cột "Ngày gửi" (create_date) sẵn có.
+    waiting_days = fields.Integer(
+        string='Chờ (ngày)', compute='_compute_waiting_days')
+
+    @api.depends('create_date', 'state', 'resolved_at')
+    def _compute_waiting_days(self):
+        now = fields.Datetime.now()
+        for req in self:
+            if req.state == 'pending' and req.create_date:
+                req.waiting_days = (now - req.create_date).days
+            else:
+                req.waiting_days = 0
+
+    # --- Tóm tắt rủi ro dạng chip cho dòng danh sách (review UX inbox #f2) ---
+    # Thay "Cấp duyệt" trơ bằng lý do cụ thể (vượt trần chiết khấu / dưới giá
+    # sàn). Đọc qua sudo vì below_floor gated _COST_GROUPS — nhãn gộp này chỉ
+    # hiện ở cột có groups=_COST_GROUPS trong tree nên không lộ ngoài phạm vi.
+    risk_summary = fields.Char(
+        string='Rủi ro', compute='_compute_risk_summary')
+
+    @api.depends('quotation_id.below_floor', 'quotation_id.discount_above_max')
+    def _compute_risk_summary(self):
+        for req in self:
+            q = req.quotation_id.sudo()
+            parts = []
+            if q and q.discount_above_max:
+                parts.append(_('Vượt trần CK'))
+            if q and q.below_floor:
+                parts.append(_('Dưới giá sàn'))
+            req.risk_summary = ' · '.join(parts)
+
+    # --- Cờ "trong ngưỡng an toàn" KHÔNG gated để badge success hiện cho mọi
+    # người duyệt. Gộp cả "dưới giá sàn" (gated _COST_GROUPS) qua sudo nên
+    # badge phản ánh đúng, nhưng chỉ lộ ra dạng boolean an toàn/không — không
+    # để lộ con số giá sàn ra ngoài phạm vi. Tránh tham chiếu q_below_floor
+    # trực tiếp trong modifier của element không gated (gây lỗi validate view).
+    q_in_safe_range = fields.Boolean(
+        string='Trong ngưỡng an toàn', compute='_compute_q_in_safe_range')
+
+    @api.depends('quotation_id.below_floor', 'quotation_id.discount_above_max')
+    def _compute_q_in_safe_range(self):
+        for req in self:
+            q = req.quotation_id.sudo()
+            req.q_in_safe_range = bool(q) and not q.discount_above_max \
+                and not q.below_floor
+
     @api.depends("res_model", "res_id")
     def _compute_quotation_id(self):
         Quotation = self.env["dl.quotation"]

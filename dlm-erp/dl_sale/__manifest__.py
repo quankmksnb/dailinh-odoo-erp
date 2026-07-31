@@ -1,6 +1,6 @@
 {
     'name': 'DL-CRM & Báo giá',
-    'version': '17.0.1.20.0',
+    'version': '17.0.1.21.0',
     'summary': 'Quản lý Khách hàng, NCC, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
