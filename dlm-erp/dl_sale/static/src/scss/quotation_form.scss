@@ -86,6 +86,24 @@
         }
     }
 
+    // Helper chiết khấu: gộp 3 alert cũ thành một dòng gợi ý gọn ngay dưới ô
+    // nhập (review UX #f3). Không dùng khối alert to; chỉ viền trái + chữ nhỏ.
+    .dl-inline-hint {
+        margin-top: 6px;
+        padding: 4px 0 2px 10px;
+        border-left: 3px solid $dl-border;
+        font-size: 12px;
+        line-height: 1.45;
+        color: $dl-text-2;
+
+        .o_field_widget { margin: 0; padding: 0; }
+
+        &.dl-hint-warning {
+            border-left-color: $dl-badge-draft-fg;
+            color: $dl-badge-draft-fg;
+        }
+    }
+
     .dl-totals {
         width: 320px;
         max-width: 100%;

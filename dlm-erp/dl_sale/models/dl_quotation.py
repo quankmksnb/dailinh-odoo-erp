@@ -1,3 +1,5 @@
+from markupsafe import Markup
+
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -183,6 +185,141 @@ class DlQuotation(models.Model):
                                  groups=_COST_GROUPS)
     discount_above_default = fields.Boolean(string='Chiết khấu > mặc định', readonly=True)
     discount_above_max = fields.Boolean(string='Chiết khấu > tối đa', readonly=True)
+
+    # --- Dải trạng thái ngữ cảnh (gộp >10 alert cũ thành MỘT thông báo) ---
+    # Trước đây form khai báo ~10 dải alert xếp chồng theo trạng thái; ở vài
+    # trạng thái 2–3 dải cùng hiện, đẩy nội dung báo giá xuống sâu (review UX
+    # #f2). Gom về một field tính toán: mỗi bản ghi chỉ có ĐÚNG một thông báo
+    # (mức + nội dung), ưu tiên từ khẩn cấp → thông tin. View chỉ còn một dải
+    # duy nhất ngay dưới stepper.
+    status_banner_level = fields.Selection([
+        ('info', 'Thông tin'),
+        ('success', 'Thành công'),
+        ('warning', 'Cảnh báo'),
+        ('danger', 'Nguy hiểm'),
+        ('secondary', 'Trung tính'),
+    ], string='Mức thông báo trạng thái', compute='_compute_status_banner')
+    status_banner_message = fields.Html(
+        string='Thông báo trạng thái', compute='_compute_status_banner',
+        sanitize=False)
+
+    @api.depends('state', 'approval_required', 'approval_state', 'approval_level',
+                 'approval_reasons', 'reject_reason', 'reject_reason_note',
+                 'revision_request_type', 'revision_request_note', 'line_ids')
+    def _compute_status_banner(self):
+        reject_labels = dict(self._fields['reject_reason'].selection)
+        for rec in self:
+            level, msg = False, ''
+            if rec.state == 'rejected':
+                level = 'danger'
+                reason = reject_labels.get(rec.reject_reason) or ''
+                msg = Markup("<strong>Báo giá bị từ chối</strong> — lý do: %s") % reason
+                if rec.reject_reason_note:
+                    msg += Markup("<br/>%s") % rec.reject_reason_note
+            elif rec.approval_state == 'rejected':
+                level = 'danger'
+                msg = Markup("Yêu cầu phê duyệt bị từ chối — cần chỉnh sửa báo giá.")
+            elif rec.approval_required and rec.approval_state == 'pending':
+                level = 'warning'
+                msg = Markup(
+                    "<strong>Báo giá cần phê duyệt — cấp: %s.</strong>") % (
+                        rec.approval_level or '')
+                if rec.approval_reasons:
+                    msg += Markup(" %s") % rec.approval_reasons
+            elif rec.state == 'expired':
+                level = 'warning'
+                msg = Markup(
+                    "Báo giá đã <strong>hết hiệu lực</strong>. Đặt lại Hạn hiệu "
+                    "lực ở tương lai rồi bấm <em>Gia hạn</em>, hoặc "
+                    "<em>Sửa &amp; gửi lại</em> để lập phiên bản mới.")
+            elif rec.state == 'revision_requested':
+                note = rec.revision_request_note
+                if rec.revision_request_type == 'technical':
+                    level = 'warning'
+                    msg = Markup(
+                        "Khách muốn <strong>đổi vật liệu / kích thước / thiết "
+                        "kế</strong>. Việc này cần Kỹ thuật sửa BOM — bấm "
+                        "<em>Chuyển Kỹ thuật sửa BOM</em>.")
+                elif rec.revision_request_type == 'terms':
+                    level = 'info'
+                    msg = Markup(
+                        "Khách muốn điều chỉnh <strong>giao hàng / điều "
+                        "khoản</strong>. Bấm <em>Sửa &amp; gửi lại</em> để chỉnh "
+                        "rồi gửi lại khách.")
+                else:
+                    level = 'info'
+                    msg = Markup(
+                        "Khách muốn điều chỉnh <strong>giá / chiết khấu</strong>. "
+                        "Bấm <em>Sửa &amp; gửi lại</em> để chỉnh chiết khấu/đơn "
+                        "giá (xem khoảng cho phép ở tab Chi tiết) rồi gửi lại khách.")
+                if note:
+                    msg += Markup("<br/>Khách yêu cầu: %s") % note
+            elif rec.state == 'superseded':
+                level = 'secondary'
+                msg = Markup(
+                    "Báo giá này đã được <strong>thay bằng phiên bản mới</strong> "
+                    "— chỉ lưu để truy vết.")
+            elif rec.approval_state == 'approved':
+                level = 'success'
+                msg = Markup("Đã được phê duyệt — sẵn sàng gửi khách.")
+            elif (rec.state == 'draft' and not rec.approval_required
+                  and rec.approval_state == 'not_required' and rec.line_ids):
+                level = 'success'
+                msg = Markup(
+                    "<strong>Báo giá đã sẵn sàng gửi khách.</strong> Giá trị nằm "
+                    "trong ngưỡng không cần phê duyệt — bấm <em>Gửi khách "
+                    "hàng</em> để gửi ngay.")
+            rec.status_banner_level = level
+            rec.status_banner_message = msg or False
+
+    # --- Gợi ý chiết khấu (gộp 3 alert tab "Chi tiết" thành helper cạnh ô nhập) ---
+    # Trước đây tab Chi tiết có 3 dải alert (khoảng cho phép / cao hơn mặc định /
+    # vượt trần) xếp trên ô nhập Chiết khấu, đẩy ô nhập xuống (review UX #f3).
+    # Gom thành MỘT helper ngắn ngay dưới ô Chiết khấu: luôn nêu khoảng cho phép
+    # theo nhóm khách + phản ánh trạng thái hợp lệ hiện tại bằng màu.
+    discount_hint_level = fields.Selection([
+        ('info', 'Trong khoảng'),
+        ('secondary', 'Trên mặc định'),
+        ('warning', 'Vượt trần'),
+    ], string='Mức gợi ý chiết khấu', compute='_compute_discount_hint')
+    discount_hint_message = fields.Html(
+        string='Gợi ý chiết khấu', compute='_compute_discount_hint',
+        sanitize=False)
+
+    @api.depends('state', 'partner_group', 'discount_default_rate',
+                 'discount_max_rate', 'discount_above_default', 'discount_above_max')
+    def _compute_discount_hint(self):
+        for rec in self:
+            # Chỉ hướng dẫn khi còn sửa được (Nháp) và biết nhóm khách để suy ra
+            # khoảng cho phép; các trạng thái sau đã khóa chiết khấu.
+            if rec.state != 'draft' or not rec.partner_group:
+                rec.discount_hint_level = False
+                rec.discount_hint_message = False
+                continue
+            group_label = dict(
+                rec._fields['partner_group']._description_selection(rec.env)
+            ).get(rec.partner_group, rec.partner_group)
+            base = Markup(
+                "Nhóm <strong>%s</strong>: mặc định %s%%, tối đa %s%%.") % (
+                    group_label,
+                    ('%g' % (rec.discount_default_rate or 0)),
+                    ('%g' % (rec.discount_max_rate or 0)))
+            if rec.discount_above_max:
+                level = 'warning'
+                msg = base + Markup(
+                    " Chiết khấu <strong>vượt trần</strong> — cần Trưởng phòng KD "
+                    "phê duyệt.")
+            elif rec.discount_above_default:
+                level = 'secondary'
+                msg = base + Markup(
+                    " Cao hơn mặc định nhưng vẫn trong giới hạn — gửi thẳng, "
+                    "không cần duyệt.")
+            else:
+                level = 'info'
+                msg = base + Markup(
+                    " Deal tới mức tối đa gửi thẳng, chỉ vượt trần mới cần duyệt.")
+            rec.discount_hint_level = level
+            rec.discount_hint_message = msg
 
     # Link ngược tới đơn bán hàng đã tạo (chiều sở hữu ở dl.sale.order.quotation_id).
     # Search-based để không nhân đôi nguồn sự thật.
