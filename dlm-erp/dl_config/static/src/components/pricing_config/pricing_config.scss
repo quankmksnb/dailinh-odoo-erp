@@ -27,6 +27,19 @@
         border: 1px solid #e6c68a; border-radius: $dl-radius-sm;
         font-size: 12.5px; font-weight: 600; padding: 8px 12px; margin: 0 0 10px;
         i { margin-top: 2px; }
+
+        // Ghim đầu tab (review UX config #f3): nổi bật hơn, cách bảng rõ ràng.
+        &.pinned {
+            margin: 0 0 14px;
+            border-left: 3px solid $dl-badge-draft-fg;
+            box-shadow: $dl-shadow-sm;
+        }
+    }
+
+    // Dòng vi phạm thang (đảo bậc) — tô đỏ để chỉ đúng chỗ cần sửa.
+    .dl-cfg-table tr.is-violation td {
+        background: $dl-badge-rejected-bg;
+        box-shadow: inset 3px 0 0 $dl-danger;
     }
 
     // Hàng cấu hình nội tuyến (ô nhập + nút Lưu) — dùng cho ngưỡng phân loại KH.

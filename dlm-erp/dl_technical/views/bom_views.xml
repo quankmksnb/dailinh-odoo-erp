@@ -10,7 +10,7 @@
         <field name="name">dl.bom.tree</field>
         <field name="model">dl.bom</field>
         <field name="arch" type="xml">
-            <tree string="Bill of Materials"
+            <tree string="BOM"
                   class="dl-bom-list" js_class="dl_bom_list"
                   decoration-muted="status == 'archived'"
                   decoration-info="status == 'draft'"
@@ -40,29 +40,40 @@
         <field name="name">dl.bom.form</field>
         <field name="model">dl.bom</field>
         <field name="arch" type="xml">
-            <form string="Bill of Materials" class="dl-bom-form" js_class="dl_bom_form">
+            <form string="BOM" class="dl-bom-form" js_class="dl_bom_form">
                 <header>
-                    <button name="action_create_from_template" type="object"
-                            string="Create From BOM Template"
-                            invisible="status != 'draft'"
-                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                    <button name="action_create_bom_template" type="object"
-                            string="Tạo BOM mẫu cho nhóm"
-                            invisible="not product_id or not line_ids"
-                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <!-- 1 CTA chính mỗi trạng thái (review UX bom #f2): Nháp→Xác
+                         nhận BOM, Đã xác nhận→Khóa, Đã khóa→Tạo phiên bản mới.
+                         Thao tác phụ để nút mờ (btn-secondary), Lưu trữ giữ
+                         danger. Nút "Tạo phiên bản mới" tách 2 bản để đúng cấp độ
+                         theo trạng thái (phụ ở Đã xác nhận, chính ở Đã khóa). -->
                     <button name="action_confirm" type="object" string="Xác nhận BOM"
-                            class="oe_highlight"
+                            class="btn-primary"
                             invisible="status != 'draft'"
-                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                    <button name="action_reset_draft" type="object" string="Về nháp"
-                            invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_lock" type="object" string="Khóa"
+                            class="btn-primary"
                             invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_create_new_version" type="object"
-                            string="Tạo phiên bản mới"
-                            invisible="status not in ('confirmed', 'locked')"
+                            string="Tạo phiên bản mới" class="btn-primary"
+                            invisible="status != 'locked'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_create_from_template" type="object"
+                            string="Tạo từ BOM mẫu" class="btn-secondary"
+                            invisible="status != 'draft'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_create_bom_template" type="object"
+                            string="Tạo BOM mẫu cho nhóm" class="btn-secondary"
+                            invisible="not product_id or not line_ids"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_reset_draft" type="object" string="Về nháp"
+                            class="btn-secondary"
+                            invisible="status != 'confirmed'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_create_new_version" type="object"
+                            string="Tạo phiên bản mới" class="btn-secondary"
+                            invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <!-- Cho lưu trữ cả BOM đã khóa để retire bản đã bị phiên bản
                          mới thay thế (đơn cũ vẫn giữ link + snapshot). -->
@@ -166,7 +177,7 @@
                                       <!-- Trái: nhập vật tư / kích thước / định mức cho dòng -->
                                       <div class="col-12 col-lg-7">
                                     <group>
-                                        <group string="1. Material">
+                                        <group string="1. Vật tư">
                                             <field name="material_id"
                                                    options="{'no_quick_create': True}"
                                                    context="{'default_product_kind': 'material'}"/>
@@ -231,7 +242,7 @@
                                                 <field name="uom_id" readonly="1" nolabel="1"/>
                                             </div>
                                         </group>
-                                        <group string="5. Quantity (dùng thực tế — sửa được)">
+                                        <group string="5. Số lượng (dùng thực tế — sửa được)">
                                             <label for="quantity" string="Số lượng"/>
                                             <div class="o_row">
                                                 <field name="quantity" nolabel="1"/>

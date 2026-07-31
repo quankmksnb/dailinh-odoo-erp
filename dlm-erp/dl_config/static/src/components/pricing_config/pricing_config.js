@@ -405,6 +405,26 @@ export class DlPricingConfig extends Component {
         }
         return "";
     }
+    // Tập id dòng chiết khấu tham gia một cặp đảo bậc — để tô đỏ đúng dòng vi
+    // phạm ngay trên bảng (review UX config #f3), thay vì chỉ một câu cảnh báo.
+    get discountViolationIds() {
+        const order = ["new", "existing", "loyal"];
+        const byGroup = {};
+        for (const r of this.state.rows.discount) {
+            if (r.state === "active") { byGroup[r.customer_group] = r; }
+        }
+        const present = order.filter((g) => byGroup[g]);
+        const ids = new Set();
+        for (let i = 1; i < present.length; i++) {
+            const prev = byGroup[present[i - 1]];
+            const cur = byGroup[present[i]];
+            if (cur.default_rate < prev.default_rate || cur.max_rate < prev.max_rate) {
+                ids.add(cur.id);
+                ids.add(prev.id);
+            }
+        }
+        return ids;
+    }
     reasonLines(txt) {
         return (txt || "").split("\n").map((s) => s.trim()).filter(Boolean);
     }
