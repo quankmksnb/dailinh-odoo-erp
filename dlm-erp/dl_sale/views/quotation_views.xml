@@ -5,12 +5,16 @@
         <field name="name">dl.quotation.tree</field>
         <field name="model">dl.quotation</field>
         <field name="arch" type="xml">
-            <tree string="Báo giá" class="dl-quotation-list" js_class="dl_quotation_list">
+            <tree string="Báo giá" class="dl-quotation-list" js_class="dl_quotation_list"
+                  decoration-danger="validity_state == 'overdue'"
+                  decoration-warning="validity_state == 'soon'">
+                <field name="validity_state" column_invisible="1"/>
                 <field name="name" string="Số BG"/>
                 <field name="revision" string="PB" optional="hide"/>
                 <field name="partner_id" string="Khách hàng"/>
+                <field name="create_uid" string="Phụ trách" optional="show"/>
                 <field name="date_order" string="Ngày"/>
-                <field name="validity_date" string="Hạn hiệu lực" optional="show"/>
+                <field name="validity_label" string="Hạn hiệu lực" optional="show"/>
                 <field name="amount_total" string="Tổng tiền" widget="monetary"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="state" string="Trạng thái" widget="badge"
@@ -19,6 +23,14 @@
                        decoration-success="state in ('accepted', 'ordered')"
                        decoration-danger="state in ('rejected', 'expired')"
                        decoration-muted="state in ('cancelled', 'superseded')"/>
+                <!-- Tín hiệu "kẹt ở khâu duyệt" cho Sales (review UX list #f2) —
+                     ẩn mặc định để không nhiễu (đa số 'Không cần duyệt'); bật cột
+                     qua nút optional khi cần theo dõi hàng chờ duyệt. -->
+                <field name="approval_state" string="Duyệt" widget="badge" optional="hide"
+                       decoration-warning="approval_state == 'pending'"
+                       decoration-success="approval_state == 'approved'"
+                       decoration-danger="approval_state == 'rejected'"
+                       decoration-muted="approval_state == 'not_required'"/>
             </tree>
         </field>
     </record>

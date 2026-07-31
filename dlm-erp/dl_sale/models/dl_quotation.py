@@ -2,6 +2,7 @@ from markupsafe import Markup
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools import format_date
 
 # Nhóm được xem cấu phần giá thành trên dòng báo giá (giống BOM): Kế toán,
 # Trưởng KD, CEO, Admin. Sales (BA) chỉ thấy giá bán/chiết khấu, không thấy chi
@@ -131,6 +132,52 @@ class DlQuotation(models.Model):
     amount_total = fields.Float(
         string='Tổng thanh toán', compute='_compute_amount', store=True,
         digits='Product Price')
+
+    # --- Tín hiệu cận hạn cho danh sách (review UX list #f3) ---
+    # Báo giá đang sống (Đã duyệt / Đã gửi / Yêu cầu điều chỉnh) mà Hạn hiệu lực
+    # sắp tới hoặc đã qua → tô màu dòng để Sales ưu tiên xử lý trước khi cron tự
+    # đánh dấu Hết hiệu lực. Không tính cho trạng thái đã đóng.
+    validity_state = fields.Selection([
+        ('ok', 'Còn hạn'),
+        ('soon', 'Sắp hết hạn'),
+        ('overdue', 'Quá hạn'),
+    ], string='Tình trạng hiệu lực', compute='_compute_validity_state')
+
+    @api.depends('validity_date', 'state')
+    def _compute_validity_state(self):
+        today = fields.Date.context_today(self)
+        for rec in self:
+            vs = 'ok'
+            if rec.state in self._EXPIRABLE_STATES and rec.validity_date:
+                if rec.validity_date < today:
+                    vs = 'overdue'
+                elif (rec.validity_date - today).days <= 7:
+                    vs = 'soon'
+            rec.validity_state = vs
+
+    # Hạn hiệu lực kèm đếm ngược ngay trong ô (review UX list #f5) — tách khỏi
+    # cột "Ngày" (cùng định dạng, khó phân biệt). Không sortable (computed
+    # non-stored) nên không có bẫy sắp xếp theo chuỗi.
+    validity_label = fields.Char(
+        string='Hạn hiệu lực', compute='_compute_validity_label')
+
+    @api.depends('validity_date', 'state')
+    def _compute_validity_label(self):
+        today = fields.Date.context_today(self)
+        for rec in self:
+            if not rec.validity_date:
+                rec.validity_label = ''
+                continue
+            shown = format_date(rec.env, rec.validity_date)
+            if rec.state in self._EXPIRABLE_STATES:
+                delta = (rec.validity_date - today).days
+                if delta < 0:
+                    shown += _(' (quá hạn %s ngày)') % (-delta)
+                elif delta == 0:
+                    shown += _(' (hết hạn hôm nay)')
+                else:
+                    shown += _(' (còn %s ngày)') % delta
+            rec.validity_label = shown
 
     # --- Đánh giá thương mại nội bộ (ẩn với Sales) ---
     total_cost = fields.Float(

@@ -8,18 +8,23 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        // Tổng đúng 100%, bao gồm cả Hạn hiệu lực. Trước đây 5 cột khác đã
-        // chiếm đủ 100% khiến validity_date chỉ còn vài pixel.
-        th[data-name="name"] { width: 14% !important; }
-        th[data-name="partner_id"] { width: 29% !important; }
-        th[data-name="date_order"] { width: 12% !important; }
-        th[data-name="validity_date"] { width: 12% !important; }
-        th[data-name="amount_total"] { width: 20% !important; }
-        th[data-name="state"] { width: 13% !important; }
+        // Tổng đúng 100% với BỘ CỘT MẶC ĐỊNH (đã thêm "Phụ trách"/create_uid,
+        // review UX list #f2). Trước đây các cột khác chiếm đủ 100% nên cột mới
+        // sẽ bị bóp còn vài pixel dưới table-layout:fixed → phải chia lại.
+        th[data-name="name"] { width: 12% !important; }
+        th[data-name="partner_id"] { width: 22% !important; }
+        th[data-name="create_uid"] { width: 13% !important; }
+        th[data-name="date_order"] { width: 10% !important; }
+        th[data-name="validity_label"] { width: 18% !important; }
+        th[data-name="amount_total"] { width: 15% !important; }
+        th[data-name="state"] { width: 10% !important; }
 
         th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
         th[data-name="state"], td[name="state"] { padding-right: 20px !important; }
         th[data-name="amount_total"], td[name="amount_total"] { padding-right: 16px !important; }
+
+        td[name="create_uid"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        td[name="validity_label"] { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         // State column: right-aligned with sort indicator
         th[data-name="state"] { text-align: right !important; }
@@ -33,7 +38,16 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-        td[name="date_order"], td[name="validity_date"] { white-space: nowrap; }
+        td[name="date_order"] { white-space: nowrap; }
+    }
+
+    // Tổng giá trị pipeline ở footer (review UX list #f4) — cạnh số đếm bản ghi.
+    .dl-list-footer .dl-list-amount {
+        margin-left: 16px;
+        padding-left: 16px;
+        border-left: 1px solid $dl-border;
+        color: $dl-heading;
+        font-weight: 600;
     }
 
     // Badge colors: trạng thái báo giá

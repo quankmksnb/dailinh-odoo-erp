@@ -15,22 +15,35 @@
 
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
+import { useEffect } from "@odoo/owl";
+import { formatMonetary } from "@web/views/fields/formatters";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
-// Chip hiển thị — mỗi key trùng name của một <filter> trong search view.
-// "open" là composite (pipeline đang sống) = filter mặc định của action;
-// "history" = superseded (bản cũ bị thay thế).
+// Tab phân đoạn (review UX list #f1): CHỈ 3 nhóm gộp + "Tất cả" làm thanh
+// điều hướng chính, thay cho 10 chip phẳng khó quét. Trạng thái chi tiết dời
+// vào dropdown "Trạng thái chi tiết" (dlFilterDropdowns) — chọn chi tiết thì
+// bỏ segment (loại trừ nhau) vì mọi filter state nằm chung một nhóm OR.
+// "open" = pipeline đang sống (= filter mặc định của action); "closed" = các
+// kết cục đóng; "history" = superseded (bản cũ bị thay thế).
 const CHIPS = [
+    { key: "all", label: "Tất cả" },
     { key: "open", label: "Đang xử lý" },
-    { key: "draft", label: "Nháp" },
-    { key: "approved", label: "Đã duyệt" },
-    { key: "sent", label: "Đã gửi" },
-    { key: "revision_requested", label: "Điều chỉnh" },
-    { key: "accepted", label: "Khách đồng ý" },
-    { key: "ordered", label: "Đã lên đơn" },
-    { key: "rejected", label: "Từ chối" },
-    { key: "expired", label: "Hết hiệu lực" },
-    { key: "history", label: "Lịch sử" },
+    { key: "closed", label: "Đã đóng" },
+    { key: "history", label: "Lịch sử phiên bản" },
+];
+
+// Trạng thái chi tiết đưa vào dropdown phụ. name trùng <filter> trong search view.
+const DETAIL_FILTERS = [
+    { name: "draft", label: "Nháp" },
+    { name: "approved", label: "Đã duyệt nội bộ" },
+    { name: "sent", label: "Đã gửi khách" },
+    { name: "revision_requested", label: "Yêu cầu điều chỉnh" },
+    { name: "accepted", label: "Khách đồng ý" },
+    { name: "ordered", label: "Đã lên đơn" },
+    { name: "rejected", label: "Từ chối" },
+    { name: "expired", label: "Hết hiệu lực" },
+    { name: "cancelled", label: "Đã hủy" },
+    { name: "superseded", label: "Đã thay bản mới" },
 ];
 
 // Toàn bộ filter trạng thái mà chip cần quản để single-select sạch — gồm cả
@@ -44,8 +57,68 @@ const MANAGED_FILTERS = [
 ];
 
 export class DlQuotationListController extends DlListBaseController {
+    setup() {
+        super.setup();
+        // Tổng giá trị pipeline theo bộ lọc hiện tại (review UX list #f4). Đếm
+        // qua readGroup trên ĐÚNG domain đang xem (không chỉ trang hiện tại) —
+        // recompute mỗi khi domain đổi (chip/dropdown/search).
+        useEffect(
+            () => {
+                this._refreshPipelineTotal();
+            },
+            () => [JSON.stringify(this.model.root.domain)]
+        );
+    }
+
+    async _refreshPipelineTotal() {
+        const domain = this.model.root.domain || [];
+        const res = await this.orm.readGroup(
+            "dl.quotation",
+            domain,
+            ["amount_total:sum"],
+            []
+        );
+        const sum = (res[0] && res[0].amount_total) || 0;
+        const rec = this.model.root.records[0];
+        const currencyId =
+            rec && rec.data.currency_id ? rec.data.currency_id[0] : false;
+        this.dlAmountText = `Tổng giá trị: ${formatMonetary(sum, { currencyId })}`;
+        const el =
+            this.rootRef.el && this.rootRef.el.querySelector(".dl-list-amount");
+        if (el) {
+            el.textContent = this.dlAmountText;
+        }
+    }
+
+    // Chèn ô tổng giá trị vào footer (ngay sau số đếm bản ghi).
+    _renderFooter(root) {
+        super._renderFooter(root);
+        const footer = root.querySelector(".dl-list-footer");
+        if (!footer) {
+            return;
+        }
+        let amt = footer.querySelector(".dl-list-amount");
+        if (!amt) {
+            amt = document.createElement("span");
+            amt.className = "dl-list-amount";
+            const count = footer.querySelector(".dl-list-count");
+            if (count) {
+                count.after(amt);
+            } else {
+                footer.appendChild(amt);
+            }
+        }
+        amt.textContent = this.dlAmountText || "";
+    }
+
     get dlChips() {
         return CHIPS;
+    }
+
+    get dlFilterDropdowns() {
+        return [
+            { key: "qstate", label: "Trạng thái chi tiết", filters: DETAIL_FILTERS },
+        ];
     }
 
     get dlCountNoun() {
@@ -84,14 +157,16 @@ export class DlQuotationListController extends DlListBaseController {
         );
     }
 
-    // Chip đang active = filter state đang bật mà trùng một chip key. Mặc định
-    // action bật 'open' ⇒ chip "Đang xử lý" sáng.
+    // Chip đang active = segment đang bật. Không filter nào → "Tất cả". Nếu đang
+    // bật một trạng thái CHI TIẾT (từ dropdown) thì KHÔNG segment nào sáng ("") —
+    // dropdown phản ánh lựa chọn đó. Mặc định action bật 'open' ⇒ "Đang xử lý".
     _activeChip() {
         const chipKeys = new Set(CHIPS.map((c) => c.key));
-        const active = this._stateFilters().find(
-            (i) => i.isActive && chipKeys.has(i.name)
-        );
-        return active ? active.name : "all";
+        const active = this._stateFilters().find((i) => i.isActive);
+        if (!active) {
+            return "all";
+        }
+        return chipKeys.has(active.name) ? active.name : "";
     }
 
     // Single-select: tắt MỌI filter trạng thái đang active rồi bật đúng 1.
@@ -105,6 +180,24 @@ export class DlQuotationListController extends DlListBaseController {
         }
         if (key !== "all") {
             const it = items.find((i) => i.name === key);
+            if (it) {
+                sm.toggleSearchItem(it.id);
+            }
+        }
+    }
+
+    // Dropdown "Trạng thái chi tiết" LOẠI TRỪ với segment: chọn chi tiết thì bỏ
+    // hết segment (open/closed/history) đang bật rồi bật đúng trạng thái đó — nếu
+    // không 'open OR draft' vẫn = open (mọi filter state chung nhóm OR).
+    _onFilterDropdownChange(dd, value) {
+        const sm = this.env.searchModel;
+        for (const it of this._stateFilters()) {
+            if (it.isActive) {
+                sm.toggleSearchItem(it.id);
+            }
+        }
+        if (value) {
+            const it = this._stateFilters().find((i) => i.name === value);
             if (it) {
                 sm.toggleSearchItem(it.id);
             }
