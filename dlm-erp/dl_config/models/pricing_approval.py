@@ -292,6 +292,24 @@ class DlPricingApprovalRequest(models.Model):
                 return dict(APPROVER_ROLE_SELECTION)[role]
         return user.name
 
+    @api.model
+    def get_pending_approval_count(self):
+        """Số yêu cầu "Báo giá vượt ngưỡng giá trị" đang chờ mà user hiện tại
+        được duyệt — dùng cho badge trên rail "Phê duyệt".
+
+        Người duyệt (Trưởng KD/Giám đốc) biết ngay có bao nhiêu việc chờ mà
+        không cần mở màn. Đếm đúng phần MÌNH được xử lý: cấp cao hơn duyệt thay
+        được cấp thấp, nên Giám đốc thấy cả mức Trưởng KD, còn Trưởng KD chỉ
+        thấy mức của mình (khớp _quote_allowed_user_ids). sudo để đếm được cả
+        yêu cầu mình chưa follow; env.uid vẫn là user thật để lọc quyền duyệt.
+        """
+        uid = self.env.uid
+        pending = self.sudo().search([
+            ("request_type", "=", "quote_over_threshold"),
+            ("state", "=", "pending"),
+        ])
+        return sum(1 for req in pending if uid in req._quote_allowed_user_ids())
+
     def _quote_allowed_user_ids(self):
         """Người được phép duyệt yêu cầu "vượt ngưỡng giá trị".
 

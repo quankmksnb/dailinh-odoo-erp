@@ -1,6 +1,7 @@
 /** @odoo-module **/
 
 import { patch } from "@web/core/utils/patch";
+import { useService } from "@web/core/utils/hooks";
 import { DlHome } from "@dl_base/components/home/home";
 import { DlmRail } from "@dl_base/components/rail/rail";
 
@@ -77,5 +78,13 @@ patch(DlmRail.prototype, {
         super.setup(...arguments);
         wireQuoteRail(this.railItems);
         wireApproval(this.railItems);
+        // Badge "Phê duyệt": đếm số báo giá vượt ngưỡng đang chờ mà user hiện
+        // tại được duyệt. Chỉ Trưởng KD/Giám đốc thấy mục này nên user khác
+        // không phát sinh truy vấn thừa. useService gọi trong setup (patch chạy
+        // trong setup) nên hợp lệ.
+        const orm = useService("orm");
+        this.registerBadge("approval", () =>
+            orm.call("dl.pricing.approval.request", "get_pending_approval_count", [])
+        );
     },
 });
