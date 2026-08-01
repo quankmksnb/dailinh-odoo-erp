@@ -13,8 +13,12 @@
         <field name="arch" type="xml">
             <tree string="Yêu cầu báo giá"
                   class="dl-rfq-list" js_class="dl_rfq_list"
-                  decoration-muted="status in ('cancelled', 'quoted')">
+                  decoration-muted="status in ('cancelled', 'quoted')"
+                  decoration-warning="deadline_state == 'soon'"
+                  decoration-danger="deadline_state == 'overdue'">
                 <field name="name"/>
+                <!-- Tô màu dòng cận/quá hạn: chỉ fetch để decoration đọc, không hiện cột. -->
+                <field name="deadline_state" column_invisible="1"/>
                 <field name="customer_id"/>
                 <field name="requested_date" widget="date"/>
                 <field name="deadline" widget="date"/>

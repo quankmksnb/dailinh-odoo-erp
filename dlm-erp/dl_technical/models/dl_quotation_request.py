@@ -202,6 +202,35 @@ class DlQuotationRequest(models.Model):
                 else _("Không có dòng gia công cần xử lý")
             )
 
+    # Tô màu dòng RFQ cận/quá hạn ngay trên danh sách (đồng bộ list Báo giá):
+    # deadline sắp tới hoặc đã qua → cảnh báo để Kỹ thuật/Sales ưu tiên xử lý.
+    # Chỉ tính khi RFQ CÒN MỞ (chưa "Đã tạo báo giá"/"Đã hủy") — khớp đúng điều
+    # kiện của filter "Quá hạn" trong search view. RFQ đã đóng luôn để 'ok'
+    # (không tô), nhường màu xám cho decoration-muted.
+    _OPEN_DEADLINE_STATES = ("new", "processing", "returned", "supplemented", "confirmed")
+
+    deadline_state = fields.Selection(
+        [
+            ("ok", "Còn hạn"),
+            ("soon", "Sắp đến hạn"),
+            ("overdue", "Quá hạn"),
+        ],
+        string="Tình trạng hạn",
+        compute="_compute_deadline_state",
+    )
+
+    @api.depends("deadline", "status")
+    def _compute_deadline_state(self):
+        today = fields.Date.context_today(self)
+        for rec in self:
+            state = "ok"
+            if rec.status in self._OPEN_DEADLINE_STATES and rec.deadline:
+                if rec.deadline < today:
+                    state = "overdue"
+                elif (rec.deadline - today).days <= 7:
+                    state = "soon"
+            rec.deadline_state = state
+
     # Màn Tạo RFQ tách 2 bảng riêng (trên/dưới) để cột không trùng nhau — cùng
     # trỏ line_ids, lọc + mặc định theo product_type. line_ids gốc vẫn dùng cho
     # status/logic.
