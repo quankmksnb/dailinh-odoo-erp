@@ -15,6 +15,7 @@
                 class="dl-product-list"
                 js_class="dl_product_list"
                 decoration-muted="active == False"
+                expand="1"
             >
                 <field
                     name="image_128"
@@ -26,9 +27,15 @@
                 <field name="default_code" string="Mã SP" />
                 <field name="name" string="Tên SP" />
                 <field name="categ_id" string="Nhóm SP" />
-                <field name="product_kind" string="Loại SP" />
+                <!-- Loại SP: badge màu để phân biệt nhanh gia công / thương mại /
+                     vật tư / BTP — mỗi loại một sắc thái riêng -->
+                <field name="product_kind" string="Loại SP" widget="badge"
+                    decoration-info="product_kind == 'manufactured'"
+                    decoration-success="product_kind == 'trading'"
+                    decoration-warning="product_kind == 'material_processed'"
+                    decoration-muted="product_kind == 'material'" />
                 <field name="dlm_lifecycle_state" string="Vòng đời" widget="badge"
-                    decoration-info="dlm_lifecycle_state == 'draft'"
+                    decoration-warning="dlm_lifecycle_state == 'draft'"
                     decoration-success="dlm_lifecycle_state == 'active'"
                     decoration-muted="dlm_lifecycle_state == 'obsolete'"
                     optional="show" />
@@ -340,12 +347,12 @@
     <record id="action_dl_product_full" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
@@ -366,12 +373,12 @@
     <record id="action_dl_product_tech" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_tech_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
@@ -389,12 +396,12 @@
     <record id="action_dl_product_view" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
@@ -417,12 +424,12 @@
     <record id="action_dl_product_trading_ba" model="ir.actions.act_window">
         <field name="name">Sản phẩm thương mại</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
