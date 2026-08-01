@@ -139,7 +139,7 @@ class ProductProduct(models.Model):
         [
             ("draft", "Nháp / Kỹ thuật"),
             ("active", "Đã duyệt"),
-            ("obsolete", "Ngừng"),
+            ("obsolete", "Ngừng sử dụng"),
         ],
         string="Trạng thái vòng đời",
         default="active",
@@ -150,7 +150,8 @@ class ProductProduct(models.Model):
              "sử dụng được.\n"
              "• Đã duyệt: đã chốt (đơn hàng xác nhận hoặc duyệt tay) — nằm trong "
              "danh mục để tái sử dụng.\n"
-             "• Ngừng: không còn nhận làm/bán nữa, vẫn giữ lịch sử.",
+             "• Ngừng sử dụng: không còn nhận làm/bán nữa, vẫn giữ trong danh mục "
+             "để tra lịch sử (khác với Lưu trữ/ẩn hẳn).",
     )
 
     # Chỉ Kế toán/Admin được nhập Giá bán SP thương mại (Sales tạo SP nhưng

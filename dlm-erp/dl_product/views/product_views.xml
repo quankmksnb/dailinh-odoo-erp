@@ -14,7 +14,7 @@
                 string="Sản phẩm"
                 class="dl-product-list"
                 js_class="dl_product_list"
-                decoration-muted="active == False"
+                decoration-muted="active == False or dlm_lifecycle_state == 'obsolete'"
                 expand="1"
             >
                 <field
@@ -80,7 +80,7 @@
                         type="object"
                         string="Ngừng sử dụng"
                         class="btn-secondary"
-                        confirm="Đưa sản phẩm này về trạng thái Ngừng? SP sẽ không còn được chọn để tái sử dụng."
+                        confirm="Đưa sản phẩm này về trạng thái Ngừng sử dụng? SP vẫn giữ trong danh mục để tra lịch sử nhưng không còn được chọn để tái sử dụng."
                         invisible="dlm_lifecycle_state != 'active'"
                         groups="dl_base.dl_group_tech,dl_base.dl_group_ba,dl_base.dl_group_admin"
                     />
@@ -119,7 +119,7 @@
                     <field name="active" invisible="1" />
                     <widget
                         name="web_ribbon"
-                        title="Ngừng sử dụng"
+                        title="Đã lưu trữ"
                         bg_color="text-bg-danger"
                         invisible="active"
                     />
@@ -250,14 +250,15 @@
                     domain="[('id', 'not in', [%(product.product_category_all)d, %(product.product_category_1)d, %(product.cat_expense)d])]"
                 />
                 <separator />
-                <filter string="Đang dùng" name="active" domain="[('active', '=', True)]" />
-                <filter string="Ngừng" name="inactive" domain="[('active', '=', False)]" />
-                <separator />
+                <!-- ── Trạng thái sử dụng (vòng đời) — bộ lọc chính, dùng thường
+                     xuyên. "Ngừng sử dụng" = còn trong danh mục để tra lịch sử.
+                     Bản ghi đã lưu trữ (active=False) ẩn mặc định; Admin dùng
+                     filter "Archived" chuẩn của Odoo trong menu Bộ lọc nếu cần. -->
                 <filter string="Nháp / Kỹ thuật" name="f_lc_draft"
                     domain="[('dlm_lifecycle_state', '=', 'draft')]" />
                 <filter string="Đã duyệt" name="f_lc_active"
                     domain="[('dlm_lifecycle_state', '=', 'active')]" />
-                <filter string="Ngừng (vòng đời)" name="f_lc_obsolete"
+                <filter string="Ngừng sử dụng" name="f_lc_obsolete"
                     domain="[('dlm_lifecycle_state', '=', 'obsolete')]" />
                 <separator />
                 <!-- Màn Sản phẩm chỉ lọc 2 loại; màn Vật tư dùng
@@ -360,8 +361,7 @@
         <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
             'manufactured', 'default_dlm_lifecycle_state': 'draft',
             'dl_kind_scope': ['manufactured', 'trading'],
-            'search_default_active': 1, 'search_default_group_lifecycle': 1,
-            'active_test': False}</field>
+            'search_default_group_kind': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm sản phẩm đầu tiên!</p>
         </field>
@@ -386,8 +386,7 @@
         <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
             'manufactured', 'default_dlm_lifecycle_state': 'draft',
             'dl_kind_scope': ['manufactured', 'trading'],
-            'delete': False, 'search_default_active': 1, 'search_default_group_lifecycle': 1,
-            'active_test': False}</field>
+            'delete': False, 'search_default_group_kind': 1}</field>
         <field name="groups_id"
             eval="[(6, 0, [ref('dl_base.dl_group_admin'), ref('dl_base.dl_group_tech')])]" />
     </record>
@@ -408,8 +407,7 @@
         <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
         <field name="context">{'create': False, 'edit': False, 'delete': False,
             'dl_kind_scope': ['manufactured', 'trading'],
-            'search_default_active': 1, 'search_default_f_lc_active': 1,
-            'search_default_group_kind': 1, 'active_test': False}</field>
+            'search_default_group_kind': 1}</field>
         <field name="groups_id"
             eval="[(6, 0, [
                 ref('dl_base.dl_group_admin'),
@@ -439,8 +437,7 @@
             'default_dlm_lifecycle_state': 'draft',
             'default_list_price': 0.0,
             'dl_kind_scope': ['trading'],
-            'delete': False, 'search_default_active': 1,
-            'search_default_group_lifecycle': 1, 'active_test': False}</field>
+            'delete': False, 'search_default_group_lifecycle': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm sản phẩm thương mại đầu tiên!</p>
         </field>
