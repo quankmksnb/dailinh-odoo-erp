@@ -57,6 +57,21 @@
                      nằm trong form (nút "Nhận xử lý" + khóa field kết quả). -->
                 <attribute name="js_class">dl_rfq_list_my</attribute>
             </xpath>
+            <!-- Màn Kỹ thuật: ẩn cột status 7-state (vòng đời Sales) — giữ field
+                 để row decoration muted/warning/danger vẫn đọc được — và thay
+                 bằng badge `tech_stage` gộp về đúng mốc KTV (Chưa nhận / Đang xử
+                 lý / Chờ Sales / Đã xử lý xong / Đã đóng). -->
+            <xpath expr="//field[@name='status']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='status']" position="after">
+                <field name="tech_stage" widget="badge"
+                       decoration-info="tech_stage == 'pending'"
+                       decoration-warning="tech_stage == 'processing'"
+                       decoration-danger="tech_stage == 'waiting_sales'"
+                       decoration-success="tech_stage == 'done'"
+                       decoration-muted="tech_stage == 'closed'"/>
+            </xpath>
             <xpath expr="//field[@name='technical_progress_label']" position="after">
                 <field name="resolved_product_ids" widget="many2many_tags" string="Sản phẩm đã xác định"/>
                 <field name="resolved_bom_ids" widget="many2many_tags" string="Định mức đã xác định"/>

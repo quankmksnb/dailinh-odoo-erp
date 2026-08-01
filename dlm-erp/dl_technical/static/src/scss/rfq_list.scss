@@ -30,15 +30,17 @@
 }
 
 // "RFQ cần xử lý" — thêm tiến độ kỹ thuật nhưng vẫn giữ tổng width đúng 100%.
+// Cột status 7-state được ẩn (column_invisible), thay bằng badge tech_stage —
+// cùng width 9% nên tổng cột không đổi.
 .dl-rfq-list-my {
     .o_list_table {
-        th[data-name="status"] { border-top-right-radius: 0; }
+        th[data-name="tech_stage"] { border-top-right-radius: 0; }
 
         th[data-name="name"] { width: 8% !important; }
         th[data-name="customer_id"] { width: 10% !important; }
         th[data-name="requested_date"] { width: 9% !important; }
         th[data-name="deadline"] { width: 8% !important; }
-        th[data-name="status"] { width: 9% !important; }
+        th[data-name="tech_stage"] { width: 9% !important; }
         th[data-name="technical_progress_label"] { width: 12% !important; }
         th[data-name="received_by"] { width: 9% !important; }
         th[data-name="resolved_product_ids"] { width: 10% !important; }

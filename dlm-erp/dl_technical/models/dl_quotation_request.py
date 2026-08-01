@@ -231,6 +231,42 @@ class DlQuotationRequest(models.Model):
                     state = "soon"
             rec.deadline_state = state
 
+    # Giai đoạn theo GÓC NHÌN KỸ THUẬT — gộp 7 trạng thái vòng đời (phần lớn do
+    # Sales sở hữu) về đúng các mốc KTV quan tâm, dùng cho badge list "RFQ cần
+    # xử lý" thay cột status 7-state (đỡ rối, đúng phần việc). Chỉ để HIỂN THỊ:
+    # không lưu, không lọc — thanh chip vẫn lọc trên `status` thật.
+    #   Mới / Đã bổ sung   → Chưa nhận (chờ KTV bắt đầu / tiếp tục)
+    #   Đang xử lý         → Đang xử lý
+    #   Trả lại bổ sung    → Chờ Sales bổ sung (bóng đang ở Sales)
+    #   Đã xử lý xong      → Đã xử lý xong (KTV xong, chờ Sales tạo báo giá)
+    #   Đã tạo BG / Đã hủy → Đã đóng (ra khỏi hàng đợi việc của KTV)
+    _TECH_STAGE_BY_STATUS = {
+        "new": "pending",
+        "supplemented": "pending",
+        "processing": "processing",
+        "returned": "waiting_sales",
+        "confirmed": "done",
+        "quoted": "closed",
+        "cancelled": "closed",
+    }
+
+    tech_stage = fields.Selection(
+        [
+            ("pending", "Chưa nhận"),
+            ("processing", "Đang xử lý"),
+            ("waiting_sales", "Chờ Sales bổ sung"),
+            ("done", "Đã xử lý xong"),
+            ("closed", "Đã đóng"),
+        ],
+        string="Giai đoạn kỹ thuật",
+        compute="_compute_tech_stage",
+    )
+
+    @api.depends("status")
+    def _compute_tech_stage(self):
+        for rec in self:
+            rec.tech_stage = self._TECH_STAGE_BY_STATUS.get(rec.status, "pending")
+
     # Màn Tạo RFQ tách 2 bảng riêng (trên/dưới) để cột không trùng nhau — cùng
     # trỏ line_ids, lọc + mặc định theo product_type. line_ids gốc vẫn dùng cho
     # status/logic.
