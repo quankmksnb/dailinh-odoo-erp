@@ -117,6 +117,7 @@
         .dl-total-row {
             display: flex;
             align-items: baseline;
+            justify-content: space-between;
             gap: 14px;
             padding: 5px 0;
 
@@ -124,11 +125,20 @@
         }
 
         .dl-total-label {
-            flex: 0 0 auto;
-            min-width: 84px;
+            flex: 1 1 auto;
             color: $dl-text-2;
             font-weight: 400;
             font-size: 13px;
+        }
+
+        // Cột số tiền: đẩy về mép phải và căn phải để mọi con số thẳng cột.
+        .dl-total-sub,
+        .dl-total-final {
+            flex: 0 0 auto;
+            margin-left: auto;
+            text-align: right;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
         }
 
         .dl-total-sub {
