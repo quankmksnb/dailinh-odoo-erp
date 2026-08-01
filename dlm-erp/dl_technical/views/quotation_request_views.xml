@@ -184,7 +184,11 @@
 
                     <notebook>
                         <page string="Dòng sản phẩm" name="lines">
+                            <!-- required client-side (Odoo báo lúc Save như
+                                 customer_id) — RFQ phải có ≥1 dòng. @api.constrains
+                                 _check_has_lines vẫn là chốt cuối cho RPC/import. -->
                             <field name="line_ids"
+                                   required="1"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <!-- §3a — tree KHÔNG editable: click 1 dòng mở form
                                      con dạng dialog (dễ quan sát/xử lý). -->
@@ -411,7 +415,14 @@
                         <page string="Dòng sản phẩm" name="lines">
                             <!-- BẢNG 1: Sản phẩm thương mại (chọn thẳng, có giá) -->
                             <separator string="Sản phẩm thương mại"/>
+                            <!-- "required chéo": mỗi bảng bắt buộc khi bảng kia
+                                 trống ⇒ RFQ phải có ≥1 dòng (thương mại HOẶC gia
+                                 công). Dùng required client-side của Odoo trên
+                                 one2many (record.js: count===0 → Invalid fields)
+                                 để báo cùng kiểu, cùng lúc Save như customer_id —
+                                 không cảnh báo sớm. @api.constrains vẫn là chốt cuối. -->
                             <field name="trading_line_ids"
+                                   required="not manufactured_line_ids"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Sản phẩm thương mại" editable="bottom">
                                     <field name="currency_id" column_invisible="1"/>
@@ -431,6 +442,7 @@
                             <!-- BẢNG 2: Sản phẩm gia công (mô tả + ảnh + file) -->
                             <separator string="Sản phẩm gia công"/>
                             <field name="manufactured_line_ids"
+                                   required="not trading_line_ids"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Sản phẩm gia công">
                                     <field name="product_type" column_invisible="1"/>
@@ -461,14 +473,20 @@
                                             <field name="quantity"/>
                                         </group>
                                     </group>
-                                    <!-- §1c — ô Yêu cầu/Mô tả để rộng & cao hơn -->
+                                    <!-- §1c — ô Yêu cầu/Mô tả để rộng & cao hơn.
+                                         Cần ÍT NHẤT MỘT trong hai: Mô tả HOẶC file
+                                         đính kèm (không bắt buộc cả hai). Dùng
+                                         required chéo ⇒ tô đỏ inline trong dialog
+                                         khi thiếu cả hai; điền một là hết (không modal). -->
                                     <separator string="Yêu cầu / Mô tả"/>
                                     <field name="dimension_note" nolabel="1"
+                                           required="not attachment_ids"
                                            class="dl-rfq-desc"
                                            placeholder="Kích thước, yêu cầu kỹ thuật..."/>
                                     <!-- §1d — Ảnh & file đính kèm gộp chung 1 trường -->
                                     <separator string="Ảnh / File đính kèm"/>
                                     <field name="attachment_ids" widget="many2many_binary"
+                                           required="not dimension_note"
                                            nolabel="1"/>
                                 </form>
                             </field>

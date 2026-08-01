@@ -342,6 +342,10 @@ class DlQuotationRequest(models.Model):
                     "yêu cầu (%(requested)s).",
                     deadline=rec.deadline, requested=requested))
 
+    # "RFQ phải có ≥1 dòng" được validate INLINE ở client (view: required chéo
+    # trên trading_line_ids/manufactured_line_ids) → tô đỏ + toast như customer_id,
+    # KHÔNG dùng @api.constrains (modal). Xem [[rfq-sales-hard-constrains-ux-branch]].
+
     def _recompute_status_from_lines(self):
         for rec in self:
 
@@ -782,6 +786,32 @@ class DlQuotationRequestLine(models.Model):
                 raise ValidationError(
                     _("Vui lòng nhập Tên sản phẩm cho dòng Sản phẩm gia công.")
                 )
+
+    # "Kích thước bắt buộc" + "Đính kèm bắt buộc" cho dòng gia công được validate
+    # INLINE ở client (view: required trên dimension_note/attachment_ids trong
+    # form con) → tô đỏ ngay trong dialog, KHÔNG dùng @api.constrains (modal).
+
+    @api.constrains("product_type", "product_name")
+    def _check_unique_name_in_request(self):
+        """Trong cùng một RFQ, không cho hai dòng gia công trùng tên sản phẩm
+        (dễ nhầm khi Kỹ thuật xử lý / tạo Product). So khớp bỏ khoảng trắng
+        đầu-cuối và không phân biệt hoa-thường; dòng thương mại được miễn (đã
+        định danh bằng Product cụ thể)."""
+        for rec in self:
+            if rec.product_type != "manufactured":
+                continue
+            name = (rec.product_name or "").strip().lower()
+            if not name:
+                continue
+            dup = rec.quotation_request_id.line_ids.filtered(
+                lambda l: l.id != rec.id
+                and l.product_type == "manufactured"
+                and (l.product_name or "").strip().lower() == name)
+            if dup:
+                raise ValidationError(_(
+                    "Dòng gia công trùng tên sản phẩm \"%s\" trong cùng yêu "
+                    "cầu báo giá. Mỗi dòng gia công phải có tên khác nhau.",
+                    rec.product_name))
 
     @api.constrains("resolved_product_id", "is_infeasible")
     def _check_resolution(self):
