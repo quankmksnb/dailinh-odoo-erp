@@ -3,9 +3,11 @@
 import { Component, useState, useEffect } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService, useBus } from "@web/core/utils/hooks";
+import { ErrorHandler } from "@web/core/utils/components";
 import { sidebarState, toggleSidebar, setActiveKey } from "@dl_base/js/sidebar_state";
 
 const DLM_APP_XMLID = "dl_base.menu_dl_root";
+const systrayRegistry = registry.category("systray");
 
 const RAIL_ITEMS = [
     {
@@ -83,6 +85,7 @@ const RAIL_ITEMS = [
 export class DlmRail extends Component {
     static template = "dl_base.DlmRail";
     static props = {};
+    static components = { ErrorHandler };
 
     setup() {
         this.actionService = useService("action");
@@ -123,14 +126,70 @@ export class DlmRail extends Component {
 
     // Chỉ hiện mục khi user thấy menu đích và menu đó thực sự mở được một màn
     // (trực tiếp hoặc qua menu con). Nhờ đó không còn mục dẫn tới trang trắng.
+    // Nhóm có children (đã dẹp hub thành submenu) hiện khi còn ít nhất 1 mục con
+    // user thấy được — RBAC của nhóm suy ra từ RBAC các mục con.
     get visibleItems() {
         return this.railItems.filter((item) => {
-            if (!item.menuXmlIds || !item.menuXmlIds.length) return false;
-            return item.menuXmlIds.some((xmlid) => {
-                const menu = this._findVisibleMenu(xmlid);
-                return menu && this._hasActionableMenu(menu);
-            });
+            // Nhóm: giữ nguyên gate RBAC cấp cha (menu container) rồi mới xét còn
+            // mục con nào thấy được — không để lộ nhóm cho vai trò không có quyền.
+            if (item.children && item.children.length) {
+                return this._entryVisible(item) && this.visibleChildren(item).length > 0;
+            }
+            return this._entryVisible(item);
         });
+    }
+
+    // Một entry (mục cha leaf hoặc mục con) hiện được khi có menu đích mở được màn.
+    _entryVisible(entry) {
+        if (!entry.menuXmlIds || !entry.menuXmlIds.length) return false;
+        return entry.menuXmlIds.some((xmlid) => {
+            const menu = this._findVisibleMenu(xmlid);
+            return menu && this._hasActionableMenu(menu);
+        });
+    }
+
+    // Các mục con của nhóm mà user thấy được (lọc theo RBAC như mục cha).
+    visibleChildren(item) {
+        return (item.children || []).filter((child) => this._entryVisible(child));
+    }
+
+    // Bấm nhãn nhóm: mở thẳng màn con đầu tiên (màn dùng nhiều nhất) + xổ submenu
+    // để thấy các màn còn lại → bỏ hẳn màn hub trung chuyển.
+    openGroupDefault(item) {
+        const children = this.visibleChildren(item);
+        if (!children.length) return;
+        this.state.expanded[item.key] = true;
+        this.openChild(children[0], item.key);
+    }
+
+    openChild(child, groupKey) {
+        setActiveKey(groupKey);
+        // preferMenu: mở qua menu để lấy đúng action theo vai trò (bản đầy đủ /
+        // chỉ-đọc khác nhau — vd Sản phẩm, Bảng giá).
+        if (child.preferMenu) {
+            const menu = this._resolveItemMenu(child);
+            if (menu) {
+                this.menuService.selectMenu(menu);
+                return;
+            }
+        }
+        if (child.actionXmlId) {
+            this.actionService.doAction(child.actionXmlId, { clearBreadcrumbs: true });
+        }
+    }
+
+    // Khối tài khoản đáy rail — chỉ lấy user menu (Đăng xuất / Tùy chọn). Không
+    // lấy messaging/activities để tránh mount trùng khi rail còn ẩn trên Trang chủ.
+    get accountSystrayItems() {
+        return systrayRegistry
+            .getEntries()
+            .filter(([key]) => key === "web.user_menu")
+            .map(([key, value]) => ({ key, ...value }));
+    }
+
+    handleSystrayError(error, item) {
+        item.isDisplayed = () => false;
+        Promise.resolve().then(() => { throw error; });
     }
 
     _menuVisible(xmlid) {

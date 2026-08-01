@@ -45,6 +45,69 @@ $dl-rail-bg:      $dl-nav-bg;
         border-bottom: 1px solid $dl-divider;
     }
 
+    // Danh sách mục chiếm phần giữa, cuộn được nếu dài; đẩy khối tài khoản
+    // xuống đáy rail.
+    .dlm-rail-items {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    // Khối tài khoản (user menu Odoo) — ghim đáy rail.
+    .dlm-rail-foot {
+        flex-shrink: 0;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid $dl-divider;
+        display: flex;
+        align-items: center;
+
+        // User menu render như 1 Dropdown; ép chiếm hết bề ngang rail.
+        .o_user_menu {
+            width: 100%;
+            display: block !important; // ghi đè d-none d-md-block của Odoo
+        }
+
+        // Nút mở menu: avatar + tên, canh trái cho khớp các mục phía trên.
+        .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 6px 8px;
+            border: 0;
+            background: transparent;
+            border-radius: $dl-radius-sm;
+            color: $dl-text-2;
+            cursor: pointer;
+
+            &:hover { background: $dl-search-bg; }
+            &::after { display: none; } // bỏ caret mặc định
+        }
+
+        .o_avatar {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        // Odoo để tên user d-none (chỉ hiện khi debug) — rail cho hiện lại tên,
+        // ẩn dòng tên DB kèm theo cho gọn.
+        .oe_topbar_name {
+            display: inline-block !important;
+            margin: 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: $dl-text-2;
+
+            mark { display: none; }
+        }
+    }
+
     .dlm-rail-toggle {
         width: 40px;
         height: 36px;
@@ -145,8 +208,25 @@ $dl-rail-bg:      $dl-nav-bg;
         }
 
         &.has-children {
-            .dlm-rail-chevron {
+            // Nút chevron tách vùng bấm riêng: nhãn = mở màn mặc định, chevron
+            // = chỉ xổ/gập submenu.
+            .dlm-rail-chevron-btn {
                 margin-left: auto;
+                flex-shrink: 0;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 0;
+                background: transparent;
+                border-radius: $dl-radius-sm;
+                color: inherit;
+                cursor: pointer;
+
+                &:hover { background: rgba(0, 0, 0, .06); }
+            }
+            .dlm-rail-chevron {
                 font-size: 10px;
                 transition: transform .15s ease;
             }
@@ -187,13 +267,26 @@ $dl-rail-bg:      $dl-nav-bg;
             .dlm-rail-icon { margin: 0; }
         }
         .dlm-rail-toggle { margin-left: 0; }
-        .dlm-rail-chevron { display: none; }
+        .dlm-rail-chevron,
+        .dlm-rail-chevron-btn { display: none; }
         .dlm-rail-submenu { display: none; }
         .dlm-rail-item {
             border-left: 0;
             padding-right: 0;
             gap: 0;
             justify-content: center;
+        }
+
+        // Khối tài khoản thu gọn: chỉ còn avatar, canh giữa, ẩn tên.
+        .dlm-rail-foot {
+            justify-content: center;
+
+            .dropdown-toggle {
+                justify-content: center;
+                padding: 6px 0;
+                gap: 0;
+            }
+            .oe_topbar_name { display: none !important; }
         }
     }
 }

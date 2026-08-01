@@ -6,6 +6,20 @@
     flex-direction: column;
     min-height: 100vh;
 
+    // ── Loader landing theo vai trò (chờ redirect vào màn nghiệp vụ) ──────
+    .dl-home-redirecting {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        color: $dl-text-muted;
+        font-size: 14px;
+
+        > .fa { font-size: 26px; color: $dl-heading; }
+    }
+
     // ── Navbar (trắng, chỉ logo + systray) ───────────────────────────────
     .dl-home-navbar {
         height: 46px;
