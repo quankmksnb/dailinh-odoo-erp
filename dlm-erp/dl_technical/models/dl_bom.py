@@ -69,7 +69,10 @@ class DlBom(models.Model):
         required=True,
         tracking=True,
         ondelete="restrict",
-        domain="[('product_kind', 'in', ('manufactured', 'material_processed'))]"
+        # Không cho dựng BOM cho SP đã Ngừng (obsolete); vẫn cho SP Nháp vì
+        # luồng RFQ tạo SP gia công ở Nháp rồi mới lập BOM.
+        domain="[('product_kind', 'in', ('manufactured', 'material_processed')),"
+               " ('dlm_lifecycle_state', '!=', 'obsolete')]"
                " + ([('categ_id', '=', category_id)] if category_id else [])",
     )
 
@@ -182,6 +185,18 @@ class DlBom(models.Model):
         for rec in self:
             if rec.product_qty <= 0:
                 raise ValidationError(_("Số lượng đầu ra phải lớn hơn 0."))
+
+    @api.constrains("product_id")
+    def _check_product_not_obsolete(self):
+        """Chặn cứng lập BOM cho SP đã Ngừng (song song domain UI, bịt import/API).
+        Chỉ khai theo product_id ⇒ chỉ chạy khi tạo BOM mới hoặc đổi SP; BOM cũ
+        có SP sau này bị Ngừng không bị chặn khi sửa việc khác."""
+        for rec in self:
+            if rec.product_id.dlm_lifecycle_state == "obsolete":
+                raise ValidationError(_(
+                    "Sản phẩm '%s' đã Ngừng sử dụng — không thể lập BOM mới cho "
+                    "sản phẩm này."
+                ) % rec.product_id.display_name)
 
     @api.model_create_multi
     def create(self, vals_list):
