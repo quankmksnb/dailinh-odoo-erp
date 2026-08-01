@@ -68,6 +68,7 @@ yarn.lock
 *~
 .DS_Store
 Thumbs.db
+.claude/
 
 # ── Test / coverage ───────────────────────────
 .coverage
