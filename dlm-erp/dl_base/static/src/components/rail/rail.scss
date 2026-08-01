@@ -236,8 +236,7 @@ $dl-rail-bg:      $dl-nav-bg;
         }
 
         &.has-children {
-            // Nút chevron tách vùng bấm riêng: nhãn = mở màn mặc định, chevron
-            // = chỉ xổ/gập submenu.
+            // Toàn bộ hàng mục cha và nút chevron đều chỉ xổ/gập submenu.
             .dlm-rail-chevron-btn {
                 margin-left: auto;
                 flex-shrink: 0;
