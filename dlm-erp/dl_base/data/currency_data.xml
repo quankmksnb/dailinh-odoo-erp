@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Toàn bộ nghiệp vụ Phase 1 sử dụng VND. Chỉ đổi tiền tệ vận hành,
+         không thay đổi tên hay các thông tin pháp lý của công ty. -->
+    <record id="base.VND" model="res.currency">
+        <field name="active" eval="True"/>
+    </record>
+    <record id="base.main_company" model="res.company">
+        <field name="currency_id" ref="base.VND"/>
+    </record>
+</odoo>

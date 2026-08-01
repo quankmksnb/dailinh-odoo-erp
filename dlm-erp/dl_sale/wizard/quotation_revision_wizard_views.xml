@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Sales ghi nhận khách yêu cầu điều chỉnh — phân loại + nội dung -->
+    <record id="view_dl_quotation_revision_wizard_form" model="ir.ui.view">
+        <field name="name">dl.quotation.revision.wizard.form</field>
+        <field name="model">dl.quotation.revision.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Khách yêu cầu điều chỉnh">
+                <field name="quotation_id" invisible="1"/>
+                <group>
+                    <field name="adjust_type" widget="radio"/>
+                </group>
+                <separator string="Nội dung khách yêu cầu"/>
+                <field name="note" nolabel="1" class="dl-textarea-lg"
+                       placeholder="Ví dụ: khách muốn giảm giá còn ~X, hoặc đổi thép 3mm xuống 2mm, hoặc giao sớm hơn 1 tuần..."/>
+                <div class="alert alert-info" role="alert"
+                     invisible="adjust_type != 'commercial'">
+                    Sau khi lưu, bấm <em>Sửa &amp; gửi lại</em> để chỉnh chiết khấu/đơn giá
+                    (trong khoảng cho phép của nhóm khách) rồi gửi lại khách.
+                </div>
+                <div class="alert alert-warning" role="alert"
+                     invisible="adjust_type != 'technical'">
+                    Đổi vật liệu/kích thước cần Kỹ thuật sửa BOM. Sau khi lưu, bấm
+                    <em>Chuyển Kỹ thuật sửa BOM</em> để mở lại RFQ cho Kỹ thuật.
+                </div>
+                <div class="alert alert-info" role="alert"
+                     invisible="adjust_type != 'terms'">
+                    Sau khi lưu, bấm <em>Sửa &amp; gửi lại</em> để chỉnh điều khoản/
+                    ghi chú giao hàng rồi gửi lại khách.
+                </div>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Ghi nhận yêu cầu" class="btn-primary"/>
+                    <button string="Hủy" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

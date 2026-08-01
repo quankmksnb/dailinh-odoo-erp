@@ -99,6 +99,7 @@ export class DlPricingConfig extends Component {
             tab: "waste",
             approvalSub: "matrix", // matrix | pending | history
             matrixShowHistory: false, // hiện các dòng "Ngừng áp dụng" trong ma trận
+            discountShowHistory: false, // hiện các dòng "Ngừng áp dụng" trong bảng chiết khấu
             loading: true,
             perms: {},
             options: { categories: [], products: [], operations: [], complexity: [], approvers: [] },
@@ -145,8 +146,8 @@ export class DlPricingConfig extends Component {
                 "change_reason", "write_uid"],
             profit: ["target_markup", "min_markup", "valid_from", "valid_to", "state",
                 "revision", "change_reason", "write_uid"],
-            discount: ["customer_group", "default_rate", "max_rate", "valid_from", "valid_to",
-                "state", "revision", "change_reason", "write_uid"],
+            discount: ["customer_group", "group_rank", "default_rate", "max_rate", "valid_from",
+                "valid_to", "state", "revision", "change_reason", "write_uid"],
             approval: ["create_date", "request_type", "object_label", "old_value", "new_value",
                 "impact", "requester_id", "requester_role", "resolved_by_id", "resolved_at",
                 "reason", "reject_comment", "is_self_approval", "state", "approval_level",
@@ -164,6 +165,8 @@ export class DlPricingConfig extends Component {
         if (section === "complexity" || section === "opcat") return "sequence, id";
         if (section === "apprset") return "request_type";
         if (section === "matrix") return "value_from asc, revision desc";
+        // Chiết khấu xếp theo bậc gắn bó (mới→cũ→thân thiết) để đọc thành thang.
+        if (section === "discount") return "group_rank asc, state, valid_from desc";
         return "state, valid_from desc";
     }
     async load(section) {
@@ -363,6 +366,64 @@ export class DlPricingConfig extends Component {
     fmtMoney(v) {
         if (v == null || v === "") return "";
         return new Intl.NumberFormat("vi-VN").format(v) + " ₫";
+    }
+    // Mặc định ẩn các dòng "Ngừng áp dụng" cho đỡ rối — bấm "Lịch sử" để xem
+    // (đồng bộ với cách làm của bảng ma trận phê duyệt).
+    get discountRows() {
+        const rows = this.state.rows.discount;
+        return this.state.discountShowHistory
+            ? rows : rows.filter((r) => r.state !== "expired");
+    }
+    get discountHistoryCount() {
+        return this.state.rows.discount.filter((r) => r.state === "expired").length;
+    }
+    toggleDiscountHistory() {
+        this.state.discountShowHistory = !this.state.discountShowHistory;
+    }
+    // Cảnh báo mềm cho thang chiết khấu (tương tự matrixLadderWarning):
+    // (1) bậc bị đảo — nhóm gắn bó hơn lại chiết khấu thấp hơn (hàng rào cứng
+    //     đã chặn, đây là lưới an toàn cho dữ liệu cũ); (2) thiếu nhóm đang áp
+    //     dụng — báo giá nhóm đó sẽ mặc định 0% chiết khấu.
+    get discountLadderWarning() {
+        const order = ["new", "existing", "loyal"];
+        const byGroup = {};
+        for (const r of this.state.rows.discount) {
+            if (r.state === "active") { byGroup[r.customer_group] = r; }
+        }
+        const present = order.filter((g) => byGroup[g]);
+        for (let i = 1; i < present.length; i++) {
+            const prev = byGroup[present[i - 1]];
+            const cur = byGroup[present[i]];
+            if (cur.default_rate < prev.default_rate || cur.max_rate < prev.max_rate) {
+                return `${this.lab("customerGroup", cur.customer_group)} đang được chiết khấu thấp hơn ${this.lab("customerGroup", prev.customer_group)}. Khách gắn bó hơn phải được ưu đãi ≥ khách mới hơn — hãy chỉnh lại.`;
+            }
+        }
+        if (present.length && present.length < order.length) {
+            const missing = order.filter((g) => !byGroup[g])
+                .map((g) => this.lab("customerGroup", g)).join(", ");
+            return `Chưa có chính sách đang áp dụng cho: ${missing}. Báo giá cho nhóm này sẽ mặc định 0% chiết khấu.`;
+        }
+        return "";
+    }
+    // Tập id dòng chiết khấu tham gia một cặp đảo bậc — để tô đỏ đúng dòng vi
+    // phạm ngay trên bảng (review UX config #f3), thay vì chỉ một câu cảnh báo.
+    get discountViolationIds() {
+        const order = ["new", "existing", "loyal"];
+        const byGroup = {};
+        for (const r of this.state.rows.discount) {
+            if (r.state === "active") { byGroup[r.customer_group] = r; }
+        }
+        const present = order.filter((g) => byGroup[g]);
+        const ids = new Set();
+        for (let i = 1; i < present.length; i++) {
+            const prev = byGroup[present[i - 1]];
+            const cur = byGroup[present[i]];
+            if (cur.default_rate < prev.default_rate || cur.max_rate < prev.max_rate) {
+                ids.add(cur.id);
+                ids.add(prev.id);
+            }
+        }
+        return ids;
     }
     reasonLines(txt) {
         return (txt || "").split("\n").map((s) => s.trim()).filter(Boolean);

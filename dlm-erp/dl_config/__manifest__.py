@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Cấu hình (Master Data)',
-    'version': '17.0.2.1.0',
+    'version': '17.0.2.3.0',
     'summary': 'Cấu hình hệ thống, cấu hình báo giá có phiên bản và dữ liệu danh mục',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -13,6 +13,7 @@
         'data/rbac_features.xml',
         'data/pricing_config_data.xml',
         'data/pricing_seed.xml',
+        'views/login_templates.xml',
         'views/config_home.xml',
         'views/uom_views.xml',
         'views/company_views.xml',
@@ -20,6 +21,8 @@
         'views/role_perm_views.xml',
         'views/pricing_config_views.xml',
         'views/pricing_matrix_views.xml',
+        'views/pricing_approval_views.xml',
+        'wizard/pricing_approval_reject_wizard_views.xml',
         'views/menus.xml',
     ],
     'assets': {

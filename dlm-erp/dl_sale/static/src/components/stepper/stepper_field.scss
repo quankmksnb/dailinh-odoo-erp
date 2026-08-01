@@ -46,4 +46,25 @@
         .dl-stepper-dot { background: $dl-green; color: #fff; }
         &::after { background: $dl-green; }
     }
+
+    // Mũi tên nối trục chính sang nhãn nhánh.
+    .dl-stepper-arrow {
+        margin: 0 10px;
+        color: $dl-text-2;
+        font-size: 14px;
+    }
+
+    // Nhãn trạng thái nhánh (ngoài trục) — pill màu theo tính chất.
+    .dl-stepper-branch {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+
+        &.is-warn { background: rgba(210, 155, 0, 0.15); color: #9a6d00; }
+        &.is-danger { background: rgba(220, 53, 69, 0.15); color: #b02a37; }
+        &.is-muted { background: $dl-divider; color: $dl-text-2; }
+    }
 }

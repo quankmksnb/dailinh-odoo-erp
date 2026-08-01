@@ -13,16 +13,23 @@
             <tree string="Bảng giá NCC" class="dl-supplierinfo-list" js_class="dl_supplierinfo_list" editable="bottom"
                 decoration-muted="display_state == 'draft'">
                 <field name="company_id" column_invisible="1" />
+                <field name="dl_product_kind" column_invisible="1" />
                 <field name="approval_state" column_invisible="1" />
                 <field name="is_applied" column_invisible="1" />
                 <field name="product_tmpl_id" string="Sản phẩm &amp; Vật tư" />
                 <field name="partner_id" string="Nhà cung cấp"
                     domain="[('partner_role', 'in', ['supplier', 'both'])]"
                     context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
-                <field name="price" />
+                <field name="price" string="Giá NCC" widget="monetary"
+                    options="{'currency_field': 'currency_id'}" />
                 <field name="currency_id" column_invisible="1" />
+                <field name="product_uom" string="Đơn vị" />
                 <field name="date_start" string="Từ ngày" />
                 <field name="date_end" string="Đến ngày" />
+                <field name="validity_state" widget="badge"
+                    decoration-success="validity_state == 'active'"
+                    decoration-warning="validity_state in ('upcoming', 'expiring')"
+                    decoration-danger="validity_state == 'expired'" />
                 <field name="min_qty" string="SL tối thiểu" optional="hide" />
                 <field
                     name="display_state"
@@ -78,6 +85,7 @@
                 </header>
                 <sheet>
                     <field name="company_id" invisible="1" />
+                    <field name="dl_product_kind" invisible="1" />
                     <field
                         name="product_image_128"
                         widget="image"
@@ -99,10 +107,13 @@
                                 context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
                         </group>
                         <group string="Giá &amp; Hiệu lực">
-                            <field name="price" />
+                            <field name="price" string="Giá NCC" widget="monetary"
+                                options="{'currency_field': 'currency_id'}" />
                             <field name="currency_id" invisible="1" />
+                            <field name="product_uom" string="Đơn vị" readonly="1" />
                             <field name="date_start" string="Từ ngày" />
                             <field name="date_end" string="Đến ngày" />
+                            <field name="validity_state" widget="badge" readonly="1" />
                             <field name="min_qty" string="SL tối thiểu" />
                         </group>
                     </group>
@@ -163,6 +174,74 @@
         ]" />
         <field name="search_view_id" ref="view_dl_supplierinfo_search" />
         <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+    </record>
+
+    <!-- Màn chuyên cho giá mua vật tư: đi thẳng vào từng dòng giá thay vì
+         Kanban vật tư, để người dùng so sánh NCC/giá/hiệu lực ngay trên list. -->
+    <record id="view_dl_supplierinfo_material_tree" model="ir.ui.view">
+        <field name="name">dl.product.supplierinfo.material.tree</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="inherit_id" ref="view_dl_supplierinfo_tree" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <field name="product_tmpl_id" position="attributes">
+                <attribute name="string">Vật tư</attribute>
+                <attribute name="domain">[('product_variant_ids.product_kind', '=', 'material')]</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_dl_supplierinfo_material_form" model="ir.ui.view">
+        <field name="name">dl.product.supplierinfo.material.form</field>
+        <field name="model">product.supplierinfo</field>
+        <field name="inherit_id" ref="view_dl_supplierinfo_form" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <field name="product_tmpl_id" position="attributes">
+                <attribute name="string">Vật tư</attribute>
+                <attribute name="domain">[('product_variant_ids.product_kind', '=', 'material')]</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="action_dl_supplierinfo_material_full" model="ir.actions.act_window">
+        <field name="name">Bảng giá Vật tư</field>
+        <field name="res_model">product.supplierinfo</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplierinfo_material_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_supplierinfo_material_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_supplierinfo_search" />
+        <field name="domain">[('dl_product_kind', '=', 'material')]</field>
+        <field name="context">{'delete': False}</field>
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_accountant'),
+        ])]" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có giá mua vật tư.</p>
+            <p>Thêm giá theo nhà cung cấp và thời gian hiệu lực.</p>
+        </field>
+    </record>
+
+    <record id="action_dl_supplierinfo_material_view" model="ir.actions.act_window">
+        <field name="name">Bảng giá Vật tư</field>
+        <field name="res_model">product.supplierinfo</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplierinfo_material_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_supplierinfo_material_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_supplierinfo_search" />
+        <field name="domain">[('dl_product_kind', '=', 'material')]</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_ceo'),
+            ref('dl_base.dl_group_sales_manager'),
+        ])]" />
     </record>
 
 </odoo>

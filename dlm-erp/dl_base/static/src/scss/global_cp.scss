@@ -201,6 +201,24 @@
     }
 }
 
+// Form có thể đồng thời có ButtonBox (vd. "Bản trước"), cụm nút
+// nghiệp vụ và pager. Odoo mặc định dành tối thiểu 33% chiều ngang cho
+// ButtonBox, làm navigation bị co nhỏ hơn nội dung; cụm nút sau đó tràn
+// ngược sang trái và chồng lên ButtonBox. Cho hai vùng hành động lấy
+// đúng độ rộng nội dung, breadcrumb sẽ co giãn trong phần còn lại.
+.o_action_manager:has([class*="dl-"][class*="-form"]) .o_control_panel {
+    .o_control_panel_actions {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        min-width: 0 !important;
+    }
+
+    .o_control_panel_navigation {
+        flex: 0 0 auto !important;
+        min-width: max-content;
+    }
+}
+
 // ── Nút tạo mới: label cụ thể theo từng trang ──────────────────────────────
 // Base: ẩn text gốc Odoo, style chung cho tất cả nút create
 .o_action_manager:has([class*="dl-"][class*="-list"]),

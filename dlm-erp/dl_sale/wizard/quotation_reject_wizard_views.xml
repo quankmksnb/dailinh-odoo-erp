@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Sales từ chối báo giá — bắt buộc chọn lý do -->
+    <record id="view_dl_quotation_reject_wizard_form" model="ir.ui.view">
+        <field name="name">dl.quotation.reject.wizard.form</field>
+        <field name="model">dl.quotation.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Từ chối báo giá">
+                <field name="quotation_id" invisible="1"/>
+                <group>
+                    <field name="reason"/>
+                </group>
+                <separator string="Chi tiết lý do"/>
+                <field name="note" nolabel="1" class="dl-textarea-lg"
+                       placeholder="Nêu rõ nguyên nhân (bắt buộc khi chọn 'Lý do khác')."
+                       required="reason == 'other'"/>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Xác nhận từ chối" class="btn-danger"/>
+                    <button string="Hủy" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -13,7 +13,7 @@
 
                 <div class="dl-pricing-rows">
                     <t t-foreach="cards" t-as="c" t-key="c.key">
-                        <div class="dl-pricing-row" t-att-class="{ 'is-disabled': !c.actionXmlId }" t-on-click="() => this.openCard(c.actionXmlId)">
+                        <div class="dl-pricing-row" t-att-class="{ 'is-disabled': !c.resolvedActionId }" t-on-click="() => this.openCard(c.resolvedActionId)">
                             <span class="dl-pricing-row-icon">
                                 <i t-att-class="'fa ' + c.icon"/>
                             </span>
@@ -21,7 +21,7 @@
                                 <span class="dl-pricing-row-name" t-esc="c.name"/>
                                 <span class="dl-pricing-row-desc" t-esc="c.desc"/>
                             </span>
-                            <span t-if="!c.actionXmlId" class="dl-pricing-row-soon">Sắp có</span>
+                            <span t-if="!c.resolvedActionId" class="dl-pricing-row-soon">Sắp có</span>
                             <i t-else="" class="fa fa-angle-right dl-pricing-row-arrow"/>
                         </div>
                     </t>

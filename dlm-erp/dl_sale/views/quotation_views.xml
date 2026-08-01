@@ -5,18 +5,32 @@
         <field name="name">dl.quotation.tree</field>
         <field name="model">dl.quotation</field>
         <field name="arch" type="xml">
-            <tree string="Báo giá" class="dl-quotation-list" js_class="dl_quotation_list">
+            <tree string="Báo giá" class="dl-quotation-list" js_class="dl_quotation_list"
+                  decoration-danger="validity_state == 'overdue'"
+                  decoration-warning="validity_state == 'soon'">
+                <field name="validity_state" column_invisible="1"/>
                 <field name="name" string="Số BG"/>
+                <field name="revision" string="PB" optional="hide"/>
                 <field name="partner_id" string="Khách hàng"/>
+                <field name="create_uid" string="Phụ trách" optional="show"/>
                 <field name="date_order" string="Ngày"/>
+                <field name="validity_label" string="Hạn hiệu lực" optional="show"/>
                 <field name="amount_total" string="Tổng tiền" widget="monetary"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="state" string="Trạng thái" widget="badge"
-                       decoration-warning="state == 'draft'"
+                       decoration-warning="state in ('draft', 'revision_requested')"
                        decoration-info="state in ('approved', 'sent')"
                        decoration-success="state in ('accepted', 'ordered')"
-                       decoration-danger="state == 'rejected'"
-                       decoration-muted="state == 'cancelled'"/>
+                       decoration-danger="state in ('rejected', 'expired')"
+                       decoration-muted="state in ('cancelled', 'superseded')"/>
+                <!-- Tín hiệu "kẹt ở khâu duyệt" cho Sales (review UX list #f2) —
+                     ẩn mặc định để không nhiễu (đa số 'Không cần duyệt'); bật cột
+                     qua nút optional khi cần theo dõi hàng chờ duyệt. -->
+                <field name="approval_state" string="Duyệt" widget="badge" optional="hide"
+                       decoration-warning="approval_state == 'pending'"
+                       decoration-success="approval_state == 'approved'"
+                       decoration-danger="approval_state == 'rejected'"
+                       decoration-muted="approval_state == 'not_required'"/>
             </tree>
         </field>
     </record>
@@ -27,51 +41,104 @@
         <field name="arch" type="xml">
             <form string="Báo giá" class="dl-quotation-form" js_class="dl_quotation_form">
                 <header>
-                    <!-- Op-group dl_group_op_quote_approve: màn Phân quyền tick
-                         "Duyệt báo giá" cho vai trò khác là mở được nút này. -->
-                    <button name="action_approve" string="Duyệt nội bộ"
-                            type="object" class="btn-primary"
-                            invisible="state != 'draft'"
-                            groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_sale.dl_group_op_quote_approve"/>
+                    <!-- Gửi khách: hiện khi báo giá KHÔNG cần duyệt (Sales gửi
+                         thẳng từ Nháp) hoặc đã qua ma trận phê duyệt (approved).
+                         Bỏ nút "Duyệt nội bộ" thủ công — cổng kiểm soát duy nhất
+                         là ma trận phê duyệt (chỉ kích hoạt khi vượt ngưỡng). -->
                     <button name="action_send" string="Gửi khách hàng"
                             type="object" class="btn-primary"
-                            invisible="state != 'approved'"/>
+                            invisible="state not in ('draft', 'approved') or (state == 'draft' and (approval_required or approval_state != 'not_required'))"/>
                     <button name="action_customer_accept" string="Khách đồng ý"
                             type="object" class="btn-primary"
                             invisible="state != 'sent'"/>
+                    <button name="action_open_revision_wizard" string="Khách yêu cầu điều chỉnh"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'sent'"/>
+                    <field name="revision_request_type" invisible="1"/>
+                    <button name="action_create_revision" string="Sửa &amp; gửi lại"
+                            type="object" class="btn-primary"
+                            invisible="state not in ('revision_requested', 'rejected', 'expired') or (state == 'revision_requested' and revision_request_type == 'technical')"/>
+                    <button name="action_send_back_to_tech" string="Chuyển Kỹ thuật sửa BOM"
+                            type="object" class="btn-primary"
+                            invisible="state != 'revision_requested' or revision_request_type != 'technical' or not quotation_request_id"/>
                     <button name="action_create_sale_order" string="Tạo đơn bán hàng"
-                            type="object" class="oe_highlight"
+                            type="object" class="btn-primary"
                             invisible="state != 'accepted'"/>
                     <button name="action_open_sale_order" string="Mở đơn bán hàng"
-                            type="object" class="btn-secondary"
+                            type="object" class="btn-primary"
                             invisible="state != 'ordered'"/>
-                    <button name="action_open_approval_request" string="Xem yêu cầu duyệt"
-                            type="object" class="btn-warning"
-                            invisible="not approval_request_id"/>
-                    <button name="action_reject" string="Từ chối"
+                    <button name="action_reopen" string="Gia hạn"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'expired'"/>
+                    <!-- Duyệt nhanh cho người có quyền trên yêu cầu đang treo
+                         (server tính can_resolve — đúng cấp theo ma trận). -->
+                    <field name="approval_can_resolve" invisible="1"/>
+                    <button name="action_approval_approve" string="Phê duyệt"
+                            type="object" class="btn-primary"
+                            invisible="approval_state != 'pending' or not approval_can_resolve"
+                            confirm="Xác nhận PHÊ DUYỆT báo giá này?"/>
+                    <button name="action_approval_open_reject" string="Từ chối duyệt"
                             type="object" class="btn-danger"
-                            invisible="state not in ('draft', 'approved', 'sent')"/>
+                            invisible="approval_state != 'pending' or not approval_can_resolve"/>
+                    <button name="action_open_approval_request" string="Xem yêu cầu duyệt"
+                            type="object" class="btn-secondary"
+                            invisible="not approval_request_id"/>
+                    <button name="action_open_reject_wizard" string="Từ chối"
+                            type="object" class="btn-danger"
+                            invisible="state not in ('draft', 'approved', 'sent', 'revision_requested')"/>
+                    <button name="action_expire" string="Hết hiệu lực"
+                            type="object" class="btn-secondary"
+                            invisible="state not in ('approved', 'sent', 'revision_requested')"/>
                     <button name="action_reset_draft" string="Về nháp"
                             type="object" class="btn-link"
-                            invisible="state not in ('approved', 'sent', 'rejected')"/>
+                            invisible="state not in ('approved', 'sent', 'revision_requested', 'rejected', 'expired')"/>
                     <field name="state" widget="dl_stepper"/>
                 </header>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_origin" type="object"
+                                class="oe_stat_button" icon="fa-code-fork"
+                                invisible="not origin_quotation_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Bản trước</span>
+                            </div>
+                        </button>
+                        <button name="action_open_revisions" type="object"
+                                class="oe_stat_button" icon="fa-copy"
+                                invisible="revision_count == 0">
+                            <field name="revision_count" widget="statinfo"
+                                   string="Bản lập lại"/>
+                        </button>
+                    </div>
                     <field name="approval_request_id" invisible="1"/>
                     <field name="approval_required" invisible="1"/>
                     <field name="approval_state" invisible="1"/>
-                    <div class="alert alert-warning" role="alert"
-                         invisible="not approval_required or approval_state != 'pending'">
-                        <strong>Báo giá cần phê duyệt — cấp: <field name="approval_level" readonly="1" nolabel="1" class="oe_inline"/></strong>
-                        <field name="approval_reasons" readonly="1" nolabel="1"/>
+                    <field name="origin_quotation_id" invisible="1"/>
+                    <field name="revision" invisible="1"/>
+                    <!-- MỘT dải trạng thái ngữ cảnh duy nhất (gộp >10 alert cũ,
+                         review UX #f2). Mức + nội dung do model tính
+                         (_compute_status_banner) → mỗi trạng thái chỉ hiện đúng
+                         một dải, không còn chồng lớp. -->
+                    <field name="status_banner_level" invisible="1"/>
+                    <div class="alert alert-info" role="alert"
+                         invisible="status_banner_level != 'info'">
+                        <field name="status_banner_message" nolabel="1" readonly="1"/>
                     </div>
                     <div class="alert alert-success" role="alert"
-                         invisible="approval_state != 'approved'">
-                        Đã được phê duyệt — sẵn sàng gửi khách.
+                         invisible="status_banner_level != 'success'">
+                        <field name="status_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="status_banner_level != 'warning'">
+                        <field name="status_banner_message" nolabel="1" readonly="1"/>
                     </div>
                     <div class="alert alert-danger" role="alert"
-                         invisible="approval_state != 'rejected'">
-                        Yêu cầu phê duyệt bị từ chối — cần chỉnh sửa báo giá.
+                         invisible="status_banner_level != 'danger'">
+                        <field name="status_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-secondary" role="alert"
+                         invisible="status_banner_level != 'secondary'">
+                        <field name="status_banner_message" nolabel="1" readonly="1"/>
                     </div>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
@@ -87,6 +154,12 @@
                         <div class="dl-field">
                             <label for="date_order" string="Ngày báo giá"/>
                             <field name="date_order" nolabel="1"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="validity_date" string="Hạn hiệu lực"/>
+                            <field name="validity_date" nolabel="1"
+                                   options="{'min_date': 'today'}"
+                                   readonly="state not in ('draft', 'expired')"/>
                         </div>
                         <div class="dl-field">
                             <label for="quotation_request_id" string="RFQ nguồn"/>
@@ -114,11 +187,28 @@
                                     <field name="price_subtotal" readonly="1" digits="[16, 0]"/>
                                 </tree>
                             </field>
+                            <!-- Khoảng chiết khấu cho phép theo nhóm khách + trạng
+                                 thái hợp lệ: gộp 3 alert cũ thành MỘT helper ngắn
+                                 ngay dưới ô nhập (review UX #f3). Mức + nội dung do
+                                 model tính (_compute_discount_hint). -->
+                            <field name="discount_hint_level" invisible="1"/>
                             <div class="dl-fields-row">
                                 <div class="dl-field">
                                     <label for="discount_pct" string="Chiết khấu (%)"/>
                                     <field name="discount_pct" nolabel="1"
                                            readonly="state != 'draft'"/>
+                                    <div class="dl-inline-hint dl-hint-info"
+                                         invisible="discount_hint_level != 'info'">
+                                        <field name="discount_hint_message" nolabel="1" readonly="1"/>
+                                    </div>
+                                    <div class="dl-inline-hint dl-hint-secondary"
+                                         invisible="discount_hint_level != 'secondary'">
+                                        <field name="discount_hint_message" nolabel="1" readonly="1"/>
+                                    </div>
+                                    <div class="dl-inline-hint dl-hint-warning"
+                                         invisible="discount_hint_level != 'warning'">
+                                        <field name="discount_hint_message" nolabel="1" readonly="1"/>
+                                    </div>
                                 </div>
                                 <div class="dl-field">
                                     <label for="vat_pct" string="VAT (%)"/>
@@ -190,7 +280,8 @@
                             </field>
                         </page>
                         <page string="Ghi chú">
-                            <field name="note" placeholder="Ghi chú thêm..."/>
+                            <field name="note" nolabel="1" class="dl-textarea-lg"
+                                   placeholder="Ghi chú thêm..."/>
                         </page>
                     </notebook>
                 </sheet>
@@ -214,12 +305,32 @@
             <search string="Tìm kiếm báo giá">
                 <field name="name" string="Số BG"/>
                 <field name="partner_id" string="Khách hàng"/>
+                <!-- Bộ lọc gộp: mặc định (search_default_open trên action) list
+                     chỉ mở ra pipeline đang sống. "Đã đóng" gom các kết cục
+                     nghiệp vụ; "Lịch sử phiên bản" = bản cũ bị thay thế
+                     (superseded) — thuần truy vết, tránh làm rối danh sách.
+                     TẤT CẢ filter trạng thái để CHUNG một nhóm (không chèn
+                     <separator/>) để chúng OR với nhau — vì state đơn trị, bấm
+                     "Đang xử lý" + "Từ chối" phải ra hợp của hai tập, không phải
+                     giao (rỗng). -->
+                <filter name="open" string="Đang xử lý"
+                        domain="[('state','in',('draft','approved','sent','revision_requested','accepted','ordered'))]"/>
+                <filter name="closed" string="Đã đóng"
+                        domain="[('state','in',('rejected','expired','cancelled'))]"/>
+                <filter name="history" string="Lịch sử phiên bản"
+                        domain="[('state','=','superseded')]"/>
+                <!-- Lọc chi tiết theo từng trạng thái (pipeline) -->
                 <filter name="draft" string="Nháp" domain="[('state','=','draft')]"/>
                 <filter name="approved" string="Đã duyệt nội bộ" domain="[('state','=','approved')]"/>
                 <filter name="sent" string="Đã gửi khách" domain="[('state','=','sent')]"/>
+                <filter name="revision_requested" string="Yêu cầu điều chỉnh" domain="[('state','=','revision_requested')]"/>
                 <filter name="accepted" string="Khách đồng ý" domain="[('state','=','accepted')]"/>
                 <filter name="ordered" string="Đã lên đơn" domain="[('state','=','ordered')]"/>
+                <!-- Lọc chi tiết theo từng trạng thái đóng / lịch sử -->
                 <filter name="rejected" string="Từ chối" domain="[('state','=','rejected')]"/>
+                <filter name="expired" string="Hết hiệu lực" domain="[('state','=','expired')]"/>
+                <filter name="cancelled" string="Đã hủy" domain="[('state','=','cancelled')]"/>
+                <filter name="superseded" string="Đã thay bản mới" domain="[('state','=','superseded')]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_partner" string="Khách hàng"
                             context="{'group_by': 'partner_id'}"/>
@@ -240,6 +351,10 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_quotation_form')}),
         ]"/>
         <field name="search_view_id" ref="view_dl_quotation_search"/>
+        <!-- Mặc định chỉ hiện pipeline đang xử lý — ẩn bản superseded (lịch sử)
+             và các bản đã đóng khỏi danh sách để tránh data rác. Người dùng bấm
+             filter "Đã đóng" / "Lịch sử phiên bản" khi cần tra cứu. -->
+        <field name="context">{'search_default_open': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Tạo báo giá đầu tiên!</p>
         </field>

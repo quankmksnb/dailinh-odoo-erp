@@ -8,7 +8,7 @@
     <data noupdate="0">
 
         <record id="feat_user" model="dl.rbac.feature">
-            <field name="name">Quản lý User</field>
+            <field name="name">Quản lý người dùng</field>
             <field name="code">user</field>
             <field name="model_id" ref="base.model_res_users"/>
             <field name="category">system</field>

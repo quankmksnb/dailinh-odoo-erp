@@ -191,3 +191,22 @@
     // --- Subtotal footer (oe_subtotal_footer) --------------------------------
     .oe_subtotal_footer .o_field_widget { font-weight: 700; color: $dl-heading; }
 }
+
+// ============================================================================
+// Textarea lớn dùng chung (.dl-textarea-lg)
+// Ô nhập đoạn dài: lý do từ chối / không khả thi / đưa về nháp, yêu cầu điều
+// chỉnh, mô tả, ghi chú… Mặc định Odoo render Text field thành 1 dòng rất thấp;
+// class này cho khung cao & rộng như textarea thật để dễ nhập.
+// Đặt ở GLOBAL scope (ngoài selector form) vì phần lớn ô này nằm trong wizard
+// mở dưới dạng dialog — không có class .dl-*-form bao ngoài.
+// ============================================================================
+.dl-textarea-lg {
+    display: block;
+    width: 100% !important;
+    max-width: none !important;
+
+    textarea {
+        min-height: 120px !important;
+        width: 100% !important;
+    }
+}

@@ -8,10 +8,8 @@
         <field name="arch" type="xml">
             <form string="Trả lại RFQ để bổ sung">
                 <field name="request_id" invisible="1"/>
-                <group>
-                    <field name="reason" nolabel="1"
-                           placeholder="Nêu rõ thông tin còn thiếu cần Sales bổ sung (mô tả, kích thước, ảnh...)."/>
-                </group>
+                <field name="reason" nolabel="1" class="dl-textarea-lg"
+                       placeholder="Nêu rõ thông tin còn thiếu cần Sales bổ sung (mô tả, kích thước, ảnh...)."/>
                 <footer>
                     <button name="action_confirm" type="object"
                             string="Gửi lại Sales" class="oe_highlight"/>

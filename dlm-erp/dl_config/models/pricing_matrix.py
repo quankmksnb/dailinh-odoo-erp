@@ -585,15 +585,20 @@ class DlPricingApprovalMatrix(models.Model):
                 },
             ))
 
-        # B. Chiết khấu.
+        # B. Chiết khấu (chốt 2026-07-27). "Tối đa" của nhóm khách CHÍNH LÀ trần
+        # tự-quyết của Sales: deal tới mức tối đa = đã được cho phép sẵn → KHÔNG
+        # phát sinh duyệt. "Mặc định" chỉ là mức gợi ý/tự điền, không còn là chốt
+        # duyệt. Chỉ VƯỢT tối đa mới cần Trưởng KD duyệt ngoại lệ; giảm sâu tới
+        # dưới giá sàn (lỗ) thì lên CEO (mục C) — tạo thang "giảm càng sâu, cấp
+        # duyệt càng cao". discount_above_default vẫn nhận để tương thích chữ ký
+        # nhưng không dùng để định tuyến.
         if discount_above_max:
-            candidates.append((_LEVEL_RANK["ceo"], "ceo",
-                               _("Chiết khấu vượt mức tối đa cho phép.")))
-        elif discount_above_default:
             candidates.append((_LEVEL_RANK["sales_manager"], "sales_manager",
-                               _("Chiết khấu cao hơn mức mặc định.")))
+                               _("Chiết khấu vượt mức tối đa cho phép của nhóm "
+                                 "khách.")))
 
-        # C. Giá sàn.
+        # C. Giá sàn — giảm giá tới mức lỗ (dưới giá sàn) luôn cần CEO, dù chiết
+        # khấu có nằm trong "tối đa" hay không.
         if below_floor:
             candidates.append((_LEVEL_RANK["ceo"], "ceo",
                                _("Giá bán sau chiết khấu thấp hơn giá sàn.")))

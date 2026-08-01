@@ -33,7 +33,10 @@ class DlBomTemplate(models.Model):
         domain=[("dl_branch", "in", ("finished", "material"))],
     )
     line_ids = fields.One2many(
-        "dl.bom.template.line", "bom_template_id", string="Dòng mẫu"
+        "dl.bom.template.line", "bom_template_id", string="Dòng mẫu",
+        # Odoo mặc định không copy o2m khi duplicate — bật để "Tạo phiên bản
+        # mới" của BOM mẫu mang theo dòng (đồng bộ với dl.bom.line_ids).
+        copy=True,
     )
 
     def _version_domain(self):

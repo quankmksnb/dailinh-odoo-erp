@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Base',
-    'version': '17.0.1.0.0',
+    'version': '17.0.1.1.4',
     'summary': 'App gốc — định nghĩa Groups (CEO/Admin/BA/Tech) và menu chính 5 module Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -8,9 +8,13 @@
     'data': [
         'security/groups.xml',
         'security/ir.model.access.csv',
+        'data/language_data.xml',
+        'data/currency_data.xml',
+        'views/login_templates.xml',
         'views/actions.xml',
         'views/menus.xml',
         'data/demo_users_data.xml',
+        'data/demo_user_language_data.xml',
     ],
     'assets': {
         'web.assets_backend': [
@@ -22,6 +26,10 @@
             'dl_base/static/src/scss/global_list.scss',
             'dl_base/static/src/scss/global_cp.scss',
             'dl_base/static/src/scss/global_dialog.scss',
+            # Spinner tải dữ liệu — thay chỉ báo "Loading" gốc bằng spinner
+            # xoay ở giữa màn hình (override template web.LoadingIndicator).
+            'dl_base/static/src/components/loading_indicator/loading_indicator.scss',
+            'dl_base/static/src/components/loading_indicator/loading_indicator.xml',
             # State dùng chung sidebar (Home nav + Rail) — nạp trước component
             'dl_base/static/src/js/sidebar_state.js',
             # JS — hạ tầng list/form dùng chung toàn hệ thống (menu ⋮ Thao
@@ -40,9 +48,15 @@
             'dl_base/static/src/components/rail/rail.xml',
             'dl_base/static/src/components/rail/rail.js',
         ],
+        # Trang public (đăng nhập / đặt lại mật khẩu) — style riêng, scope
+        # qua class .dl-login-* trong views/login_templates.xml.
+        'web.assets_frontend': [
+            'dl_base/static/src/scss/login.scss',
+        ],
     },
     'installable': True,
     'application': True,
     'auto_install': False,
+    'post_init_hook': 'post_init_hook',
     'license': 'LGPL-3',
 }

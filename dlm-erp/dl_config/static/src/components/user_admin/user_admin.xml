@@ -8,11 +8,11 @@
             <!-- Header -->
             <div class="dl-user-head">
                 <div class="dl-user-head-main">
-                    <h1 class="dl-user-title">Quản lý User</h1>
-                    <span class="dl-user-subtitle">Quản trị tài khoản, gán vai trò, khóa/mở khóa, Backup Approver</span>
+                    <h1 class="dl-user-title">Quản lý người dùng</h1>
+                    <span class="dl-user-subtitle">Quản trị tài khoản, gán vai trò, khóa/mở khóa và người duyệt thay thế</span>
                 </div>
                 <button class="dl-user-btn-new" type="button" t-on-click="openCreate">
-                    <i class="fa fa-plus"/> Tạo user
+                    <i class="fa fa-plus"/> Tạo người dùng
                 </button>
             </div>
 
@@ -24,7 +24,7 @@
                     <div class="dl-user-toolbar">
                         <div class="dl-user-search">
                             <i class="fa fa-search"/>
-                            <input type="text" placeholder="Tìm tên, email, login…"
+                            <input type="text" placeholder="Tìm tên, email, tên đăng nhập…"
                                    t-att-value="state.search"
                                    t-on-input="(ev) => state.search = ev.target.value"/>
                         </div>
@@ -75,7 +75,7 @@
                                     </tr>
                                 </t>
                                 <tr t-if="!filteredUsers.length and !state.loading">
-                                    <td colspan="4" class="dl-user-empty">Không có user phù hợp bộ lọc.</td>
+                                    <td colspan="4" class="dl-user-empty">Không có người dùng phù hợp bộ lọc.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -109,7 +109,7 @@
                             <t t-esc="u.active ? 'Khóa tài khoản' : 'Mở khóa'"/>
                         </button>
                         <button class="dl-user-act" type="button" t-on-click="resetPassword">
-                            <i class="fa fa-key"/> Reset mật khẩu
+                            <i class="fa fa-key"/> Đặt lại mật khẩu
                         </button>
                     </div>
 
@@ -117,7 +117,7 @@
                     <div class="dl-user-section">
                         <div class="dl-user-section-label">Thông tin cơ bản</div>
                         <div class="dl-user-fields">
-                            <div class="dl-user-field"><span class="k">Login</span><span class="v" t-esc="u.login"/></div>
+                            <div class="dl-user-field"><span class="k">Tên đăng nhập</span><span class="v" t-esc="u.login"/></div>
                             <div class="dl-user-field"><span class="k">Số điện thoại</span><span class="v" t-esc="u.phone || '—'"/></div>
                             <div class="dl-user-field"><span class="k">Đăng nhập cuối</span><span class="v" t-esc="u.login_date || '—'"/></div>
                         </div>
@@ -148,8 +148,8 @@
                     <!-- Backup Approver -->
                     <div class="dl-user-section">
                         <div class="dl-user-section-label">
-                            Người duyệt dự phòng (Backup Approver)
-                            <span class="dl-user-hint-inline">Dùng khi user vắng / quá SLA — ảnh hưởng Escalation phê duyệt</span>
+                            Người duyệt thay thế
+                            <span class="dl-user-hint-inline">Dùng khi người duyệt chính vắng mặt hoặc quá hạn xử lý</span>
                         </div>
                         <select class="dl-user-inline-select wide" t-on-change="onChangeBackup">
                             <option value="">(Chưa gán)</option>
@@ -167,7 +167,7 @@
             <div class="dl-user-modal-backdrop" t-on-click="closeCreate">
                 <div class="dl-user-modal" t-on-click.stop="">
                     <div class="dl-user-modal-bar">
-                        <span class="dl-user-modal-title"><i class="fa fa-user-plus"/> Tạo user mới</span>
+                        <span class="dl-user-modal-title"><i class="fa fa-user-plus"/> Tạo người dùng mới</span>
                         <button class="dl-user-modal-close" type="button" t-on-click="closeCreate">
                             <i class="fa fa-times"/>
                         </button>
@@ -178,7 +178,7 @@
                                t-att-value="state.form.name"
                                t-on-input="(ev) => this.onFormInput('name', ev)"/>
 
-                        <label class="dl-user-flabel">Email / Username <span class="req">*</span></label>
+                        <label class="dl-user-flabel">Email / Tên đăng nhập <span class="req">*</span></label>
                         <input type="email" class="dl-user-finput" placeholder="user@dailinh.vn"
                                t-att-value="state.form.email"
                                t-on-input="(ev) => this.onFormInput('email', ev)"/>
@@ -201,7 +201,7 @@
                         </div>
 
                         <div class="dl-user-modal-note">
-                            <i class="fa fa-envelope-o"/> Sau khi lưu, hệ thống gửi email mời user đặt mật khẩu.
+                            <i class="fa fa-envelope-o"/> Sau khi lưu, hệ thống gửi email mời người dùng đặt mật khẩu.
                         </div>
                     </div>
                     <div class="dl-user-modal-foot">

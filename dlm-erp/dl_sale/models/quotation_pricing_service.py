@@ -1,4 +1,5 @@
 from psycopg2 import IntegrityError
+from markupsafe import escape
 
 from odoo import fields, models, _
 from odoo.exceptions import UserError
@@ -11,7 +12,10 @@ from odoo.tools import float_is_zero, float_round
 # ---------------------------------------------------------------------------
 QTE_001 = "QTE-001: Chỉ RFQ đã xử lý xong (Đã xác nhận) mới được tạo báo giá."
 QTE_002 = "QTE-002: Sản phẩm gia công '%s' chưa có BOM đã xác nhận/khóa."
-QTE_003 = "QTE-003: Vật tư '%s' chưa có bảng giá đã duyệt và đang áp dụng."
+QTE_003 = (
+    "QTE-003: Vật tư '%s' chưa có bảng giá đã duyệt, đang áp dụng và còn "
+    "hiệu lực tại ngày tạo báo giá."
+)
 QTE_004 = "QTE-004: Không thể tính bán thành phẩm '%s' — kiểm tra BOM con hoặc vòng lặp."
 QTE_005 = "QTE-005: Chưa có cấu hình lợi nhuận (markup) đang áp dụng tại ngày báo giá."
 QTE_007 = "QTE-007: Không thể quy đổi định mức '%s' sang đơn vị/tiền tệ giá vật tư (P0 chưa hỗ trợ quy đổi)."
@@ -73,13 +77,39 @@ class DlQuotationPricingService(models.AbstractModel):
         # Chỉ chuyển RFQ sang 'quoted' sau khi báo giá + dòng đã tạo xong.
         rfq.sudo().write({"status": "quoted"})
 
-        return {
+        open_quotation = {
             "type": "ir.actions.act_window",
             "name": _("Báo giá"),
             "res_model": "dl.quotation",
+            # Khai báo tường minh 'views' (không chỉ 'view_mode'): action này
+            # được nhét vào params.next của display_notification nên KHÔNG đi qua
+            # clean_action ở server — client sẽ gọi doAction thẳng, và
+            # _preprocessAction làm action.views.map() → vỡ nếu thiếu 'views'.
+            "views": [(False, "form")],
             "view_mode": "form",
             "res_id": quotation.id,
             "target": "current",
+        }
+        # Toast xác nhận + hướng dẫn bước tiếp theo, tùy báo giá có cần duyệt
+        # không: dưới ngưỡng thì gửi khách ngay, vượt ngưỡng thì chờ phê duyệt.
+        if quotation.approval_required:
+            message = _(
+                "Đã tạo báo giá %(name)s. Giá trị vượt ngưỡng — cần phê duyệt "
+                "(%(level)s) trước khi gửi khách.",
+                name=quotation.name, level=quotation.approval_level or "")
+        else:
+            message = _(
+                "Đã tạo báo giá %(name)s — sẵn sàng gửi khách hàng ngay.",
+                name=quotation.name)
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "type": "success",
+                "title": _("Tạo báo giá thành công"),
+                "message": message,
+                "next": open_quotation,
+            },
         }
 
     # ------------------------------------------------------------------
@@ -146,10 +176,14 @@ class DlQuotationPricingService(models.AbstractModel):
         if rfq.status != "confirmed":
             raise UserError(QTE_001)
 
+        # Chặn tạo trùng chỉ khi RFQ còn báo giá ĐANG HIỆU LỰC. Báo giá đã đóng
+        # (từ chối / hết hiệu lực / đã thay bản mới / đã hủy) không chặn — cho
+        # phép báo giá lại từ RFQ (vd đổi vật liệu → BOM mới → báo giá mới).
+        closed = list(self.env["dl.quotation"]._CLOSED_STATES)
         existing = self.env["dl.quotation"].sudo().search(
             [
                 ("quotation_request_id", "=", rfq.id),
-                ("state", "!=", "cancelled"),
+                ("state", "not in", closed),
             ],
             limit=1,
         )
@@ -278,6 +312,11 @@ class DlQuotationPricingService(models.AbstractModel):
             "line_type": "manufactured",
             "product_id": rfq_line.resolved_product_id.id,
             "bom_id": bom.id,
+            # Dấu vết BOM tại thời điểm tạo báo giá (§5.2) — stamp scalar, không
+            # related sống về bom.version.
+            "bom_version": bom.version,
+            "bom_approved_by": bom.approved_by.id,
+            "bom_confirmed_date": bom.approved_date,
             "material_cost": unit_cost,
             "total_cost": total_cost,
             "base_price": target_price,
@@ -353,10 +392,10 @@ class DlQuotationPricingService(models.AbstractModel):
                     "source_revision": child.version,
                 }
             else:
-                self._check_measure_compatibility(bl, material, context)
-                seller = material.seller_ids.filtered("is_applied")[:1]
+                seller = self._active_material_seller(material, context)
                 if not seller or seller.price <= 0:
                     raise UserError(QTE_003 % material.display_name)
+                self._check_measure_compatibility(bl, material, seller, context)
                 unit_price = seller.price
                 spec_base = {
                     "component_type": "material",
@@ -400,10 +439,19 @@ class DlQuotationPricingService(models.AbstractModel):
             spec["amount"] /= bom.product_qty
         return unit_cost, specs
 
-    def _check_measure_compatibility(self, bom_line, material, context):
+    @staticmethod
+    def _active_material_seller(material, context):
+        """Giá được chọn phải đã duyệt, đang áp dụng và hiệu lực tại ngày tính giá."""
+        pricing_date = context["pricing_date"]
+        return material.seller_ids.filtered(
+            lambda seller: seller.is_applied
+            and seller.approval_state == "approved"
+            and seller._is_valid_on(pricing_date)
+        )[:1]
+
+    def _check_measure_compatibility(self, bom_line, material, seller, context):
         """Decision C8: P0 chưa quy đổi UoM/tiền tệ — nếu không tương thích thì
         chặn cứng (QTE-007) thay vì nhân trực tiếp gây sai số âm thầm."""
-        seller = material.seller_ids.filtered("is_applied")[:1]
         # Đơn vị mua khác đơn vị tính vật tư ⇒ giá NCC không cùng đơn vị định mức.
         if material.uom_id and material.uom_po_id and material.uom_id != material.uom_po_id:
             raise UserError(QTE_007 % material.display_name)
@@ -538,6 +586,17 @@ class DlQuotationRequest(models.Model):
         string="Báo giá",
         compute="_compute_quotation_id",
     )
+    auto_quote_error = fields.Text(
+        string="Lỗi tạo báo giá",
+        readonly=True,
+        copy=False,
+        tracking=True,
+    )
+    auto_quote_failed_at = fields.Datetime(
+        string="Thời điểm tạo báo giá lỗi",
+        readonly=True,
+        copy=False,
+    )
 
     def _compute_quotation_id(self):
         Quotation = self.env["dl.quotation"].sudo()
@@ -550,6 +609,42 @@ class DlQuotationRequest(models.Model):
                 limit=1,
             )
 
+    def _attempt_create_quotation(self):
+        """Tạo báo giá theo yêu cầu của Sales; trả về ``False`` khi lỗi nghiệp vụ."""
+        result = False
+        for rec in self:
+            if rec.status != "confirmed" or rec.quotation_id:
+                continue
+            try:
+                # Bao toàn bộ dịch vụ bằng savepoint để cả các cập nhật snapshot
+                # sau khi tạo quote cũng được rollback nếu phát sinh UserError.
+                with self.env.cr.savepoint():
+                    result = self.env[
+                        "dl.quotation.pricing.service"
+                    ].create_from_rfq(rec)
+            except UserError as error:
+                message = str(error)
+                old_message = rec.auto_quote_error
+                rec.sudo().write({
+                    "auto_quote_error": message,
+                    "auto_quote_failed_at": fields.Datetime.now(),
+                })
+                if message != old_message:
+                    rec.message_post(body=_(
+                        "Sales chưa tạo được báo giá:<br/>%s"
+                    ) % escape(message))
+                continue
+
+            rec.sudo().write({
+                "auto_quote_error": False,
+                "auto_quote_failed_at": False,
+            })
+            # quotation_id là field compute dựa trên search, không có dependency
+            # trực tiếp. Làm mới cache để form/nút mở báo giá thấy liên kết ngay
+            # trong cùng transaction vừa tạo.
+            rec.invalidate_recordset(["quotation_id"])
+        return result
+
     def action_create_quotation(self):
         """Nút 'Tạo báo giá' trên RFQ đã confirmed (§17.5)."""
         self.ensure_one()
@@ -560,7 +655,20 @@ class DlQuotationRequest(models.Model):
             or user.has_group("dl_base.dl_group_admin")
         ):
             raise UserError(_("Chỉ Sales, Trưởng KD hoặc Admin được tạo báo giá."))
-        return self.env["dl.quotation.pricing.service"].create_from_rfq(self)
+        result = self._attempt_create_quotation()
+        if result:
+            return result
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "type": "warning",
+                "title": _("Chưa tạo được báo giá"),
+                "message": self.auto_quote_error or _(
+                    "Vui lòng kiểm tra dữ liệu giá và thử lại."),
+                "sticky": True,
+            },
+        }
 
     def action_open_quotation(self):
         self.ensure_one()
@@ -573,3 +681,20 @@ class DlQuotationRequest(models.Model):
             "res_id": self.quotation_id.id,
             "target": "current",
         }
+
+    def action_reopen_for_revision(self, note=None):
+        """Mở lại RFQ đã 'Đã tạo báo giá' về 'Đang xử lý' để Kỹ thuật điều chỉnh
+        BOM khi khách yêu cầu đổi vật liệu/kỹ thuật (gọi từ báo giá). sudo để
+        Sales kích hoạt được — đây là chuyển tiếp luồng, không phải sửa nội dung
+        yêu cầu."""
+        for rec in self:
+            if rec.status != "quoted":
+                raise UserError(_(
+                    "Chỉ mở lại RFQ đã tạo báo giá để điều chỉnh kỹ thuật."))
+            rec.sudo().write({"status": "processing"})
+            body = _("Mở lại RFQ để Kỹ thuật điều chỉnh BOM — khách yêu cầu đổi "
+                     "vật liệu/kỹ thuật.")
+            if note:
+                body += "<br/>%s" % note
+            rec.message_post(body=body)
+        return True

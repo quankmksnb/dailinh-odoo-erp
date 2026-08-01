@@ -19,8 +19,7 @@
                     <div class="dl-config-rows">
                         <t t-foreach="sec.items" t-as="c" t-key="c.key">
                             <div class="dl-config-row"
-                                 t-att-class="{ 'is-disabled': !c.actionXmlId }"
-                                 t-on-click="() => this.openCard(c.actionXmlId)">
+                                 t-on-click="() => this.openCard(c)">
                                 <span class="dl-config-row-icon">
                                     <i t-att-class="'fa ' + c.icon"/>
                                 </span>
@@ -28,8 +27,7 @@
                                     <span class="dl-config-row-name" t-esc="c.name"/>
                                     <span class="dl-config-row-desc" t-esc="c.desc"/>
                                 </span>
-                                <span t-if="!c.actionXmlId" class="dl-config-row-soon">Sắp có</span>
-                                <i t-else="" class="fa fa-angle-right dl-config-row-arrow"/>
+                                <i class="fa fa-angle-right dl-config-row-arrow"/>
                             </div>
                         </t>
                     </div>

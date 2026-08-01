@@ -63,6 +63,7 @@ yarn.lock
 # ── IDE / editors ─────────────────────────────
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~

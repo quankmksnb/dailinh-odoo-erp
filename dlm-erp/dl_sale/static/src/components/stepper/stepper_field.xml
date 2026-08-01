@@ -13,6 +13,12 @@
                 <span class="dl-stepper-label" t-esc="s.label"/>
             </div>
         </t>
+        <t t-if="branch">
+            <span class="dl-stepper-arrow" t-if="steps.length">→</span>
+            <div class="dl-stepper-branch" t-att-class="'is-' + branch.kind">
+                <span class="dl-stepper-label" t-esc="branch.label"/>
+            </div>
+        </t>
     </div>
 </t>
 

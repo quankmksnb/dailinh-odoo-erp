@@ -47,7 +47,7 @@ _ROLE_LABELS = {
     "none": "Không cần duyệt",
     "sales_manager": "Trưởng KD",
     "ceo": "CEO",
-    "custom": "Custom role",
+    "custom": "Vai trò tùy chỉnh",
 }
 _MODE_LABELS = {
     "sequential": "Tuần tự",
@@ -65,7 +65,7 @@ _TAB2_FIELD_LABELS = [
     ("margin", "Margin tối thiểu (%)"),
     ("role", "Vai trò duyệt"),
     ("user", "Người duyệt cụ thể"),
-    ("backup", "Backup Approver"),
+    ("backup", "Người duyệt thay thế"),
     ("mode", "Kiểu duyệt"),
     ("sla", "SLA (giờ)"),
     ("active", "Trạng thái"),
@@ -739,7 +739,7 @@ class DlApprovalLevel(models.Model):
             ("none", "Không cần duyệt"),
             ("sales_manager", "Trưởng KD"),
             ("ceo", "CEO"),
-            ("custom", "Custom role"),
+            ("custom", "Vai trò tùy chỉnh"),
         ],
         "Vai trò duyệt",
         default="sales_manager",
@@ -749,8 +749,8 @@ class DlApprovalLevel(models.Model):
     approver_user_id = fields.Many2one("res.users", "Người duyệt cụ thể")
     backup_user_id = fields.Many2one(
         "res.users",
-        "Backup Approver",
-        help="Người thay thế khi người chính vắng / quá SLA (ảnh hưởng Escalation ở S10).",
+        "Người duyệt thay thế",
+        help="Người thay thế khi người duyệt chính vắng mặt hoặc quá hạn xử lý.",
     )
 
     mode = fields.Selection(

@@ -1,5 +1,7 @@
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError
+from markupsafe import escape
+
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 class DlSaleOrder(models.Model):
@@ -30,6 +32,13 @@ class DlSaleOrder(models.Model):
         ('cancelled', 'Đã hủy'),
     ], string='Trạng thái', default='draft', tracking=True, copy=False)
     note = fields.Text(string='Ghi chú')
+    reset_draft_reason = fields.Text(
+        string='Lý do đưa về nháp gần nhất', readonly=True,
+        copy=False, tracking=True)
+    reset_draft_by = fields.Many2one(
+        'res.users', string='Người đưa về nháp', readonly=True, copy=False)
+    reset_draft_at = fields.Datetime(
+        string='Thời điểm đưa về nháp', readonly=True, copy=False)
     currency_id = fields.Many2one(
         'res.currency', string='Tiền tệ',
         default=lambda self: self.env.company.currency_id)
@@ -71,6 +80,21 @@ class DlSaleOrder(models.Model):
         return orders
 
     def write(self, vals):
+        # Khoá cứng khách hàng: đơn là bản chốt thương mại của một báo giá đã được
+        # khách đồng ý. Đổi khách sau khi đơn đã gắn báo giá nguồn (hoặc rời khỏi
+        # Nháp) sẽ phá vỡ truy vết đơn↔báo giá và làm sai snapshot giá/chiết khấu
+        # (vốn tính theo nhóm khách nguồn). readonly ở form chỉ chặn UI — chặn ở
+        # đây để bịt cả đường API/import. Cho phép nếu giá trị không đổi thật sự.
+        if 'partner_id' in vals:
+            for order in self:
+                if order.partner_id.id == vals['partner_id']:
+                    continue
+                if order.quotation_id or order.state != 'draft':
+                    raise UserError(_(
+                        'Không thể đổi khách hàng của đơn "%s": đơn đã chốt từ '
+                        'báo giá nguồn (hoặc không còn ở trạng thái Nháp). '
+                        'Nếu cần đổi khách, hãy tạo đơn mới từ báo giá tương ứng.'
+                    ) % order.name)
         res = super().write(vals)
         # Bao mọi đường chuyển sang 'confirmed' (action_confirm, sửa tay trên
         # form) — promote SP gia công còn Nháp.
@@ -92,18 +116,48 @@ class DlSaleOrder(models.Model):
             rec.vat_amount = vat
             rec.amount_total = before_vat + vat
 
+    @api.constrains('date_order', 'quotation_id')
+    def _check_order_after_quotation(self):
+        """Ngày lên đơn không được TRƯỚC ngày báo giá nguồn — không thể chốt đơn
+        trước khi báo giá tồn tại. Neo vào ngày báo giá (KHÔNG so hôm nay), y như
+        cách RFQ neo hạn xử lý vào ngày tiếp nhận: đơn cũ vẫn sửa được, còn đơn
+        mới (báo giá vừa lập) thì tương đương 'không được chọn ngày quá khứ'."""
+        for order in self:
+            if order.date_order and order.quotation_id.date_order \
+                    and order.date_order < order.quotation_id.date_order:
+                raise ValidationError(_(
+                    'Ngày lên đơn (%(nld)s) không được trước ngày báo giá nguồn '
+                    '(%(nbg)s).') % {
+                        'nld': order.date_order,
+                        'nbg': order.quotation_id.date_order})
+
     def action_confirm(self):
         # write() lo phần promote SP gia công (state → 'confirmed').
         self.write({'state': 'confirmed'})
 
     def _promote_draft_products(self):
         """Đơn chốt ⇒ các SP còn ở Nháp (Kỹ thuật tạo khi xử lý RFQ) được nâng
-        lên 'Đã duyệt' để chính thức vào danh mục tái sử dụng. sudo vì người
-        chốt đơn (Sales) không có quyền write product.product của SP gia công."""
+        lên 'Đã duyệt' để chính thức vào danh mục tái sử dụng, đồng thời chuẩn
+        hóa (sinh Mã SP chính thức, gọn tên) và xác nhận BOM đi kèm. sudo vì
+        người chốt đơn (Sales) không có quyền write SP/BOM gia công."""
         products = self.mapped('line_ids.product_id').filtered(
             lambda p: p.dlm_lifecycle_state == 'draft')
         if products:
+            # Chuẩn hóa TRƯỚC (sinh mã/gọn tên) rồi mới nâng trạng thái.
+            products.sudo()._dlm_standardize_on_promote()
             products.sudo().write({'dlm_lifecycle_state': 'active'})
+        # Đóng băng BOM tại thời điểm lên đơn (thiết kế BOM truy xuất §4.2):
+        # 1) BOM còn Nháp (có dòng vật tư) → 'Đã xác nhận' (BOM rỗng bỏ qua vì
+        #    action_confirm bắt buộc có line_ids — không để crash luồng chốt đơn).
+        # 2) Mọi BOM đã xác nhận trên đơn → 'Đã khóa' để bất biến: đơn cũ luôn
+        #    truy được đúng phiên bản đã dùng, sửa thiết kế sau phải tạo bản mới.
+        boms = self.mapped('line_ids.bom_id').filtered(lambda b: b.line_ids).sudo()
+        draft_boms = boms.filtered(lambda b: b.status == 'draft')
+        if draft_boms:
+            draft_boms.action_confirm()
+        to_lock = boms.filtered(lambda b: b.status == 'confirmed')
+        if to_lock:
+            to_lock.action_lock()
 
     def action_done(self):
         self.write({'state': 'done'})
@@ -111,8 +165,96 @@ class DlSaleOrder(models.Model):
     def action_cancel(self):
         self.write({'state': 'cancelled'})
 
+    def _reset_draft_blockers(self):
+        """Tìm chứng từ lưu trữ có Many2one trỏ trực tiếp tới đơn.
+
+        Phase 1 chưa có giao hàng/hóa đơn/lệnh sản xuất. Cách dò theo metadata
+        giúp điều kiện "chưa có chứng từ sau đơn" tiếp tục có hiệu lực khi các
+        module phase sau được cài, đồng thời module sau vẫn có thể override nếu
+        cần quy tắc chi tiết hơn.
+        """
+        self.ensure_one()
+        excluded_models = {
+            'dl.sale.order',
+            'dl.sale.order.line',
+            'dl.sale.order.reset.draft.wizard',
+        }
+        relation_fields = self.env['ir.model.fields'].sudo().search([
+            ('relation', '=', self._name),
+            ('ttype', '=', 'many2one'),
+            ('store', '=', True),
+            ('model', 'not in', list(excluded_models)),
+        ])
+        blockers = []
+        for relation_field in relation_fields:
+            model_name = relation_field.model
+            if not self.env.registry.get(model_name):
+                continue
+            Model = self.env[model_name]
+            if Model._transient or relation_field.name not in Model._fields:
+                continue
+            count = Model.sudo().search_count([
+                (relation_field.name, '=', self.id),
+            ], limit=1)
+            if count:
+                blockers.append(relation_field.model_id.name or model_name)
+        return blockers
+
+    def _check_can_reset_draft(self):
+        self.ensure_one()
+        user = self.env.user
+        if not self.env.su and not (
+                user.has_group('dl_base.dl_group_sales_manager')
+                or user.has_group('dl_base.dl_group_admin')):
+            raise AccessError(_(
+                'Chỉ Trưởng phòng Kinh doanh hoặc Admin được đưa đơn về nháp.'))
+        if self.quotation_id:
+            raise UserError(_(
+                'Đơn %s được tạo từ báo giá đã được khách đồng ý nên không được '
+                'đưa về nháp. Hãy hủy đơn, lập bản điều chỉnh báo giá và tạo đơn mới.'
+            ) % self.name)
+        if self.state != 'confirmed':
+            raise UserError(_(
+                'Chỉ đơn bán trực tiếp đang ở trạng thái Đã xác nhận mới được '
+                'đưa về nháp.'))
+        blockers = self._reset_draft_blockers()
+        if blockers:
+            raise UserError(_(
+                'Không thể đưa đơn về nháp vì đã phát sinh chứng từ sau đơn: %s.'
+            ) % ', '.join(sorted(set(blockers))))
+        return True
+
     def action_reset_draft(self):
-        self.write({'state': 'draft'})
+        """Mở wizard bắt buộc nhập lý do; không đổi trạng thái trực tiếp."""
+        self._check_can_reset_draft()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Đưa đơn bán hàng về nháp'),
+            'res_model': 'dl.sale.order.reset.draft.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_order_id': self.id},
+        }
+
+    def _reset_to_draft_with_reason(self, reason):
+        self._check_can_reset_draft()
+        reason = (reason or '').strip()
+        if not reason:
+            raise ValidationError(_('Vui lòng nhập lý do đưa đơn về nháp.'))
+        now = fields.Datetime.now()
+        self.write({
+            'state': 'draft',
+            'reset_draft_reason': reason,
+            'reset_draft_by': self.env.user.id,
+            'reset_draft_at': now,
+        })
+        self.message_post(body=_(
+            'Đơn được đưa về Nháp bởi %(user)s.<br/>'
+            '<strong>Lý do:</strong> %(reason)s',
+            user=escape(self.env.user.display_name),
+            reason=escape(reason),
+        ))
+        return True
 
     def action_open_quotation(self):
         self.ensure_one()
@@ -139,6 +281,16 @@ class DlSaleOrderLine(models.Model):
     price_subtotal = fields.Float(string='Thành tiền', compute='_compute_subtotal',
                                   store=True, digits='Product Price')
     product_id = fields.Many2one('product.product', string='Sản phẩm', readonly=True)
+    # BOM đã chốt cho dòng gia công (snapshot từ báo giá) — dùng để tự xác nhận
+    # BOM khi đơn chốt (xem _promote_draft_products) + truy vết.
+    bom_id = fields.Many2one('dl.bom', string='BOM', readonly=True)
+    # Dấu vết BOM đã dùng cho đơn (thiết kế BOM truy xuất §5.3) — copy scalar từ
+    # dòng báo giá, lưu để audit/truy xuất, KHÔNG hiển thị trên form.
+    bom_version = fields.Integer(string='Phiên bản BOM', readonly=True, copy=False)
+    bom_approved_by = fields.Many2one(
+        'res.users', string='Người duyệt BOM', readonly=True, copy=False)
+    bom_confirmed_date = fields.Datetime(
+        string='Ngày duyệt BOM', readonly=True, copy=False)
     line_type = fields.Selection([
         ('trading', 'Thương mại'),
         ('manufactured', 'Gia công'),

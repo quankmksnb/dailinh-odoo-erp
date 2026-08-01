@@ -1,3 +1,4 @@
+import difflib
 import re
 
 from odoo import api, fields, models, _
@@ -217,6 +218,77 @@ class ProductProduct(models.Model):
             rec.sudo().write({"dlm_lifecycle_state": "draft"})
         return True
 
+    # ── Chuẩn hóa khi promote (đơn chốt tự duyệt SP gia công từ Nháp) ────────
+    def _dlm_standardize_on_promote(self):
+        """Chuẩn hóa SP khi được nâng Nháp→Đã duyệt (gọi từ luồng chốt đơn ở
+        dl_sale): sinh Mã SP chính thức nếu còn trống + gọn tên. sudo an toàn —
+        người chốt đơn (Sales) không có quyền write SP gia công."""
+        for rec in self:
+            vals = {}
+            # Gọn tên: bỏ khoảng trắng thừa (đầu/cuối + gộp liên tiếp).
+            name = rec.name and " ".join(rec.name.split())
+            if name and name != rec.name:
+                vals["name"] = name
+            # Mã chính thức: SP tạo lúc xử lý RFQ chưa có mã — sinh TP-00001.
+            if not rec.default_code:
+                vals["default_code"] = self.env["ir.sequence"].next_by_code(
+                    "dl.product.manufactured")
+            if vals:
+                rec.sudo().write(vals)
+        return True
+
+    # ── Nháp mồ côi: SP gia công còn Nháp nhưng RFQ không chốt thành đơn ──────
+    @api.model
+    def _dlm_orphan_draft_domain(self, older_than_days=None):
+        """Domain SP gia công/BTP còn Nháp, KHÔNG dòng đơn bán nào tham chiếu.
+        older_than_days: chỉ lấy SP tạo trước mốc đó (rác đã 'nguội')."""
+        # dl_product không depends dl_sale — model đơn bán chỉ có khi dl_sale
+        # đã cài; nếu chưa thì coi như không SP nào đang được dùng.
+        used_product_ids = []
+        if "dl.sale.order.line" in self.env:
+            used_product_ids = self.env["dl.sale.order.line"].sudo().search([
+                ("order_id.state", "!=", "cancelled"),
+            ]).mapped("product_id").ids
+        domain = [
+            ("dlm_lifecycle_state", "=", "draft"),
+            ("product_kind", "in", ("manufactured", "material_processed")),
+            ("id", "not in", used_product_ids),
+        ]
+        if older_than_days:
+            cutoff = fields.Datetime.subtract(
+                fields.Datetime.now(), days=older_than_days)
+            domain.append(("create_date", "<", cutoff))
+        return domain
+
+    @api.model
+    def _cron_obsolete_orphan_drafts(self):
+        """Cron: rà nháp mồ côi quá hạn → chuyển 'obsolete' (giữ lịch sử, reset
+        lại được). Ngưỡng ngày lấy từ ir.config_parameter (mặc định 30)."""
+        days = int(self.env["ir.config_parameter"].sudo().get_param(
+            "dl_product.orphan_draft_days", 30))
+        orphans = self.sudo().search(self._dlm_orphan_draft_domain(days))
+        if orphans:
+            orphans.write({"dlm_lifecycle_state": "obsolete"})
+            for rec in orphans:
+                rec.message_post(body=_(
+                    "Tự động chuyển 'Ngừng' — SP còn Nháp quá %s ngày và không "
+                    "có đơn bán nào sử dụng (nháp mồ côi).") % days)
+        return True
+
+    @api.model
+    def action_dlm_review_orphan_drafts(self):
+        """Nút/menu 'Rà soát nháp mồ côi' — mở danh sách SP nháp mồ côi (mọi
+        tuổi) để Kỹ thuật xem và tự chuyển 'Ngừng' (nút Ngừng có sẵn)."""
+        orphan_ids = self.sudo().search(self._dlm_orphan_draft_domain()).ids
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Nháp mồ côi (rà soát)"),
+            "res_model": "product.product",
+            "view_mode": "tree,form",
+            "domain": [("id", "in", orphan_ids)],
+            "target": "current",
+        }
+
     # ── Hao hụt & thu hồi (chỉ vật tư) ───────────────────────────────────
     # NGUỒN DUY NHẤT của hao hụt: đặt ngay trên vật tư, kỹ thuật điền khi tạo.
     # Tự điền mặc định theo NHÓM sản phẩm từ cấu hình (dl.pricing.waste.rule
@@ -259,6 +331,61 @@ class ProductProduct(models.Model):
                    "dlm_scrap_product_id"}
         self.sudo().write({k: v for k, v in vals.items() if k in allowed})
         return True
+
+    # ── Chống trùng tên sản phẩm (dùng chung wizard RFQ + form SP) ────────
+    @api.model
+    def _dlm_normalize_name(self, name):
+        """Chuẩn hoá tên để so trùng: gộp/khử khoảng trắng thừa + hạ chữ thường.
+        GIỮ NGUYÊN dấu tiếng Việt (chốt thiết kế) — vì vậy 'Khung máy ABC' và
+        'khung  máy   abc ' tính TRÙNG HỆT, còn 'Khung may ABC' (thiếu dấu) chỉ
+        tính GẦN GIỐNG."""
+        if not name:
+            return ""
+        return " ".join(name.split()).lower()
+
+    @api.model
+    def _dlm_find_name_matches(self, name, kinds=None, exclude_ids=None,
+                               extra_domain=None, similar_threshold=0.82):
+        """Tìm SP trùng/gần giống theo TÊN đã chuẩn hoá.
+
+        Trả về dict ``{'exact': recordset, 'similar': recordset}``:
+        • exact  — tên chuẩn hoá bằng nhau (khác hoa/thường hay thừa khoảng
+          trắng vẫn tính trùng).
+        • similar — một tên chứa TRỌN các token của tên kia, HOẶC độ tương đồng
+          difflib ≥ ngưỡng (bắt cả trường hợp thiếu dấu / thêm hậu tố năm...).
+
+        Chỉ soi SP đang hoạt động (active) thuộc ``kinds``. ``exclude_ids`` bỏ
+        chính bản ghi đang kiểm; ``extra_domain`` để thu hẹp (VD loại SP tạm RFQ).
+        """
+        Product = self.env["product.product"]
+        empty = Product.browse()
+        norm = self._dlm_normalize_name(name)
+        if not norm:
+            return {"exact": empty, "similar": empty}
+        domain = [("product_kind", "in", list(
+            kinds or [k for k, _label in _PRODUCT_KIND_SELECTION]))]
+        if exclude_ids:
+            domain.append(("id", "not in", list(exclude_ids)))
+        if extra_domain:
+            domain += list(extra_domain)
+        candidates = Product.search(domain)
+        norm_tokens = set(norm.split())
+        exact = empty
+        similar_ids = []
+        for prod in candidates:
+            cnorm = self._dlm_normalize_name(prod.name)
+            if not cnorm:
+                continue
+            if cnorm == norm:
+                exact |= prod
+                continue
+            ctokens = set(cnorm.split())
+            token_subset = bool(norm_tokens) and bool(ctokens) and (
+                norm_tokens <= ctokens or ctokens <= norm_tokens)
+            ratio = difflib.SequenceMatcher(None, norm, cnorm).ratio()
+            if token_subset or ratio >= similar_threshold:
+                similar_ids.append(prod.id)
+        return {"exact": exact, "similar": Product.browse(similar_ids)}
 
     # ── Constraints ──────────────────────────────────────────────────────
     @api.constrains("default_code")

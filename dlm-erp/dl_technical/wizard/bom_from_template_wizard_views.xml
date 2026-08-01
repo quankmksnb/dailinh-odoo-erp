@@ -18,7 +18,7 @@
                 </p>
                 <footer>
                     <button name="action_confirm" type="object"
-                            string="Copy" class="oe_highlight"/>
+                            string="Sao chép" class="oe_highlight"/>
                     <button string="Hủy" special="cancel"/>
                 </footer>
             </form>

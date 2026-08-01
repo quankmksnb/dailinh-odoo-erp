@@ -296,9 +296,9 @@
                             <div class="dl-prod-img">
                                 <img t-if="record.image_128.raw_value"
                                     t-att-src="kanban_image('product.product', 'image_128', record.id.raw_value)"
-                                    alt="" />
+                                    t-att-alt="record.name.value" />
                                 <span t-else="" class="dl-prod-img__placeholder">
-                                    <i class="fa fa-cube" />
+                                    <i class="fa fa-cube" title="Sản phẩm" />
                                 </span>
                             </div>
                             <div class="dl-prod-info">
@@ -310,7 +310,7 @@
                                     <span t-if="record.categ_id.value" t-esc="record.categ_id.value" />
                                 </div>
                                 <div class="dl-prod-detail" t-if="record.uom_id.value">
-                                    <i class="fa fa-balance-scale" />
+                                    <i class="fa fa-balance-scale" title="Đơn vị tính" />
                                     <span t-esc="record.uom_id.value" />
                                 </div>
                             </div>

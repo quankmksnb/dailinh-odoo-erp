@@ -7,6 +7,7 @@
         sequence="1"
         web_icon="dl_base,static/description/icon.png"
         action="action_dl_home"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"
     />
 
     <menuitem
@@ -32,14 +33,16 @@
         name="Kỹ thuật"
         parent="menu_dl_root"
         sequence="20"
+        groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
 
-    <menuitem
-        id="menu_dl_report"
-        name="Báo cáo"
-        parent="menu_dl_root"
-        sequence="40"
-    />
+    <!-- Chưa có màn báo cáo thực tế: ẩn hẳn để người dùng không mở vào ngõ cụt. -->
+    <record id="menu_dl_report" model="ir.ui.menu">
+        <field name="name">Báo cáo</field>
+        <field name="parent_id" ref="menu_dl_root"/>
+        <field name="sequence">40</field>
+        <field name="active" eval="False"/>
+    </record>
 
     <menuitem
         id="menu_dl_config"

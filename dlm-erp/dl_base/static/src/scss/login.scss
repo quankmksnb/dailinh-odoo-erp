@@ -1,0 +1,36 @@
+// ============================================================================
+// Trang đăng nhập / đặt lại mật khẩu — bám design token DLM.
+// Mục tiêu: card trắng có điểm neo (viền mảnh + bóng nhẹ) trên canvas xám,
+// căn giữa cả dọc lẫn ngang. Giữ tiết chế, khớp phong cách card còn lại của app.
+// Nạp ở web.assets_frontend (login là trang public, KHÔNG dùng assets_backend).
+// Scope qua class .dl-login-wrap gắn ở dl_base/views/login_templates.xml.
+// ============================================================================
+
+// Bọc ngoài: kéo đầy chiều cao màn hình rồi căn giữa khối login.
+.dl-login-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    // Card thật: đè .bg-100 / .border-0 / max-width:300px (đều !important nên
+    // bản đè cũng phải !important).
+    .card {
+        width: 100%;
+        max-width: 340px !important;
+        background-color: #ffffff !important;             // $dl-surface
+        border: 1px solid #dde1e6 !important;             // $dl-border
+        border-radius: 5px;                               // $dl-radius
+        box-shadow: 0 1px 2px rgba(28, 39, 51, 0.06);     // $dl-shadow-sm
+    }
+
+    .card-body {
+        padding: 26px 24px;
+    }
+
+    // Sau khi bỏ link "Đăng ký", dòng chỉ còn "Quên mật khẩu?" — không dồn
+    // hai mép nữa mà căn giữa cho cân.
+    .justify-content-between {
+        justify-content: center !important;
+    }
+}
