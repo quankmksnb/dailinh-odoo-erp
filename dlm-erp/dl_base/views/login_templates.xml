@@ -22,5 +22,12 @@
 
     <template id="dl_login_footer" inherit_id="web.login_layout" name="DLM Login Footer">
         <xpath expr="//div[contains(concat(' ', normalize-space(@class), ' '), ' o_brand_promotion ') or contains(concat(' ', normalize-space(@class), ' '), ' border-top ')]" position="replace" />
+        <!-- Gắn class đánh dấu ở khối bọc để scope CSS login (căn giữa + card
+             thật), tránh áp nhầm sang các trang public khác. Card dùng
+             t-attf-class động nên KHÔNG tag trực tiếp — style qua
+             `.dl-login-wrap .card` trong login.scss. -->
+        <xpath expr="//div[hasclass('container')]" position="attributes">
+            <attribute name="class" add="dl-login-wrap" separator=" "/>
+        </xpath>
     </template>
 </odoo>

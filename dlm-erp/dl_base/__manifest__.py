@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Base',
-    'version': '17.0.1.1.3',
+    'version': '17.0.1.1.4',
     'summary': 'App gốc — định nghĩa Groups (CEO/Admin/BA/Tech) và menu chính 5 module Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -47,6 +47,11 @@
             'dl_base/static/src/components/rail/rail.scss',
             'dl_base/static/src/components/rail/rail.xml',
             'dl_base/static/src/components/rail/rail.js',
+        ],
+        # Trang public (đăng nhập / đặt lại mật khẩu) — style riêng, scope
+        # qua class .dl-login-* trong views/login_templates.xml.
+        'web.assets_frontend': [
+            'dl_base/static/src/scss/login.scss',
         ],
     },
     'installable': True,
