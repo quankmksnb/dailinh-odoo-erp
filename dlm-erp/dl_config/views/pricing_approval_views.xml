@@ -40,7 +40,7 @@
                     <button name="action_open_reject_wizard" string="Từ chối" type="object"
                             class="btn-danger"
                             invisible="state != 'pending' or not can_resolve"/>
-                    <field name="state" widget="statusbar"
+                    <field name="state" widget="dl_stepper"
                            statusbar_visible="pending,approved"/>
                 </header>
                 <sheet>

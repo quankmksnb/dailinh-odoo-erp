@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Cấu hình (Master Data)',
-    'version': '17.0.2.3.0',
+    'version': '17.0.2.4.0',
     'summary': 'Cấu hình hệ thống, cấu hình báo giá có phiên bản và dữ liệu danh mục',
     'author': 'Dai Linh',
     'category': 'Hidden',

@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Base',
-    'version': '17.0.1.1.4',
+    'version': '17.0.1.2.0',
     'summary': 'App gốc — định nghĩa Groups (CEO/Admin/BA/Tech) và menu chính 5 module Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -39,6 +39,11 @@
             'dl_base/static/src/js/actions_menu.js',
             'dl_base/static/src/views/dl_list_controller.js',
             'dl_base/static/src/views/dl_kanban_controller.js',
+            # Field widget dùng chung — stepper trạng thái (thay statusbar mặc
+            # định trên MỌI form dl.*). Đặt ở dl_base vì mọi module con đều dùng.
+            'dl_base/static/src/components/stepper/stepper_field.scss',
+            'dl_base/static/src/components/stepper/stepper_field.js',
+            'dl_base/static/src/components/stepper/stepper_field.xml',
             # Component — Home dashboard (client action ir.actions.client)
             'dl_base/static/src/components/home/home.scss',
             'dl_base/static/src/components/home/home.xml',

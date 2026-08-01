@@ -80,7 +80,7 @@
                     <button name="action_reset_draft" type="object" string="Về nháp"
                         invisible="approval_state != 'approved' or is_applied"
                         groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
-                    <field name="display_state" widget="statusbar"
+                    <field name="display_state" widget="dl_stepper"
                         statusbar_visible="draft,approved,applied" />
                 </header>
                 <sheet>

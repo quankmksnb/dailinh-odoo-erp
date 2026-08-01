@@ -104,7 +104,7 @@
                     />
                     <field
                         name="dlm_lifecycle_state"
-                        widget="statusbar"
+                        widget="dl_stepper"
                         statusbar_visible="draft,active,obsolete"
                     />
                 </header>

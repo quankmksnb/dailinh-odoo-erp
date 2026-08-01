@@ -82,7 +82,7 @@
                             invisible="status == 'archived'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn lưu trữ BOM này? (Đơn hàng đã dùng vẫn truy được BOM này.)"/>
-                    <field name="status" widget="statusbar"
+                    <field name="status" widget="dl_stepper"
                            statusbar_visible="draft,confirmed,locked"
                            readonly="1"/>
                 </header>
