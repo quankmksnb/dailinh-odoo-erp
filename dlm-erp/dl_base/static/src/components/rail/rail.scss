@@ -296,6 +296,18 @@ $dl-rail-bg:      $dl-nav-bg;
             // Hover thắng màu mờ mặc định (đặt lại tường minh để không bị
             // quy tắc .dlm-rail-subitem ghi đè do cùng độ ưu tiên).
             &:hover { color: $dl-primary; }
+
+            // Mục con đang xem: tô rõ để biết đang ở màn nào trong submenu.
+            // Cần khai báo tại đây (độ ưu tiên cao hơn) vì quy tắc màu mờ của
+            // .dlm-rail-subitem đứng sau .dlm-rail-item.active, nếu không sẽ đè.
+            &.active {
+                background: $dl-active;
+                color: $dl-primary;
+                border-left-color: $dl-primary;
+                font-weight: 600;
+
+                i.fa { color: $dl-primary; }
+            }
         }
     }
 

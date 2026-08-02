@@ -15,6 +15,7 @@ import {
   sidebarState,
   toggleSidebar,
   setActiveKey,
+  setActiveChildKey,
 } from "@dl_base/js/sidebar_state";
 
 // Chu kỳ làm mới badge (số việc chờ) — đủ nhanh để người duyệt thấy việc mới,
@@ -197,6 +198,8 @@ export class DlmRail extends Component {
 
   openChild(child, groupKey) {
     setActiveKey(groupKey);
+    // Tô mục con đang chọn trong submenu (nhóm cha vẫn active nhờ groupKey).
+    setActiveChildKey(child.key);
     // Điều hướng thường xảy ra sau khi vừa xử lý việc ở màn trước → làm mới
     // số việc chờ để badge phản ánh ngay, không đợi hết chu kỳ poll.
     this._refreshBadges();
@@ -315,6 +318,8 @@ export class DlmRail extends Component {
 
   openItem(item) {
     setActiveKey(item.key);
+    // Mục leaf (không submenu) → không mục con nào active.
+    setActiveChildKey(null);
     this._refreshBadges();
     if (item.preferMenu) {
       const menu = this._resolveItemMenu(item);

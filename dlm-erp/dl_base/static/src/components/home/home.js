@@ -7,7 +7,7 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 import { Dropdown } from "@web/core/dropdown/dropdown";
 import { DropdownItem } from "@web/core/dropdown/dropdown_item";
 import { ErrorHandler } from "@web/core/utils/components";
-import { setActiveKey } from "@dl_base/js/sidebar_state";
+import { setActiveKey, setActiveChildKey } from "@dl_base/js/sidebar_state";
 
 const systrayRegistry = registry.category("systray");
 
@@ -107,11 +107,11 @@ const MODULE_CARDS = [
 // railKey = key nhóm rail tương ứng để tô đúng vệt sáng sidebar khi vào thẳng.
 const LANDING_RULES = [
     { group: "dl_base.dl_group_ceo", actionXmlId: "dl_sale.action_dl_quote_approval", railKey: "approval" },
-    { group: "dl_base.dl_group_sales_manager", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation" },
-    { group: "dl_base.dl_group_ba", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation" },
-    { group: "dl_base.dl_group_accountant", actionXmlId: "dl_product.action_dl_supplierinfo_material_full", railKey: "pricing" },
-    { group: "dl_base.dl_group_tech", actionXmlId: "dl_product.action_dl_material_tech", railKey: "product" },
-    { group: "dl_base.dl_group_admin", actionXmlId: "dl_config.action_dl_user_admin", railKey: "config" },
+    { group: "dl_base.dl_group_sales_manager", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation", railChildKey: "quotation_list" },
+    { group: "dl_base.dl_group_ba", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation", railChildKey: "quotation_list" },
+    { group: "dl_base.dl_group_accountant", actionXmlId: "dl_product.action_dl_supplierinfo_material_full", railKey: "pricing", railChildKey: "material_price" },
+    { group: "dl_base.dl_group_tech", actionXmlId: "dl_technical.action_dl_quotation_request_my", railKey: "technical", railChildKey: "rfq" },
+    { group: "dl_base.dl_group_admin", actionXmlId: "dl_config.action_dl_user_admin", railKey: "config", railChildKey: "user" },
 ];
 
 export class DlHome extends Component {
@@ -131,6 +131,9 @@ export class DlHome extends Component {
         // Action đích + key nhóm rail sẽ dùng sau khi mount (khớp vai trò ở onWillStart).
         this._landingAction = null;
         this._landingKey = null;
+        // Mục con trong submenu ứng với màn land (nếu land thẳng vào 1 mục con,
+        // vd Kỹ thuật → RFQ cần xử lý). null = land vào màn nhóm/leaf.
+        this._landingChildKey = null;
 
         this._dlmApp = this.menuService
             .getApps()
@@ -153,6 +156,7 @@ export class DlHome extends Component {
                 // Tô đúng vệt sáng nhóm rail cho màn land (localStorage có thể còn
                 // giữ key nhóm cũ từ phiên trước → lệch nếu không set lại).
                 setActiveKey(this._landingKey);
+                setActiveChildKey(this._landingChildKey);
                 this.actionService.doAction(this._landingAction, { clearBreadcrumbs: true });
             }
         });
@@ -166,6 +170,7 @@ export class DlHome extends Component {
                 if (await this.userService.hasGroup(rule.group)) {
                     this._landingAction = rule.actionXmlId;
                     this._landingKey = rule.railKey;
+                    this._landingChildKey = rule.railChildKey || null;
                     this.state.redirecting = true;
                     return;
                 }
