@@ -384,9 +384,12 @@
                             string="Đánh dấu đã tạo báo giá" class="oe_highlight"
                             invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                    <!-- Ẩn "Hủy RFQ" khi bản ghi CHƯA LƯU (id falsy): lúc tạo mới
+                         chưa có RFQ để hủy → dùng nút "Huỷ" (Discard) native của Odoo
+                         là đủ. Chỉ hiện sau khi đã Lưu (status='new' trở đi). -->
                     <button name="action_cancel" type="object"
                             string="Hủy RFQ"
-                            invisible="status in ('quoted', 'cancelled')"
+                            invisible="not id or status in ('quoted', 'cancelled')"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn hủy RFQ này?"/>
                     <field name="status" widget="dl_stepper"
@@ -427,11 +430,14 @@
                                 context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
                             <field name="requested_date" readonly="status != 'new'"/>
                             <field name="deadline" options="{'min_date': 'today'}"/>
-                            <field name="created_by"/>
+                            <!-- Người tạo cố ý KHÔNG hiện ở màn Sales tạo mới (luôn là
+                                 chính mình → thừa). Các màn khác vẫn giữ trường này. -->
                         </group>
                     </group>
 
-                    <group string="Tiến độ xử lý kỹ thuật">
+                    <!-- Tiến độ kỹ thuật luôn = 0% lúc RFQ còn 'new' (chưa gửi Kỹ
+                         thuật) → ẩn khi tạo mới, chỉ hiện sau khi vào xử lý. -->
+                    <group string="Tiến độ xử lý kỹ thuật" invisible="status == 'new'">
                         <field name="technical_progress_label" readonly="1" nolabel="1"/>
                         <field name="technical_progress_percent" widget="progressbar"
                                readonly="1" nolabel="1"/>
