@@ -16,13 +16,6 @@ const CONFIG_CHILDREN = [
         menuXmlIds: ["dl_config.menu_dl_config_uom"],
     },
     {
-        key: "company",
-        name: "Công ty",
-        icon: "fa-building-o",
-        actionXmlId: "dl_config.action_dl_company",
-        menuXmlIds: ["dl_config.menu_dl_config_company"],
-    },
-    {
         key: "pricing_config",
         name: "Cấu hình Báo giá",
         icon: "fa-calculator",

@@ -16,15 +16,6 @@ const CARDS = [
         menuXmlIds: ["dl_config.menu_dl_config_uom"],
     },
     {
-        key: "company",
-        name: "Công ty",
-        desc: "Thông tin công ty phát hành",
-        icon: "fa-building-o",
-        group: "master",
-        actionXmlId: "dl_config.action_dl_company",
-        menuXmlIds: ["dl_config.menu_dl_config_company"],
-    },
-    {
         key: "pricing_config",
         name: "Cấu hình Báo giá",
         desc: "Hao hụt, công đoạn, chi phí chung, lợi nhuận, chiết khấu và phê duyệt",
