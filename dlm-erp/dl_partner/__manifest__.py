@@ -11,6 +11,7 @@
         'data/partner_category_data.xml',
         'views/customer_views.xml',
         'views/supplier_views.xml',
+        'views/res_country_views.xml',
         'views/partner_menus.xml',
     ],
     'installable': True,

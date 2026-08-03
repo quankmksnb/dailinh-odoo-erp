@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Người dùng (res.users) — form redesign nhẹ dạng "trang thông tin", chỉ
+         dùng qua mũi tên trong app (get_formview_action) khi bấm Người tạo/duyệt/
+         nhận… KHÔNG đặt priority: form gốc Odoo (Settings → Users, đủ tab bảo mật)
+         vẫn mặc định toàn hệ thống. Quản trị user thật vẫn đi qua màn Quản lý User
+         (service có guard Admin) — form này chỉ để xem nhanh. -->
+    <record id="view_dl_user_form" model="ir.ui.view">
+        <field name="name">dl.user.form</field>
+        <field name="model">res.users</field>
+        <field name="arch" type="xml">
+            <form string="Người dùng" class="dl-user-form">
+                <sheet>
+                    <field name="active" invisible="1"/>
+                    <widget name="web_ribbon" title="Đã khóa"
+                        bg_color="text-bg-danger" invisible="active"/>
+                    <field name="image_1920" widget="image" class="oe_avatar"
+                        options="{'preview_image': 'image_128'}"/>
+                    <div class="oe_title">
+                        <label for="name" string="Họ tên"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Tài khoản">
+                            <field name="login" string="Tên đăng nhập"/>
+                            <field name="email" string="Email"/>
+                        </group>
+                        <group string="Liên hệ &amp; hoạt động">
+                            <field name="phone" string="Điện thoại"/>
+                            <field name="login_date" string="Đăng nhập gần nhất"
+                                readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action form-only cho mũi tên mở Người dùng. Có id nên URL giữ view khi
+         F5/deep-link. Không gắn menu; chặn tạo/xóa (quản trị đi qua Quản lý User). -->
+    <record id="action_dl_user_form" model="ir.actions.act_window">
+        <field name="name">Người dùng</field>
+        <field name="res_model">res.users</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_dl_user_form"/>
+        <field name="target">current</field>
+        <field name="context">{'create': False, 'delete': False}</field>
+    </record>
+
+</odoo>

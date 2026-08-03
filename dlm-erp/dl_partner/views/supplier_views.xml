@@ -155,6 +155,17 @@
         </field>
     </record>
 
+    <!-- Action form-only cho mũi tên mở NCC (get_formview_action). Có id nên URL
+         giữ được view khi F5/deep-link. Không gắn menu, chỉ dùng qua điều hướng. -->
+    <record id="action_dl_supplier_form" model="ir.actions.act_window">
+        <field name="name">NCC / Thầu phụ</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_dl_supplier_form"/>
+        <field name="target">current</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+
     <!-- Action chỉ-đọc cho Trưởng phòng KD (S04: "Xem danh sách" NCC).
          context create/edit/delete=False => UX chỉ đọc; bảo mật thật do ir.rule đảm nhiệm. -->
     <record id="action_dl_supplier_readonly" model="ir.actions.act_window">
