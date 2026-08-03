@@ -342,7 +342,7 @@
     </record>
 
     <record id="action_dl_quotation" model="ir.actions.act_window">
-        <field name="name">Báo giá</field>
+        <field name="name">Danh sách báo giá</field>
         <field name="res_model">dl.quotation</field>
         <field name="view_mode">tree,form</field>
         <field name="view_ids" eval="[

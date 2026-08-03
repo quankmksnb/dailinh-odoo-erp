@@ -184,7 +184,7 @@
     </record>
 
     <record id="action_dl_quote_approval" model="ir.actions.act_window">
-        <field name="name">Phê duyệt báo giá</field>
+        <field name="name">Phê duyệt</field>
         <field name="res_model">dl.pricing.approval.request</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('request_type', '=', 'quote_over_threshold')]</field>
