@@ -1,6 +1,6 @@
 {
     "name": "DL-Product",
-    "version": "17.0.2.7.0",
+    "version": "17.0.2.11.2",
     "summary": "Sản phẩm hợp nhất (product.product), bảng giá NCC, đo lường - theo Data Model TDS 4",
     "author": "Dai Linh",
     "category": "Hidden",
@@ -37,6 +37,7 @@
             "dl_product/static/src/components/pricing_home/pricing_home.js",
             # abc OWL mock
             "dl_product/static/src/scss/product_list.scss",
+            "dl_product/static/src/scss/pricing_list.scss",
             "dl_product/static/src/scss/product_form.scss",
             "dl_product/static/src/scss/category_list.scss",
             "dl_product/static/src/scss/product_kanban.scss",

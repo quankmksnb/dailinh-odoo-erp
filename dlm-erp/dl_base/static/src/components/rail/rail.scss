@@ -55,6 +55,12 @@ $dl-rail-bg:      $dl-nav-bg;
         display: flex;
         flex-direction: column;
         gap: 1px;
+
+        // Ẩn thanh cuộn: nếu để scrollbar chiếm chỗ, cột icon bị đẩy lệch trái
+        // so với head (logo/toggle) và khối tài khoản — hai phần KHÔNG cuộn nên
+        // vẫn canh giữa → nhìn như sidebar bị lệch khi thu gọn. Vẫn cuộn được.
+        scrollbar-width: none;              // Firefox
+        &::-webkit-scrollbar { width: 0; height: 0; }  // Chromium
     }
 
     // Khối tài khoản (user menu Odoo) — ghim đáy rail.
@@ -322,15 +328,26 @@ $dl-rail-bg:      $dl-nav-bg;
         // Trang chủ — phải mở rộng rail mới bấm được.
         .dlm-rail-head {
             flex-direction: column;
+            align-items: center;
             gap: 4px;
         }
+        // Logo (Home) và nút thu/mở xếp dọc, mỗi cái là 1 ô 40px canh giữa để
+        // thẳng hàng với cột icon bên dưới.
         .dlm-rail-logo {
+            width: 40px;
             justify-content: center;
             .dlm-rail-icon { margin: 0; }
         }
-        .dlm-rail-toggle { margin-left: 0; }
-        .dlm-rail-chevron,
-        .dlm-rail-chevron-btn { display: none; }
+        .dlm-rail-toggle {
+            width: 40px;
+            margin-left: 0;
+        }
+        // Giữ cùng độ ưu tiên với rule `.dlm-rail-item.has-children` phía trên;
+        // nếu không, nút chevron 24px vẫn display:flex và đẩy icon lệch trái 12px.
+        .dlm-rail-item.has-children {
+            .dlm-rail-chevron,
+            .dlm-rail-chevron-btn { display: none; }
+        }
         .dlm-rail-submenu { display: none; }
         .dlm-rail-item {
             border-left: 0;

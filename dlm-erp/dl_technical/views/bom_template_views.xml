@@ -234,7 +234,7 @@
     </record>
 
     <record id="action_dl_bom_template" model="ir.actions.act_window">
-        <field name="name">BOM Template</field>
+        <field name="name">BOM mẫu</field>
         <field name="res_model">dl.bom.template</field>
         <field name="view_mode">tree,form</field>
         <field name="help" type="html">

@@ -30,7 +30,7 @@
                     <div class="dl-decision-head">
                         <div class="dl-decision-cell">
                             <span class="dl-decision-lbl">Tổng thanh toán</span>
-                            <field name="q_amount_total" widget="monetary"
+                            <field name="q_amount_total" widget="dl_money"
                                    options="{'currency_field': 'q_currency_id'}"
                                    nolabel="1" readonly="1" class="dl-decision-val"/>
                         </div>
@@ -64,13 +64,13 @@
                     </group>
                     <group string="Giá thành &amp; lợi nhuận (nội bộ)"
                            groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
-                        <field name="q_total_cost" widget="monetary" readonly="1"
+                        <field name="q_total_cost" widget="dl_money" readonly="1"
                                string="Tổng giá thành (vật tư)"/>
                         <field name="q_target_markup" readonly="1"
                                string="Markup mục tiêu (%)"/>
                         <field name="q_effective_markup" readonly="1"
                                string="Markup thực (%)"/>
-                        <field name="q_floor_amount" widget="monetary" readonly="1"
+                        <field name="q_floor_amount" widget="dl_money" readonly="1"
                                string="Tổng giá sàn"/>
                         <field name="q_below_floor" readonly="1"
                                string="Dưới giá sàn"/>
@@ -84,29 +84,29 @@
                                        decoration-info="line_type == 'trading'"
                                        decoration-success="line_type == 'manufactured'"/>
                                 <field name="name"/>
-                                <field name="qty" digits="[16, 0]"/>
-                                <field name="material_cost" digits="[16, 0]" string="CP vật tư/đv"
+                                <field name="qty" widget="dl_money" digits="[16, 0]"/>
+                                <field name="material_cost" widget="dl_money" digits="[16, 0]" string="CP vật tư/đv"
                                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                <field name="total_cost" digits="[16, 0]" string="Giá thành/đv"
+                                <field name="total_cost" widget="dl_money" digits="[16, 0]" string="Giá thành/đv"
                                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                <field name="floor_price" digits="[16, 0]" string="Giá sàn/đv"
+                                <field name="floor_price" widget="dl_money" digits="[16, 0]" string="Giá sàn/đv"
                                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                <field name="price_unit" digits="[16, 0]"/>
-                                <field name="price_subtotal" digits="[16, 0]"/>
+                                <field name="price_unit" widget="dl_money" digits="[16, 0]"/>
+                                <field name="price_subtotal" widget="dl_money" digits="[16, 0]"/>
                             </tree>
                         </field>
                         <group class="oe_subtotal_footer">
-                            <field name="q_amount_untaxed" widget="monetary" readonly="1"
+                            <field name="q_amount_untaxed" widget="dl_money" readonly="1"
                                    string="Giá trước chiết khấu"/>
                             <field name="q_discount_pct" readonly="1"/>
-                            <field name="q_discount_amount" widget="monetary" readonly="1"
+                            <field name="q_discount_amount" widget="dl_money" readonly="1"
                                    string="Tiền chiết khấu"/>
-                            <field name="q_amount_before_vat" widget="monetary" readonly="1"
+                            <field name="q_amount_before_vat" widget="dl_money" readonly="1"
                                    string="Sau chiết khấu, trước VAT"/>
                             <field name="q_vat_pct" readonly="1"/>
-                            <field name="q_vat_amount" widget="monetary" readonly="1"
+                            <field name="q_vat_amount" widget="dl_money" readonly="1"
                                    string="Tiền VAT"/>
-                            <field name="q_amount_total" widget="monetary" readonly="1"
+                            <field name="q_amount_total" widget="dl_money" readonly="1"
                                    string="Tổng thanh toán" class="oe_subtotal_footer_separator"/>
                         </group>
                         <group>
@@ -137,9 +137,9 @@
                                 <field name="component_type"/>
                                 <field name="material_id"/>
                                 <field name="qty"/>
-                                <field name="unit_price" digits="[16, 0]"/>
+                                <field name="unit_price" widget="dl_money" digits="[16, 0]"/>
                                 <field name="rate"/>
-                                <field name="amount" digits="[16, 0]"/>
+                                <field name="amount" widget="dl_money" digits="[16, 0]"/>
                                 <field name="source_model" optional="hide"/>
                                 <field name="source_revision" optional="hide"/>
                             </tree>
@@ -165,7 +165,7 @@
                 <field name="q_partner_id" string="Khách hàng"/>
                 <field name="q_currency_id" column_invisible="1"/>
                 <field name="q_amount_total" string="Tổng thanh toán"
-                       widget="monetary" options="{'currency_field': 'q_currency_id'}"/>
+                       widget="dl_money" options="{'currency_field': 'q_currency_id'}"/>
                 <field name="approval_level" string="Cấp duyệt"/>
                 <!-- Lý do vượt ngưỡng ngay trên dòng thay vì phải mở từng bản ghi
                      (review UX inbox #f2). Gated theo _COST_GROUPS vì gộp cả
@@ -184,7 +184,7 @@
     </record>
 
     <record id="action_dl_quote_approval" model="ir.actions.act_window">
-        <field name="name">Phê duyệt báo giá</field>
+        <field name="name">Phê duyệt</field>
         <field name="res_model">dl.pricing.approval.request</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('request_type', '=', 'quote_over_threshold')]</field>

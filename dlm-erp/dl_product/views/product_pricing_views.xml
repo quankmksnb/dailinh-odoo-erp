@@ -14,18 +14,38 @@
         <field name="inherit_id" ref="view_dl_product_form" />
         <field name="mode">primary</field>
         <field name="arch" type="xml">
+            <!-- Màn Bảng giá = nơi định GIÁ, không sửa DANH TÍNH SP. Khóa tên/mã/
+                 nhóm/loại/ĐVT (do Sales/Kỹ thuật đặt ở màn Sản phẩm) — tránh Mua
+                 hàng (nay có quyền ghi product) sửa nhầm khi gắn giá NCC. -->
+            <field name="name" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="default_code" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="categ_id" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="product_kind" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <field name="uom_id" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+            <!-- Giá vốn tham chiếu (readonly) đã có sẵn trong group Thông tin
+                 thương mại của form gốc — không thêm lại ở đây để tránh trùng field. -->
             <notebook position="inside">
                 <page
                     string="Nhà cung cấp &amp; Bảng giá"
                     name="sellers"
-                    groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo"
+                    groups="dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo"
                 >
                     <!-- Banner hướng dẫn ngữ cảnh: chỉ hiện khi còn dòng giá Nháp,
                          nhắc người mới bước tiếp theo thay vì bắt họ tự đoán. -->
                     <field name="dlm_has_draft_seller" invisible="1" />
                     <div class="alert alert-info" role="alert"
                         invisible="not dlm_has_draft_seller"
-                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin">
+                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin">
                         <i class="fa fa-lightbulb-o me-2" />
                         Giá NCC phải được <b>Duyệt</b> mới dùng được để tính giá
                         trong BOM / báo giá. Nhập xong dòng giá, bấm nút
@@ -41,7 +61,7 @@
                             <field name="partner_id" string="Nhà cung cấp"
                                 domain="[('partner_role', 'in', ['supplier', 'both'])]"
                                 context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
-                            <field name="price" />
+                            <field name="price" widget="dl_money" />
                             <field name="currency_id" column_invisible="1" />
                             <field name="date_start" string="Từ ngày" />
                             <field name="date_end" string="Đến ngày" />
@@ -57,17 +77,66 @@
                                  Nháp → Duyệt; Đã duyệt → Áp dụng; Đang áp dụng → Bỏ áp dụng -->
                             <button name="action_approve" type="object" string="Duyệt"
                                 icon="fa-check" invisible="approval_state == 'approved'"
-                                groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                                groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
                             <button name="action_set_applied" type="object" string="Áp dụng"
                                 icon="fa-star" invisible="approval_state != 'approved' or is_applied"
-                                groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                                groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
                             <button name="action_unset_applied" type="object" string="Bỏ áp dụng"
                                 icon="fa-star-o" invisible="not is_applied"
-                                groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                                groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
                         </tree>
                     </field>
                 </page>
             </notebook>
+        </field>
+    </record>
+
+    <!-- Tree riêng màn Bảng giá SP thương mại: kế thừa list Sản phẩm chung
+         nhưng THÊM cột Giá vốn / Giá bán / Biên LN. Cố ý tách primary để các
+         cột giá KHÔNG rớt sang màn Sản phẩm của KTV/BA (view gốc giữ nguyên).
+         Trạng thái = vòng đời SP (dlm_lifecycle_state) — không thêm luồng
+         duyệt giá bán riêng (xem quyết định ở memory commercial-margin). -->
+    <record id="view_dl_product_pricing_tree" model="ir.ui.view">
+        <field name="name">dl.product.pricing.tree</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_tree" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <!-- Class riêng: list Bảng giá có thêm cột giá nên cần bộ width
+                 fixed-layout riêng (pricing_list.scss) — không dùng chung
+                 .dl-product-list (bộ width cộng 100% cho list SP không giá). -->
+            <xpath expr="//tree" position="attributes">
+                <attribute name="class">dl-pricing-list</attribute>
+            </xpath>
+            <!-- Ảnh thừa cho bảng giá; ĐVT để ẩn tùy chọn cho gọn (bật lại được). -->
+            <field name="image_128" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </field>
+            <field name="uom_id" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </field>
+            <!-- Domain action đã cố định 'trading' → cột Loại SP thừa, ẩn cho gọn. -->
+            <field name="product_kind" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </field>
+            <field name="categ_id" position="after">
+                <field name="currency_id" column_invisible="1" />
+                <!-- Trạng thái giá NCC: Mua hàng nhìn cột này biết ngay SP nào
+                     còn thiếu giá (none = đỏ) mà xử lý — không bị động. -->
+                <field name="dlm_supplier_price_state" string="Giá NCC" widget="badge"
+                    decoration-danger="dlm_supplier_price_state == 'none'"
+                    decoration-warning="dlm_supplier_price_state == 'pending'"
+                    decoration-success="dlm_supplier_price_state == 'applied'" />
+                <field name="standard_price" string="Giá vốn TC" widget="dl_money"
+                    options="{'currency_field': 'currency_id'}" optional="show" />
+                <field name="list_price" string="Giá bán" widget="dl_money"
+                    options="{'currency_field': 'currency_id'}" />
+                <!-- Biên LN tô màu theo ngưỡng: &lt;15% đỏ, 15–30% vàng, ≥30% xanh -->
+                <field name="dlm_sale_margin" string="Biên LN (%)" widget="badge"
+                    decoration-danger="dlm_sale_margin &lt; 15"
+                    decoration-warning="dlm_sale_margin &gt;= 15 and dlm_sale_margin &lt; 30"
+                    decoration-success="dlm_sale_margin &gt;= 30" />
+            </field>
         </field>
     </record>
 
@@ -87,29 +156,49 @@
             <filter name="f_manufactured" position="replace" />
             <filter name="f_trading" position="replace" />
             <filter name="group_kind" position="replace" />
+            <!-- Lọc theo trạng thái giá NCC: Mua hàng bấm "Chưa có giá NCC" để
+                 chỉ còn SP cần thiết lập giá — chủ động thay vì dò cả danh sách. -->
+            <xpath expr="//search" position="inside">
+                <separator />
+                <filter name="f_no_supplier_price" string="Chưa có giá NCC"
+                    domain="[('dlm_supplier_price_state', '=', 'none')]" />
+                <filter name="f_supplier_price_pending" string="Có giá — chưa áp dụng"
+                    domain="[('dlm_supplier_price_state', '=', 'pending')]" />
+                <filter name="f_supplier_price_applied" string="Đã áp dụng giá NCC"
+                    domain="[('dlm_supplier_price_state', '=', 'applied')]" />
+                <group expand="0" string="Nhóm giá NCC">
+                    <filter name="group_supplier_price_state" string="Trạng thái giá NCC"
+                        context="{'group_by': 'dlm_supplier_price_state'}" />
+                </group>
+            </xpath>
         </field>
     </record>
 
+    <!-- Bảng giá SP thương mại — LẤY SẢN PHẨM LÀM TRUNG TÂM: liệt kê mọi SP
+         thương mại (kể cả SP Sales vừa tạo, chưa có giá NCC) + cột "Giá NCC" và
+         bộ lọc "Chưa có giá NCC" để Mua hàng CHỦ ĐỘNG thấy việc cần làm. Mua hàng
+         mở SP, gắn NCC + giá mua ngay tab (đã cấp quyền ghi product giới hạn
+         trading/material). Quản lý (CEO/TrKD/Kế toán) chỉ xem (ACL read-only).
+         Giá vốn/Giá bán/Vòng đời/Loại SP vẫn khóa cứng ở write() guard. -->
     <record id="action_dl_product_pricing" model="ir.actions.act_window">
-        <field name="name">Bảng giá Sản phẩm thương mại</field>
+        <field name="name">Bảng giá SP thương mại</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_pricing_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_pricing_search" />
         <field name="domain">[('product_kind', '=', 'trading')]</field>
         <field name="context">{'create': False, 'delete': False,
             'dl_kind_scope': ['trading']}</field>
-        <!-- KTV không được vào Bảng giá; Kế toán toàn quyền sửa (ACL/ir.rule),
-             CEO/Trưởng phòng KD chỉ xem (ACL write=0) -->
+        <!-- Mua hàng + Admin: nhập giá NCC. Kế toán/CEO/Trưởng KD: chỉ xem. -->
         <field name="groups_id"
             eval="[(6, 0, [
                 ref('dl_base.dl_group_admin'),
+                ref('dl_base.dl_group_purchasing'),
                 ref('dl_base.dl_group_accountant'),
                 ref('dl_base.dl_group_ceo'),
                 ref('dl_base.dl_group_sales_manager'),
@@ -148,12 +237,11 @@
     <record id="action_dl_product_pricing_material" model="ir.actions.act_window">
         <field name="name">Bảng giá Vật tư</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_material_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_pricing_search" />

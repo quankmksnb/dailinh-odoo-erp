@@ -7,7 +7,7 @@
         sequence="1"
         web_icon="dl_base,static/description/icon.png"
         action="action_dl_home"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_purchasing"
     />
 
     <menuitem
@@ -19,13 +19,14 @@
 
     <!-- Menu cha phải mở cho MỌI vai trò có ít nhất một menu con bên trong
          (Odoo yêu cầu pass groups cả tổ tiên): tech/admin quản sản phẩm,
-         ba/ceo/sm xem danh mục, kế toán + sm vào Bảng giá (dl_product). -->
+         ba/ceo/sm xem danh mục, kế toán + sm vào Bảng giá, Mua hàng vào
+         Bảng giá Vật tư (dl_product). -->
     <menuitem
         id="menu_dl_product"
         name="Sản phẩm &amp; Vật tư"
         parent="menu_dl_root"
         sequence="20"
-        groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant,dl_base.dl_group_purchasing"
     />
 
     <menuitem

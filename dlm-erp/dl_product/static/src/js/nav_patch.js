@@ -16,9 +16,13 @@ const PRODUCT_CHILDREN = [
     name: "Sản phẩm",
     icon: "fa-cube",
     preferMenu: true,
+    // 1 mục "Sản phẩm" duy nhất, đúng action theo vai trò: Sales dùng
+    // menu_dl_product_trading_ba (list đủ loại + create SP thương mại); Admin
+    // full, Tech tech, CEO/Trưởng KD view. preferMenu chọn menu đầu user thấy.
     menuXmlIds: [
       "dl_product.menu_dl_product_full",
       "dl_product.menu_dl_product_tech",
+      "dl_product.menu_dl_product_trading_ba",
       "dl_product.menu_dl_product_view",
     ],
   },
@@ -51,6 +55,8 @@ const PRICING_CHILDREN = [
     name: "Bảng giá SP thương mại",
     icon: "fa-tags",
     preferMenu: true,
+    // 1 màn product-centric duy nhất; action tự lọc quyền theo vai trò
+    // (Mua hàng/Admin sửa, quản lý chỉ xem).
     menuXmlIds: ["dl_product.menu_dl_pricing_trading"],
   },
   {

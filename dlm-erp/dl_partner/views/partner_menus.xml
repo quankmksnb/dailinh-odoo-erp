@@ -11,24 +11,24 @@
         groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_ba"
     />
 
-    <!-- NCC full-CRUD: Admin / CEO / Kế toán -->
+    <!-- NCC full-CRUD: Admin / CEO / Mua hàng (chủ sở hữu NCC) -->
     <menuitem
         id="menu_dl_sale_supplier"
         name="NCC / Thầu phụ"
         parent="dl_base.menu_dl_sale"
         sequence="20"
         action="action_dl_supplier"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_purchasing"
     />
 
-    <!-- NCC chỉ-đọc: Trưởng KD xem được nhưng không CRUD -->
+    <!-- NCC chỉ-đọc: Trưởng KD + Kế toán (Kế toán đã chuyển sang chỉ xem NCC) -->
     <menuitem
         id="menu_dl_sale_supplier_readonly"
         name="NCC / Thầu phụ"
         parent="dl_base.menu_dl_sale"
         sequence="21"
         action="action_dl_supplier_readonly"
-        groups="dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
     />
 
 </odoo>

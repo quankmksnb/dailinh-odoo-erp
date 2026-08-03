@@ -59,12 +59,13 @@
                          mại do Sales duyệt (sau khi Kế toán nhập giá). Model tự
                          chặn quyền (_check_lifecycle_manager) — 'groups' ở đây
                          chỉ ẩn/hiện cho gọn UI. -->
+                    <field name="dlm_trading_ready" invisible="1" />
                     <button
                         name="action_lifecycle_activate"
                         type="object"
                         string="Duyệt (Active)"
                         class="oe_highlight"
-                        invisible="dlm_lifecycle_state != 'draft' or product_kind != 'trading'"
+                        invisible="dlm_lifecycle_state != 'draft' or product_kind != 'trading' or not dlm_trading_ready"
                         groups="dl_base.dl_group_ba,dl_base.dl_group_admin"
                     />
                     <button
@@ -124,6 +125,20 @@
                         invisible="active"
                     />
 
+                    <!-- SP thương mại còn Nháp & chưa đủ điều kiện: liệt kê việc
+                         còn thiếu (đặc biệt "chờ Mua hàng áp dụng giá NCC") thay
+                         vì để Sales bấm Duyệt rồi báo lỗi. Nút Duyệt chỉ hiện khi
+                         dlm_trading_ready = True. -->
+                    <div
+                        class="alert alert-warning"
+                        role="alert"
+                        invisible="product_kind != 'trading' or dlm_lifecycle_state != 'draft' or dlm_trading_ready"
+                    >
+                        <i class="fa fa-clock-o me-2" />
+                        <b>Chưa đủ điều kiện kích hoạt.</b> Cần hoàn tất trước khi Duyệt:
+                        <field name="dlm_trading_blockers_html" nolabel="1" />
+                    </div>
+
                     <field
                         name="image_1920"
                         widget="image"
@@ -139,16 +154,21 @@
                                 placeholder="VD: Khung thép hàn CT-200..."
                             />
                         </h1>
+                        <!-- Mã SP TỰ SINH theo loại (GC-/TM-/VT-/BTP-) khi lưu —
+                             người dùng không phải nhập tay. Ẩn tới khi có mã. -->
+                        <div class="text-muted" invisible="not default_code">
+                            Mã SP: <field name="default_code" class="oe_inline"
+                                readonly="1" />
+                        </div>
                     </div>
 
                     <group>
                         <group string="Phân loại">
-                            <field
-                                name="default_code"
-                                string="Mã SP"
-                                placeholder="VD: CT-200, VT-001"
-                            />
-                            <field name="product_kind" />
+                            <!-- Sales không đổi được Loại SP (khoá = trading khi
+                                 tạo); chỉ Admin/Kỹ thuật đổi loại. -->
+                            <field name="dlm_can_change_kind" invisible="1" />
+                            <field name="product_kind"
+                                readonly="not dlm_can_change_kind" />
                             <!-- Nhóm lọc ĐỘNG theo Loại SP: gia công/thương mại →
                                  nhánh Thành phẩm; vật tư/BTP → nhánh Vật tư.
                                  no_create: nhóm mới phải tạo ở màn Nhóm sản phẩm
@@ -173,15 +193,37 @@
                         invisible="product_kind != 'trading'"
                     >
                         <field name="currency_id" invisible="1" />
-                        <field name="dlm_is_price_editor" invisible="1" />
+                        <field name="dlm_can_edit_sale_price" invisible="1" />
+                        <!-- Giá vốn tham chiếu (readonly) hiện sẵn để Sales biết
+                             cơ sở khi định giá bán — tự đặt theo giá NCC Mua hàng
+                             áp dụng. -->
+                        <field
+                            name="standard_price"
+                            string="Giá vốn tham chiếu"
+                            widget="dl_money"
+                            options="{'currency_field': 'currency_id'}"
+                            readonly="1"
+                        />
+                        <!-- Mua trước → bán sau: ô Giá bán chỉ MỞ sau khi đã có
+                             Giá vốn (Mua hàng áp giá NCC). Lúc mới tạo, Sales chưa
+                             cần nhập giá bán vội. -->
                         <field
                             name="list_price"
                             string="Giá bán"
-                            widget="monetary"
+                            widget="dl_money"
                             options="{'currency_field': 'currency_id'}"
-                            readonly="not dlm_is_price_editor"
-                            help="Do Kế toán nhập. Sales tạo SP rồi kích hoạt sau khi có giá."
+                            readonly="not dlm_can_edit_sale_price"
+                            help="Sales nhập SAU khi Mua hàng đã thiết lập &amp; áp dụng giá NCC (đã có Giá vốn tham chiếu), rồi kích hoạt sản phẩm."
                         />
+                        <div
+                            class="text-muted fst-italic"
+                            colspan="2"
+                            invisible="dlm_lifecycle_state != 'draft' or dlm_can_edit_sale_price"
+                        >
+                            <i class="fa fa-lock me-1" />
+                            Giá bán sẽ mở để nhập sau khi Mua hàng thiết lập &amp;
+                            áp dụng giá NCC (có Giá vốn tham chiếu).
+                        </div>
                     </group>
 
                     <group
@@ -342,18 +384,33 @@
         </field>
     </record>
 
+    <!-- Tree riêng màn "Sản phẩm" của Sales: SP gia công TÔ MỜ (chỉ xem — Sales
+         không tạo/sửa, đi luồng RFQ/Kỹ thuật). Class dl-product-list-ba đổi nhãn
+         nút tạo thành "Thêm SP thương mại" (xem dl_base/global_cp.scss). -->
+    <record id="view_dl_product_tree_ba" model="ir.ui.view">
+        <field name="name">dl.product.tree.ba</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_tree" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//tree" position="attributes">
+                <attribute name="class">dl-product-list dl-product-list-ba</attribute>
+                <attribute name="decoration-muted">active == False or dlm_lifecycle_state == 'obsolete' or product_kind == 'manufactured'</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <!-- ============ ACTIONS (tách Full / Tech / View theo role) ============ -->
 
     <!-- Full: chỉ Admin (Trưởng KD chuyển sang view-only, xem action_dl_product_view) -->
     <record id="action_dl_product_full" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
@@ -373,12 +430,11 @@
     <record id="action_dl_product_tech" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_tech_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
@@ -395,12 +451,11 @@
     <record id="action_dl_product_view" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
@@ -417,29 +472,33 @@
             ])]" />
     </record>
 
-    <!-- Sales (BA): tạo/sửa SP THƯƠNG MẠI (ir.rule chặn ngoài trading). SP mới
-         ở trạng thái Nháp; Kế toán nhập giá; Sales bấm Duyệt để Active. -->
+    <!-- Sales (BA): mục "Sản phẩm" DUY NHẤT — THẤY đủ loại SP (gia công + thương
+         mại, đồng nhất với màn của các role khác) nhưng chỉ được TẠO SP thương
+         mại (nút Tạo mặc định loại 'thương mại'; ir.rule chặn tạo/sửa loại khác).
+         SP gia công chỉ để xem tham khảo. SP thương mại mới ở Nháp; Sales nhập
+         Giá bán rồi Kích hoạt sau khi có ≥1 giá NCC đã duyệt. -->
     <record id="action_dl_product_trading_ba" model="ir.actions.act_window">
-        <field name="name">Sản phẩm thương mại</field>
+        <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree_ba')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
-        <field name="domain">[('product_kind', '=', 'trading')]</field>
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
         <field name="context">{'default_detailed_type': 'product',
             'default_product_kind': 'trading',
             'default_dlm_lifecycle_state': 'draft',
             'default_list_price': 0.0,
-            'dl_kind_scope': ['trading'],
-            'delete': False, 'search_default_group_lifecycle': 1}</field>
+            'dl_kind_scope': ['manufactured', 'trading'],
+            'delete': False, 'search_default_group_kind': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm sản phẩm thương mại đầu tiên!</p>
+            <p>Bấm <b>Tạo</b> để thêm sản phẩm thương mại (mua về bán). Sản phẩm
+               gia công do Kỹ thuật tạo — hiển thị ở đây để tham khảo, Sales không sửa.</p>
         </field>
         <field name="groups_id"
             eval="[(6, 0, [ref('dl_base.dl_group_ba'), ref('dl_base.dl_group_admin')])]" />

@@ -164,23 +164,24 @@
                         </h1>
                     </div>
 
-                    <group>
-                        <group string="Thông tin yêu cầu">
-                            <field name="customer_id" readonly="is_technician or status != 'new'"
-                                options="{'no_quick_create': True}"
-                                context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
-                            <field name="requested_date" readonly="is_technician or status != 'new'"/>
-                            <field name="deadline" options="{'min_date': 'today'}"
-                                   readonly="is_technician"/>
-                            <field name="created_by"/>
-                        </group>
-                    </group>
-
-                    <group string="Tiến độ xử lý kỹ thuật">
-                        <field name="technical_progress_label" readonly="1" nolabel="1"/>
+                    <!-- Bố cục theo góc Kỹ thuật: việc cần làm (dòng sản phẩm) lên
+                         TRƯỚC; thông tin khách hàng/thời hạn là bối cảnh → xuống dưới
+                         bảng. Tiến độ để MỘT DÒNG gọn ngay trên bảng (tránh vỡ nhãn
+                         3 dòng + bỏ khoảng trống dưới tiêu đề), KTV liếc là biết còn
+                         bao nhiêu dòng phải xử lý.
+                         Ẩn hẳn khi RFQ KHÔNG có dòng gia công nào (chỉ toàn hàng
+                         thương mại): không có việc kỹ thuật → thanh tiến độ vô nghĩa
+                         (RFQ auto sang "Đã xử lý xong"), tránh hiện "Không có dòng
+                         gia công cần xử lý" gây rối. -->
+                    <field name="technical_total_line_count" invisible="1"/>
+                    <div class="d-flex align-items-center gap-3 mt-2 mb-2"
+                         invisible="technical_total_line_count == 0">
+                        <span class="fw-bold text-muted text-nowrap">Tiến độ xử lý:</span>
                         <field name="technical_progress_percent" widget="progressbar"
                                readonly="1" nolabel="1"/>
-                    </group>
+                        <field name="technical_progress_label" readonly="1" nolabel="1"
+                               class="text-muted text-nowrap"/>
+                    </div>
 
                     <notebook>
                         <page string="Dòng sản phẩm" name="lines">
@@ -216,19 +217,32 @@
                                            readonly="1"/>
                                     <field name="resolved_bom_id" string="Định mức đã xác định" optional="hide"
                                            readonly="1"/>
-                                    <field name="is_infeasible" readonly="1"/>
+                                    <!-- Trạng thái "Không khả thi" đã hiển thị qua badge
+                                         technical_status; giữ field ẩn để cột lý do đọc điều
+                                         kiện, KHÔNG hiện checkbox readonly gây hiểu nhầm bấm được. -->
+                                    <field name="is_infeasible" column_invisible="1"/>
                                     <field name="infeasible_reason"
                                            invisible="not is_infeasible"
                                            readonly="1" optional="show"/>
-                                    <!-- Cửa xử lý duy nhất cho dòng gia công. Dòng đã xử lý
-                                         hoặc không khả thi vẫn mở lại được để sửa kết luận. -->
+                                    <!-- Cửa xử lý duy nhất cho dòng gia công — nút hành động
+                                         chính của màn nên để nổi (primary). Dòng đã xử lý hoặc
+                                         không khả thi vẫn mở lại được để sửa kết luận. -->
                                     <button name="action_open_resolve_wizard" type="object"
                                             string="Xử lý"
-                                            class="btn-link"
+                                            class="btn btn-primary btn-sm"
                                             invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                                 </tree>
                                 <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
+                                    <!-- Một cửa: mở dialog chi tiết vẫn xử lý được ngay tại đây
+                                         (khỏi phải đóng lại rồi đi tìm nút Xử lý ở dòng). Cùng gọi
+                                         action_open_resolve_wizard → tự tiếp nhận RFQ nếu cần. -->
+                                    <header>
+                                        <button name="action_open_resolve_wizard" type="object"
+                                                string="Xử lý dòng này" class="btn-primary"
+                                                invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
+                                                groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                    </header>
                                     <field name="is_technician" invisible="1"/>
                                     <field name="request_status" invisible="1"/>
                                     <field name="product_type" invisible="1"/>
@@ -268,20 +282,20 @@
                                                      invisible="product_type == 'trading' or request_status not in ('processing', 'confirmed')"
                                                      groups="dl_base.dl_group_tech,dl_base.dl_group_admin">
                                                     <i class="fa fa-lock me-1"/>Kết quả tại đây chỉ để xem.
-                                                    Đóng cửa sổ này và bấm <b>Xử lý</b> trên dòng để thay đổi.
+                                                    Bấm <b>Xử lý dòng này</b> ở trên để thay đổi.
                                                 </div>
-                                                <!-- RFQ chưa nhận: nút Xử lý ở tree sẽ tự tiếp nhận. -->
+                                                <!-- RFQ chưa nhận: nút Xử lý dòng này ở header sẽ tự tiếp nhận. -->
                                                 <div colspan="2" class="text-muted"
                                                      invisible="request_status not in ('new', 'supplemented')"
                                                      groups="dl_base.dl_group_tech,dl_base.dl_group_admin">
                                                     <i class="fa fa-hand-paper-o me-1" title="Chưa nhận xử lý"/>
-                                                    Đóng cửa sổ này rồi bấm <b>Xử lý</b> trên dòng;
+                                                    Bấm <b>Xử lý dòng này</b> ở trên;
                                                     hệ thống sẽ tự tiếp nhận RFQ.
                                                 </div>
                                                 <div colspan="2" class="text-muted"
                                                      invisible="request_status in ('new', 'supplemented') or is_infeasible or resolved_product_id or product_type == 'trading'">
-                                                    <i class="fa fa-info-circle me-1"/>Chưa xử lý — đóng cửa sổ này rồi bấm
-                                                    <b>Xử lý</b> trên dòng để chọn/tạo Sản phẩm &amp; BOM.
+                                                    <i class="fa fa-info-circle me-1"/>Chưa xử lý — bấm
+                                                    <b>Xử lý dòng này</b> ở trên để chọn/tạo Sản phẩm &amp; BOM.
                                                 </div>
                                                 <field name="resolved_product_id" string="Sản phẩm xác định"
                                                        invisible="is_infeasible"
@@ -313,6 +327,24 @@
                                     </sheet>
                                 </form>
                             </field>
+
+                            <!-- Bối cảnh yêu cầu (khách hàng/thời hạn) — đặt DƯỚI bảng
+                                 dòng sản phẩm: Kỹ thuật cần thấy việc phải làm trước,
+                                 thông tin khách hàng chỉ để tham chiếu. -->
+                            <separator string="Thông tin yêu cầu"/>
+                            <group>
+                                <group>
+                                    <field name="customer_id" readonly="is_technician or status != 'new'"
+                                        options="{'no_quick_create': True}"
+                                        context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
+                                    <field name="created_by"/>
+                                </group>
+                                <group>
+                                    <field name="requested_date" readonly="is_technician or status != 'new'"/>
+                                    <field name="deadline" options="{'min_date': 'today'}"
+                                           readonly="is_technician"/>
+                                </group>
+                            </group>
                         </page>
 
                         <page string="Ghi chú" name="notes">
@@ -358,9 +390,12 @@
                             string="Đánh dấu đã tạo báo giá" class="oe_highlight"
                             invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                    <!-- Ẩn "Hủy RFQ" khi bản ghi CHƯA LƯU (id falsy): lúc tạo mới
+                         chưa có RFQ để hủy → dùng nút "Huỷ" (Discard) native của Odoo
+                         là đủ. Chỉ hiện sau khi đã Lưu (status='new' trở đi). -->
                     <button name="action_cancel" type="object"
                             string="Hủy RFQ"
-                            invisible="status in ('quoted', 'cancelled')"
+                            invisible="not id or status in ('quoted', 'cancelled')"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn hủy RFQ này?"/>
                     <field name="status" widget="dl_stepper"
@@ -401,11 +436,18 @@
                                 context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
                             <field name="requested_date" readonly="status != 'new'"/>
                             <field name="deadline" options="{'min_date': 'today'}"/>
-                            <field name="created_by"/>
+                            <!-- Người tạo cố ý KHÔNG hiện ở màn Sales tạo mới (luôn là
+                                 chính mình → thừa). Các màn khác vẫn giữ trường này. -->
                         </group>
                     </group>
 
-                    <group string="Tiến độ xử lý kỹ thuật">
+                    <!-- Tiến độ kỹ thuật luôn = 0% lúc RFQ còn 'new' (chưa gửi Kỹ
+                         thuật) → ẩn khi tạo mới, chỉ hiện sau khi vào xử lý. Cũng ẩn
+                         khi RFQ không có dòng gia công (chỉ toàn hàng thương mại) —
+                         không có việc kỹ thuật thì thanh tiến độ vô nghĩa. -->
+                    <field name="technical_total_line_count" invisible="1"/>
+                    <group string="Tiến độ xử lý kỹ thuật"
+                           invisible="status == 'new' or technical_total_line_count == 0">
                         <field name="technical_progress_label" readonly="1" nolabel="1"/>
                         <field name="technical_progress_percent" widget="progressbar"
                                readonly="1" nolabel="1"/>
@@ -432,10 +474,10 @@
                                            options="{'no_create': True}"
                                            domain="[('product_kind', '=', 'trading'), ('dlm_lifecycle_state', '=', 'active')]"/>
                                     <field name="product_price" string="Đơn giá"
-                                           widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                           widget="dl_money" options="{'currency_field': 'currency_id'}"/>
                                     <field name="quantity" string="Số lượng"/>
                                     <field name="price_subtotal" string="Thành tiền"
-                                           widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                           widget="dl_money" options="{'currency_field': 'currency_id'}"/>
                                 </tree>
                             </field>
 
@@ -553,7 +595,7 @@
 
     <!-- Action -->
     <record id="action_dl_quotation_request" model="ir.actions.act_window">
-        <field name="name">Yêu cầu báo giá</field>
+        <field name="name">Quản lý RFQ</field>
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
         <field name="context">{'search_default_to_process': 1}</field>
