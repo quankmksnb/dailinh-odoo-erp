@@ -405,12 +405,11 @@
     <record id="action_dl_product_full" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
@@ -430,12 +429,11 @@
     <record id="action_dl_product_tech" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_tech_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
@@ -452,12 +450,11 @@
     <record id="action_dl_product_view" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
@@ -482,12 +479,11 @@
     <record id="action_dl_product_trading_ba" model="ir.actions.act_window">
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree_ba')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
