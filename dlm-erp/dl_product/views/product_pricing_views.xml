@@ -181,7 +181,7 @@
          trading/material). Quản lý (CEO/TrKD/Kế toán) chỉ xem (ACL read-only).
          Giá vốn/Giá bán/Vòng đời/Loại SP vẫn khóa cứng ở write() guard. -->
     <record id="action_dl_product_pricing" model="ir.actions.act_window">
-        <field name="name">Bảng giá Sản phẩm thương mại</field>
+        <field name="name">Bảng giá SP thương mại</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids"
