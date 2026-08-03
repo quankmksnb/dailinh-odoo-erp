@@ -15,7 +15,7 @@
                 <field name="create_uid" string="Phụ trách" optional="show"/>
                 <field name="date_order" string="Ngày"/>
                 <field name="validity_label" string="Hạn hiệu lực" optional="show"/>
-                <field name="amount_total" string="Tổng tiền" widget="monetary"/>
+                <field name="amount_total" string="Tổng tiền" widget="dl_money"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="state" string="Trạng thái" widget="badge"
                        decoration-warning="state in ('draft', 'revision_requested')"
@@ -180,11 +180,11 @@
                                            decoration-info="line_type == 'trading'"
                                            decoration-success="line_type == 'manufactured'"/>
                                     <field name="name"/>
-                                    <field name="qty" digits="[16, 0]"/>
-                                    <field name="total_cost" digits="[16, 0]" readonly="1"
+                                    <field name="qty" widget="dl_money" digits="[16, 0]"/>
+                                    <field name="total_cost" widget="dl_money" digits="[16, 0]" readonly="1"
                                            groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                    <field name="price_unit" digits="[16, 0]"/>
-                                    <field name="price_subtotal" readonly="1" digits="[16, 0]"/>
+                                    <field name="price_unit" widget="dl_money" digits="[16, 0]"/>
+                                    <field name="price_subtotal" readonly="1" widget="dl_money" digits="[16, 0]"/>
                                 </tree>
                             </field>
                             <!-- Khoảng chiết khấu cho phép theo nhóm khách + trạng
@@ -219,27 +219,27 @@
                             <div class="dl-totals">
                                 <div class="dl-total-row">
                                     <span class="dl-total-label">Giá trước chiết khấu</span>
-                                    <field name="amount_untaxed" widget="monetary"
+                                    <field name="amount_untaxed" widget="dl_money"
                                            nolabel="1" class="dl-total-sub"/>
                                 </div>
                                 <div class="dl-total-row">
                                     <span class="dl-total-label">Chiết khấu</span>
-                                    <field name="discount_amount" widget="monetary"
+                                    <field name="discount_amount" widget="dl_money"
                                            nolabel="1" class="dl-total-sub"/>
                                 </div>
                                 <div class="dl-total-row">
                                     <span class="dl-total-label">Sau chiết khấu, trước VAT</span>
-                                    <field name="amount_before_vat" widget="monetary"
+                                    <field name="amount_before_vat" widget="dl_money"
                                            nolabel="1" class="dl-total-sub"/>
                                 </div>
                                 <div class="dl-total-row">
                                     <span class="dl-total-label">Tiền VAT</span>
-                                    <field name="vat_amount" widget="monetary"
+                                    <field name="vat_amount" widget="dl_money"
                                            nolabel="1" class="dl-total-sub"/>
                                 </div>
                                 <div class="dl-total-row dl-total-final-row">
                                     <span class="dl-total-label">Tổng thanh toán</span>
-                                    <field name="amount_total" widget="monetary"
+                                    <field name="amount_total" widget="dl_money"
                                            nolabel="1" class="dl-total-final"/>
                                 </div>
                             </div>
@@ -248,10 +248,10 @@
                               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
                             <group>
                                 <group string="Giá thành &amp; lợi nhuận">
-                                    <field name="total_cost" widget="monetary"/>
+                                    <field name="total_cost" widget="dl_money"/>
                                     <field name="target_markup"/>
                                     <field name="effective_markup"/>
-                                    <field name="floor_amount" widget="monetary"/>
+                                    <field name="floor_amount" widget="dl_money"/>
                                     <field name="below_floor"/>
                                 </group>
                                 <group string="Chiết khấu &amp; phê duyệt">
@@ -270,9 +270,9 @@
                                     <field name="component_type"/>
                                     <field name="material_id"/>
                                     <field name="qty"/>
-                                    <field name="unit_price" digits="[16, 0]"/>
+                                    <field name="unit_price" widget="dl_money" digits="[16, 0]"/>
                                     <field name="rate"/>
-                                    <field name="amount" digits="[16, 0]"/>
+                                    <field name="amount" widget="dl_money" digits="[16, 0]"/>
                                     <field name="source_model" optional="hide"/>
                                     <field name="source_id" optional="hide"/>
                                     <field name="source_revision" optional="hide"/>

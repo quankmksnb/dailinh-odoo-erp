@@ -45,8 +45,10 @@
                     <div class="dl-cfg-subhead">
                         <span>Cơ cấu giá — 5 thành phần cộng lại = 100% tổng báo giá</span>
                         <label class="dl-cfg-sample">Báo giá mẫu:
-                            <input type="number" min="0" step="1000000" t-model.number="state.sampleTotal"/>
-                            <span class="unit">đ</span>
+                            <input type="text" inputmode="numeric" t-att-value="fmtMoney(state.sampleTotal)"
+                                   t-on-input="onMoneyInput"
+                                   t-on-change="(ev) => state.sampleTotal = parseMoney(ev.target.value)"/>
+                            <span class="unit">₫</span>
                         </label>
                     </div>
 

@@ -23,15 +23,15 @@ export class DlProductFormController extends FormController {
   }
 
   // Chặn INLINE (tô đỏ ô Giá bán + toast, KHÔNG modal — cùng cơ chế form RFQ):
-  // SP thương mại còn Nháp KHÔNG được lưu Giá bán < Giá vốn tham chiếu. Trước
-  // đây chỉ cảnh báo mềm ở banner nhưng vẫn cho lưu → nay chặn hẳn ở bước lưu.
+  // SP thương mại KHÔNG được lưu Giá bán < Giá vốn tham chiếu — ở MỌI trạng thái
+  // vòng đời (Nháp lẫn Đã duyệt). Trước đây chỉ chặn khi còn Nháp nên sau khi
+  // duyệt vẫn hạ được giá bán xuống dưới giá vốn (vô lý) → nay chặn cả khi active.
   // Bán lỗ (nếu thực sự cần) xử lý ở duyệt báo giá, không hạ giá niêm yết.
   async save(params = {}) {
     const record = this.model.root;
     const d = record.data;
     const belowCost =
       d.product_kind === "trading" &&
-      d.dlm_lifecycle_state === "draft" &&
       d.list_price > 0 &&
       d.standard_price > 0 &&
       d.list_price < d.standard_price;

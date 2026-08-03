@@ -199,7 +199,7 @@
                         <field
                             name="standard_price"
                             string="Giá vốn tham chiếu"
-                            widget="monetary"
+                            widget="dl_money"
                             options="{'currency_field': 'currency_id'}"
                             readonly="1"
                         />
@@ -209,7 +209,7 @@
                         <field
                             name="list_price"
                             string="Giá bán"
-                            widget="monetary"
+                            widget="dl_money"
                             options="{'currency_field': 'currency_id'}"
                             readonly="not dlm_can_edit_sale_price"
                             help="Sales nhập SAU khi Mua hàng đã thiết lập &amp; áp dụng giá NCC (đã có Giá vốn tham chiếu), rồi kích hoạt sản phẩm."

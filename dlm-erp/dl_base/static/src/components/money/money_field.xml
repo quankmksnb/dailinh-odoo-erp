@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Giống web.FloatField nhưng: (1) group hàng nghìn LIVE khi gõ
+         (t-on-input), (2) ép type="text" — type="number" của HTML không hiện
+         được dấu phân tách, (3) gắn ký hiệu ₫ ở SAU số (quy ước VNĐ). -->
+    <t t-name="dl_base.DlMoneyField">
+        <span t-if="props.readonly" class="text-nowrap"><t t-esc="formattedValue"/> ₫</span>
+        <div t-else="" class="text-nowrap d-inline-flex w-100 align-items-baseline">
+            <input
+                t-on-focusin="onFocusIn"
+                t-on-focusout="onFocusOut"
+                t-on-input="onMoneyInput"
+                t-att-id="props.id"
+                t-ref="numpadDecimal"
+                t-att-placeholder="props.placeholder"
+                type="text"
+                inputmode="numeric"
+                class="o_input flex-grow-1 flex-shrink-1"
+                autocomplete="off"/>
+            <span class="ms-1">₫</span>
+        </div>
+    </t>
+
+</templates>

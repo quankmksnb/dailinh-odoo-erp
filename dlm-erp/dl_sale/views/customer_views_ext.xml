@@ -79,8 +79,8 @@
                     <strong>Cảnh báo gộp đơn:</strong>
                     KH này có <field name="dlm_recent_quote_count" class="oe_inline" /> báo giá
                     trong 7 ngày gần đây với tổng <field name="dlm_recent_quote_total"
-                        class="oe_inline" widget="monetary" />, vượt ngưỡng duyệt tự động (<field
-                        name="dlm_split_threshold" class="oe_inline" widget="monetary" />) —
+                        class="oe_inline" widget="dl_money" />, vượt ngưỡng duyệt tự động (<field
+                        name="dlm_split_threshold" class="oe_inline" widget="dl_money" />) —
                     kiểm tra khả năng chia nhỏ để né duyệt.
                 </div>
             </xpath>
@@ -117,7 +117,7 @@
                             decoration-info="state in ('approved', 'sent')">
                             <field name="name" string="Số BG" />
                             <field name="date_order" string="Ngày" />
-                            <field name="amount_total" string="Giá trị" widget="monetary" />
+                            <field name="amount_total" string="Giá trị" widget="dl_money" />
                             <field name="currency_id" column_invisible="1" />
                             <field name="state" string="Trạng thái" widget="badge"
                                 decoration-success="state in ('accepted', 'ordered')"
