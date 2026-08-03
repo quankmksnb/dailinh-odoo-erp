@@ -196,42 +196,39 @@
                                 <tree string="Dòng sản phẩm">
                                     <field name="is_technician" column_invisible="1"/>
                                     <field name="request_status" column_invisible="1"/>
-                                    <field name="product_type"/>
+                                    <field name="is_infeasible" column_invisible="1"/>
+                                    <!-- Yêu cầu từ Sales -->
                                     <field name="product_name" required="1"/>
+                                    <field name="quantity" string="SL"/>
+                                    <field name="dimension_note" optional="hide"/>
+                                    <field name="preview_image" widget="image"
+                                           options="{'size': [40, 40]}" string="Ảnh" optional="hide"/>
+                                    <!-- Kết quả kỹ thuật: hiện tên SP đã chọn hoặc
+                                         "Chưa chọn sản phẩm" khi chưa xử lý -->
+                                    <field name="resolved_summary"/>
                                     <field name="technical_status" widget="badge"
                                            decoration-info="technical_status == 'pending'"
                                            decoration-warning="technical_status == 'processing'"
                                            decoration-success="technical_status == 'done'"
                                            decoration-danger="technical_status == 'infeasible'"
                                            decoration-muted="technical_status == 'not_required'"/>
-                                    <field name="product_category_id"/>
-                                    <field name="quantity"/>
-                                    <field name="dimension_note" optional="hide"/>
-                                    <field name="reference_product_id" string="SP tham khảo"
-                                           optional="hide"/>
-                                    <field name="preview_image" widget="image"
-                                           options="{'size': [40, 40]}" string="Ảnh" optional="hide"/>
-                                    <!-- Mức 3: kết quả chỉ hiển thị tại tree; mọi thay đổi
-                                         phải đi qua đúng một cửa là nút "Xử lý". -->
-                                    <field name="resolved_product_id" string="Sản phẩm đã xác định"
-                                           readonly="1"/>
-                                    <field name="resolved_bom_id" string="Định mức đã xác định" optional="hide"
-                                           readonly="1"/>
-                                    <!-- Trạng thái "Không khả thi" đã hiển thị qua badge
-                                         technical_status; giữ field ẩn để cột lý do đọc điều
-                                         kiện, KHÔNG hiện checkbox readonly gây hiểu nhầm bấm được. -->
-                                    <field name="is_infeasible" column_invisible="1"/>
-                                    <field name="infeasible_reason"
-                                           invisible="not is_infeasible"
-                                           readonly="1" optional="show"/>
-                                    <!-- Cửa xử lý duy nhất cho dòng gia công — nút hành động
-                                         chính của màn nên để nổi (primary). Dòng đã xử lý hoặc
-                                         không khả thi vẫn mở lại được để sửa kết luận. -->
                                     <button name="action_open_resolve_wizard" type="object"
-                                            string="Xử lý"
+                                            string="Mở xử lý"
                                             class="btn btn-primary btn-sm"
                                             invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                    <!-- Cột phụ — ẩn mặc định, bật qua menu cột -->
+                                    <field name="product_type" optional="hide"/>
+                                    <field name="product_category_id" optional="hide"/>
+                                    <field name="reference_product_id" string="SP tham khảo"
+                                           optional="hide"/>
+                                    <field name="resolved_product_id" string="SP đã xác định"
+                                           readonly="1" optional="hide"/>
+                                    <field name="resolved_bom_id" string="BOM đã xác định"
+                                           readonly="1" optional="hide"/>
+                                    <field name="infeasible_reason"
+                                           invisible="not is_infeasible"
+                                           readonly="1" optional="hide"/>
                                 </tree>
                                 <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
                                     <!-- Một cửa: mở dialog chi tiết vẫn xử lý được ngay tại đây

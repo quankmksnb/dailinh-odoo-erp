@@ -712,9 +712,23 @@ class DlQuotationRequestLine(models.Model):
             else:
                 rec.technical_status = "pending"
 
-    # Trạng thái RFQ cha — để view khóa các field kết quả khi RFQ chưa được
-    # nhận xử lý ("Mới"/"Đã bổ sung"). KTV mở xem tự do, phải bấm "Nhận xử lý"
-    # (→ Đang xử lý) mới thao tác được — xem quotation_request_views.xml.
+    resolved_summary = fields.Char(
+        string="Kết quả kỹ thuật",
+        compute="_compute_resolved_summary",
+    )
+
+    @api.depends("product_type", "resolved_product_id", "is_infeasible")
+    def _compute_resolved_summary(self):
+        for rec in self:
+            if rec.product_type == "trading":
+                rec.resolved_summary = ""
+            elif rec.is_infeasible:
+                rec.resolved_summary = "Không khả thi"
+            elif rec.resolved_product_id:
+                rec.resolved_summary = rec.resolved_product_id.display_name
+            else:
+                rec.resolved_summary = "Chưa chọn sản phẩm"
+
     request_status = fields.Selection(
         related="quotation_request_id.status",
         string="Trạng thái RFQ",
