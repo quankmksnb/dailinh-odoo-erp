@@ -6,4 +6,37 @@
         <field name="tag">dl_config.DlPricingConfig</field>
     </record>
 
+    <!-- Mức phức tạp (dl.pricing.complexity.level) — form redesign chuẩn DLM.
+         Model này trước không có form riêng nên mũi tên "Mức phức tạp" trong BOM
+         mở ra form Odoo tự sinh. Thêm form có class dl-*-form + priority=1 để
+         thành form mặc định. Chỉ trình bày, không sửa logic tính giá. -->
+    <record id="view_dl_pricing_complexity_form" model="ir.ui.view">
+        <field name="name">dl.pricing.complexity.level.form</field>
+        <field name="model">dl.pricing.complexity.level</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <form string="Mức phức tạp" class="dl-complexity-form">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Tên mức phức tạp"/>
+                        <h1>
+                            <field name="name" placeholder="Đơn giản, Trung bình, Phức tạp..."/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Hệ số">
+                            <field name="factor" string="Hệ số"/>
+                            <field name="sequence" string="Thứ tự"/>
+                            <field name="active" string="Đang dùng"/>
+                        </group>
+                        <group string="Gợi ý sử dụng">
+                            <field name="note" nolabel="1"
+                                   placeholder="Mô tả khi nào nên chọn mức này..."/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
 </odoo>
