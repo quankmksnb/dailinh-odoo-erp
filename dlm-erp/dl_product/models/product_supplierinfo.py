@@ -106,6 +106,20 @@ class ProductSupplierinfo(models.Model):
         "Mỗi vật tư chỉ có tối đa 1 bảng giá đang áp dụng tại một thời điểm.",
     )
 
+    # ── Audit giá NCC (mục 10) — người tạo/ngày tạo dùng create_uid/create_date ─
+    dlm_approved_uid = fields.Many2one(
+        "res.users", string="Người duyệt", readonly=True, copy=False)
+    dlm_approved_date = fields.Datetime(
+        string="Ngày duyệt", readonly=True, copy=False)
+    dlm_applied_uid = fields.Many2one(
+        "res.users", string="Người áp dụng", readonly=True, copy=False)
+    dlm_applied_date = fields.Datetime(
+        string="Ngày áp dụng", readonly=True, copy=False)
+    dlm_unapplied_uid = fields.Many2one(
+        "res.users", string="Người bỏ áp dụng gần nhất", readonly=True, copy=False)
+    dlm_unapplied_date = fields.Datetime(
+        string="Ngày bỏ áp dụng gần nhất", readonly=True, copy=False)
+
     # UX: gộp approval_state + is_applied thành 1 pipeline duy nhất để hiển thị
     # (statusbar/badge) — người dùng nhìn 1 chỗ là biết dòng giá đang ở bước nào
     # và còn thiếu gì, thay vì phải tự ghép 2 cột trạng thái rời.
@@ -194,63 +208,117 @@ class ProductSupplierinfo(models.Model):
                     _("Ngày hết hiệu lực phải sau hoặc bằng ngày hiệu lực.")
                 )
 
-    def action_approve(self):
-        """Kế toán/Admin duyệt bảng giá NCC.
+    def _check_price_manager(self):
+        """Ai được duyệt/áp dụng/hủy giá NCC: Mua hàng hoặc Admin. Kế toán đã
+        chuyển sang chỉ-xem (giá MUA thuộc Mua hàng). su (luồng tự động) bỏ qua."""
+        if self.env.su:
+            return
+        if not (self.env.user.has_group("dl_base.dl_group_purchasing")
+                or self.env.user.has_group("dl_base.dl_group_admin")):
+            raise UserError(_("Chỉ Mua hàng hoặc Admin mới được thao tác giá NCC."))
 
-        UX: duyệt xong TỰ ĐỘNG áp dụng nếu vật tư chưa có bảng giá nào đang
-        áp dụng — ca phổ biến nhất (vật tư chỉ có 1 bảng giá) rút còn 1 nút
-        bấm là dùng được ngay trong BOM/báo giá. Nút "Áp dụng" riêng chỉ còn
-        cần khi muốn CHUYỂN áp dụng giữa nhiều bảng giá đã duyệt.
-        """
-        if not (
-            self.env.user.has_group("dl_base.dl_group_accountant")
-            or self.env.user.has_group("dl_base.dl_group_admin")
-        ):
-            raise UserError(_("Chỉ Kế toán hoặc Admin mới được duyệt giá NCC."))
-        self.write({"approval_state": "approved"})
+    # ── Giá vốn tham chiếu (mục 4) ───────────────────────────────────────────
+    def _dlm_product(self):
+        """product.product gắn với dòng giá NCC (biến thể cụ thể hoặc biến thể
+        đầu tiên của template)."""
+        self.ensure_one()
+        return self.product_id or self.product_tmpl_id.product_variant_ids[:1]
+
+    def _dlm_reference_unit_cost(self, product):
+        """Đơn giá NCC quy về ĐVT sản phẩm & tiền tệ công ty — dùng làm giá vốn
+        tham chiếu. RAISE (chặn áp dụng) nếu khác tiền tệ chuẩn hoặc không quy đổi
+        được đơn vị, để không sinh giá vốn sai (mục 4)."""
+        self.ensure_one()
+        company = self.company_id or self.env.company
+        company_currency = company.currency_id
+        if self.currency_id and company_currency and self.currency_id != company_currency:
+            raise UserError(_(
+                "Chỉ áp dụng được bảng giá cùng tiền tệ công ty (%s); bảng giá này "
+                "đang dùng %s. Hãy nhập lại giá theo %s trước khi áp dụng."
+            ) % (company_currency.name, self.currency_id.name, company_currency.name))
+        price = self.price
+        src_uom, dst_uom = self.product_uom, product.uom_id
+        if src_uom and dst_uom and src_uom != dst_uom:
+            if src_uom.category_id != dst_uom.category_id:
+                raise UserError(_(
+                    "Không quy đổi được đơn vị mua '%s' về đơn vị sản phẩm '%s'. "
+                    "Kiểm tra lại đơn vị trước khi áp dụng bảng giá này."
+                ) % (src_uom.name, dst_uom.name))
+            price = src_uom._compute_price(price, dst_uom)
+        return price
+
+    def _dlm_apply(self, when=None):
+        """Đánh dấu 1 dòng giá đang áp dụng + ghi audit, rồi đồng bộ giá vốn tham
+        chiếu của sản phẩm. Validate tiền tệ/đơn vị nằm trong _recompute → lỗi thì
+        cả giao dịch rollback (không để is_applied treo)."""
+        self.ensure_one()
+        when = when or fields.Datetime.now()
+        self.write({
+            "is_applied": True,
+            "dlm_applied_uid": self.env.uid,
+            "dlm_applied_date": when,
+        })
+        product = self._dlm_product()
+        if product:
+            product._dlm_recompute_reference_cost()
+
+    def _dlm_unapply(self, when=None):
+        when = when or fields.Datetime.now()
         for rec in self:
-            has_applied = self.search_count(
-                [
-                    ("product_tmpl_id", "=", rec.product_tmpl_id.id),
-                    ("is_applied", "=", True),
-                ]
-            )
+            rec.write({
+                "is_applied": False,
+                "dlm_unapplied_uid": self.env.uid,
+                "dlm_unapplied_date": when,
+            })
+            product = rec._dlm_product()
+            if product:
+                product._dlm_recompute_reference_cost()
+
+    def action_approve(self):
+        """Mua hàng/Admin duyệt bảng giá NCC.
+
+        UX: duyệt xong TỰ ĐỘNG áp dụng nếu sản phẩm chưa có bảng giá nào đang áp
+        dụng — ca phổ biến nhất (1 NCC) rút còn 1 nút bấm là dùng được ngay.
+        """
+        self._check_price_manager()
+        now = fields.Datetime.now()
+        self.write({
+            "approval_state": "approved",
+            "dlm_approved_uid": self.env.uid,
+            "dlm_approved_date": now,
+        })
+        for rec in self:
+            has_applied = self.search_count([
+                ("product_tmpl_id", "=", rec.product_tmpl_id.id),
+                ("is_applied", "=", True),
+            ])
             if not has_applied and rec._is_valid_on(fields.Date.context_today(rec)):
-                rec.write({"is_applied": True})
+                rec._dlm_apply(now)
 
     def action_reset_draft(self):
-        if not (
-            self.env.user.has_group("dl_base.dl_group_accountant")
-            or self.env.user.has_group("dl_base.dl_group_admin")
-        ):
-            raise UserError(_("Chỉ Kế toán hoặc Admin mới được đổi trạng thái giá NCC."))
-        self.write({"approval_state": "draft", "is_applied": False})
+        self._check_price_manager()
+        for rec in self:
+            rec.write({"approval_state": "draft", "is_applied": False})
+            product = rec._dlm_product()
+            if product:
+                product._dlm_recompute_reference_cost()
 
     def action_set_applied(self):
-        """Đánh dấu bảng giá này đang áp dụng cho vật tư — tự bỏ áp dụng bảng giá khác."""
-        if not (
-            self.env.user.has_group("dl_base.dl_group_accountant")
-            or self.env.user.has_group("dl_base.dl_group_admin")
-        ):
-            raise UserError(_("Chỉ Kế toán hoặc Admin mới được chọn bảng giá áp dụng."))
+        """Đánh dấu bảng giá này đang áp dụng cho sản phẩm — tự bỏ áp dụng bảng
+        giá khác và cập nhật lại giá vốn tham chiếu."""
+        self._check_price_manager()
         for rec in self:
             if rec.approval_state != "approved":
                 raise UserError(_("Chỉ có thể áp dụng bảng giá đã duyệt."))
             rec._ensure_currently_valid()
-            others = self.search(
-                [
-                    ("product_tmpl_id", "=", rec.product_tmpl_id.id),
-                    ("is_applied", "=", True),
-                    ("id", "!=", rec.id),
-                ]
-            )
-            others.write({"is_applied": False})
-            rec.write({"is_applied": True})
+            others = self.search([
+                ("product_tmpl_id", "=", rec.product_tmpl_id.id),
+                ("is_applied", "=", True),
+                ("id", "!=", rec.id),
+            ])
+            others._dlm_unapply()
+            rec._dlm_apply()
 
     def action_unset_applied(self):
-        if not (
-            self.env.user.has_group("dl_base.dl_group_accountant")
-            or self.env.user.has_group("dl_base.dl_group_admin")
-        ):
-            raise UserError(_("Chỉ Kế toán hoặc Admin mới được bỏ áp dụng bảng giá."))
-        self.write({"is_applied": False})
+        self._check_price_manager()
+        self._dlm_unapply()
