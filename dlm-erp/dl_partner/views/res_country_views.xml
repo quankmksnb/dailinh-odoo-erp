@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Quốc gia (res.country) — form redesign nhẹ, chỉ dùng qua mũi tên trong
+         app (get_formview_action). KHÔNG đặt priority: form gốc Odoo vẫn mặc định
+         cho Settings; chỉ điều hướng trong app mới ra form này. -->
+    <record id="view_dl_country_form" model="ir.ui.view">
+        <field name="name">dl.country.form</field>
+        <field name="model">res.country</field>
+        <field name="arch" type="xml">
+            <form string="Quốc gia" class="dl-country-form">
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Tên quốc gia"/>
+                        <h1>
+                            <field name="name" placeholder="Việt Nam..."/>
+                        </h1>
+                    </div>
+                    <group string="Thông tin">
+                        <field name="code" string="Mã ISO"/>
+                        <field name="phone_code" string="Mã điện thoại"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action form-only cho mũi tên mở Quốc gia. Có id nên URL giữ view khi
+         F5/deep-link. Không gắn menu. -->
+    <record id="action_dl_country_form" model="ir.actions.act_window">
+        <field name="name">Quốc gia</field>
+        <field name="res_model">res.country</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_dl_country_form"/>
+        <field name="target">current</field>
+    </record>
+
+</odoo>

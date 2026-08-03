@@ -296,6 +296,17 @@
         </field>
     </record>
 
+    <!-- Action form-only cho mũi tên mở KH (get_formview_action). Có id nên URL
+         giữ được view khi F5/deep-link. Không gắn menu, chỉ dùng qua điều hướng. -->
+    <record id="action_dl_customer_form" model="ir.actions.act_window">
+        <field name="name">Khách hàng</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_dl_customer_form" />
+        <field name="target">current</field>
+        <field name="context">{'active_test': False}</field>
+    </record>
+
     <!-- EX-42: ngưỡng gộp đơn auto-approval (VNĐ) — CEO/Admin sửa được ở S02.
          noupdate để không ghi đè khi nâng cấp module. -->
     <data noupdate="1">

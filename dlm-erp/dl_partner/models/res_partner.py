@@ -249,6 +249,23 @@ class ResPartner(models.Model):
             return self.env.ref('dl_partner.view_dl_supplier_form').id
         return super().get_formview_id(access_uid=access_uid)
 
+    def get_formview_action(self, access_uid=None):
+        """Mở bản ghi qua mũi tên bằng action ĐÃ LƯU (có id) thay vì action tạm.
+        res.partner dùng chung 1 model cho 2 vai trò nên không thể đặt 1 form làm
+        mặc định; action tạm không mang view_id trong URL nên F5/deep-link rơi về
+        form gốc Odoo. Trả về action form-only theo vai trò để URL mang action id
+        -> F5/back giữ đúng form KH/NCC. Chỉ đổi điều hướng, không đổi nghiệp vụ."""
+        xmlid = None
+        if self.partner_role in _CUSTOMER_ROLES:
+            xmlid = 'dl_partner.action_dl_customer_form'
+        elif self.partner_role == 'supplier':
+            xmlid = 'dl_partner.action_dl_supplier_form'
+        if not xmlid:
+            return super().get_formview_action(access_uid=access_uid)
+        action = self.env['ir.actions.act_window']._for_xml_id(xmlid)
+        action['res_id'] = self.id
+        return action
+
     def _process_pending_link(self):
         for rec in self:
             if not rec.pending_link_partner_id:
