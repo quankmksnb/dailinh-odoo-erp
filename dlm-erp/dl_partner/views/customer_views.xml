@@ -110,7 +110,11 @@
             <form string="Khách hàng" class="dl-customer-form" js_class="dl_customer_form">
                 <header>
                     <button name="toggle_active" type="object" string="Vô hiệu hóa KH"
+<<<<<<< Updated upstream
                         class="btn-secondary" invisible="not active"
+=======
+                        class="btn-danger" invisible="not active or not id"
+>>>>>>> Stashed changes
                         confirm="Vô hiệu hóa khách hàng này? Dữ liệu cũ được giữ nguyên; KH sẽ không xuất hiện khi tạo báo giá/RFQ mới."
                         groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin" />
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
