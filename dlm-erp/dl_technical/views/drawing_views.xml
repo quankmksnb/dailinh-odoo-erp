@@ -47,7 +47,7 @@
                             class="btn-secondary"
                             invisible="status == 'archived'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                    <field name="status" widget="statusbar"
+                    <field name="status" widget="dl_stepper"
                            statusbar_visible="draft,confirmed,archived" readonly="1"/>
                 </header>
                 <sheet>

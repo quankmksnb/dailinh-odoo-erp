@@ -1,11 +1,11 @@
 /** @odoo-module **/
 // ============================================================
 //  DL RFQ List — đồng bộ giao diện danh sách Yêu cầu báo giá (D1).
-//  - dl_rfq_list: list Sales/chung — mở chi tiết tự do mọi trạng thái.
-//  - dl_rfq_list_my: list "RFQ cần xử lý" (Kỹ thuật) — cũng mở tự do. Việc
-//    "nhận xử lý" (Mới/Đã bổ sung → Đang xử lý) KHÔNG còn chặn click mở: KTV xem thoải
-//    mái, cổng kiểm soát chuyển vào FORM (nút "Nhận xử lý" + khóa field kết
-//    quả tới khi nhận). Xem quotation_request_views.xml.
+//  - dl_rfq_list (Sales/chung): đủ 7 mốc vòng đời để quản lý toàn bộ RFQ.
+//  - dl_rfq_list_my ("RFQ cần xử lý" — Kỹ thuật): CHỈ các mốc KTV thao tác/
+//    theo dõi (bộ chip rút gọn TECH_CHIPS). Cả hai đều mở chi tiết tự do mọi
+//    trạng thái; cổng "nhận xử lý" nằm trong form (nút "Xử lý" + khóa field
+//    kết quả). Xem quotation_request_views.xml.
 // ============================================================
 
 import { registry } from "@web/core/registry";
@@ -13,14 +13,13 @@ import { listView } from "@web/views/list/list_view";
 import { serializeDate, today } from "@web/core/l10n/dates";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
-// Chip lọc trạng thái RFQ (single-select, có số đếm) — thay dropdown ẩn cũ.
+// Chip lọc màn Sales/chung (list "Yêu cầu báo giá") — single-select, có số đếm.
 // Gom theo MỐC QUYẾT ĐỊNH cho thanh chip gọn (không 1 chip / status):
 //  - "Cần xử lý" (to_process) GỘP Mới + Đang xử lý + Đã bổ sung — cùng bản chất
 //    "RFQ đang ở phía Kỹ thuật để xử lý"; là chip mặc định.
-//  - Các mốc còn lại tách riêng vì bóng ở người khác / trạng thái chốt:
-//    Trả lại bổ sung (chờ Sales) · Đã xử lý xong – chờ tạo báo giá · Đã tạo BG · Đã hủy.
-// Vẫn lọc lẻ Mới/Đang xử lý/Đã bổ sung được qua ô Search nâng cao (filter vẫn
-// còn trong search view). key CHÍNH LÀ name filter trong search view.
+//  - Các mốc còn lại tách riêng vì bóng ở người khác / trạng thái chốt.
+// Vẫn lọc lẻ Mới/Đang xử lý/Đã bổ sung được qua ô Search nâng cao. key CHÍNH
+// LÀ name filter trong search view.
 const CHIPS = [
     { key: "all", label: "Tất cả" },
     { key: "to_process", label: "Cần xử lý" },
@@ -30,8 +29,21 @@ const CHIPS = [
     { key: "cancelled", label: "Đã hủy" },
     { key: "overdue", label: "Quá hạn" },
 ];
-// Các chip ánh xạ 1-1 tới filter bật/tắt được ("all" là bỏ lọc, không có filter).
-const FILTER_KEYS = CHIPS.filter((c) => c.key !== "all").map((c) => c.key);
+
+// Chip lọc màn "RFQ cần xử lý" (Kỹ thuật) — CHỈ các mốc KTV thật sự thao tác
+// hoặc cần theo dõi. Bỏ "Đã tạo BG" + "Đã hủy" (thuần Sales / đã chết) khỏi
+// hàng đợi việc của Kỹ thuật cho đỡ rối — chúng vẫn còn đầy đủ ở list Sales.
+// Nhãn rút gọn "Đã xử lý xong" (thay chuỗi dài "…– chờ tạo báo giá") để thanh
+// chip cân đối. "Tất cả" đứng ĐẦU cho đồng bộ với mọi màn chip khác (BOM, Báo
+// giá, Phê duyệt, Khách hàng…) — dù chip mặc định vẫn là "Cần xử lý" (context
+// search_default_to_process).
+const TECH_CHIPS = [
+    { key: "all", label: "Tất cả" },
+    { key: "to_process", label: "Cần xử lý" },
+    { key: "overdue", label: "Quá hạn" },
+    { key: "returned", label: "Trả lại bổ sung" },
+    { key: "confirmed", label: "Đã xử lý xong" },
+];
 
 export class DlRfqListController extends DlListBaseController {
     // "+ Tạo RFQ" → mở đúng màn Tạo RFQ của Sales (2 bảng thương mại/gia
@@ -48,6 +60,13 @@ export class DlRfqListController extends DlListBaseController {
 
     get dlChips() {
         return CHIPS;
+    }
+
+    // Các chip ánh xạ 1-1 tới filter bật/tắt được ("all" = bỏ lọc, không có
+    // filter). Suy thẳng từ dlChips để mỗi biến thể (Sales / Kỹ thuật) tự có
+    // đúng tập chip của nó — không dùng hằng số module chung.
+    get _filterKeys() {
+        return this.dlChips.filter((c) => c.key !== "all").map((c) => c.key);
     }
 
     async _loadCounts() {
@@ -82,8 +101,9 @@ export class DlRfqListController extends DlListBaseController {
     }
 
     _statusFilters() {
+        const keys = this._filterKeys;
         return this.env.searchModel.getSearchItems(
-            (i) => i.type === "filter" && FILTER_KEYS.includes(i.name)
+            (i) => i.type === "filter" && keys.includes(i.name)
         );
     }
 
@@ -110,10 +130,13 @@ export class DlRfqListController extends DlListBaseController {
     }
 }
 
-// "RFQ cần xử lý" (Kỹ thuật) dùng chung controller với list chung: mở chi tiết
-// tự do mọi trạng thái (kể cả "Mới/Đã bổ sung") — đúng phản xạ "click = mở".
-// Cổng "nhận xử lý" đã chuyển vào form: hiện banner + nút "Nhận xử lý" và khóa
-// các field kết quả cho tới khi KTV nhận (→ Đang xử lý).
+// "RFQ cần xử lý" (Kỹ thuật) — chỉ khác list Sales ở bộ chip (TECH_CHIPS); mọi
+// hành vi còn lại (đếm, single-select, mở chi tiết tự do) kế thừa nguyên vẹn.
+export class DlRfqListMyController extends DlRfqListController {
+    get dlChips() {
+        return TECH_CHIPS;
+    }
+}
 
 registry.category("views").add("dl_rfq_list", {
     ...listView,
@@ -122,5 +145,5 @@ registry.category("views").add("dl_rfq_list", {
 
 registry.category("views").add("dl_rfq_list_my", {
     ...listView,
-    Controller: DlRfqListController,
+    Controller: DlRfqListMyController,
 });

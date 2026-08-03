@@ -202,6 +202,71 @@ class DlQuotationRequest(models.Model):
                 else _("Không có dòng gia công cần xử lý")
             )
 
+    # Tô màu dòng RFQ cận/quá hạn ngay trên danh sách (đồng bộ list Báo giá):
+    # deadline sắp tới hoặc đã qua → cảnh báo để Kỹ thuật/Sales ưu tiên xử lý.
+    # Chỉ tính khi RFQ CÒN MỞ (chưa "Đã tạo báo giá"/"Đã hủy") — khớp đúng điều
+    # kiện của filter "Quá hạn" trong search view. RFQ đã đóng luôn để 'ok'
+    # (không tô), nhường màu xám cho decoration-muted.
+    _OPEN_DEADLINE_STATES = ("new", "processing", "returned", "supplemented", "confirmed")
+
+    deadline_state = fields.Selection(
+        [
+            ("ok", "Còn hạn"),
+            ("soon", "Sắp đến hạn"),
+            ("overdue", "Quá hạn"),
+        ],
+        string="Tình trạng hạn",
+        compute="_compute_deadline_state",
+    )
+
+    @api.depends("deadline", "status")
+    def _compute_deadline_state(self):
+        today = fields.Date.context_today(self)
+        for rec in self:
+            state = "ok"
+            if rec.status in self._OPEN_DEADLINE_STATES and rec.deadline:
+                if rec.deadline < today:
+                    state = "overdue"
+                elif (rec.deadline - today).days <= 7:
+                    state = "soon"
+            rec.deadline_state = state
+
+    # Giai đoạn theo GÓC NHÌN KỸ THUẬT — gộp 7 trạng thái vòng đời (phần lớn do
+    # Sales sở hữu) về đúng các mốc KTV quan tâm, dùng cho badge list "RFQ cần
+    # xử lý" thay cột status 7-state (đỡ rối, đúng phần việc). Chỉ để HIỂN THỊ:
+    # không lưu, không lọc — thanh chip vẫn lọc trên `status` thật.
+    #   Mới / Đã bổ sung   → Chưa nhận (chờ KTV bắt đầu / tiếp tục)
+    #   Đang xử lý         → Đang xử lý
+    #   Trả lại bổ sung    → Chờ Sales bổ sung (bóng đang ở Sales)
+    #   Đã xử lý xong      → Đã xử lý xong (KTV xong, chờ Sales tạo báo giá)
+    #   Đã tạo BG / Đã hủy → Đã đóng (ra khỏi hàng đợi việc của KTV)
+    _TECH_STAGE_BY_STATUS = {
+        "new": "pending",
+        "supplemented": "pending",
+        "processing": "processing",
+        "returned": "waiting_sales",
+        "confirmed": "done",
+        "quoted": "closed",
+        "cancelled": "closed",
+    }
+
+    tech_stage = fields.Selection(
+        [
+            ("pending", "Chưa nhận"),
+            ("processing", "Đang xử lý"),
+            ("waiting_sales", "Chờ Sales bổ sung"),
+            ("done", "Đã xử lý xong"),
+            ("closed", "Đã đóng"),
+        ],
+        string="Giai đoạn kỹ thuật",
+        compute="_compute_tech_stage",
+    )
+
+    @api.depends("status")
+    def _compute_tech_stage(self):
+        for rec in self:
+            rec.tech_stage = self._TECH_STAGE_BY_STATUS.get(rec.status, "pending")
+
     # Màn Tạo RFQ tách 2 bảng riêng (trên/dưới) để cột không trùng nhau — cùng
     # trỏ line_ids, lọc + mặc định theo product_type. line_ids gốc vẫn dùng cho
     # status/logic.
@@ -276,6 +341,10 @@ class DlQuotationRequest(models.Model):
                     "Hạn yêu cầu (%(deadline)s) không được trước ngày nhận "
                     "yêu cầu (%(requested)s).",
                     deadline=rec.deadline, requested=requested))
+
+    # "RFQ phải có ≥1 dòng" được validate INLINE ở client (view: required chéo
+    # trên trading_line_ids/manufactured_line_ids) → tô đỏ + toast như customer_id,
+    # KHÔNG dùng @api.constrains (modal). Xem [[rfq-sales-hard-constrains-ux-branch]].
 
     def _recompute_status_from_lines(self):
         for rec in self:
@@ -717,6 +786,32 @@ class DlQuotationRequestLine(models.Model):
                 raise ValidationError(
                     _("Vui lòng nhập Tên sản phẩm cho dòng Sản phẩm gia công.")
                 )
+
+    # "Kích thước bắt buộc" + "Đính kèm bắt buộc" cho dòng gia công được validate
+    # INLINE ở client (view: required trên dimension_note/attachment_ids trong
+    # form con) → tô đỏ ngay trong dialog, KHÔNG dùng @api.constrains (modal).
+
+    @api.constrains("product_type", "product_name")
+    def _check_unique_name_in_request(self):
+        """Trong cùng một RFQ, không cho hai dòng gia công trùng tên sản phẩm
+        (dễ nhầm khi Kỹ thuật xử lý / tạo Product). So khớp bỏ khoảng trắng
+        đầu-cuối và không phân biệt hoa-thường; dòng thương mại được miễn (đã
+        định danh bằng Product cụ thể)."""
+        for rec in self:
+            if rec.product_type != "manufactured":
+                continue
+            name = (rec.product_name or "").strip().lower()
+            if not name:
+                continue
+            dup = rec.quotation_request_id.line_ids.filtered(
+                lambda l: l.id != rec.id
+                and l.product_type == "manufactured"
+                and (l.product_name or "").strip().lower() == name)
+            if dup:
+                raise ValidationError(_(
+                    "Dòng gia công trùng tên sản phẩm \"%s\" trong cùng yêu "
+                    "cầu báo giá. Mỗi dòng gia công phải có tên khác nhau.",
+                    rec.product_name))
 
     @api.constrains("resolved_product_id", "is_infeasible")
     def _check_resolution(self):

@@ -21,7 +21,7 @@
                 <div class="dlm-rail-item has-children"
                      t-att-title="item.name"
                      t-att-class="{ 'expanded': state.expanded[item.key], 'active': sidebar.activeKey === item.key }"
-                     t-on-click="() => this.openGroupDefault(item)">
+                     t-on-click="() => this.toggleSubmenu(item.key)">
                     <span class="dlm-rail-icon"><i t-att-class="'fa ' + item.icon"/></span>
                     <span class="dlm-rail-label" t-esc="item.name"/>
                     <span class="dlm-rail-badge" t-if="badges[item.key]"
@@ -37,6 +37,7 @@
                     <t t-foreach="visibleChildren(item)" t-as="child" t-key="child.key">
                         <div class="dlm-rail-item dlm-rail-subitem"
                              t-att-title="child.name"
+                             t-att-class="{ 'active': sidebar.activeChildKey === child.key }"
                              t-on-click.stop="() => this.openChild(child, item.key)">
                             <span class="dlm-rail-icon"><i t-att-class="'fa ' + child.icon"/></span>
                             <span class="dlm-rail-label" t-esc="child.name"/>

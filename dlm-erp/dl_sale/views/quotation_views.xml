@@ -92,7 +92,7 @@
                     <button name="action_reset_draft" string="Về nháp"
                             type="object" class="btn-link"
                             invisible="state not in ('approved', 'sent', 'revision_requested', 'rejected', 'expired')"/>
-                    <field name="state" widget="dl_stepper"/>
+                    <field name="state" widget="dl_stepper" options="{'preset': 'quotation'}"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">

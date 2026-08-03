@@ -15,6 +15,7 @@ import {
   sidebarState,
   toggleSidebar,
   setActiveKey,
+  setActiveChildKey,
 } from "@dl_base/js/sidebar_state";
 
 // Chu kỳ làm mới badge (số việc chờ) — đủ nhanh để người duyệt thấy việc mới,
@@ -195,17 +196,10 @@ export class DlmRail extends Component {
     return (item.children || []).filter((child) => this._entryVisible(child));
   }
 
-  // Bấm nhãn nhóm: mở thẳng màn con đầu tiên (màn dùng nhiều nhất) + xổ submenu
-  // để thấy các màn còn lại → bỏ hẳn màn hub trung chuyển.
-  openGroupDefault(item) {
-    const children = this.visibleChildren(item);
-    if (!children.length) return;
-    this.state.expanded[item.key] = true;
-    this.openChild(children[0], item.key);
-  }
-
   openChild(child, groupKey) {
     setActiveKey(groupKey);
+    // Tô mục con đang chọn trong submenu (nhóm cha vẫn active nhờ groupKey).
+    setActiveChildKey(child.key);
     // Điều hướng thường xảy ra sau khi vừa xử lý việc ở màn trước → làm mới
     // số việc chờ để badge phản ánh ngay, không đợi hết chu kỳ poll.
     this._refreshBadges();
@@ -281,6 +275,13 @@ export class DlmRail extends Component {
   }
 
   toggleSubmenu(key) {
+    // Khi rail đang thu gọn, cần mở rộng trước để submenu vừa được xổ có thể
+    // nhìn thấy ngay. Mục cha chỉ điều khiển submenu, không điều hướng màn hình.
+    if (this.sidebar.collapsed) {
+      toggleSidebar();
+      this.state.expanded[key] = true;
+      return;
+    }
     this.state.expanded[key] = !this.state.expanded[key];
   }
 
@@ -317,6 +318,8 @@ export class DlmRail extends Component {
 
   openItem(item) {
     setActiveKey(item.key);
+    // Mục leaf (không submenu) → không mục con nào active.
+    setActiveChildKey(null);
     this._refreshBadges();
     if (item.preferMenu) {
       const menu = this._resolveItemMenu(item);

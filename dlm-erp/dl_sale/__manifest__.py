@@ -1,6 +1,6 @@
 {
     'name': 'DL-CRM & Báo giá',
-    'version': '17.0.1.21.0',
+    'version': '17.0.1.23.0',
     'summary': 'Quản lý Khách hàng, NCC, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -34,10 +34,6 @@
             'dl_sale/static/src/scss/customer_form.scss',
             'dl_sale/static/src/scss/supplier_list.scss',
             'dl_sale/static/src/scss/supplier_form.scss',
-            # Component — field widget dl_stepper (style co-located)
-            'dl_sale/static/src/components/stepper/stepper_field.scss',
-            'dl_sale/static/src/components/stepper/stepper_field.js',
-            'dl_sale/static/src/components/stepper/stepper_field.xml',
             # Views — list (lớp cơ sở DlListBaseController + actions_menu nằm
             # ở dl_base, nạp trước theo thứ tự phụ thuộc)
             'dl_sale/static/src/views/quotation_list_controller.js',
