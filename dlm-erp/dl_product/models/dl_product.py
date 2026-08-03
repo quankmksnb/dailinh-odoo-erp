@@ -20,6 +20,16 @@ _PRODUCT_KIND_SELECTION = [
     ("material_processed", "Bán thành phẩm"),
 ]
 
+# Mã SP/vật tư TỰ SINH theo loại (không bắt người dùng nhập tay — đồng nhất với
+# Mã KH, Mã BOM, Mã RFQ...). Prefix theo nhãn loại SP: GC- gia công,
+# TM- thương mại, VT- vật tư, BTP- bán thành phẩm (xem data/dl_product_data.xml).
+_KIND_CODE_SEQUENCE = {
+    "manufactured": "dl.product.manufactured",
+    "trading": "dl.product.trading",
+    "material": "dl.product.material",
+    "material_processed": "dl.product.material_processed",
+}
+
 
 class ProductProduct(models.Model):
     """PROD-02 — dl.product.
@@ -401,6 +411,13 @@ class ProductProduct(models.Model):
             rec.sudo().write({"dlm_lifecycle_state": "draft"})
         return True
 
+    # ── Mã SP/vật tư tự sinh theo loại ───────────────────────────────────
+    @api.model
+    def _dlm_next_code_for_kind(self, product_kind):
+        """Mã kế tiếp theo loại SP (False nếu loại không có sequence)."""
+        seq_code = _KIND_CODE_SEQUENCE.get(product_kind)
+        return self.env["ir.sequence"].next_by_code(seq_code) if seq_code else False
+
     # ── Chuẩn hóa khi promote (đơn chốt tự duyệt SP gia công từ Nháp) ────────
     def _dlm_standardize_on_promote(self):
         """Chuẩn hóa SP khi được nâng Nháp→Đã duyệt (gọi từ luồng chốt đơn ở
@@ -412,10 +429,12 @@ class ProductProduct(models.Model):
             name = rec.name and " ".join(rec.name.split())
             if name and name != rec.name:
                 vals["name"] = name
-            # Mã chính thức: SP tạo lúc xử lý RFQ chưa có mã — sinh TP-00001.
+            # Mã chính thức: SP tạm từ RFQ để trống mã cho tới lúc này (tránh đốt
+            # số cho bản nháp có thể bị dọn) — giờ mới sinh theo loại.
             if not rec.default_code:
-                vals["default_code"] = self.env["ir.sequence"].next_by_code(
-                    "dl.product.manufactured")
+                code = rec._dlm_next_code_for_kind(rec.product_kind)
+                if code:
+                    vals["default_code"] = code
             if vals:
                 rec.sudo().write(vals)
         return True
@@ -608,6 +627,19 @@ class ProductProduct(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            # Mã SP/vật tư TỰ SINH — không bắt người dùng nhập tay. Bỏ qua khi đã
+            # có mã (seed/demo/import tự đặt) hoặc là SP tạm từ RFQ
+            # (is_rfq_provisional): loại này để trống mã tới khi chốt đơn mới sinh
+            # (_dlm_standardize_on_promote), tránh đốt số cho nháp có thể bị dọn.
+            if vals.get("default_code") or vals.get("is_rfq_provisional"):
+                continue
+            kind = (vals.get("product_kind")
+                    or self.env.context.get("default_product_kind")
+                    or "manufactured")
+            code = self._dlm_next_code_for_kind(kind)
+            if code:
+                vals["default_code"] = code
         records = super().create(vals_list)
         # Chủ động báo Mua hàng khi Sales tạo SP thương mại mới (nháp) — để họ
         # biết mà thiết lập giá NCC, thay vì phải tự dò. Bỏ qua luồng hệ thống

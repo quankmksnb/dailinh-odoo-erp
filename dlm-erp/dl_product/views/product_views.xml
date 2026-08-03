@@ -154,15 +154,16 @@
                                 placeholder="VD: Khung thép hàn CT-200..."
                             />
                         </h1>
+                        <!-- Mã SP TỰ SINH theo loại (GC-/TM-/VT-/BTP-) khi lưu —
+                             người dùng không phải nhập tay. Ẩn tới khi có mã. -->
+                        <div class="text-muted" invisible="not default_code">
+                            Mã SP: <field name="default_code" class="oe_inline"
+                                readonly="1" />
+                        </div>
                     </div>
 
                     <group>
                         <group string="Phân loại">
-                            <field
-                                name="default_code"
-                                string="Mã SP"
-                                placeholder="VD: CT-200, VT-001"
-                            />
                             <!-- Sales không đổi được Loại SP (khoá = trading khi
                                  tạo); chỉ Admin/Kỹ thuật đổi loại. -->
                             <field name="dlm_can_change_kind" invisible="1" />

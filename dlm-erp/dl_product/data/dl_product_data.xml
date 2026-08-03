@@ -1,13 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ============================================================
-         Mã SP gia công tự sinh khi promote (Nháp → Đã duyệt lúc chốt đơn).
-         Định dạng TP-00001 (seq phẳng). Xem product._dlm_standardize_on_promote.
+         Mã SP / vật tư TỰ SINH theo loại — người dùng KHÔNG phải nhập tay
+         (đồng nhất với Mã KH, Mã BOM, Mã RFQ...). Sinh ngay khi tạo bản ghi
+         (product.create). Riêng SP gia công tạm từ RFQ để trống tới khi chốt
+         đơn mới sinh mã chính thức (product._dlm_standardize_on_promote).
+           • GC-  gia công (manufactured)
+           • TM-  thương mại (trading)
+           • VT-  vật tư (material)
+           • BTP- bán thành phẩm (material_processed)
     ============================================================ -->
     <record id="seq_dl_product_manufactured" model="ir.sequence">
         <field name="name">Mã SP gia công</field>
         <field name="code">dl.product.manufactured</field>
-        <field name="prefix">TP-</field>
+        <field name="prefix">GC-</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="implementation">standard</field>
+    </record>
+
+    <record id="seq_dl_product_trading" model="ir.sequence">
+        <field name="name">Mã SP thương mại</field>
+        <field name="code">dl.product.trading</field>
+        <field name="prefix">TM-</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="implementation">standard</field>
+    </record>
+
+    <record id="seq_dl_product_material" model="ir.sequence">
+        <field name="name">Mã vật tư</field>
+        <field name="code">dl.product.material</field>
+        <field name="prefix">VT-</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="implementation">standard</field>
+    </record>
+
+    <record id="seq_dl_product_material_processed" model="ir.sequence">
+        <field name="name">Mã bán thành phẩm</field>
+        <field name="code">dl.product.material_processed</field>
+        <field name="prefix">BTP-</field>
         <field name="padding">5</field>
         <field name="number_increment">1</field>
         <field name="implementation">standard</field>
