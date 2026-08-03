@@ -28,18 +28,21 @@ export class DlListBaseController extends ListController {
     _dlRenderChrome(root) {
         this._relocateCreateButton(root);
         this._renderActionsMenu(root);
-        this._setupSearchHover(root);
+        this._renderFilterDropdowns(root);
         this._renderChipbar(root);
         this._renderFooter(root);
     }
 
     get dlChips() {
         return [];
-    } 
+    }
     get dlCountNoun() {
         return "";
     }
-    async _loadCounts() {} // nạp this.dlCounts
+    get dlFilterDropdowns() {
+        return [];
+    }
+    async _loadCounts() {}
     _activeChip() {
         return "all";
     }
@@ -47,7 +50,7 @@ export class DlListBaseController extends ListController {
     _chipCount(chip) {
         return this.dlCounts[chip.key];
     }
-    _afterChipbar() {} 
+    _afterChipbar() {}
 
     _relocateCreateButton(root) {
         const buttons = root.querySelector(".o_control_panel_main_buttons");
@@ -63,8 +66,8 @@ export class DlListBaseController extends ListController {
             root.querySelector(".o_control_panel_navigation") ||
             root.querySelector(".o_control_panel_actions");
         buildActionsMenu(host, [
-            { label: "Nhập", icon: "fa-upload", onClick: () => this._dlImport() },
-            { label: "Xuất", icon: "fa-download", onClick: () => this.onExportData() },
+            { label: "Nhập dữ liệu", icon: "fa-upload", onClick: () => this._dlImport() },
+            { label: "Xuất dữ liệu", icon: "fa-download", onClick: () => this.onExportData() },
         ]);
     }
 
@@ -77,7 +80,109 @@ export class DlListBaseController extends ListController {
         });
     }
 
+    // ── Filter dropdowns (external <select>) ──────────────────────────────
+    // Chỉ hiện các filter thực sự có trong search view của action hiện tại —
+    // cùng 1 js_class được nhiều action dùng lại với search view khác nhau
+    // (VD: màn Sản phẩm lọc Gia công/Thương mại, màn Vật tư lọc Vật tư/BTP,
+    // màn Bảng giá không có filter loại SP).
+    _dlAvailableDropdowns() {
+        const sm = this.env.searchModel;
+        const available = new Set(
+            sm.getSearchItems((i) => i.type === "filter").map((i) => i.name)
+        );
+        return this.dlFilterDropdowns
+            .map((dd) => ({
+                ...dd,
+                filters: dd.filters.filter((f) => available.has(f.name)),
+            }))
+            .filter((dd) => dd.filters.length);
+    }
+
+    _renderFilterDropdowns(root) {
+        const dropdowns = this._dlAvailableDropdowns();
+        if (!dropdowns.length) {
+            return;
+        }
+        const actions = root.querySelector(".o_control_panel_actions");
+        if (!actions) {
+            return;
+        }
+
+        let container = actions.querySelector(".dl-filter-group");
+        if (!container) {
+            container = document.createElement("div");
+            container.className = "dl-filter-group";
+            const createCluster = actions.querySelector(".dl-create-cluster");
+            if (createCluster) {
+                actions.insertBefore(container, createCluster);
+            } else {
+                actions.appendChild(container);
+            }
+        }
+
+        for (const dd of dropdowns) {
+            let select = container.querySelector(`select[data-dl-filter="${dd.key}"]`);
+            if (!select) {
+                select = document.createElement("select");
+                select.className = "dl-filter-select";
+                select.dataset.dlFilter = dd.key;
+
+                const allOpt = document.createElement("option");
+                allOpt.value = "";
+                allOpt.textContent = dd.label;
+                select.appendChild(allOpt);
+
+                for (const f of dd.filters) {
+                    const opt = document.createElement("option");
+                    opt.value = f.name;
+                    opt.textContent = f.label;
+                    select.appendChild(opt);
+                }
+
+                select.addEventListener("change", () =>
+                    this._onFilterDropdownChange(dd, select.value)
+                );
+                container.appendChild(select);
+            }
+
+            select.value = this._getActiveDropdownFilter(dd) || "";
+        }
+    }
+
+    _getActiveDropdownFilter(dd) {
+        const sm = this.env.searchModel;
+        const names = dd.filters.map((f) => f.name);
+        const items = sm.getSearchItems(
+            (i) => i.type === "filter" && names.includes(i.name)
+        );
+        const active = items.find((i) => i.isActive);
+        return active ? active.name : "";
+    }
+
+    _onFilterDropdownChange(dd, value) {
+        const sm = this.env.searchModel;
+        const names = dd.filters.map((f) => f.name);
+        const items = sm.getSearchItems(
+            (i) => i.type === "filter" && names.includes(i.name)
+        );
+        for (const it of items) {
+            if (it.isActive) {
+                sm.toggleSearchItem(it.id);
+            }
+        }
+        if (value) {
+            const it = items.find((i) => i.name === value);
+            if (it) {
+                sm.toggleSearchItem(it.id);
+            }
+        }
+    }
+
+    // ── Chipbar ────────────────────────────────────────────────────────────
     _renderChipbar(root) {
+        if (!this.dlChips.length) {
+            return;
+        }
         const cp = root.querySelector(".o_control_panel");
         if (!cp) {
             return;
@@ -135,50 +240,8 @@ export class DlListBaseController extends ListController {
             footer.appendChild(pager);
         }
     }
-
-    _setupSearchHover(root) {
-        const toggler = root.querySelector(".o_searchview_dropdown_toggler");
-        if (!toggler || toggler.dataset.dlHoverOpen) {
-            return;
-        }
-        toggler.dataset.dlHoverOpen = "1";
-
-        let timer = null;
-        const isOpen = () => toggler.getAttribute("aria-expanded") === "true";
-        const cancel = () => {
-            clearTimeout(timer);
-            timer = null;
-        };
-        const scheduleClose = () => {
-            cancel();
-            timer = setTimeout(() => {
-                const menu = document.querySelector(".o_search_bar_menu");
-                const overToggler = toggler.matches(":hover");
-                const overMenu = menu && menu.matches(":hover");
-                if (isOpen() && !overToggler && !overMenu) {
-                    toggler.click();
-                }
-            }, 180);
-        };
-        const bindMenu = () => {
-            const menu = document.querySelector(".o_search_bar_menu");
-            if (menu && !menu.dataset.dlHoverBound) {
-                menu.dataset.dlHoverBound = "1";
-                menu.addEventListener("mouseenter", cancel);
-                menu.addEventListener("mouseleave", scheduleClose);
-            }
-        };
-
-        toggler.addEventListener("mouseenter", () => {
-            cancel();
-            if (!isOpen()) {
-                toggler.click();
-            }
-            setTimeout(bindMenu, 50);
-        });
-        toggler.addEventListener("mouseleave", scheduleClose);
-    }
 }
+
 export class DlListController extends ListController {
     setup() {
         super.setup();
@@ -187,15 +250,16 @@ export class DlListController extends ListController {
             if (!root) {
                 return;
             }
+            this._relocateCreateButton(root);
             const container =
                 root.querySelector(".o_control_panel_navigation") ||
                 root.querySelector(".o_control_panel_breadcrumbs");
             buildActionsMenu(
                 container,
                 [
-                    { label: "Nhập", icon: "fa-upload", onClick: () => this.dlImport() },
+                    { label: "Nhập dữ liệu", icon: "fa-upload", onClick: () => this.dlImport() },
                     {
-                        label: "Xuất",
+                        label: "Xuất dữ liệu",
                         icon: "fa-download",
                         onClick: () => this.onExportData && this.onExportData(),
                     },
@@ -203,6 +267,15 @@ export class DlListController extends ListController {
                 { prepend: true }
             );
         });
+    }
+
+    _relocateCreateButton(root) {
+        const buttons = root.querySelector(".o_control_panel_main_buttons");
+        const actions = root.querySelector(".o_control_panel_actions");
+        if (buttons && actions && buttons.parentElement !== actions) {
+            buttons.classList.add("dl-create-cluster");
+            actions.appendChild(buttons);
+        }
     }
 
     dlImport() {

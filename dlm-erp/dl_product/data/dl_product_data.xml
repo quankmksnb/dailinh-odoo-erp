@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         Mã SP gia công tự sinh khi promote (Nháp → Đã duyệt lúc chốt đơn).
+         Định dạng TP-00001 (seq phẳng). Xem product._dlm_standardize_on_promote.
+    ============================================================ -->
+    <record id="seq_dl_product_manufactured" model="ir.sequence">
+        <field name="name">Mã SP gia công</field>
+        <field name="code">dl.product.manufactured</field>
+        <field name="prefix">TP-</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="implementation">standard</field>
+    </record>
+
+    <!-- ============================================================
+         Nháp mồ côi: SP gia công còn Nháp mà RFQ không chốt thành đơn.
+         Cron tự chuyển 'Ngừng' khi quá hạn (ngưỡng ir.config_parameter).
+    ============================================================ -->
+    <record id="param_orphan_draft_days" model="ir.config_parameter">
+        <field name="key">dl_product.orphan_draft_days</field>
+        <field name="value">30</field>
+    </record>
+
+    <record id="cron_obsolete_orphan_drafts" model="ir.cron">
+        <field name="name">DL: Dọn nháp SP gia công mồ côi</field>
+        <field name="model_id" ref="product.model_product_product"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_obsolete_orphan_drafts()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active" eval="True"/>
+    </record>
+
+    <!-- Rà soát tay: mở danh sách nháp mồ côi (mọi tuổi) để Kỹ thuật xử lý -->
+    <record id="action_review_orphan_drafts" model="ir.actions.server">
+        <field name="name">Nháp mồ côi (rà soát)</field>
+        <field name="model_id" ref="product.model_product_product"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_dlm_review_orphan_drafts()</field>
+    </record>
+
+    <menuitem
+        id="menu_dl_orphan_drafts"
+        name="Nháp mồ côi (rà soát)"
+        action="action_review_orphan_drafts"
+        parent="menu_dl_product_root"
+        sequence="14"
+        groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
+    />
+</odoo>

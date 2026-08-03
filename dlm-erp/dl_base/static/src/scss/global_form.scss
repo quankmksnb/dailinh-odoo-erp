@@ -1,0 +1,229 @@
+// ============================================================================
+// DLM-ERP — Global form overrides
+// Áp dụng cho TẤT CẢ form view có class dl-*-form: font, nền, sheet,
+// input, label, section separator, notebook tab, statusbar, chatter.
+// Mỗi form riêng chỉ cần bổ sung phần ĐẶC THÙ (avatar, code, totals...).
+// ============================================================================
+
+.o_form_view[class*="dl-"][class*="-form"] {
+    font-family: $dl-font;
+    color: $dl-text;
+    background: $dl-app-bg;
+
+    // --- Sheet ---------------------------------------------------------------
+    .o_form_sheet_bg { background: $dl-app-bg; border: 0; }
+    .o_form_sheet {
+        max-width: 100%;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        box-shadow: none;
+        background: $dl-surface;
+    }
+
+    .o_inner_group { row-gap: 4px; }
+
+    // --- Title ---------------------------------------------------------------
+    .oe_title { margin-bottom: 12px !important; }
+    .oe_title h1 {
+        .o_field_widget, input {
+            font-size: 20px;
+            font-weight: 700;
+            color: $dl-heading;
+        }
+    }
+
+    // --- Label ---------------------------------------------------------------
+    .o_form_label,
+    .o_inner_group label {
+        color: $dl-text-2;
+        font-weight: 500;
+        font-size: 13px;
+    }
+
+    // --- Input (dl-input mixin) ----------------------------------------------
+    .o_group .o_field_widget input.o_input,
+    .o_group .o_field_many2one .o_input,
+    .o_group .o_field_date input,
+    .o_group .o_field_widget .o_input_dropdown input,
+    .o_group textarea.o_input {
+        @include dl-input;
+    }
+
+    // --- Section separator ---------------------------------------------------
+    .o_horizontal_separator,
+    .o_inner_group > .o_horizontal_separator {
+        color: $dl-primary;
+        text-transform: uppercase;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    // --- Notebook tabs -------------------------------------------------------
+    .o_notebook .o_notebook_headers .nav-tabs {
+        border-bottom: 1px solid $dl-border;
+
+        .nav-link {
+            color: $dl-text-2;
+            border: 0;
+            padding: 8px 4px;
+            margin-right: 20px;
+            font-size: 14px;
+        }
+
+        .nav-link.active {
+            color: $dl-primary;
+            font-weight: 600;
+            border-bottom: 2px solid $dl-primary;
+            background: transparent;
+        }
+    }
+    .o_notebook .tab-content { padding-top: 7px; }
+
+    // --- Statusbar -----------------------------------------------------------
+    // Nút hành động đã chuyển lên breadcrumb (setupStatusbarButtons).
+    // Statusbar chỉ còn pipeline trạng thái → gọn 1 dòng.
+    .o_form_statusbar {
+        background: transparent;
+        border-bottom: 1px solid $dl-divider;
+        padding: 6px 0 8px;
+        gap: 0;
+        flex-direction: row;
+        align-items: center;
+
+        .o_statusbar_buttons:empty { display: none; }
+
+        .o_statusbar_buttons {
+            gap: 8px;
+
+            .btn {
+                border-radius: $dl-radius-sm;
+                font-weight: 500;
+                padding: 6px 16px;
+            }
+
+            .btn-primary {
+                background-color: $dl-primary;
+                border-color: $dl-primary;
+
+                &:hover, &:focus, &:active {
+                    background-color: $dl-primary-dark !important;
+                    border-color: $dl-primary-dark !important;
+                }
+            }
+
+            .btn-danger {
+                color: $dl-danger;
+                background-color: #fff;
+                border-color: $dl-danger-border;
+
+                &:hover, &:focus {
+                    color: $dl-danger;
+                    background-color: $dl-danger-bg;
+                    border-color: $dl-danger-border;
+                }
+            }
+
+            .btn-link,
+            .btn-secondary {
+                color: $dl-primary;
+                background: transparent;
+                border-color: transparent;
+                text-decoration: none;
+
+                &:hover { text-decoration: underline; background: transparent; }
+            }
+        }
+    }
+
+    // --- Chatter ---------------------------------------------------------------
+    // Odoo core tự chuyển chatter sang nằm CẠNH sheet (o-aside, rộng cố định
+    // 530px) khi màn hình >= ~1534px: lúc đó .o_form_renderer nhận class
+    // bootstrap `d-flex flex-nowrap` (xem web/form_compiler.js) rồi sheet_bg và
+    // chatter xếp thành 2 cột. Trên laptop 1536–1920px chatter ăn gần nửa bề
+    // ngang, đặc biệt bóp nghẹt màn tạo mới. Ép về xếp DỌC: chatter nằm dưới
+    // sheet, full width — log/follower/activity vẫn đầy đủ, chỉ đổi vị trí.
+    // Bỏ layout 2 cột (sheet | chatter) của Odoo ở màn xxl: cho renderer về
+    // block flow tự nhiên → sheet hiển thị đủ chiều cao, chatter nằm DƯỚI full
+    // width, cả trang cuộn bình thường. (Trước dùng flex-direction:column +
+    // sheet flex:0 1 auto → khi chatter/log dài, flex bóp sheet co lại còn 1 ô
+    // cuộn nhỏ, đẩy log lên quá cao.)
+    &.o_xxl_form_view .o_form_renderer {
+        display: block !important;
+    }
+
+    .o-mail-Form-chatter.o-aside {
+        width: 100% !important;
+        flex: 0 0 auto !important;
+    }
+
+    .o-mail-Chatter .o-mail-Chatter-topbar {
+        border-bottom: 1px solid $dl-divider;
+    }
+
+    // --- x2many sub-table ----------------------------------------------------
+    .o_field_x2many .o_list_renderer {
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+    }
+
+    .o_field_x2many .o_list_table {
+        thead th {
+            background: $dl-search-bg;
+            color: $dl-text-2;
+            font-weight: 500;
+            border-bottom: 0;
+        }
+        .o_data_row td { border-top: 1px solid $dl-divider; }
+        th, td { vertical-align: middle; }
+    }
+
+    .o_field_x2many .o_list_table td.o_list_record_remove button { visibility: hidden; }
+    .o_field_x2many .o_list_table tr.o_data_row:hover td.o_list_record_remove button {
+        visibility: visible;
+    }
+
+    .o_field_x2many .o_field_x2many_list_row_add a {
+        color: $dl-primary;
+        font-weight: 500;
+    }
+
+    // --- Subtotal footer (oe_subtotal_footer) --------------------------------
+    .oe_subtotal_footer .o_field_widget { font-weight: 700; color: $dl-heading; }
+}
+
+// ============================================================================
+// Ẩn hàng đệm trống của bảng one2many/x2many
+// Odoo luôn pad list con tới tối thiểu 4 dòng bằng các <tr> rỗng
+// (ListRenderer.getEmptyRowIds) — mỗi hàng chỉ có 1 <td colspan> chứa
+// zero-width space, tạo dải trắng thừa dưới "Thêm một dòng" khi bảng còn ít
+// hoặc chưa có dòng. Ẩn hẳn để bảng rỗng chỉ còn header + nút "Thêm một dòng".
+// Đặt ở GLOBAL scope (ngoài selector .dl-*-form) để phủ cả bảng x2many nằm
+// trong wizard/dialog — nơi không có class .dl-*-form bao ngoài.
+// Loại trừ: dòng dữ liệu thật (.o_data_row), dòng "Thêm một dòng"
+// (o_field_x2many_list_row_add), header/nút thêm của nhóm — chỉ còn hàng đệm.
+// ============================================================================
+.o_field_x2many .o_list_renderer table.o_list_table > tbody > tr {
+    &:not(.o_data_row):not(.o_group_header):not(:has(> td.o_field_x2many_list_row_add)):not(:has(> td.o_group_field_row_add)) {
+        display: none !important;
+    }
+}
+
+// ============================================================================
+// Textarea lớn dùng chung (.dl-textarea-lg)
+// Ô nhập đoạn dài: lý do từ chối / không khả thi / đưa về nháp, yêu cầu điều
+// chỉnh, mô tả, ghi chú… Mặc định Odoo render Text field thành 1 dòng rất thấp;
+// class này cho khung cao & rộng như textarea thật để dễ nhập.
+// Đặt ở GLOBAL scope (ngoài selector form) vì phần lớn ô này nằm trong wizard
+// mở dưới dạng dialog — không có class .dl-*-form bao ngoài.
+// ============================================================================
+.dl-textarea-lg {
+    display: block;
+    width: 100% !important;
+    max-width: none !important;
+
+    textarea {
+        min-height: 120px !important;
+        width: 100% !important;
+    }
+}

@@ -11,6 +11,19 @@ export class DlDrawingListController extends DlListBaseController {
     get dlCountNoun() {
         return "bản vẽ";
     }
+
+    get dlFilterDropdowns() {
+        return [
+            {
+                key: "status",
+                label: "Tất cả trạng thái",
+                filters: [
+                    { name: "draft", label: "Nháp" },
+                    { name: "confirmed", label: "Đã xác nhận" },
+                ],
+            },
+        ];
+    }
 }
 
 registry.category("views").add("dl_drawing_list", {

@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         SEED VẬT TƯ — doanh nghiệp cơ khí sắt thép Đại Linh.
+         Cùng bảng product.product (product_kind = material) như màn
+         "Vật tư" và bảng Hao hụt của "Cấu hình Báo giá": SỬA Ở BẤT KỲ
+         MÀN NÀO CŨNG LÀ CÙNG MỘT DỮ LIỆU (các field dlm_*).
+
+         noupdate="1": seed một lần khi cài/-u, sau đó cho phép sửa tự do
+         (config linh động) mà lần -u sau KHÔNG ghi đè giá trị đã chỉnh.
+    ============================================================ -->
+    <data noupdate="1">
+
+        <!-- Sản phẩm phế liệu: đơn giá thu hồi lấy từ list_price của nó.
+             Recovery của vật tư bên dưới trỏ về đây. -->
+        <record id="seed_scrap_steel" model="product.product">
+            <field name="name">Phế liệu thép (thu hồi)</field>
+            <field name="default_code">SCRAP-STEEL</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_consumable" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="list_price">8000</field>
+        </record>
+
+        <!-- ============ THÉP TẤM (cắt CNC/plasma — hao hụt cao, thu hồi tốt) ============ -->
+        <record id="seed_mat_tt_ct3_2" model="product.product">
+            <field name="name">Thép tấm CT3 dày 2mm (1250×2500)</field>
+            <field name="default_code">VT-TT-CT3-2</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_sheet" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">7.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">65.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_tt_ct3_5" model="product.product">
+            <field name="name">Thép tấm CT3 dày 5mm (1500×6000)</field>
+            <field name="default_code">VT-TT-CT3-5</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_sheet" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">5.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">65.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_tt_ss400_10" model="product.product">
+            <field name="name">Thép tấm SS400 dày 10mm</field>
+            <field name="default_code">VT-TT-SS400-10</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_sheet" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">4.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">60.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+
+        <!-- ============ THÉP HỘP (cắt theo cây — hao hụt đầu mẩu) ============ -->
+        <record id="seed_mat_th_40" model="product.product">
+            <field name="name">Thép hộp mạ kẽm 40×40×1.8mm</field>
+            <field name="default_code">VT-TH-40</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_box" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">4.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_th_50" model="product.product">
+            <field name="name">Thép hộp đen 50×50×2.0mm</field>
+            <field name="default_code">VT-TH-50</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_box" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">4.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_th_100x50" model="product.product">
+            <field name="name">Thép hộp chữ nhật 100×50×2.5mm</field>
+            <field name="default_code">VT-TH-100X50</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_box" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">3.5</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+
+        <!-- ============ THÉP ỐNG ============ -->
+        <record id="seed_mat_to_34" model="product.product">
+            <field name="name">Thép ống tròn Ø34×1.8mm</field>
+            <field name="default_code">VT-TO-34</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_pipe" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">4.5</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_to_49" model="product.product">
+            <field name="name">Thép ống tròn Ø49×2.0mm</field>
+            <field name="default_code">VT-TO-49</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_pipe" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">4.5</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+
+        <!-- ============ SƠN (bay hơi/overspray — KHÔNG thu hồi) ============ -->
+        <record id="seed_mat_son_td" model="product.product">
+            <field name="name">Sơn tĩnh điện dạng bột RAL9005</field>
+            <field name="default_code">VT-SON-TD</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_paint" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">12.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+        <record id="seed_mat_son_lot" model="product.product">
+            <field name="name">Sơn lót chống gỉ (1 thành phần)</field>
+            <field name="default_code">VT-SON-LOT</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_paint" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_litre" />
+            <field name="uom_po_id" ref="uom.product_uom_litre" />
+            <field name="dlm_waste_rate">10.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+
+        <!-- ============ VẬT TƯ TIÊU HAO ============ -->
+        <record id="seed_mat_quehan_25" model="product.product">
+            <field name="name">Que hàn thép 2.5mm</field>
+            <field name="default_code">VT-QUEHAN-25</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_consumable" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_kgm" />
+            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_waste_rate">5.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+        <record id="seed_mat_dacat_180" model="product.product">
+            <field name="name">Đá cắt kim loại Ø180</field>
+            <field name="default_code">VT-DACAT-180</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_consumable" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_po_id" ref="uom.product_uom_unit" />
+            <field name="dlm_waste_rate">0.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+
+    </data>
+</odoo>

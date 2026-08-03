@@ -45,8 +45,10 @@
                     <div class="dl-cfg-subhead">
                         <span>Cơ cấu giá — 5 thành phần cộng lại = 100% tổng báo giá</span>
                         <label class="dl-cfg-sample">Báo giá mẫu:
-                            <input type="number" min="0" step="1000000" t-model.number="state.sampleTotal"/>
-                            <span class="unit">đ</span>
+                            <input type="text" inputmode="numeric" t-att-value="fmtMoney(state.sampleTotal)"
+                                   t-on-input="onMoneyInput"
+                                   t-on-change="(ev) => state.sampleTotal = parseMoney(ev.target.value)"/>
+                            <span class="unit">₫</span>
                         </label>
                     </div>
 
@@ -179,7 +181,7 @@
                     </div>
                     <div t-if="ceoBackupMissing" class="dl-cfg-note warn">
                         <i class="fa fa-exclamation-triangle"/>
-                        CEO chưa có Backup Approver — quá SLA sẽ chỉ nhắc, không tự escalate (EX-27).
+                        Giám đốc chưa có người duyệt thay thế — khi quá hạn hệ thống chỉ nhắc, không tự chuyển cấp duyệt.
                     </div>
 
                     <div class="dl-cfg-matrix-wrap">
@@ -193,7 +195,7 @@
                                     <th>Margin tối thiểu</th>
                                     <th>Người duyệt</th>
                                     <th>Cụ thể</th>
-                                    <th>Backup</th>
+                            <th>Người duyệt thay thế</th>
                                     <th>Kiểu</th>
                                     <th class="num">SLA (h)</th>
                                     <th>Trạng thái</th>
@@ -321,7 +323,7 @@
                     <div class="dl-cfg-subhead"><span>Hành động khi quá SLA</span></div>
                     <div class="dl-cfg-checks">
                         <label class="dl-cfg-check"><input type="checkbox" t-model="state.sla.onOverdue.remind"/> <span>Nhắc nhở</span></label>
-                        <label class="dl-cfg-check"><input type="checkbox" t-model="state.sla.onOverdue.escalate"/> <span>Tự động Escalate lên cấp trên / Backup</span></label>
+                <label class="dl-cfg-check"><input type="checkbox" t-model="state.sla.onOverdue.escalate"/> <span>Tự động chuyển lên cấp trên hoặc người duyệt thay thế</span></label>
                         <label class="dl-cfg-check"><input type="checkbox" t-model="state.sla.onOverdue.log"/> <span>Ghi log</span></label>
                         <label class="dl-cfg-check"><input type="checkbox" t-model="state.sla.onOverdue.kpi"/> <span>Ghi nhận để tính KPI</span></label>
                     </div>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- KTV trả RFQ về Sales bổ sung — nhập lý do -->
+    <record id="view_dl_rfq_return_wizard_form" model="ir.ui.view">
+        <field name="name">dl.rfq.return.wizard.form</field>
+        <field name="model">dl.rfq.return.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Trả lại RFQ để bổ sung">
+                <field name="request_id" invisible="1"/>
+                <field name="reason" nolabel="1" class="dl-textarea-lg"
+                       placeholder="Nêu rõ thông tin còn thiếu cần Sales bổ sung (mô tả, kích thước, ảnh...)."/>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Gửi lại Sales" class="oe_highlight"/>
+                    <button string="Hủy" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

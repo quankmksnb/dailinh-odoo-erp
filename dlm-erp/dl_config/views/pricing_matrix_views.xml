@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Form CHỈ ĐỌC cho dòng ma trận phê duyệt — dùng khi bấm "Xem chi tiết"
+         từ tab Yêu cầu chờ duyệt. Thao tác sửa/kích hoạt làm ở màn Cấu hình
+         Báo giá (OWL); form này để Giám đốc soi nội dung + nhật ký trao đổi. -->
+    <record id="view_dl_pricing_matrix_form" model="ir.ui.view">
+        <field name="name">dl.pricing.approval.matrix.form</field>
+        <field name="model">dl.pricing.approval.matrix</field>
+        <field name="arch" type="xml">
+            <form create="false" delete="false" edit="false">
+                <header>
+                    <field name="state" widget="dl_stepper"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Nội dung mức duyệt">
+                            <field name="currency_id" invisible="1"/>
+                            <field name="value_from" widget="dl_money"/>
+                            <field name="approval_level"/>
+                            <field name="approver_user_id"/>
+                            <field name="note"/>
+                        </group>
+                        <group string="Hiệu lực &amp; phiên bản">
+                            <field name="valid_from"/>
+                            <field name="valid_to"/>
+                            <field name="revision"/>
+                            <field name="revised_from_id"/>
+                            <field name="change_reason"/>
+                            <field name="used_in_snapshot"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                </sheet>
+                <!-- Nhật ký: đội thương mại + quản trị (khớp quy ước chatter theo vai trò) -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -1,94 +1,120 @@
 /** @odoo-module **/
 
-import { Component, useRef, useState, onMounted, onWillUnmount } from "@odoo/owl";
+import { Component, onWillStart, onMounted, useState } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import { Dropdown } from "@web/core/dropdown/dropdown";
 import { DropdownItem } from "@web/core/dropdown/dropdown_item";
 import { ErrorHandler } from "@web/core/utils/components";
-import { sidebarState, toggleSidebar } from "@dl_base/js/sidebar_state";
+import { setActiveKey, setActiveChildKey } from "@dl_base/js/sidebar_state";
 
 const systrayRegistry = registry.category("systray");
 
-const NAV_ITEMS = [
-    {
-        key: "home",
-        name: "Trang chủ",
-        icon: "fa-home",
-        actionXmlId: null,
-        active: true,
-    },
+// Card = một menu đích (menuXmlIds: cái ĐẦU TIÊN user thấy được sẽ dùng).
+// Server đã lọc cây menu theo groups ⇒ card không tìm thấy menu nào là user
+// không có quyền → ẨN card (RBAC hiển thị đồng nhất với menu, không cần
+// hasGroup phía client).
+const MODULE_CARDS = [
     {
         key: "customer",
         name: "Khách hàng",
+        description: "Danh bạ khách hàng & liên hệ",
         icon: "fa-users",
-        actionXmlId: "dl_partner.action_dl_customer",
+        color: "#7c5caf",
+        menuXmlIds: ["dl_partner.menu_dl_sale_customer"],
     },
     {
         key: "supplier",
-        name: "Nhà cung cấp",
+        name: "NCC / Thầu phụ",
+        description: "Nhà cung cấp & thầu phụ",
         icon: "fa-truck",
-        actionXmlId: "dl_partner.action_dl_supplier",
+        color: "#2a8c82",
+        // Trưởng KD chỉ có bản chỉ-đọc — menu nào thấy được thì mở menu đó.
+        menuXmlIds: [
+            "dl_partner.menu_dl_sale_supplier",
+            "dl_partner.menu_dl_sale_supplier_readonly",
+        ],
     },
     {
         key: "quotation",
         name: "Báo giá",
+        description: "Yêu cầu báo giá & Báo giá",
         icon: "fa-file-text-o",
-        actionXmlId: "dl_sale.action_dl_quotation",
+        color: "#4a90d9",
+        // Trỏ thẳng menu hub Báo giá — trỏ menu cha "CRM & Báo giá" sẽ mở
+        // nhầm menu con đầu tiên (Khách hàng).
+        menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
+    },
+    {
+        key: "approval",
+        name: "Phê duyệt",
+        description: "Báo giá vượt ngưỡng chờ duyệt",
+        icon: "fa-check-square-o",
+        color: "#c05c43",
+        // Menu chỉ cấp cho CEO/Trưởng KD/op-group "Duyệt báo giá" — user khác
+        // không thấy menu ⇒ card tự ẩn (cơ chế lọc chung ở trên).
+        menuXmlIds: ["dl_sale.menu_dl_sale_quote_approval"],
+        // Badge: số yêu cầu duyệt báo giá đang chờ — chỉ đếm khi card hiển thị.
+        badge: {
+            model: "dl.pricing.approval.request",
+            domain: [
+                ["request_type", "=", "quote_over_threshold"],
+                ["state", "=", "pending"],
+            ],
+        },
     },
     {
         key: "product",
-        name: "Sản phẩm",
+        name: "Sản phẩm & Vật tư",
+        description: "Quản lý Sản phẩm và Vật tư",
         icon: "fa-cube",
-        actionXmlId: "dl_product.action_dl_product_full",
+        color: "#1a9e6f",
+        menuXmlIds: ["dl_base.menu_dl_product"],
     },
     {
         key: "technical",
         name: "Kỹ thuật",
+        description: "BOM, bản vẽ & công thức tham số",
         icon: "fa-cogs",
-        actionXmlId: null,
+        color: "#7c5caf",
+        menuXmlIds: ["dl_base.menu_dl_technical"],
     },
     {
-        key: "material",
-        name: "Vật tư",
-        icon: "fa-cubes",
-        actionXmlId: null,
-    },
-    {
-        key: "report",
-        name: "Báo cáo",
-        icon: "fa-bar-chart",
-        actionXmlId: null,
+        key: "pricing",
+        name: "Bảng giá",
+        description: "Bảng giá SP Thương mại / Vật tư",
+        icon: "fa-money",
+        color: "#c49052",
+        menuXmlIds: ["dl_product.menu_dl_pricing_root"],
     },
     {
         key: "config",
         name: "Cấu hình",
+        description: "Tham số giá, phân quyền & danh mục dùng chung",
         icon: "fa-sliders",
-        actionXmlId: null,
+        color: "#5a6a6a",
+        menuXmlIds: ["dl_base.menu_dl_config"],
     },
 ];
 
-const STATS = [
-    { key: "month", label: "Báo giá tháng", value: "48", sub: "▲ 12%", subClass: "up", dot: "#0a6ee0" },
-    { key: "pending", label: "Chờ duyệt", value: "3", sub: "hôm nay", subClass: "muted", dot: "#e0a044" },
-    { key: "winrate", label: "Tỷ lệ BG thành công", value: "62%", sub: "▲ 4%", subClass: "up", dot: "#1b9e57" },
-    { key: "revenue", label: "Doanh số BG", value: "1.2 tỷ", sub: "đã duyệt", subClass: "muted", dot: "#2f6fdb" },
-];
-
-const RECENT_QUOTATIONS = [
-    { key: "q48", name: "BG/2026/0048", partner: "Cty TNHH Đại Linh", amount: "72.500.000", state: "Nháp", stateClass: "draft" },
-    { key: "q47", name: "BG/2026/0047", partner: "Đinh Thị Thúy", amount: "31.500.000", state: "Đã gửi", stateClass: "sent" },
-    { key: "q46", name: "BG/2026/0046", partner: "Cty Hoàng Gia", amount: "128.000.000", state: "Đã duyệt", stateClass: "approved" },
-    { key: "q45", name: "BG/2026/0045", partner: "Cty CP Minh Anh", amount: "54.900.000", state: "Đã gửi", stateClass: "sent" },
-];
-
-const ACTIVITIES = [
-    { key: "a1", icon: "fa-check-circle", tone: "ok",    text: "Duyệt BG/2026/0046 — Cty Hoàng Gia", who: "Trưởng phòng KD", time: "10:24" },
-    { key: "a2", icon: "fa-paper-plane-o", tone: "info", text: "Gửi BG/2026/0047 cho khách", who: "Đinh Thị Thúy", time: "09:58" },
-    { key: "a3", icon: "fa-user-plus",     tone: "info", text: "Thêm khách hàng Cty CP Minh Anh", who: "Nguyễn Văn A", time: "09:12" },
-    { key: "a4", icon: "fa-pencil",        tone: "muted", text: "Chỉnh sửa BG/2026/0048", who: "Đinh Thị Thúy", time: "Hôm qua" },
-    { key: "a5", icon: "fa-cube",          tone: "muted", text: "Cập nhật vật tư: Thép hộp 40x80", who: "Kho vật tư", time: "Hôm qua" },
+// Landing theo vai trò: đăng nhập vào THẲNG màn nghiệp vụ chính của vai trò,
+// bỏ bước dừng ở lưới thẻ (giảm 1 click thừa lặp mỗi lần mở app).
+// - Thứ tự = ĐỘ ƯU TIÊN khi user giữ nhiều vai trò (khớp rule đầu tiên).
+// - actionXmlId là chuỗi module con — dl_base không cần phụ thuộc XML (giống rail.js).
+// - Không khớp vai trò nào ⇒ giữ lưới thẻ làm fallback.
+// Đích land = MÀN THẬT (không land vào hub — hub đã bị dẹp thành submenu ở rail).
+// railKey = key nhóm rail tương ứng để tô đúng vệt sáng sidebar khi vào thẳng.
+const LANDING_RULES = [
+    { group: "dl_base.dl_group_ceo", actionXmlId: "dl_sale.action_dl_quote_approval", railKey: "approval" },
+    { group: "dl_base.dl_group_sales_manager", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation", railChildKey: "quotation_list" },
+    { group: "dl_base.dl_group_ba", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation", railChildKey: "quotation_list" },
+    // Mua hàng sở hữu giá NCC → land thẳng Bảng giá Vật tư (bản có quyền sửa).
+    { group: "dl_base.dl_group_purchasing", actionXmlId: "dl_product.action_dl_supplierinfo_material_full", railKey: "pricing", railChildKey: "material_price" },
+    // Kế toán không còn sở hữu giá NCC (chuyển cho Mua hàng) → land bản chỉ-xem.
+    { group: "dl_base.dl_group_accountant", actionXmlId: "dl_product.action_dl_supplierinfo_material_view", railKey: "pricing", railChildKey: "material_price" },
+    { group: "dl_base.dl_group_tech", actionXmlId: "dl_technical.action_dl_quotation_request_my", railKey: "technical", railChildKey: "rfq" },
+    { group: "dl_base.dl_group_admin", actionXmlId: "dl_config.action_dl_user_admin", railKey: "config", railChildKey: "user" },
 ];
 
 export class DlHome extends Component {
@@ -99,49 +125,116 @@ export class DlHome extends Component {
     setup() {
         this.actionService = useService("action");
         this.menuService = useService("menu");
+        this.orm = useService("orm");
         this.userService = useService("user");
-        this.navItems = NAV_ITEMS;
-        this.stats = STATS;
-        this.recentQuotations = RECENT_QUOTATIONS;
-        this.activities = ACTIVITIES;
-        this.sidebar = useState(sidebarState);
-        const dlmApp = this.menuService
+        // Số đếm badge theo card.key (vd Phê duyệt: số yêu cầu đang chờ).
+        this.badgeCounts = useState({});
+        // redirecting = true ⇒ template hiện loader thay vì chớp lưới thẻ rồi nhảy.
+        this.state = useState({ redirecting: false });
+        // Action đích + key nhóm rail sẽ dùng sau khi mount (khớp vai trò ở onWillStart).
+        this._landingAction = null;
+        this._landingKey = null;
+        // Mục con trong submenu ứng với màn land (nếu land thẳng vào 1 mục con,
+        // vd Kỹ thuật → RFQ cần xử lý). null = land vào màn nhóm/leaf.
+        this._landingChildKey = null;
+
+        this._dlmApp = this.menuService
             .getApps()
             .find((app) => app.xmlid === "dl_base.menu_dl_root");
-        if (dlmApp && this.menuService.getCurrentApp()?.id !== dlmApp.id) {
-            this.menuService.setCurrentMenu(dlmApp);
+        if (this._dlmApp && this.menuService.getCurrentApp()?.id !== this._dlmApp.id) {
+            this.menuService.setCurrentMenu(this._dlmApp);
         }
 
-        this.rootRef = useRef("root");
-        this._closeTimer = null;
-        this._onDocMouseMove = this._onDocMouseMove.bind(this);
-        onMounted(() => document.addEventListener("mousemove", this._onDocMouseMove));
-        onWillUnmount(() => {
-            document.removeEventListener("mousemove", this._onDocMouseMove);
-            if (this._closeTimer) { clearTimeout(this._closeTimer); }
+        onWillStart(async () => {
+            await this._resolveLanding();
+            // Chỉ đếm badge khi ở lại lưới thẻ (không redirect) — tránh gọi thừa.
+            if (!this.state.redirecting) {
+                await this._loadBadges();
+            }
+        });
+        // Redirect sau khi mount: doAction thay toàn bộ action hiện tại bằng màn
+        // nghiệp vụ; rail vẫn hiện vì là main_component độc lập với action.
+        onMounted(() => {
+            if (this._landingAction) {
+                // Tô đúng vệt sáng nhóm rail cho màn land (localStorage có thể còn
+                // giữ key nhóm cũ từ phiên trước → lệch nếu không set lại).
+                setActiveKey(this._landingKey);
+                setActiveChildKey(this._landingChildKey);
+                this.actionService.doAction(this._landingAction, { clearBreadcrumbs: true });
+            }
         });
     }
 
-    get userName() {
-        return this.userService.name || "";
-    }
-
-    get greeting() {
-        const hour = new Date().getHours();
-        if (hour < 11) return "Chào buổi sáng";
-        if (hour < 14) return "Chào buổi trưa";
-        if (hour < 18) return "Chào buổi chiều";
-        return "Chào buổi tối";
-    }
-
-    get today() {
-        try {
-            return new Date().toLocaleDateString("vi-VN", {
-                weekday: "long", day: "2-digit", month: "2-digit", year: "numeric",
-            });
-        } catch {
-            return "";
+    // Khớp vai trò user với LANDING_RULES đầu tiên; đặt cờ redirecting để template
+    // hiện loader. Lỗi hasGroup (mạng/khởi tạo) thì bỏ qua → về lưới thẻ an toàn.
+    async _resolveLanding() {
+        for (const rule of LANDING_RULES) {
+            try {
+                if (await this.userService.hasGroup(rule.group)) {
+                    this._landingAction = rule.actionXmlId;
+                    this._landingKey = rule.railKey;
+                    this._landingChildKey = rule.railChildKey || null;
+                    this.state.redirecting = true;
+                    return;
+                }
+            } catch {
+                // bỏ qua rule lỗi, thử rule tiếp theo
+            }
         }
+    }
+
+    async _loadBadges() {
+        // Chỉ đếm cho card user thấy được; lỗi (vd thiếu quyền đọc) thì bỏ
+        // badge, không làm vỡ trang chủ.
+        await Promise.all(
+            this.cards
+                .filter((card) => card.badge)
+                .map(async (card) => {
+                    try {
+                        this.badgeCounts[card.key] = await this.orm.searchCount(
+                            card.badge.model, card.badge.domain);
+                    } catch {
+                        this.badgeCounts[card.key] = 0;
+                    }
+                })
+        );
+    }
+
+    // Chỉ hiện card mà user thấy được menu đích (cây menu đã lọc theo groups).
+    get cards() {
+        return MODULE_CARDS.filter((card) => this._resolveCardMenu(card));
+    }
+
+    get _level1Menus() {
+        if (!this._dlmApp) return [];
+        const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
+        return tree?.childrenTree || [];
+    }
+
+    _findMenuByXmlId(node, xmlid) {
+        if (!node) return null;
+        if (node.xmlid === xmlid) return node;
+        for (const child of node.childrenTree || []) {
+            const found = this._findMenuByXmlId(child, xmlid);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    _resolveCardMenu(card) {
+        if (!this._dlmApp) return null;
+        const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
+        for (const xmlid of card.menuXmlIds || []) {
+            const menu = this._findMenuByXmlId(tree, xmlid);
+            if (menu && this._hasActionableMenu(menu)) return menu;
+        }
+        return null;
+    }
+
+    _hasActionableMenu(menu) {
+        if (!menu) return false;
+        if (menu.actionID) return true;
+        return (menu.childrenTree || []).some((child) => this._hasActionableMenu(child));
     }
 
     get systrayItems() {
@@ -156,9 +249,7 @@ export class DlHome extends Component {
 
     handleItemError(error, item) {
         item.isDisplayed = () => false;
-        Promise.resolve().then(() => {
-            throw error;
-        });
+        Promise.resolve().then(() => { throw error; });
     }
 
     get apps() {
@@ -167,59 +258,37 @@ export class DlHome extends Component {
 
     getMenuItemHref(payload) {
         const parts = [`menu_id=${payload.id}`];
-        if (payload.actionID) {
-            parts.push(`action=${payload.actionID}`);
-        }
+        if (payload.actionID) parts.push(`action=${payload.actionID}`);
         return "#" + parts.join("&");
     }
 
     onAppSelected(menu) {
-        if (menu) {
-            this.menuService.selectMenu(menu);
-        }
+        if (menu) this.menuService.selectMenu(menu);
     }
-    _onDocMouseMove(ev) {
-        const t = ev.target;
-        const overToggle = t.closest && t.closest(".dl-home .dropdown-toggle");
-        const overMenu = t.closest && t.closest(".dropdown-menu, .o-dropdown--menu");
 
-        if (overToggle || overMenu) {
-            if (this._closeTimer) { clearTimeout(this._closeTimer); this._closeTimer = null; }
-
-            if (
-                overToggle &&
-                overToggle !== this._openTgl &&
-                overToggle.getAttribute("aria-expanded") === "false"
-            ) {
-                const root = this.rootRef.el;
-                root && root
-                    .querySelectorAll('.dropdown-toggle[aria-expanded="true"]')
-                    .forEach((x) => { if (x !== overToggle) { x.click(); } });
-                this._openTgl = overToggle;
-                overToggle.click();
-            }
+    openCard(card) {
+        const menu = this._resolveCardMenu(card);
+        if (!menu) return;
+        // Ghi lại card đang active để rail/sidebar highlight (đồng bộ develop).
+        setActiveKey(card.key);
+        // Ưu tiên "trang chủ module" (landing) khi module có — đồng bộ với rail,
+        // tránh nhảy thẳng vào menu con đầu tiên (view sâu). actionXmlId do
+        // nav_patch của từng module gán vào card.
+        if (card.actionXmlId) {
+            this.actionService.doAction(card.actionXmlId, { clearBreadcrumbs: true });
             return;
         }
+        const target = this._findFirstActionMenu(menu);
+        if (target) this.menuService.selectMenu(target);
+    }
 
-        if (!this._closeTimer && this._openTgl) {
-            this._closeTimer = setTimeout(() => {
-                this._closeTimer = null;
-                this._openTgl = null;
-                const root = this.rootRef.el;
-                root && root
-                    .querySelectorAll('.dropdown-toggle[aria-expanded="true"]')
-                    .forEach((tg) => tg.click());
-            }, 220);
+    _findFirstActionMenu(menu) {
+        if (menu.actionID) return menu;
+        for (const child of menu.childrenTree || []) {
+            const found = this._findFirstActionMenu(child);
+            if (found) return found;
         }
-    }
-
-    toggleSidebar() {
-        toggleSidebar();
-    }
-
-    openModule(actionXmlId) {
-        if (!actionXmlId) return;
-        this.actionService.doAction(actionXmlId, { clearBreadcrumbs: true });
+        return null;
     }
 }
 

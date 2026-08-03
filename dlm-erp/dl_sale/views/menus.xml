@@ -1,11 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- "Báo giá" mở màn Hub (Tạo RFQ · Quản lý RFQ · Danh sách báo giá · Đơn
+         bán hàng). Danh sách báo giá thuần túy vẫn dùng được qua card trong hub. -->
     <menuitem
         id="menu_dl_sale_quotation"
         name="Báo giá"
         parent="dl_base.menu_dl_sale"
         sequence="30"
-        action="action_dl_quotation"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech"
+        action="action_dl_quotation_home"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_sales_manager,-dl_base.dl_group_tech"
+    />
+
+    <!-- Hòm phê duyệt báo giá — chỉ người có quyền duyệt (Trưởng KD, Giám đốc,
+         hoặc vai trò được tick thao tác "Duyệt báo giá" ở màn Phân quyền).
+         Admin là vai trò kỹ thuật, không duyệt báo giá nên không thấy menu. -->
+    <menuitem
+        id="menu_dl_sale_quote_approval"
+        name="Phê duyệt báo giá"
+        parent="dl_base.menu_dl_sale"
+        sequence="32"
+        action="action_dl_quote_approval"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_group_op_quote_approve"
+    />
+
+    <menuitem
+        id="menu_dl_sale_order"
+        name="Đơn bán hàng"
+        parent="dl_base.menu_dl_sale"
+        sequence="35"
+        action="action_dl_sale_order"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_sales_manager"
     />
 </odoo>

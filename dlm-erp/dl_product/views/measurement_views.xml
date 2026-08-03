@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         PROD-04/05/06 — Measurement Type / Shape / Shape Param
+         Bộ master-data tính vật tư từ kích thước (thay dl.parametric.formula).
+    ============================================================ -->
+
+    <!-- ===== PROD-04: dl.measurement.type ===== -->
+    <record id="view_dl_measurement_type_tree" model="ir.ui.view">
+        <field name="name">dl.measurement.type.tree</field>
+        <field name="model">dl.measurement.type</field>
+        <field name="arch" type="xml">
+            <tree string="Loại đo lường" class="dl-meastype-list" js_class="dl_list" decoration-muted="active == False">
+                <field name="name" />
+                <field name="description" optional="show" />
+                <field name="active" column_invisible="1" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_measurement_type_form" model="ir.ui.view">
+        <field name="name">dl.measurement.type.form</field>
+        <field name="model">dl.measurement.type</field>
+        <field name="arch" type="xml">
+            <form string="Loại đo lường" class="dl-meastype-form" js_class="dl_meastype_form">
+                <sheet>
+                    <widget name="web_ribbon" title="Lưu trữ" bg_color="text-bg-danger"
+                        invisible="active" />
+                    <field name="active" invisible="1" />
+                    <div class="oe_title">
+                        <label for="name" string="Tên đại lượng" />
+                        <h1><field name="name" placeholder="VD: Khối lượng (Weight)" /></h1>
+                    </div>
+                    <group>
+                        <field name="description" placeholder="Mô tả cách đo, đơn vị áp dụng..." />
+                        <field name="formula_uom_id"
+                               placeholder="vd: kg, m², m³..."
+                               options="{'no_create': True}" />
+                    </group>
+                    <notebook>
+                        <page string="Hình dạng" name="shapes">
+                            <field name="shape_ids">
+                                <tree editable="bottom">
+                                    <field name="name" />
+                                    <field name="code" optional="show" />
+                                    <field name="default_coefficient" optional="show" />
+                                    <field name="active" optional="hide" />
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_dl_measurement_type" model="ir.actions.act_window">
+        <field name="name">Loại đo lường</field>
+        <field name="res_model">dl.measurement.type</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Thêm loại đo lường đầu tiên!</p>
+        </field>
+    </record>
+
+    <!-- ===== PROD-05: dl.measurement.shape ===== -->
+    <record id="view_dl_measurement_shape_tree" model="ir.ui.view">
+        <field name="name">dl.measurement.shape.tree</field>
+        <field name="model">dl.measurement.shape</field>
+        <field name="arch" type="xml">
+            <tree string="Hình dạng đo lường" class="dl-measshape-list" js_class="dl_list" decoration-muted="active == False">
+                <field name="measurement_type_id" />
+                <field name="name" />
+                <field name="active" column_invisible="1" />
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_measurement_shape_form" model="ir.ui.view">
+        <field name="name">dl.measurement.shape.form</field>
+        <field name="model">dl.measurement.shape</field>
+        <field name="arch" type="xml">
+            <form string="Hình dạng đo lường" class="dl-measshape-form" js_class="dl_measshape_form">
+                <sheet>
+                    <field name="active" invisible="1" />
+                    <div class="oe_title">
+                        <label for="name" string="Tên hình dạng" />
+                        <h1><field name="name" placeholder="VD: Tấm phẳng, Ống vuông rỗng" /></h1>
+                    </div>
+                    <group>
+                        <group string="Phân loại">
+                            <field name="measurement_type_id" />
+                            <field name="code" placeholder="vd: flat_plate" />
+                        </group>
+                        <group string="Hệ số tính">
+                            <field name="coefficient_label" />
+                            <field name="default_coefficient" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Tham số" name="params">
+                            <field name="param_ids">
+                                <tree editable="bottom">
+                                    <field name="name" />
+                                    <field name="code" placeholder="vd: length" />
+                                    <field name="active" optional="hide" />
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_dl_measurement_shape" model="ir.actions.act_window">
+        <field name="name">Hình dạng đo lường</field>
+        <field name="res_model">dl.measurement.shape</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+</odoo>

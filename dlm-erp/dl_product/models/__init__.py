@@ -1,4 +1,4 @@
 from . import dl_product
 from . import dl_product_category
-from . import dl_semi_product
-from . import dl_material
+from . import product_supplierinfo
+from . import dl_measurement

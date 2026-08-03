@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Product BOM — "Create From BOM Template" -->
+    <record id="view_dl_bom_from_template_wizard_form" model="ir.ui.view">
+        <field name="name">dl.bom.from.template.wizard.form</field>
+        <field name="model">dl.bom.from.template.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Tạo từ BOM mẫu">
+                <field name="bom_id" invisible="1"/>
+                <field name="product_category_id" invisible="1"/>
+                <group>
+                    <field name="template_id"/>
+                </group>
+                <p class="text-muted">
+                    Toàn bộ dòng (Vật tư/Rule/Shape/Hệ số/Hao hụt/Số lượng) của BOM mẫu
+                    sẽ được copy sang BOM này. Bạn vẫn chỉnh sửa tiếp được sau khi copy.
+                </p>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Sao chép" class="oe_highlight"/>
+                    <button string="Hủy" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -1,20 +1,7 @@
+// S09 — Form Báo giá. Phần đặc thù: dl-fields-row layout,
+// x2many table-layout fixed, dl-totals block, stepper (xem stepper_field.scss).
 .dl-quotation-form {
-    font-family: $dl-font;
-    color: $dl-text;
-    background: $dl-app-bg;
-
-    .o_form_sheet_bg { background: $dl-app-bg; border: 0; }
-    .o_form_sheet {
-        max-width: 100%;
-        border: 0;
-        box-shadow: none;
-        background: $dl-app-bg;
-        padding: 6px 18px 20px;
-    }
-
-    .o_inner_group { row-gap: 4px; }
-
-    // Bỏ thụt lề/tràn riêng của Odoo để mọi section thẳng hàng trái/phải.
+    // Bỏ thụt lề/tràn riêng của Odoo để mọi section thẳng hàng.
     .oe_title,
     .dl-fields-row,
     .o_notebook,
@@ -33,28 +20,6 @@
     .oe_title { margin-bottom: 18px !important; }
     .dl-fields-row { margin: 0 0 18px !important; }
     .o_notebook { margin-bottom: 18px !important; }
-
-    .oe_title h1 {
-        .o_field_widget, input {
-            font-size: 20px;
-            font-weight: 700;
-            color: $dl-heading;
-        }
-    }
-
-    .o_form_label,
-    .o_inner_group label {
-        color: $dl-text-2;
-        font-weight: 500;
-        font-size: 13px;
-    }
-
-    .o_group .o_field_widget input.o_input,
-    .o_group .o_field_many2one .o_input,
-    .o_group .o_field_date input,
-    .o_group .o_field_widget .o_input_dropdown input {
-        @include dl-input;
-    }
 
     .dl-fields-row {
         display: flex;
@@ -87,145 +52,55 @@
         }
     }
 
-    .o_notebook .tab-content { padding-top: 7px; }
+    .o_field_x2many .o_list_table {
+        table-layout: fixed;
+        width: 100% !important;
 
-    .o_form_statusbar {
-        background: transparent;
-        border-bottom: 0;
-        padding: 10px 0 14px;
-        gap: 14px;
-        flex-direction: column;
-        align-items: flex-start;
+        th, td { width: auto !important; min-width: 0 !important; }
 
-        .o_statusbar_buttons {
-            gap: 8px;
+        th.o_list_number_th,
+        th.o_list_number,
+        td.o_list_number { width: 14% !important; }
 
-            .btn {
-                border-radius: $dl-radius-sm;
-                font-weight: 500;
-                padding: 6px 16px;
-            }
+        th.o_list_record_remove_header,
+        td.o_list_record_remove,
+        th.o_list_record_selector,
+        td.o_list_record_selector,
+        th.o_list_controller { width: 44px !important; }
 
-            .btn-primary {
-                background-color: $dl-primary;
-                border-color: $dl-primary;
-
-                &:hover, &:focus, &:active {
-                    background-color: $dl-primary-dark !important;
-                    border-color: $dl-primary-dark !important;
-                }
-            }
-
-            .btn-danger {
-                color: $dl-danger;
-                background-color: #fff;
-                border-color: $dl-danger-border;
-
-                &:hover, &:focus {
-                    color: $dl-danger;
-                    background-color: $dl-danger-bg;
-                    border-color: $dl-danger-border;
-                }
-            }
-
-            .btn-link,
-            .btn-secondary {
-                color: $dl-primary;
-                background: transparent;
-                border-color: transparent;
-                text-decoration: none;
-
-                &:hover { text-decoration: underline; background: transparent; }
-            }
+        td.o_data_cell {
+            padding-top: 10px;
+            padding-bottom: 10px;
+            height: 44px;
         }
 
-        // Statusbar dùng widget dl_stepper — style ở
-        // components/stepper/stepper_field.scss
+        td.o_list_char, td.o_data_cell.o_field_cell { overflow: hidden; text-overflow: ellipsis; }
     }
 
-    .o_notebook .o_notebook_headers .nav-tabs {
-        border-bottom: 1px solid $dl-border;
-
-        .nav-link {
-            color: $dl-text-2;
-            border: 0;
-            padding: 8px 4px;
-            margin-right: 20px;
-            font-size: 14px;
-        }
-
-        .nav-link.active {
-            color: $dl-primary;
-            font-weight: 600;
-            border-bottom: 2px solid $dl-primary;
-            background: transparent;
+    // "+ Thêm dòng"
+    .o_field_x2many .o_field_x2many_list_row_add a {
+        font-size: 0;
+        &::after {
+            content: "+ Thêm dòng";
+            font-size: 13px;
         }
     }
 
-    .o_field_x2many {
-        .o_list_renderer {
-            border: 1px solid $dl-border;
-            border-radius: $dl-radius;
-            // KHÔNG dùng overflow:hidden — nó cắt cụt các cột bên phải khi bảng
-            // rộng hơn khung (mất Đơn giá/Thành tiền).
-        }
+    // Helper chiết khấu: gộp 3 alert cũ thành một dòng gợi ý gọn ngay dưới ô
+    // nhập (review UX #f3). Không dùng khối alert to; chỉ viền trái + chữ nhỏ.
+    .dl-inline-hint {
+        margin-top: 6px;
+        padding: 4px 0 2px 10px;
+        border-left: 3px solid $dl-border;
+        font-size: 12px;
+        line-height: 1.45;
+        color: $dl-text-2;
 
-        .o_list_table {
-            table-layout: fixed; // không để Odoo tính px gây tràn
-            width: 100% !important;
+        .o_field_widget { margin: 0; padding: 0; }
 
-            // Xoá width + min-width inline Odoo tính (~92-100px/cột): khi khung
-            // hẹp tổng vượt khung → cột số bị đẩy ra ngoài. min-width:0 cho cột
-            // co tự do để luôn vừa 100% khung ở mọi mức zoom.
-            th, td { width: auto !important; min-width: 0 !important; }
-
-            // Cột số dùng % (không px) để giữ tỉ lệ ở mọi zoom. Header dùng class
-            // 'o_list_number_th' (khác body); với fixed, header quyết định độ rộng.
-            th.o_list_number_th,
-            th.o_list_number,
-            td.o_list_number { width: 14% !important; }
-
-            // Cột xoá/selector rất hẹp để Mô tả là cột auto duy nhất
-            th.o_list_record_remove_header,
-            td.o_list_record_remove,
-            th.o_list_record_selector,
-            td.o_list_record_selector,
-            th.o_list_controller { width: 44px !important; }
-
-            thead th {
-                background: $dl-search-bg;
-                color: $dl-text-2;
-                font-weight: 500;
-                border-bottom: 0;
-            }
-
-            .o_data_row td { border-top: 1px solid $dl-divider; }
-
-            th, td { vertical-align: middle; }
-            td.o_data_cell {
-                padding-top: 10px;
-                padding-bottom: 10px;
-                height: 44px;
-            }
-
-            td.o_list_char, td.o_data_cell.o_field_cell { overflow: hidden; text-overflow: ellipsis; }
-        }
-
-        .o_list_table td.o_list_record_remove button { visibility: hidden; }
-        .o_list_table tr.o_data_row:hover td.o_list_record_remove button {
-            visibility: visible;
-        }
-
-        // "Add a line" (tiếng Anh do ngôn ngữ hệ thống) → "+ Thêm dòng"
-        .o_field_x2many_list_row_add a {
-            color: $dl-primary;
-            font-weight: 500;
-            font-size: 0;
-
-            &::after {
-                content: "+ Thêm dòng";
-                font-size: 13px;
-            }
+        &.dl-hint-warning {
+            border-left-color: $dl-badge-draft-fg;
+            color: $dl-badge-draft-fg;
         }
     }
 
@@ -242,6 +117,7 @@
         .dl-total-row {
             display: flex;
             align-items: baseline;
+            justify-content: space-between;
             gap: 14px;
             padding: 5px 0;
 
@@ -249,11 +125,22 @@
         }
 
         .dl-total-label {
-            flex: 0 0 auto;
-            min-width: 84px;
+            flex: 1 1 auto;
+            color: $dl-text-2;
+            font-weight: 400;
+            font-size: 13px;
         }
 
-        .dl-total-label { color: $dl-text-2; font-weight: 400; font-size: 13px; }
+        // Cột số tiền: đẩy về mép phải và căn phải để mọi con số thẳng cột.
+        .dl-total-sub,
+        .dl-total-final {
+            flex: 0 0 auto;
+            margin-left: auto;
+            text-align: right;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
         .dl-total-sub {
             color: $dl-text-2;
             font-weight: 400;
@@ -266,13 +153,7 @@
             padding-top: 10px;
 
             .dl-total-label { color: $dl-heading; font-weight: 700; font-size: 15px; }
-            .dl-total-final {
-                color: $dl-primary;
-                font-weight: 700;
-                font-size: 19px;
-            }
+            .dl-total-final { color: $dl-primary; font-weight: 700; font-size: 19px; }
         }
     }
-
-    .o-mail-Chatter .o-mail-Chatter-topbar { border-bottom: 1px solid $dl-divider; }
 }

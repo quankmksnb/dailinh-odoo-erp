@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        demo_users_data.xml is intentionally noupdate, so changing the language
+        there does not affect databases that already contain the demo accounts.
+        Keep this small update outside noupdate so module upgrades also apply the
+        Vietnamese UI to those existing accounts.
+    -->
+    <record id="demo_user_ceo" model="res.users">
+        <field name="lang">vi_VN</field>
+    </record>
+    <record id="demo_user_admin" model="res.users">
+        <field name="lang">vi_VN</field>
+    </record>
+    <record id="demo_user_sales_manager" model="res.users">
+        <field name="lang">vi_VN</field>
+    </record>
+    <record id="demo_user_ba" model="res.users">
+        <field name="lang">vi_VN</field>
+    </record>
+    <record id="demo_user_tech" model="res.users">
+        <field name="lang">vi_VN</field>
+    </record>
+    <record id="demo_user_accountant" model="res.users">
+        <field name="lang">vi_VN</field>
+    </record>
+</odoo>

@@ -1,6 +1,41 @@
 /** @odoo-module **/
 
 import { useEffect } from "@odoo/owl";
+import { patch } from "@web/core/utils/patch";
+import { SearchBar } from "@web/search/search_bar/search_bar";
+
+patch(SearchBar.prototype, {
+    onSearchKeydown(ev) {
+        if (ev.key !== "Enter" || !this.state.query.trim()) {
+            return super.onSearchKeydown(ev);
+        }
+
+        const focusedItem = this.items[this.state.focusedIndex];
+        if (!focusedItem || focusedItem.unselectable) {
+            return super.onSearchKeydown(ev);
+        }
+
+        ev.preventDefault();
+
+        for (const f of [...this.env.searchModel.facets]) {
+            if (f.type === "field") {
+                this.env.searchModel.deactivateGroup(f.groupId);
+            }
+        }
+
+        const { searchItemId, label, operator, value } = focusedItem;
+        this.env.searchModel.addAutoCompletionValues(searchItemId, {
+            label,
+            operator,
+            value,
+        });
+
+        this.items.length = 0;
+        this.state.expanded = [];
+        this.state.focusedIndex = 0;
+        this.subItems = {};
+    },
+});
 
 export function buildActionsMenu(container, specs, { prepend = false } = {}) {
     if (!container) {
@@ -46,6 +81,43 @@ export function buildActionsMenu(container, specs, { prepend = false } = {}) {
         container.appendChild(menu);
     }
     return menu;
+}
+
+export function setupStatusbarButtons(ctrl) {
+    useEffect(() => {
+        const root = ctrl.rootRef.el;
+        if (!root) return;
+        const nav = root.querySelector(".o_control_panel_navigation");
+        if (!nav) return;
+
+        // Ta dời cụm nút statusbar (.o_statusbar_buttons) từ sheet LÊN hàng
+        // breadcrumb cho gọn như Figma. Vấn đề: OWL sở hữu node này — mỗi lần
+        // re-render / điều hướng bản ghi qua pager nó có thể tạo lại một cụm
+        // MỚI trong .o_form_statusbar trong khi cụm đã dời vẫn nằm ở nav ⇒ hai
+        // cụm chồng lên nhau (nút "đè" chữ lên nhau như trên ảnh lỗi).
+        //
+        // Cách chống chồng chắc chắn: mỗi render gom TẤT CẢ .o_statusbar_buttons
+        // trong cây (kể cả bản đã dời), chọn ĐÚNG MỘT cụm "sống" để giữ, xoá
+        // sạch phần còn lại — bất kể OWL đi theo nhánh nào.
+        const groups = root.querySelectorAll(".o_statusbar_buttons");
+        if (!groups.length) return;
+
+        // Cụm "sống" = cụm OWL vừa render trong .o_form_statusbar (nếu có);
+        // nếu OWL giữ nguyên bản đã dời (không tạo mới) thì lấy bản trong nav.
+        const live =
+            root.querySelector(".o_form_statusbar .o_statusbar_buttons") ||
+            nav.querySelector(".o_statusbar_buttons.dl-cp-actions");
+
+        // Xoá mọi cụm KHÔNG phải bản sống → hết chồng nút.
+        groups.forEach((el) => {
+            if (el !== live) el.remove();
+        });
+
+        if (live) {
+            live.classList.add("dl-cp-actions");
+            if (live.parentElement !== nav) nav.prepend(live);
+        }
+    });
 }
 
 export function setupFormActionsMenu(ctrl) {

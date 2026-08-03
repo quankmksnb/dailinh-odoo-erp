@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- noupdate="1": chỉ seed lần đầu; -u KHÔNG ghi đè dữ liệu người dùng đã sửa. -->
+    <data noupdate="1">
+
+        <!-- Hệ số phức tạp dùng chung (V3 mục 4.4, bảng mức) -->
+        <record id="complexity_simple" model="dl.pricing.complexity.level">
+            <field name="name">Đơn giản</field>
+            <field name="factor">1.00</field>
+            <field name="note">Chi tiết thẳng, ít đường cắt, dễ tận dụng phôi.</field>
+            <field name="sequence">10</field>
+        </record>
+        <record id="complexity_medium" model="dl.pricing.complexity.level">
+            <field name="name">Trung bình</field>
+            <field name="factor">1.10</field>
+            <field name="note">Nhiều chi tiết, có bỏ mép hoặc cần chọn chiều vật liệu.</field>
+            <field name="sequence">20</field>
+        </record>
+        <record id="complexity_complex" model="dl.pricing.complexity.level">
+            <field name="name">Phức tạp</field>
+            <field name="factor">1.25</field>
+            <field name="note">Hình dạng khó, nhiều lỗ/cạnh, khó nesting.</field>
+            <field name="sequence">30</field>
+        </record>
+        <record id="complexity_special" model="dl.pricing.complexity.level">
+            <field name="name">Đặc biệt</field>
+            <field name="factor">1.40</field>
+            <field name="note">Yêu cầu thẩm mỹ/dung sai cao; chỉ bật khi doanh nghiệp cần.</field>
+            <field name="sequence">40</field>
+            <field name="active" eval="False"/>
+        </record>
+
+        <!-- Danh mục công đoạn dùng chung -->
+        <record id="operation_cut" model="dl.pricing.operation">
+            <field name="name">Cắt</field><field name="code">CUT</field><field name="sequence">10</field>
+        </record>
+        <record id="operation_weld" model="dl.pricing.operation">
+            <field name="name">Hàn</field><field name="code">WELD</field><field name="sequence">20</field>
+        </record>
+        <record id="operation_grind" model="dl.pricing.operation">
+            <field name="name">Mài</field><field name="code">GRIND</field><field name="sequence">30</field>
+        </record>
+        <record id="operation_bend" model="dl.pricing.operation">
+            <field name="name">Chấn</field><field name="code">BEND</field><field name="sequence">40</field>
+        </record>
+        <record id="operation_drill" model="dl.pricing.operation">
+            <field name="name">Khoan</field><field name="code">DRILL</field><field name="sequence">50</field>
+        </record>
+        <record id="operation_paint" model="dl.pricing.operation">
+            <field name="name">Sơn</field><field name="code">PAINT</field><field name="sequence">60</field>
+        </record>
+        <record id="operation_outsource" model="dl.pricing.operation">
+            <field name="name">Thuê ngoài</field><field name="code">OUTSOURCE</field><field name="sequence">70</field>
+        </record>
+
+        <!-- Cấu hình người duyệt cho 4 loại yêu cầu cố định (V3 mục 8.1) -->
+        <record id="appr_setting_profit" model="dl.pricing.approval.setting">
+            <field name="request_type">profit_config</field>
+            <field name="approver_role">ceo</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="appr_setting_discount" model="dl.pricing.approval.setting">
+            <field name="request_type">discount_config</field>
+            <field name="approver_role">ceo</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="appr_setting_quote_discount" model="dl.pricing.approval.setting">
+            <field name="request_type">quote_discount</field>
+            <field name="approver_role">sales_manager</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="appr_setting_below_floor" model="dl.pricing.approval.setting">
+            <field name="request_type">quote_below_floor</field>
+            <field name="approver_role">ceo</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+
+        <!-- Ma trận phê duyệt báo giá theo giá trị (V3 mục 3, dữ liệu mẫu).
+             Chỉ là ví dụ và cho phép cấu hình lại: dưới 20 triệu không cần duyệt
+             theo giá trị nên KHÔNG có dòng; từ 20.000.001đ do Trưởng KD duyệt;
+             từ 100.000.001đ do Giám đốc duyệt. -->
+        <record id="matrix_level_zero" model="dl.pricing.approval.matrix">
+            <field name="value_from">0</field>
+            <field name="approval_level">none</field>
+            <field name="valid_from">2020-01-01</field>
+            <field name="state">active</field>
+            <field name="note">Báo giá nhỏ: không cần phê duyệt theo giá trị.</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="matrix_level_sales_manager" model="dl.pricing.approval.matrix">
+            <field name="value_from">20000001</field>
+            <field name="approval_level">sales_manager</field>
+            <field name="valid_from">2020-01-01</field>
+            <field name="state">active</field>
+            <field name="note">Báo giá vừa: Trưởng kinh doanh phê duyệt.</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+        <record id="matrix_level_ceo" model="dl.pricing.approval.matrix">
+            <field name="value_from">100000001</field>
+            <field name="approval_level">ceo</field>
+            <field name="valid_from">2020-01-01</field>
+            <field name="state">active</field>
+            <field name="note">Báo giá lớn: Giám đốc phê duyệt.</field>
+            <field name="company_id" ref="base.main_company"/>
+        </record>
+
+    </data>
+</odoo>

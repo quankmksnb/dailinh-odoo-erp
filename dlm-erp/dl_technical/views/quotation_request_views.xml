@@ -13,17 +13,69 @@
         <field name="arch" type="xml">
             <tree string="Yêu cầu báo giá"
                   class="dl-rfq-list" js_class="dl_rfq_list"
-                  decoration-muted="status in ('cancelled', 'quoted')">
+                  decoration-muted="status in ('cancelled', 'quoted')"
+                  decoration-warning="deadline_state == 'soon'"
+                  decoration-danger="deadline_state == 'overdue'">
                 <field name="name"/>
+                <!-- Tô màu dòng cận/quá hạn: chỉ fetch để decoration đọc, không hiện cột. -->
+                <field name="deadline_state" column_invisible="1"/>
                 <field name="customer_id"/>
                 <field name="requested_date" widget="date"/>
                 <field name="deadline" widget="date"/>
                 <field name="status" widget="badge"
                        decoration-info="status == 'new'"
-                       decoration-warning="status == 'processing'"
+                       decoration-warning="status in ('processing', 'supplemented')"
+                       decoration-danger="status == 'returned'"
                        decoration-success="status == 'confirmed'"
                        decoration-muted="status in ('quoted', 'cancelled')"/>
+                <!-- Tiến độ dùng chung để Sales theo dõi ngay trên danh sách;
+                     trường compute chỉ đọc, Kỹ thuật cũng kế thừa cùng một cột. -->
+                <field name="technical_progress_label" string="Tiến độ kỹ thuật"/>
+                <!-- Ai đang xử lý — được ghi tự động khi KTV bấm Xử lý. -->
+                <field name="received_by" optional="show"/>
+                <!-- Modal lịch sử RFQ (timeline chỉ đọc) — tree "RFQ cần xử lý"
+                     kế thừa tree này nên cả 2 màn Sales & Kỹ thuật cùng có. -->
+                <button name="action_open_history" type="object" string="Lịch sử"
+                        class="btn-link"/>
             </tree>
+        </field>
+    </record>
+
+    <!-- Tree view riêng cho "RFQ cần xử lý" (Kỹ thuật) — không tạo mới ở đây
+         (chỉ tạo qua "Tạo RFQ" của Sales), có thêm cột Product/BOM Reference. -->
+    <record id="view_dl_quotation_request_tree_my" model="ir.ui.view">
+        <field name="name">dl.quotation.request.tree.my</field>
+        <field name="model">dl.quotation.request</field>
+        <field name="inherit_id" ref="view_dl_quotation_request_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//tree" position="attributes">
+                <attribute name="create">0</attribute>
+                <attribute name="class">dl-rfq-list dl-rfq-list-my</attribute>
+                <!-- js_class riêng cho màn Kỹ thuật (chip lọc + đếm). KHÔNG còn
+                     chặn mở chi tiết: RFQ "Mới/Đã bổ sung" mở xem tự do, cổng tiếp nhận
+                     nằm trong form (nút "Nhận xử lý" + khóa field kết quả). -->
+                <attribute name="js_class">dl_rfq_list_my</attribute>
+            </xpath>
+            <!-- Màn Kỹ thuật: ẩn cột status 7-state (vòng đời Sales) — giữ field
+                 để row decoration muted/warning/danger vẫn đọc được — và thay
+                 bằng badge `tech_stage` gộp về đúng mốc KTV (Chưa nhận / Đang xử
+                 lý / Chờ Sales / Đã xử lý xong / Đã đóng). -->
+            <xpath expr="//field[@name='status']" position="attributes">
+                <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='status']" position="after">
+                <field name="tech_stage" widget="badge"
+                       decoration-info="tech_stage == 'pending'"
+                       decoration-warning="tech_stage == 'processing'"
+                       decoration-danger="tech_stage == 'waiting_sales'"
+                       decoration-success="tech_stage == 'done'"
+                       decoration-muted="tech_stage == 'closed'"/>
+            </xpath>
+            <xpath expr="//field[@name='technical_progress_label']" position="after">
+                <field name="resolved_product_ids" widget="many2many_tags" string="Sản phẩm đã xác định"/>
+                <field name="resolved_bom_ids" widget="many2many_tags" string="Định mức đã xác định"/>
+            </xpath>
         </field>
     </record>
 
@@ -34,6 +86,16 @@
         <field name="arch" type="xml">
             <form string="Yêu cầu báo giá" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
+                    <!-- Kỹ thuật trả RFQ về Sales bổ sung (thiếu thông tin) -->
+                    <button name="action_open_return_wizard" type="object"
+                            string="Gửi lại Sales (bổ sung)"
+                            invisible="status in ('returned', 'quoted', 'cancelled')"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <!-- Sales gửi lại sau khi đã bổ sung -->
+                    <button name="action_resubmit" type="object"
+                            string="Gửi lại (đã bổ sung)" class="oe_highlight"
+                            invisible="status != 'returned'"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <!-- Sale đánh dấu đã tạo báo giá (tạm thời thủ công, xem
                          docstring model — D3 chưa có quotation_request_id) -->
                     <button name="action_mark_quoted" type="object"
@@ -42,11 +104,295 @@
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <!-- Hủy: chỉ Sale/Trưởng KD/CEO/Admin — Kỹ thuật KHÔNG có quyền -->
                     <button name="action_cancel" type="object"
-                            string="Hủy"
+                            string="Hủy RFQ"
                             invisible="status in ('quoted', 'cancelled')"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn hủy RFQ này?"/>
-                    <field name="status" widget="statusbar"
+                    <field name="status" widget="dl_stepper"
+                           statusbar_visible="new,processing,confirmed,quoted"
+                           readonly="1"/>
+                </header>
+                <sheet>
+                    <!-- Kỹ thuật (is_technician) chỉ đọc thông tin yêu cầu, chỉ
+                         sửa phần "Kết quả xử lý (Kỹ thuật)" ở từng dòng. -->
+                    <field name="is_technician" invisible="1"/>
+                    <widget name="web_ribbon" title="Đã hủy"
+                            bg_color="text-bg-danger" invisible="status != 'cancelled'"/>
+                    <widget name="web_ribbon" title="Đã tạo báo giá"
+                            bg_color="text-bg-success" invisible="status != 'quoted'"/>
+                    <widget name="web_ribbon" title="Chờ Sales bổ sung"
+                            bg_color="text-bg-warning" invisible="status != 'returned'"/>
+                    <widget name="web_ribbon" title="Sales đã bổ sung"
+                            bg_color="text-bg-info" invisible="status != 'supplemented'"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="status != 'returned'">
+                        <strong>Đã trả lại Sales để bổ sung:</strong>
+                        <field name="return_reason" readonly="1" nolabel="1"/>
+                    </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="status != 'supplemented'">
+                        <strong>Sales đã bổ sung và gửi lại RFQ.</strong>
+                        Kỹ thuật bấm <em>Xử lý</em> trên dòng cần làm tiếp; hệ thống
+                        sẽ tự ghi nhận người và thời điểm tiếp nhận.
+                    </div>
+                    <!-- KTV xem được RFQ Mới; bấm Xử lý trên dòng sẽ tự tiếp nhận. -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="status != 'new'"
+                         groups="dl_base.dl_group_tech,dl_base.dl_group_admin">
+                        <i class="fa fa-hand-paper-o me-1" title="Chưa nhận xử lý"/>
+                        <strong>RFQ này chưa được nhận xử lý.</strong>
+                        Bấm <em>Xử lý</em> trên dòng gia công để bắt đầu; hệ thống
+                        sẽ tự chuyển sang <em>Đang xử lý</em> và ghi nhận bạn là
+                        người phụ trách.
+                    </div>
+                    <!-- Cảnh báo mềm "đang do anh A xử lý từ HH:MM": hiện cho
+                         BẤT KỲ ai mở RFQ đã có người khác tiếp nhận (Sales cũng
+                         thấy → biết ai đang xử lý; KTV khác thấy → tránh làm
+                         trùng). Không chặn xem/thao tác, chỉ nhắc. -->
+                    <field name="received_by_other" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not received_by_other">
+                        <i class="fa fa-user-o me-1" title="Đang được xử lý"/>
+                        <strong><field name="received_info" nolabel="1" readonly="1" class="d-inline"/></strong>
+                        Tránh xử lý trùng — hãy trao đổi với người đang phụ trách
+                        trước khi thao tác trên RFQ này.
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+
+                    <!-- Bố cục theo góc Kỹ thuật: việc cần làm (dòng sản phẩm) lên
+                         TRƯỚC; thông tin khách hàng/thời hạn là bối cảnh → xuống dưới
+                         bảng. Tiến độ để MỘT DÒNG gọn ngay trên bảng (tránh vỡ nhãn
+                         3 dòng + bỏ khoảng trống dưới tiêu đề), KTV liếc là biết còn
+                         bao nhiêu dòng phải xử lý. -->
+                    <div class="d-flex align-items-center gap-3 mt-2 mb-2">
+                        <span class="fw-bold text-muted text-nowrap">Tiến độ xử lý:</span>
+                        <field name="technical_progress_percent" widget="progressbar"
+                               readonly="1" nolabel="1"/>
+                        <field name="technical_progress_label" readonly="1" nolabel="1"
+                               class="text-muted text-nowrap"/>
+                    </div>
+
+                    <notebook>
+                        <page string="Dòng sản phẩm" name="lines">
+                            <!-- required client-side (Odoo báo lúc Save như
+                                 customer_id) — RFQ phải có ≥1 dòng. @api.constrains
+                                 _check_has_lines vẫn là chốt cuối cho RPC/import. -->
+                            <field name="line_ids"
+                                   required="1"
+                                   readonly="status in ('quoted', 'cancelled')">
+                                <!-- §3a — tree KHÔNG editable: click 1 dòng mở form
+                                     con dạng dialog (dễ quan sát/xử lý). -->
+                                <tree string="Dòng sản phẩm">
+                                    <field name="is_technician" column_invisible="1"/>
+                                    <field name="request_status" column_invisible="1"/>
+                                    <field name="product_type"/>
+                                    <field name="product_name" required="1"/>
+                                    <field name="technical_status" widget="badge"
+                                           decoration-info="technical_status == 'pending'"
+                                           decoration-warning="technical_status == 'processing'"
+                                           decoration-success="technical_status == 'done'"
+                                           decoration-danger="technical_status == 'infeasible'"
+                                           decoration-muted="technical_status == 'not_required'"/>
+                                    <field name="product_category_id"/>
+                                    <field name="quantity"/>
+                                    <field name="dimension_note" optional="hide"/>
+                                    <field name="reference_product_id" string="SP tham khảo"
+                                           optional="hide"/>
+                                    <field name="preview_image" widget="image"
+                                           options="{'size': [40, 40]}" string="Ảnh" optional="hide"/>
+                                    <!-- Mức 3: kết quả chỉ hiển thị tại tree; mọi thay đổi
+                                         phải đi qua đúng một cửa là nút "Xử lý". -->
+                                    <field name="resolved_product_id" string="Sản phẩm đã xác định"
+                                           readonly="1"/>
+                                    <field name="resolved_bom_id" string="Định mức đã xác định" optional="hide"
+                                           readonly="1"/>
+                                    <!-- Trạng thái "Không khả thi" đã hiển thị qua badge
+                                         technical_status; giữ field ẩn để cột lý do đọc điều
+                                         kiện, KHÔNG hiện checkbox readonly gây hiểu nhầm bấm được. -->
+                                    <field name="is_infeasible" column_invisible="1"/>
+                                    <field name="infeasible_reason"
+                                           invisible="not is_infeasible"
+                                           readonly="1" optional="show"/>
+                                    <!-- Cửa xử lý duy nhất cho dòng gia công — nút hành động
+                                         chính của màn nên để nổi (primary). Dòng đã xử lý hoặc
+                                         không khả thi vẫn mở lại được để sửa kết luận. -->
+                                    <button name="action_open_resolve_wizard" type="object"
+                                            string="Xử lý"
+                                            class="btn btn-primary btn-sm"
+                                            invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
+                                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                </tree>
+                                <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
+                                    <!-- Một cửa: mở dialog chi tiết vẫn xử lý được ngay tại đây
+                                         (khỏi phải đóng lại rồi đi tìm nút Xử lý ở dòng). Cùng gọi
+                                         action_open_resolve_wizard → tự tiếp nhận RFQ nếu cần. -->
+                                    <header>
+                                        <button name="action_open_resolve_wizard" type="object"
+                                                string="Xử lý dòng này" class="btn-primary"
+                                                invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
+                                                groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                    </header>
+                                    <field name="is_technician" invisible="1"/>
+                                    <field name="request_status" invisible="1"/>
+                                    <field name="product_type" invisible="1"/>
+                                    <field name="selectable_category_ids" invisible="1"/>
+                                    <field name="reference_product_ids" invisible="1"/>
+                                    <sheet>
+                                        <widget name="web_ribbon" title="Không khả thi"
+                                                bg_color="text-bg-danger"
+                                                invisible="not is_infeasible"/>
+                                        <widget name="web_ribbon" title="Đã xử lý"
+                                                bg_color="text-bg-success"
+                                                invisible="is_infeasible or not resolved_product_id"/>
+                                        <div class="oe_title">
+                                            <label for="product_name" string="Tên sản phẩm"/>
+                                            <h2>
+                                                <field name="product_name" required="1"
+                                                       readonly="is_technician"
+                                                       placeholder="Tên sản phẩm..."/>
+                                            </h2>
+                                        </div>
+                                        <group>
+                                            <!-- Thông tin do Sales nhập — Kỹ thuật chỉ đọc. -->
+                                            <group string="Yêu cầu (Sales)">
+                                                <field name="product_category_id"
+                                                       readonly="is_technician"
+                                                       domain="[('id', 'in', selectable_category_ids)]"/>
+                                                <field name="reference_product_id"
+                                                       string="Sản phẩm tham khảo"
+                                                       readonly="is_technician"
+                                                       options="{'no_create': True}"
+                                                       domain="[('id', 'in', reference_product_ids)]"
+                                                       invisible="product_type == 'trading'"/>
+                                                <field name="quantity" readonly="is_technician"/>
+                                            </group>
+                                            <group string="Kết quả xử lý (chỉ xem)">
+                                                <div colspan="2" class="alert alert-light border py-2" role="status"
+                                                     invisible="product_type == 'trading' or request_status not in ('processing', 'confirmed')"
+                                                     groups="dl_base.dl_group_tech,dl_base.dl_group_admin">
+                                                    <i class="fa fa-lock me-1"/>Kết quả tại đây chỉ để xem.
+                                                    Bấm <b>Xử lý dòng này</b> ở trên để thay đổi.
+                                                </div>
+                                                <!-- RFQ chưa nhận: nút Xử lý dòng này ở header sẽ tự tiếp nhận. -->
+                                                <div colspan="2" class="text-muted"
+                                                     invisible="request_status not in ('new', 'supplemented')"
+                                                     groups="dl_base.dl_group_tech,dl_base.dl_group_admin">
+                                                    <i class="fa fa-hand-paper-o me-1" title="Chưa nhận xử lý"/>
+                                                    Bấm <b>Xử lý dòng này</b> ở trên;
+                                                    hệ thống sẽ tự tiếp nhận RFQ.
+                                                </div>
+                                                <div colspan="2" class="text-muted"
+                                                     invisible="request_status in ('new', 'supplemented') or is_infeasible or resolved_product_id or product_type == 'trading'">
+                                                    <i class="fa fa-info-circle me-1"/>Chưa xử lý — bấm
+                                                    <b>Xử lý dòng này</b> ở trên để chọn/tạo Sản phẩm &amp; BOM.
+                                                </div>
+                                                <field name="resolved_product_id" string="Sản phẩm xác định"
+                                                       invisible="is_infeasible"
+                                                       readonly="1"/>
+                                                <field name="resolved_bom_id" string="BOM"
+                                                       invisible="is_infeasible"
+                                                       readonly="1"/>
+                                                <field name="is_infeasible" readonly="1"/>
+                                                <field name="infeasible_reason"
+                                                       invisible="not is_infeasible"
+                                                       readonly="1"/>
+                                            </group>
+                                        </group>
+                                        <separator string="Yêu cầu / Mô tả"/>
+                                        <field name="dimension_note" nolabel="1"
+                                               class="dl-rfq-desc"
+                                               readonly="is_technician"
+                                               placeholder="Kích thước, yêu cầu kỹ thuật..."/>
+                                        <!-- §1d — Ảnh & file đính kèm gộp chung 1 trường
+                                             (many2many_binary hiển thị cả thumbnail ảnh lẫn
+                                             file). Sales bổ sung được khi RFQ bị trả lại;
+                                             Kỹ thuật chỉ xem (bản vẽ kỹ thuật nằm ở Product/BOM). -->
+                                        <separator string="Ảnh / File đính kèm"
+                                                   invisible="product_type == 'trading'"/>
+                                        <field name="attachment_ids" widget="many2many_binary"
+                                               nolabel="1"
+                                               readonly="is_technician"
+                                               invisible="product_type == 'trading'"/>
+                                    </sheet>
+                                </form>
+                            </field>
+
+                            <!-- Bối cảnh yêu cầu (khách hàng/thời hạn) — đặt DƯỚI bảng
+                                 dòng sản phẩm: Kỹ thuật cần thấy việc phải làm trước,
+                                 thông tin khách hàng chỉ để tham chiếu. -->
+                            <separator string="Thông tin yêu cầu"/>
+                            <group>
+                                <group>
+                                    <field name="customer_id" readonly="is_technician or status != 'new'"
+                                        options="{'no_quick_create': True}"
+                                        context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
+                                    <field name="created_by"/>
+                                </group>
+                                <group>
+                                    <field name="requested_date" readonly="is_technician or status != 'new'"/>
+                                    <field name="deadline" options="{'min_date': 'today'}"
+                                           readonly="is_technician"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <page string="Ghi chú" name="notes">
+                            <separator string="Ghi chú chung"/>
+                            <field name="description" nolabel="1" class="dl-textarea-lg"
+                                   placeholder="Ghi chú tổng thể: hẹn nhận hàng, điều khoản thanh toán..."/>
+                            <separator string="Ghi chú nội bộ"/>
+                            <field name="note" nolabel="1" class="dl-textarea-lg"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <!-- Log/chatter cho quản lý (CEO, Trưởng KD, Admin) và đội sở
+                     hữu RFQ (BA + Kỹ thuật cùng cộng tác). -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         TẠO RFQ (Sales) — màn tạo mới, tách riêng khỏi form cũ ở trên (form cũ
+         vẫn giữ nguyên cho Kỹ thuật xử lý RFQ, không đổi).
+         Mỗi dòng tự chọn product_type: "Sản phẩm thương mại" (chọn thẳng
+         Product có sẵn, không qua BOM) hoặc "Sản phẩm gia công" (chỉ nhập tên/
+         mô tả/số lượng, Product/Nhóm sản phẩm chỉ tham khảo, Kỹ thuật xử lý
+         sau) — §2-6 màn Tạo RFQ.
+    ================================================================ -->
+    <record id="view_dl_quotation_request_sales_form" model="ir.ui.view">
+        <field name="name">dl.quotation.request.sales.form</field>
+        <field name="model">dl.quotation.request</field>
+        <field name="arch" type="xml">
+            <form string="Tạo RFQ" class="dl-rfq-form" js_class="dl_rfq_form">
+                <header>
+                    <button name="action_resubmit" type="object"
+                            string="Gửi lại (đã bổ sung)" class="oe_highlight"
+                            invisible="status != 'returned'"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                    <button name="action_mark_quoted" type="object"
+                            string="Đánh dấu đã tạo báo giá" class="oe_highlight"
+                            invisible="status != 'confirmed'"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                    <!-- Ẩn "Hủy RFQ" khi bản ghi CHƯA LƯU (id falsy): lúc tạo mới
+                         chưa có RFQ để hủy → dùng nút "Huỷ" (Discard) native của Odoo
+                         là đủ. Chỉ hiện sau khi đã Lưu (status='new' trở đi). -->
+                    <button name="action_cancel" type="object"
+                            string="Hủy RFQ"
+                            invisible="not id or status in ('quoted', 'cancelled')"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
+                            confirm="Bạn có chắc muốn hủy RFQ này?"/>
+                    <field name="status" widget="dl_stepper"
                            statusbar_visible="new,processing,confirmed,quoted"
                            readonly="1"/>
                 </header>
@@ -55,6 +401,21 @@
                             bg_color="text-bg-danger" invisible="status != 'cancelled'"/>
                     <widget name="web_ribbon" title="Đã tạo báo giá"
                             bg_color="text-bg-success" invisible="status != 'quoted'"/>
+                    <widget name="web_ribbon" title="Cần bổ sung"
+                            bg_color="text-bg-warning" invisible="status != 'returned'"/>
+                    <widget name="web_ribbon" title="Đã gửi lại Kỹ thuật"
+                            bg_color="text-bg-info" invisible="status != 'supplemented'"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="status != 'returned'">
+                        <strong>Kỹ thuật trả lại để bổ sung:</strong>
+                        <field name="return_reason" readonly="1" nolabel="1"/>
+                    </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="status != 'supplemented'">
+                        <strong>Đã gửi lại cho Kỹ thuật.</strong>
+                        RFQ đang chờ Kỹ thuật tiếp tục xử lý; người phụ trách và
+                        thời điểm tiếp nhận sẽ được cập nhật khi họ mở một dòng.
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>
@@ -64,59 +425,118 @@
 
                     <group>
                         <group string="Thông tin yêu cầu">
-                            <field name="customer_id" readonly="status != 'new'"/>
+                            <field name="customer_id" readonly="status != 'new'"
+                                options="{'no_quick_create': True}"
+                                context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
                             <field name="requested_date" readonly="status != 'new'"/>
-                            <field name="deadline"/>
-                            <field name="created_by"/>
+                            <field name="deadline" options="{'min_date': 'today'}"/>
+                            <!-- Người tạo cố ý KHÔNG hiện ở màn Sales tạo mới (luôn là
+                                 chính mình → thừa). Các màn khác vẫn giữ trường này. -->
                         </group>
+                    </group>
+
+                    <!-- Tiến độ kỹ thuật luôn = 0% lúc RFQ còn 'new' (chưa gửi Kỹ
+                         thuật) → ẩn khi tạo mới, chỉ hiện sau khi vào xử lý. -->
+                    <group string="Tiến độ xử lý kỹ thuật" invisible="status == 'new'">
+                        <field name="technical_progress_label" readonly="1" nolabel="1"/>
+                        <field name="technical_progress_percent" widget="progressbar"
+                               readonly="1" nolabel="1"/>
                     </group>
 
                     <notebook>
                         <page string="Dòng sản phẩm" name="lines">
-                            <field name="line_ids"
+                            <!-- BẢNG 1: Sản phẩm thương mại (chọn thẳng, có giá) -->
+                            <separator string="Sản phẩm thương mại"/>
+                            <!-- "required chéo": mỗi bảng bắt buộc khi bảng kia
+                                 trống ⇒ RFQ phải có ≥1 dòng (thương mại HOẶC gia
+                                 công). Dùng required client-side của Odoo trên
+                                 one2many (record.js: count===0 → Invalid fields)
+                                 để báo cùng kiểu, cùng lúc Save như customer_id —
+                                 không cảnh báo sớm. @api.constrains vẫn là chốt cuối. -->
+                            <field name="trading_line_ids"
+                                   required="not manufactured_line_ids"
                                    readonly="status in ('quoted', 'cancelled')">
-                                <tree string="Dòng sản phẩm" editable="bottom">
-                                    <field name="product_name"/>
-                                    <field name="product_category_id"/>
-                                    <field name="quantity"/>
-                                    <field name="dimension_note" optional="show"/>
-                                    <field name="resolved_product_id"/>
-                                    <field name="is_infeasible"/>
-                                    <field name="infeasible_reason"
-                                           invisible="not is_infeasible" optional="show"/>
+                                <tree string="Sản phẩm thương mại" editable="bottom">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="product_type" column_invisible="1"/>
+                                    <field name="resolved_product_id" string="Sản phẩm"
+                                           required="1"
+                                           options="{'no_create': True}"
+                                           domain="[('product_kind', '=', 'trading'), ('dlm_lifecycle_state', '=', 'active')]"/>
+                                    <field name="product_price" string="Đơn giá"
+                                           widget="dl_money" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="quantity" string="Số lượng"/>
+                                    <field name="price_subtotal" string="Thành tiền"
+                                           widget="dl_money" options="{'currency_field': 'currency_id'}"/>
                                 </tree>
-                                <form string="Dòng sản phẩm">
+                            </field>
+
+                            <!-- BẢNG 2: Sản phẩm gia công (mô tả + ảnh + file) -->
+                            <separator string="Sản phẩm gia công"/>
+                            <field name="manufactured_line_ids"
+                                   required="not trading_line_ids"
+                                   readonly="status in ('quoted', 'cancelled')">
+                                <tree string="Sản phẩm gia công">
+                                    <field name="product_type" column_invisible="1"/>
+                                    <field name="product_name" string="Tên sản phẩm"/>
+                                    <field name="product_category_id" string="Nhóm sản phẩm"/>
+                                    <field name="reference_product_id" string="Sản phẩm tham khảo"/>
+                                    <field name="quantity" string="Số lượng"/>
+                                    <field name="dimension_note" string="Mô tả"/>
+                                    <!-- §2b — hiện thumbnail ảnh thay vì số lượng -->
+                                    <field name="preview_image" widget="image"
+                                           options="{'size': [40, 40]}" string="Ảnh"/>
+                                </tree>
+                                <form string="Sản phẩm gia công">
+                                    <field name="product_type" invisible="1"/>
+                                    <field name="selectable_category_ids" invisible="1"/>
+                                    <field name="reference_product_ids" invisible="1"/>
                                     <group>
-                                        <group string="Yêu cầu">
-                                            <field name="product_name"/>
-                                            <field name="product_category_id"/>
+                                        <group string="Thông tin">
+                                            <field name="product_name" required="1"/>
+                                            <!-- §1a — chỉ nhóm SP gia công -->
+                                            <field name="product_category_id"
+                                                   options="{'no_create': True}"
+                                                   domain="[('id', 'in', selectable_category_ids)]"/>
+                                            <!-- §1b — SP tham khảo lọc theo nhóm đã chọn -->
+                                            <field name="reference_product_id"
+                                                   options="{'no_create': True}"
+                                                   domain="[('id', 'in', reference_product_ids)]"/>
                                             <field name="quantity"/>
-                                            <field name="dimension_note"/>
-                                        </group>
-                                        <group string="Kết quả xử lý (Kỹ thuật)">
-                                            <field name="resolved_product_id"
-                                                   invisible="is_infeasible"/>
-                                            <field name="is_infeasible"/>
-                                            <field name="infeasible_reason"
-                                                   invisible="not is_infeasible"/>
                                         </group>
                                     </group>
+                                    <!-- §1c — ô Yêu cầu/Mô tả để rộng & cao hơn.
+                                         Cần ÍT NHẤT MỘT trong hai: Mô tả HOẶC file
+                                         đính kèm (không bắt buộc cả hai). Dùng
+                                         required chéo ⇒ tô đỏ inline trong dialog
+                                         khi thiếu cả hai; điền một là hết (không modal). -->
+                                    <separator string="Yêu cầu / Mô tả"/>
+                                    <field name="dimension_note" nolabel="1"
+                                           required="not attachment_ids"
+                                           class="dl-rfq-desc"
+                                           placeholder="Kích thước, yêu cầu kỹ thuật..."/>
+                                    <!-- §1d — Ảnh & file đính kèm gộp chung 1 trường -->
+                                    <separator string="Ảnh / File đính kèm"/>
+                                    <field name="attachment_ids" widget="many2many_binary"
+                                           required="not dimension_note"
+                                           nolabel="1"/>
                                 </form>
                             </field>
                         </page>
 
                         <page string="Ghi chú" name="notes">
-                            <group>
-                                <field name="description" nolabel="1"
-                                       placeholder="Ghi chú tổng thể: hẹn nhận hàng, điều khoản thanh toán..."/>
-                            </group>
-                            <group string="Ghi chú nội bộ">
-                                <field name="note" nolabel="1"/>
-                            </group>
+                            <separator string="Ghi chú chung"/>
+                            <field name="description" nolabel="1" class="dl-textarea-lg"
+                                   placeholder="Ghi chú tổng thể: hẹn nhận hàng, điều khoản thanh toán..."/>
+                            <separator string="Ghi chú nội bộ"/>
+                            <field name="note" nolabel="1" class="dl-textarea-lg"/>
                         </page>
                     </notebook>
                 </sheet>
-                <div class="oe_chatter">
+                <!-- Log/chatter cho quản lý (CEO, Trưởng KD, Admin) và đội sở
+                     hữu RFQ (BA + Kỹ thuật cùng cộng tác). -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
                     <field name="message_ids"/>
@@ -138,15 +558,21 @@
                         domain="[('status', '=', 'new')]"/>
                 <filter name="processing" string="Đang xử lý"
                         domain="[('status', '=', 'processing')]"/>
-                <filter name="confirmed" string="Chờ báo giá"
+                <filter name="returned" string="Trả lại bổ sung"
+                        domain="[('status', '=', 'returned')]"/>
+                <filter name="supplemented" string="Đã bổ sung"
+                        domain="[('status', '=', 'supplemented')]"/>
+                <filter name="confirmed" string="Đã xử lý xong – chờ tạo báo giá"
                         domain="[('status', '=', 'confirmed')]"/>
                 <filter name="quoted" string="Đã tạo BG"
                         domain="[('status', '=', 'quoted')]"/>
+                <filter name="cancelled" string="Đã hủy"
+                        domain="[('status', '=', 'cancelled')]"/>
                 <separator/>
                 <filter name="overdue" string="Quá hạn"
                         domain="[('deadline', '&lt;', context_today().strftime('%Y-%m-%d')), ('status', 'not in', ('quoted', 'cancelled'))]"/>
                 <filter name="to_process" string="Cần Kỹ thuật xử lý"
-                        domain="[('status', 'in', ('new', 'processing'))]"/>
+                        domain="[('status', 'in', ('new', 'processing', 'supplemented'))]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_status" string="Trạng thái"
                             context="{'group_by': 'status'}"/>
@@ -162,14 +588,24 @@
         <field name="name">Yêu cầu báo giá</field>
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
-        <field name="context">{'search_default_new': 1, 'search_default_processing': 1}</field>
+        <field name="context">{'search_default_to_process': 1}</field>
     </record>
 
     <record id="action_dl_quotation_request_my" model="ir.actions.act_window">
         <field name="name">RFQ cần xử lý</field>
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
+        <field name="view_id" ref="view_dl_quotation_request_tree_my"/>
         <field name="context">{'search_default_to_process': 1}</field>
+    </record>
+
+    <!-- Tạo RFQ (Sales) — mở thẳng form tạo mới, dùng view_dl_quotation_request_sales_form -->
+    <record id="action_dl_quotation_request_create" model="ir.actions.act_window">
+        <field name="name">Tạo RFQ</field>
+        <field name="res_model">dl.quotation.request</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_dl_quotation_request_sales_form"/>
+        <field name="target">current</field>
     </record>
 
 </odoo>

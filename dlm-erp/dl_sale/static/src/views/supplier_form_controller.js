@@ -17,7 +17,7 @@ import { _t } from "@web/core/l10n/translation";
 import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
-import { setupFormActionsMenu } from "@dl_base/js/actions_menu";
+import { setupFormActionsMenu, setupStatusbarButtons } from "@dl_base/js/actions_menu";
 import { useService } from "@web/core/utils/hooks";
 import { onWillStart, onMounted, useEffect } from "@odoo/owl";
 
@@ -53,6 +53,7 @@ export class DlSupplierFormController extends FormController {
             }
         });
 
+        setupStatusbarButtons(this);
         setupFormActionsMenu(this);
 
         onMounted(() => {
@@ -92,9 +93,6 @@ export class DlSupplierFormController extends FormController {
     // Bản ghi mới đã nhập/điền coi như có thay đổi; bản ghi cũ chỉ tính khi
     // người dùng thực sự chỉnh (tránh hỏi vô cớ do fill tự động).
     get _dlHasRealChanges() {
-        if (this.model.root.isNew) {
-            return this.model.root.isDirty;
-        }
         return this.model.root.isDirty && this._dlUserTouched;
     }
 
@@ -177,11 +175,10 @@ export class DlSupplierFormController extends FormController {
 
     // Breadcrumb bản ghi mới: "New" → "Thêm nhà cung cấp".
     displayName() {
-        return (
-            this.model.root.data.display_name?.split("\n")[0] ||
-            (this.model.root.isNew && _t("Thêm nhà cung cấp")) ||
-            ""
-        );
+        if (this.model.root.isNew) {
+            return _t("Thêm nhà cung cấp");
+        }
+        return this.model.root.data.display_name?.split("\n")[0] || "";
     }
 }
 

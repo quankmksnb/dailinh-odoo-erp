@@ -236,7 +236,7 @@ export class DlUserAdmin extends Component {
             await this.orm.call(USER_MODEL, "dlm_set_backup", [u.id, id]);
             u.backup_id = id || false;
             u.backup_name = id ? this.userById(id)?.name || "" : "";
-            this.flash(`Đã cập nhật Backup Approver cho ${u.name}.`);
+            this.flash(`Đã cập nhật người duyệt thay thế cho ${u.name}.`);
         } catch (e) {
             this.showError(e);
         }

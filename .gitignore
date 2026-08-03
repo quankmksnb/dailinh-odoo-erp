@@ -63,11 +63,13 @@ yarn.lock
 # ── IDE / editors ─────────────────────────────
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
 .DS_Store
 Thumbs.db
+.claude/
 
 # ── Test / coverage ───────────────────────────
 .coverage

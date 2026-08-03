@@ -13,11 +13,10 @@ export class DlCategoryFormController extends FormController {
     }
 
     displayName() {
-        return (
-            this.model.root.data.display_name?.split("\n")[0] ||
-            (this.model.root.isNew && _t("Thêm nhóm sản phẩm")) ||
-            ""
-        );
+        if (this.model.root.isNew) {
+            return _t("Thêm nhóm sản phẩm");
+        }
+        return this.model.root.data.display_name?.split("\n")[0] || "";
     }
 }
 

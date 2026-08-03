@@ -12,6 +12,7 @@ const CARDS = [
         desc: "Công thức BOM gắn với 1 thành phẩm hoặc bán thành phẩm cụ thể",
         icon: "fa-list-alt",
         actionXmlId: "dl_technical.action_dl_bom",
+        menuXmlIds: ["dl_technical.menu_bom_quotation"],
     },
     {
         key: "bom_template",
@@ -19,6 +20,7 @@ const CARDS = [
         desc: "BOM trừu tượng theo nhóm sản phẩm, dùng để sao chép khi tạo SP mới",
         icon: "fa-clone",
         actionXmlId: "dl_technical.action_dl_bom_template",
+        menuXmlIds: ["dl_technical.menu_bom_template"],
     },
     {
         key: "rfq",
@@ -26,6 +28,7 @@ const CARDS = [
         desc: "Nhận RFQ từ Sales, gán sản phẩm thật hoặc đánh dấu không khả thi",
         icon: "fa-inbox",
         actionXmlId: "dl_technical.action_dl_quotation_request_my",
+        menuXmlIds: ["dl_technical.menu_rfq_my"],
     },
     {
         key: "drawing",
@@ -33,8 +36,12 @@ const CARDS = [
         desc: "Bản vẽ và file đính kèm theo sản phẩm",
         icon: "fa-file-pdf-o",
         actionXmlId: "dl_technical.action_dl_drawing",
+        menuXmlIds: ["dl_technical.menu_drawing"],
     },
 ];
+// Loại đo lường (Rule) / Hình dạng đo lường (Shape) — bỏ khỏi trang chủ Kỹ
+// thuật (dữ liệu cấu hình, ít dùng hằng ngày). Vẫn truy cập đầy đủ qua menu
+// "Sản phẩm & Vật tư > Đo lường" (dl_product/views/menus.xml).
 
 export class DlTechnicalHome extends Component {
     static template = "dl_technical.DlTechnicalHome";
@@ -42,15 +49,41 @@ export class DlTechnicalHome extends Component {
 
     setup() {
         this.actionService = useService("action");
-        this.cards = CARDS;
+        this.menuService = useService("menu");
+        this._dlmApp = this.menuService
+            .getApps()
+            .find((app) => app.xmlid === "dl_base.menu_dl_root");
+    }
+
+    get cards() {
+        return CARDS.filter((card) => this._resolveCardMenu(card));
+    }
+
+    _resolveCardMenu(card) {
+        if (!this._dlmApp) return null;
+        const tree = this.menuService.getMenuAsTree(this._dlmApp.id);
+        for (const xmlid of card.menuXmlIds || []) {
+            const menu = this._findMenuByXmlId(tree, xmlid);
+            if (menu?.actionID) return menu;
+        }
+        return null;
+    }
+
+    _findMenuByXmlId(node, xmlid) {
+        if (!node) return null;
+        if (node.xmlid === xmlid) return node;
+        for (const child of node.childrenTree || []) {
+            const found = this._findMenuByXmlId(child, xmlid);
+            if (found) return found;
+        }
+        return null;
     }
 
     openCard(actionXmlId) {
         if (!actionXmlId) {
             return;
         }
-        // clearBreadcrumbs: reset stack để breadcrumb không tích lũy dài.
-        this.actionService.doAction(actionXmlId, { clearBreadcrumbs: true });
+        this.actionService.doAction(actionXmlId);
     }
 }
 

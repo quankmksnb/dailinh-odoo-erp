@@ -45,6 +45,69 @@ $dl-rail-bg:      $dl-nav-bg;
         border-bottom: 1px solid $dl-divider;
     }
 
+    // Danh sách mục chiếm phần giữa, cuộn được nếu dài; đẩy khối tài khoản
+    // xuống đáy rail.
+    .dlm-rail-items {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    // Khối tài khoản (user menu Odoo) — ghim đáy rail.
+    .dlm-rail-foot {
+        flex-shrink: 0;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid $dl-divider;
+        display: flex;
+        align-items: center;
+
+        // User menu render như 1 Dropdown; ép chiếm hết bề ngang rail.
+        .o_user_menu {
+            width: 100%;
+            display: block !important; // ghi đè d-none d-md-block của Odoo
+        }
+
+        // Nút mở menu: avatar + tên, canh trái cho khớp các mục phía trên.
+        .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 6px 8px;
+            border: 0;
+            background: transparent;
+            border-radius: $dl-radius-sm;
+            color: $dl-text-2;
+            cursor: pointer;
+
+            &:hover { background: $dl-search-bg; }
+            &::after { display: none; } // bỏ caret mặc định
+        }
+
+        .o_avatar {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        // Odoo để tên user d-none (chỉ hiện khi debug) — rail cho hiện lại tên,
+        // ẩn dòng tên DB kèm theo cho gọn.
+        .oe_topbar_name {
+            display: inline-block !important;
+            margin: 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: $dl-text-2;
+
+            mark { display: none; }
+        }
+    }
+
     .dlm-rail-toggle {
         width: 40px;
         height: 36px;
@@ -94,6 +157,7 @@ $dl-rail-bg:      $dl-nav-bg;
     }
 
     .dlm-rail-item {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -114,16 +178,82 @@ $dl-rail-bg:      $dl-nav-bg;
             color: $dl-primary;
         }
 
+        &.active {
+            background: $dl-active;
+            color: $dl-primary;
+            border-left-color: $dl-primary;
+
+            i.fa { color: $dl-primary; }
+        }
+
         // Module Phase sau (chưa có action) → mờ, không bấm
         &.disabled {
-            opacity: 0.45;
+            opacity: 0.6;
             cursor: default;
             &:hover { background: transparent; color: $dl-text-muted; }
         }
 
+        // Badge số việc chờ (vd "Phê duyệt") — pill đỏ, đẩy sát mép phải.
+        // Với mục có submenu, chevron mới là phần tử margin-left:auto nên badge
+        // ngồi ngay trước chevron (canh phải tự nhiên).
+        .dlm-rail-badge {
+            margin-left: auto;
+            flex-shrink: 0;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            color: #fff;
+            background: $dl-danger;
+            border-radius: 999px;
+            pointer-events: none;
+        }
+        // Mục có submenu: chevron giữ margin-left:auto, badge chỉ cần khoảng
+        // cách với chevron chứ không tự đẩy phải.
+        &.has-children .dlm-rail-badge {
+            margin-left: auto;
+            margin-right: 2px;
+        }
+
+        // Chip "Sắp có" — báo mục là tính năng tương lai, không phải lỗi.
+        .dlm-rail-soon {
+            margin-left: auto;
+            flex-shrink: 0;
+            font-size: 9.5px;
+            font-weight: 600;
+            letter-spacing: .02em;
+            text-transform: uppercase;
+            color: $dl-text-muted;
+            background: $dl-search-bg;
+            border-radius: 999px;
+            padding: 1px 7px;
+            pointer-events: none;
+        }
+
         &.has-children {
-            .dlm-rail-chevron {
+            // Toàn bộ hàng mục cha và nút chevron đều chỉ xổ/gập submenu.
+            .dlm-rail-chevron-btn {
                 margin-left: auto;
+                flex-shrink: 0;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 0;
+                background: transparent;
+                border-radius: $dl-radius-sm;
+                color: inherit;
+                cursor: pointer;
+
+                &:hover { background: rgba(0, 0, 0, .06); }
+            }
+            .dlm-rail-chevron {
                 font-size: 10px;
                 transition: transform .15s ease;
             }
@@ -133,15 +263,50 @@ $dl-rail-bg:      $dl-nav-bg;
         }
     }
 
+    // Cụm mục con: tách hẳn khỏi cha để không đọc nhầm là ngang hàng —
+    //  (1) đường kẻ dọc gom nhóm, canh dưới tâm icon cha;
+    //  (2) thụt sâu hơn;
+    //  (3) chữ + icon mờ và nhỏ hơn cha.
     .dlm-rail-submenu {
+        position: relative;
+        margin: 2px 0 4px;
+
+        &::before {
+            content: "";
+            position: absolute;
+            left: 21px;
+            top: 0;
+            bottom: 6px;
+            width: 1px;
+            background: $dl-border;
+        }
+
         .dlm-rail-subitem {
-            padding-left: 18px;
-            min-height: 34px;
+            padding-left: 30px;
+            min-height: 32px;
             font-size: 12.5px;
+            color: $dl-text-muted;
 
             .dlm-rail-icon {
-                width: 22px;
-                height: 22px;
+                width: 18px;
+                height: 18px;
+                i.fa { font-size: 12px; }
+            }
+
+            // Hover thắng màu mờ mặc định (đặt lại tường minh để không bị
+            // quy tắc .dlm-rail-subitem ghi đè do cùng độ ưu tiên).
+            &:hover { color: $dl-primary; }
+
+            // Mục con đang xem: tô rõ để biết đang ở màn nào trong submenu.
+            // Cần khai báo tại đây (độ ưu tiên cao hơn) vì quy tắc màu mờ của
+            // .dlm-rail-subitem đứng sau .dlm-rail-item.active, nếu không sẽ đè.
+            &.active {
+                background: $dl-active;
+                color: $dl-primary;
+                border-left-color: $dl-primary;
+                font-weight: 600;
+
+                i.fa { color: $dl-primary; }
             }
         }
     }
@@ -150,15 +315,54 @@ $dl-rail-bg:      $dl-nav-bg;
         width: $dl-sidebar-w-collapsed;
 
         .dlm-rail-label { display: none; }
-        .dlm-rail-logo { display: none; }
+        .dlm-rail-soon { display: none; }
+
+        // Xếp head theo cột: giữ logo làm nút Home (chỉ icon) phía trên, nút
+        // thu/mở phía dưới. Trước đây ẩn hẳn logo nên thu gọn thì MẤT lối về
+        // Trang chủ — phải mở rộng rail mới bấm được.
+        .dlm-rail-head {
+            flex-direction: column;
+            gap: 4px;
+        }
+        .dlm-rail-logo {
+            justify-content: center;
+            .dlm-rail-icon { margin: 0; }
+        }
         .dlm-rail-toggle { margin-left: 0; }
-        .dlm-rail-chevron { display: none; }
+        .dlm-rail-chevron,
+        .dlm-rail-chevron-btn { display: none; }
         .dlm-rail-submenu { display: none; }
         .dlm-rail-item {
             border-left: 0;
             padding-right: 0;
             gap: 0;
             justify-content: center;
+        }
+
+        // Rail thu gọn: nhãn ẩn nên badge nổi lên góc phải-trên của icon để
+        // người duyệt vẫn thấy có việc chờ mà không cần mở rộng rail.
+        .dlm-rail-badge {
+            position: absolute;
+            top: 3px;
+            right: 4px;
+            margin: 0;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            font-size: 10px;
+            border: 1px solid $dl-rail-bg;
+        }
+
+        // Khối tài khoản thu gọn: chỉ còn avatar, canh giữa, ẩn tên.
+        .dlm-rail-foot {
+            justify-content: center;
+
+            .dropdown-toggle {
+                justify-content: center;
+                padding: 6px 0;
+                gap: 0;
+            }
+            .oe_topbar_name { display: none !important; }
         }
     }
 }

@@ -2,9 +2,6 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_dl_drawing_ceo,dl.drawing CEO,model_dl_drawing,dl_base.dl_group_ceo,1,0,0,0
 access_dl_drawing_admin,dl.drawing Admin,model_dl_drawing,dl_base.dl_group_admin,1,1,1,1
 access_dl_drawing_tech,dl.drawing Tech,model_dl_drawing,dl_base.dl_group_tech,1,1,1,0
-access_dl_parametric_formula_ceo,dl.parametric.formula CEO,model_dl_parametric_formula,dl_base.dl_group_ceo,1,0,0,0
-access_dl_parametric_formula_admin,dl.parametric.formula Admin,model_dl_parametric_formula,dl_base.dl_group_admin,1,1,1,1
-access_dl_parametric_formula_tech,dl.parametric.formula Tech,model_dl_parametric_formula,dl_base.dl_group_tech,1,0,0,0
 access_dl_bom_ceo,dl.bom CEO,model_dl_bom,dl_base.dl_group_ceo,1,0,0,0
 access_dl_bom_admin,dl.bom Admin,model_dl_bom,dl_base.dl_group_admin,1,1,1,1
 access_dl_bom_ba,dl.bom BA,model_dl_bom,dl_base.dl_group_ba,1,0,0,0
@@ -15,6 +12,16 @@ access_dl_bom_line_admin,dl.bom.line Admin,model_dl_bom_line,dl_base.dl_group_ad
 access_dl_bom_line_ba,dl.bom.line BA,model_dl_bom_line,dl_base.dl_group_ba,1,0,0,0
 access_dl_bom_line_tech,dl.bom.line Tech,model_dl_bom_line,dl_base.dl_group_tech,1,1,1,1
 access_dl_bom_line_sm,dl.bom.line SM,model_dl_bom_line,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_bom_template_ceo,dl.bom.template CEO,model_dl_bom_template,dl_base.dl_group_ceo,1,0,0,0
+access_dl_bom_template_admin,dl.bom.template Admin,model_dl_bom_template,dl_base.dl_group_admin,1,1,1,1
+access_dl_bom_template_tech,dl.bom.template Tech,model_dl_bom_template,dl_base.dl_group_tech,1,1,1,0
+access_dl_bom_template_ba,dl.bom.template BA,model_dl_bom_template,dl_base.dl_group_ba,1,0,0,0
+access_dl_bom_template_sm,dl.bom.template SM,model_dl_bom_template,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_bom_template_line_ceo,dl.bom.template.line CEO,model_dl_bom_template_line,dl_base.dl_group_ceo,1,0,0,0
+access_dl_bom_template_line_admin,dl.bom.template.line Admin,model_dl_bom_template_line,dl_base.dl_group_admin,1,1,1,1
+access_dl_bom_template_line_tech,dl.bom.template.line Tech,model_dl_bom_template_line,dl_base.dl_group_tech,1,1,1,1
+access_dl_bom_template_line_ba,dl.bom.template.line BA,model_dl_bom_template_line,dl_base.dl_group_ba,1,0,0,0
+access_dl_bom_template_line_sm,dl.bom.template.line SM,model_dl_bom_template_line,dl_base.dl_group_sales_manager,1,0,0,0
 access_dl_quotation_request_ceo,dl.quotation.request CEO,model_dl_quotation_request,dl_base.dl_group_ceo,1,0,0,0
 access_dl_quotation_request_admin,dl.quotation.request Admin,model_dl_quotation_request,dl_base.dl_group_admin,1,1,1,1
 access_dl_quotation_request_ba,dl.quotation.request BA,model_dl_quotation_request,dl_base.dl_group_ba,1,1,1,0
@@ -25,3 +32,20 @@ access_dl_quotation_request_line_admin,dl.quotation.request.line Admin,model_dl_
 access_dl_quotation_request_line_ba,dl.quotation.request.line BA,model_dl_quotation_request_line,dl_base.dl_group_ba,1,1,1,1
 access_dl_quotation_request_line_tech,dl.quotation.request.line Tech,model_dl_quotation_request_line,dl_base.dl_group_tech,1,1,0,0
 access_dl_quotation_request_line_sm,dl.quotation.request.line SM,model_dl_quotation_request_line,dl_base.dl_group_sales_manager,1,1,1,0
+access_dl_rfq_resolve_wizard_admin,dl.rfq.resolve.wizard Admin,model_dl_rfq_resolve_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_rfq_resolve_wizard_tech,dl.rfq.resolve.wizard Tech,model_dl_rfq_resolve_wizard,dl_base.dl_group_tech,1,1,1,1
+access_dl_rfq_line_image_ceo,dl.quotation.request.line.image CEO,model_dl_quotation_request_line_image,dl_base.dl_group_ceo,1,0,0,0
+access_dl_rfq_line_image_admin,dl.quotation.request.line.image Admin,model_dl_quotation_request_line_image,dl_base.dl_group_admin,1,1,1,1
+access_dl_rfq_line_image_ba,dl.quotation.request.line.image BA,model_dl_quotation_request_line_image,dl_base.dl_group_ba,1,1,1,1
+access_dl_rfq_line_image_sm,dl.quotation.request.line.image SM,model_dl_quotation_request_line_image,dl_base.dl_group_sales_manager,1,1,1,1
+access_dl_rfq_line_image_tech,dl.quotation.request.line.image Tech,model_dl_quotation_request_line_image,dl_base.dl_group_tech,1,1,1,1
+access_dl_rfq_return_wizard_admin,dl.rfq.return.wizard Admin,model_dl_rfq_return_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_rfq_return_wizard_tech,dl.rfq.return.wizard Tech,model_dl_rfq_return_wizard,dl_base.dl_group_tech,1,1,1,1
+access_dl_bom_from_template_wizard_admin,dl.bom.from.template.wizard Admin,model_dl_bom_from_template_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_bom_from_template_wizard_tech,dl.bom.from.template.wizard Tech,model_dl_bom_from_template_wizard,dl_base.dl_group_tech,1,1,1,1
+access_dl_pricing_waste_tech_read,dl.pricing.waste Tech read (BOM waste link),dl_config.model_dl_pricing_waste,dl_base.dl_group_tech,1,0,0,0
+access_dl_rfq_history_wizard_admin,dl.rfq.history.wizard Admin,model_dl_rfq_history_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_rfq_history_wizard_tech,dl.rfq.history.wizard Tech,model_dl_rfq_history_wizard,dl_base.dl_group_tech,1,1,1,1
+access_dl_rfq_history_wizard_ba,dl.rfq.history.wizard BA,model_dl_rfq_history_wizard,dl_base.dl_group_ba,1,1,1,1
+access_dl_rfq_history_wizard_sm,dl.rfq.history.wizard SM,model_dl_rfq_history_wizard,dl_base.dl_group_sales_manager,1,1,1,1
+access_dl_rfq_history_wizard_ceo,dl.rfq.history.wizard CEO,model_dl_rfq_history_wizard,dl_base.dl_group_ceo,1,1,1,1

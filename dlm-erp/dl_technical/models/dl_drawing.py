@@ -28,7 +28,7 @@ class DlDrawing(models.Model):
     )
 
     product_id = fields.Many2one(
-        "dl.product",
+        "product.product",
         string="Sản phẩm",
         required=True,
         tracking=True,

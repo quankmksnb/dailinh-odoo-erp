@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_base.DlStepper">
+    <div class="dl-stepper">
+        <t t-foreach="steps" t-as="s" t-key="s.key">
+            <div class="dl-stepper-step"
+                 t-att-class="{ 'is-done': s.done, 'is-current': s.current }">
+                <span class="dl-stepper-dot">
+                    <t t-if="s.done">✓</t>
+                    <t t-else="" t-esc="s.index"/>
+                </span>
+                <span class="dl-stepper-label" t-esc="s.label"/>
+            </div>
+        </t>
+        <t t-if="branch">
+            <span class="dl-stepper-arrow" t-if="steps.length">→</span>
+            <div class="dl-stepper-branch" t-att-class="'is-' + branch.kind">
+                <span class="dl-stepper-label" t-esc="branch.label"/>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>

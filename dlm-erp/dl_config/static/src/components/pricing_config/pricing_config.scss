@@ -1,0 +1,178 @@
+// ============================================================================
+// Cấu hình Báo giá (V3) — bổ sung cho .dl-cfg (tái dùng style S02).
+// Chỉ thêm: badge trạng thái, nút hành động theo dòng, modal form, diff.
+// ============================================================================
+.dl-cfg {
+
+    // Cột hành động cuối bảng
+    .dl-cfg-table th.actw { width: 1%; }
+    .dl-cfg-table td.actw { white-space: nowrap; text-align: right; }
+    .text-success { color: $dl-green; }
+
+    // Badge trạng thái
+    .dl-pc-badge {
+        display: inline-block; font-size: 11px; font-weight: 700;
+        padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+        &.is-draft { background: $dl-badge-draft-bg; color: $dl-badge-draft-fg; }
+        &.is-active { background: $dl-badge-approved-bg; color: $dl-badge-approved-fg; }
+        &.is-pending { background: $dl-badge-sent-bg; color: $dl-badge-sent-fg; }
+        &.is-rejected { background: $dl-badge-rejected-bg; color: $dl-badge-rejected-fg; }
+        &.is-expired { background: $dl-type-individual-bg; color: $dl-type-individual-fg; }
+    }
+
+    // Hộp cảnh báo mềm (thang ma trận chưa kết thúc bằng Giám đốc...)
+    .dl-pc-warnbox {
+        display: flex; align-items: flex-start; gap: 8px;
+        background: $dl-badge-draft-bg; color: $dl-badge-draft-fg;
+        border: 1px solid #e6c68a; border-radius: $dl-radius-sm;
+        font-size: 12.5px; font-weight: 600; padding: 8px 12px; margin: 0 0 10px;
+        i { margin-top: 2px; }
+
+        // Ghim đầu tab (review UX config #f3): nổi bật hơn, cách bảng rõ ràng.
+        &.pinned {
+            margin: 0 0 14px;
+            border-left: 3px solid $dl-badge-draft-fg;
+            box-shadow: $dl-shadow-sm;
+        }
+    }
+
+    // Dòng vi phạm thang (đảo bậc) — tô đỏ để chỉ đúng chỗ cần sửa.
+    .dl-cfg-table tr.is-violation td {
+        background: $dl-badge-rejected-bg;
+        box-shadow: inset 3px 0 0 $dl-danger;
+    }
+
+    // Hàng cấu hình nội tuyến (ô nhập + nút Lưu) — dùng cho ngưỡng phân loại KH.
+    .dl-cfg-inline {
+        display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+        padding: 4px 0 2px;
+        .dl-cfg-f { display: flex; flex-direction: column; gap: 4px; }
+        .dl-cfg-f .k { font-size: 12px; font-weight: 600; color: $dl-text-2; }
+        .dl-cfg-f input { @include dl-input; font-size: 13px; width: 240px; }
+    }
+
+    // Loại đối tượng (category/vật tư)
+    .dl-pc-tt {
+        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+        color: $dl-text-muted;
+    }
+    .dl-pc-diff { font-size: 12px; color: $dl-text-2; b { color: $dl-heading; } }
+    .dl-pc-impact { font-size: 11.5px; color: $dl-text-muted; margin-top: 2px; font-style: italic; }
+
+    // Nút hành động theo dòng
+    .dl-pc-act {
+        display: inline-flex; align-items: center; gap: 4px;
+        border: 1px solid $dl-border; border-radius: $dl-radius-sm; background: $dl-surface;
+        color: $dl-text-2; font-size: 11.5px; font-weight: 600; padding: 3px 9px;
+        cursor: pointer; margin-left: 4px;
+        i { font-size: 11px; }
+        &:hover:not(:disabled) { background: $dl-active; color: $dl-primary; border-color: $dl-primary; }
+        &.ok:hover:not(:disabled) { background: $dl-badge-approved-bg; color: $dl-green; border-color: #bfe0c9; }
+        &.warn { color: $dl-badge-draft-fg; }
+        &.warn:hover:not(:disabled) { background: $dl-badge-draft-bg; border-color: #e6c68a; }
+        &.danger { color: $dl-danger; }
+        &.danger:hover:not(:disabled) { background: $dl-danger-bg; border-color: $dl-danger-border; }
+        &:disabled { opacity: 0.4; cursor: default; }
+    }
+
+    // Modal form (rộng hơn dialog xác nhận)
+    .dl-pc-form {
+        max-width: 620px; text-align: left;
+        .dl-cfg-grid { grid-template-columns: 1fr 1fr; }
+        .dl-cfg-f select, .dl-cfg-f input { @include dl-input; font-size: 13px; width: 100%; }
+        .dl-cfg-check { margin-top: 2px; }
+    }
+    .dl-pc-form-title { font-size: 15px; font-weight: 700; color: $dl-heading; margin-bottom: 14px; }
+    .dl-pc-wide { grid-column: 1 / -1; }
+
+    .dl-pc-reason {
+        @include dl-input; width: 100%; font-size: 13px; margin-bottom: 16px;
+    }
+
+    // Sub-tabs của màn Phê duyệt (Ma trận / Chờ duyệt / Lịch sử)
+    .dl-pc-subtabs {
+        display: flex; gap: 6px; margin-bottom: 14px;
+        border-bottom: 1px solid $dl-border;
+    }
+    .dl-pc-subtab {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: none; background: transparent; cursor: pointer;
+        font-size: 13px; font-weight: 600; color: $dl-text-muted;
+        padding: 8px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+        i { font-size: 12px; }
+        &:hover { color: $dl-primary; }
+        &.active { color: $dl-primary; border-bottom-color: $dl-primary; }
+    }
+    .dl-pc-count {
+        display: inline-block; min-width: 18px; text-align: center;
+        font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+        background: $dl-badge-sent-bg; color: $dl-badge-sent-fg;
+    }
+
+    .dl-pc-hint {
+        font-size: 12px; color: $dl-text-muted; margin: 0 0 12px;
+        line-height: 1.5; b { color: $dl-text-2; }
+    }
+    .dl-pc-reasons {
+        margin: 0; padding-left: 16px; font-size: 12px; color: $dl-text-2;
+        li { margin: 1px 0; }
+    }
+    .dl-pc-reject-note {
+        font-size: 11.5px; color: $dl-danger; margin-top: 3px; font-style: italic;
+    }
+    // Dòng ma trận không còn hiệu lực: làm mờ nhẹ
+    .dl-cfg-table tr.is-inactive td { opacity: 0.55; }
+
+    // --- Màn Hao hụt: thanh lọc + bảng gom nhóm, header dính khi cuộn --------
+    .dl-pc-matcount { font-size: 12px; font-weight: 600; color: $dl-text-muted; white-space: nowrap; }
+
+    .dl-pc-mattools {
+        display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+    }
+    .dl-pc-matsearch {
+        position: relative; flex: 1 1 220px; max-width: 320px;
+        i {
+            position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+            font-size: 12px; color: $dl-text-muted; pointer-events: none;
+        }
+        input { @include dl-input; width: 100%; font-size: 13px; padding-left: 30px; padding-right: 26px; }
+        .clear {
+            position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+            border: 0; background: transparent; color: $dl-text-muted; cursor: pointer;
+            font-size: 15px; line-height: 1; padding: 2px 7px; border-radius: $dl-radius-sm;
+            &:hover { color: $dl-text; }
+        }
+    }
+    .dl-pc-matcateg { @include dl-input; font-size: 13px; width: auto; max-width: 220px; }
+
+    .dl-pc-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+    .dl-pc-chip {
+        border: 1px solid $dl-border; border-radius: 999px; background: $dl-surface;
+        color: $dl-text-2; font-size: 12px; font-weight: 600; padding: 4px 12px; cursor: pointer;
+        .cnt { opacity: 0.75; }
+        &:hover { border-color: $dl-primary; color: $dl-primary; }
+        &.is-active { background: $dl-active; border-color: $dl-primary; color: $dl-primary; }
+        &.warn.is-active { background: $dl-badge-draft-bg; border-color: #e6c68a; color: $dl-badge-draft-fg; }
+    }
+
+    // Vùng cuộn riêng cho bảng vật tư: tab + thanh lọc luôn nhìn thấy.
+    .dl-pc-matwrap {
+        max-height: 62vh; overflow: auto;
+        border: 1px solid $dl-border; border-radius: $dl-radius;
+        .dl-cfg-table { border: 0; border-radius: 0; }
+        thead th {
+            position: sticky; top: 0; z-index: 2;
+            border-bottom: 0; box-shadow: inset 0 -1px 0 $dl-border;
+        }
+    }
+    // Dòng header nhóm vật tư (bấm để thu gọn/mở rộng)
+    tr.dl-pc-group td {
+        background: $dl-app-bg; cursor: pointer; user-select: none;
+        padding: 6px 10px; font-size: 12px; color: $dl-heading;
+        border-top: 1px solid $dl-border;
+        i { width: 12px; text-align: center; color: $dl-text-muted; margin-right: 4px; }
+        b { font-weight: 700; }
+        .cnt { margin-left: 8px; font-size: 11px; font-weight: 600; color: $dl-text-muted; }
+        &:hover { background: $dl-active; }
+    }
+}

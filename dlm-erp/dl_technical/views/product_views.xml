@@ -2,36 +2,57 @@
 <odoo>
 
     <!-- ================================================================
-         Kế thừa form dl.product (S05, module dl_sale) — thêm thuộc tính
-         cần cho S08 BOM + nối "BOM liên quan" đúng chỗ placeholder cũ.
-         KHÔNG khai báo model/tree/form/action mới cho dl.product / Danh mục
-         Nhóm sản phẩm — nằm ngoài phạm vi S08 (đã chốt với người yêu cầu).
+         Kế thừa form sản phẩm (PROD-02, product.product) — nối "BOM liên
+         quan" vào đúng chỗ placeholder của dl_product.
+         Data Model refactor: model nay là product.product (mở rộng thuần),
+         không còn dl.product. Nhóm "Cung ứng (supply_type/purchase_cost...)"
+         cũ đã bỏ theo Data Model — chỉ giữ phần bom_ids.
     ================================================================ -->
 
     <record id="view_dl_product_form_inherit_bom" model="ir.ui.view">
-        <field name="name">dl.product.form.inherit.bom</field>
-        <field name="model">dl.product</field>
+        <field name="name">product.product.form.inherit.bom</field>
+        <field name="model">product.product</field>
         <field name="inherit_id" ref="dl_product.view_dl_product_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//field[@name='finish']/.." position="after">
-                <group string="Cung ứng (S08 — BOM)">
-                    <field name="supply_type"/>
-                    <field name="uom_id"/>
-                    <field name="purchase_cost" invisible="supply_type != 'trading'"/>
-                    <field name="default_supplier_id" invisible="supply_type != 'trading'"/>
-                </group>
+            <xpath expr="//sheet/*[1]" position="before">
+                <field name="is_rfq_provisional" invisible="1"/>
+                <widget name="web_ribbon" title="Tạm từ RFQ"
+                        bg_color="text-bg-info" invisible="not is_rfq_provisional"/>
+                <div class="alert alert-info" role="status"
+                     invisible="not is_rfq_provisional">
+                    Sản phẩm này đang được giữ tạm cho một dòng RFQ chưa hoàn tất.
+                    <field name="rfq_source_line_id" readonly="1"/>
+                </div>
             </xpath>
             <xpath expr="//page[@name='boms']/div" position="replace">
+                <!-- bom_ids là computed field (chỉ đọc) — không hỗ trợ "Add a
+                     line" trực tiếp. Dùng nút bên dưới để tạo BOM mới. -->
+                <button name="action_create_bom" type="object"
+                        string="+ Tạo BOM"
+                        class="btn-secondary mb-2"
+                        groups="dl_base.dl_group_admin,dl_base.dl_group_tech"/>
                 <field name="bom_ids" nolabel="1">
                     <tree string="BOM">
                         <field name="name"/>
                         <field name="version"/>
                         <field name="status" widget="badge"/>
-                        <field name="total_material_cost"/>
+                        <field name="total_material_cost"
+                               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
                     </tree>
                 </field>
             </xpath>
         </field>
+    </record>
+
+    <!-- Dữ liệu tạm chỉ được mở qua RFQ nguồn, không lẫn vào danh mục chính. -->
+    <record id="dl_product.action_dl_product_full" model="ir.actions.act_window">
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading']), ('is_rfq_provisional', '=', False)]</field>
+    </record>
+    <record id="dl_product.action_dl_product_tech" model="ir.actions.act_window">
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading']), ('is_rfq_provisional', '=', False)]</field>
+    </record>
+    <record id="dl_product.action_dl_product_view" model="ir.actions.act_window">
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading']), ('is_rfq_provisional', '=', False)]</field>
     </record>
 
 </odoo>

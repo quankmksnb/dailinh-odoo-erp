@@ -4,7 +4,7 @@
 <t t-name="dl_base.DlmRail">
     <div class="dlm-rail" t-if="state.visible" t-att-class="{ collapsed: sidebar.collapsed }">
         <div class="dlm-rail-head">
-            <div class="dlm-rail-logo"
+            <div class="dlm-rail-logo" title="Trang chủ"
                  t-on-click="() => this.openModule('dl_base.action_dl_home')">
                 <span class="dlm-rail-icon">◆</span>
                 <span class="dlm-rail-label">DLM-ERP</span>
@@ -15,22 +15,31 @@
             </button>
         </div>
 
-        <t t-foreach="railItems" t-as="item" t-key="item.key">
+        <div class="dlm-rail-items">
+        <t t-foreach="visibleItems" t-as="item" t-key="item.key">
             <t t-if="item.children and item.children.length">
                 <div class="dlm-rail-item has-children"
                      t-att-title="item.name"
-                     t-att-class="{ 'expanded': state.expanded[item.key] }"
+                     t-att-class="{ 'expanded': state.expanded[item.key], 'active': sidebar.activeKey === item.key }"
                      t-on-click="() => this.toggleSubmenu(item.key)">
                     <span class="dlm-rail-icon"><i t-att-class="'fa ' + item.icon"/></span>
                     <span class="dlm-rail-label" t-esc="item.name"/>
-                    <i class="dlm-rail-chevron fa fa-chevron-down"/>
+                    <span class="dlm-rail-badge" t-if="badges[item.key]"
+                          t-att-title="badges[item.key] + ' việc cần xử lý'"
+                          t-esc="badges[item.key] &gt; 99 ? '99+' : badges[item.key]"/>
+                    <button class="dlm-rail-chevron-btn" tabindex="-1"
+                            t-att-title="state.expanded[item.key] ? 'Thu gọn' : 'Xem các màn'"
+                            t-on-click.stop="() => this.toggleSubmenu(item.key)">
+                        <i class="dlm-rail-chevron fa fa-chevron-down"/>
+                    </button>
                 </div>
                 <div class="dlm-rail-submenu" t-if="state.expanded[item.key]">
-                    <t t-foreach="item.children" t-as="child" t-key="child.key">
+                    <t t-foreach="visibleChildren(item)" t-as="child" t-key="child.key">
                         <div class="dlm-rail-item dlm-rail-subitem"
                              t-att-title="child.name"
-                             t-on-click.stop="() => this.openModule(child.actionXmlId)">
-                            <span class="dlm-rail-icon"/>
+                             t-att-class="{ 'active': sidebar.activeChildKey === child.key }"
+                             t-on-click.stop="() => this.openChild(child, item.key)">
+                            <span class="dlm-rail-icon"><i t-att-class="'fa ' + child.icon"/></span>
                             <span class="dlm-rail-label" t-esc="child.name"/>
                         </div>
                     </t>
@@ -38,13 +47,28 @@
             </t>
             <t t-else="">
                 <div class="dlm-rail-item" t-att-title="item.name"
-                     t-att-class="{ 'disabled': !item.actionXmlId }"
-                     t-on-click="() => this.openModule(item.actionXmlId)">
+                     t-att-class="{ 'disabled': !item.actionXmlId, 'active': sidebar.activeKey === item.key }"
+                     t-on-click="() => this.openItem(item)">
                     <span class="dlm-rail-icon"><i t-att-class="'fa ' + item.icon"/></span>
                     <span class="dlm-rail-label" t-esc="item.name"/>
+                    <span class="dlm-rail-badge" t-if="badges[item.key]"
+                          t-att-title="badges[item.key] + ' việc cần xử lý'"
+                          t-esc="badges[item.key] &gt; 99 ? '99+' : badges[item.key]"/>
+                    <span class="dlm-rail-soon" t-if="!item.actionXmlId">Sắp có</span>
                 </div>
             </t>
         </t>
+        </div>
+
+        <!-- Khối tài khoản (đáy rail): user menu Odoo → Tùy chọn / Đăng xuất.
+             Thay cho navbar tím đã ẩn; giữ nguyên 1 sidebar dọc. -->
+        <div class="dlm-rail-foot o_menu_systray">
+            <t t-foreach="accountSystrayItems" t-as="sysItem" t-key="sysItem.key">
+                <ErrorHandler onError="(error) => this.handleSystrayError(error, sysItem)">
+                    <t t-component="sysItem.Component" t-props="sysItem.props"/>
+                </ErrorHandler>
+            </t>
+        </div>
     </div>
 </t>
 

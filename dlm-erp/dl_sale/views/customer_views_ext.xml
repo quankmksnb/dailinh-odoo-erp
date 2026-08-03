@@ -1,5 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+
+    <!-- Cột "Nhóm KH" (mới / cũ / thân thiết) trên danh sách khách hàng.
+         Field dlm_customer_group thuộc dl_sale nên phải chèn qua kế thừa. -->
+    <record id="view_dl_customer_tree_group_ext" model="ir.ui.view">
+        <field name="name">dlm.customer.tree.group.ext</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="dl_partner.view_dl_customer_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='partner_type']" position="after">
+                <field name="dlm_customer_group" string="Nhóm KH" widget="badge"
+                    decoration-info="dlm_customer_group == 'new'"
+                    decoration-success="dlm_customer_group == 'existing'"
+                    decoration-warning="dlm_customer_group == 'loyal'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Lọc & nhóm theo nhóm khách hàng trên ô tìm kiếm. -->
+    <record id="view_dl_customer_search_group_ext" model="ir.ui.view">
+        <field name="name">dlm.customer.search.group.ext</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="dl_partner.view_dl_customer_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='filter_dealer']" position="after">
+                <separator/>
+                <filter string="Khách mới" name="filter_group_new"
+                    domain="[('dlm_customer_group', '=', 'new')]"/>
+                <filter string="Khách cũ" name="filter_group_existing"
+                    domain="[('dlm_customer_group', '=', 'existing')]"/>
+                <filter string="Khách thân thiết" name="filter_group_loyal"
+                    domain="[('dlm_customer_group', '=', 'loyal')]"/>
+            </xpath>
+            <xpath expr="//filter[@name='group_type']" position="after">
+                <filter string="Nhóm khách hàng" name="group_customer_group"
+                    context="{'group_by': 'dlm_customer_group'}"/>
+            </xpath>
+        </field>
+    </record>
+
     <!-- Mở rộng form Khách hàng (dl_partner) với thống kê báo giá (EX-30, EX-42). -->
 
     <record id="view_dl_customer_form_quote_ext" model="ir.ui.view">
@@ -20,7 +59,7 @@
             <xpath expr="//div[hasclass('dl-cust-head')]" position="before">
                 <div class="alert alert-danger" role="alert"
                     invisible="active or dlm_open_quote_count == 0">
-                    <i class="fa fa-ban" />
+                    <i class="fa fa-ban" title="Đang chặn báo giá" />
                     <strong>KH đã ngừng hợp tác.</strong> Vẫn còn <field
                         name="dlm_open_quote_count" class="oe_inline" /> báo giá chưa đóng — các
                     báo giá này tiếp tục quy trình bình thường, nhưng không thể tạo báo giá/RFQ
@@ -36,14 +75,24 @@
 
                 <div class="alert alert-warning" role="alert"
                     invisible="not dlm_split_warning">
-                    <i class="fa fa-exclamation-triangle" />
+                    <i class="fa fa-exclamation-triangle" title="Cảnh báo" />
                     <strong>Cảnh báo gộp đơn:</strong>
                     KH này có <field name="dlm_recent_quote_count" class="oe_inline" /> báo giá
                     trong 7 ngày gần đây với tổng <field name="dlm_recent_quote_total"
-                        class="oe_inline" widget="monetary" />, vượt ngưỡng duyệt tự động (<field
-                        name="dlm_split_threshold" class="oe_inline" widget="monetary" />) —
+                        class="oe_inline" widget="dl_money" />, vượt ngưỡng duyệt tự động (<field
+                        name="dlm_split_threshold" class="oe_inline" widget="dl_money" />) —
                     kiểm tra khả năng chia nhỏ để né duyệt.
                 </div>
+            </xpath>
+
+            <!-- Badge nhóm khách hàng (auto) cạnh mã KH -->
+            <xpath expr="//div[hasclass('dl-cust-code')]" position="after">
+                <field name="dlm_customer_group" widget="badge" nolabel="1" readonly="1"
+                    class="dl-cust-group-badge"
+                    invisible="not dlm_customer_group"
+                    decoration-info="dlm_customer_group == 'new'"
+                    decoration-success="dlm_customer_group == 'existing'"
+                    decoration-warning="dlm_customer_group == 'loyal'"/>
             </xpath>
 
             <!-- Tab Lịch sử Báo giá — chèn trước tab Ghi chú nội bộ -->
@@ -52,6 +101,8 @@
                     groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech">
                     <group>
                         <group>
+                            <field name="dlm_customer_group" string="Nhóm khách hàng"
+                                readonly="1" />
                             <field name="dlm_quotation_count" string="Tổng số báo giá" />
                         </group>
                         <group groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
@@ -61,17 +112,17 @@
                     </group>
                     <field name="dlm_quotation_ids" nolabel="1" readonly="1">
                         <tree string="Báo giá" create="false" delete="false"
-                            decoration-success="state == 'approved'"
+                            decoration-success="state in ('accepted', 'ordered')"
                             decoration-danger="state == 'rejected'"
-                            decoration-info="state == 'sent'">
+                            decoration-info="state in ('approved', 'sent')">
                             <field name="name" string="Số BG" />
                             <field name="date_order" string="Ngày" />
-                            <field name="amount_total" string="Giá trị" widget="monetary" />
+                            <field name="amount_total" string="Giá trị" widget="dl_money" />
                             <field name="currency_id" column_invisible="1" />
                             <field name="state" string="Trạng thái" widget="badge"
-                                decoration-success="state == 'approved'"
+                                decoration-success="state in ('accepted', 'ordered')"
                                 decoration-danger="state == 'rejected'"
-                                decoration-info="state == 'sent'" />
+                                decoration-info="state in ('approved', 'sent')" />
                         </tree>
                     </field>
                 </page>

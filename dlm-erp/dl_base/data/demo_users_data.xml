@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- User demo theo từng vai trò RBAC — đăng nhập sẵn khi reset DB, -->
+        <!-- không cần tạo tay. Mật khẩu chung: 123456 (chỉ dùng cho dev/demo). -->
+
+        <record id="demo_user_ceo" model="res.users">
+            <field name="name">CEO</field>
+            <field name="login">ceo@gmail.com</field>
+            <field name="email">ceo@gmail.com</field>
+            <field name="lang">vi_VN</field>
+            <field name="password">123456</field>
+            <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_ceo')])]" />
+        </record>
+
+        <record id="demo_user_admin" model="res.users">
+            <field name="name">Admin IT</field>
+            <field name="login">admin.it@gmail.com</field>
+            <field name="email">admin.it@gmail.com</field>
+            <field name="lang">vi_VN</field>
+            <field name="password">123456</field>
+            <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_admin')])]" />
+        </record>
+
+        <record id="demo_user_sales_manager" model="res.users">
+            <field name="name">Trưởng phòng Kinh doanh</field>
+            <field name="login">truongkd@gmail.com</field>
+            <field name="email">truongkd@gmail.com</field>
+            <field name="lang">vi_VN</field>
+            <field name="password">123456</field>
+            <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_sales_manager')])]" />
+        </record>
+
+        <record id="demo_user_ba" model="res.users">
+            <field name="name">BA Sales</field>
+            <field name="login">ba@gmail.com</field>
+            <field name="email">ba@gmail.com</field>
+            <field name="lang">vi_VN</field>
+            <field name="password">123456</field>
+            <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_ba')])]" />
+        </record>
+
+        <record id="demo_user_tech" model="res.users">
+            <field name="name">Kỹ thuật</field>
+            <field name="login">kythuat@gmail.com</field>
+            <field name="email">kythuat@gmail.com</field>
+            <field name="lang">vi_VN</field>
+            <field name="password">123456</field>
+            <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_tech')])]" />
+        </record>
+
+        <record id="demo_user_accountant" model="res.users">
+            <field name="name">Kế toán nội bộ</field>
+            <field name="login">ketoan@gmail.com</field>
+            <field name="email">ketoan@gmail.com</field>
+            <field name="lang">vi_VN</field>
+            <field name="password">123456</field>
+            <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_accountant')])]" />
+        </record>
+
+        <record id="demo_user_purchasing" model="res.users">
+            <field name="name">Mua hàng</field>
+            <field name="login">muahang@gmail.com</field>
+            <field name="email">muahang@gmail.com</field>
+            <field name="lang">vi_VN</field>
+            <field name="password">123456</field>
+            <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_purchasing')])]" />
+        </record>
+
+    </data>
+</odoo>

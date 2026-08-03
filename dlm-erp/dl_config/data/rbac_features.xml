@@ -8,7 +8,7 @@
     <data noupdate="0">
 
         <record id="feat_user" model="dl.rbac.feature">
-            <field name="name">Quản lý User</field>
+            <field name="name">Quản lý người dùng</field>
             <field name="code">user</field>
             <field name="model_id" ref="base.model_res_users"/>
             <field name="category">system</field>
@@ -23,20 +23,20 @@
             <field name="sequence">20</field>
         </record>
 
-        <record id="feat_company" model="dl.rbac.feature">
-            <field name="name">Công ty</field>
-            <field name="code">company</field>
-            <field name="model_id" ref="base.model_res_company"/>
-            <field name="category">master</field>
-            <field name="sequence">30</field>
-        </record>
-
         <!-- Màn thuần action (chưa có model) — vẫn hiện để minh họa auto-discovery -->
         <record id="feat_sys_config" model="dl.rbac.feature">
             <field name="name">Cấu hình Hệ thống</field>
             <field name="code">sys_config</field>
             <field name="category">system</field>
             <field name="sequence">40</field>
+        </record>
+
+        <record id="feat_pricing_config" model="dl.rbac.feature">
+            <field name="name">Cấu hình Báo giá</field>
+            <field name="code">pricing_config</field>
+            <field name="model_id" ref="model_dl_pricing_waste_rule"/>
+            <field name="category">system</field>
+            <field name="sequence">35</field>
         </record>
 
     </data>

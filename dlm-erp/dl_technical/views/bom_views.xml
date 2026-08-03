@@ -10,18 +10,20 @@
         <field name="name">dl.bom.tree</field>
         <field name="model">dl.bom</field>
         <field name="arch" type="xml">
-            <tree string="Bill of Materials"
+            <tree string="BOM"
                   class="dl-bom-list" js_class="dl_bom_list"
                   decoration-muted="status == 'archived'"
                   decoration-info="status == 'draft'"
                   decoration-success="status == 'confirmed'"
-                  decoration-warning="status == 'locked'">
+                  decoration-warning="status == 'locked'"
+                  decoration-bf="is_current">
+                <field name="is_current" column_invisible="1"/>
+                <field name="is_rfq_provisional" column_invisible="1"/>
                 <field name="name"/>
+                <field name="category_id" optional="show"/>
                 <field name="product_id"/>
-                <field name="semi_product_id"/>
-                <field name="category_id"/>
                 <field name="version"/>
-                <field name="product_qty"/>
+                <field name="product_qty" string="Số lượng thành phẩm"/>
                 <field name="total_material_cost" string="Chi phí VT"
                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
                 <field name="status" widget="badge"
@@ -38,35 +40,67 @@
         <field name="name">dl.bom.form</field>
         <field name="model">dl.bom</field>
         <field name="arch" type="xml">
-            <form string="Bill of Materials" class="dl-bom-form" js_class="dl_bom_form">
+            <form string="BOM" class="dl-bom-form" js_class="dl_bom_form">
                 <header>
+                    <!-- 1 CTA chính mỗi trạng thái (review UX bom #f2): Nháp→Xác
+                         nhận BOM, Đã xác nhận→Khóa, Đã khóa→Tạo phiên bản mới.
+                         Thao tác phụ để nút mờ (btn-secondary), Lưu trữ giữ
+                         danger. Nút "Tạo phiên bản mới" tách 2 bản để đúng cấp độ
+                         theo trạng thái (phụ ở Đã xác nhận, chính ở Đã khóa). -->
                     <button name="action_confirm" type="object" string="Xác nhận BOM"
-                            class="oe_highlight"
+                            class="btn-primary"
                             invisible="status != 'draft'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                    <button name="action_reset_draft" type="object" string="Về nháp"
-                            invisible="status != 'confirmed'"
-                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_lock" type="object" string="Khóa"
+                            class="btn-primary"
                             invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_create_new_version" type="object"
-                            string="Tạo phiên bản mới"
-                            invisible="status not in ('confirmed', 'locked')"
+                            string="Tạo phiên bản mới" class="btn-primary"
+                            invisible="status != 'locked'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_create_from_template" type="object"
+                            string="Tạo từ BOM mẫu" class="btn-secondary"
+                            invisible="status != 'draft'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_create_bom_template" type="object"
+                            string="Tạo BOM mẫu cho nhóm" class="btn-secondary"
+                            invisible="not product_id or not line_ids"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_reset_draft" type="object" string="Về nháp"
+                            class="btn-secondary"
+                            invisible="status != 'confirmed'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <button name="action_create_new_version" type="object"
+                            string="Tạo phiên bản mới" class="btn-secondary"
+                            invisible="status != 'confirmed'"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <!-- Cho lưu trữ cả BOM đã khóa để retire bản đã bị phiên bản
+                         mới thay thế (đơn cũ vẫn giữ link + snapshot). -->
                     <button name="action_archive" type="object" string="Lưu trữ"
-                            invisible="status in ('locked', 'archived')"
+                            class="btn-danger"
+                            invisible="status == 'archived'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
-                            confirm="Bạn có chắc muốn lưu trữ BOM này?"/>
-                    <field name="status" widget="statusbar"
+                            confirm="Bạn có chắc muốn lưu trữ BOM này? (Đơn hàng đã dùng vẫn truy được BOM này.)"/>
+                    <field name="status" widget="dl_stepper"
                            statusbar_visible="draft,confirmed,locked"
                            readonly="1"/>
                 </header>
                 <sheet>
+                    <field name="is_rfq_provisional" invisible="1"/>
+                    <widget name="web_ribbon" title="Tạm từ RFQ"
+                            bg_color="text-bg-info" invisible="not is_rfq_provisional"/>
                     <widget name="web_ribbon" title="Đã khóa"
                             bg_color="text-bg-warning" invisible="status != 'locked'"/>
                     <widget name="web_ribbon" title="Lưu trữ"
                             bg_color="text-bg-danger" invisible="status != 'archived'"/>
+                    <div class="alert alert-info" role="status"
+                         invisible="not is_rfq_provisional">
+                        BOM này đang thuộc một phương án RFQ chưa hoàn tất. Việc xác nhận
+                        tại đây chỉ duyệt nội dung; BOM sẽ trở thành phiên bản hiện hành khi
+                        Kỹ thuật bấm <strong>Hoàn tất dòng</strong> trong workspace RFQ.
+                        <field name="rfq_source_line_id" readonly="1"/>
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>
@@ -78,45 +112,168 @@
                         <group string="Thông tin BOM">
                             <field name="bom_type"/>
                             <field name="version" readonly="1"/>
-                            <field name="product_qty"/>
+                            <field name="is_current" readonly="1"
+                                   string="Phiên bản hiện hành"/>
+                            <field name="product_qty" string="Số lượng thành phẩm"/>
+                            <field name="approved_by" readonly="1"
+                                   invisible="not approved_by"/>
+                            <field name="approved_date" readonly="1"
+                                   invisible="not approved_date"/>
                         </group>
-                        <group string="Liên kết sản phẩm (chọn đúng 1)">
-                            <field name="product_id" readonly="status != 'draft'"/>
-                            <field name="semi_product_id" readonly="status != 'draft'"/>
+                        <group string="Sản phẩm">
                             <field name="category_id" readonly="status != 'draft'"
-                                   help="Chỉ dùng cho khung mẫu trừu tượng cấp nhóm (chưa gắn sản phẩm cụ thể)."/>
+                                   string="Nhóm sản phẩm (lọc)"
+                                   help="Chỉ để lọc nhanh Sản phẩm bên dưới, không bắt buộc."/>
+                            <field name="product_id" readonly="status != 'draft'"/>
                         </group>
+                    </group>
+
+                    <!-- §4a/§4b — Bản vẽ kỹ thuật của sản phẩm ngay trên màn BOM:
+                         "Xem bản vẽ" mở dialog xem/tải file; "Tải lên bản vẽ" mở form
+                         Bản vẽ (dialog) đã gắn sẵn Sản phẩm. Chỉ nhóm được đọc bản vẽ
+                         (Tech/Admin/CEO) mới thấy — tránh AccessError cho BA/Trưởng KD. -->
+                    <group string="Bản vẽ kỹ thuật"
+                           groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo">
+                        <field name="drawing_id" invisible="1"/>
+                        <field name="drawing_attachment_id" invisible="1"/>
+                        <div colspan="2" class="o_row">
+                            <field name="drawing_filename" readonly="1" nolabel="1"
+                                   invisible="not drawing_attachment_id"/>
+                            <span class="text-muted" invisible="drawing_attachment_id">
+                                Sản phẩm chưa có bản vẽ kỹ thuật.
+                            </span>
+                            <button name="action_view_drawing" type="object"
+                                    string="Xem bản vẽ" class="btn-secondary ms-2"
+                                    icon="fa-file-image-o"
+                                    invisible="not drawing_attachment_id"/>
+                            <button name="action_upload_drawing" type="object"
+                                    string="Tải lên bản vẽ" class="btn-secondary ms-2"
+                                    icon="fa-upload"
+                                    invisible="not product_id"/>
+                        </div>
                     </group>
 
                     <notebook>
                         <page string="Dòng BOM" name="bom_lines">
                             <field name="line_ids"
                                    readonly="status in ('locked', 'archived')">
-                                <tree string="Dòng BOM" editable="bottom">
-                                    <field name="component_type"/>
-                                    <field name="material_id"
-                                           invisible="component_type != 'raw_material'"
-                                           required="component_type == 'raw_material'"/>
-                                    <field name="semi_finished_id"
-                                           invisible="component_type != 'semi_finished'"
-                                           required="component_type == 'semi_finished'"/>
-                                    <field name="input_length_mm" optional="show"
-                                           string="Dài (mm)"/>
-                                    <field name="input_width_mm" optional="show"
-                                           string="Rộng (mm)"/>
-                                    <field name="input_thickness_mm" optional="show"
-                                           string="Dày (mm)"/>
+                                <tree string="Dòng BOM">
+                                    <field name="material_id"/>
+                                    <field name="measurement_type_id" optional="show"/>
+                                    <field name="measurement_shape_id" optional="show"/>
+                                    <field name="computed_quantity" string="Định mức"/>
                                     <field name="quantity"/>
+                                    <field name="complexity_id" optional="show"/>
                                     <field name="waste_rate" string="Hao hụt (%)"/>
                                     <field name="effective_qty" string="SL thực"/>
                                     <field name="uom_id" optional="show"/>
-                                    <field name="is_override" optional="hide"/>
-                                    <field name="override_reason" optional="hide"/>
-                                    <field name="price_snapshot"
-                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                    <field name="subtotal" sum="Tổng"
-                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                                 </tree>
+                                <form string="Dòng BOM" class="dl-bom-line-form">
+                                    <field name="shape_code" invisible="1"/>
+                                    <field name="material_uom_category_id" invisible="1"/>
+                                    <field name="rule_applicable" invisible="1"/>
+                                    <field name="shape_coefficient_label" invisible="1"/>
+                                    <div class="row">
+                                      <!-- Trái: nhập vật tư / kích thước / định mức cho dòng -->
+                                      <div class="col-12 col-lg-7">
+                                    <group>
+                                        <group string="1. Vật tư">
+                                            <field name="material_id"
+                                                   options="{'no_quick_create': True}"
+                                                   context="{'default_product_kind': 'material'}"/>
+                                            <field name="uom_id" readonly="1"/>
+                                        </group>
+                                    </group>
+
+                                    <!-- Vật tư dùng đơn vị đếm (Cái/Con/Bộ...) — không có
+                                         Rule nào tương thích: ẩn hẳn khối Rule/Shape/Kích
+                                         thước, chỉ còn nhập tay Số lượng. -->
+                                    <div invisible="rule_applicable">
+                                        <div class="text-muted mb-2">
+                                            <i class="fa fa-info-circle me-1"/>Vật tư này dùng
+                                            đơn vị đếm (vd: Cái/Con/Bộ) — nhập trực tiếp Số
+                                            lượng bên dưới.
+                                        </div>
+                                        <group>
+                                            <label for="quantity" string="Số lượng"/>
+                                            <div class="o_row">
+                                                <field name="quantity" nolabel="1"/>
+                                                <field name="uom_id" readonly="1" nolabel="1"/>
+                                            </div>
+                                        </group>
+                                    </div>
+
+                                    <div invisible="not rule_applicable">
+                                    <group>
+                                        <group string="2-3. Quy tắc tính / Hình dạng">
+                                            <field name="measurement_type_id"
+                                                   domain="[('formula_uom_id.category_id', '=', material_uom_category_id)]"
+                                                   options="{'no_create': True, 'no_create_edit': True}"/>
+                                            <field name="measurement_shape_id"
+                                                   options="{'no_create': True, 'no_create_edit': True}"/>
+                                            <field name="measurement_coefficient"
+                                                   invisible="shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar')"/>
+                                            <div class="text-muted" style="font-size:11px;"
+                                                 invisible="not shape_coefficient_label or shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar')">
+                                                <field name="shape_coefficient_label" readonly="1" nolabel="1"/>
+                                            </div>
+                                        </group>
+                                    </group>
+                                    <group string="4. Kích thước (theo hình dạng đã chọn)"
+                                           invisible="not measurement_shape_id or shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar', 'area_rectangle', 'area_square', 'area_circle', 'area_triangle', 'perimeter_rectangle', 'perimeter_square', 'perimeter_circle', 'volume_box', 'volume_cube', 'volume_cylinder', 'volume_sphere', 'length_segment')">
+                                        <field name="dim_length"
+                                               invisible="shape_code in ('area_circle', 'perimeter_circle', 'volume_cylinder', 'area_square', 'perimeter_square', 'volume_cube', 'volume_sphere')"/>
+                                        <field name="dim_width"
+                                               invisible="shape_code not in ('flat_plate', 'area_rectangle', 'perimeter_rectangle', 'volume_box')"/>
+                                        <field name="dim_side"
+                                               invisible="shape_code not in ('hollow_square_tube', 'solid_square_bar', 'area_square', 'perimeter_square', 'volume_cube')"/>
+                                        <field name="dim_diameter"
+                                               invisible="shape_code not in ('hollow_round_tube', 'solid_round_bar', 'area_circle', 'perimeter_circle', 'volume_cylinder', 'volume_sphere')"/>
+                                        <field name="dim_thickness"
+                                               invisible="shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube')"/>
+                                        <field name="dim_height"
+                                               invisible="shape_code not in ('area_triangle', 'volume_box', 'volume_cylinder')"/>
+                                    </group>
+                                    <group>
+                                        <group string="Kết quả">
+                                            <label for="computed_quantity" string="Định mức"/>
+                                            <div class="o_row">
+                                                <field name="computed_quantity" nolabel="1"/>
+                                                <field name="uom_id" readonly="1" nolabel="1"/>
+                                            </div>
+                                        </group>
+                                        <group string="5. Số lượng (dùng thực tế — sửa được)">
+                                            <label for="quantity" string="Số lượng"/>
+                                            <div class="o_row">
+                                                <field name="quantity" nolabel="1"/>
+                                                <field name="uom_id" readonly="1" nolabel="1"/>
+                                            </div>
+                                            <field name="is_override"/>
+                                            <field name="override_reason"
+                                                   invisible="not is_override"
+                                                   required="is_override"/>
+                                        </group>
+                                    </group>
+                                    </div>
+
+                                    <group string="6. Hao hụt">
+                                        <field name="complexity_id"/>
+                                        <field name="waste_rate"/>
+                                        <field name="effective_qty" readonly="1"/>
+                                    </group>
+                                      </div>
+                                      <!-- Phải: bản vẽ kỹ thuật của SP (PDF/ảnh xem trực tiếp).
+                                           Chỉ nhóm đọc được bản vẽ (Tech/Admin/CEO) mới nạp —
+                                           tránh AccessError cho BA/Trưởng KD. -->
+                                      <div class="col-12 col-lg-5"
+                                           groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo">
+                                          <field name="drawing_mimetype" invisible="1"/>
+                                          <field name="drawing_filename" invisible="1"/>
+                                          <field name="drawing_attachment_id"
+                                                 widget="dl_drawing_preview" nolabel="1"/>
+                                      </div>
+                                    </div>
+                                </form>
                             </field>
 
                             <group class="oe_subtotal_footer oe_right"
@@ -132,7 +289,10 @@
                         </page>
                     </notebook>
                 </sheet>
-                <div class="oe_chatter">
+                <!-- Log/chatter cho quản lý (CEO, Trưởng KD, Admin) và đội sở
+                     hữu BOM (Kỹ thuật). -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_tech">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
                     <field name="message_ids"/>
@@ -149,7 +309,6 @@
             <search string="Tìm BOM">
                 <field name="name"/>
                 <field name="product_id"/>
-                <field name="semi_product_id"/>
                 <field name="category_id"/>
                 <separator/>
                 <filter name="draft" string="Nháp"
@@ -160,14 +319,11 @@
                         domain="[('status', '=', 'locked')]"/>
                 <filter name="archived" string="Lưu trữ"
                         domain="[('status', '=', 'archived')]"/>
-                <separator/>
-                <filter name="has_product" string="BOM sản phẩm/BTP"
-                        domain="[('category_id', '=', False)]"/>
-                <filter name="is_template" string="BOM mẫu"
-                        domain="[('category_id', '!=', False)]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_status" string="Trạng thái"
                             context="{'group_by': 'status'}"/>
+                    <filter name="group_category" string="Nhóm sản phẩm"
+                            context="{'group_by': 'category_id'}"/>
                     <filter name="group_product" string="Sản phẩm"
                             context="{'group_by': 'product_id'}"/>
                 </group>
@@ -180,15 +336,9 @@
         <field name="name">BOM sản phẩm / BTP</field>
         <field name="res_model">dl.bom</field>
         <field name="view_mode">tree,form</field>
-        <field name="domain">[('category_id', '=', False)]</field>
+        <field name="domain">[('is_rfq_provisional', '=', False)]</field>
     </record>
 
-    <record id="action_dl_bom_template" model="ir.actions.act_window">
-        <field name="name">BOM mẫu</field>
-        <field name="res_model">dl.bom</field>
-        <field name="view_mode">tree,form</field>
-        <field name="domain">[('category_id', '!=', False)]</field>
-        <field name="context">{'default_category_id': False}</field>
-    </record>
+    <!-- action_dl_bom_template chuyển sang model dl.bom.template (bom_template_views.xml) -->
 
 </odoo>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_technical.DrawingPreviewField">
+    <div class="o_dl_drawing_preview">
+        <t t-if="!attachmentId">
+            <div class="o_dl_drawing_empty text-muted text-center border rounded p-4">
+                <i class="fa fa-picture-o fa-2x d-block mb-2"/>
+                <div>Chưa có bản vẽ kỹ thuật cho sản phẩm này.</div>
+            </div>
+        </t>
+        <t t-else="">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="fw-bold text-truncate me-2" t-att-title="filename" t-esc="filename"/>
+                <span class="text-nowrap">
+                    <a t-att-href="inlineUrl" target="_blank" class="btn btn-sm btn-secondary" title="Mở tab mới">
+                        <i class="fa fa-external-link"/>
+                    </a>
+                    <a t-att-href="downloadUrl" class="btn btn-sm btn-secondary ms-1" title="Tải xuống">
+                        <i class="fa fa-download"/>
+                    </a>
+                </span>
+            </div>
+            <t t-if="isImage">
+                <a t-att-href="inlineUrl" target="_blank">
+                    <img t-att-src="imageUrl" class="o_dl_drawing_img img-fluid border rounded" alt="Bản vẽ kỹ thuật"/>
+                </a>
+            </t>
+            <t t-elif="isPdf">
+                <iframe t-att-src="pdfViewerUrl" class="o_dl_drawing_pdf border rounded" title="Bản vẽ kỹ thuật"/>
+            </t>
+            <t t-else="">
+                <a t-att-href="downloadUrl" class="btn btn-secondary">
+                    <i class="fa fa-file-o me-1"/> Mở bản vẽ
+                </a>
+            </t>
+        </t>
+    </div>
+</t>
+
+</templates>

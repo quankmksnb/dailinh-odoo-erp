@@ -1,80 +1,84 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- ============================================================
-         Parent menu: "Sản phẩm" dưới DLM-ERP root
-         (Thay thế menu cũ nếu cần — đặt ở dl_product thay vì dl_base)
-    ============================================================ -->
     <menuitem
         id="menu_dl_product_root"
         name="Sản phẩm"
-        parent="dl_base.menu_dl_root"
+        parent="dl_base.menu_dl_product"
         sequence="15"
     />
 
     <!-- ============================================================
-         THÀNH PHẨM
+         SẢN PHẨM (product.product — hợp nhất 4 loại)
     ============================================================ -->
-
-    <!-- Full: Admin, Trưởng KD -->
     <menuitem
         id="menu_dl_product_full"
-        name="Thành phẩm"
+        name="Sản phẩm"
         action="action_dl_product_full"
         parent="menu_dl_product_root"
         sequence="10"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_admin"
     />
 
-    <!-- Tech: KTV (create/edit OK, delete blocked) -->
     <menuitem
         id="menu_dl_product_tech"
-        name="Thành phẩm"
+        name="Sản phẩm"
         action="action_dl_product_tech"
         parent="menu_dl_product_root"
         sequence="11"
         groups="dl_base.dl_group_tech"
     />
-
-    <!-- View-only: BA/Sales, CEO, Kế toán -->
+    <!-- View-only: CEO, Trưởng phòng KD (BA dùng menu tạo bên dưới; Kế toán thao
+         tác giá qua màn Bảng giá riêng, xem product_pricing_views.xml) -->
     <menuitem
         id="menu_dl_product_view"
-        name="Thành phẩm"
+        name="Sản phẩm"
         action="action_dl_product_view"
         parent="menu_dl_product_root"
         sequence="12"
-        groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+    />
+    <!-- Sales: mục "Sản phẩm" DUY NHẤT của BA — THẤY đủ loại SP (như role khác),
+         chỉ TẠO được SP thương mại. Không tách tab con riêng. -->
+    <menuitem
+        id="menu_dl_product_trading_ba"
+        name="Sản phẩm"
+        action="action_dl_product_trading_ba"
+        parent="menu_dl_product_root"
+        sequence="12"
+        groups="dl_base.dl_group_ba"
     />
 
-    <!-- ============================================================
-         BÁN THÀNH PHẨM
-    ============================================================ -->
-
-    <!-- Full: Admin, Trưởng KD, KTV -->
     <menuitem
-        id="menu_dl_semi_full"
-        name="Bán thành phẩm"
-        action="action_dl_semi_full"
+        id="menu_dl_material_full"
+        name="Vật tư"
+        action="action_dl_material_full"
         parent="menu_dl_product_root"
         sequence="20"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager,dl_base.dl_group_tech"
+        groups="dl_base.dl_group_admin"
     />
-
-    <!-- View-only: BA/Sales, CEO, Kế toán -->
     <menuitem
-        id="menu_dl_semi_view"
-        name="Bán thành phẩm"
-        action="action_dl_semi_view"
+        id="menu_dl_material_tech"
+        name="Vật tư"
+        action="action_dl_material_tech"
         parent="menu_dl_product_root"
         sequence="21"
-        groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_tech"
+    />
+    <!-- Không có dl_group_ba — BA/Sales không xem Vật tư -->
+    <menuitem
+        id="menu_dl_material_view"
+        name="Vật tư"
+        action="action_dl_material_view"
+        parent="menu_dl_product_root"
+        sequence="22"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
 
-    <!-- ============================================================
-         NHÓM SẢN PHẨM
-    ============================================================ -->
 
-    <!-- Full: Admin, Trưởng KD -->
+    <!-- ============================================================
+         NHÓM SẢN PHẨM (product.category)
+    ============================================================ -->
     <menuitem
         id="menu_dl_category_full"
         name="Nhóm sản phẩm"
@@ -83,8 +87,6 @@
         sequence="30"
         groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager"
     />
-
-    <!-- View-only: others -->
     <menuitem
         id="menu_dl_category_view"
         name="Nhóm sản phẩm"
@@ -95,39 +97,90 @@
     />
 
     <!-- ============================================================
-         VẬT TƯ & BẢNG GIÁ (S06)
-         Parent: dl_base.menu_dl_material
-         Sales (dl_group_ba) KHÔNG có menu → Odoo tự ẩn parent
+         BẢNG GIÁ (SP thương mại / Vật tư) — chủ sở hữu: Kế toán nội bộ;
+         CEO/Trưởng KD chỉ xem (ACL write=0); KTV không được vào.
+         Trước đây 2 action bảng giá KHÔNG có menu nào trỏ tới (mồ côi).
     ============================================================ -->
-
-    <!-- Full: Admin, Kế toán -->
     <menuitem
-        id="menu_dl_material_full"
-        name="Danh sách vật tư"
-        action="action_material_full"
-        parent="dl_base.menu_dl_material"
+        id="menu_dl_pricing_root"
+        name="Bảng giá"
+        parent="dl_base.menu_dl_product"
+        sequence="20"
+        action="action_dl_pricing_home"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+    />
+    <!-- Bảng giá SP thương mại — MỘT màn product-centric duy nhất: liệt kê SP
+         thương mại + trạng thái giá NCC. Mua hàng/Admin nhập giá NCC (đã cấp
+         quyền ghi product giới hạn trading/material); Kế toán/CEO/Trưởng KD chỉ
+         xem (ACL product read-only). Action tự lọc theo vai trò. -->
+    <menuitem
+        id="menu_dl_pricing_trading"
+        name="Bảng giá SP thương mại"
+        action="action_dl_product_pricing"
+        parent="menu_dl_pricing_root"
         sequence="10"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_accountant,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
-
-    <!-- View-only: CEO, Trưởng KD -->
+    <!-- (6, ...) chốt cứng groups — tránh cộng dồn/sót nhóm từ các phiên bản menu
+         trước (từng trỏ supplierinfo / tách margin) trên DB đã nâng cấp. -->
+    <record id="menu_dl_pricing_trading" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_purchasing'),
+            ref('dl_base.dl_group_accountant'),
+            ref('dl_base.dl_group_ceo'),
+            ref('dl_base.dl_group_sales_manager'),
+        ])]" />
+    </record>
+    <!-- Bảng giá Vật tư (quyền sửa): Mua hàng là chủ sở hữu giá NCC; Kế toán
+         chuyển sang bản chỉ-xem bên dưới. -->
     <menuitem
-        id="menu_dl_material_view"
-        name="Danh sách vật tư"
-        action="action_material_view"
-        parent="dl_base.menu_dl_material"
-        sequence="11"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+        id="menu_dl_pricing_material"
+        name="Bảng giá Vật tư"
+        action="action_dl_supplierinfo_material_full"
+        parent="menu_dl_pricing_root"
+        sequence="20"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_purchasing"
     />
-
-    <!-- KTV: View-only, giá ẩn -->
+    <!-- menuitem/groups cộng dồn ở một số database đã nâng cấp; lệnh (6, ...)
+         bảo đảm loại bỏ hẳn Kế toán/CEO/Trưởng KD khỏi action có quyền chỉnh sửa. -->
+    <record id="menu_dl_pricing_material" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_purchasing'),
+        ])]" />
+    </record>
     <menuitem
-        id="menu_dl_material_tech"
-        name="Danh sách vật tư"
-        action="action_material_tech"
-        parent="dl_base.menu_dl_material"
-        sequence="12"
-        groups="dl_base.dl_group_tech"
+        id="menu_dl_pricing_material_view"
+        name="Bảng giá Vật tư"
+        action="action_dl_supplierinfo_material_view"
+        parent="menu_dl_pricing_root"
+        sequence="20"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
     />
 
+    <!-- ============================================================
+         ĐO LƯỜNG (PROD-04/05/06) — master data kỹ thuật
+    ============================================================ -->
+    <menuitem
+        id="menu_dl_measurement_root"
+        name="Đo lường"
+        parent="menu_dl_product_root"
+        sequence="40"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_tech"
+    />
+    <menuitem
+        id="menu_dl_measurement_type"
+        name="Loại đo lường"
+        action="action_dl_measurement_type"
+        parent="menu_dl_measurement_root"
+        sequence="10"
+    />
+    <menuitem
+        id="menu_dl_measurement_shape"
+        name="Hình dạng đo lường"
+        action="action_dl_measurement_shape"
+        parent="menu_dl_measurement_root"
+        sequence="20"
+    />
 </odoo>

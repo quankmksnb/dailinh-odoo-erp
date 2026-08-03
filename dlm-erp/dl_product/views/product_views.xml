@@ -1,61 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- ============ DEMO/SEED DATA ============ -->
-    <data noupdate="1">
-        <record id="prod_categ_ban_sat" model="product.category">
-            <field name="name">Bàn sắt</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_ghe_sat" model="product.category">
-            <field name="name">Ghế sắt</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_tu_dien" model="product.category">
-            <field name="name">Tủ điện</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_tu_cc" model="product.category">
-            <field name="name">Tủ chữa cháy</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_long_chim" model="product.category">
-            <field name="name">Lồng chim</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_khung_thep" model="product.category">
-            <field name="name">Khung thép</field>
-            <field name="category_kind">product</field>
-        </record>
-        <record id="prod_categ_khac" model="product.category">
-            <field name="name">Khác</field>
-            <field name="category_kind">product</field>
-        </record>
-    </data>
-
-    <!-- ============ VIEWS ============ -->
+    <!-- ============================================================
+         PROD-02 — dl.product = product.product (mở rộng thuần)
+         Bảng hợp nhất 4 loại: manufactured / trading / material /
+         material_processed (phân biệt qua product_kind).
+    ============================================================ -->
 
     <record id="view_dl_product_tree" model="ir.ui.view">
         <field name="name">dl.product.tree</field>
-        <field name="model">dl.product</field>
+        <field name="model">product.product</field>
         <field name="arch" type="xml">
             <tree
-                string="Thành phẩm"
+                string="Sản phẩm"
                 class="dl-product-list"
                 js_class="dl_product_list"
-                decoration-muted="active == False"
+                decoration-muted="active == False or dlm_lifecycle_state == 'obsolete'"
+                expand="1"
             >
+                <field
+                    name="image_128"
+                    widget="image"
+                    string="Ảnh"
+                    options="{'size': [24, 24]}"
+                    optional="show"
+                />
                 <field name="default_code" string="Mã SP" />
                 <field name="name" string="Tên SP" />
                 <field name="categ_id" string="Nhóm SP" />
-                <field name="supply_type" string="Loại cung ứng" />
-                <field name="dim_display" string="Kích thước" />
-                <field
-                    name="status_display"
-                    string="Trạng thái"
-                    widget="badge"
-                    decoration-success="active == True"
-                    decoration-muted="active == False"
-                />
+                <!-- Loại SP: badge màu để phân biệt nhanh gia công / thương mại /
+                     vật tư / BTP — mỗi loại một sắc thái riêng -->
+                <field name="product_kind" string="Loại SP" widget="badge"
+                    decoration-info="product_kind == 'manufactured'"
+                    decoration-success="product_kind == 'trading'"
+                    decoration-warning="product_kind == 'material_processed'"
+                    decoration-muted="product_kind == 'material'" />
+                <field name="dlm_lifecycle_state" string="Vòng đời" widget="badge"
+                    decoration-warning="dlm_lifecycle_state == 'draft'"
+                    decoration-success="dlm_lifecycle_state == 'active'"
+                    decoration-muted="dlm_lifecycle_state == 'obsolete'"
+                    optional="show" />
+                <field name="uom_id" string="ĐVT" optional="show" />
                 <field name="active" column_invisible="1" />
             </tree>
         </field>
@@ -63,22 +47,60 @@
 
     <record id="view_dl_product_form" model="ir.ui.view">
         <field name="name">dl.product.form</field>
-        <field name="model">dl.product</field>
+        <field name="model">product.product</field>
         <field name="arch" type="xml">
             <form
-                string="Thành phẩm"
+                string="Sản phẩm"
                 class="dl-product-form"
                 js_class="dl_product_form"
             >
                 <header>
+                    <!-- Vòng đời: SP gia công/BTP do Kỹ thuật duyệt; SP thương
+                         mại do Sales duyệt (sau khi Kế toán nhập giá). Model tự
+                         chặn quyền (_check_lifecycle_manager) — 'groups' ở đây
+                         chỉ ẩn/hiện cho gọn UI. -->
+                    <field name="dlm_trading_ready" invisible="1" />
+                    <button
+                        name="action_lifecycle_activate"
+                        type="object"
+                        string="Duyệt (Active)"
+                        class="oe_highlight"
+                        invisible="dlm_lifecycle_state != 'draft' or product_kind != 'trading' or not dlm_trading_ready"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_admin"
+                    />
+                    <button
+                        name="action_lifecycle_activate"
+                        type="object"
+                        string="Duyệt (Active)"
+                        class="oe_highlight"
+                        invisible="dlm_lifecycle_state != 'draft' or product_kind == 'trading'"
+                        groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
+                    />
+                    <button
+                        name="action_lifecycle_obsolete"
+                        type="object"
+                        string="Ngừng sử dụng"
+                        class="btn-secondary"
+                        confirm="Đưa sản phẩm này về trạng thái Ngừng sử dụng? SP vẫn giữ trong danh mục để tra lịch sử nhưng không còn được chọn để tái sử dụng."
+                        invisible="dlm_lifecycle_state != 'active'"
+                        groups="dl_base.dl_group_tech,dl_base.dl_group_ba,dl_base.dl_group_admin"
+                    />
+                    <button
+                        name="action_lifecycle_reset_draft"
+                        type="object"
+                        string="Đưa về Nháp"
+                        class="btn-secondary"
+                        invisible="dlm_lifecycle_state != 'obsolete'"
+                        groups="dl_base.dl_group_tech,dl_base.dl_group_ba,dl_base.dl_group_admin"
+                    />
                     <button
                         name="toggle_active"
                         type="object"
                         string="Vô hiệu hóa SP"
-                        class="btn-secondary"
+                        class="btn-danger"
                         invisible="not active"
-                        confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu BOM/báo giá cũ giữ nguyên."
-                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
+                        confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu cũ giữ nguyên."
+                        groups="dl_base.dl_group_admin"
                     />
                     <button
                         name="toggle_active"
@@ -86,16 +108,42 @@
                         string="Kích hoạt lại"
                         class="btn-secondary"
                         invisible="active"
-                        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
+                        groups="dl_base.dl_group_admin"
+                    />
+                    <field
+                        name="dlm_lifecycle_state"
+                        widget="dl_stepper"
+                        statusbar_visible="draft,active,obsolete"
                     />
                 </header>
                 <sheet>
                     <field name="active" invisible="1" />
                     <widget
                         name="web_ribbon"
-                        title="Ngừng sản xuất"
+                        title="Đã lưu trữ"
                         bg_color="text-bg-danger"
                         invisible="active"
+                    />
+
+                    <!-- SP thương mại còn Nháp & chưa đủ điều kiện: liệt kê việc
+                         còn thiếu (đặc biệt "chờ Mua hàng áp dụng giá NCC") thay
+                         vì để Sales bấm Duyệt rồi báo lỗi. Nút Duyệt chỉ hiện khi
+                         dlm_trading_ready = True. -->
+                    <div
+                        class="alert alert-warning"
+                        role="alert"
+                        invisible="product_kind != 'trading' or dlm_lifecycle_state != 'draft' or dlm_trading_ready"
+                    >
+                        <i class="fa fa-clock-o me-2" />
+                        <b>Chưa đủ điều kiện kích hoạt.</b> Cần hoàn tất trước khi Duyệt:
+                        <field name="dlm_trading_blockers_html" nolabel="1" />
+                    </div>
+
+                    <field
+                        name="image_1920"
+                        widget="image"
+                        class="oe_avatar"
+                        options="{'preview_image': 'image_128'}"
                     />
 
                     <div class="oe_title">
@@ -103,58 +151,105 @@
                         <h1>
                             <field
                                 name="name"
-                                placeholder="VD: Bàn sắt chân chữ A 1200×600..."
+                                placeholder="VD: Khung thép hàn CT-200..."
                             />
                         </h1>
-                        <div class="dl-prod-code" invisible="not default_code"> Mã SP: <field
-                                name="default_code" class="oe_inline" readonly="1" />
-                        </div>
                     </div>
 
                     <group>
                         <group string="Phân loại">
-                            <field name="categ_id"
+                            <field
+                                name="default_code"
+                                string="Mã SP"
+                                placeholder="VD: CT-200, VT-001"
+                            />
+                            <!-- Sales không đổi được Loại SP (khoá = trading khi
+                                 tạo); chỉ Admin/Kỹ thuật đổi loại. -->
+                            <field name="dlm_can_change_kind" invisible="1" />
+                            <field name="product_kind"
+                                readonly="not dlm_can_change_kind" />
+                            <!-- Nhóm lọc ĐỘNG theo Loại SP: gia công/thương mại →
+                                 nhánh Thành phẩm; vật tư/BTP → nhánh Vật tư.
+                                 no_create: nhóm mới phải tạo ở màn Nhóm sản phẩm
+                                 (có chọn nhóm cha) để không sinh nhóm ngoài nhánh. -->
+                            <field name="dl_categ_branch" invisible="1" />
+                            <field
+                                name="categ_id"
                                 string="Nhóm SP"
-                                domain="[('category_kind', '=', 'product')]"
-                                options="{'no_open': True}" />
-                            <field name="supply_type" />
+                                options="{'no_open': True, 'no_create': True}"
+                                domain="[('dl_branch', '=', dl_categ_branch)]"
+                            />
                         </group>
-                        <group string="Vật liệu &amp; hoàn thiện">
-                            <field name="main_material"
-                                placeholder="Thép CT3 / Inox 304 / Nhôm..." />
-                            <field name="thickness" />
-                            <field name="finish" />
+                        <group string="Đơn vị tính">
+                            <field name="uom_id" />
+                            <field name="uom_po_id" groups="uom.group_uom" />
                         </group>
                     </group>
 
-                    <group string="Thuộc tính kỹ thuật">
-                        <group>
-                            <label for="dim_length" string="Kích thước D×R×C (mm)" />
-                            <div class="o_row">
-                                <field name="dim_length" nolabel="1" class="oe_inline" /> × <field
-                                    name="dim_width" nolabel="1" class="oe_inline" /> × <field
-                                    name="dim_height" nolabel="1" class="oe_inline" />
-                            </div>
-                        </group>
-                        <group>
-                            <field name="est_weight" />
-                            <field name="default_supplier_id" />
-                        </group>
+                    <group
+                        name="group_trading_info"
+                        string="Thông tin thương mại"
+                        invisible="product_kind != 'trading'"
+                    >
+                        <field name="currency_id" invisible="1" />
+                        <field name="dlm_can_edit_sale_price" invisible="1" />
+                        <!-- Giá vốn tham chiếu (readonly) hiện sẵn để Sales biết
+                             cơ sở khi định giá bán — tự đặt theo giá NCC Mua hàng
+                             áp dụng. -->
+                        <field
+                            name="standard_price"
+                            string="Giá vốn tham chiếu"
+                            widget="dl_money"
+                            options="{'currency_field': 'currency_id'}"
+                            readonly="1"
+                        />
+                        <!-- Mua trước → bán sau: ô Giá bán chỉ MỞ sau khi đã có
+                             Giá vốn (Mua hàng áp giá NCC). Lúc mới tạo, Sales chưa
+                             cần nhập giá bán vội. -->
+                        <field
+                            name="list_price"
+                            string="Giá bán"
+                            widget="dl_money"
+                            options="{'currency_field': 'currency_id'}"
+                            readonly="not dlm_can_edit_sale_price"
+                            help="Sales nhập SAU khi Mua hàng đã thiết lập &amp; áp dụng giá NCC (đã có Giá vốn tham chiếu), rồi kích hoạt sản phẩm."
+                        />
+                        <div
+                            class="text-muted fst-italic"
+                            colspan="2"
+                            invisible="dlm_lifecycle_state != 'draft' or dlm_can_edit_sale_price"
+                        >
+                            <i class="fa fa-lock me-1" />
+                            Giá bán sẽ mở để nhập sau khi Mua hàng thiết lập &amp;
+                            áp dụng giá NCC (có Giá vốn tham chiếu).
+                        </div>
                     </group>
 
-                    <group invisible="supply_type != 'trading'" string="Thông tin thương mại">
-                        <field name="purchase_cost" />
+                    <group
+                        name="group_waste_info"
+                        string="Hao hụt &amp; thu hồi"
+                        invisible="product_kind not in ('material', 'material_processed')"
+                    >
+                        <field name="dlm_waste_rate" />
+                        <field name="dlm_has_recovery" />
+                        <field name="dlm_recovery_rate"
+                            invisible="not dlm_has_recovery"
+                            required="dlm_has_recovery" />
+                        <field name="dlm_scrap_product_id"
+                            invisible="not dlm_has_recovery"
+                            options="{'no_create': True}" />
                     </group>
 
                     <notebook>
-                        <page string="Ghi chú kỹ thuật" name="tech_note">
-                            <field name="tech_note"
-                                placeholder="Tiêu chuẩn, yêu cầu đặc biệt, dung sai..." />
-                        </page>
-                        <page string="BOM liên quan" name="boms">
+                        <page
+                            string="BOM liên quan"
+                            name="boms"
+                            groups="dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_tech,dl_base.dl_group_sales_manager"
+                            invisible="product_kind not in ('manufactured', 'material_processed')"
+                        >
                             <div class="text-muted" style="padding:12px">
-                                <i class="fa fa-info-circle" /> BOM sẽ hiển thị ở đây khi màn <b>S08</b>
-                                được triển khai. </div>
+                                <i class="fa fa-info-circle" /> BOM sẽ hiển thị ở đây khi module <b>
+                                dl_technical</b> được cài. </div>
                         </page>
                         <page string="Thông tin hệ thống" name="audit">
                             <group>
@@ -171,7 +266,10 @@
                     </notebook>
                 </sheet>
 
-                <div class="oe_chatter">
+                <!-- Log/chatter cho quản lý (CEO, Trưởng KD, Admin) và đội sở
+                     hữu sản phẩm (Kỹ thuật tạo/sửa). -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_tech">
                     <field name="message_follower_ids" />
                     <field name="activity_ids" />
                     <field name="message_ids" />
@@ -182,39 +280,131 @@
 
     <record id="view_dl_product_search" model="ir.ui.view">
         <field name="name">dl.product.search</field>
-        <field name="model">dl.product</field>
+        <field name="model">product.product</field>
         <field name="arch" type="xml">
-            <search string="Tìm thành phẩm">
+            <search string="Tìm sản phẩm">
                 <field name="name" string="Tên" />
                 <field name="default_code" string="Mã SP" />
-                <field name="main_material" string="Vật liệu" />
-                <field name="categ_id" string="Nhóm SP" />
+                <field
+                    name="categ_id"
+                    string="Nhóm SP"
+                    domain="[('id', 'not in', [%(product.product_category_all)d, %(product.product_category_1)d, %(product.cat_expense)d])]"
+                />
                 <separator />
-                <filter string="Đang sản xuất" name="active"
-                    domain="[('active', '=', True)]" />
-                <filter string="Ngừng" name="inactive"
-                    domain="[('active', '=', False)]" />
+                <!-- ── Trạng thái sử dụng (vòng đời) — bộ lọc chính, dùng thường
+                     xuyên. "Ngừng sử dụng" = còn trong danh mục để tra lịch sử.
+                     Bản ghi đã lưu trữ (active=False) ẩn mặc định; Admin dùng
+                     filter "Archived" chuẩn của Odoo trong menu Bộ lọc nếu cần. -->
+                <filter string="Nháp / Kỹ thuật" name="f_lc_draft"
+                    domain="[('dlm_lifecycle_state', '=', 'draft')]" />
+                <filter string="Đã duyệt" name="f_lc_active"
+                    domain="[('dlm_lifecycle_state', '=', 'active')]" />
+                <filter string="Ngừng sử dụng" name="f_lc_obsolete"
+                    domain="[('dlm_lifecycle_state', '=', 'obsolete')]" />
                 <separator />
-                <filter string="Sản xuất" name="f_manufactured"
-                    domain="[('supply_type', '=', 'manufactured')]" />
+                <!-- Màn Sản phẩm chỉ lọc 2 loại; màn Vật tư dùng
+                     view_dl_material_search, màn Bảng giá dùng
+                     view_dl_product_pricing_search (không lọc loại SP) -->
+                <filter string="Gia công" name="f_manufactured"
+                    domain="[('product_kind', '=', 'manufactured')]" />
                 <filter string="Thương mại" name="f_trading"
-                    domain="[('supply_type', '=', 'trading')]" />
+                    domain="[('product_kind', '=', 'trading')]" />
                 <group expand="0" string="Nhóm theo">
                     <filter string="Nhóm SP" name="group_category"
                         context="{'group_by': 'categ_id'}" />
-                    <filter string="Loại cung ứng" name="group_supply"
-                        context="{'group_by': 'supply_type'}" />
+                    <filter string="Loại SP" name="group_kind"
+                        context="{'group_by': 'product_kind'}" />
+                    <filter string="Trạng thái vòng đời" name="group_lifecycle"
+                        context="{'group_by': 'dlm_lifecycle_state'}" />
                 </group>
             </search>
         </field>
     </record>
 
-    <!-- ============ ACTIONS (tách Full / Tech / View) ============ -->
+    <record id="view_dl_product_kanban" model="ir.ui.view">
+        <field name="name">dl.product.kanban</field>
+        <field name="model">product.product</field>
+        <field name="arch" type="xml">
+            <kanban
+                string="Sản phẩm"
+                class="dl-product-kanban"
+                js_class="dl_product_kanban"
+                sample="1"
+            >
+                <field name="id" />
+                <field name="name" />
+                <field name="default_code" />
+                <field name="categ_id" />
+                <field name="product_kind" />
+                <field name="uom_id" />
+                <field name="active" />
+                <field name="image_128" />
+                <templates>
+                    <t t-name="kanban-box">
+                        <div t-attf-class="oe_kanban_global_click dl-prod-card #{record.active.raw_value ? '' : 'dl-prod-card--off'}">
+                            <div class="dl-prod-img">
+                                <img t-if="record.image_128.raw_value"
+                                    t-att-src="kanban_image('product.product', 'image_128', record.id.raw_value)"
+                                    t-att-alt="record.name.value" />
+                                <span t-else="" class="dl-prod-img__placeholder">
+                                    <i class="fa fa-cube" title="Sản phẩm" />
+                                </span>
+                            </div>
+                            <div class="dl-prod-info">
+                                <span class="dl-prod-name" t-esc="record.name.value" />
+                                <div class="dl-prod-meta">
+                                    <span class="dl-prod-code" t-if="record.default_code.value"
+                                        t-esc="record.default_code.value" />
+                                    <span class="dl-prod-sep" t-if="record.default_code.value and record.categ_id.value">·</span>
+                                    <span t-if="record.categ_id.value" t-esc="record.categ_id.value" />
+                                </div>
+                                <div class="dl-prod-detail" t-if="record.uom_id.value">
+                                    <i class="fa fa-balance-scale" title="Đơn vị tính" />
+                                    <span t-esc="record.uom_id.value" />
+                                </div>
+                            </div>
+                            <span t-attf-class="dl-prod-badge dl-prod-badge--#{record.product_kind.raw_value}"
+                                t-esc="record.product_kind.value" />
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
 
-    <!-- Full: Admin, Trưởng KD -->
+    <!-- View riêng cho KTV: Kế thừa form gốc (giữ nguyên tab tạo BOM cho dl_technical -->
+    <record id="view_dl_product_tech_form" model="ir.ui.view">
+        <field name="name">dl.product.tech.form</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_form" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='group_trading_info']" position="replace" />
+        </field>
+    </record>
+
+    <!-- Tree riêng màn "Sản phẩm" của Sales: SP gia công TÔ MỜ (chỉ xem — Sales
+         không tạo/sửa, đi luồng RFQ/Kỹ thuật). Class dl-product-list-ba đổi nhãn
+         nút tạo thành "Thêm SP thương mại" (xem dl_base/global_cp.scss). -->
+    <record id="view_dl_product_tree_ba" model="ir.ui.view">
+        <field name="name">dl.product.tree.ba</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_tree" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//tree" position="attributes">
+                <attribute name="class">dl-product-list dl-product-list-ba</attribute>
+                <attribute name="decoration-muted">active == False or dlm_lifecycle_state == 'obsolete' or product_kind == 'manufactured'</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ============ ACTIONS (tách Full / Tech / View theo role) ============ -->
+
+    <!-- Full: chỉ Admin (Trưởng KD chuyển sang view-only, xem action_dl_product_view) -->
     <record id="action_dl_product_full" model="ir.actions.act_window">
-        <field name="name">Thành phẩm</field>
-        <field name="res_model">dl.product</field>
+        <field name="name">Sản phẩm</field>
+        <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
@@ -223,33 +413,43 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
-        <field name="context">{'default_type': 'product', 'search_default_active': 1, 'active_test':
-            False}</field>
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
+        <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
+            'manufactured', 'default_dlm_lifecycle_state': 'draft',
+            'dl_kind_scope': ['manufactured', 'trading'],
+            'search_default_group_kind': 1}</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Thêm thành phẩm đầu tiên!</p>
+            <p class="o_view_nocontent_smiling_face">Thêm sản phẩm đầu tiên!</p>
         </field>
+        <!-- groups_id chặn cả truy cập trực tiếp qua card Trang chủ (bypass menu groups) -->
+        <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_admin')])]" />
     </record>
 
     <!-- Tech: KTV — create/edit OK, delete blocked (ACL 1|1|1|0) -->
     <record id="action_dl_product_tech" model="ir.actions.act_window">
-        <field name="name">Thành phẩm</field>
-        <field name="res_model">dl.product</field>
+        <field name="name">Sản phẩm</field>
+        <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_tech_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
-        <field name="context">{'default_type': 'product', 'delete': False, 'search_default_active':
-            1, 'active_test': False}</field>
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
+        <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
+            'manufactured', 'default_dlm_lifecycle_state': 'draft',
+            'dl_kind_scope': ['manufactured', 'trading'],
+            'delete': False, 'search_default_group_kind': 1}</field>
+        <field name="groups_id"
+            eval="[(6, 0, [ref('dl_base.dl_group_admin'), ref('dl_base.dl_group_tech')])]" />
     </record>
 
-    <!-- View-only: BA/Sales, CEO, Kế toán -->
+    <!-- View-only: BA/Sales, CEO, Trưởng phòng KD — không gồm Kế toán -->
     <record id="action_dl_product_view" model="ir.actions.act_window">
-        <field name="name">Thành phẩm</field>
-        <field name="res_model">dl.product</field>
+        <field name="name">Sản phẩm</field>
+        <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
         <field name="view_ids"
             eval="[
@@ -258,7 +458,48 @@
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
-        <field name="context">{'default_type': 'product', 'create': False, 'edit': False, 'delete':
-            False, 'search_default_active': 1, 'active_test': False}</field>
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
+        <field name="context">{'create': False, 'edit': False, 'delete': False,
+            'dl_kind_scope': ['manufactured', 'trading'],
+            'search_default_group_kind': 1}</field>
+        <field name="groups_id"
+            eval="[(6, 0, [
+                ref('dl_base.dl_group_admin'),
+                ref('dl_base.dl_group_ba'),
+                ref('dl_base.dl_group_ceo'),
+                ref('dl_base.dl_group_sales_manager'),
+            ])]" />
+    </record>
+
+    <!-- Sales (BA): mục "Sản phẩm" DUY NHẤT — THẤY đủ loại SP (gia công + thương
+         mại, đồng nhất với màn của các role khác) nhưng chỉ được TẠO SP thương
+         mại (nút Tạo mặc định loại 'thương mại'; ir.rule chặn tạo/sửa loại khác).
+         SP gia công chỉ để xem tham khảo. SP thương mại mới ở Nháp; Sales nhập
+         Giá bán rồi Kích hoạt sau khi có ≥1 giá NCC đã duyệt. -->
+    <record id="action_dl_product_trading_ba" model="ir.actions.act_window">
+        <field name="name">Sản phẩm</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids"
+            eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree_ba')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_product_search" />
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
+        <field name="context">{'default_detailed_type': 'product',
+            'default_product_kind': 'trading',
+            'default_dlm_lifecycle_state': 'draft',
+            'default_list_price': 0.0,
+            'dl_kind_scope': ['manufactured', 'trading'],
+            'delete': False, 'search_default_group_kind': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Thêm sản phẩm thương mại đầu tiên!</p>
+            <p>Bấm <b>Tạo</b> để thêm sản phẩm thương mại (mua về bán). Sản phẩm
+               gia công do Kỹ thuật tạo — hiển thị ở đây để tham khảo, Sales không sửa.</p>
+        </field>
+        <field name="groups_id"
+            eval="[(6, 0, [ref('dl_base.dl_group_ba'), ref('dl_base.dl_group_admin')])]" />
     </record>
 </odoo>

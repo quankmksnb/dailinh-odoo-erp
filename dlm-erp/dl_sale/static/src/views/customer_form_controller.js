@@ -7,7 +7,7 @@ import { formView } from "@web/views/form/form_view";
 import { FormController } from "@web/views/form/form_controller";
 import { ConfirmationDialog } from "@web/core/confirmation_dialog/confirmation_dialog";
 import { onMounted, useEffect } from "@odoo/owl";
-import { setupFormActionsMenu } from "@dl_base/js/actions_menu";
+import { setupFormActionsMenu, setupStatusbarButtons } from "@dl_base/js/actions_menu";
 
 const PHONE_RE = /^(0|\+84)[0-9]{9,10}$/;
 const EMAIL_RE = /^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$/;
@@ -18,6 +18,7 @@ export class DlCustomerFormController extends FormController {
         this.dlNotification = useService("notification");
         this.dlOrm = useService("orm");
         this.dlDialog = useService("dialog");
+        setupStatusbarButtons(this);
         setupFormActionsMenu(this);
         this._dlUserTouched = false;
         onMounted(() => {
@@ -49,9 +50,6 @@ export class DlCustomerFormController extends FormController {
     // coi như có thay đổi → hỏi trước khi rời. Bản ghi cũ chỉ tính khi người
     // dùng thực sự chỉnh (tránh hỏi vô cớ).
     get _dlHasRealChanges() {
-        if (this.model.root.isNew) {
-            return this.model.root.isDirty;
-        }
         return this.model.root.isDirty && this._dlUserTouched;
     }
 
@@ -147,11 +145,10 @@ export class DlCustomerFormController extends FormController {
     }
 
     displayName() {
-        return (
-            this.model.root.data.display_name?.split("\n")[0] ||
-            (this.model.root.isNew && _t("Thêm khách hàng")) ||
-            ""
-        );
+        if (this.model.root.isNew) {
+            return _t("Thêm khách hàng");
+        }
+        return this.model.root.data.display_name?.split("\n")[0] || "";
     }
 
     // Chặn lưu + báo lỗi bằng toast nếu dữ liệu không hợp lệ.

@@ -21,6 +21,8 @@
                 <field name="phone" string="Điện thoại" />
                 <field name="email" widget="email" />
                 <field name="city" string="Tỉnh/TP" />
+                <field name="category_id" string="Nhãn" widget="many2many_tags"
+                    options="{'color_field': 'color'}" optional="show" />
                 <field name="active" column_invisible="1" />
             </tree>
         </field>
@@ -30,7 +32,7 @@
         <field name="name">dlm.customer.kanban</field>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
-            <kanban class="dl-cust-kanban" default_group_by="">
+            <kanban class="dl-cust-kanban" js_class="dl_customer_kanban" default_group_by="">
                 <field name="name" />
                 <field name="dlm_code" />
                 <field name="partner_type" />
@@ -52,7 +54,7 @@
                                 <div class="dl-cust-ava">
                                     <img t-if="record.dlm_has_photo.raw_value"
                                         t-att-src="kanban_image('res.partner', 'avatar_128', record.id.raw_value)"
-                                        alt="" />
+                                        t-att-alt="record.name.value" />
                                     <span t-else="" class="dl-cust-ava__letter"
                                         t-attf-style="background:#{record.dlm_avatar_bg.value};color:#{record.dlm_avatar_fg.value}"
                                         t-esc="record.dlm_initial.value" />
@@ -80,19 +82,19 @@
                             </div>
                             <div class="dl-cust-card__body">
                                 <div class="dl-cust-row" t-if="record.phone.value">
-                                    <i class="fa fa-phone" />
+                                    <i class="fa fa-phone" title="Điện thoại" />
                                     <span t-esc="record.phone.value" />
                                 </div>
                                 <div class="dl-cust-row" t-if="record.mobile.value">
-                                    <i class="fa fa-mobile" />
+                                    <i class="fa fa-mobile" title="Di động" />
                                     <span t-esc="record.mobile.value" />
                                 </div>
                                 <div class="dl-cust-row" t-if="record.email.value">
-                                    <i class="fa fa-envelope-o" />
+                                    <i class="fa fa-envelope-o" title="Email" />
                                     <span t-esc="record.email.value" />
                                 </div>
                                 <div class="dl-cust-row" t-if="record.city.value">
-                                    <i class="fa fa-map-marker" />
+                                    <i class="fa fa-map-marker" title="Địa chỉ" />
                                     <span t-esc="record.city.value" />
                                 </div>
                             </div>
@@ -110,11 +112,7 @@
             <form string="Khách hàng" class="dl-customer-form" js_class="dl_customer_form">
                 <header>
                     <button name="toggle_active" type="object" string="Vô hiệu hóa KH"
-<<<<<<< Updated upstream
-                        class="btn-secondary" invisible="not active"
-=======
                         class="btn-danger" invisible="not active or not id"
->>>>>>> Stashed changes
                         confirm="Vô hiệu hóa khách hàng này? Dữ liệu cũ được giữ nguyên; KH sẽ không xuất hiện khi tạo báo giá/RFQ mới."
                         groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin" />
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
@@ -136,7 +134,9 @@
                         <div class="dl-cust-head-main">
                             <label for="name" string="Tên khách hàng" />
                             <h1>
-                                <field name="name" placeholder="Tên khách hàng..."
+                                <field name="name" string="Tên khách hàng"
+                                    placeholder="Tên khách hàng..."
+                                    required="1"
                                     readonly="not active" />
                             </h1>
                             <div class="dl-cust-code" invisible="not dlm_code">Mã KH: <field
@@ -146,14 +146,28 @@
                                 options="{'horizontal': true}" nolabel="1"
                                 readonly="not active"
                                 class="dl-cust-type-seg" />
+                            <field name="category_id" widget="many2many_tags"
+                                string="Nhãn"
+                                options="{'color_field': 'color', 'no_create_edit': False}"
+                                placeholder="VD: Khách quen, VIP..."
+                                readonly="not active" />
                         </div>
 
+                    </div>
+
+                    <!-- Gộp hồ sơ khi đối tác đã là NCC — chỉ hiện lúc tạo mới.
+                         Rút gọn còn 1 dòng (review UX cust #f1); chi tiết đã nằm
+                         trong placeholder ô chọn. -->
+                    <div class="alert alert-info dl-cust-mergebox" role="status"
+                        invisible="id">
+                        <div class="fw-bold mb-2">
+                            <i class="fa fa-link me-1"/>Đã là Nhà cung cấp? Chọn tên bên dưới để gộp thành một hồ sơ chung — để trống nếu là khách mới.
+                        </div>
                         <field name="pending_link_partner_id"
-                            string="NCC trùng tên (nếu có)"
+                            nolabel="1"
                             context="{'dl_link_search_role': 'supplier'}"
                             options="{'no_open': True, 'no_create': True}"
-                            invisible="id"
-                            placeholder="Tìm NCC..."/>
+                            placeholder="Gõ tên Nhà cung cấp để tìm và gộp..."/>
                     </div>
 
                     <group>
@@ -210,7 +224,10 @@
                         </page>
                     </notebook>
                 </sheet>
-                <div class="oe_chatter">
+                <!-- Log/chatter cho quản lý (CEO, Trưởng KD, Admin) và đội sở
+                     hữu khách hàng (BA/Sales). -->
+                <div class="oe_chatter"
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_ba">
                     <field name="message_follower_ids" />
                     <field name="activity_ids" />
                     <field name="message_ids" />
@@ -229,6 +246,7 @@
                 <field name="phone" />
                 <field name="email" />
                 <field name="vat" string="MST" />
+                <field name="category_id" string="Nhãn" />
                 <separator />
                 <filter string="Cá nhân" name="filter_individual"
                     domain="[('partner_type', '=', 'individual')]" />
@@ -244,6 +262,8 @@
                         context="{'group_by': 'partner_type'}" />
                     <filter string="Tỉnh/TP" name="group_city"
                         context="{'group_by': 'city'}" />
+                    <filter string="Nhãn" name="group_category"
+                        context="{'group_by': 'category_id'}" />
                 </group>
             </search>
         </field>
@@ -261,13 +281,12 @@
     <record id="action_dl_customer" model="ir.actions.act_window">
         <field name="name">Khách hàng</field>
         <field name="res_model">res.partner</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="domain">[('partner_role', 'in', ['customer', 'both'])]</field>
         <field name="context">{'default_partner_role': 'customer', 'default_partner_type': 'company', 'active_test': False}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_customer_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_customer_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_customer_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_customer_search" />

@@ -3,8 +3,6 @@ access_dl_uom_ceo,access_dl_uom_ceo,uom.model_uom_uom,dl_base.dl_group_ceo,1,1,1
 access_dl_uom_admin,access_dl_uom_admin,uom.model_uom_uom,dl_base.dl_group_admin,1,1,1,1
 access_dl_uom_categ_ceo,access_dl_uom_categ_ceo,uom.model_uom_category,dl_base.dl_group_ceo,1,1,1,1
 access_dl_uom_categ_admin,access_dl_uom_categ_admin,uom.model_uom_category,dl_base.dl_group_admin,1,1,1,1
-access_dl_company_ceo,access_dl_company_ceo,base.model_res_company,dl_base.dl_group_ceo,1,1,1,0
-access_dl_company_admin,access_dl_company_admin,base.model_res_company,dl_base.dl_group_admin,1,1,1,0
 access_dl_pricing_config_admin,dl.pricing.config admin,model_dl_pricing_config,dl_base.dl_group_admin,1,1,1,1
 access_dl_pricing_config_ceo,dl.pricing.config ceo,model_dl_pricing_config,dl_base.dl_group_ceo,1,1,1,1
 access_dl_pricing_config_sm,dl.pricing.config sales_manager,model_dl_pricing_config,dl_base.dl_group_sales_manager,1,0,0,0
@@ -17,3 +15,59 @@ access_dl_config_audit_sm,dl.config.audit.log sales_manager,model_dl_config_audi
 access_dl_approval_level_admin,dl.approval.level admin,model_dl_approval_level,dl_base.dl_group_admin,1,1,1,1
 access_dl_approval_level_ceo,dl.approval.level ceo,model_dl_approval_level,dl_base.dl_group_ceo,1,1,1,1
 access_dl_approval_level_sm,dl.approval.level sales_manager,model_dl_approval_level,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_complexity_tech,complexity tech,model_dl_pricing_complexity_level,dl_base.dl_group_tech,1,1,1,1
+access_dl_pricing_complexity_acct,complexity accountant,model_dl_pricing_complexity_level,dl_base.dl_group_accountant,1,1,1,1
+access_dl_pricing_complexity_admin,complexity admin,model_dl_pricing_complexity_level,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_complexity_ceo,complexity ceo,model_dl_pricing_complexity_level,dl_base.dl_group_ceo,1,0,0,0
+access_dl_pricing_complexity_sm,complexity sales manager,model_dl_pricing_complexity_level,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_waste_rule_tech,waste rule tech,model_dl_pricing_waste_rule,dl_base.dl_group_tech,1,1,1,1
+access_dl_pricing_waste_rule_acct,waste rule accountant,model_dl_pricing_waste_rule,dl_base.dl_group_accountant,1,1,1,0
+access_dl_pricing_waste_rule_admin,waste rule admin,model_dl_pricing_waste_rule,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_waste_rule_ceo,waste rule ceo,model_dl_pricing_waste_rule,dl_base.dl_group_ceo,1,0,0,0
+access_dl_pricing_waste_rule_sm,waste rule sales manager,model_dl_pricing_waste_rule,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_operation_tech,operation catalog tech,model_dl_pricing_operation,dl_base.dl_group_tech,1,1,1,1
+access_dl_pricing_operation_acct,operation catalog accountant,model_dl_pricing_operation,dl_base.dl_group_accountant,1,1,1,1
+access_dl_pricing_operation_admin,operation catalog admin,model_dl_pricing_operation,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_operation_ceo,operation catalog ceo,model_dl_pricing_operation,dl_base.dl_group_ceo,1,0,0,0
+access_dl_pricing_operation_sm,operation catalog sales manager,model_dl_pricing_operation,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_operation_rule_tech,operation rule tech,model_dl_pricing_operation_rule,dl_base.dl_group_tech,1,1,1,1
+access_dl_pricing_operation_rule_acct,operation rule accountant,model_dl_pricing_operation_rule,dl_base.dl_group_accountant,1,1,1,1
+access_dl_pricing_operation_rule_admin,operation rule admin,model_dl_pricing_operation_rule,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_operation_rule_ceo,operation rule ceo,model_dl_pricing_operation_rule,dl_base.dl_group_ceo,1,0,0,0
+access_dl_pricing_operation_rule_sm,operation rule sales manager,model_dl_pricing_operation_rule,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_cost_adj_acct,cost adjustment accountant,model_dl_pricing_cost_adjustment_rule,dl_base.dl_group_accountant,1,1,1,1
+access_dl_pricing_cost_adj_tech,cost adjustment tech,model_dl_pricing_cost_adjustment_rule,dl_base.dl_group_tech,1,1,1,1
+access_dl_pricing_cost_adj_admin,cost adjustment admin,model_dl_pricing_cost_adjustment_rule,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_cost_adj_ceo,cost adjustment ceo,model_dl_pricing_cost_adjustment_rule,dl_base.dl_group_ceo,1,0,0,0
+access_dl_pricing_cost_adj_sm,cost adjustment sales manager,model_dl_pricing_cost_adjustment_rule,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_profit_ceo,profit rule ceo,model_dl_pricing_profit_rule,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_profit_admin,profit rule admin,model_dl_pricing_profit_rule,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_profit_sm,profit rule sales manager,model_dl_pricing_profit_rule,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_profit_acct,profit rule accountant,model_dl_pricing_profit_rule,dl_base.dl_group_accountant,1,0,0,0
+access_dl_pricing_profit_ba,profit rule ba,model_dl_pricing_profit_rule,dl_base.dl_group_ba,1,0,0,0
+access_dl_pricing_discount_sm,discount rule sales manager,model_dl_pricing_discount_rule,dl_base.dl_group_sales_manager,1,1,1,1
+access_dl_pricing_discount_ceo,discount rule ceo,model_dl_pricing_discount_rule,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_discount_admin,discount rule admin,model_dl_pricing_discount_rule,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_discount_ba,discount rule ba,model_dl_pricing_discount_rule,dl_base.dl_group_ba,1,0,0,0
+access_dl_pricing_appr_setting_admin,approval setting admin,model_dl_pricing_approval_setting,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_appr_setting_ceo,approval setting ceo,model_dl_pricing_approval_setting,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_appr_setting_sm,approval setting sales manager,model_dl_pricing_approval_setting,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_pricing_appr_req_ceo,approval request ceo,model_dl_pricing_approval_request,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_appr_req_sm,approval request sales manager,model_dl_pricing_approval_request,dl_base.dl_group_sales_manager,1,1,1,0
+access_dl_pricing_appr_req_admin,approval request admin,model_dl_pricing_approval_request,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_appr_req_ba,approval request ba,model_dl_pricing_approval_request,dl_base.dl_group_ba,1,0,0,0
+access_dl_pricing_appr_req_acct,approval request accountant,model_dl_pricing_approval_request,dl_base.dl_group_accountant,1,0,0,0
+access_dl_pricing_appr_req_tech,approval request tech,model_dl_pricing_approval_request,dl_base.dl_group_tech,1,0,0,0
+access_dl_pricing_appr_reject_wiz_ceo,approval reject wizard ceo,model_dl_pricing_approval_reject_wizard,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_appr_reject_wiz_admin,approval reject wizard admin,model_dl_pricing_approval_reject_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_appr_reject_wiz_sm,approval reject wizard sales manager,model_dl_pricing_approval_reject_wizard,dl_base.dl_group_sales_manager,1,1,1,1
+access_dl_pricing_matrix_ceo,approval matrix ceo,model_dl_pricing_approval_matrix,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_matrix_admin,approval matrix admin,model_dl_pricing_approval_matrix,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_matrix_sm,approval matrix sales manager,model_dl_pricing_approval_matrix,dl_base.dl_group_sales_manager,1,1,1,1
+access_dl_pricing_matrix_ba,approval matrix ba,model_dl_pricing_approval_matrix,dl_base.dl_group_ba,1,0,0,0
+access_dl_pricing_ui_tech,pricing ui tech,model_dl_pricing_ui,dl_base.dl_group_tech,1,1,1,1
+access_dl_pricing_ui_acct,pricing ui accountant,model_dl_pricing_ui,dl_base.dl_group_accountant,1,1,1,1
+access_dl_pricing_ui_admin,pricing ui admin,model_dl_pricing_ui,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_ui_ceo,pricing ui ceo,model_dl_pricing_ui,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_ui_sm,pricing ui sales manager,model_dl_pricing_ui,dl_base.dl_group_sales_manager,1,1,1,1
+access_dl_pricing_ui_ba,pricing ui ba,model_dl_pricing_ui,dl_base.dl_group_ba,1,1,1,1
