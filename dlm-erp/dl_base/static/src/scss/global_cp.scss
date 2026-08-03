@@ -252,6 +252,9 @@
 @include dl-create-label("dl-supplier-list", "+ Thêm NCC");
 @include dl-create-label("dl-product-list", "+ Thêm sản phẩm");
 @include dl-create-label("dl-product-kanban", "+ Thêm sản phẩm");
+// Màn "Sản phẩm" của Sales: chỉ tạo SP thương mại → nhãn nút nói rõ. Include SAU
+// dl-product-list để đè nhãn (class list có cả 2, mixin sau thắng theo thứ tự).
+@include dl-create-label("dl-product-list-ba", "+ Thêm SP thương mại");
 @include dl-create-label("dl-category-list", "+ Thêm danh mục");
 @include dl-create-label("dl-material-list", "+ Thêm vật tư");
 @include dl-create-label("dl-material-price-list", "+ Thêm bảng giá");

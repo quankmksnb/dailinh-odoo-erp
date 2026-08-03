@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Base',
-    'version': '17.0.1.2.0',
+    'version': '17.0.1.3.0',
     'summary': 'App gốc — định nghĩa Groups (CEO/Admin/BA/Tech) và menu chính 5 module Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -44,6 +44,11 @@
             'dl_base/static/src/components/stepper/stepper_field.scss',
             'dl_base/static/src/components/stepper/stepper_field.js',
             'dl_base/static/src/components/stepper/stepper_field.xml',
+            # Field widget dùng chung — tiền (group hàng nghìn LIVE khi gõ).
+            # money_format.js là util dùng chung cho cả widget lẫn input OWL.
+            'dl_base/static/src/js/money_format.js',
+            'dl_base/static/src/components/money/money_field.js',
+            'dl_base/static/src/components/money/money_field.xml',
             # Component — Home dashboard (client action ir.actions.client)
             'dl_base/static/src/components/home/home.scss',
             'dl_base/static/src/components/home/home.xml',

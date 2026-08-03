@@ -18,6 +18,22 @@
             <field name="perm_unlink">1</field>
         </record>
 
+        <!-- Mua hàng: sở hữu NCC nhưng KHÔNG truy cập Khách hàng thuần.
+             '|' gồm cả partner_role=NULL (user/company) — tránh Forbidden khi
+             Odoo đọc res.users nội bộ lúc đăng nhập. -->
+        <record id="rule_partner_purchasing_supplier_only" model="ir.rule">
+            <field name="name">Mua hàng: không truy cập Khách hàng thuần</field>
+            <field name="model_id" ref="base.model_res_partner"/>
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_purchasing'))]"/>
+            <field name="domain_force">
+                ['|', ('partner_role', '=', False), ('partner_role', '!=', 'customer')]
+            </field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">1</field>
+        </record>
+
         <!-- Kế toán: không truy cập Khách hàng thuần ('customer').
              '|' bắt buộc để gồm cả partner_role=NULL (user/company) —
              tránh Forbidden khi Odoo đọc res.users nội bộ. -->

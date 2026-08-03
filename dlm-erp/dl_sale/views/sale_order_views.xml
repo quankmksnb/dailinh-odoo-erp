@@ -10,7 +10,7 @@
                 <field name="partner_id" string="Khách hàng"/>
                 <field name="quotation_id" string="Báo giá nguồn" optional="show"/>
                 <field name="date_order" string="Ngày"/>
-                <field name="amount_total" string="Tổng tiền" widget="monetary"/>
+                <field name="amount_total" string="Tổng tiền" widget="dl_money"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="state" string="Trạng thái" widget="badge"
                        decoration-warning="state == 'draft'"
@@ -75,19 +75,19 @@
                                            decoration-success="line_type == 'manufactured'"/>
                                     <field name="name"/>
                                     <field name="bom_id" optional="hide"/>
-                                    <field name="qty" digits="[16, 0]"/>
-                                    <field name="price_unit" digits="[16, 0]"/>
-                                    <field name="price_subtotal" readonly="1" digits="[16, 0]"/>
+                                    <field name="qty" widget="dl_money" digits="[16, 0]"/>
+                                    <field name="price_unit" widget="dl_money" digits="[16, 0]"/>
+                                    <field name="price_subtotal" readonly="1" widget="dl_money" digits="[16, 0]"/>
                                 </tree>
                             </field>
                             <group class="oe_subtotal_footer">
                                 <field name="discount_pct"/>
                                 <field name="vat_pct"/>
-                                <field name="amount_untaxed" widget="monetary"/>
-                                <field name="discount_amount" widget="monetary"/>
-                                <field name="amount_before_vat" widget="monetary"/>
-                                <field name="vat_amount" widget="monetary"/>
-                                <field name="amount_total" widget="monetary"
+                                <field name="amount_untaxed" widget="dl_money"/>
+                                <field name="discount_amount" widget="dl_money"/>
+                                <field name="amount_before_vat" widget="dl_money"/>
+                                <field name="vat_amount" widget="dl_money"/>
+                                <field name="amount_total" widget="dl_money"
                                        class="oe_subtotal_footer_separator"/>
                             </group>
                         </page>

@@ -8,8 +8,8 @@ import { standardActionServiceProps } from "@web/webclient/actions/action_servic
 const CARDS = [
   {
     key: "trading_price",
-    name: "Bảng giá Sản phẩm thương mại",
-    desc: "Giá bán sản phẩm thương mại — Kế toán cập nhật",
+    name: "Bảng giá SP thương mại",
+    desc: "SP thương mại + giá NCC/giá bán/biên LN — Mua hàng gắn giá NCC",
     icon: "fa-tags",
     actionXmlId: "dl_product.action_dl_product_pricing",
     menuXmlIds: ["dl_product.menu_dl_pricing_trading"],
@@ -19,7 +19,7 @@ const CARDS = [
     name: "Bảng giá Vật tư",
     desc: "Giá mua theo nhà cung cấp và thời gian hiệu lực",
     icon: "fa-list-alt",
-    actionXmlId: "dl_product.action_dl_product_pricing_material",
+    actionXmlId: "dl_product.action_dl_supplierinfo_material_full",
     menuXmlIds: [
       "dl_product.menu_dl_pricing_material",
       "dl_product.menu_dl_pricing_material_view",
