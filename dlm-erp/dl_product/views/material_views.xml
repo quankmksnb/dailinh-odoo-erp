@@ -27,11 +27,11 @@
     <record id="action_dl_material_full" model="ir.actions.act_window">
         <field name="name">Vật tư</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_material_search" />
@@ -41,8 +41,7 @@
         <field name="context">
             {'default_product_kind': 'material',
             'dl_kind_scope': ['material', 'material_processed'],
-            'search_default_active': 1,
-            'search_default_group_kind': 1, 'active_test': False}
+            'search_default_group_kind': 1}
         </field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
@@ -55,11 +54,11 @@
     <record id="action_dl_material_tech" model="ir.actions.act_window">
         <field name="name">Vật tư</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_tech_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_material_search" />
@@ -69,7 +68,7 @@
         <field name="context">
             {'default_product_kind': 'material', 'delete': False,
             'dl_kind_scope': ['material', 'material_processed'],
-            'search_default_active': 1, 'search_default_group_kind': 1, 'active_test': False}
+            'search_default_group_kind': 1}
         </field>
         <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_admin'), ref('dl_base.dl_group_tech')])]" />
     </record>
@@ -77,18 +76,18 @@
     <record id="action_dl_material_view" model="ir.actions.act_window">
         <field name="name">Vật tư</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_material_search" />
         <field name="domain">[('product_kind', 'in', ['material', 'material_processed'])]</field>
         <field name="context">{'create': False, 'edit': False, 'delete': False,
             'dl_kind_scope': ['material', 'material_processed'],
-            'search_default_active': 1, 'search_default_group_kind': 1, 'active_test': False}</field>
+            'search_default_group_kind': 1}</field>
         <!-- KHÔNG có dl_group_ba — BA/Sales không được xem Vật tư -->
         <field name="groups_id" eval="[(6, 0, [
             ref('dl_base.dl_group_admin'),

@@ -1,8 +1,11 @@
 import difflib
 import re
 
-from odoo import api, fields, models, _
+from markupsafe import Markup
+
+from odoo import api, fields, models, _, SUPERUSER_ID
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools import float_compare
 from odoo.tools.safe_eval import safe_eval
 
 # Data Model PROD-02: default_code validate ^[A-Z0-9\-]+$ (chữ hoa, số, gạch ngang)
@@ -139,7 +142,7 @@ class ProductProduct(models.Model):
         [
             ("draft", "Nháp / Kỹ thuật"),
             ("active", "Đã duyệt"),
-            ("obsolete", "Ngừng"),
+            ("obsolete", "Ngừng sử dụng"),
         ],
         string="Trạng thái vòng đời",
         default="active",
@@ -150,20 +153,87 @@ class ProductProduct(models.Model):
              "sử dụng được.\n"
              "• Đã duyệt: đã chốt (đơn hàng xác nhận hoặc duyệt tay) — nằm trong "
              "danh mục để tái sử dụng.\n"
-             "• Ngừng: không còn nhận làm/bán nữa, vẫn giữ lịch sử.",
+             "• Ngừng sử dụng: không còn nhận làm/bán nữa, vẫn giữ trong danh mục "
+             "để tra lịch sử (khác với Lưu trữ/ẩn hẳn).",
     )
 
-    # Chỉ Kế toán/Admin được nhập Giá bán SP thương mại (Sales tạo SP nhưng
-    # KHÔNG tự đặt giá) — dùng để readonly ô giá trên form theo role.
+    # GIÁ BÁN (list_price) do Sales đặt — "sales view" chuẩn ERP. Kế toán đã
+    # rút khỏi việc đặt giá; dùng để readonly ô Giá bán trên form theo role.
     dlm_is_price_editor = fields.Boolean(
         compute="_compute_dlm_is_price_editor", compute_sudo=True)
 
     def _compute_dlm_is_price_editor(self):
         user = self.env.user
-        editor = (user.has_group("dl_base.dl_group_accountant")
+        editor = (user.has_group("dl_base.dl_group_ba")
                   or user.has_group("dl_base.dl_group_admin"))
         for rec in self:
             rec.dlm_is_price_editor = editor
+
+    # MỞ NHẬP GIÁ BÁN đúng lúc (mua trước → bán sau): với SP thương mại, ô Giá bán
+    # chỉ mở khi ĐÃ có Giá vốn tham chiếu (Mua hàng đã áp giá NCC). Lúc mới tạo
+    # (chưa có giá NCC) Sales không phải/không được nhập giá bán vội. Loại SP khác
+    # giữ nguyên (chỉ theo vai trò).
+    dlm_can_edit_sale_price = fields.Boolean(
+        compute="_compute_dlm_can_edit_sale_price", compute_sudo=True)
+
+    @api.depends("product_kind", "standard_price")
+    def _compute_dlm_can_edit_sale_price(self):
+        user = self.env.user
+        editor = (user.has_group("dl_base.dl_group_ba")
+                  or user.has_group("dl_base.dl_group_admin"))
+        for rec in self:
+            rec.dlm_can_edit_sale_price = editor and (
+                rec.product_kind != "trading" or rec.standard_price > 0)
+
+    # GIÁ VỐN THAM CHIẾU (standard_price) — mục 4: KHÔNG nhập tay. Hệ thống tự đặt
+    # theo giá NCC đang áp dụng (quy về ĐVT & tiền tệ SP). Chỉ đọc với mọi vai trò
+    # nghiệp vụ (ghi chặn ở write()).
+    def _dlm_recompute_reference_cost(self):
+        """standard_price = giá NCC đang áp dụng của SP (đã quy đổi). Không có bảng
+        giá áp dụng → 0. Ghi qua sudo; log chatter khi đổi."""
+        prec = self.env["decimal.precision"].precision_get("Product Price")
+        for prod in self:
+            applied = prod.sudo().seller_ids.filtered(lambda s: s.is_applied)[:1]
+            new_cost = applied._dlm_reference_unit_cost(prod) if applied else 0.0
+            old_cost = prod.standard_price
+            if float_compare(old_cost, new_cost, precision_digits=prec) != 0:
+                prod.sudo().standard_price = new_cost
+                prod.sudo().message_post(body=_(
+                    "Giá vốn tham chiếu: %.0f → %.0f (theo giá NCC đang áp dụng).")
+                    % (old_cost, new_cost))
+        return True
+
+    # LOẠI SP chỉ Admin/Kỹ thuật được đặt/đổi. Sales tạo SP thương mại nên Loại
+    # SP khoá sẵn = 'trading' (default action) — dùng để readonly ô Loại SP trên
+    # form, tránh Sales nhầm tạo SP gia công (gia công đi luồng RFQ/Kỹ thuật).
+    dlm_can_change_kind = fields.Boolean(
+        compute="_compute_dlm_can_change_kind", compute_sudo=True)
+
+    def _compute_dlm_can_change_kind(self):
+        user = self.env.user
+        can = (user.has_group("dl_base.dl_group_admin")
+               or user.has_group("dl_base.dl_group_tech"))
+        for rec in self:
+            rec.dlm_can_change_kind = can
+
+    # Biên LN (%) = (giá bán − giá vốn) / giá bán × 100. CHỈ để HIỂN THỊ trên
+    # màn Bảng giá SP thương mại (không lưu, không tham gia tính giá nghiệp vụ —
+    # engine báo giá có luồng markup/floor riêng). compute_sudo để mọi role xem
+    # bảng giá (kể cả CEO/Trưởng KD chỉ xem) đọc được standard_price không vướng ACL.
+    dlm_sale_margin = fields.Float(
+        string="Biên LN (%)", digits=(5, 1),
+        compute="_compute_dlm_sale_margin", compute_sudo=True,
+        help="Biên lợi nhuận của Giá bán so với Giá vốn (standard_price). "
+             "Chỉ mang tính tham khảo trên màn Bảng giá; giá vốn 0 ⇒ hiển thị 100%.",
+    )
+
+    @api.depends("list_price", "standard_price")
+    def _compute_dlm_sale_margin(self):
+        for rec in self:
+            rec.dlm_sale_margin = (
+                (rec.list_price - rec.standard_price) / rec.list_price * 100.0
+                if rec.list_price else 0.0
+            )
 
     # UX màn Bảng giá: banner hướng dẫn trên tab "Nhà cung cấp & Bảng giá" —
     # chỉ hiện khi còn dòng giá ở Nháp (nhắc người mới bước tiếp theo là Duyệt).
@@ -175,6 +245,110 @@ class ProductProduct(models.Model):
         for rec in self:
             rec.dlm_has_draft_seller = any(
                 s.approval_state == "draft" for s in rec.seller_ids)
+
+    # Trạng thái GIÁ NCC của SP — để Mua hàng CHỦ ĐỘNG thấy SP nào còn thiếu giá
+    # (cột + bộ lọc "Chưa có giá NCC" trên màn Bảng giá SP thương mại). Stored để
+    # lọc/nhóm nhanh. Đối xứng ý nghĩa với display_state của từng dòng giá.
+    dlm_supplier_price_state = fields.Selection(
+        [
+            ("none", "Chưa có giá NCC"),
+            ("pending", "Có giá — chưa áp dụng"),
+            ("applied", "Đã áp dụng"),
+        ],
+        string="Giá NCC",
+        compute="_compute_dlm_supplier_price_state",
+        store=True,
+    )
+
+    @api.depends("seller_ids", "seller_ids.is_applied")
+    def _compute_dlm_supplier_price_state(self):
+        for rec in self:
+            if any(s.is_applied for s in rec.seller_ids):
+                rec.dlm_supplier_price_state = "applied"
+            elif rec.seller_ids:
+                rec.dlm_supplier_price_state = "pending"
+            else:
+                rec.dlm_supplier_price_state = "none"
+
+    # ── Readiness kích hoạt SP thương mại (mục 3) — dùng cho UI, KHÔNG chặn ────
+    # Nút "Duyệt" của Sales chỉ hiện khi ĐỦ điều kiện (gồm giá NCC do Mua hàng
+    # áp dụng). Trước đây nút luôn hiện ngay sau khi Sales nhập giá bán → bấm vào
+    # chỉ báo lỗi (dead-end). Nay banner liệt kê việc còn thiếu, nút ẩn tới khi
+    # thực sự kích hoạt được. Guard cứng vẫn ở _dlm_check_trading_activation.
+    dlm_trading_ready = fields.Boolean(
+        compute="_compute_dlm_trading_status", compute_sudo=True)
+    dlm_trading_blockers_html = fields.Html(
+        compute="_compute_dlm_trading_status", compute_sudo=True, sanitize=False)
+
+    @api.depends(
+        "product_kind", "dlm_lifecycle_state", "list_price", "standard_price",
+        "seller_ids.is_applied", "seller_ids.approval_state", "seller_ids.price",
+        "seller_ids.date_start", "seller_ids.date_end", "seller_ids.partner_id.active",
+    )
+    def _compute_dlm_trading_status(self):
+        for rec in self:
+            pending = (rec.product_kind == "trading"
+                       and rec.dlm_lifecycle_state == "draft")
+            blockers = rec._dlm_trading_blockers() if pending else []
+            rec.dlm_trading_ready = pending and not blockers
+            if blockers:
+                rec.dlm_trading_blockers_html = Markup(
+                    "<ul class='mb-0'>%s</ul>") % Markup("").join(
+                    Markup("<li>%s</li>") % b for b in blockers)
+            else:
+                rec.dlm_trading_blockers_html = False
+
+    def _dlm_trading_blockers(self):
+        """Danh sách điều kiện CÒN THIẾU để kích hoạt SP thương mại (rỗng = đủ).
+        Dùng chung cho compute (UI) và _dlm_check_trading_activation (guard).
+
+        Thứ tự MUA TRƯỚC → BÁN SAU: khi chưa có giá vốn (Mua hàng chưa áp giá
+        NCC) thì CHỈ nhắc "chờ Mua hàng", KHÔNG nhắc Giá bán — vì ô Giá bán lúc
+        đó còn khóa (giá bán mở sau khi có giá vốn, xem dlm_can_edit_sale_price).
+        seller/partner đọc qua sudo vì Sales không có quyền supplierinfo/res.partner."""
+        self.ensure_one()
+        prod = self.sudo()
+        reasons = []
+        applied = prod.seller_ids.filtered(lambda s: s.is_applied)[:1]
+        cost_ready = False
+        if not applied:
+            reasons.append(_(
+                "Chờ Mua hàng thiết lập & áp dụng giá NCC (ở màn Bảng giá SP "
+                "thương mại) — cần có giá mua trước khi định giá bán."))
+        else:
+            today = fields.Date.context_today(self)
+            if applied.approval_state != "approved":
+                reasons.append(_("Bảng giá NCC đang áp dụng chưa được Mua hàng duyệt."))
+            elif not applied._is_valid_on(today):
+                reasons.append(_(
+                    "Bảng giá NCC đang áp dụng đã hết hạn hoặc chưa tới ngày hiệu lực."))
+            elif applied.price <= 0:
+                reasons.append(_("Giá NCC của bảng giá đang áp dụng phải > 0."))
+            elif not applied.partner_id.active:
+                reasons.append(_(
+                    "Nhà cung cấp '%s' của bảng giá đang áp dụng đã bị vô hiệu hóa."
+                ) % applied.partner_id.display_name)
+            elif prod.standard_price <= 0:
+                reasons.append(_(
+                    "Chưa xác định được Giá vốn tham chiếu (kiểm tra tiền tệ / đơn "
+                    "vị của bảng giá NCC đang áp dụng)."))
+            else:
+                cost_ready = True
+        # Chỉ nhắc Giá bán KHI đã có giá vốn (đúng luồng mua trước → bán sau).
+        if cost_ready:
+            if prod.list_price <= 0:
+                reasons.append(_(
+                    "Nhập Giá bán (> 0) — Sales nhập sau khi đã có giá vốn."))
+            else:
+                prec = self.env["decimal.precision"].precision_get("Product Price")
+                if float_compare(prod.list_price, prod.standard_price,
+                                 precision_digits=prec) < 0:
+                    reasons.append(_(
+                        "Giá bán (%.0f) đang THẤP HƠN Giá vốn tham chiếu (%.0f) — "
+                        "nếu thực sự cần bán lỗ, xử lý ở duyệt báo giá (CEO/Trưởng "
+                        "KD), không hạ giá niêm yết sản phẩm."
+                    ) % (prod.list_price, prod.standard_price))
+        return reasons
 
     def _check_lifecycle_manager(self):
         """Ai được đổi trạng thái vòng đời: SP gia công/BTP → Kỹ thuật/Admin;
@@ -195,16 +369,25 @@ class ProductProduct(models.Model):
                     _("Chỉ Kỹ thuật/Admin được đổi trạng thái Sản phẩm gia công."))
 
     def action_lifecycle_activate(self):
-        """Duyệt SP lên 'active' (tái sử dụng được). SP thương mại phải có giá
-        bán (do Kế toán nhập) trước khi Sales kích hoạt."""
+        """Duyệt SP lên 'active'. SP thương mại phải qua ĐỦ điều kiện kích hoạt
+        (mục 3) — kiểm tra chặt ở server, KHÔNG cho override."""
         for rec in self:
             rec._check_lifecycle_manager()
-            if rec.product_kind == "trading" and rec.list_price <= 0:
-                raise UserError(_(
-                    "Sản phẩm thương mại phải có Giá bán > 0 (Kế toán nhập) "
-                    "trước khi kích hoạt."))
+            if rec.product_kind == "trading":
+                rec._dlm_check_trading_activation()
             rec.sudo().write({"dlm_lifecycle_state": "active"})
         return True
+
+    def _dlm_check_trading_activation(self):
+        """Guard cứng kích hoạt SP thương mại (mục 3) — dựng lại từ danh sách
+        điều kiện thiếu (_dlm_trading_blockers), báo hết một lần cho rõ. UI đã ẩn
+        nút Duyệt khi chưa đủ; đây là lớp chặn cuối cùng ở server."""
+        self.ensure_one()
+        blockers = self._dlm_trading_blockers()
+        if blockers:
+            raise UserError(_(
+                "Chưa đủ điều kiện kích hoạt Sản phẩm thương mại:\n• %s"
+            ) % "\n• ".join(blockers))
 
     def action_lifecycle_obsolete(self):
         for rec in self:
@@ -410,6 +593,69 @@ class ProductProduct(models.Model):
                 raise ValidationError(
                     _("Mã sản phẩm '%s' đã tồn tại (%s).") % (code, dup.display_name)
                 )
+
+    # ── Chặn ghi trực tiếp field nhạy cảm (mục 9 — readonly UI là chưa đủ) ────
+    # Không đủ vai trò / không qua action nghiệp vụ (sudo) ⇒ chặn ở tầng ORM.
+    #   • standard_price / dlm_lifecycle_state: CHỈ hệ thống (sudo) — giá vốn tự
+    #     theo giá NCC áp dụng; vòng đời chỉ đổi qua action_lifecycle_*.
+    #   • list_price: chỉ Sales(BA)/Admin.  • product_kind: chỉ Kỹ thuật/Admin.
+    _DLM_PROTECTED_FIELDS = {
+        "standard_price": (),
+        "dlm_lifecycle_state": (),
+        "list_price": ("dl_base.dl_group_ba", "dl_base.dl_group_admin"),
+        "product_kind": ("dl_base.dl_group_tech", "dl_base.dl_group_admin"),
+    }
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        # Chủ động báo Mua hàng khi Sales tạo SP thương mại mới (nháp) — để họ
+        # biết mà thiết lập giá NCC, thay vì phải tự dò. Bỏ qua luồng hệ thống
+        # (sudo / SUPERUSER: seed/demo/migration) để không sinh nhắc rác.
+        if not self.env.su and self.env.uid != SUPERUSER_ID:
+            for rec in records:
+                if (rec.product_kind == "trading"
+                        and rec.dlm_lifecycle_state == "draft"):
+                    rec._dlm_notify_purchasing_new_trading()
+        return records
+
+    def _dlm_notify_purchasing_new_trading(self):
+        """Giao việc 'Thiết lập giá NCC' cho từng người nhóm Mua hàng (activity
+        To-Do). sudo vì Sales không có quyền tạo activity cho user khác."""
+        self.ensure_one()
+        group = self.env.ref(
+            "dl_base.dl_group_purchasing", raise_if_not_found=False)
+        if not group:
+            return
+        users = group.users.filtered(lambda u: u.active and not u.share)
+        for user in users:
+            self.sudo().activity_schedule(
+                act_type_xmlid="mail.mail_activity_data_todo",
+                summary=_("Thiết lập giá NCC cho SP thương mại mới"),
+                note=_(
+                    "Sản phẩm thương mại '%s' vừa được tạo — cần nhập nhà cung cấp "
+                    "và giá mua ở màn Bảng giá SP thương mại, rồi Duyệt/Áp dụng để "
+                    "Sales định giá bán và kích hoạt."
+                ) % self.display_name,
+                user_id=user.id,
+            )
+
+    def write(self, vals):
+        if not self.env.su:
+            user = self.env.user
+            for fname, groups in self._DLM_PROTECTED_FIELDS.items():
+                if fname not in vals:
+                    continue
+                if not groups:
+                    raise AccessError(_(
+                        "Trường '%s' chỉ được hệ thống cập nhật tự động (qua giá "
+                        "NCC áp dụng / action nghiệp vụ), không sửa trực tiếp."
+                    ) % self._fields[fname].get_description(self.env)["string"])
+                if not any(user.has_group(g) for g in groups):
+                    raise AccessError(_(
+                        "Bạn không có quyền sửa '%s'."
+                    ) % self._fields[fname].get_description(self.env)["string"])
+        return super().write(vals)
 
     def get_formview_id(self, access_uid=None):
         return self.env.ref('dl_product.view_dl_product_form').id

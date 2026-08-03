@@ -117,7 +117,12 @@ class DlBomLineMixin(models.AbstractModel):
         "product.product",
         string="Vật tư",
         required=True,
-        domain=[("product_kind", "in", ("material", "material_processed"))],
+        # Loại vật tư đã Ngừng (obsolete) khỏi dropdown chọn dòng BOM mới — giữ
+        # lại Nháp (BTP đang xử lý) nên dùng '!= obsolete' chứ không ép '= active'.
+        # Dòng cũ đã trỏ vật tư sau này bị Ngừng vẫn hiển thị (ngoài domain) như
+        # tín hiệu cần thay; không tự xoá để giữ lịch sử BOM.
+        domain=[("product_kind", "in", ("material", "material_processed")),
+                ("dlm_lifecycle_state", "!=", "obsolete")],
     )
 
     # Step 2 — Rule (đại lượng đo: Area/Length/Width/Height/Perimeter/Volume...).
@@ -521,6 +526,19 @@ class DlBomLineMixin(models.AbstractModel):
         for rec in self:
             if rec.is_override and not rec.override_reason:
                 raise ValidationError(_("Vui lòng nhập lý do khi ghi đè số lượng."))
+
+    @api.constrains("material_id")
+    def _check_material_not_obsolete(self):
+        """Chặn cứng chọn vật tư đã Ngừng vào dòng BOM (song song với domain UI,
+        bịt cả đường import/API). Chỉ khai theo material_id ⇒ ràng buộc chỉ chạy
+        khi tạo dòng mới hoặc ĐỔI vật tư — sửa số lượng/hao hụt trên dòng cũ trỏ
+        vật tư sau này bị Ngừng vẫn lưu được (giữ lịch sử BOM)."""
+        for rec in self:
+            if rec.material_id.dlm_lifecycle_state == "obsolete":
+                raise ValidationError(_(
+                    "Vật tư '%s' đã Ngừng sử dụng — không thể dùng cho dòng BOM "
+                    "mới. Hãy chọn vật tư thay thế."
+                ) % rec.material_id.display_name)
 
 
 class DlMeasurementShapeCodeCheck(models.Model):

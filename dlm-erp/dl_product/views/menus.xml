@@ -28,23 +28,24 @@
         sequence="11"
         groups="dl_base.dl_group_tech"
     />
-    <!-- View-only: BA/Sales, CEO, Trưởng phòng KD — không gồm Kế toán (Kế toán
-         thao tác giá qua màn Bảng giá riêng, xem product_pricing_views.xml) -->
+    <!-- View-only: CEO, Trưởng phòng KD (BA dùng menu tạo bên dưới; Kế toán thao
+         tác giá qua màn Bảng giá riêng, xem product_pricing_views.xml) -->
     <menuitem
         id="menu_dl_product_view"
         name="Sản phẩm"
         action="action_dl_product_view"
         parent="menu_dl_product_root"
         sequence="12"
-        groups="dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
-    <!-- Sales: màn tạo/quản lý riêng cho SP thương mại (create bật) -->
+    <!-- Sales: mục "Sản phẩm" DUY NHẤT của BA — THẤY đủ loại SP (như role khác),
+         chỉ TẠO được SP thương mại. Không tách tab con riêng. -->
     <menuitem
         id="menu_dl_product_trading_ba"
-        name="Sản phẩm thương mại"
+        name="Sản phẩm"
         action="action_dl_product_trading_ba"
         parent="menu_dl_product_root"
-        sequence="13"
+        sequence="12"
         groups="dl_base.dl_group_ba"
     />
 
@@ -106,30 +107,47 @@
         parent="dl_base.menu_dl_product"
         sequence="20"
         action="action_dl_pricing_home"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
+    <!-- Bảng giá SP thương mại — MỘT màn product-centric duy nhất: liệt kê SP
+         thương mại + trạng thái giá NCC. Mua hàng/Admin nhập giá NCC (đã cấp
+         quyền ghi product giới hạn trading/material); Kế toán/CEO/Trưởng KD chỉ
+         xem (ACL product read-only). Action tự lọc theo vai trò. -->
     <menuitem
         id="menu_dl_pricing_trading"
         name="Bảng giá SP thương mại"
         action="action_dl_product_pricing"
         parent="menu_dl_pricing_root"
         sequence="10"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_accountant,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
+    <!-- (6, ...) chốt cứng groups — tránh cộng dồn/sót nhóm từ các phiên bản menu
+         trước (từng trỏ supplierinfo / tách margin) trên DB đã nâng cấp. -->
+    <record id="menu_dl_pricing_trading" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_purchasing'),
+            ref('dl_base.dl_group_accountant'),
+            ref('dl_base.dl_group_ceo'),
+            ref('dl_base.dl_group_sales_manager'),
+        ])]" />
+    </record>
+    <!-- Bảng giá Vật tư (quyền sửa): Mua hàng là chủ sở hữu giá NCC; Kế toán
+         chuyển sang bản chỉ-xem bên dưới. -->
     <menuitem
         id="menu_dl_pricing_material"
         name="Bảng giá Vật tư"
         action="action_dl_supplierinfo_material_full"
         parent="menu_dl_pricing_root"
         sequence="20"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_purchasing"
     />
     <!-- menuitem/groups cộng dồn ở một số database đã nâng cấp; lệnh (6, ...)
-         bảo đảm loại bỏ hẳn CEO/Trưởng KD khỏi action có quyền chỉnh sửa. -->
+         bảo đảm loại bỏ hẳn Kế toán/CEO/Trưởng KD khỏi action có quyền chỉnh sửa. -->
     <record id="menu_dl_pricing_material" model="ir.ui.menu">
         <field name="groups_id" eval="[(6, 0, [
             ref('dl_base.dl_group_admin'),
-            ref('dl_base.dl_group_accountant'),
+            ref('dl_base.dl_group_purchasing'),
         ])]" />
     </record>
     <menuitem
@@ -138,7 +156,7 @@
         action="action_dl_supplierinfo_material_view"
         parent="menu_dl_pricing_root"
         sequence="20"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
     />
 
     <!-- ============================================================

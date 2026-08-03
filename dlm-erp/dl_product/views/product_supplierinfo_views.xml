@@ -42,16 +42,16 @@
                      Nháp → Duyệt; Đã duyệt → Áp dụng; Đang áp dụng → Bỏ áp dụng -->
                 <button name="action_approve" type="object" string="Duyệt"
                     icon="fa-check" invisible="approval_state == 'approved'"
-                    groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                    groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
                 <button name="action_set_applied" type="object" string="Áp dụng"
                     icon="fa-star" invisible="approval_state != 'approved' or is_applied"
-                    groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                    groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
                 <button name="action_unset_applied" type="object" string="Bỏ áp dụng"
                     icon="fa-star-o" invisible="not is_applied"
-                    groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                    groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
                 <button name="action_reset_draft" type="object" string="Hủy duyệt"
                     icon="fa-undo" invisible="approval_state != 'approved' or is_applied"
-                    groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                    groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
             </tree>
         </field>
     </record>
@@ -69,18 +69,18 @@
                          nút sáng nhất là đi đúng luồng. -->
                     <button name="action_approve" type="object" string="Duyệt giá"
                         class="oe_highlight" invisible="approval_state == 'approved'"
-                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
                     <button name="action_set_applied" type="object" string="Áp dụng bảng giá này"
                         class="oe_highlight"
                         invisible="approval_state != 'approved' or is_applied"
-                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
                     <button name="action_unset_applied" type="object" string="Bỏ áp dụng"
                         invisible="not is_applied"
-                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
+                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
                     <button name="action_reset_draft" type="object" string="Về nháp"
                         invisible="approval_state != 'approved' or is_applied"
-                        groups="dl_base.dl_group_accountant,dl_base.dl_group_admin" />
-                    <field name="display_state" widget="statusbar"
+                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin" />
+                    <field name="display_state" widget="dl_stepper"
                         statusbar_visible="draft,approved,applied" />
                 </header>
                 <sheet>
@@ -218,7 +218,7 @@
         <field name="context">{'delete': False}</field>
         <field name="groups_id" eval="[(6, 0, [
             ref('dl_base.dl_group_admin'),
-            ref('dl_base.dl_group_accountant'),
+            ref('dl_base.dl_group_purchasing'),
         ])]" />
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Chưa có giá mua vật tư.</p>
@@ -241,6 +241,7 @@
         <field name="groups_id" eval="[(6, 0, [
             ref('dl_base.dl_group_ceo'),
             ref('dl_base.dl_group_sales_manager'),
+            ref('dl_base.dl_group_accountant'),
         ])]" />
     </record>
 

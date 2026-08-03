@@ -23,9 +23,8 @@
                     <button name="action_mark_infeasible" type="object"
                             string="Xác nhận không khả thi" class="btn-warning"
                             invisible="not is_infeasible"/>
-                    <field name="step" widget="statusbar"
-                           statusbar_visible="product,bom,confirm"
-                           options="{'clickable': False}"/>
+                    <field name="step" widget="dl_stepper"
+                           statusbar_visible="product,bom,confirm"/>
                 </header>
 
                 <sheet>

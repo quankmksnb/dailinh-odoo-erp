@@ -60,13 +60,4 @@
         groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
     />
 
-    <menuitem
-        id="menu_dl_config_company"
-        name="Công ty"
-        parent="dl_base.menu_dl_config"
-        sequence="40"
-        action="action_dl_company"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
-    />
-
 </odoo>

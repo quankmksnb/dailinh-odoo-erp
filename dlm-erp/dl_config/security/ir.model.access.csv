@@ -3,8 +3,6 @@ access_dl_uom_ceo,access_dl_uom_ceo,uom.model_uom_uom,dl_base.dl_group_ceo,1,1,1
 access_dl_uom_admin,access_dl_uom_admin,uom.model_uom_uom,dl_base.dl_group_admin,1,1,1,1
 access_dl_uom_categ_ceo,access_dl_uom_categ_ceo,uom.model_uom_category,dl_base.dl_group_ceo,1,1,1,1
 access_dl_uom_categ_admin,access_dl_uom_categ_admin,uom.model_uom_category,dl_base.dl_group_admin,1,1,1,1
-access_dl_company_ceo,access_dl_company_ceo,base.model_res_company,dl_base.dl_group_ceo,1,1,1,0
-access_dl_company_admin,access_dl_company_admin,base.model_res_company,dl_base.dl_group_admin,1,1,1,0
 access_dl_pricing_config_admin,dl.pricing.config admin,model_dl_pricing_config,dl_base.dl_group_admin,1,1,1,1
 access_dl_pricing_config_ceo,dl.pricing.config ceo,model_dl_pricing_config,dl_base.dl_group_ceo,1,1,1,1
 access_dl_pricing_config_sm,dl.pricing.config sales_manager,model_dl_pricing_config,dl_base.dl_group_sales_manager,1,0,0,0

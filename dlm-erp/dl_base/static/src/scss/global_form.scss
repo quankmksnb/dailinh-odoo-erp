@@ -193,6 +193,23 @@
 }
 
 // ============================================================================
+// Ẩn hàng đệm trống của bảng one2many/x2many
+// Odoo luôn pad list con tới tối thiểu 4 dòng bằng các <tr> rỗng
+// (ListRenderer.getEmptyRowIds) — mỗi hàng chỉ có 1 <td colspan> chứa
+// zero-width space, tạo dải trắng thừa dưới "Thêm một dòng" khi bảng còn ít
+// hoặc chưa có dòng. Ẩn hẳn để bảng rỗng chỉ còn header + nút "Thêm một dòng".
+// Đặt ở GLOBAL scope (ngoài selector .dl-*-form) để phủ cả bảng x2many nằm
+// trong wizard/dialog — nơi không có class .dl-*-form bao ngoài.
+// Loại trừ: dòng dữ liệu thật (.o_data_row), dòng "Thêm một dòng"
+// (o_field_x2many_list_row_add), header/nút thêm của nhóm — chỉ còn hàng đệm.
+// ============================================================================
+.o_field_x2many .o_list_renderer table.o_list_table > tbody > tr {
+    &:not(.o_data_row):not(.o_group_header):not(:has(> td.o_field_x2many_list_row_add)):not(:has(> td.o_group_field_row_add)) {
+        display: none !important;
+    }
+}
+
+// ============================================================================
 // Textarea lớn dùng chung (.dl-textarea-lg)
 // Ô nhập đoạn dài: lý do từ chối / không khả thi / đưa về nháp, yêu cầu điều
 // chỉnh, mô tả, ghi chú… Mặc định Odoo render Text field thành 1 dòng rất thấp;

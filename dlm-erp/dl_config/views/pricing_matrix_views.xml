@@ -9,7 +9,7 @@
         <field name="arch" type="xml">
             <form create="false" delete="false" edit="false">
                 <header>
-                    <field name="state" widget="statusbar"/>
+                    <field name="state" widget="dl_stepper"/>
                 </header>
                 <sheet>
                     <div class="oe_title">

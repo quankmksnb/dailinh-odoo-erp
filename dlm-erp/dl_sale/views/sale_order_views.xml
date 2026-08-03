@@ -44,7 +44,7 @@
                             type="object" class="btn-link"
                             invisible="state != 'confirmed' or quotation_id"
                             groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
-                    <field name="state" widget="statusbar"
+                    <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,confirmed,done"/>
                 </header>
                 <sheet>
