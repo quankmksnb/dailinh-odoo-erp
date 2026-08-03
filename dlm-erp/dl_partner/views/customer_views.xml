@@ -281,13 +281,12 @@
     <record id="action_dl_customer" model="ir.actions.act_window">
         <field name="name">Khách hàng</field>
         <field name="res_model">res.partner</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="domain">[('partner_role', 'in', ['customer', 'both'])]</field>
         <field name="context">{'default_partner_role': 'customer', 'default_partner_type': 'company', 'active_test': False}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_customer_tree')}),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_customer_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_customer_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_customer_search" />
