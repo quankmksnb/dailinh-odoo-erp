@@ -1,0 +1,39 @@
+// Bảng giá SP thương mại — list phẳng có thêm cột Giá vốn / Giá bán / Biên LN.
+// table-layout: fixed nên PHẢI khai width cho MỌI cột hiển thị, nếu không các
+// cột giá bị bóp về ~0 (bị cắt "850…", badge "1…"). Phần chung (list card,
+// thead, badge) đã ở dl_base/global_list.scss.
+.dl-pricing-list {
+    .o_list_table {
+        table-layout: fixed !important;
+        width: 100% !important;
+
+        // Tổng width các cột hiển thị = 100%. product_kind/image ẩn nên bỏ qua.
+        th[data-name="default_code"]        { width: 12% !important; }
+        th[data-name="name"]                { width: 26% !important; }
+        th[data-name="categ_id"]            { width: 17% !important; }
+        th[data-name="standard_price"]      { width: 13% !important; }
+        th[data-name="list_price"]          { width: 13% !important; }
+        th[data-name="dlm_sale_margin"]     { width: 9%  !important; }
+        th[data-name="dlm_lifecycle_state"] { width: 10% !important; }
+
+        td[name="name"],
+        td[name="categ_id"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        // Cột tiền: không xuống dòng, chữ số đều để canh phải cho thẳng cột.
+        td[name="standard_price"],
+        td[name="list_price"] {
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+
+    td[name="default_code"] {
+        font-variant-numeric: tabular-nums;
+        color: $dl-text-2;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+}
