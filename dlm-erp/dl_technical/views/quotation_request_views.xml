@@ -464,10 +464,10 @@
                                            options="{'no_create': True}"
                                            domain="[('product_kind', '=', 'trading'), ('dlm_lifecycle_state', '=', 'active')]"/>
                                     <field name="product_price" string="Đơn giá"
-                                           widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                           widget="dl_money" options="{'currency_field': 'currency_id'}"/>
                                     <field name="quantity" string="Số lượng"/>
                                     <field name="price_subtotal" string="Thành tiền"
-                                           widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                                           widget="dl_money" options="{'currency_field': 'currency_id'}"/>
                                 </tree>
                             </field>
 

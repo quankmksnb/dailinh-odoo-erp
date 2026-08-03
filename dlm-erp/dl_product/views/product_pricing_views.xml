@@ -61,7 +61,7 @@
                             <field name="partner_id" string="Nhà cung cấp"
                                 domain="[('partner_role', 'in', ['supplier', 'both'])]"
                                 context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
-                            <field name="price" />
+                            <field name="price" widget="dl_money" />
                             <field name="currency_id" column_invisible="1" />
                             <field name="date_start" string="Từ ngày" />
                             <field name="date_end" string="Đến ngày" />
@@ -127,9 +127,9 @@
                     decoration-danger="dlm_supplier_price_state == 'none'"
                     decoration-warning="dlm_supplier_price_state == 'pending'"
                     decoration-success="dlm_supplier_price_state == 'applied'" />
-                <field name="standard_price" string="Giá vốn TC" widget="monetary"
+                <field name="standard_price" string="Giá vốn TC" widget="dl_money"
                     options="{'currency_field': 'currency_id'}" optional="show" />
-                <field name="list_price" string="Giá bán" widget="monetary"
+                <field name="list_price" string="Giá bán" widget="dl_money"
                     options="{'currency_field': 'currency_id'}" />
                 <!-- Biên LN tô màu theo ngưỡng: &lt;15% đỏ, 15–30% vàng, ≥30% xanh -->
                 <field name="dlm_sale_margin" string="Biên LN (%)" widget="badge"

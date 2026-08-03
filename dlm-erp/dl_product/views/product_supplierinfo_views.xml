@@ -20,7 +20,7 @@
                 <field name="partner_id" string="Nhà cung cấp"
                     domain="[('partner_role', 'in', ['supplier', 'both'])]"
                     context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
-                <field name="price" string="Giá NCC" widget="monetary"
+                <field name="price" string="Giá NCC" widget="dl_money"
                     options="{'currency_field': 'currency_id'}" />
                 <field name="currency_id" column_invisible="1" />
                 <field name="product_uom" string="Đơn vị" />
@@ -107,7 +107,7 @@
                                 context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
                         </group>
                         <group string="Giá &amp; Hiệu lực">
-                            <field name="price" string="Giá NCC" widget="monetary"
+                            <field name="price" string="Giá NCC" widget="dl_money"
                                 options="{'currency_field': 'currency_id'}" />
                             <field name="currency_id" invisible="1" />
                             <field name="product_uom" string="Đơn vị" readonly="1" />

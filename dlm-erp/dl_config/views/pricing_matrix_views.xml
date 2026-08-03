@@ -18,7 +18,7 @@
                     <group>
                         <group string="Nội dung mức duyệt">
                             <field name="currency_id" invisible="1"/>
-                            <field name="value_from"/>
+                            <field name="value_from" widget="dl_money"/>
                             <field name="approval_level"/>
                             <field name="approver_user_id"/>
                             <field name="note"/>

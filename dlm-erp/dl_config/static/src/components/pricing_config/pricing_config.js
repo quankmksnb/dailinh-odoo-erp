@@ -4,6 +4,7 @@ import { Component, useState, onWillStart } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
+import { onMoneyInput, parseMoney, formatMoney } from "@dl_base/js/money_format";
 
 // ============================================================================
 //  Cấu hình Báo giá (đặc tả V3) — màn OWL nhiều tab, đồng bộ style với S02.
@@ -84,6 +85,11 @@ export class DlPricingConfig extends Component {
     setup() {
         this.orm = useService("orm");
         this.action = useService("action");
+        // Helper tiền dùng chung — group hàng nghìn LIVE cho các ô NHẬP số tiền.
+        // (fmtMoney sẵn có ở dưới dùng cho HIỂN THỊ, có hậu tố ₫ — giữ nguyên.)
+        this.onMoneyInput = onMoneyInput;
+        this.parseMoney = parseMoney;
+        this.fmtMoneyInput = formatMoney;
         this.tabs = TABS;
         this.L = L;
         this.opt = {

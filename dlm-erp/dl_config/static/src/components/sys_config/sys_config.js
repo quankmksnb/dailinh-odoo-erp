@@ -4,6 +4,7 @@ import { Component, useState, onWillStart } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
+import { onMoneyInput, parseMoney, formatMoney } from "@dl_base/js/money_format";
 
 // ============================================================================
 // S02 — Cấu hình Hệ thống
@@ -106,6 +107,10 @@ export class DlSysConfig extends Component {
   setup() {
     this.actionService = useService("action");
     this.orm = useService("orm");
+    // Helper tiền dùng chung — group hàng nghìn LIVE cho các ô nhập số tiền.
+    this.onMoneyInput = onMoneyInput;
+    this.parseMoney = parseMoney;
+    this.fmtMoney = formatMoney;
     this.tabs = TABS;
     this.rounding = ROUNDING;
     this.approverRoles = APPROVER_ROLES;
