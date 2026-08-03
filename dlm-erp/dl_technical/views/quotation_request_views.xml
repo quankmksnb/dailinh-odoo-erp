@@ -168,8 +168,14 @@
                          TRƯỚC; thông tin khách hàng/thời hạn là bối cảnh → xuống dưới
                          bảng. Tiến độ để MỘT DÒNG gọn ngay trên bảng (tránh vỡ nhãn
                          3 dòng + bỏ khoảng trống dưới tiêu đề), KTV liếc là biết còn
-                         bao nhiêu dòng phải xử lý. -->
-                    <div class="d-flex align-items-center gap-3 mt-2 mb-2">
+                         bao nhiêu dòng phải xử lý.
+                         Ẩn hẳn khi RFQ KHÔNG có dòng gia công nào (chỉ toàn hàng
+                         thương mại): không có việc kỹ thuật → thanh tiến độ vô nghĩa
+                         (RFQ auto sang "Đã xử lý xong"), tránh hiện "Không có dòng
+                         gia công cần xử lý" gây rối. -->
+                    <field name="technical_total_line_count" invisible="1"/>
+                    <div class="d-flex align-items-center gap-3 mt-2 mb-2"
+                         invisible="technical_total_line_count == 0">
                         <span class="fw-bold text-muted text-nowrap">Tiến độ xử lý:</span>
                         <field name="technical_progress_percent" widget="progressbar"
                                readonly="1" nolabel="1"/>
@@ -436,8 +442,12 @@
                     </group>
 
                     <!-- Tiến độ kỹ thuật luôn = 0% lúc RFQ còn 'new' (chưa gửi Kỹ
-                         thuật) → ẩn khi tạo mới, chỉ hiện sau khi vào xử lý. -->
-                    <group string="Tiến độ xử lý kỹ thuật" invisible="status == 'new'">
+                         thuật) → ẩn khi tạo mới, chỉ hiện sau khi vào xử lý. Cũng ẩn
+                         khi RFQ không có dòng gia công (chỉ toàn hàng thương mại) —
+                         không có việc kỹ thuật thì thanh tiến độ vô nghĩa. -->
+                    <field name="technical_total_line_count" invisible="1"/>
+                    <group string="Tiến độ xử lý kỹ thuật"
+                           invisible="status == 'new' or technical_total_line_count == 0">
                         <field name="technical_progress_label" readonly="1" nolabel="1"/>
                         <field name="technical_progress_percent" widget="progressbar"
                                readonly="1" nolabel="1"/>
