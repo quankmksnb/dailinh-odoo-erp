@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<t t-name="dl_technical.DrawingUploadField">
+    <div class="o_dl_drawing_upload">
+        <!-- CHƯA có file: dropzone rõ ràng, bấm bất kỳ đâu trong khung để chọn. -->
+        <t t-if="!value">
+            <t t-if="props.readonly">
+                <div class="o_dl_upload_zone o_dl_readonly text-muted">
+                    <i class="fa fa-picture-o fa-2x mb-2"/>
+                    <div>Chưa có file bản vẽ.</div>
+                </div>
+            </t>
+            <t t-else="">
+                <FileUploader onUploaded.bind="onUploaded"
+                              acceptedFileExtensions="'.pdf,image/*'">
+                    <t t-set-slot="toggler">
+                        <div class="o_dl_upload_zone">
+                            <i class="fa fa-cloud-upload fa-2x mb-2"/>
+                            <div class="fw-bold">Tải lên file bản vẽ</div>
+                            <div class="small">Bấm để chọn file — PDF hoặc ảnh</div>
+                        </div>
+                    </t>
+                </FileUploader>
+            </t>
+        </t>
+
+        <!-- ĐÃ có file: tên + xem/tải + (thay/xóa nếu sửa được) + preview. -->
+        <t t-else="">
+            <div class="o_dl_upload_filled border rounded p-3">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="d-flex align-items-center text-truncate me-2">
+                        <i class="fa fa-file-o me-2"/>
+                        <span class="fw-bold text-truncate"
+                              t-att-title="filename" t-esc="filename"/>
+                    </span>
+                    <span class="text-nowrap d-flex align-items-center">
+                        <a t-att-href="inlineUrl" target="_blank"
+                           class="btn btn-sm btn-secondary" title="Mở tab mới">
+                            <i class="fa fa-external-link"/>
+                        </a>
+                        <a t-att-href="downloadUrl"
+                           class="btn btn-sm btn-secondary ms-1" title="Tải xuống">
+                            <i class="fa fa-download"/>
+                        </a>
+                        <t t-if="!props.readonly">
+                            <FileUploader onUploaded.bind="onUploaded"
+                                          acceptedFileExtensions="'.pdf,image/*'">
+                                <t t-set-slot="toggler">
+                                    <button type="button"
+                                            class="btn btn-sm btn-secondary ms-1"
+                                            title="Thay file">
+                                        <i class="fa fa-refresh"/>
+                                    </button>
+                                </t>
+                            </FileUploader>
+                            <button type="button"
+                                    class="btn btn-sm btn-outline-danger ms-1"
+                                    title="Xóa file" t-on-click="onRemove">
+                                <i class="fa fa-trash"/>
+                            </button>
+                        </t>
+                    </span>
+                </div>
+                <t t-if="isImage">
+                    <a t-att-href="inlineUrl" target="_blank">
+                        <img t-att-src="imageUrl"
+                             class="img-fluid border rounded o_dl_upload_img"
+                             alt="Bản vẽ kỹ thuật"/>
+                    </a>
+                </t>
+                <t t-elif="isPdf">
+                    <iframe t-att-src="pdfViewerUrl"
+                            class="o_dl_upload_pdf border rounded"
+                            title="Bản vẽ kỹ thuật"/>
+                </t>
+            </div>
+        </t>
+    </div>
+</t>
+
+</templates>

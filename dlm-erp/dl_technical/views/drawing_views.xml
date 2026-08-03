@@ -67,7 +67,8 @@
                     <!-- Bản vẽ là NỘI DUNG CHÍNH (review UX drawing #f1): đưa file
                          lên đầu, thông tin phụ xuống dưới. -->
                     <group string="File bản vẽ">
-                        <field name="attachment_id" nolabel="1"/>
+                        <field name="attachment_id" nolabel="1" colspan="2"
+                               widget="dl_drawing_upload"/>
                     </group>
                     <group>
                         <group string="Thông tin">
