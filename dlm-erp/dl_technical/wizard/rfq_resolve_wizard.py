@@ -15,12 +15,24 @@ class DlRfqResolveWizard(models.TransientModel):
 
     _name = "dl.rfq.resolve.wizard"
     _description = "Xử lý RFQ — chọn/tạo Product và BOM"
+    _rec_name = "request_product_name"
 
     rfq_line_id = fields.Many2one(
         "dl.quotation.request.line",
         string="Dòng RFQ",
         required=True,
         readonly=True,
+    )
+
+    step = fields.Selection(
+        [
+            ("product", "1. Xác định sản phẩm"),
+            ("bom", "2. Định mức BOM"),
+            ("confirm", "3. Xác nhận"),
+        ],
+        string="Công đoạn",
+        default="product",
+        required=True,
     )
 
     # ── Thông tin yêu cầu (chỉ để tham khảo, readonly) ──────────────────────
@@ -58,6 +70,11 @@ class DlRfqResolveWizard(models.TransientModel):
         string="Product",
         domain=[("product_kind", "in", ("manufactured", "material_processed"))],
     )
+    product_is_rfq_provisional = fields.Boolean(
+        related="product_id.is_rfq_provisional",
+        string="Sản phẩm đang tạm từ RFQ",
+        readonly=True,
+    )
 
     # Danh sách SP hợp lệ để CHỌN: lọc theo Nhóm SP của RFQ (KHÔNG lọc theo
     # trạng thái vòng đời — chọn được cả draft lẫn active). Dùng làm domain cho
@@ -75,6 +92,14 @@ class DlRfqResolveWizard(models.TransientModel):
             ]
             if rec.request_category_id:
                 domain.append(("categ_id", "child_of", rec.request_category_id.id))
+            if rec.rfq_line_id:
+                domain.extend([
+                    "|",
+                    ("is_rfq_provisional", "=", False),
+                    ("rfq_source_line_id", "=", rec.rfq_line_id.id),
+                ])
+            else:
+                domain.append(("is_rfq_provisional", "=", False))
             rec.allowed_product_ids = Product.search(domain)
 
     new_product_name = fields.Char(string="Tên sản phẩm mới")
@@ -83,10 +108,62 @@ class DlRfqResolveWizard(models.TransientModel):
         "product.category", string="Nhóm sản phẩm",
         domain=[("dl_branch", "=", "finished")])
 
+    # ── Soi trùng/gần giống tên khi tạo SP mới (Case B) ───────────────────
+    # exact → chặn cứng (chọn lại SP có sẵn); similar → cảnh báo mềm, KTV tick
+    # xác nhận mới tạo được. Soi trên toàn bộ SP gia công/BTP chính thức.
+    name_dup_state = fields.Selection(
+        [("none", "Không trùng"), ("exact", "Trùng hệt"), ("similar", "Gần giống")],
+        string="Kết quả soi trùng tên", compute="_compute_name_dup")
+    name_dup_message = fields.Char(
+        string="Cảnh báo trùng tên", compute="_compute_name_dup")
+    name_dup_exact_id = fields.Many2one(
+        "product.product", string="SP trùng hệt", compute="_compute_name_dup")
+    name_dup_similar_ids = fields.Many2many(
+        "product.product", string="SP gần giống", compute="_compute_name_dup")
+    confirm_similar_name = fields.Boolean(
+        string="Xác nhận đây thực sự là sản phẩm khác")
+
+    @api.depends("new_product_name", "mode")
+    def _compute_name_dup(self):
+        Product = self.env["product.product"]
+        for rec in self:
+            rec.name_dup_state = "none"
+            rec.name_dup_message = False
+            rec.name_dup_exact_id = False
+            rec.name_dup_similar_ids = Product.browse()
+            if rec.mode != "new" or not rec.new_product_name:
+                continue
+            matches = Product._dlm_find_name_matches(
+                rec.new_product_name,
+                kinds=("manufactured", "material_processed"),
+                extra_domain=[("is_rfq_provisional", "=", False)],
+            )
+            if matches["exact"]:
+                dup = matches["exact"][0]
+                rec.name_dup_state = "exact"
+                rec.name_dup_exact_id = dup.id
+                rec.name_dup_message = _(
+                    "Đã có sản phẩm “%(name)s” (nhóm %(categ)s). Không tạo trùng "
+                    "— hãy chọn lại sản phẩm này.",
+                    name=dup.display_name,
+                    categ=dup.categ_id.display_name or _("chưa phân nhóm"))
+            elif matches["similar"]:
+                rec.name_dup_state = "similar"
+                rec.name_dup_similar_ids = matches["similar"]
+                names = ", ".join(matches["similar"][:5].mapped("display_name"))
+                rec.name_dup_message = _(
+                    "Có sản phẩm gần giống: %s. Nếu đây thực sự là sản phẩm "
+                    "khác, tick xác nhận bên dưới rồi bấm Tạo sản phẩm.") % names
+
     bom_ids = fields.Many2many(
         "dl.bom", compute="_compute_bom_ids", string="BOM Version")
     selected_bom_id = fields.Many2one(
         "dl.bom", string="BOM đã chọn", domain="[('id', 'in', bom_ids)]")
+    selected_bom_is_rfq_provisional = fields.Boolean(
+        related="selected_bom_id.is_rfq_provisional",
+        string="BOM đang tạm từ RFQ",
+        readonly=True,
+    )
     selected_bom_line_ids = fields.One2many(
         related="selected_bom_id.line_ids", string="Chi tiết BOM", readonly=True)
 
@@ -95,31 +172,188 @@ class DlRfqResolveWizard(models.TransientModel):
         Bom = self.env["dl.bom"]
         for rec in self:
             if rec.mode == "existing" and rec.product_id:
-                rec.bom_ids = Bom.search(
-                    [("product_id", "=", rec.product_id.id)], order="version desc")
+                domain = [("product_id", "=", rec.product_id.id)]
+                if rec.rfq_line_id:
+                    domain.extend([
+                        "|",
+                        ("is_rfq_provisional", "=", False),
+                        ("rfq_source_line_id", "=", rec.rfq_line_id.id),
+                    ])
+                else:
+                    domain.append(("is_rfq_provisional", "=", False))
+                rec.bom_ids = Bom.search(domain, order="version desc")
             else:
                 rec.bom_ids = Bom.browse()
 
     @api.onchange("product_id", "mode")
     def _onchange_product_id(self):
-        self.selected_bom_id = False
+        # Mặc định chọn sẵn phiên bản BOM có version CAO NHẤT đang ở trạng thái
+        # Đã xác nhận/Đã khóa của sản phẩm (không dựa vào cờ is_current — cờ này
+        # theo "confirm sau cùng thắng" nên có thể trỏ về bản version thấp hơn).
+        # KTV vẫn đổi sang version khác được (thiết kế BOM truy xuất §4.3).
+        # Khi mở lại dòng đã xử lý, giữ đúng BOM đã gắn thay vì tự đổi sang
+        # version mới nhất; khi đổi sang Product khác, BOM cũ tự bị thay.
+        if self.mode == "existing" and self.product_id:
+            if (self.selected_bom_id
+                    and self.selected_bom_id.product_id == self.product_id):
+                return
+            current = self.env["dl.bom"].search(
+                [
+                    ("product_id", "=", self.product_id.id),
+                    ("status", "in", ("confirmed", "locked")),
+                    "|",
+                    ("is_rfq_provisional", "=", False),
+                    ("rfq_source_line_id", "=", self.rfq_line_id.id),
+                ],
+                order="version desc",
+                limit=1,
+            )
+            self.selected_bom_id = current.id or False
+        else:
+            self.selected_bom_id = False
 
     @api.model
     def default_get(self, fields_list):
-        """§3c — lấy luôn Tên sản phẩm Sales đã nhập ở RFQ làm tên mặc định khi
-        Kỹ thuật tạo sản phẩm mới (khỏi phải gõ lại)."""
+        """Nạp kết quả hiện tại để wizard là cửa duy nhất cho cả xử lý mới và
+        sửa kết luận đã có; đồng thời lấy tên Sales nhập làm tên SP mới mặc định."""
         res = super().default_get(fields_list)
         line_id = res.get("rfq_line_id") or self.env.context.get("default_rfq_line_id")
-        if line_id and not res.get("new_product_name"):
+        if line_id:
             line = self.env["dl.quotation.request.line"].browse(line_id)
-            if line.exists() and line.product_name:
-                res["new_product_name"] = line.product_name
+            if line.exists():
+                if line.product_name and not res.get("new_product_name"):
+                    res["new_product_name"] = line.product_name
+                if line.is_infeasible:
+                    res.update({
+                        "is_infeasible": True,
+                        "infeasible_reason": line.infeasible_reason,
+                    })
+                else:
+                    if line.resolved_product_id:
+                        res.update({
+                            "mode": "existing",
+                            "product_id": line.resolved_product_id.id,
+                        })
+                    if line.resolved_bom_id:
+                        res["selected_bom_id"] = line.resolved_bom_id.id
+                    if line.resolved_product_id and line.resolved_bom_id:
+                        res["step"] = "confirm"
+                    if not line.resolved_product_id:
+                        provisional_bom = self.env["dl.bom"].sudo().search([
+                            ("is_rfq_provisional", "=", True),
+                            ("rfq_source_line_id", "=", line.id),
+                        ], order="write_date desc, id desc", limit=1)
+                        provisional_product = provisional_bom.product_id
+                        if not provisional_product:
+                            provisional_product = self.env["product.product"].sudo().search([
+                                ("is_rfq_provisional", "=", True),
+                                ("rfq_source_line_id", "=", line.id),
+                            ], order="write_date desc, id desc", limit=1)
+                        if provisional_product:
+                            res.update({
+                                "mode": "existing",
+                                "product_id": provisional_product.id,
+                                "step": "bom",
+                            })
+                        if provisional_bom:
+                            res["selected_bom_id"] = provisional_bom.id
+                            if provisional_bom.status in ("confirmed", "locked"):
+                                res["step"] = "confirm"
         return res
+
+    def _action_reload(self):
+        """Nạp lại controller hiện tại mà không tải lại toàn bộ trang.
+
+        ``soft_reload`` giữ nguyên action stack nên breadcrumb Workspace RFQ ↔ BOM
+        vẫn quay lại được; client action ``reload`` sẽ tải lại browser và làm mất
+        stack này.
+        """
+        self.ensure_one()
+        return {
+            "type": "ir.actions.client",
+            "tag": "soft_reload",
+        }
+
+    def _action_return_to_rfq(self):
+        """Kết thúc workspace và trở về đúng RFQ nguồn."""
+        self.ensure_one()
+        request = self.rfq_line_id.quotation_request_id
+        view = self.env.ref("dl_technical.view_dl_quotation_request_form")
+        return {
+            "type": "ir.actions.act_window",
+            "name": request.display_name,
+            "res_model": "dl.quotation.request",
+            "res_id": request.id,
+            "view_mode": "form",
+            "views": [(view.id, "form")],
+            "target": "current",
+        }
+
+    def _validate_product_step(self):
+        self.ensure_one()
+        if not self.product_id:
+            if self.mode == "new":
+                raise UserError(_(
+                    "Vui lòng tạo sản phẩm mới trước khi sang bước Định mức BOM."))
+            raise UserError(_(
+                "Vui lòng chọn sản phẩm trước khi sang bước Định mức BOM."))
+
+    def _validate_bom_step(self):
+        self.ensure_one()
+        if not self.selected_bom_id:
+            raise UserError(_(
+                "Vui lòng chọn hoặc tạo BOM trước khi sang bước Xác nhận."))
+        if self.selected_bom_id.product_id != self.product_id:
+            raise UserError(_("Định mức đã chọn không thuộc sản phẩm đã chọn."))
+        if self.selected_bom_id.status not in ("confirmed", "locked"):
+            raise UserError(_(
+                "BOM phải ở trạng thái Đã xác nhận hoặc Đã khóa trước khi tiếp tục."))
+
+    def action_next_step(self):
+        self.ensure_one()
+        if self.is_infeasible:
+            raise UserError(_(
+                "Hãy xác nhận Không khả thi hoặc bỏ lựa chọn này để tiếp tục."))
+        if self.step == "product":
+            self._validate_product_step()
+            self.step = "bom"
+        elif self.step == "bom":
+            self._validate_product_step()
+            self._validate_bom_step()
+            self.step = "confirm"
+        return self._action_reload()
+
+    def action_previous_step(self):
+        self.ensure_one()
+        if self.step == "confirm":
+            self.step = "bom"
+        elif self.step == "bom":
+            self.step = "product"
+        return self._action_reload()
+
+    def action_cancel(self):
+        # Giữ bản tạm để KTV có thể mở lại đúng dòng và tiếp tục. Cron sẽ chỉ
+        # dọn bản không dùng sau khoảng an toàn cấu hình.
+        return self._action_return_to_rfq()
 
     def _next_version(self, product, bom_type="quotation"):
         existing = self.env["dl.bom"].search([
             ("product_id", "=", product.id), ("bom_type", "=", bom_type)])
         return (max(existing.mapped("version")) + 1) if existing else 1
+
+    def _action_open_bom(self, bom, name=None):
+        """Đẩy form BOM lên breadcrumb, giữ workspace hiện tại ở phía sau."""
+        self.ensure_one()
+        view = self.env.ref("dl_technical.view_dl_bom_form")
+        return {
+            "type": "ir.actions.act_window",
+            "name": name or bom.display_name,
+            "res_model": "dl.bom",
+            "res_id": bom.id,
+            "view_mode": "form",
+            "views": [(view.id, "form")],
+            "target": "current",
+        }
 
     def action_create_product(self):
         """Case B — tạo Product mới (không tạo trùng: dùng chính product_id
@@ -127,60 +361,96 @@ class DlRfqResolveWizard(models.TransientModel):
         self.ensure_one()
         if not self.new_product_name:
             raise UserError(_("Vui lòng nhập Tên sản phẩm mới."))
-        vals = {
+        if not self.new_product_category_id:
+            raise UserError(_("Vui lòng chọn Nhóm sản phẩm."))
+        # Soi trùng LẠI ngay lúc bấm (không tin state đã compute) — chặn tạo SP
+        # trùng hệt, và đòi xác nhận nếu chỉ gần giống.
+        matches = self.env["product.product"]._dlm_find_name_matches(
+            self.new_product_name,
+            kinds=("manufactured", "material_processed"),
+            extra_domain=[("is_rfq_provisional", "=", False)],
+        )
+        if matches["exact"]:
+            dup = matches["exact"][0]
+            raise UserError(_(
+                "Đã tồn tại sản phẩm “%(name)s” (nhóm %(categ)s). Không tạo "
+                "trùng — chuyển sang “Sản phẩm đã từng gia công” và chọn lại "
+                "sản phẩm này (nút “Dùng sản phẩm này”).",
+                name=dup.display_name,
+                categ=dup.categ_id.display_name or _("chưa phân nhóm")))
+        if matches["similar"] and not self.confirm_similar_name:
+            names = ", ".join(matches["similar"][:5].mapped("display_name"))
+            raise UserError(_(
+                "Có sản phẩm gần giống: %s.\nNếu đây thực sự là sản phẩm khác, "
+                "hãy tick “Xác nhận đây thực sự là sản phẩm khác” rồi tạo lại.")
+                % names)
+        self.rfq_line_id._cleanup_rfq_provisional_records()
+        product = self.env["product.product"].create({
             "name": self.new_product_name,
+            "categ_id": self.new_product_category_id.id,
             "product_kind": "manufactured",
             # Case B "hoàn toàn mới": SP nằm ở Nháp cho tới khi đơn chốt/duyệt.
             "dlm_lifecycle_state": "draft",
-        }
-        # Nhóm sản phẩm KHÔNG bắt buộc — bỏ trống thì dùng nhóm mặc định của
-        # Odoo (All), gán lại sau cũng được.
-        if self.new_product_category_id:
-            vals["categ_id"] = self.new_product_category_id.id
-        product = self.env["product.product"].create(vals)
+            "is_rfq_provisional": True,
+            "rfq_source_line_id": self.rfq_line_id.id,
+        })
         self.product_id = product.id
         self.mode = "existing"
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "dl.rfq.resolve.wizard",
-            "res_id": self.id,
-            "view_mode": "form",
-            "target": "new",
-        }
+        return self._action_reload()
+
+    def action_use_duplicate_product(self):
+        """Từ cảnh báo trùng hệt: chọn lại SP có sẵn thay vì tạo bản trùng."""
+        self.ensure_one()
+        if not self.name_dup_exact_id:
+            raise UserError(_("Không xác định được sản phẩm trùng để chọn lại."))
+        self.write({
+            "mode": "existing",
+            "product_id": self.name_dup_exact_id.id,
+            "new_product_name": False,
+            "confirm_similar_name": False,
+        })
+        return self._action_reload()
 
     def action_create_bom(self):
-        """Tạo BOM mới cho product_id rồi mở NGUYÊN màn Product BOM (form
-        dl.bom mặc định) dưới dạng modal — khai báo dòng vật tư / Create From
-        BOM Template... bằng đúng UI BOM hiện có."""
+        """Tạo BOM nháp rồi mở form BOM full-page trên breadcrumb workspace."""
         self.ensure_one()
         if not self.product_id:
-            raise UserError(_("Vui lòng chọn hoặc tạo Product trước."))
+            raise UserError(_("Vui lòng chọn hoặc tạo sản phẩm trước."))
+        self.rfq_line_id._cleanup_rfq_provisional_records(
+            keep_product_ids=self.product_id.ids)
         bom = self.env["dl.bom"].create({
             "product_id": self.product_id.id,
             "version": self._next_version(self.product_id),
             "bom_type": "quotation",
             "status": "draft",
+            "is_rfq_provisional": True,
+            "rfq_source_line_id": self.rfq_line_id.id,
         })
         self.selected_bom_id = bom.id
-        return {
-            "type": "ir.actions.act_window",
-            "name": _("BOM mới"),
-            "res_model": "dl.bom",
-            "res_id": bom.id,
-            "view_mode": "form",
-            "target": "new",
-        }
+        return self._action_open_bom(bom, _("BOM mới"))
 
     def action_edit_selected_bom(self):
-        """Sửa BOM theo yêu cầu khách — KHÔNG đụng bản gốc: tự tạo phiên bản
-        mới (reuse dl.bom.action_create_new_version) rồi mở form để sửa."""
+        """Mở BOM nháp để sửa; BOM đã duyệt thì sao chép thành version nháp.
+
+        Không tạo thêm version nếu người dùng đang chỉnh chính một BOM nháp.
+        """
         self.ensure_one()
         if not self.selected_bom_id:
             raise UserError(_("Vui lòng chọn 1 BOM trước khi chỉnh sửa."))
-        result = self.selected_bom_id.action_create_new_version()
-        self.selected_bom_id = result.get("res_id")
-        result["target"] = "new"
-        return result
+        bom = self.selected_bom_id
+        if bom.status != "draft":
+            result = bom.action_create_new_version()
+            bom = self.env["dl.bom"].browse(result["res_id"])
+            bom.write({
+                "is_rfq_provisional": True,
+                "rfq_source_line_id": self.rfq_line_id.id,
+            })
+            self.selected_bom_id = bom.id
+            self.rfq_line_id._cleanup_rfq_provisional_records(
+                keep_product_ids=self.product_id.ids,
+                keep_bom_ids=bom.ids,
+            )
+        return self._action_open_bom(bom, _("Chỉnh sửa BOM cho RFQ"))
 
     def action_mark_infeasible(self):
         """Kết luận dòng RFQ là không khả thi — ghi thẳng lên dòng, xóa Product/
@@ -194,22 +464,37 @@ class DlRfqResolveWizard(models.TransientModel):
             "resolved_product_id": False,
             "resolved_bom_id": False,
         })
-        return {"type": "ir.actions.act_window_close"}
+        self.rfq_line_id._cleanup_rfq_provisional_records()
+        return self._action_return_to_rfq()
 
     def action_confirm(self):
         self.ensure_one()
         if self.rfq_line_id.product_type == "trading":
             raise UserError(_(
                 "Dòng Sản phẩm thương mại không xử lý qua màn này."))
-        if not self.product_id:
-            raise UserError(_("Vui lòng chọn hoặc tạo Product trước khi xác nhận."))
-        if not self.selected_bom_id:
-            raise UserError(_("Vui lòng chọn hoặc tạo BOM trước khi xác nhận."))
-        if self.selected_bom_id.product_id != self.product_id:
-            raise UserError(_("BOM đã chọn không thuộc Product đã chọn."))
+        self._validate_product_step()
+        self._validate_bom_step()
 
         self.rfq_line_id.write({
             "resolved_product_id": self.product_id.id,
             "resolved_bom_id": self.selected_bom_id.id,
+            # Cho phép sửa một kết luận "Không khả thi" thành phương án khả thi
+            # ngay trong cùng cửa xử lý, không cần mở field kết quả trực tiếp.
+            "is_infeasible": False,
+            "infeasible_reason": False,
         })
-        return {"type": "ir.actions.act_window_close"}
+        if self.product_id.is_rfq_provisional:
+            self.product_id.write({"is_rfq_provisional": False})
+            self.product_id.message_post(body=_(
+                "Sản phẩm tạm đã được chính thức hóa khi hoàn tất dòng RFQ %s.")
+                % self.rfq_line_id.display_name)
+        if self.selected_bom_id.is_rfq_provisional:
+            self.selected_bom_id.write({"is_rfq_provisional": False})
+            # Xác nhận BOM trong workspace chỉ duyệt nội dung; đến đây mới được
+            # phép thay thế phiên bản hiện hành của sản phẩm.
+            self.selected_bom_id._set_current_version()
+            self.selected_bom_id.message_post(body=_(
+                "BOM tạm đã được chính thức hóa khi hoàn tất dòng RFQ %s.")
+                % self.rfq_line_id.display_name)
+        self.rfq_line_id._cleanup_rfq_provisional_records()
+        return self._action_return_to_rfq()

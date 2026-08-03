@@ -43,10 +43,13 @@
         background-color: $dl-app-bg;
     }
 
-    // Ẩn checkbox column, cột active, tfoot
+    // Ẩn checkbox column, cột active, tfoot.
+    // KHÔNG ẩn cột button (th/td.o_list_button — vd nút "Nhận RFQ" trên list
+    // RFQ): cột button không có data-name/name nên phải loại trừ tường minh,
+    // nếu không sẽ bị ẩn oan theo rule checkbox.
     .o_list_table {
-        thead th:not([data-name]) { display: none !important; }
-        tbody td:not([name]) { display: none !important; }
+        thead th:not([data-name]):not(.o_list_button) { display: none !important; }
+        tbody td:not([name]):not(.o_list_button) { display: none !important; }
         th[data-name="active"], td[name="active"] { display: none !important; }
         tfoot { display: none !important; }
         tbody td { background-color: transparent !important; }

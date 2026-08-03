@@ -119,10 +119,26 @@
     <menuitem
         id="menu_dl_pricing_material"
         name="Bảng giá Vật tư"
-        action="action_dl_product_pricing_material"
+        action="action_dl_supplierinfo_material_full"
         parent="menu_dl_pricing_root"
         sequence="20"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_accountant"
+    />
+    <!-- menuitem/groups cộng dồn ở một số database đã nâng cấp; lệnh (6, ...)
+         bảo đảm loại bỏ hẳn CEO/Trưởng KD khỏi action có quyền chỉnh sửa. -->
+    <record id="menu_dl_pricing_material" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_accountant'),
+        ])]" />
+    </record>
+    <menuitem
+        id="menu_dl_pricing_material_view"
+        name="Bảng giá Vật tư"
+        action="action_dl_supplierinfo_material_view"
+        parent="menu_dl_pricing_root"
+        sequence="20"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
 
     <!-- ============================================================

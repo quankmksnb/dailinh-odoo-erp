@@ -14,6 +14,16 @@
         <field name="model">product.product</field>
         <field name="inherit_id" ref="dl_product.view_dl_product_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//sheet/*[1]" position="before">
+                <field name="is_rfq_provisional" invisible="1"/>
+                <widget name="web_ribbon" title="Tạm từ RFQ"
+                        bg_color="text-bg-info" invisible="not is_rfq_provisional"/>
+                <div class="alert alert-info" role="status"
+                     invisible="not is_rfq_provisional">
+                    Sản phẩm này đang được giữ tạm cho một dòng RFQ chưa hoàn tất.
+                    <field name="rfq_source_line_id" readonly="1"/>
+                </div>
+            </xpath>
             <xpath expr="//page[@name='boms']/div" position="replace">
                 <!-- bom_ids là computed field (chỉ đọc) — không hỗ trợ "Add a
                      line" trực tiếp. Dùng nút bên dưới để tạo BOM mới. -->
@@ -32,6 +42,17 @@
                 </field>
             </xpath>
         </field>
+    </record>
+
+    <!-- Dữ liệu tạm chỉ được mở qua RFQ nguồn, không lẫn vào danh mục chính. -->
+    <record id="dl_product.action_dl_product_full" model="ir.actions.act_window">
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading']), ('is_rfq_provisional', '=', False)]</field>
+    </record>
+    <record id="dl_product.action_dl_product_tech" model="ir.actions.act_window">
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading']), ('is_rfq_provisional', '=', False)]</field>
+    </record>
+    <record id="dl_product.action_dl_product_view" model="ir.actions.act_window">
+        <field name="domain">[('product_kind', 'in', ['manufactured', 'trading']), ('is_rfq_provisional', '=', False)]</field>
     </record>
 
 </odoo>

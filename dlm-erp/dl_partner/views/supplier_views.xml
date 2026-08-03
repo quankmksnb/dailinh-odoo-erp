@@ -46,19 +46,27 @@
                         <div class="dl-cust-head-main">
                             <label for="name" string="Tên NCC / Thầu phụ"/>
                             <h1>
-                                <field name="name" placeholder="Tên NCC / Thầu phụ..."/>
+                                <field name="name" string="Tên NCC / Thầu phụ" placeholder="Tên NCC / Thầu phụ..." required="1"/>
                             </h1>
                             <field name="partner_type" widget="radio"
                                    options="{'horizontal': true}" nolabel="1"
                                    class="dl-cust-type-seg"/>
                         </div>
 
+                    </div>
+
+                    <!-- Gộp hồ sơ khi đối tác đã là Khách hàng — chỉ hiện lúc tạo
+                         mới. Rút gọn còn 1 dòng (review UX supplier #f3). -->
+                    <div class="alert alert-info dl-cust-mergebox" role="status"
+                         invisible="id">
+                        <div class="fw-bold mb-2">
+                            <i class="fa fa-link me-1"/>Đã là Khách hàng? Chọn tên bên dưới để gộp thành một hồ sơ chung — để trống nếu là NCC mới.
+                        </div>
                         <field name="pending_link_partner_id"
-                            string="Khách hàng trùng tên (nếu có)"
+                            nolabel="1"
                             context="{'dl_link_search_role': 'customer'}"
                             options="{'no_open': True, 'no_create': True}"
-                            invisible="id"
-                            placeholder="Tìm Khách Hàng..."/>
+                            placeholder="Gõ tên Khách hàng để tìm và gộp..."/>
                     </div>
 
                     <group>

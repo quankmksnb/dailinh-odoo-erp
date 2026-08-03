@@ -79,7 +79,10 @@
         <field name="inherit_id" ref="view_dl_product_search" />
         <field name="mode">primary</field>
         <field name="arch" type="xml">
-            <xpath expr="//filter[@name='f_lc_obsolete']/following-sibling::separator[1]"
+            <!-- Bỏ nhóm lọc "Loại SP" (domain action đã cố định 1 loại) cùng
+                 dấu ngăn cách đứng trước nó. Xóa separator TRƯỚC khi xóa filter
+                 mốc để xpath còn tham chiếu được. -->
+            <xpath expr="//filter[@name='f_trading']/preceding-sibling::separator[1]"
                 position="replace" />
             <filter name="f_manufactured" position="replace" />
             <filter name="f_trading" position="replace" />
@@ -90,18 +93,18 @@
     <record id="action_dl_product_pricing" model="ir.actions.act_window">
         <field name="name">Bảng giá Sản phẩm thương mại</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_pricing_search" />
         <field name="domain">[('product_kind', '=', 'trading')]</field>
         <field name="context">{'create': False, 'delete': False,
-            'dl_kind_scope': ['trading'], 'search_default_active': 1}</field>
+            'dl_kind_scope': ['trading']}</field>
         <!-- KTV không được vào Bảng giá; Kế toán toàn quyền sửa (ACL/ir.rule),
              CEO/Trưởng phòng KD chỉ xem (ACL write=0) -->
         <field name="groups_id"
@@ -145,18 +148,18 @@
     <record id="action_dl_product_pricing_material" model="ir.actions.act_window">
         <field name="name">Bảng giá Vật tư</field>
         <field name="res_model">product.product</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">tree,kanban,form</field>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'kanban', 'view_id': ref('view_dl_product_kanban')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_material_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_product_pricing_search" />
         <field name="domain">[('product_kind', '=', 'material')]</field>
         <field name="context">{'create': False, 'delete': False,
-            'dl_kind_scope': ['material'], 'search_default_active': 1}</field>
+            'dl_kind_scope': ['material']}</field>
         <field name="groups_id"
             eval="[(6, 0, [
                 ref('dl_base.dl_group_admin'),

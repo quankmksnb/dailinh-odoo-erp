@@ -1,87 +1,127 @@
-// S03 — Form Khách hàng. Phần đặc thù: avatar, mã KH, radio segment loại KH.
+// S03/S04 — Form Khách hàng & NCC.
+// Layout dùng chung (avatar, đầu form, radio segment loại, khối gộp hồ sơ) áp cho
+// CẢ HAI form vì hai màn dùng chung bộ class dl-cust-*. Phần đặc thù (mã KH, badge
+// nhóm khách) giữ riêng ở .dl-customer-form.
+
+// ── Layout dùng chung cho cả 2 form ────────────────────────────────────
+.dl-customer-form,
+.dl-supplier-form {
+  .dl-cust-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .dl-cust-form-avatar {
+    flex-shrink: 0;
+
+    img,
+    .o_image {
+      width: 72px !important;
+      height: 72px !important;
+      border-radius: $dl-radius !important;
+      object-fit: cover;
+    }
+  }
+
+  .dl-cust-head-main {
+    flex: 1 1 auto;
+    min-width: 0;
+
+    h1 {
+      margin: 2px 0 10px;
+    }
+    h1 .o_field_widget input {
+      font-size: 18px;
+    }
+  }
+
+  .dl-cust-type-seg {
+    .o_radio_input,
+    input[type="radio"] {
+      display: none;
+    }
+
+    .o_radio_item {
+      display: inline-flex;
+      margin-right: 8px;
+    }
+
+    label.o_form_label,
+    .o_radio_item > label,
+    .o_radio_item label {
+      margin: 0;
+      padding: 5px 16px;
+      border: 1px solid $dl-border;
+      border-radius: $dl-radius-sm;
+      font-size: 13px;
+      color: $dl-text-2;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .o_radio_input:checked + label,
+    input[type="radio"]:checked + label {
+      background: $dl-primary;
+      border-color: $dl-primary;
+      color: #fff;
+      font-weight: 500;
+    }
+  }
+
+  // Khối "gộp hồ sơ" — ô tìm rộng vừa đủ đọc hết placeholder, không kéo dài cả form
+  .dl-cust-mergebox {
+    .o_field_widget,
+    .o_field_many2one {
+      width: 100%;
+      max-width: 480px;
+    }
+    .o_input_dropdown,
+    .o_input_dropdown input {
+      width: 100%;
+    }
+  }
+}
+
+// ── Riêng form Khách hàng: mã KH + badge nhóm khách ─────────────────────
 .dl-customer-form {
-    .dl-cust-code {
-        display: inline;
-        font-size: 12px;
-        font-weight: 600;
-        color: $dl-text-muted;
-        margin: 0;
+  .dl-cust-code {
+    display: inline;
+    font-size: 12px;
+    font-weight: 600;
+    color: $dl-text-muted;
+    margin: 0;
 
-        .o_field_widget { font-weight: 700; color: $dl-primary; }
+    .o_field_widget {
+      font-weight: 700;
+      color: $dl-primary;
     }
+  }
 
-    .dl-cust-group-badge {
-        display: inline-flex;
-        vertical-align: middle;
-        margin-left: 8px;
-        .badge { font-size: 11px; font-weight: 600; }
+  .dl-cust-group-badge {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 8px;
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
     }
+  }
 
-    .dl-cust-code + .dl-cust-group-badge { margin-left: 8px; }
+  .dl-cust-code + .dl-cust-group-badge {
+    margin-left: 8px;
+  }
 
-    .dl-cust-head-main > .dl-cust-code,
-    .dl-cust-head-main > .dl-cust-group-badge {
-        margin-bottom: 0;
-    }
+  .dl-cust-head-main > .dl-cust-code,
+  .dl-cust-head-main > .dl-cust-group-badge {
+    margin-bottom: 0;
+  }
 
-    .dl-cust-head-main > h1 + .dl-cust-code,
-    .dl-cust-head-main > h1 + .dl-cust-group-badge,
-    .dl-cust-head-main > .dl-cust-code + .dl-cust-group-badge {
-        margin-top: 0;
-        margin-bottom: 6px;
-    }
-
-    .dl-cust-head {
-        display: flex;
-        align-items: flex-start;
-        gap: 16px;
-        margin-bottom: 12px;
-    }
-
-    .dl-cust-form-avatar {
-        flex-shrink: 0;
-
-        img, .o_image {
-            width: 72px !important;
-            height: 72px !important;
-            border-radius: $dl-radius !important;
-            object-fit: cover;
-        }
-    }
-
-    .dl-cust-head-main {
-        flex: 1 1 auto;
-        min-width: 0;
-
-        h1 { margin: 2px 0 10px; }
-        h1 .o_field_widget input { font-size: 18px; }
-    }
-
-    .dl-cust-type-seg {
-        .o_radio_input,
-        input[type="radio"] { display: none; }
-
-        .o_radio_item { display: inline-flex; margin-right: 8px; }
-
-        label.o_form_label,
-        .o_radio_item > label,
-        .o_radio_item label {
-            margin: 0;
-            padding: 5px 16px;
-            border: 1px solid $dl-border;
-            border-radius: $dl-radius-sm;
-            font-size: 13px;
-            color: $dl-text-2;
-            cursor: pointer;
-            transition: all .15s;
-        }
-
-        .o_radio_input:checked + label,
-        input[type="radio"]:checked + label {
-            background: $dl-primary;
-            border-color: $dl-primary;
-            color: #fff;
-            font-weight: 500;
-        }
-    }
+  .dl-cust-head-main > h1 + .dl-cust-code,
+  .dl-cust-head-main > h1 + .dl-cust-group-badge,
+  .dl-cust-head-main > .dl-cust-code + .dl-cust-group-badge {
+    margin-top: 0;
+    margin-bottom: 6px;
+  }
 }

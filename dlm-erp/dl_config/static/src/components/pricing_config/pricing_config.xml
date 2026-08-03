@@ -140,10 +140,13 @@
                         <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('operation')"
                                 t-on-click="() => this.openCreate('operation')"><i class="fa fa-plus"/> Thêm quy tắc</button>
                     </div>
+                    <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
+                        Đơn giá gia công theo từng công đoạn (cắt, hàn, sơn…) — cộng vào giá thành khi tính báo giá. Thay đổi phải <b>gửi duyệt</b> mới có hiệu lực.
+                    </div>
                     <table class="dl-cfg-table">
                         <thead><tr>
                             <th>Công đoạn</th><th>Phương pháp</th><th class="num">Đơn giá/Tỷ lệ</th>
-                            <th class="num">Phí setup</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                            <th class="num">Phí chuẩn bị</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
                             <t t-foreach="state.rows.operation" t-as="r" t-key="r.id">
@@ -171,10 +174,13 @@
                         <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('cost')"
                                 t-on-click="() => this.openCreate('cost')"><i class="fa fa-plus"/> Thêm khoản</button>
                     </div>
+                    <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
+                        Các khoản chi phí chung / hệ số điều chỉnh áp lên giá thành (vd: quản lý, vận chuyển). Thay đổi phải <b>gửi duyệt</b> mới có hiệu lực.
+                    </div>
                     <table class="dl-cfg-table">
                         <thead><tr>
                             <th>Tên khoản</th><th>Loại</th><th>Cách tính</th><th class="num">Giá trị</th>
-                            <th>Không CK</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
+                            <th>Không áp dụng chiết khấu</th><th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
                             <t t-foreach="state.rows.cost" t-as="r" t-key="r.id">
@@ -197,6 +203,12 @@
 
             <!-- ============ TAB LỢI NHUẬN & CHIẾT KHẤU ============ -->
             <t t-if="!state.loading and state.tab === 'commercial'">
+                <!-- Cảnh báo cấu hình GHIM đầu tab (review UX config #f3) — không
+                     để trôi giữa bảng; dòng vi phạm được tô đỏ ở bảng bên dưới. -->
+                <div class="dl-pc-warnbox pinned" t-if="discountLadderWarning">
+                    <i class="fa fa-exclamation-triangle" title="Cảnh báo cấu hình"/>
+                    <span t-esc="discountLadderWarning"/>
+                </div>
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">Phân loại khách hàng tự động</span>
@@ -245,20 +257,31 @@
                             <tr t-if="!state.rows.profit.length"><td colspan="5" class="dl-cfg-empty">Chưa có chính sách lợi nhuận.</td></tr>
                         </tbody>
                     </table>
+                </div>
 
-                    <div class="dl-cfg-subhead">
-                        <span>Chiết khấu theo nhóm khách hàng</span>
-                        <button class="dl-cfg-mini" type="button" t-att-disabled="!canEdit('discount')"
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Chiết khấu theo nhóm khách hàng</span>
+                        <button class="dl-cfg-mini" type="button" t-if="discountHistoryCount" t-on-click="() => this.toggleDiscountHistory()">
+                            <i class="fa fa-history"/>
+                            <t t-esc="state.discountShowHistory ? 'Ẩn lịch sử' : 'Lịch sử (' + discountHistoryCount + ')'"/>
+                        </button>
+                        <button class="dl-cfg-save" type="button" t-att-disabled="!canEdit('discount')"
                                 t-on-click="() => this.openCreate('discount')"><i class="fa fa-plus"/> Thêm chính sách</button>
                     </div>
+                    <p class="dl-pc-hint">
+                        Xếp theo độ gắn bó: <b>Khách mới → Khách cũ → Khách thân thiết</b>.
+                        Chiết khấu (cả mặc định lẫn tối đa) phải <b>không giảm dần</b> theo thứ tự đó —
+                        khách gắn bó lâu hơn không được ưu đãi thấp hơn khách mới. Thay đổi phải <b>gửi duyệt</b> mới có hiệu lực.
+                    </p>
                     <table class="dl-cfg-table">
                         <thead><tr>
                             <th>Nhóm khách</th><th class="num">Mặc định (%)</th><th class="num">Tối đa (%)</th>
                             <th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
-                            <t t-foreach="state.rows.discount" t-as="r" t-key="r.id">
-                                <tr>
+                            <t t-foreach="discountRows" t-as="r" t-key="r.id">
+                                <tr t-att-class="{ 'is-violation': discountViolationIds.has(r.id) }">
                                     <td class="nm" t-esc="lab('customerGroup', r.customer_group)"/>
                                     <td class="num" t-esc="r.default_rate"/>
                                     <td class="num" t-esc="r.max_rate"/>
@@ -267,7 +290,7 @@
                                     <td class="actw"><t t-call="dl_config.PcCommActions"><t t-set="section" t-value="'discount'"/></t></td>
                                 </tr>
                             </t>
-                            <tr t-if="!state.rows.discount.length"><td colspan="6" class="dl-cfg-empty">Chưa có chính sách chiết khấu.</td></tr>
+                            <tr t-if="!discountRows.length"><td colspan="6" class="dl-cfg-empty">Chưa có chính sách chiết khấu đang áp dụng.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -288,6 +311,12 @@
                     </button>
                 </div>
 
+                <!-- Cảnh báo cấu hình ma trận GHIM đầu tab (review UX config #f3). -->
+                <div class="dl-pc-warnbox pinned" t-if="state.approvalSub === 'matrix' and matrixLadderWarning">
+                    <i class="fa fa-exclamation-triangle" title="Cảnh báo cấu hình"/>
+                    <span t-esc="matrixLadderWarning"/>
+                </div>
+
                 <!-- Màn con 1: Ma trận duyệt báo giá -->
                 <div class="dl-cfg-panel" t-if="state.approvalSub === 'matrix'">
                     <div class="dl-cfg-panel-head">
@@ -306,14 +335,10 @@
                         Giám đốc duyệt là dòng tự kích hoạt (từ chối thì trả về Nháp để sửa tiếp).
                         Chỉ Giám đốc/Admin được <b>Áp dụng</b> trực tiếp hoặc <b>Ngừng</b>.
                     </p>
-                    <div class="dl-pc-warnbox" t-if="matrixLadderWarning">
-                        <i class="fa fa-exclamation-triangle" title="Cảnh báo cấu hình"/>
-                        <span t-esc="matrixLadderWarning"/>
-                    </div>
                     <table class="dl-cfg-table">
                         <thead><tr>
                             <th class="num">Ngưỡng giá trị từ</th><th>Cấp duyệt</th><th>Người duyệt cụ thể</th>
-                            <th>Hiệu lực từ</th><th>Trạng thái</th><th class="num">Rev</th><th class="actw"></th>
+                            <th>Hiệu lực từ</th><th>Trạng thái</th><th class="num">Phiên bản</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
                             <t t-foreach="matrixRows" t-as="r" t-key="r.id">
@@ -437,7 +462,7 @@
                         <button class="dl-cfg-mini" type="button" t-att-disabled="!canEdit('master')" t-on-click="addComplexity"><i class="fa fa-plus"/> Thêm mức</button>
                     </div>
                     <table class="dl-cfg-table">
-                        <thead><tr><th>Mức</th><th class="num">Hệ số</th><th>Gợi ý</th><th>Dùng</th><th class="act"></th></tr></thead>
+                        <thead><tr><th>Mức</th><th class="num">Hệ số</th><th>Gợi ý</th><th>Đang dùng</th><th class="act"></th></tr></thead>
                         <tbody>
                             <t t-foreach="state.rows.complexity" t-as="r" t-key="r.id">
                                 <tr>
@@ -456,7 +481,7 @@
                         <button class="dl-cfg-mini" type="button" t-att-disabled="!canEdit('master')" t-on-click="addOperation"><i class="fa fa-plus"/> Thêm công đoạn</button>
                     </div>
                     <table class="dl-cfg-table">
-                        <thead><tr><th>Mã</th><th>Tên công đoạn</th><th>Dùng</th><th class="act"></th></tr></thead>
+                        <thead><tr><th>Mã</th><th>Tên công đoạn</th><th>Đang dùng</th><th class="act"></th></tr></thead>
                         <tbody>
                             <t t-foreach="state.rows.opcat" t-as="r" t-key="r.id">
                                 <tr>
@@ -545,7 +570,7 @@
                                 </select></label>
                             <label class="dl-cfg-f"><span class="k">Đơn giá / Tỷ lệ</span>
                                 <input type="number" step="0.01" t-model.number="state.form.price_rate"/></label>
-                            <label class="dl-cfg-f"><span class="k">Phí setup/lô</span>
+                            <label class="dl-cfg-f"><span class="k">Phí chuẩn bị/lô</span>
                                 <input type="number" step="1000" t-model.number="state.form.setup_fee"/></label>
                         </t>
                         <!-- COST -->

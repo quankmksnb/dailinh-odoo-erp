@@ -24,11 +24,14 @@ export class DlProductListController extends DlListBaseController {
                 ],
             },
             {
-                key: "status",
+                // Trạng thái sử dụng (vòng đời) — trục chính để tìm nhanh SP/vật
+                // tư đã "Ngừng sử dụng" mà không phải mở ô tìm kiếm thô.
+                key: "lifecycle",
                 label: "Tất cả trạng thái",
                 filters: [
-                    { name: "active", label: "Đang dùng" },
-                    { name: "inactive", label: "Ngừng" },
+                    { name: "f_lc_draft", label: "Nháp / Kỹ thuật" },
+                    { name: "f_lc_active", label: "Đã duyệt" },
+                    { name: "f_lc_obsolete", label: "Ngừng sử dụng" },
                 ],
             },
         ];

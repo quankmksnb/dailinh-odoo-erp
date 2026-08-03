@@ -1,5 +1,12 @@
+import logging
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
+
+from .rfq_provisional_utils import has_stored_many2one_reference
+
+
+_logger = logging.getLogger(__name__)
 
 
 class DlBom(models.Model):
@@ -15,6 +22,23 @@ class DlBom(models.Model):
             "Phiên bản BOM của sản phẩm đã tồn tại.",
         ),
     ]
+
+    is_rfq_provisional = fields.Boolean(
+        string="Dữ liệu tạm từ RFQ",
+        default=False,
+        copy=False,
+        index=True,
+        tracking=True,
+        help="BOM được tạo/copy trong workspace RFQ nhưng dòng RFQ chưa hoàn tất.",
+    )
+    rfq_source_line_id = fields.Many2one(
+        "dl.quotation.request.line",
+        string="Dòng RFQ nguồn",
+        ondelete="set null",
+        copy=False,
+        index=True,
+        tracking=True,
+    )
 
     name = fields.Char(
         string="Mã BOM",
@@ -45,7 +69,10 @@ class DlBom(models.Model):
         required=True,
         tracking=True,
         ondelete="restrict",
-        domain="[('product_kind', 'in', ('manufactured', 'material_processed'))]"
+        # Không cho dựng BOM cho SP đã Ngừng (obsolete); vẫn cho SP Nháp vì
+        # luồng RFQ tạo SP gia công ở Nháp rồi mới lập BOM.
+        domain="[('product_kind', 'in', ('manufactured', 'material_processed')),"
+               " ('dlm_lifecycle_state', '!=', 'obsolete')]"
                " + ([('categ_id', '=', category_id)] if category_id else [])",
     )
 
@@ -64,6 +91,10 @@ class DlBom(models.Model):
         "dl.bom.line",
         "bom_id",
         string="Danh sách vật tư",
+        # Odoo mặc định KHÔNG copy one2many khi duplicate record — bật lên để
+        # "Tạo phiên bản mới"/"Copy BOM" (action_create_new_version → copy())
+        # mang theo toàn bộ dòng vật tư sang version mới.
+        copy=True,
     )
 
     total_material_cost = fields.Float(
@@ -155,6 +186,18 @@ class DlBom(models.Model):
             if rec.product_qty <= 0:
                 raise ValidationError(_("Số lượng đầu ra phải lớn hơn 0."))
 
+    @api.constrains("product_id")
+    def _check_product_not_obsolete(self):
+        """Chặn cứng lập BOM cho SP đã Ngừng (song song domain UI, bịt import/API).
+        Chỉ khai theo product_id ⇒ chỉ chạy khi tạo BOM mới hoặc đổi SP; BOM cũ
+        có SP sau này bị Ngừng không bị chặn khi sửa việc khác."""
+        for rec in self:
+            if rec.product_id.dlm_lifecycle_state == "obsolete":
+                raise ValidationError(_(
+                    "Sản phẩm '%s' đã Ngừng sử dụng — không thể lập BOM mới cho "
+                    "sản phẩm này."
+                ) % rec.product_id.display_name)
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -166,22 +209,75 @@ class DlBom(models.Model):
         self.ensure_one()
         return [("bom_type", "=", self.bom_type), ("product_id", "=", self.product_id.id)]
 
+    def _should_set_current_version(self):
+        self.ensure_one()
+        return not self.is_rfq_provisional
+
+    def action_lock(self):
+        if self.filtered("is_rfq_provisional"):
+            raise UserError(_(
+                "BOM tạm từ RFQ chưa thể khóa. Hãy quay lại workspace và bấm "
+                "'Hoàn tất dòng' trước."))
+        return super().action_lock()
+
+    def action_archive(self):
+        if self.filtered("is_rfq_provisional"):
+            raise UserError(_(
+                "Không thể lưu trữ BOM tạm từ RFQ. Hãy hoàn tất hoặc bỏ phương án "
+                "trên dòng RFQ nguồn."))
+        return super().action_archive()
+
+    def action_create_new_version(self):
+        self.ensure_one()
+        result = super().action_create_new_version()
+        if self.is_rfq_provisional:
+            self.browse(result["res_id"]).write({
+                "is_rfq_provisional": True,
+                "rfq_source_line_id": self.rfq_source_line_id.id,
+            })
+        return result
+
+    def _cleanup_unused_rfq_provisional(self):
+        """Delete unused RFQ BOMs without touching locked/current/history data."""
+        deleted = 0
+        ignored = {("dl.bom.line", "bom_id")}
+        for bom in self.sudo().exists():
+            if (not bom.is_rfq_provisional
+                    or bom.status not in ("draft", "confirmed")
+                    or bom.is_current):
+                continue
+            if has_stored_many2one_reference(bom, ignored=ignored):
+                continue
+            try:
+                with self.env.cr.savepoint():
+                    bom.unlink()
+                deleted += 1
+            except Exception:
+                _logger.exception(
+                    "Không thể dọn BOM tạm RFQ %s; giữ lại để an toàn.", bom.id)
+        return deleted
+
     @api.onchange("product_id", "bom_type")
     def _onchange_product_version(self):
         if self.product_id:
             self.version = self._compute_next_version()
 
-    def action_open_form_modal(self):
-        """Mở chính BOM này bằng form dl.bom mặc định dưới dạng modal Ở CHẾ ĐỘ
-        SỬA — dùng cho nút bút chì trên bảng BOM Version của màn Nhận RFQ
-        (bấm thẳng vào dòng chỉ mở chế độ xem vì bom_ids là computed readonly)."""
+    def action_open_form(self):
+        """Mở BOM trên trang đầy đủ.
+
+        Khi gọi từ workspace RFQ, web client tự giữ workspace trong breadcrumb;
+        không cần context dò ngược hay nút quay lại riêng trên form BOM.
+        """
         self.ensure_one()
+        view = self.env.ref("dl_technical.view_dl_bom_form")
         return {
             "type": "ir.actions.act_window",
+            "name": self.display_name,
             "res_model": "dl.bom",
             "res_id": self.id,
             "view_mode": "form",
-            "target": "new",
+            "views": [(view.id, "form")],
+            "target": "current",
         }
 
     def action_create_from_template(self):
@@ -224,6 +320,10 @@ class DlBom(models.Model):
         sản phẩm đã được gán 1 nhóm sản phẩm (categ_id). Copy toàn bộ dòng vật
         tư sang 1 BOM mẫu mới (nháp) để Kỹ thuật rà soát/điều chỉnh."""
         self.ensure_one()
+        if self.is_rfq_provisional:
+            raise UserError(_(
+                "BOM này vẫn là dữ liệu tạm của RFQ. Hãy hoàn tất dòng RFQ trước "
+                "khi dùng nó để tạo BOM mẫu."))
         category = self.product_id.categ_id
         if not category:
             raise UserError(_(

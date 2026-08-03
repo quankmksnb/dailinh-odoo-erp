@@ -117,13 +117,18 @@ class DlBomLineMixin(models.AbstractModel):
         "product.product",
         string="Vật tư",
         required=True,
-        domain=[("product_kind", "in", ("material", "material_processed"))],
+        # Loại vật tư đã Ngừng (obsolete) khỏi dropdown chọn dòng BOM mới — giữ
+        # lại Nháp (BTP đang xử lý) nên dùng '!= obsolete' chứ không ép '= active'.
+        # Dòng cũ đã trỏ vật tư sau này bị Ngừng vẫn hiển thị (ngoài domain) như
+        # tín hiệu cần thay; không tự xoá để giữ lịch sử BOM.
+        domain=[("product_kind", "in", ("material", "material_processed")),
+                ("dlm_lifecycle_state", "!=", "obsolete")],
     )
 
     # Step 2 — Rule (đại lượng đo: Area/Length/Width/Height/Perimeter/Volume...).
     measurement_type_id = fields.Many2one(
         "dl.measurement.type",
-        string="Rule",
+        string="Quy tắc tính",
         help="Đại lượng đo dùng để tính định mức (vd Area, Length, Volume...). "
              "Danh sách quản lý sẵn trong hệ thống, không tạo mới ở đây.",
     )
@@ -131,14 +136,14 @@ class DlBomLineMixin(models.AbstractModel):
     # Step 3 (optional) — Shape, lọc theo Rule đã chọn ở trên.
     measurement_shape_id = fields.Many2one(
         "dl.measurement.shape",
-        string="Shape",
+        string="Hình dạng",
         domain="[('measurement_type_id', '=', measurement_type_id)]",
         help="Chọn hình dạng để nhập kích thước và tự tính định mức theo công "
              "thức. Danh sách quản lý sẵn trong hệ thống, không tạo mới ở đây.",
     )
     # Related để dùng trong invisible= của view (ẩn/hiện field kích thước đúng
     # theo Shape) — không thể tham chiếu measurement_shape_id.code trực tiếp.
-    shape_code = fields.Char(related="measurement_shape_id.code", string="Mã Shape")
+    shape_code = fields.Char(related="measurement_shape_id.code", string="Mã hình dạng")
 
     measurement_coefficient = fields.Float(
         string="Hệ số",
@@ -210,6 +215,25 @@ class DlBomLineMixin(models.AbstractModel):
         store=True,
     )
 
+    # Nhóm ĐVT của vật tư (vd Khối lượng/Diện tích/Chiều dài/Đơn vị đếm) — dùng
+    # làm domain lọc Rule hiển thị: chỉ Rule cùng nhóm ĐVT với vật tư mới hợp
+    # lý (vd vật tư UoM=kg thì không cho chọn Rule "Thể tích").
+    material_uom_category_id = fields.Many2one(
+        "uom.category", string="Nhóm ĐVT của Vật tư",
+        related="uom_id.category_id")
+
+    # Có ít nhất 1 Rule tương thích với UoM vật tư không — vật tư dạng đếm
+    # (Cái/Con/Bộ...) không map Rule nào thì ẨN HẲN khối Rule/Shape/Kích
+    # thước, chỉ còn nhập tay Số lượng (xem view: bom_views.xml/bom_template_views.xml).
+    rule_applicable = fields.Boolean(
+        string="Có quy tắc phù hợp", compute="_compute_rule_applicable")
+
+    # Nhãn hệ số hiển thị theo Shape đã chọn (vd "Khối lượng riêng (kg/m³)")
+    # — field coefficient_label có sẵn trên dl.measurement.shape nhưng trước
+    # giờ chưa dùng ở đâu; hiển thị làm helper text dưới field Hệ số.
+    shape_coefficient_label = fields.Char(
+        related="measurement_shape_id.coefficient_label")
+
     # ==========================================================
     # COMPUTE
     # ==========================================================
@@ -223,6 +247,14 @@ class DlBomLineMixin(models.AbstractModel):
     def _compute_uom(self):
         for rec in self:
             rec.uom_id = rec.material_id.uom_id if rec.material_id else False
+
+    @api.depends("uom_id")
+    def _compute_rule_applicable(self):
+        Type = self.env["dl.measurement.type"]
+        for rec in self:
+            cat = rec.uom_id.category_id
+            rec.rule_applicable = bool(cat) and bool(
+                Type.search_count([("formula_uom_id.category_id", "=", cat.id)]))
 
     @api.depends(
         "measurement_shape_id", "measurement_coefficient",
@@ -245,6 +277,18 @@ class DlBomLineMixin(models.AbstractModel):
             return
         factor = self.complexity_id.factor if self.complexity_id else 1.0
         self.waste_rate = (self.material_id.dlm_waste_rate or 0.0) * factor
+
+    @api.onchange("material_id")
+    def _onchange_material_rule_compat(self):
+        """Đổi vật tư sang nhóm ĐVT khác (vd kg → Cái) thì Rule/Shape đang
+        chọn không còn hợp lý (không cùng nhóm ĐVT với vật tư mới) — xóa để
+        tránh giữ lựa chọn sai, khớp với domain lọc Rule ở view."""
+        if not self.measurement_type_id:
+            return
+        formula_uom = self.measurement_type_id.formula_uom_id
+        if not formula_uom or formula_uom.category_id != self.material_uom_category_id:
+            self.measurement_type_id = False
+            self.measurement_shape_id = False
 
     def _dlm_recovery_value(self):
         """Giá trị phế liệu thu hồi được trừ khỏi chi phí vật tư (§5.3).
@@ -270,24 +314,109 @@ class DlBomLineMixin(models.AbstractModel):
         self.dim_diameter = self.dim_height = 0.0
         self.measurement_coefficient = shape.default_coefficient if shape else 0.0
 
+    @api.onchange("quantity", "is_override")
+    def _onchange_quantity_override_warning(self):
+        """Cảnh báo MỀM (không chặn lưu) khi Số lượng ghi đè lệch nhiều so
+        với giá trị hệ thống tính — gợi ý kiểm tra lại kích thước/hệ số."""
+        if not self.is_override or not self.computed_quantity:
+            return
+        diff = abs(self.quantity - self.computed_quantity)
+        if diff > self.computed_quantity * 0.5:
+            return {"warning": {
+                "title": _("Số lượng lệch nhiều so với hệ thống tính"),
+                "message": _(
+                    "Hệ thống tính %(computed).3f nhưng bạn nhập %(actual).3f "
+                    "— lệch hơn 50%%. Kiểm tra lại kích thước/hệ số nếu đây "
+                    "không phải là ghi đè có chủ đích."
+                ) % {"computed": self.computed_quantity, "actual": self.quantity},
+            }}
+
     @api.onchange(
         "measurement_shape_id", "measurement_coefficient",
         "dim_length", "dim_width", "dim_thickness", "dim_side",
         "dim_diameter", "dim_height",
     )
     def _onchange_measurement_values(self):
-        if self.is_override:
-            return
-        qty = self._measurement_quantity()
-        if qty is not None and qty > 0:
-            self.quantity = qty
+        warning = self._dimension_sanity_warning()
+        if not self.is_override:
+            qty = self._measurement_quantity()
+            if qty is not None and qty > 0:
+                self.quantity = qty
+        if warning:
+            return {"warning": warning}
+
+    def _dimension_sanity_warning(self):
+        """Cảnh báo MỀM (không chặn lưu) khi kích thước nhập vào PHI LÝ về
+        mặt hình học so với Shape đã chọn — thường do gõ nhầm số/nhầm đơn vị
+        (vd Độ dày >= Chiều dài/Chiều rộng của một "Tấm phẳng", hoặc thành
+        ống dày hơn cả nửa đường kính khiến ống RỖNG hóa ĐẶC)."""
+        self.ensure_one()
+        shape = self.measurement_shape_id
+        code = shape.code if shape else False
+        t = self.dim_thickness
+        msg = None
+
+        if code == SHAPE_FLAT_PLATE:
+            if t and self.dim_length and t >= self.dim_length:
+                msg = _(
+                    "Độ dày (%(t)s mm) lớn hơn hoặc bằng Chiều dài (%(l)s mm) "
+                    "— vật liệu không còn là 'tấm phẳng'. Kiểm tra lại đơn vị/"
+                    "số liệu đã nhập."
+                ) % {"t": t, "l": self.dim_length}
+            elif t and self.dim_width and t >= self.dim_width:
+                msg = _(
+                    "Độ dày (%(t)s mm) lớn hơn hoặc bằng Chiều rộng (%(w)s mm) "
+                    "— vật liệu không còn là 'tấm phẳng'. Kiểm tra lại đơn vị/"
+                    "số liệu đã nhập."
+                ) % {"t": t, "w": self.dim_width}
+
+        elif code == SHAPE_HOLLOW_SQUARE_TUBE:
+            if t and self.dim_side and t >= self.dim_side / 2:
+                msg = _(
+                    "Độ dày thành ống (%(t)s mm) lớn hơn hoặc bằng nửa Cạnh "
+                    "ngoài (%(s)s mm) — ống không còn RỖNG (thành đặc kín). "
+                    "Kiểm tra lại số liệu đã nhập."
+                ) % {"t": t, "s": self.dim_side}
+
+        elif code == SHAPE_HOLLOW_ROUND_TUBE:
+            if t and self.dim_diameter and t >= self.dim_diameter / 2:
+                msg = _(
+                    "Độ dày thành ống (%(t)s mm) lớn hơn hoặc bằng bán kính "
+                    "(Đường kính/2 = %(r)s mm) — ống không còn RỖNG (thành đặc "
+                    "kín). Kiểm tra lại số liệu đã nhập."
+                ) % {"t": t, "r": self.dim_diameter / 2}
+
+        if msg:
+            return {"title": _("Kích thước không hợp lý"), "message": msg}
+        return None
 
     def _measurement_quantity(self):
-        """Tính định mức từ kích thước + hệ số — công thức hard-code theo
-        shape.code (chỉ vài Shape cố định, xử lý trực tiếp ở đây, xem bảng
-        Rule/Shape/code ở đầu file). Trả về None nếu không chọn Shape / Shape
-        không có công thức (giữ nguyên quantity đang có — nhập trực tiếp).
-        Kích thước nhập bằng mm, quy đổi sang mét trước khi tính."""
+        """Định mức CUỐI CÙNG, đã quy đổi sang đúng UoM của vật tư.
+
+        Công thức hard-code (_measurement_quantity_raw) luôn trả kết quả theo
+        đơn vị "chuẩn" ngầm định của Rule (kg cho Khối lượng, m² cho Diện
+        tích, m/m³ cho Chiều dài/Chu vi/Thể tích — xem measurement_type_id.
+        formula_uom_id). Nếu vật tư khai UoM khác (vd Tấn thay vì kg) thì
+        phải quy đổi, nếu không effective_qty × đơn giá (dl_bom_line.py) sẽ
+        tính sai theo đúng số lần lệch UoM."""
+        self.ensure_one()
+        raw = self._measurement_quantity_raw()
+        if raw is None:
+            return None
+        shape = self.measurement_shape_id
+        formula_uom = shape.measurement_type_id.formula_uom_id if shape else False
+        material_uom = self.uom_id
+        if formula_uom and material_uom and formula_uom.category_id == material_uom.category_id:
+            return formula_uom._compute_quantity(raw, material_uom, round=False)
+        return raw
+
+    def _measurement_quantity_raw(self):
+        """Định mức THEO ĐƠN VỊ CHUẨN của Rule (chưa quy đổi UoM vật tư) —
+        công thức hard-code theo shape.code (chỉ vài Shape cố định, xử lý
+        trực tiếp ở đây, xem bảng Rule/Shape/code ở đầu file). Trả về None
+        nếu không chọn Shape / Shape không có công thức (giữ nguyên quantity
+        đang có — nhập trực tiếp). Kích thước nhập bằng mm, quy đổi sang mét
+        trước khi tính."""
         self.ensure_one()
         shape = self.measurement_shape_id
         if not shape or not shape.code:
@@ -397,6 +526,19 @@ class DlBomLineMixin(models.AbstractModel):
         for rec in self:
             if rec.is_override and not rec.override_reason:
                 raise ValidationError(_("Vui lòng nhập lý do khi ghi đè số lượng."))
+
+    @api.constrains("material_id")
+    def _check_material_not_obsolete(self):
+        """Chặn cứng chọn vật tư đã Ngừng vào dòng BOM (song song với domain UI,
+        bịt cả đường import/API). Chỉ khai theo material_id ⇒ ràng buộc chỉ chạy
+        khi tạo dòng mới hoặc ĐỔI vật tư — sửa số lượng/hao hụt trên dòng cũ trỏ
+        vật tư sau này bị Ngừng vẫn lưu được (giữ lịch sử BOM)."""
+        for rec in self:
+            if rec.material_id.dlm_lifecycle_state == "obsolete":
+                raise ValidationError(_(
+                    "Vật tư '%s' đã Ngừng sử dụng — không thể dùng cho dòng BOM "
+                    "mới. Hãy chọn vật tư thay thế."
+                ) % rec.material_id.display_name)
 
 
 class DlMeasurementShapeCodeCheck(models.Model):

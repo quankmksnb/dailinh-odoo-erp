@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Thay chỉ báo "Loading" nhỏ ở góc phải dưới bằng spinner xoay ở GIỮA
+         màn hình để người dùng thấy rõ đang tải.
+
+         GIỮ NGUYÊN logic của LoadingIndicator gốc (đếm RPC qua bus
+         RPC:REQUEST / RPC:RESPONSE): còn request lấy data đang chạy → hiện;
+         lấy xong hết data thì count = 0 → ẩn. Chỉ đổi phần hiển thị. -->
+    <t t-inherit="web.LoadingIndicator" t-inherit-mode="extension">
+        <xpath expr="//span[hasclass('o_loading_indicator')]" position="replace">
+            <div class="o_dl_loading" t-att-class="transition.className">
+                <div class="o_dl_loading_card">
+                    <span class="o_dl_spinner" role="status"/>
+                    <span class="o_dl_loading_text">
+                        Đang tải<t t-if="env.debug" t-esc="' (' + state.count + ')'"/>
+                    </span>
+                </div>
+            </div>
+        </xpath>
+    </t>
+
+</templates>

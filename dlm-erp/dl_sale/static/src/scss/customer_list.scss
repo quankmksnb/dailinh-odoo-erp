@@ -123,7 +123,8 @@
 .o_action_manager:has(.dl-uom-list),
 .o_action_manager:has(.dl-company-list),
 .o_action_manager:has(.dl-bomtpl-list),
-.o_action_manager:has(.dl-quotation-list) {
+.o_action_manager:has(.dl-quotation-list),
+.o_action_manager:has(.dl-quote-approval-list) {
 
     .o_control_panel .o_control_panel_main {
         justify-content: flex-start !important;

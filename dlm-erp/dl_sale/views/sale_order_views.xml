@@ -40,10 +40,11 @@
                             type="object" class="btn-danger"
                             invisible="state in ('done', 'cancelled')"
                             confirm="Bạn có chắc muốn hủy đơn bán hàng này?"/>
-                    <button name="action_reset_draft" string="Về nháp"
+                    <button name="action_reset_draft" string="Đưa về nháp"
                             type="object" class="btn-link"
-                            invisible="state not in ('confirmed', 'cancelled')"/>
-                    <field name="state" widget="statusbar"
+                            invisible="state != 'confirmed' or quotation_id"
+                            groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                    <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,confirmed,done"/>
                 </header>
                 <sheet>
@@ -56,8 +57,9 @@
                     <group>
                         <group>
                             <field name="partner_id"
+                                readonly="quotation_id != False or state != 'draft'"
                                 context="{'default_partner_role': 'customer', 'default_partner_type': 'company'}"/>
-                            <field name="date_order"/>
+                            <field name="date_order" options="{'min_date': 'today'}"/>
                         </group>
                         <group>
                             <field name="quotation_id" readonly="1"/>
@@ -72,6 +74,7 @@
                                            decoration-info="line_type == 'trading'"
                                            decoration-success="line_type == 'manufactured'"/>
                                     <field name="name"/>
+                                    <field name="bom_id" optional="hide"/>
                                     <field name="qty" digits="[16, 0]"/>
                                     <field name="price_unit" digits="[16, 0]"/>
                                     <field name="price_subtotal" readonly="1" digits="[16, 0]"/>
@@ -89,7 +92,14 @@
                             </group>
                         </page>
                         <page string="Ghi chú">
-                            <field name="note" placeholder="Ghi chú thêm..."/>
+                            <field name="note" nolabel="1" class="dl-textarea-lg"
+                                   placeholder="Ghi chú thêm..."/>
+                            <group string="Lần đưa về nháp gần nhất"
+                                   invisible="not reset_draft_reason">
+                                <field name="reset_draft_reason" readonly="1"/>
+                                <field name="reset_draft_by" readonly="1"/>
+                                <field name="reset_draft_at" readonly="1"/>
+                            </group>
                         </page>
                     </notebook>
                 </sheet>

@@ -87,9 +87,9 @@ class ResUsers(models.Model):
         name = (vals.get("name") or "").strip()
         login = (vals.get("login") or vals.get("email") or "").strip()
         if not name or not login:
-            raise ValidationError(_("Họ tên và Email/Username là bắt buộc."))
+            raise ValidationError(_("Họ tên và Email/Tên đăng nhập là bắt buộc."))
         if self.sudo().with_context(active_test=False).search_count([("login", "=", login)]):
-            raise ValidationError(_("Login/email '%s' đã tồn tại.") % login)
+            raise ValidationError(_("Tên đăng nhập/email '%s' đã tồn tại.") % login)
         role_ids = [gid for gid in (vals.get("role_ids") or []) if gid in self._dlm_role_group_ids()]
         user = self.sudo().create(
             {
@@ -97,6 +97,7 @@ class ResUsers(models.Model):
                 "login": login,
                 "email": vals.get("email") or login,
                 "phone": vals.get("phone") or False,
+                "lang": "vi_VN",
                 "groups_id": [(4, gid) for gid in role_ids],
             }
         )

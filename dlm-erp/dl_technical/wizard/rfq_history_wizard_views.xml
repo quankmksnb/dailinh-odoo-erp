@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Modal "Lịch sử RFQ" — timeline chỉ đọc, mở từ nút trên list RFQ. -->
+    <record id="view_dl_rfq_history_wizard_form" model="ir.ui.view">
+        <field name="name">dl.rfq.history.wizard.form</field>
+        <field name="model">dl.rfq.history.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Lịch sử RFQ">
+                <field name="request_id" invisible="1"/>
+                <field name="history_html" nolabel="1" readonly="1"/>
+                <footer>
+                    <button string="Đóng" special="cancel" class="btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

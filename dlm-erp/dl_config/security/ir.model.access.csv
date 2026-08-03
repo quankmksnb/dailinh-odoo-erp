@@ -3,8 +3,6 @@ access_dl_uom_ceo,access_dl_uom_ceo,uom.model_uom_uom,dl_base.dl_group_ceo,1,1,1
 access_dl_uom_admin,access_dl_uom_admin,uom.model_uom_uom,dl_base.dl_group_admin,1,1,1,1
 access_dl_uom_categ_ceo,access_dl_uom_categ_ceo,uom.model_uom_category,dl_base.dl_group_ceo,1,1,1,1
 access_dl_uom_categ_admin,access_dl_uom_categ_admin,uom.model_uom_category,dl_base.dl_group_admin,1,1,1,1
-access_dl_company_ceo,access_dl_company_ceo,base.model_res_company,dl_base.dl_group_ceo,1,1,1,0
-access_dl_company_admin,access_dl_company_admin,base.model_res_company,dl_base.dl_group_admin,1,1,1,0
 access_dl_pricing_config_admin,dl.pricing.config admin,model_dl_pricing_config,dl_base.dl_group_admin,1,1,1,1
 access_dl_pricing_config_ceo,dl.pricing.config ceo,model_dl_pricing_config,dl_base.dl_group_ceo,1,1,1,1
 access_dl_pricing_config_sm,dl.pricing.config sales_manager,model_dl_pricing_config,dl_base.dl_group_sales_manager,1,0,0,0
@@ -60,6 +58,9 @@ access_dl_pricing_appr_req_admin,approval request admin,model_dl_pricing_approva
 access_dl_pricing_appr_req_ba,approval request ba,model_dl_pricing_approval_request,dl_base.dl_group_ba,1,0,0,0
 access_dl_pricing_appr_req_acct,approval request accountant,model_dl_pricing_approval_request,dl_base.dl_group_accountant,1,0,0,0
 access_dl_pricing_appr_req_tech,approval request tech,model_dl_pricing_approval_request,dl_base.dl_group_tech,1,0,0,0
+access_dl_pricing_appr_reject_wiz_ceo,approval reject wizard ceo,model_dl_pricing_approval_reject_wizard,dl_base.dl_group_ceo,1,1,1,1
+access_dl_pricing_appr_reject_wiz_admin,approval reject wizard admin,model_dl_pricing_approval_reject_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_pricing_appr_reject_wiz_sm,approval reject wizard sales manager,model_dl_pricing_approval_reject_wizard,dl_base.dl_group_sales_manager,1,1,1,1
 access_dl_pricing_matrix_ceo,approval matrix ceo,model_dl_pricing_approval_matrix,dl_base.dl_group_ceo,1,1,1,1
 access_dl_pricing_matrix_admin,approval matrix admin,model_dl_pricing_approval_matrix,dl_base.dl_group_admin,1,1,1,1
 access_dl_pricing_matrix_sm,approval matrix sales manager,model_dl_pricing_approval_matrix,dl_base.dl_group_sales_manager,1,1,1,1

@@ -3,6 +3,13 @@
 
 <t t-name="dl_base.DlHome">
     <div class="dl-home o_action">
+        <!-- Landing theo vai trò: đang chuyển thẳng vào màn nghiệp vụ chính.
+             Hiện loader để không chớp lưới thẻ rồi mới nhảy. -->
+        <div t-if="state.redirecting" class="dl-home-redirecting">
+            <i class="fa fa-circle-o-notch fa-spin"/>
+            <span>Đang mở màn hình làm việc…</span>
+        </div>
+        <t t-else="">
         <nav class="dl-home-navbar">
             <Dropdown class="'dl-home-brand'">
                 <t t-set-slot="toggler">
@@ -43,10 +50,14 @@
                             <span class="dl-home-card-name" t-esc="card.name"/>
                             <span class="dl-home-card-desc" t-esc="card.description"/>
                         </div>
+                        <!-- Badge việc đang chờ (vd số yêu cầu chờ phê duyệt) -->
+                        <span t-if="badgeCounts[card.key]" class="dl-home-card-badge"
+                              t-esc="badgeCounts[card.key]"/>
                     </div>
                 </t>
             </div>
         </div>
+        </t>
     </div>
 </t>
 

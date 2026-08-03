@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="dl_auth_signup_login" inherit_id="auth_signup.login"
+              name="DLM Login Account Links">
+        <!-- Tài khoản nội bộ được Admin tạo/mời; không cho người dùng tự đăng ký. -->
+        <xpath expr="//a[@t-if='signup_enabled']" position="replace" />
+        <xpath expr="//a[@t-if='reset_password_enabled']" position="replace">
+            <a t-if="reset_password_enabled"
+               t-attf-href="/web/reset_password?{{ keep_query() }}">Quên mật khẩu?</a>
+        </xpath>
+    </template>
+</odoo>

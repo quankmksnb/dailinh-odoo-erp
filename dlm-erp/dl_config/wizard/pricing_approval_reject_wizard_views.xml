@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Từ chối yêu cầu phê duyệt — mở dạng dialog, bắt buộc nhập lý do -->
+    <record id="view_dl_pricing_approval_reject_wizard_form" model="ir.ui.view">
+        <field name="name">dl.pricing.approval.reject.wizard.form</field>
+        <field name="model">dl.pricing.approval.reject.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Từ chối yêu cầu phê duyệt">
+                <field name="request_id" invisible="1"/>
+                <field name="reject_comment" nolabel="1" class="dl-textarea-lg"
+                       placeholder="Nhập lý do từ chối để người gửi biết cần chỉnh gì trước khi gửi lại..."/>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Xác nhận từ chối" class="btn-danger"/>
+                    <button string="Hủy" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

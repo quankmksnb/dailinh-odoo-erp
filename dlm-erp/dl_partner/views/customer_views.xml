@@ -54,7 +54,7 @@
                                 <div class="dl-cust-ava">
                                     <img t-if="record.dlm_has_photo.raw_value"
                                         t-att-src="kanban_image('res.partner', 'avatar_128', record.id.raw_value)"
-                                        alt="" />
+                                        t-att-alt="record.name.value" />
                                     <span t-else="" class="dl-cust-ava__letter"
                                         t-attf-style="background:#{record.dlm_avatar_bg.value};color:#{record.dlm_avatar_fg.value}"
                                         t-esc="record.dlm_initial.value" />
@@ -82,19 +82,19 @@
                             </div>
                             <div class="dl-cust-card__body">
                                 <div class="dl-cust-row" t-if="record.phone.value">
-                                    <i class="fa fa-phone" />
+                                    <i class="fa fa-phone" title="Điện thoại" />
                                     <span t-esc="record.phone.value" />
                                 </div>
                                 <div class="dl-cust-row" t-if="record.mobile.value">
-                                    <i class="fa fa-mobile" />
+                                    <i class="fa fa-mobile" title="Di động" />
                                     <span t-esc="record.mobile.value" />
                                 </div>
                                 <div class="dl-cust-row" t-if="record.email.value">
-                                    <i class="fa fa-envelope-o" />
+                                    <i class="fa fa-envelope-o" title="Email" />
                                     <span t-esc="record.email.value" />
                                 </div>
                                 <div class="dl-cust-row" t-if="record.city.value">
-                                    <i class="fa fa-map-marker" />
+                                    <i class="fa fa-map-marker" title="Địa chỉ" />
                                     <span t-esc="record.city.value" />
                                 </div>
                             </div>
@@ -134,7 +134,9 @@
                         <div class="dl-cust-head-main">
                             <label for="name" string="Tên khách hàng" />
                             <h1>
-                                <field name="name" placeholder="Tên khách hàng..."
+                                <field name="name" string="Tên khách hàng"
+                                    placeholder="Tên khách hàng..."
+                                    required="1"
                                     readonly="not active" />
                             </h1>
                             <div class="dl-cust-code" invisible="not dlm_code">Mã KH: <field
@@ -151,12 +153,21 @@
                                 readonly="not active" />
                         </div>
 
+                    </div>
+
+                    <!-- Gộp hồ sơ khi đối tác đã là NCC — chỉ hiện lúc tạo mới.
+                         Rút gọn còn 1 dòng (review UX cust #f1); chi tiết đã nằm
+                         trong placeholder ô chọn. -->
+                    <div class="alert alert-info dl-cust-mergebox" role="status"
+                        invisible="id">
+                        <div class="fw-bold mb-2">
+                            <i class="fa fa-link me-1"/>Đã là Nhà cung cấp? Chọn tên bên dưới để gộp thành một hồ sơ chung — để trống nếu là khách mới.
+                        </div>
                         <field name="pending_link_partner_id"
-                            string="NCC trùng tên (nếu có)"
+                            nolabel="1"
                             context="{'dl_link_search_role': 'supplier'}"
                             options="{'no_open': True, 'no_create': True}"
-                            invisible="id"
-                            placeholder="Tìm NCC..."/>
+                            placeholder="Gõ tên Nhà cung cấp để tìm và gộp..."/>
                     </div>
 
                     <group>

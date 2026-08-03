@@ -1,3 +1,5 @@
+from dateutil.relativedelta import relativedelta
+
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -28,11 +30,58 @@ class ProductSupplierinfo(models.Model):
     # không chặn <= 0, và date_start không required.
     date_start = fields.Date(required=True)
 
+    dl_product_kind = fields.Selection(
+        [
+            ("manufactured", "Sản phẩm gia công"),
+            ("trading", "Sản phẩm thương mại"),
+            ("material", "Vật tư"),
+            ("material_processed", "Bán thành phẩm"),
+        ],
+        string="Loại sản phẩm",
+        compute="_compute_dl_product_kind",
+        store=True,
+        index=True,
+    )
+
+    validity_state = fields.Selection(
+        [
+            ("upcoming", "Chưa hiệu lực"),
+            ("active", "Còn hiệu lực"),
+            ("expiring", "Sắp hết hạn"),
+            ("expired", "Đã hết hạn"),
+        ],
+        string="Hiệu lực",
+        compute="_compute_validity_state",
+    )
+
     product_image_128 = fields.Image(
         related="product_tmpl_id.image_128",
         string="Ảnh sản phẩm",
         readonly=True,
     )
+
+    @api.depends(
+        "product_id.product_kind",
+        "product_tmpl_id.product_variant_ids.product_kind",
+    )
+    def _compute_dl_product_kind(self):
+        for rec in self:
+            product = rec.product_id or rec.product_tmpl_id.product_variant_ids[:1]
+            rec.dl_product_kind = product.product_kind if product else False
+
+    @api.depends("date_start", "date_end")
+    def _compute_validity_state(self):
+        today = fields.Date.context_today(self)
+        expiring_limit = today + relativedelta(days=30)
+        for rec in self:
+            if rec.date_start and rec.date_start > today:
+                rec.validity_state = "upcoming"
+            elif rec.date_end and rec.date_end < today:
+                rec.validity_state = "expired"
+            elif rec.date_end and rec.date_end <= expiring_limit:
+                rec.validity_state = "expiring"
+            else:
+                rec.validity_state = "active"
 
     approval_state = fields.Selection(
         [
@@ -83,13 +132,36 @@ class ProductSupplierinfo(models.Model):
             else:
                 rec.display_state = "draft"
 
-    @api.constrains("is_applied", "approval_state")
+    def _is_valid_on(self, target_date):
+        self.ensure_one()
+        return bool(
+            self.date_start
+            and self.date_start <= target_date
+            and (not self.date_end or self.date_end >= target_date)
+        )
+
+    def _ensure_currently_valid(self):
+        today = fields.Date.context_today(self)
+        invalid = self.filtered(lambda rec: not rec._is_valid_on(today))
+        if invalid:
+            raise UserError(_(
+                "Không thể áp dụng bảng giá của '%s' vì chưa đến ngày hiệu lực "
+                "hoặc đã hết hạn. Hãy kiểm tra lại Từ ngày/Đến ngày."
+            ) % invalid[0].product_tmpl_id.display_name)
+
+    @api.constrains("is_applied", "approval_state", "date_start", "date_end")
     def _check_is_applied(self):
+        today = fields.Date.context_today(self)
         for rec in self:
             if rec.is_applied and rec.approval_state != "approved":
                 raise ValidationError(
                     _("Chỉ bảng giá đã duyệt mới được đánh dấu đang áp dụng.")
                 )
+            if rec.is_applied and not rec._is_valid_on(today):
+                raise ValidationError(_(
+                    "Chỉ bảng giá đang trong thời gian hiệu lực mới được đánh dấu "
+                    "Đang áp dụng. Hãy kiểm tra lại Từ ngày/Đến ngày."
+                ))
             if rec.is_applied:
                 other = self.search(
                     [
@@ -143,7 +215,7 @@ class ProductSupplierinfo(models.Model):
                     ("is_applied", "=", True),
                 ]
             )
-            if not has_applied:
+            if not has_applied and rec._is_valid_on(fields.Date.context_today(rec)):
                 rec.write({"is_applied": True})
 
     def action_reset_draft(self):
@@ -164,6 +236,7 @@ class ProductSupplierinfo(models.Model):
         for rec in self:
             if rec.approval_state != "approved":
                 raise UserError(_("Chỉ có thể áp dụng bảng giá đã duyệt."))
+            rec._ensure_currently_valid()
             others = self.search(
                 [
                     ("product_tmpl_id", "=", rec.product_tmpl_id.id),

@@ -1,0 +1,98 @@
+// Màn Phê duyệt báo giá — form yêu cầu duyệt. Đồng bộ style với form Báo giá:
+// section thẳng hàng, bảng x2many fixed, khối tổng tiền nhấn mạnh.
+.dl-quote-approval-form {
+    // Bỏ thụt lề/tràn riêng của Odoo để mọi section thẳng hàng.
+    .oe_title,
+    .o_notebook,
+    .o_notebook_headers,
+    .o_notebook .tab-content,
+    .o_notebook .tab-pane,
+    .o_field_x2many,
+    .o_field_x2many .o_list_renderer {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        width: 100%;
+    }
+
+    .oe_title { margin-bottom: 18px !important; }
+    .o_notebook { margin-bottom: 18px !important; }
+
+    // Nội dung lý do là văn bản dài: luôn chiếm toàn chiều ngang. Group mặc
+    // định 2 cột từng ép textarea vào ô nhãn hẹp và xuống dòng từng từ.
+    .dl-approval-reason {
+        width: 100%;
+
+        .o_field_widget,
+        .o_field_text,
+        textarea {
+            width: 100% !important;
+            max-width: none !important;
+        }
+    }
+
+    .o_field_x2many .o_list_table {
+        table-layout: fixed;
+        width: 100% !important;
+
+        th, td { width: auto !important; min-width: 0 !important; }
+    }
+
+    // Khối tổng tiền (oe_subtotal_footer) — nhấn dòng Tổng thanh toán.
+    .oe_subtotal_footer {
+        .oe_subtotal_footer_separator {
+            font-weight: 700;
+            font-size: 15px;
+            border-top: 1px solid $dl-border;
+            padding-top: 6px;
+        }
+    }
+
+    // Badge trạng thái trong statusbar dùng chung palette hệ thống.
+    .o_statusbar_status .o_arrow_button_current {
+        font-weight: 600;
+    }
+
+    // Tóm tắt quyết định lên đầu form (review UX aform #f2/#f4): giá trị + markup
+    // nổi bật, cờ rủi ro dạng chip màu thay vì true/false.
+    .dl-decision {
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        background: $dl-surface;
+        padding: 14px 18px;
+        margin-bottom: 16px;
+
+        .dl-decision-head {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            align-items: flex-end;
+        }
+
+        .dl-decision-cell { display: flex; flex-direction: column; gap: 3px; }
+
+        .dl-decision-lbl {
+            font-size: 12px;
+            font-weight: 500;
+            color: $dl-text-2;
+        }
+
+        .dl-decision-val {
+            font-size: 22px;
+            font-weight: 700;
+            color: $dl-primary;
+        }
+
+        .dl-decision-val2 { font-size: 15px; font-weight: 600; color: $dl-heading; }
+
+        .dl-decision-risks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+
+            .badge { font-size: 12px; font-weight: 600; padding: 5px 11px; }
+        }
+    }
+}
