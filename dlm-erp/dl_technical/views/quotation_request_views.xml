@@ -572,7 +572,7 @@
                         domain="[('status', '=', 'returned')]"/>
                 <filter name="supplemented" string="Đã bổ sung"
                         domain="[('status', '=', 'supplemented')]"/>
-                <filter name="confirmed" string="Đã xử lý xong – chờ tạo báo giá"
+                <filter name="confirmed" string="Chờ tạo báo giá"
                         domain="[('status', '=', 'confirmed')]"/>
                 <filter name="quoted" string="Đã tạo BG"
                         domain="[('status', '=', 'quoted')]"/>

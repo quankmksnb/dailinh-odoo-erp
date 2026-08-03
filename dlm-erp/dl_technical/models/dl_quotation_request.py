@@ -77,7 +77,7 @@ class DlQuotationRequest(models.Model):
             ("processing", "Đang xử lý"),
             ("returned", "Trả lại bổ sung"),
             ("supplemented", "Đã bổ sung"),
-            ("confirmed", "Đã xử lý xong – chờ tạo báo giá"),
+            ("confirmed", "Chờ tạo báo giá"),
             ("quoted", "Đã tạo báo giá"),
             ("cancelled", "Đã hủy"),
         ],

@@ -24,7 +24,7 @@ const CHIPS = [
     { key: "all", label: "Tất cả" },
     { key: "to_process", label: "Cần xử lý" },
     { key: "returned", label: "Trả lại bổ sung" },
-    { key: "confirmed", label: "Đã xử lý xong – chờ tạo báo giá" },
+    { key: "confirmed", label: "Chờ tạo báo giá" },
     { key: "quoted", label: "Đã tạo BG" },
     { key: "cancelled", label: "Đã hủy" },
     { key: "overdue", label: "Quá hạn" },
