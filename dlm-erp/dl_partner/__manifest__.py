@@ -11,8 +11,16 @@
         'data/partner_category_data.xml',
         'views/customer_views.xml',
         'views/supplier_views.xml',
+        'views/res_country_views.xml',
         'views/partner_menus.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            # Widget nhập MST — lọc ký tự + báo lỗi định dạng phía frontend.
+            'dl_partner/static/src/fields/tax_code_field.js',
+            'dl_partner/static/src/fields/tax_code_field.xml',
+        ],
+    },
     'installable': True,
     'application': False,
     'license': 'LGPL-3',

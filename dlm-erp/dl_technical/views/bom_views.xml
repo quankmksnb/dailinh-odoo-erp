@@ -79,7 +79,7 @@
                          mới thay thế (đơn cũ vẫn giữ link + snapshot). -->
                     <button name="action_archive" type="object" string="Lưu trữ"
                             class="btn-danger"
-                            invisible="status == 'archived'"
+                            invisible="status == 'archived' or not id"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn lưu trữ BOM này? (Đơn hàng đã dùng vẫn truy được BOM này.)"/>
                     <field name="status" widget="dl_stepper"
@@ -336,6 +336,7 @@
         <field name="name">BOM sản phẩm / BTP</field>
         <field name="res_model">dl.bom</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain">[('is_rfq_provisional', '=', False)]</field>
     </record>
 

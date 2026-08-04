@@ -11,6 +11,8 @@ import { setupFormActionsMenu, setupStatusbarButtons } from "@dl_base/js/actions
 
 const PHONE_RE = /^(0|\+84)[0-9]{9,10}$/;
 const EMAIL_RE = /^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$/;
+// PHẢI khớp _TAX_CODE_RE ở backend (res_partner.py) và widget dl_tax_code.
+const TAX_CODE_RE = /^\d{10}(-\d{3})?$/;
 
 export class DlCustomerFormController extends FormController {
     setup() {
@@ -50,7 +52,7 @@ export class DlCustomerFormController extends FormController {
     // coi như có thay đổi → hỏi trước khi rời. Bản ghi cũ chỉ tính khi người
     // dùng thực sự chỉnh (tránh hỏi vô cớ).
     get _dlHasRealChanges() {
-        return this.model.root.isDirty && this._dlUserTouched;
+        return this.model.root.dirty && this._dlUserTouched;
     }
 
     // Hỏi xác nhận khi bấm "Huỷ" (bỏ thay đổi)
@@ -75,14 +77,14 @@ export class DlCustomerFormController extends FormController {
     async beforeLeave() {
         const root = this.model.root;
         if (this._dlReadonly) {
-            if (root.isDirty) {
+            if (root.dirty) {
                 await root.discard();
             }
             return;
         }
-        
+
         if (!this._dlHasRealChanges) {
-            if (root.isDirty) {
+            if (root.dirty) {
                 await root.discard();
             }
             return;
@@ -181,6 +183,11 @@ export class DlCustomerFormController extends FormController {
             return _t("Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).");
         }
 
+        // MST nếu đã nhập phải đúng định dạng (10 số hoặc 10 số-3 số cho chi nhánh).
+        if (tax && !TAX_CODE_RE.test(tax)) {
+            return `Mã số thuế '${tax}' không đúng định dạng. MST gồm 10 chữ số (VD: 0123456789) hoặc 10 số-3 số cho chi nhánh (VD: 0123456789-001).`;
+        }
+
         // Điện thoại / Di động theo định dạng VN
         for (const [label, value] of [
             ["Điện thoại", d.phone],
@@ -194,6 +201,25 @@ export class DlCustomerFormController extends FormController {
         // Email.
         if (d.email && !EMAIL_RE.test(String(d.email).trim())) {
             return `Email '${d.email}' không hợp lệ.`;
+        }
+
+        // Người liên hệ: SĐT/email (nếu nhập) phải đúng định dạng — chặn sớm
+        // bằng toast thay vì để backend bung hộp thoại. Backend vẫn chốt lại.
+        const contacts = d.child_ids?.records || [];
+        for (const contact of contacts) {
+            const cd = contact.data || {};
+            const cname = (cd.name || "").trim() || "(chưa đặt tên)";
+            for (const [label, value] of [
+                ["Điện thoại", cd.phone],
+                ["Di động", cd.mobile],
+            ]) {
+                if (value && !PHONE_RE.test(String(value).replace(/[\s.\-]/g, ""))) {
+                    return `Người liên hệ '${cname}': ${label} '${value}' không hợp lệ. Số điện thoại Việt Nam phải bắt đầu bằng 0 hoặc +84 và gồm 10–11 chữ số.`;
+                }
+            }
+            if (cd.email && !EMAIL_RE.test(String(cd.email).trim())) {
+                return `Người liên hệ '${cname}': Email '${cd.email}' không hợp lệ.`;
+            }
         }
 
         // Trùng MST — trừ khi đánh dấu chi nhánh khác dùng chung MST

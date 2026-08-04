@@ -171,6 +171,9 @@
 
         .dl-filter-select {
             height: 32px;
+            // Chừa đủ chỗ cho text dài nhất ("Tất cả trạng thái"/"Tất cả thời
+            // gian") + mũi tên bên phải — tránh bị cắt ký tự cuối khi appearance:none.
+            min-width: 165px;
             padding: 0 28px 0 10px;
             border: 1px solid $dl-border;
             border-radius: $dl-radius-sm;

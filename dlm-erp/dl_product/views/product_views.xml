@@ -48,6 +48,7 @@
     <record id="view_dl_product_form" model="ir.ui.view">
         <field name="name">dl.product.form</field>
         <field name="model">product.product</field>
+        <field name="priority">1</field>
         <field name="arch" type="xml">
             <form
                 string="Sản phẩm"
@@ -82,7 +83,7 @@
                         string="Ngừng sử dụng"
                         class="btn-secondary"
                         confirm="Đưa sản phẩm này về trạng thái Ngừng sử dụng? SP vẫn giữ trong danh mục để tra lịch sử nhưng không còn được chọn để tái sử dụng."
-                        invisible="dlm_lifecycle_state != 'active'"
+                        invisible="dlm_lifecycle_state != 'active' or not id"
                         groups="dl_base.dl_group_tech,dl_base.dl_group_ba,dl_base.dl_group_admin"
                     />
                     <button
@@ -98,7 +99,7 @@
                         type="object"
                         string="Vô hiệu hóa SP"
                         class="btn-danger"
-                        invisible="not active"
+                        invisible="not active or not id"
                         confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu cũ giữ nguyên."
                         groups="dl_base.dl_group_admin"
                     />
@@ -400,6 +401,54 @@
         </field>
     </record>
 
+    <!-- Sản phẩm & Vật tư (product.template) — form redesign nhẹ, đồng bộ DLM.
+         Trong app này template chỉ được mở qua mũi tên "Sản phẩm & Vật tư" ở màn
+         Giá NCC (product.supplierinfo.product_tmpl_id); mọi nơi khác dùng
+         product_id → product.product (đã có form riêng). Các field nghiệp vụ
+         product_kind/dlm_* nằm trên product.product nên template chỉ hiển thị
+         thông tin cơ bản. class dl-*-form + priority=1 để thành form mặc định. -->
+    <record id="view_dl_product_template_form" model="ir.ui.view">
+        <field name="name">dl.product.template.form</field>
+        <field name="model">product.template</field>
+        <field name="priority">1</field>
+        <field name="arch" type="xml">
+            <form string="Sản phẩm &amp; Vật tư" class="dl-product-template-form">
+                <sheet>
+                    <field name="active" invisible="1" />
+                    <widget name="web_ribbon" title="Đã lưu trữ"
+                        bg_color="text-bg-danger" invisible="active" />
+                    <field name="image_1920" widget="image" class="oe_avatar"
+                        options="{'preview_image': 'image_128'}" />
+                    <div class="oe_title">
+                        <label for="name" string="Tên sản phẩm" />
+                        <h1>
+                            <field name="name" placeholder="VD: Khung thép hàn CT-200..." />
+                        </h1>
+                        <div class="text-muted" invisible="not default_code">
+                            Mã SP: <field name="default_code" class="oe_inline" readonly="1" />
+                        </div>
+                    </div>
+                    <group>
+                        <group string="Phân loại">
+                            <field name="categ_id" string="Nhóm SP" />
+                        </group>
+                        <group string="Đơn vị tính">
+                            <field name="uom_id" />
+                            <field name="uom_po_id" groups="uom.group_uom" />
+                        </group>
+                    </group>
+                    <group string="Giá">
+                        <field name="currency_id" invisible="1" />
+                        <field name="list_price" string="Giá bán" widget="monetary"
+                            options="{'currency_field': 'currency_id'}" />
+                        <field name="standard_price" string="Giá vốn" widget="monetary"
+                            options="{'currency_field': 'currency_id'}" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <!-- ============ ACTIONS (tách Full / Tech / View theo role) ============ -->
 
     <!-- Full: chỉ Admin (Trưởng KD chuyển sang view-only, xem action_dl_product_view) -->
@@ -407,6 +456,7 @@
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
@@ -431,6 +481,7 @@
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
@@ -452,6 +503,7 @@
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
@@ -481,6 +533,7 @@
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),

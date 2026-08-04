@@ -31,7 +31,7 @@
     <record id="view_product_category_form" model="ir.ui.view">
         <field name="name">product.category.dl.form</field>
         <field name="model">product.category</field>
-        <field name="priority">20</field>
+        <field name="priority">1</field>
         <field name="arch" type="xml">
             <form string="Nhóm sản phẩm" class="dl-category-form" js_class="dl_category_form">
                 <sheet>
@@ -88,6 +88,7 @@
         <field name="name">Danh mục</field>
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain" eval="[('id', 'not in', [ref('product.product_category_all'), ref('product.product_category_1'), ref('product.cat_expense')])]" />
         <field name="context">{'search_default_group_branch': 1}</field>
         <field name="view_ids" eval="[
@@ -106,6 +107,7 @@
         <field name="name">Danh mục</field>
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain" eval="[('id', 'not in', [ref('product.product_category_all'), ref('product.product_category_1'), ref('product.cat_expense')])]" />
         <field name="view_ids" eval="[
             (5, 0, 0),
