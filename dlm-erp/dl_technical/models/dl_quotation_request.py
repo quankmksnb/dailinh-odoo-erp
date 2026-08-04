@@ -160,6 +160,18 @@ class DlQuotationRequest(models.Model):
 
     # Tiến độ dành riêng cho phần việc Kỹ thuật: chỉ tính dòng gia công vì dòng
     # thương mại đã được Sales chọn sản phẩm và không đi qua BOM.
+    supplement_count = fields.Integer(
+        string="Dòng chờ bổ sung",
+        compute="_compute_supplement_count",
+        store=True,
+    )
+
+    @api.depends("line_ids.supplement_note")
+    def _compute_supplement_count(self):
+        for rec in self:
+            rec.supplement_count = len(rec.line_ids.filtered(
+                lambda l: l.supplement_note))
+
     technical_total_line_count = fields.Integer(
         string="Tổng dòng gia công",
         compute="_compute_technical_progress",
@@ -182,6 +194,7 @@ class DlQuotationRequest(models.Model):
         "line_ids.resolved_product_id",
         "line_ids.resolved_bom_id",
         "line_ids.is_infeasible",
+        "line_ids.supplement_note",
     )
     def _compute_technical_progress(self):
         for rec in self:
@@ -195,12 +208,19 @@ class DlQuotationRequest(models.Model):
             rec.technical_total_line_count = total
             rec.technical_done_line_count = done
             rec.technical_progress_percent = (done * 100.0 / total) if total else 0.0
-            rec.technical_progress_label = (
-                _("Đã xử lý %(done)s/%(total)s dòng gia công",
-                  done=done, total=total)
-                if total
-                else _("Không có dòng gia công cần xử lý")
-            )
+
+            if total:
+                label = _("Đã xử lý %(done)s/%(total)s dòng gia công",
+                          done=done, total=total)
+            else:
+                label = _("Không có dòng gia công cần xử lý")
+
+            supplement = len(rec.line_ids.filtered(
+                lambda l: l.supplement_note))
+            if supplement:
+                label += _(" · %(n)s cần bổ sung", n=supplement)
+
+            rec.technical_progress_label = label
 
     # Tô màu dòng RFQ cận/quá hạn ngay trên danh sách (đồng bộ list Báo giá):
     # deadline sắp tới hoặc đã qua → cảnh báo để Kỹ thuật/Sales ưu tiên xử lý.
@@ -349,10 +369,8 @@ class DlQuotationRequest(models.Model):
     def _recompute_status_from_lines(self):
         for rec in self:
 
-            # Các trạng thái "chốt" hoặc chờ thao tác người dùng — không tự đổi:
-            #  - returned: chờ Sales bổ sung (chỉ action_resubmit đưa ra).
-            #  - quoted/cancelled: đã kết thúc.
-            if rec.status in ("returned", "quoted", "cancelled"):
+            # quoted/cancelled: đã kết thúc — không tự đổi.
+            if rec.status in ("quoted", "cancelled"):
                 continue
 
             lines = rec.line_ids
@@ -360,21 +378,31 @@ class DlQuotationRequest(models.Model):
             # Xử lý xong TẤT CẢ dòng → chờ Sales kiểm tra và tạo báo giá.
             if lines and all(line._is_resolved() for line in lines):
                 status = "confirmed"
-
-            # KTV ĐÃ bắt đầu xử lý nhưng chưa xong hết → "Đang xử lý". Coi là đã
-            # bắt đầu khi: đã bấm "Nhận xử lý" (status đang processing/
-            # confirmed cũ), HOẶC ít nhất 1 dòng đã chọn Sản phẩm / đánh dấu không
-            # khả thi. (Hàng gia công cần cả Product + BOM mới coi là "xong", nên
-            # riêng việc chọn Product đã tính là đang xử lý.)
-            elif rec.status in ("processing", "confirmed") or any(
-                    line.resolved_product_id or line.is_infeasible for line in lines):
-                status = "processing"
-
-            # new / supplemented: chưa ai đụng tới → GIỮ NGUYÊN.
             else:
-                status = rec.status
+                # BẤT KỲ dòng chưa xử lý nào cần bổ sung → tự chuyển "returned"
+                # để Sales thấy tín hiệu ngay trên list. KTV vẫn xử lý được các
+                # dòng khác (gate resolve wizard cho phép status "returned").
+                unresolved = lines.filtered(lambda l: not l._is_resolved())
+                if unresolved and any(l.supplement_note for l in unresolved):
+                    status = "returned"
+
+                # KTV ĐÃ bắt đầu xử lý nhưng chưa xong hết → "Đang xử lý".
+                elif rec.status in ("processing", "confirmed", "returned") \
+                        or any(line.resolved_product_id or line.is_infeasible
+                               for line in lines):
+                    status = "processing"
+
+                # new / supplemented: chưa ai đụng tới → GIỮ NGUYÊN.
+                else:
+                    status = rec.status
 
             if rec.status != status:
+                if status == "returned":
+                    parts = []
+                    for l in lines.filtered(lambda l: l.supplement_note):
+                        parts.append("• %s: %s" % (
+                            l.product_name or "", l.supplement_note))
+                    rec.return_reason = "\n".join(parts)
                 rec.status = status
 
     def write(self, vals):
@@ -447,6 +475,7 @@ class DlQuotationRequest(models.Model):
             if rec.status != "returned":
                 raise UserError(_(
                     "Chỉ RFQ đang ở trạng thái 'Trả lại bổ sung' mới gửi lại được."))
+            rec.line_ids.write({"supplement_note": False})
             rec.status = "supplemented"
             rec.message_post(body=_("Sales đã bổ sung và gửi lại RFQ."))
 
@@ -681,9 +710,15 @@ class DlQuotationRequestLine(models.Model):
         string="Lý do không khả thi",
     )
 
+    supplement_note = fields.Text(
+        string="Nội dung cần bổ sung",
+        help="KTV ghi chú thông tin cần Sales bổ sung cho dòng này.",
+    )
+
     technical_status = fields.Selection(
         [
             ("pending", "Chưa xử lý"),
+            ("waiting", "Chờ bổ sung"),
             ("processing", "Đang xử lý"),
             ("done", "Đã xử lý"),
             ("infeasible", "Không khả thi"),
@@ -698,6 +733,7 @@ class DlQuotationRequestLine(models.Model):
         "resolved_product_id",
         "resolved_bom_id",
         "is_infeasible",
+        "supplement_note",
     )
     def _compute_technical_status(self):
         for rec in self:
@@ -707,6 +743,8 @@ class DlQuotationRequestLine(models.Model):
                 rec.technical_status = "infeasible"
             elif rec.resolved_product_id and rec.resolved_bom_id:
                 rec.technical_status = "done"
+            elif rec.supplement_note:
+                rec.technical_status = "waiting"
             elif rec.resolved_product_id or rec.resolved_bom_id:
                 rec.technical_status = "processing"
             else:
@@ -717,7 +755,8 @@ class DlQuotationRequestLine(models.Model):
         compute="_compute_resolved_summary",
     )
 
-    @api.depends("product_type", "resolved_product_id", "is_infeasible")
+    @api.depends("product_type", "resolved_product_id", "is_infeasible",
+                 "supplement_note")
     def _compute_resolved_summary(self):
         for rec in self:
             if rec.product_type == "trading":
@@ -726,6 +765,8 @@ class DlQuotationRequestLine(models.Model):
                 rec.resolved_summary = "Không khả thi"
             elif rec.resolved_product_id:
                 rec.resolved_summary = rec.resolved_product_id.display_name
+            elif rec.supplement_note:
+                rec.resolved_summary = "Chờ Sales bổ sung"
             else:
                 rec.resolved_summary = "Chưa chọn sản phẩm"
 
@@ -908,7 +949,7 @@ class DlQuotationRequestLine(models.Model):
         if "attachment_ids" in vals:
             self._stamp_attachments()
 
-        if {"resolved_product_id", "resolved_bom_id", "is_infeasible"} & set(vals.keys()):
+        if {"resolved_product_id", "resolved_bom_id", "is_infeasible", "supplement_note"} & set(vals.keys()):
             self.mapped("quotation_request_id")._recompute_status_from_lines()
 
         return res
@@ -986,7 +1027,7 @@ class DlQuotationRequestLine(models.Model):
         request = self.quotation_request_id
         if request.status in ("new", "supplemented"):
             request.action_receive()
-        if request.status not in ("processing", "confirmed"):
+        if request.status not in ("processing", "confirmed", "returned"):
             raise UserError(_(
                 "RFQ ở trạng thái hiện tại không thể xử lý kỹ thuật."))
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(

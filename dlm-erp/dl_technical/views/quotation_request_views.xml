@@ -134,6 +134,19 @@
                         Kỹ thuật bấm <em>Xử lý</em> trên dòng cần làm tiếp; hệ thống
                         sẽ tự ghi nhận người và thời điểm tiếp nhận.
                     </div>
+                    <!-- Cảnh báo cho Sales khi có dòng chờ bổ sung (RFQ vẫn
+                         processing — KTV đánh dấu từng dòng mà chưa trả hẳn). -->
+                    <field name="supplement_count" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="supplement_count == 0"
+                         groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin">
+                        <i class="fa fa-exclamation-triangle me-1" title="Cần bổ sung"/>
+                        <strong>
+                            <field name="supplement_count" nolabel="1" class="d-inline"/>
+                            dòng đang chờ bạn bổ sung thông tin.
+                        </strong>
+                        Xem chi tiết từng dòng trong bảng bên dưới (badge "Chờ bổ sung").
+                    </div>
                     <!-- KTV xem được RFQ Mới; bấm Xử lý trên dòng sẽ tự tiếp nhận. -->
                     <div class="alert alert-info" role="alert"
                          invisible="status != 'new'"
@@ -208,6 +221,7 @@
                                     <field name="technical_status" widget="badge"
                                            decoration-muted="technical_status in ('pending', 'not_required')"
                                            decoration-warning="technical_status == 'processing'"
+                                           decoration-info="technical_status == 'waiting'"
                                            decoration-success="technical_status == 'done'"
                                            decoration-danger="technical_status == 'infeasible'"/>
                                     <button name="action_open_resolve_wizard" type="object"
@@ -223,6 +237,8 @@
                                     <field name="resolved_product_id" string="SP đã xác định"
                                            readonly="1" optional="hide"/>
                                     <field name="resolved_bom_id" string="BOM đã xác định"
+                                           readonly="1" optional="hide"/>
+                                    <field name="supplement_note" string="Cần bổ sung"
                                            readonly="1" optional="hide"/>
                                     <field name="infeasible_reason"
                                            invisible="not is_infeasible"
@@ -288,9 +304,16 @@
                                                     hệ thống sẽ tự tiếp nhận RFQ.
                                                 </div>
                                                 <div colspan="2" class="text-muted"
-                                                     invisible="request_status in ('new', 'supplemented') or is_infeasible or resolved_product_id or product_type == 'trading'">
+                                                     invisible="request_status in ('new', 'supplemented') or is_infeasible or resolved_product_id or supplement_note or product_type == 'trading'">
                                                     <i class="fa fa-info-circle me-1"/>Chưa xử lý — bấm
                                                     <b>Xử lý dòng này</b> ở trên để chọn/tạo Sản phẩm &amp; BOM.
+                                                </div>
+                                                <div colspan="2" class="alert alert-info py-2" role="status"
+                                                     invisible="not supplement_note">
+                                                    <i class="fa fa-clock-o me-1" title="Chờ bổ sung"/>
+                                                    <b>Chờ Sales bổ sung:</b>
+                                                    <field name="supplement_note" nolabel="1"
+                                                           readonly="1" class="d-inline"/>
                                                 </div>
                                                 <field name="resolved_product_id" string="Sản phẩm xác định"
                                                        invisible="is_infeasible"
@@ -416,6 +439,18 @@
                         <strong>Đã gửi lại cho Kỹ thuật.</strong>
                         RFQ đang chờ Kỹ thuật tiếp tục xử lý; người phụ trách và
                         thời điểm tiếp nhận sẽ được cập nhật khi họ mở một dòng.
+                    </div>
+                    <!-- Cảnh báo cho Sales khi có dòng chờ bổ sung (RFQ vẫn
+                         processing — KTV đánh dấu từng dòng mà chưa trả hẳn). -->
+                    <field name="supplement_count" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="supplement_count == 0">
+                        <i class="fa fa-exclamation-triangle me-1" title="Cần bổ sung"/>
+                        <strong>
+                            <field name="supplement_count" nolabel="1" class="d-inline"/>
+                            dòng đang chờ bạn bổ sung thông tin.
+                        </strong>
+                        Xem chi tiết từng dòng trong bảng bên dưới (badge "Chờ bổ sung").
                     </div>
                     <div class="oe_title">
                         <label for="name"/>
@@ -578,6 +613,8 @@
                         domain="[('deadline', '&lt;', context_today().strftime('%Y-%m-%d')), ('status', 'not in', ('quoted', 'cancelled'))]"/>
                 <filter name="to_process" string="Cần Kỹ thuật xử lý"
                         domain="[('status', 'in', ('new', 'processing', 'supplemented'))]"/>
+                <filter name="has_supplement" string="Cần bổ sung"
+                        domain="[('supplement_count', '&gt;', 0), ('status', 'not in', ('returned', 'quoted', 'cancelled'))]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_status" string="Trạng thái"
                             context="{'group_by': 'status'}"/>

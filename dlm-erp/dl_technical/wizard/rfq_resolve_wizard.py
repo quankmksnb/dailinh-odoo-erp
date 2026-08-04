@@ -54,6 +54,10 @@ class DlRfqResolveWizard(models.TransientModel):
     is_infeasible = fields.Boolean(string="Không khả thi")
     infeasible_reason = fields.Text(string="Lý do không khả thi")
 
+    supplement_note = fields.Text(string="Nội dung cần bổ sung")
+    has_existing_supplement = fields.Boolean(
+        string="Dòng đã có yêu cầu bổ sung từ trước")
+
     # ── A/B ──────────────────────────────────────────────────────────────
     mode = fields.Selection(
         [
@@ -223,6 +227,9 @@ class DlRfqResolveWizard(models.TransientModel):
             if line.exists():
                 if line.product_name and not res.get("new_product_name"):
                     res["new_product_name"] = line.product_name
+                if line.supplement_note:
+                    res["supplement_note"] = line.supplement_note
+                    res["has_existing_supplement"] = True
                 if line.is_infeasible:
                     res.update({
                         "is_infeasible": True,
@@ -463,8 +470,34 @@ class DlRfqResolveWizard(models.TransientModel):
             "infeasible_reason": self.infeasible_reason,
             "resolved_product_id": False,
             "resolved_bom_id": False,
+            "supplement_note": False,
         })
         self.rfq_line_id._cleanup_rfq_provisional_records()
+        return self._action_return_to_rfq()
+
+    def action_mark_supplement(self):
+        """KTV đánh dấu dòng cần Sales bổ sung thông tin.
+
+        Tự động tạo activity cho người tạo RFQ (Sales) để họ nhận thông báo
+        ngay — không cần đợi KTV bấm 'Gửi lại Sales' ở cấp RFQ."""
+        self.ensure_one()
+        if not (self.supplement_note or "").strip():
+            raise UserError(_(
+                "Vui lòng nhập nội dung cần Sales bổ sung."))
+        note = self.supplement_note.strip()
+        self.rfq_line_id.write({"supplement_note": note})
+        request = self.rfq_line_id.quotation_request_id
+        request.message_post(body=_(
+            "Kỹ thuật yêu cầu bổ sung cho dòng <b>%s</b>: %s"
+        ) % (self.rfq_line_id.product_name or "", note))
+        if request.created_by:
+            request.activity_schedule(
+                "mail.mail_activity_data_todo",
+                summary=_("Bổ sung thông tin dòng %s") % (
+                    self.rfq_line_id.product_name or request.name),
+                note=note,
+                user_id=request.created_by.id,
+            )
         return self._action_return_to_rfq()
 
     def action_confirm(self):
@@ -478,10 +511,9 @@ class DlRfqResolveWizard(models.TransientModel):
         self.rfq_line_id.write({
             "resolved_product_id": self.product_id.id,
             "resolved_bom_id": self.selected_bom_id.id,
-            # Cho phép sửa một kết luận "Không khả thi" thành phương án khả thi
-            # ngay trong cùng cửa xử lý, không cần mở field kết quả trực tiếp.
             "is_infeasible": False,
             "infeasible_reason": False,
+            "supplement_note": False,
         })
         if self.product_id.is_rfq_provisional:
             self.product_id.write({"is_rfq_provisional": False})
