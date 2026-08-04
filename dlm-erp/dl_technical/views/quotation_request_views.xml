@@ -86,9 +86,12 @@
             <form string="Yêu cầu báo giá" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
                     <!-- Kỹ thuật trả RFQ về Sales bổ sung (thiếu thông tin) -->
+                    <!-- Chỉ trả lại sau khi ĐÃ tiếp nhận (không hiện ở 'Mới' — chưa
+                         xem xét thì chưa có cơ sở yêu cầu bổ sung; bấm Xử lý một
+                         dòng sẽ tự tiếp nhận rồi nút này hiện). -->
                     <button name="action_open_return_wizard" type="object"
                             string="Gửi lại Sales (bổ sung)"
-                            invisible="status in ('returned', 'quoted', 'cancelled')"
+                            invisible="status in ('new', 'returned', 'quoted', 'cancelled')"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <!-- Sales gửi lại sau khi đã bổ sung. Hiện ngay khi có ≥1 dòng
                          Sales đã bổ sung (không chỉ khi RFQ ở 'Trả lại bổ sung') —
@@ -183,8 +186,9 @@
                             <field name="infeasible_count" nolabel="1" class="d-inline"/>
                             dòng được kết luận Không khả thi.
                         </strong>
-                        Xem lý do ở cột "Kết quả kỹ thuật" từng dòng. Trao đổi lại với
-                        khách hàng rồi loại các dòng này khỏi RFQ trước khi Tạo báo giá.
+                        Xem lý do ở cột "Kết quả kỹ thuật" từng dòng. Các dòng này sẽ tự
+                        động bị loại khỏi báo giá — báo giá chỉ gồm dòng làm được. Nếu
+                        cần bỏ hẳn, dùng nút "Loại khỏi phạm vi" trên dòng.
                     </div>
                     <!-- KTV xem được RFQ Mới; bấm Xử lý trên dòng sẽ tự tiếp nhận. -->
                     <div class="alert alert-info" role="alert"
@@ -570,8 +574,9 @@
                             <field name="infeasible_count" nolabel="1" class="d-inline"/>
                             dòng được Kỹ thuật kết luận Không khả thi.
                         </strong>
-                        Xem lý do ở từng dòng. Trao đổi lại với khách hàng rồi loại
-                        các dòng này khỏi RFQ trước khi Tạo báo giá.
+                        Xem lý do ở từng dòng. Các dòng này sẽ tự động bị loại khỏi báo
+                        giá — báo giá chỉ gồm dòng làm được. Nếu cần bỏ hẳn, dùng nút
+                        "Loại khỏi phạm vi" trên dòng.
                     </div>
                     <div class="oe_title">
                         <label for="name"/>

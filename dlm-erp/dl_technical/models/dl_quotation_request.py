@@ -132,11 +132,16 @@ class DlQuotationRequest(models.Model):
         compute="_compute_received_info",
     )
 
-    @api.depends("received_by", "received_date")
+    @api.depends("received_by", "received_date", "status")
     def _compute_received_info(self):
         for rec in self:
+            # Banner "đang do X xử lý" chỉ có nghĩa khi RFQ CÒN ĐANG XỬ LÝ — RFQ
+            # đã đóng (đã tạo báo giá / đã hủy) hoặc đang ở phía Sales (trả lại
+            # bổ sung) thì thôi nhắc, tránh treo tên KTV mãi.
             rec.received_by_other = (
-                bool(rec.received_by) and rec.received_by != self.env.user)
+                bool(rec.received_by)
+                and rec.received_by != self.env.user
+                and rec.status in ("processing", "supplemented", "confirmed"))
             if rec.received_by:
                 when = ""
                 if rec.received_date:
@@ -249,6 +254,11 @@ class DlQuotationRequest(models.Model):
             if total:
                 label = _("Đã xử lý %(done)s/%(total)s dòng gia công",
                           done=done, total=total)
+                # "Đã xử lý" gồm cả dòng không khả thi (KTV đã có kết luận nhưng
+                # KHÔNG báo giá được) — tách rõ để không hiểu nhầm là làm được.
+                infeasible = len(technical_lines.filtered(lambda l: l.is_infeasible))
+                if infeasible:
+                    label += _(" (%(n)s không khả thi)", n=infeasible)
             else:
                 label = _("Không có dòng gia công cần xử lý")
 
@@ -498,6 +508,12 @@ class DlQuotationRequest(models.Model):
         }
 
     def action_cancel(self):
+        # Chốt cứng ở server (không chỉ ẩn nút ở view): không hủy RFQ đã tạo báo
+        # giá (còn ràng buộc báo giá) hoặc đã hủy sẵn.
+        for rec in self:
+            if rec.status in ("quoted", "cancelled"):
+                raise UserError(_(
+                    "Không thể hủy RFQ đã tạo báo giá hoặc đã hủy."))
         self.write({
             "status": "cancelled",
         })
@@ -536,11 +552,13 @@ class DlQuotationRequest(models.Model):
                 raise UserError(_(
                     "Chưa có dòng nào được bổ sung. Hãy sửa thông tin ở các dòng "
                     "đang 'Chờ bổ sung' (bảng bên dưới) rồi mới gửi lại."))
-            # Xóa cờ ở đúng các dòng đã bổ sung; _recompute_status_from_lines chạy
-            # theo (supplement_note đổi) — nhưng RFQ đang 'Trả lại bổ sung' cần
-            # được đẩy về phía Kỹ thuật, nên set 'supplemented' đè lên sau đó.
+            # Xóa CÂU HỎI bổ sung (supplement_note) nhưng GIỮ cờ supplement_done:
+            # dòng vẫn hiện "Đã bổ sung" để KTV biết cần xử lý lại (cờ chỉ mất khi
+            # KTV Xác nhận / kết luận / trả lại lần nữa). _recompute_status_from_lines
+            # chạy theo (supplement_note đổi) — RFQ 'Trả lại bổ sung' cần đẩy về
+            # phía Kỹ thuật nên set 'supplemented' đè lên sau đó.
             was_returned = rec.status == "returned"
-            addressed.write({"supplement_note": False, "supplement_done": False})
+            addressed.write({"supplement_note": False})
             if was_returned:
                 rec.status = "supplemented"
             if pending:
@@ -860,6 +878,11 @@ class DlQuotationRequestLine(models.Model):
                 rec.technical_status = "review" if rec.needs_review else "done"
             elif rec.supplement_note:
                 rec.technical_status = "supplemented" if rec.supplement_done else "waiting"
+            elif rec.supplement_done:
+                # Sales đã bổ sung + gửi lại (supplement_note đã xóa nhưng cờ
+                # supplement_done giữ lại): dòng chờ KTV XỬ LÝ LẠI — hiện "Đã bổ
+                # sung" cho dễ nhận biết thay vì lẫn với dòng "Chưa xử lý".
+                rec.technical_status = "supplemented"
             elif rec.resolved_product_id or rec.resolved_bom_id:
                 rec.technical_status = "processing"
             else:
@@ -897,6 +920,8 @@ class DlQuotationRequestLine(models.Model):
                           if rec.supplement_done else "Chờ Sales bổ sung")
                 rec.resolved_summary = "%s — %s" % (
                     prefix, _short(rec.supplement_note))
+            elif rec.supplement_done:
+                rec.resolved_summary = "Đã bổ sung — chờ Kỹ thuật xử lý"
             else:
                 rec.resolved_summary = "Chưa chọn sản phẩm"
 
