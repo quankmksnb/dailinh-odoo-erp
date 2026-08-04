@@ -13,7 +13,7 @@
         <field name="arch" type="xml">
             <tree string="BOM Template"
                   class="dl-bomtpl-list"
-                  js_class="dl_list"
+                  js_class="dl_bomtpl_list"
                   decoration-muted="status == 'archived'"
                   decoration-bf="is_current">
                 <field name="is_current" column_invisible="1"/>

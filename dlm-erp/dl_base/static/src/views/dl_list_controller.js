@@ -223,6 +223,27 @@ export class DlListBaseController extends ListController {
         if (!renderer) {
             return;
         }
+
+        // Ẩn pager range "1-15 / N" mặc định ở control panel — thay bằng pager SỐ.
+        const cpPager = root.querySelector(".o_cp_pager");
+        if (cpPager) {
+            cpPager.style.display = "none";
+        }
+
+        // Chế độ NHÓM: pager control-panel lúc này phân trang theo SỐ NHÓM (gây
+        // nhầm là pager của nhóm cuối) → ẩn footer đếm; thay pager mặc định của
+        // TỪNG nhóm bằng pager SỐ ở góc phải header nhóm.
+        if (this.model.root.isGrouped) {
+            const groupedFooter = renderer.querySelector(".dl-list-footer");
+            if (groupedFooter) {
+                groupedFooter.style.display = "none";
+            }
+            this._renderGroupNumberedPagers(root);
+            return;
+        }
+
+        // List phẳng: dòng phân trang (footer) LUÔN hiện cho mọi màn — trống nếu
+        // dưới 'limit', có pager SỐ nếu vượt. KHÔNG hiện tổng bản ghi nữa.
         let footer = renderer.querySelector(".dl-list-footer");
         if (!footer) {
             footer = document.createElement("div");
@@ -232,58 +253,159 @@ export class DlListBaseController extends ListController {
             footer.appendChild(count);
             renderer.appendChild(footer);
         }
-        const total = this.model.root.count ?? 0;
-        footer.querySelector(".dl-list-count").textContent = `${total} ${this.dlCountNoun}`;
+        const list = this.model.root;
+        footer.querySelector(".dl-list-count").style.display = "none";
 
-        const pager = root.querySelector(".o_cp_pager");
-        if (pager && pager.parentElement !== footer) {
-            footer.appendChild(pager);
+        let host = footer.querySelector(".dl-pager");
+        if (!host) {
+            host = document.createElement("div");
+            host.className = "dl-pager";
+            footer.appendChild(host);
         }
+        this._syncNumberedPager(host, list, (offset, limit) => list.load({ offset, limit }));
+        footer.style.display = "";
+    }
+
+    // Thay pager mặc định của MỖI nhóm bằng pager SỐ (khi list gom nhóm). Ghép
+    // theo thứ tự: nhóm thứ i trong model ↔ dòng .o_group_header thứ i (renderer
+    // duyệt list.groups đúng thứ tự) — chỉ áp dụng gom nhóm 1 cấp như các màn DL.
+    _renderGroupNumberedPagers(root) {
+        const groups = this.model.root.groups || [];
+        const headers = root.querySelectorAll("tr.o_group_header");
+        headers.forEach((header, i) => {
+            const group = groups[i];
+            const list = group && group.list;
+            const flex = header.querySelector(".o_group_name .d-flex.align-items-center");
+            if (!list || !flex) {
+                return;
+            }
+
+            // Ẩn pager range mặc định của nhóm (native Odoo).
+            const nativePager = header.querySelector(".o_pager");
+            const nativeWrap = nativePager && nativePager.closest(".ms-auto");
+            if (nativeWrap) {
+                nativeWrap.style.display = "none";
+            }
+
+            // Nhóm đang GẬP chưa nạp sublist → list.limit có thể undefined;
+            // fallback theo limit của list gốc, tránh chia cho 1 ra vô số trang.
+            const limit = list.limit || this.model.root.limit || 80;
+            const total = list.count || 0;
+            const pageCount = Math.max(1, Math.ceil(total / limit));
+
+            let host = flex.querySelector(":scope > .dl-group-pager");
+            // Chỉ hiện pager khi nhóm ĐANG MỞ và có >1 trang (giống native
+            // showGroupPager) — nhóm đang gập thì không phân trang.
+            if (group.isFolded || pageCount <= 1) {
+                if (host) {
+                    host.remove();
+                }
+                return;
+            }
+            if (!host) {
+                host = document.createElement("div");
+                host.className = "dl-pager dl-group-pager";
+                // Chặn click nổi lên header (kẻo bấm số trang lại gập/mở nhóm).
+                host.addEventListener("click", (ev) => ev.stopPropagation());
+                flex.appendChild(host);
+            }
+            this._syncNumberedPager(host, list, async (offset, lim) => {
+                await list.load({ offset, limit: lim });
+                this.render(true);
+            });
+        });
+    }
+
+    // Dựng lại nội dung pager SỐ cho 1 list (phẳng hoặc list của 1 nhóm).
+    // Trả về true nếu có pager (>1 trang), false nếu ẩn.
+    _syncNumberedPager(host, list, doLoad) {
+        const limit = list.limit || 1;
+        const total = list.count || 0;
+        const pageCount = Math.max(1, Math.ceil(total / limit));
+        if (pageCount <= 1) {
+            host.innerHTML = "";
+            host.style.display = "none";
+            return false;
+        }
+        host.style.display = "";
+        const current = Math.floor((list.offset || 0) / limit) + 1;
+        this._mountNumberedPager(host, {
+            current,
+            pageCount,
+            onSelect: (p) => {
+                if (p < 1 || p > pageCount || p === current) {
+                    return;
+                }
+                doLoad((p - 1) * limit, limit);
+            },
+        });
+        return true;
+    }
+
+    _mountNumberedPager(host, { current, pageCount, onSelect }) {
+        host.classList.add("dl-pager");
+        host.innerHTML = "";
+        const addBtn = (label, { page = null, active = false, disabled = false, nav = false }) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className =
+                "dl-pager-btn" + (active ? " is-active" : "") + (nav ? " dl-pager-nav" : "");
+            b.textContent = label;
+            b.disabled = disabled;
+            b.addEventListener("click", (ev) => {
+                ev.stopPropagation();
+                if (page !== null && !disabled && !active) {
+                    onSelect(page);
+                }
+            });
+            host.appendChild(b);
+        };
+        addBtn("‹", { page: current - 1, disabled: current <= 1, nav: true });
+        for (const it of this._dlPageItems(current, pageCount)) {
+            if (it === "…") {
+                const s = document.createElement("span");
+                s.className = "dl-pager-ellipsis";
+                s.textContent = "…";
+                host.appendChild(s);
+            } else {
+                addBtn(String(it), { page: it, active: it === current });
+            }
+        }
+        addBtn("›", { page: current + 1, disabled: current >= pageCount, nav: true });
+    }
+
+    // Dãy số trang có "…": luôn giữ trang 1, trang cuối và current ±1; thêm 2/3
+    // (đầu) hoặc n-1/n-2 (cuối) cho đỡ trống.
+    _dlPageItems(current, pageCount) {
+        const set = new Set([1, pageCount, current, current - 1, current + 1]);
+        if (current <= 3) {
+            set.add(2);
+            set.add(3);
+        }
+        if (current >= pageCount - 2) {
+            set.add(pageCount - 1);
+            set.add(pageCount - 2);
+        }
+        const pages = [...set].filter((p) => p >= 1 && p <= pageCount).sort((a, b) => a - b);
+        const items = [];
+        let prev = 0;
+        for (const p of pages) {
+            if (p - prev > 1) {
+                items.push("…");
+            }
+            items.push(p);
+            prev = p;
+        }
+        return items;
     }
 }
 
-export class DlListController extends ListController {
-    setup() {
-        super.setup();
-        useEffect(() => {
-            const root = this.rootRef.el;
-            if (!root) {
-                return;
-            }
-            this._relocateCreateButton(root);
-            const container =
-                root.querySelector(".o_control_panel_navigation") ||
-                root.querySelector(".o_control_panel_breadcrumbs");
-            buildActionsMenu(
-                container,
-                [
-                    { label: "Nhập dữ liệu", icon: "fa-upload", onClick: () => this.dlImport() },
-                    {
-                        label: "Xuất dữ liệu",
-                        icon: "fa-download",
-                        onClick: () => this.onExportData && this.onExportData(),
-                    },
-                ],
-                { prepend: true }
-            );
-        });
-    }
-
-    _relocateCreateButton(root) {
-        const buttons = root.querySelector(".o_control_panel_main_buttons");
-        const actions = root.querySelector(".o_control_panel_actions");
-        if (buttons && actions && buttons.parentElement !== actions) {
-            buttons.classList.add("dl-create-cluster");
-            actions.appendChild(buttons);
-        }
-    }
-
-    dlImport() {
-        this.actionService.doAction({
-            type: "ir.actions.client",
-            tag: "import",
-            params: { model: this.props.resModel, context: this.props.context },
-        });
+// Generic DL list (dl_list): các màn không cần chip/đếm-noun riêng (VD Loại /
+// Hình dạng đo lường). Kế thừa base để dùng CHUNG một footer + pager SỐ và ẩn
+// pager range mặc định — tránh tình trạng mỗi màn một kiểu phân trang.
+export class DlListController extends DlListBaseController {
+    get dlCountNoun() {
+        return "bản ghi";
     }
 }
 

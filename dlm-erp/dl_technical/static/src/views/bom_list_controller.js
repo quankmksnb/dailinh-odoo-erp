@@ -86,3 +86,17 @@ registry.category("views").add("dl_bom_list", {
     ...listView,
     Controller: DlBomListController,
 });
+
+// BOM mẫu (dl.bom.template) — không cần chip trạng thái, chỉ cần footer + pager
+// SỐ đồng bộ với các màn khác. Trước đây dùng js_class="dl_list" nên hiện pager
+// range mặc định ở góc trên; đổi sang controller này để có noun đếm riêng.
+export class DlBomTemplateListController extends DlListBaseController {
+    get dlCountNoun() {
+        return "BOM mẫu";
+    }
+}
+
+registry.category("views").add("dl_bomtpl_list", {
+    ...listView,
+    Controller: DlBomTemplateListController,
+});
