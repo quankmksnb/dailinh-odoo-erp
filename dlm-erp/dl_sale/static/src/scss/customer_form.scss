@@ -124,4 +124,34 @@
     margin-top: 0;
     margin-bottom: 6px;
   }
+
+  // Bảng "Người liên hệ": cột xóa dòng bị tràn/lệch do header thao tác rỗng
+  // (`o_list_actions_header`) dính phải (position-sticky end-0) tạo "cột nhỏ"
+  // thừa ở mép. Vô hiệu sticky + nền của nó, gom cột xóa sát nội dung.
+  .o_field_one2many {
+    .o_list_table {
+      th.o_list_actions_header,
+      td.o_list_record_remove {
+        width: 1px !important;
+        min-width: 0 !important;
+        position: static !important;   // bỏ sticky end-0 gây cột thừa
+        background: transparent !important;
+        border-left: 0 !important;
+        padding: 0 14px 0 0 !important; // chỉ chừa lề phải, icon thụt vào trong
+      }
+
+      td.o_list_record_remove {
+        text-align: right;
+
+        button.fa {
+          padding: 0;
+          color: $dl-text-muted;
+
+          &:hover {
+            color: $dl-danger;
+          }
+        }
+      }
+    }
+  }
 }

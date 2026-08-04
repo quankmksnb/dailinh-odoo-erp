@@ -21,6 +21,9 @@ import { setupFormActionsMenu, setupStatusbarButtons } from "@dl_base/js/actions
 import { useService } from "@web/core/utils/hooks";
 import { onWillStart, onMounted, useEffect } from "@odoo/owl";
 
+// PHẢI khớp _TAX_CODE_RE ở backend (res_partner.py) và widget dl_tax_code.
+const TAX_CODE_RE = /^\d{10}(-\d{3})?$/;
+
 export class DlSupplierFormController extends FormController {
     setup() {
         super.setup();
@@ -93,7 +96,7 @@ export class DlSupplierFormController extends FormController {
     // Bản ghi mới đã nhập/điền coi như có thay đổi; bản ghi cũ chỉ tính khi
     // người dùng thực sự chỉnh (tránh hỏi vô cớ do fill tự động).
     get _dlHasRealChanges() {
-        return this.model.root.isDirty && this._dlUserTouched;
+        return this.model.root.dirty && this._dlUserTouched;
     }
 
     // Bấm "Huỷ" → hỏi xác nhận trước khi bỏ thay đổi.
@@ -119,7 +122,7 @@ export class DlSupplierFormController extends FormController {
     async beforeLeave() {
         const root = this.model.root;
         if (this._dlReadonly || !this._dlHasRealChanges) {
-            if (root.isDirty) {
+            if (root.dirty) {
                 await root.discard();
             }
             return;
@@ -132,11 +135,43 @@ export class DlSupplierFormController extends FormController {
             await root.discard();
             return;
         }
-        // choice === "save": chỉ lúc này mới gộp/tạo (create → merge).
+        // choice === "save": validate trước, không hợp lệ thì giữ lại để sửa.
+        const message = this._dlValidateSupplier(root);
+        if (message) {
+            this.dlNotification.add(message, {
+                type: "danger",
+                title: _t("Kiểm tra lại thông tin"),
+            });
+            throw new Error("dl_supplier_invalid_on_leave");
+        }
+        // Chỉ lúc này mới gộp/tạo (create → merge).
         const saved = await root.save();
         if (!saved) {
             throw new Error("dl_supplier_save_failed_on_leave");
         }
+    }
+
+    // Chặn lưu + báo lỗi bằng toast nếu dữ liệu không hợp lệ.
+    async saveButtonClicked(params = {}) {
+        const message = this._dlValidateSupplier(this.model.root);
+        if (message) {
+            this.dlNotification.add(message, {
+                type: "danger",
+                title: _t("Kiểm tra lại thông tin"),
+            });
+            return false;
+        }
+        return super.saveButtonClicked(params);
+    }
+
+    // MST NCC không bắt buộc; nếu đã nhập thì phải đúng định dạng
+    // (10 số hoặc 10 số-3 số cho chi nhánh). Đồng bộ với form Khách hàng.
+    _dlValidateSupplier(record) {
+        const tax = (record.data.vat || "").trim();
+        if (tax && !TAX_CODE_RE.test(tax)) {
+            return `Mã số thuế '${tax}' không đúng định dạng. MST gồm 10 chữ số (VD: 0123456789) hoặc 10 số-3 số cho chi nhánh (VD: 0123456789-001).`;
+        }
+        return null;
     }
 
     _dlConfirm({ title, body, confirmLabel, cancelLabel }) {

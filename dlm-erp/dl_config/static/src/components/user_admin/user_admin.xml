@@ -26,15 +26,15 @@
                             <i class="fa fa-search"/>
                             <input type="text" placeholder="Tìm tên, email, tên đăng nhập…"
                                    t-att-value="state.search"
-                                   t-on-input="(ev) => state.search = ev.target.value"/>
+                                   t-on-input="onSearchInput"/>
                         </div>
-                        <select class="dl-user-filter" t-model="state.roleFilter">
+                        <select class="dl-user-filter" t-att-value="state.roleFilter" t-on-change="onRoleFilter">
                             <option value="">Tất cả vai trò</option>
                             <t t-foreach="state.roles" t-as="r" t-key="r.id">
                                 <option t-att-value="r.id" t-esc="r.name"/>
                             </t>
                         </select>
-                        <select class="dl-user-filter" t-model="state.statusFilter">
+                        <select class="dl-user-filter" t-att-value="state.statusFilter" t-on-change="onStatusFilter">
                             <option value="">Tất cả trạng thái</option>
                             <option value="active">Đang hoạt động</option>
                             <option value="locked">Bị khóa</option>
@@ -52,7 +52,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <t t-foreach="filteredUsers" t-as="u" t-key="u.id">
+                                <t t-foreach="pagedUsers" t-as="u" t-key="u.id">
                                     <tr t-att-class="{ 'is-selected': u.id === state.selectedId, 'is-locked': !u.active }"
                                         t-on-click="() => this.selectUser(u.id)">
                                         <td>
@@ -79,6 +79,30 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Phân trang -->
+                    <div class="dl-user-pager" t-if="filteredUsers.length">
+                        <span class="dl-user-pager-info">
+                            <t t-esc="pageRangeStart"/>–<t t-esc="pageRangeEnd"/> / <t t-esc="filteredUsers.length"/>
+                        </span>
+                        <div class="dl-user-pager-nav" t-if="totalPages > 1">
+                            <button type="button" class="dl-user-pager-btn"
+                                    t-att-disabled="currentPage === 1"
+                                    t-on-click="() => this.goToPage(currentPage - 1)">
+                                <i class="fa fa-chevron-left"/>
+                            </button>
+                            <t t-foreach="pageNumbers" t-as="p" t-key="p">
+                                <button type="button" class="dl-user-pager-btn"
+                                        t-att-class="{ 'is-on': p === currentPage }"
+                                        t-on-click="() => this.goToPage(p)" t-esc="p"/>
+                            </t>
+                            <button type="button" class="dl-user-pager-btn"
+                                    t-att-disabled="currentPage === totalPages"
+                                    t-on-click="() => this.goToPage(currentPage + 1)">
+                                <i class="fa fa-chevron-right"/>
+                            </button>
+                        </div>
                     </div>
                 </div>
 

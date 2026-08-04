@@ -75,7 +75,9 @@
                             <field name="mobile" string="Di động"/>
                             <field name="email"/>
                             <field name="website" string="Trang web"/>
-                            <field name="vat" string="Mã số thuế (MST)"/>
+                            <field name="vat" string="Mã số thuế (MST)"
+                                widget="dl_tax_code"
+                                placeholder="VD: 0123456789 hoặc 0123456789-001"/>
                         </group>
                         <group string="Địa chỉ">
                             <field name="street" string="Đường" placeholder="Số nhà, tên đường..."/>
