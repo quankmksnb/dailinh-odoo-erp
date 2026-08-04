@@ -52,7 +52,7 @@
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_archive" type="object" string="Lưu trữ"
                             class="btn-danger"
-                            invisible="status == 'archived'"
+                            invisible="status == 'archived' or not id"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn lưu trữ BOM mẫu này?"/>
                     <field name="status" widget="dl_stepper"
