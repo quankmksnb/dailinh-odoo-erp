@@ -132,6 +132,14 @@ class ResPartner(models.Model):
         to_create = []
         linked_records = self.browse()
         for vals in vals_list:
+            # Contact con (child_ids) cũng là res.partner nhưng KHÔNG phải KH DLM.
+            # default 'customer'/'company' của action KH rò xuống vals con → gỡ ở
+            # đây (đường tạo mới KH có child_ids). Ở đường sửa KH cũ + thêm contact,
+            # parent_id chưa nằm trong vals lúc này nên còn được chốt lần nữa SAU
+            # khi tạo (xem vòng lặp bên dưới).
+            if vals.get('parent_id'):
+                vals.pop('partner_role', None)
+                vals.pop('partner_type', None)
             target_id = vals.pop('pending_link_partner_id', False)
             if target_id:
                 target = self.browse(target_id).sudo()
@@ -148,6 +156,18 @@ class ResPartner(models.Model):
                 to_create.append(vals)
         created = super().create(to_create) if to_create else self.browse()
         for rec in created:
+            # Contact con: dù client/default có gán 'customer'/'company' + mã KH thì
+            # vẫn ép gỡ — người liên hệ KHÔNG phải KH DLM, không được lọt danh sách
+            # KH hay bị coi là "khách hàng mới". Chốt cuối, đúng cả đường sửa KH cũ.
+            if rec.parent_id:
+                fix = {}
+                if rec.partner_role:
+                    fix['partner_role'] = False
+                if rec.dlm_code:
+                    fix['dlm_code'] = False
+                if fix:
+                    rec.write(fix)
+                continue
             if rec.partner_role in _CUSTOMER_ROLES and not rec.dlm_code:
                 rec.dlm_code = self.env['ir.sequence'].next_by_code('dlm.customer') or '/'
         return created + linked_records
@@ -176,17 +196,27 @@ class ResPartner(models.Model):
         return res
 
     # ── Constraints ───────────────────────────────────────────────────
+    def _dl_is_customer_record(self):
+        """Bản ghi này có phải KH DLM (đối tượng của các ràng buộc KH) không?
+
+        Chỉ đúng với KH cấp cao (top-level). Người liên hệ (child_ids) cũng là
+        res.partner nhưng có `parent_id` — KHÔNG phải KH DLM, dù default
+        'customer'/'company' của action có rò xuống. Nếu không loại chúng ra,
+        contact rỗng MST sẽ dính ràng buộc 'Doanh nghiệp bắt buộc có MST'."""
+        self.ensure_one()
+        return self.partner_role in _CUSTOMER_ROLES and not self.parent_id
+
     @api.constrains('partner_role', 'partner_type')
     def _check_partner_type(self):
         for rec in self:
-            if rec.partner_role in _CUSTOMER_ROLES and not rec.partner_type:
+            if rec._dl_is_customer_record() and not rec.partner_type:
                 raise ValidationError('Khách hàng DLM phải có Loại khách hàng.')
 
     @api.constrains('partner_role', 'partner_type', 'vat')
     def _check_company_tax_code(self):
         """MST bắt buộc với khách doanh nghiệp (dùng trên PDF báo giá S09)."""
         for rec in self:
-            if rec.partner_role in _CUSTOMER_ROLES and rec.partner_type == 'company' \
+            if rec._dl_is_customer_record() and rec.partner_type == 'company' \
                     and not (rec.vat and rec.vat.strip()):
                 raise ValidationError(_(
                     'Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).'))
@@ -197,7 +227,7 @@ class ResPartner(models.Model):
         Áp cho cả Doanh nghiệp lẫn Cá nhân — Cá nhân KHÔNG bắt buộc nhập, nhưng
         nếu đã nhập thì vẫn phải đúng định dạng."""
         for rec in self:
-            if rec.partner_role not in _CUSTOMER_ROLES:
+            if not rec._dl_is_customer_record():
                 continue
             vat = (rec.vat or '').strip()
             if not vat:
@@ -213,7 +243,7 @@ class ResPartner(models.Model):
     def _check_phone_format(self):
         """Validate SĐT Việt Nam (TDS A1): ^(0|+84)[0-9]{9,10}$."""
         for rec in self:
-            if rec.partner_role not in _CUSTOMER_ROLES:
+            if not rec._dl_is_customer_record():
                 continue
             for label, value in (('Điện thoại', rec.phone), ('Di động', rec.mobile)):
                 if not value:
@@ -228,7 +258,7 @@ class ResPartner(models.Model):
     @api.constrains('partner_role', 'email')
     def _check_email_format(self):
         for rec in self:
-            if rec.partner_role in _CUSTOMER_ROLES and rec.email \
+            if rec._dl_is_customer_record() and rec.email \
                     and not _EMAIL_RE.match(rec.email.strip()):
                 raise ValidationError(_("Email '%s' không hợp lệ.") % rec.email)
 
@@ -236,7 +266,7 @@ class ResPartner(models.Model):
     def _check_unique_tax_code(self):
         """EX-05: chặn tạo KH trùng MST; cho phép ghi đè nếu là chi nhánh khác."""
         for rec in self:
-            if rec.partner_role not in _CUSTOMER_ROLES or not rec.vat or rec.dlm_allow_dup_tax:
+            if not rec._dl_is_customer_record() or not rec.vat or rec.dlm_allow_dup_tax:
                 continue
             dup = self.with_context(active_test=False).search([
                 ('id', '!=', rec.id),

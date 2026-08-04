@@ -196,7 +196,12 @@
 
                     <notebook>
                         <page string="Người liên hệ" name="contacts">
-                            <field name="child_ids" context="{'default_type': 'contact'}"
+                            <!-- default_partner_role/type=False: chặn default của action
+                                 KH rò xuống người liên hệ (contact con cũng là res.partner).
+                                 Nếu để rò, contact bị coi là 'KH Doanh nghiệp' và dính ràng
+                                 buộc bắt buộc MST khi lưu. Contact KHÔNG phải KH DLM. -->
+                            <field name="child_ids"
+                                context="{'default_type': 'contact', 'default_partner_role': False, 'default_partner_type': False}"
                                 readonly="not active">
                                 <tree editable="bottom">
                                     <field name="name" string="Họ tên" />
