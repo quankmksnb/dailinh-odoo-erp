@@ -5,6 +5,9 @@ from odoo.exceptions import ValidationError, AccessError
 
 _PHONE_RE = re.compile(r'^(0|\+84)[0-9]{9,10}$')
 _EMAIL_RE = re.compile(r'^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$')
+# MST: 10 chữ số, hoặc 10 chữ số-3 chữ số (mã chi nhánh). Chỉ số và dấu '-'.
+# Đồng bộ với widget frontend dl_partner/static/src/fields/tax_code_field.js.
+_TAX_CODE_RE = re.compile(r'^\d{10}(-\d{3})?$')
 _CUSTOMER_ROLES = ('customer', 'both')
 
 
@@ -187,6 +190,24 @@ class ResPartner(models.Model):
                     and not (rec.vat and rec.vat.strip()):
                 raise ValidationError(_(
                     'Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).'))
+
+    @api.constrains('partner_role', 'vat')
+    def _check_tax_code_format(self):
+        """Định dạng MST: chỉ chữ số và dấu '-', theo mẫu 10 số hoặc 10 số-3 số.
+        Áp cho cả Doanh nghiệp lẫn Cá nhân — Cá nhân KHÔNG bắt buộc nhập, nhưng
+        nếu đã nhập thì vẫn phải đúng định dạng."""
+        for rec in self:
+            if rec.partner_role not in _CUSTOMER_ROLES:
+                continue
+            vat = (rec.vat or '').strip()
+            if not vat:
+                continue
+            if not _TAX_CODE_RE.match(vat):
+                raise ValidationError(_(
+                    "Mã số thuế '%s' không hợp lệ. MST chỉ gồm chữ số và dấu "
+                    "'-', theo định dạng 10 chữ số (VD: 0123456789) hoặc 10 chữ "
+                    'số-3 chữ số cho chi nhánh (VD: 0123456789-001).'
+                ) % rec.vat)
 
     @api.constrains('partner_role', 'phone', 'mobile')
     def _check_phone_format(self):

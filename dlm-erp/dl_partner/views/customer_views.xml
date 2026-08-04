@@ -177,11 +177,12 @@
                             <field name="mobile" string="Di động" readonly="not active" />
                             <field name="email" widget="email" readonly="not active" />
                             <field name="vat" string="Mã số thuế (MST)"
-                                readonly="partner_type == 'individual' or not active"
+                                widget="dl_tax_code"
+                                readonly="not active"
                                 required="partner_type == 'company'"
-                                placeholder="Bắt buộc với Doanh nghiệp" />
+                                placeholder="Bắt buộc với Doanh nghiệp; Cá nhân có thể để trống" />
                             <field name="dlm_allow_dup_tax" readonly="not active"
-                                invisible="partner_type == 'individual'" />
+                                invisible="not vat" />
                         </group>
                         <group string="Địa chỉ">
                             <field name="street" string="Đường" readonly="not active"

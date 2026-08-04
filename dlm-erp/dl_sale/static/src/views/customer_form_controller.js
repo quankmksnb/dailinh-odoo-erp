@@ -11,6 +11,8 @@ import { setupFormActionsMenu, setupStatusbarButtons } from "@dl_base/js/actions
 
 const PHONE_RE = /^(0|\+84)[0-9]{9,10}$/;
 const EMAIL_RE = /^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$/;
+// PHẢI khớp _TAX_CODE_RE ở backend (res_partner.py) và widget dl_tax_code.
+const TAX_CODE_RE = /^\d{10}(-\d{3})?$/;
 
 export class DlCustomerFormController extends FormController {
     setup() {
@@ -50,7 +52,7 @@ export class DlCustomerFormController extends FormController {
     // coi như có thay đổi → hỏi trước khi rời. Bản ghi cũ chỉ tính khi người
     // dùng thực sự chỉnh (tránh hỏi vô cớ).
     get _dlHasRealChanges() {
-        return this.model.root.isDirty && this._dlUserTouched;
+        return this.model.root.dirty && this._dlUserTouched;
     }
 
     // Hỏi xác nhận khi bấm "Huỷ" (bỏ thay đổi)
@@ -75,14 +77,14 @@ export class DlCustomerFormController extends FormController {
     async beforeLeave() {
         const root = this.model.root;
         if (this._dlReadonly) {
-            if (root.isDirty) {
+            if (root.dirty) {
                 await root.discard();
             }
             return;
         }
-        
+
         if (!this._dlHasRealChanges) {
-            if (root.isDirty) {
+            if (root.dirty) {
                 await root.discard();
             }
             return;
@@ -179,6 +181,11 @@ export class DlCustomerFormController extends FormController {
         const tax = (d.vat || "").trim();
         if (d.partner_type === "company" && !tax) {
             return _t("Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).");
+        }
+
+        // MST nếu đã nhập phải đúng định dạng (10 số hoặc 10 số-3 số cho chi nhánh).
+        if (tax && !TAX_CODE_RE.test(tax)) {
+            return `Mã số thuế '${tax}' không đúng định dạng. MST gồm 10 chữ số (VD: 0123456789) hoặc 10 số-3 số cho chi nhánh (VD: 0123456789-001).`;
         }
 
         // Điện thoại / Di động theo định dạng VN
