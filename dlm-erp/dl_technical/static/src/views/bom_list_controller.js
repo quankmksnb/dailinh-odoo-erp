@@ -33,9 +33,12 @@ export class DlBomListController extends DlListBaseController {
     }
 
     async _loadCounts() {
+        // Khớp domain của action (action_dl_bom): loại BOM tạm auto-tạo cho RFQ
+        // (is_rfq_provisional) — nếu không, chip "Tất cả" đếm cả BOM ẩn nên lệch
+        // với pager của danh sách.
         const groups = await this.orm.readGroup(
             "dl.bom",
-            [],
+            [["is_rfq_provisional", "=", false]],
             ["status"],
             ["status"]
         );

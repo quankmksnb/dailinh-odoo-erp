@@ -62,7 +62,10 @@ export class DlCustomerListController extends DlListBaseController {
             "res.partner",
             [["partner_role", "in", ["customer", "both"]]],
             ["partner_type"],
-            ["partner_type"]
+            ["partner_type"],
+            // Đếm cả KH "Ngừng hợp tác" (active=False) để khớp với danh sách —
+            // action mở KH đặt active_test:False nên pager hiện cả KH ngừng hợp tác.
+            { context: { active_test: false } }
         );
         const counts = {};
         let total = 0;

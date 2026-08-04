@@ -336,6 +336,7 @@
         <field name="name">BOM sản phẩm / BTP</field>
         <field name="res_model">dl.bom</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain">[('is_rfq_provisional', '=', False)]</field>
     </record>
 

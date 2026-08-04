@@ -141,6 +141,7 @@
         <field name="name">NCC / Thầu phụ</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain">[('partner_role', 'in', ['supplier', 'both'])]</field>
         <field name="context">{'default_partner_role': 'supplier', 'active_test': False}</field>
         <field name="view_ids" eval="[
@@ -172,6 +173,7 @@
         <field name="name">NCC / Thầu phụ</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain">[('partner_role', 'in', ['supplier', 'both'])]</field>
         <field name="context">{'active_test': False, 'create': False, 'edit': False, 'delete': False}</field>
         <field name="view_ids" eval="[

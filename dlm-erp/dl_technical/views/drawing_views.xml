@@ -117,6 +117,7 @@
         <field name="name">Bản vẽ kỹ thuật</field>
         <field name="res_model">dl.drawing</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
     </record>
 
 </odoo>

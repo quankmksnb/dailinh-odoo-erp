@@ -237,6 +237,7 @@
         <field name="name">BOM mẫu</field>
         <field name="res_model">dl.bom.template</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm BOM mẫu đầu tiên!</p>
         </field>

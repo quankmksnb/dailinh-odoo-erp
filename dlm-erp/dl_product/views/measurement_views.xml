@@ -59,6 +59,7 @@
         <field name="name">Loại đo lường</field>
         <field name="res_model">dl.measurement.type</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm loại đo lường đầu tiên!</p>
         </field>
@@ -118,6 +119,7 @@
         <field name="name">Hình dạng đo lường</field>
         <field name="res_model">dl.measurement.shape</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
     </record>
 
 </odoo>

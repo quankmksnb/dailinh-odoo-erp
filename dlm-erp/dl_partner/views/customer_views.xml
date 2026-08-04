@@ -282,6 +282,7 @@
         <field name="name">Khách hàng</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain">[('partner_role', 'in', ['customer', 'both'])]</field>
         <field name="context">{'default_partner_role': 'customer', 'default_partner_type': 'company', 'active_test': False}</field>
         <field name="view_ids" eval="[

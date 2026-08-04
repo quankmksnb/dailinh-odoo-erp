@@ -598,6 +598,7 @@
         <field name="name">Quản lý RFQ</field>
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="context">{'search_default_to_process': 1}</field>
     </record>
 
@@ -605,6 +606,7 @@
         <field name="name">RFQ cần xử lý</field>
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_id" ref="view_dl_quotation_request_tree_my"/>
         <field name="context">{'search_default_to_process': 1}</field>
     </record>
