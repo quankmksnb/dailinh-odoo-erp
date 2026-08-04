@@ -90,10 +90,13 @@
                             string="Gửi lại Sales (bổ sung)"
                             invisible="status in ('returned', 'quoted', 'cancelled')"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                    <!-- Sales gửi lại sau khi đã bổ sung -->
+                    <!-- Sales gửi lại sau khi đã bổ sung. Hiện ngay khi có ≥1 dòng
+                         Sales đã bổ sung (không chỉ khi RFQ ở 'Trả lại bổ sung') —
+                         hợp nhất luồng partial/full, chỉ gửi lại đúng dòng đã sửa. -->
+                    <field name="supplement_ready_count" invisible="1"/>
                     <button name="action_resubmit" type="object"
                             string="Gửi lại (đã bổ sung)" class="oe_highlight"
-                            invisible="status != 'returned'"
+                            invisible="supplement_ready_count == 0 or status in ('quoted', 'cancelled')"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <!-- Sale đánh dấu đã tạo báo giá (tạm thời thủ công, xem
                          docstring model — D3 chưa có quotation_request_id).
@@ -146,7 +149,20 @@
                             <field name="supplement_count" nolabel="1" class="d-inline"/>
                             dòng đang chờ bạn bổ sung thông tin.
                         </strong>
-                        Xem chi tiết từng dòng trong bảng bên dưới (badge "Chờ bổ sung").
+                        Sửa thông tin ngay trên dòng (badge "Chờ bổ sung"); sửa xong
+                        dòng nào, dòng đó chuyển "Đã bổ sung".
+                    </div>
+                    <!-- Có dòng Sales đã bổ sung → nhắc bấm "Gửi lại (đã bổ sung)". -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="supplement_ready_count == 0"
+                         groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin">
+                        <i class="fa fa-paper-plane-o me-1" title="Sẵn sàng gửi lại"/>
+                        <strong>
+                            <field name="supplement_ready_count" nolabel="1" class="d-inline"/>
+                            dòng đã bổ sung, sẵn sàng gửi lại Kỹ thuật.
+                        </strong>
+                        Bấm <em>Gửi lại (đã bổ sung)</em> ở trên. Các dòng chưa bổ sung
+                        (nếu còn) vẫn được giữ để Kỹ thuật theo dõi.
                     </div>
                     <!-- Tín hiệu không khả thi — đối xứng alert "chờ bổ sung": Sales
                          thấy sớm để chủ động trao đổi lại với khách hàng. -->
@@ -246,8 +262,8 @@
                                     <field name="resolved_summary"/>
                                     <field name="technical_status" widget="badge"
                                            decoration-muted="technical_status in ('pending', 'not_required')"
-                                           decoration-warning="technical_status == 'processing'"
-                                           decoration-info="technical_status == 'waiting'"
+                                           decoration-warning="technical_status in ('processing', 'review')"
+                                           decoration-info="technical_status in ('waiting', 'supplemented')"
                                            decoration-success="technical_status == 'done'"
                                            decoration-danger="technical_status == 'infeasible'"/>
                                     <!-- Cụm thao tác dòng: 3 nút ICON CÙNG KHỔ cho đồng bộ
@@ -274,6 +290,17 @@
                                             title="Kết luận không khả thi"
                                             invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                    <!-- Sales loại dòng đã có kết quả kỹ thuật (không
+                                         khả thi / đã xác định) — con đường duy nhất để
+                                         bỏ dòng như vậy (xóa thẳng bị chặn), có ghi nhận
+                                         + notify Kỹ thuật. -->
+                                    <button name="action_remove_from_scope" type="object"
+                                            icon="fa-trash-o"
+                                            class="btn btn-link btn-sm text-danger"
+                                            title="Loại dòng này khỏi phạm vi RFQ"
+                                            confirm="Loại dòng này khỏi RFQ? Kết quả kỹ thuật (nếu có) sẽ mất."
+                                            invisible="request_status in ('quoted', 'cancelled') or not (is_infeasible or resolved_product_id)"
+                                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                                     <!-- Cột phụ — ẩn mặc định, bật qua menu cột -->
                                     <field name="product_type" optional="hide"/>
                                     <field name="product_category_id" optional="hide"/>
@@ -309,6 +336,11 @@
                                                 string="Không khả thi"
                                                 invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                                 groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                        <button name="action_remove_from_scope" type="object"
+                                                string="Loại khỏi phạm vi" class="text-danger"
+                                                confirm="Loại dòng này khỏi RFQ? Kết quả kỹ thuật (nếu có) sẽ mất."
+                                                invisible="request_status in ('quoted', 'cancelled') or not (is_infeasible or resolved_product_id)"
+                                                groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                                     </header>
                                     <field name="is_technician" invisible="1"/>
                                     <field name="request_status" invisible="1"/>
@@ -456,9 +488,10 @@
         <field name="arch" type="xml">
             <form string="Tạo RFQ" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
+                    <field name="supplement_ready_count" invisible="1"/>
                     <button name="action_resubmit" type="object"
                             string="Gửi lại (đã bổ sung)" class="oe_highlight"
-                            invisible="status != 'returned'"
+                            invisible="supplement_ready_count == 0 or status in ('quoted', 'cancelled')"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <button name="action_mark_quoted" type="object"
                             string="Đánh dấu đã tạo báo giá" class="oe_highlight"
@@ -506,7 +539,18 @@
                             <field name="supplement_count" nolabel="1" class="d-inline"/>
                             dòng đang chờ bạn bổ sung thông tin.
                         </strong>
-                        Xem chi tiết từng dòng trong bảng bên dưới (badge "Chờ bổ sung").
+                        Sửa thông tin ngay trên dòng (badge "Chờ bổ sung"); sửa xong
+                        dòng nào, dòng đó chuyển "Đã bổ sung".
+                    </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="supplement_ready_count == 0">
+                        <i class="fa fa-paper-plane-o me-1" title="Sẵn sàng gửi lại"/>
+                        <strong>
+                            <field name="supplement_ready_count" nolabel="1" class="d-inline"/>
+                            dòng đã bổ sung, sẵn sàng gửi lại Kỹ thuật.
+                        </strong>
+                        Bấm <em>Gửi lại (đã bổ sung)</em> ở trên. Các dòng chưa bổ sung
+                        (nếu còn) vẫn được giữ để Kỹ thuật theo dõi.
                     </div>
                     <!-- Tín hiệu không khả thi từ Kỹ thuật — Sales cần thấy sớm để
                          chủ động trao đổi lại với khách hàng. -->

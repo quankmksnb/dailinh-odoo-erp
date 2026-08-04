@@ -519,6 +519,9 @@ class DlRfqResolveWizard(models.TransientModel):
             "is_infeasible": False,
             "infeasible_reason": False,
             "supplement_note": False,
+            "supplement_done": False,
+            # Xác nhận lại = đã xem lại xong (dùng cho luồng "Cần xem lại").
+            "needs_review": False,
         })
         if self.product_id.is_rfq_provisional:
             self.product_id.write({"is_rfq_provisional": False})

@@ -165,12 +165,24 @@ class DlQuotationRequest(models.Model):
         compute="_compute_supplement_count",
         store=True,
     )
+    # Số dòng Sales ĐÃ bổ sung, sẵn sàng gửi lại Kỹ thuật (điều khiển hiển thị
+    # nút "Gửi lại"): nút chỉ hiện khi có ít nhất 1 dòng như vậy, không phụ
+    # thuộc RFQ đã ở "Trả lại bổ sung" hay chưa (hợp nhất luồng partial/full).
+    supplement_ready_count = fields.Integer(
+        string="Dòng đã bổ sung chờ gửi lại",
+        compute="_compute_supplement_count",
+        store=True,
+    )
 
-    @api.depends("line_ids.supplement_note")
+    @api.depends("line_ids.supplement_note", "line_ids.supplement_done")
     def _compute_supplement_count(self):
         for rec in self:
-            rec.supplement_count = len(rec.line_ids.filtered(
-                lambda l: l.supplement_note))
+            waiting = rec.line_ids.filtered(
+                lambda l: l.supplement_note and not l.supplement_done)
+            ready = rec.line_ids.filtered(
+                lambda l: l.supplement_note and l.supplement_done)
+            rec.supplement_count = len(waiting)
+            rec.supplement_ready_count = len(ready)
 
     # Tín hiệu "không khả thi" cho Sales — đối xứng với supplement_count:
     # Sales cần biết SỚM (chủ động trao đổi lại với khách) thay vì chỉ phát
@@ -215,15 +227,20 @@ class DlQuotationRequest(models.Model):
         "line_ids.resolved_bom_id",
         "line_ids.is_infeasible",
         "line_ids.supplement_note",
+        "line_ids.supplement_done",
+        "line_ids.needs_review",
     )
     def _compute_technical_progress(self):
         for rec in self:
             technical_lines = rec.line_ids.filtered(
                 lambda line: line.product_type == "manufactured")
             total = len(technical_lines)
+            # Dòng "Cần xem lại" (Sales sửa yêu cầu sau khi xác định) không tính
+            # là đã xong — đồng bộ với _is_resolved.
             done = len(technical_lines.filtered(
                 lambda line: line.is_infeasible
-                or bool(line.resolved_product_id and line.resolved_bom_id)))
+                or bool(line.resolved_product_id and line.resolved_bom_id
+                        and not line.needs_review)))
 
             rec.technical_total_line_count = total
             rec.technical_done_line_count = done
@@ -235,8 +252,10 @@ class DlQuotationRequest(models.Model):
             else:
                 label = _("Không có dòng gia công cần xử lý")
 
+            # Chỉ đếm dòng còn CHỜ Sales bổ sung (đã bổ sung nhưng chưa gửi lại
+            # không tính là "cần bổ sung" nữa).
             supplement = len(rec.line_ids.filtered(
-                lambda l: l.supplement_note))
+                lambda l: l.supplement_note and not l.supplement_done))
             if supplement:
                 label += _(" · %(n)s cần bổ sung", n=supplement)
 
@@ -499,15 +518,39 @@ class DlQuotationRequest(models.Model):
         }
 
     def action_resubmit(self):
-        """Sales: sau khi bổ sung, gửi lại RFQ cho Kỹ thuật xử lý tiếp. Trạng
-        thái chuyển sang 'Đã bổ sung'; lần bấm 'Xử lý' tiếp theo sẽ tự tiếp nhận."""
+        """Sales: sau khi bổ sung, gửi lại RFQ cho Kỹ thuật xử lý tiếp.
+
+        Chỉ gửi lại đúng các dòng Sales THỰC SỰ đã bổ sung (supplement_done —
+        đặt tự động khi Sales sửa nội dung yêu cầu của dòng đang chờ). Các dòng
+        còn chờ mà Sales chưa động tới được GIỮ NGUYÊN cờ để Kỹ thuật vẫn thấy —
+        tránh xóa mù khi RFQ nhiều dòng. Nếu còn dòng chưa bổ sung, hệ thống báo
+        rõ trong chatter thay vì âm thầm bỏ qua."""
         for rec in self:
-            if rec.status != "returned":
+            if rec.status in ("quoted", "cancelled"):
                 raise UserError(_(
-                    "Chỉ RFQ đang ở trạng thái 'Trả lại bổ sung' mới gửi lại được."))
-            rec.line_ids.write({"supplement_note": False})
-            rec.status = "supplemented"
-            rec.message_post(body=_("Sales đã bổ sung và gửi lại RFQ."))
+                    "Không thể gửi lại RFQ đã tạo báo giá hoặc đã hủy."))
+            flagged = rec.line_ids.filtered(lambda l: l.supplement_note)
+            addressed = flagged.filtered(lambda l: l.supplement_done)
+            pending = flagged - addressed
+            if not addressed:
+                raise UserError(_(
+                    "Chưa có dòng nào được bổ sung. Hãy sửa thông tin ở các dòng "
+                    "đang 'Chờ bổ sung' (bảng bên dưới) rồi mới gửi lại."))
+            # Xóa cờ ở đúng các dòng đã bổ sung; _recompute_status_from_lines chạy
+            # theo (supplement_note đổi) — nhưng RFQ đang 'Trả lại bổ sung' cần
+            # được đẩy về phía Kỹ thuật, nên set 'supplemented' đè lên sau đó.
+            was_returned = rec.status == "returned"
+            addressed.write({"supplement_note": False, "supplement_done": False})
+            if was_returned:
+                rec.status = "supplemented"
+            if pending:
+                rec.message_post(body=_(
+                    "Sales đã bổ sung %(done)s dòng và gửi lại RFQ. Còn "
+                    "%(pending)s dòng CHƯA bổ sung: %(names)s.",
+                    done=len(addressed), pending=len(pending),
+                    names=", ".join(pending.mapped("product_name"))))
+            else:
+                rec.message_post(body=_("Sales đã bổ sung và gửi lại RFQ."))
 
     def action_mark_quoted(self):
         for rec in self:
@@ -761,11 +804,35 @@ class DlQuotationRequestLine(models.Model):
         help="KTV ghi chú thông tin cần Sales bổ sung cho dòng này.",
     )
 
+    # Per-line: Sales đã bổ sung xong dòng này (đặt tự động khi Sales sửa nội
+    # dung yêu cầu của một dòng đang "Chờ bổ sung"). Nhờ vậy action_resubmit chỉ
+    # gửi lại đúng các dòng Sales THỰC SỰ đã bổ sung, không xóa mù cờ của những
+    # dòng còn chờ — tránh bỏ sót khi RFQ nhiều dòng.
+    supplement_done = fields.Boolean(
+        string="Đã bổ sung",
+        default=False,
+        copy=False,
+        help="Sales đã bổ sung thông tin cho dòng đang chờ; chờ Kỹ thuật xem lại.",
+    )
+
+    # Sales sửa yêu cầu (số lượng / kích thước / đính kèm) SAU KHI Kỹ thuật đã
+    # xác định SP+BOM → kết quả cũ có thể không còn khớp. Đánh dấu để Kỹ thuật
+    # xem lại: dòng tạm coi như CHƯA xử lý xong (xem _is_resolved) nên RFQ tự
+    # lùi khỏi "Chờ tạo báo giá", KTV phải mở lại và Xác nhận lần nữa.
+    needs_review = fields.Boolean(
+        string="Cần Kỹ thuật xem lại",
+        default=False,
+        copy=False,
+        help="Sales đã sửa yêu cầu sau khi Kỹ thuật xác định — kết quả cần xem lại.",
+    )
+
     technical_status = fields.Selection(
         [
             ("pending", "Chưa xử lý"),
             ("waiting", "Chờ bổ sung"),
+            ("supplemented", "Đã bổ sung"),
             ("processing", "Đang xử lý"),
+            ("review", "Cần xem lại"),
             ("done", "Đã xử lý"),
             ("infeasible", "Không khả thi"),
             ("not_required", "Không cần Kỹ thuật"),
@@ -780,6 +847,8 @@ class DlQuotationRequestLine(models.Model):
         "resolved_bom_id",
         "is_infeasible",
         "supplement_note",
+        "supplement_done",
+        "needs_review",
     )
     def _compute_technical_status(self):
         for rec in self:
@@ -788,9 +857,9 @@ class DlQuotationRequestLine(models.Model):
             elif rec.is_infeasible:
                 rec.technical_status = "infeasible"
             elif rec.resolved_product_id and rec.resolved_bom_id:
-                rec.technical_status = "done"
+                rec.technical_status = "review" if rec.needs_review else "done"
             elif rec.supplement_note:
-                rec.technical_status = "waiting"
+                rec.technical_status = "supplemented" if rec.supplement_done else "waiting"
             elif rec.resolved_product_id or rec.resolved_bom_id:
                 rec.technical_status = "processing"
             else:
@@ -802,7 +871,8 @@ class DlQuotationRequestLine(models.Model):
     )
 
     @api.depends("product_type", "resolved_product_id", "is_infeasible",
-                 "infeasible_reason", "supplement_note")
+                 "infeasible_reason", "supplement_note", "supplement_done",
+                 "needs_review")
     def _compute_resolved_summary(self):
         # Kèm lý do/nội dung rút gọn ngay trong cột kết quả để Sales lướt list
         # là thấy, khỏi phải mở từng dòng đọc lý do.
@@ -818,10 +888,15 @@ class DlQuotationRequestLine(models.Model):
                 rec.resolved_summary = (
                     "Không khả thi — %s" % reason if reason else "Không khả thi")
             elif rec.resolved_product_id:
-                rec.resolved_summary = rec.resolved_product_id.display_name
-            elif rec.supplement_note:
+                name = rec.resolved_product_id.display_name
                 rec.resolved_summary = (
-                    "Chờ Sales bổ sung — %s" % _short(rec.supplement_note))
+                    "Cần xem lại (Sales đã sửa yêu cầu) — %s" % name
+                    if rec.needs_review else name)
+            elif rec.supplement_note:
+                prefix = ("Đã bổ sung, chờ Kỹ thuật xem lại"
+                          if rec.supplement_done else "Chờ Sales bổ sung")
+                rec.resolved_summary = "%s — %s" % (
+                    prefix, _short(rec.supplement_note))
             else:
                 rec.resolved_summary = "Chưa chọn sản phẩm"
 
@@ -848,11 +923,16 @@ class DlQuotationRequestLine(models.Model):
     def _is_resolved(self):
         """Dòng được coi là đã xử lý xong khi: không khả thi, HOẶC đã có sản
         phẩm xác định (thương mại không cần BOM; gia công còn phải có thêm
-        BOM tham chiếu — §3 màn Nhận RFQ)."""
+        BOM tham chiếu — §3 màn Nhận RFQ).
+
+        Dòng gia công đang "Cần Kỹ thuật xem lại" (Sales đã sửa yêu cầu sau khi
+        xác định) tạm coi như CHƯA xong — buộc KTV mở lại và Xác nhận lần nữa."""
         self.ensure_one()
         if self.is_infeasible:
             return True
         if not self.resolved_product_id:
+            return False
+        if self.needs_review:
             return False
         if self.product_type == "trading":
             return True
@@ -999,17 +1079,79 @@ class DlQuotationRequestLine(models.Model):
                 'Thông tin yêu cầu (tên / nhóm SP / số lượng / mô tả / đính kèm) '
                 'do Sales quản lý — Kỹ thuật không được chỉnh sửa.'))
 
+        # Sales sửa nội dung yêu cầu → chốt lại trạng thái theo dòng (tính TRƯỚC
+        # super để đọc đúng state cũ của từng dòng):
+        #  - dòng đang "Chờ bổ sung" → đánh dấu "Đã bổ sung" (supplement_done).
+        #  - dòng đã có kết quả kỹ thuật, Sales đổi field ảnh hưởng xử lý (SL /
+        #    kích thước / đính kèm) → đánh dấu "Cần Kỹ thuật xem lại".
+        auto_supplement_done = self.browse()
+        auto_needs_review = self.browse()
+        if not self.env.su and sales_gated and _user_is_sales(self.env):
+            tech_relevant = bool(
+                {"quantity", "dimension_note", "attachment_ids"} & vals.keys())
+            for rec in self:
+                if rec.supplement_note and not rec.supplement_done:
+                    auto_supplement_done |= rec
+                elif (tech_relevant
+                      and rec.product_type == "manufactured"
+                      and rec.resolved_product_id
+                      and not rec.is_infeasible
+                      and not rec.needs_review):
+                    auto_needs_review |= rec
+
         res = super().write(vals)
 
         if "attachment_ids" in vals:
             self._stamp_attachments()
 
-        if {"resolved_product_id", "resolved_bom_id", "is_infeasible", "supplement_note"} & set(vals.keys()):
+        if auto_supplement_done:
+            auto_supplement_done.write({"supplement_done": True})
+        if auto_needs_review:
+            auto_needs_review._flag_needs_review()
+
+        if {"resolved_product_id", "resolved_bom_id", "is_infeasible",
+                "supplement_note", "supplement_done", "needs_review"} & set(vals.keys()):
             self.mapped("quotation_request_id")._recompute_status_from_lines()
 
         return res
 
+    def _flag_needs_review(self):
+        """Đặt cờ "cần xem lại" + notify Kỹ thuật đang phụ trách RFQ. Tách riêng
+        khỏi write() gốc để lần write này (chỉ đổi needs_review) không rơi vào
+        gate quyền và tự kích hoạt recompute trạng thái RFQ."""
+        self.write({"needs_review": True})
+        for rec in self:
+            request = rec.quotation_request_id
+            name = rec.product_name or rec.display_name
+            request.message_post(body=_(
+                "Sales đã sửa yêu cầu dòng <b>%s</b> sau khi Kỹ thuật đã xác "
+                "định — cần xem lại kết quả (Sản phẩm/BOM có thể không còn khớp)."
+            ) % name)
+            if request.received_by:
+                request.activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    summary=_("Xem lại dòng %s (Sales đã sửa yêu cầu)") % name,
+                    user_id=request.received_by.id,
+                )
+
     def unlink(self):
+        # Chặn Sales xóa THẲNG dòng đã có kết quả kỹ thuật (đã xác định SP/BOM,
+        # đang chờ xem lại, hoặc đã kết luận không khả thi) — mất công Kỹ thuật
+        # mà không ghi nhận. Loại dòng phải đi qua "Loại khỏi phạm vi"
+        # (action_remove_from_scope) để có chatter + notify KTV. RFQ Mới/Đã hủy
+        # thì cho xóa tự do (chưa có gì để mất).
+        if not self.env.su and not self.env.context.get("dl_rfq_scope_removal"):
+            for rec in self:
+                request = rec.quotation_request_id
+                if request.status in ("new", "cancelled"):
+                    continue
+                if rec.is_infeasible or rec.resolved_product_id:
+                    raise UserError(_(
+                        "Dòng “%s” đã có kết quả kỹ thuật. Dùng nút “Loại khỏi "
+                        "phạm vi” để loại dòng (có ghi nhận và thông báo Kỹ "
+                        "thuật), không xóa trực tiếp.")
+                        % (rec.product_name or rec.display_name))
+
         provisional_boms = self.env["dl.bom"].sudo().search([
             ("is_rfq_provisional", "=", True),
             ("rfq_source_line_id", "in", self.ids),
@@ -1092,7 +1234,9 @@ class DlQuotationRequestLine(models.Model):
         if self.product_type == "trading":
             raise UserError(_(
                 "Dòng Sản phẩm thương mại không xử lý kỹ thuật."))
-        self.write({"supplement_note": note})
+        # supplement_done=False: câu hỏi bổ sung MỚI, chờ Sales xử lý (kể cả khi
+        # dòng vừa được Sales bổ sung xong mà Kỹ thuật vẫn thấy thiếu).
+        self.write({"supplement_note": note, "supplement_done": False})
         request = self.quotation_request_id
         request.message_post(body=_(
             "Kỹ thuật yêu cầu bổ sung cho dòng <b>%s</b>: %s"
@@ -1123,6 +1267,8 @@ class DlQuotationRequestLine(models.Model):
             "resolved_product_id": False,
             "resolved_bom_id": False,
             "supplement_note": False,
+            "supplement_done": False,
+            "needs_review": False,
         })
         self._cleanup_rfq_provisional_records()
         request = self.quotation_request_id
@@ -1184,6 +1330,30 @@ class DlQuotationRequestLine(models.Model):
             "views": [(view.id, "form")],
             "target": "current",
         }
+
+    def action_remove_from_scope(self):
+        """Sales loại một dòng đã có kết quả kỹ thuật khỏi phạm vi RFQ — đây là
+        con đường DUY NHẤT để bỏ dòng như vậy (unlink thẳng bị chặn), có ghi
+        chatter + notify người phụ trách để công Kỹ thuật không biến mất âm thầm.
+        Dùng chung cho dòng không khả thi (loại trước khi Tạo báo giá) lẫn dòng
+        đã xác định (khách đổi ý)."""
+        self.ensure_one()
+        request = self.quotation_request_id
+        if request.status in ("quoted", "cancelled"):
+            raise UserError(_(
+                "Không thể thay đổi phạm vi RFQ đã tạo báo giá hoặc đã hủy."))
+        name = self.product_name or self.display_name
+        had_tech_work = bool(self.resolved_product_id or self.is_infeasible)
+        request.message_post(body=_(
+            "Sales loại dòng <b>%s</b> khỏi phạm vi RFQ.") % name)
+        if had_tech_work and request.received_by:
+            request.activity_schedule(
+                "mail.mail_activity_data_todo",
+                summary=_("Dòng %s đã bị loại khỏi RFQ (Sales)") % name,
+                user_id=request.received_by.id,
+            )
+        self.with_context(dl_rfq_scope_removal=True).unlink()
+        return {"type": "ir.actions.client", "tag": "soft_reload"}
 
 
 class DlQuotationRequestLineImage(models.Model):

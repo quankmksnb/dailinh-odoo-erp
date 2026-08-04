@@ -48,10 +48,19 @@ class DlRfqReturnWizard(models.TransientModel):
             raise UserError(_(
                 "Vui lòng chọn ít nhất 1 dòng cần bổ sung hoặc nhập ghi chú chung."))
 
+        # supplement_done=False khi (re)đánh dấu để dòng hiện "Chờ bổ sung" (kể cả
+        # khi trước đó Sales từng bổ sung mà KTV vẫn thấy thiếu); dòng bỏ chọn thì
+        # xóa cả cờ để về trạng thái sạch.
         for wiz_line in selected:
-            wiz_line.rfq_line_id.supplement_note = wiz_line.note or ""
+            wiz_line.rfq_line_id.write({
+                "supplement_note": wiz_line.note or "",
+                "supplement_done": False,
+            })
         for wiz_line in self.line_ids.filtered(lambda l: not l.selected):
-            wiz_line.rfq_line_id.supplement_note = False
+            wiz_line.rfq_line_id.write({
+                "supplement_note": False,
+                "supplement_done": False,
+            })
 
         body = Markup("")
         if (self.reason or "").strip():
