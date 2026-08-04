@@ -58,10 +58,15 @@
               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_sales_manager"
               sequence="25"/>
 
+    <!-- Ghi RÕ groups đúng bằng menu cha (thay vì để trống thừa hưởng): trong DB
+         menu này từng bị giới hạn Admin/IT + Kỹ thuật (dữ liệu sót, không từ code);
+         Odoo KHÔNG xoá groups_id cũ khi thuộc tính groups trống lúc -u, nên phải
+         khai báo tường minh để -u ghi đè và trả lại quyền xem cho Sales/BA/TrKD. -->
     <menuitem id="menu_rfq_all"
               name="Tất cả RFQ"
               parent="menu_rfq_parent"
               action="action_dl_quotation_request"
+              groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_sales_manager"
               sequence="10"/>
 
     <menuitem id="menu_rfq_my"
