@@ -262,7 +262,13 @@ export class DlListBaseController extends ListController {
             host.className = "dl-pager";
             footer.appendChild(host);
         }
-        this._syncNumberedPager(host, list, (offset, limit) => list.load({ offset, limit }));
+        // Sau khi load trang mới phải re-render CONTROLLER (không chỉ renderer)
+        // để useEffect chạy lại _dlRenderChrome — nếu không, phần chrome chèn tay
+        // (avatar chữ cái, chipbar…) sẽ mất khi chuyển trang. Giống pager gom nhóm.
+        this._syncNumberedPager(host, list, async (offset, limit) => {
+            await list.load({ offset, limit });
+            this.render(true);
+        });
         footer.style.display = "";
     }
 
