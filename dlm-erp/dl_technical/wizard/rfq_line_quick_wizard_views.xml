@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Kết luận nhanh dòng RFQ — 2 modal chỉ hỏi lý do, đường tắt cho quyết
+         định nông (không bắt KTV đi qua workspace 3 bước). -->
+
+    <record id="view_dl_rfq_line_supplement_wizard_form" model="ir.ui.view">
+        <field name="name">dl.rfq.line.supplement.wizard.form</field>
+        <field name="model">dl.rfq.line.supplement.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Yêu cầu Sales bổ sung">
+                <field name="rfq_line_id" invisible="1"/>
+                <group>
+                    <field name="request_product_name" readonly="1"/>
+                    <field name="request_dimension_note" readonly="1"/>
+                </group>
+                <separator string="Nội dung cần Sales bổ sung"/>
+                <field name="supplement_note" nolabel="1" required="1"
+                       class="dl-textarea-lg"
+                       placeholder="Nêu rõ thông tin Sales cần bổ sung (ảnh rõ hơn, kích thước chi tiết, yêu cầu kỹ thuật cụ thể...)"/>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Gửi yêu cầu bổ sung" class="btn-primary"/>
+                    <button string="Hủy" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_rfq_line_infeasible_wizard_form" model="ir.ui.view">
+        <field name="name">dl.rfq.line.infeasible.wizard.form</field>
+        <field name="model">dl.rfq.line.infeasible.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Kết luận không khả thi">
+                <field name="rfq_line_id" invisible="1"/>
+                <field name="resolved_product_id" invisible="1"/>
+                <div class="alert alert-warning" role="alert"
+                     invisible="not resolved_product_id">
+                    <i class="fa fa-exclamation-triangle me-1" title="Sẽ xóa kết quả"/>
+                    Dòng này đã có Sản phẩm/BOM xác định — xác nhận không khả thi
+                    sẽ <b>xóa kết quả đó</b>.
+                </div>
+                <group>
+                    <field name="request_product_name" readonly="1"/>
+                    <field name="request_dimension_note" readonly="1"/>
+                </group>
+                <separator string="Lý do không khả thi"/>
+                <field name="infeasible_reason" nolabel="1" required="1"
+                       class="dl-textarea-lg"
+                       placeholder="Nêu rõ lý do để Sales trao đổi lại với khách hàng..."/>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Xác nhận không khả thi" class="btn-danger"/>
+                    <button string="Hủy" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

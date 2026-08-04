@@ -20,6 +20,12 @@
                     <button name="action_confirm" type="object"
                             string="Hoàn tất dòng" class="oe_highlight"
                             invisible="step != 'confirm' or is_infeasible"/>
+                    <!-- Băng chuyền RFQ nhiều dòng: hoàn tất rồi mở luôn dòng
+                         gia công chưa xử lý kế tiếp, khỏi quay về RFQ tự tìm. -->
+                    <field name="next_line_id" invisible="1"/>
+                    <button name="action_confirm_next" type="object"
+                            string="Hoàn tất &amp; dòng tiếp theo"
+                            invisible="step != 'confirm' or is_infeasible or not next_line_id"/>
                     <button name="action_mark_infeasible" type="object"
                             string="Xác nhận không khả thi" class="btn-warning"
                             invisible="not is_infeasible"/>

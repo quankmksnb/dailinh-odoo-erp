@@ -172,6 +172,26 @@ class DlQuotationRequest(models.Model):
             rec.supplement_count = len(rec.line_ids.filtered(
                 lambda l: l.supplement_note))
 
+    # Tín hiệu "không khả thi" cho Sales — đối xứng với supplement_count:
+    # Sales cần biết SỚM (chủ động trao đổi lại với khách) thay vì chỉ phát
+    # hiện khi RFQ sang "Đã xử lý xong". all_infeasible = toàn bộ dòng đều
+    # không khả thi → không có gì để báo giá (chặn "Đánh dấu đã tạo báo giá").
+    infeasible_count = fields.Integer(
+        string="Dòng không khả thi",
+        compute="_compute_infeasible_stats",
+    )
+    all_infeasible = fields.Boolean(
+        string="Toàn bộ không khả thi",
+        compute="_compute_infeasible_stats",
+    )
+
+    @api.depends("line_ids", "line_ids.is_infeasible")
+    def _compute_infeasible_stats(self):
+        for rec in self:
+            infeasible = rec.line_ids.filtered(lambda l: l.is_infeasible)
+            rec.infeasible_count = len(infeasible)
+            rec.all_infeasible = bool(rec.line_ids) and len(infeasible) == len(rec.line_ids)
+
     technical_total_line_count = fields.Integer(
         string="Tổng dòng gia công",
         compute="_compute_technical_progress",
@@ -387,11 +407,13 @@ class DlQuotationRequest(models.Model):
             if lines and all(line._is_resolved() for line in lines):
                 status = "confirmed"
             else:
-                # BẤT KỲ dòng chưa xử lý nào cần bổ sung → tự chuyển "returned"
-                # để Sales thấy tín hiệu ngay trên list. KTV vẫn xử lý được các
-                # dòng khác (gate resolve wizard cho phép status "returned").
+                # Chỉ chuyển "returned" khi KTV bị CHẶN hoàn toàn: MỌI dòng chưa
+                # xong đều đang chờ Sales bổ sung. Còn dòng làm được thì giữ
+                # "processing" — Sales đã có tín hiệu qua activity + chatter +
+                # alert "N dòng chờ bổ sung" + filter "Cần bổ sung"; flip sớm
+                # khiến worklist KTV rớt "Đang xử lý" trong khi việc vẫn còn.
                 unresolved = lines.filtered(lambda l: not l._is_resolved())
-                if unresolved and any(l.supplement_note for l in unresolved):
+                if unresolved and all(l.supplement_note for l in unresolved):
                     status = "returned"
 
                 # KTV ĐÃ bắt đầu xử lý nhưng chưa xong hết → "Đang xử lý".
@@ -493,6 +515,12 @@ class DlQuotationRequest(models.Model):
                 raise UserError(
                     _("Chỉ yêu cầu báo giá đã xử lý xong mới được đánh dấu đã tạo báo giá.")
                 )
+            # Toàn bộ dòng không khả thi vẫn tính là "đã xử lý xong" (KTV đã có
+            # kết luận) nhưng không có sản phẩm nào để báo giá.
+            if rec.all_infeasible:
+                raise UserError(_(
+                    "Tất cả dòng đều không khả thi — không có sản phẩm để báo "
+                    "giá. Hãy trao đổi lại với khách hàng hoặc Hủy RFQ."))
 
         self.write({
             "status": "quoted",
@@ -598,6 +626,16 @@ class DlQuotationRequestLine(models.Model):
             img = rec.attachment_ids.filtered(
                 lambda a: a.mimetype and a.mimetype.startswith("image/"))[:1]
             rec.preview_image = img.datas if img else False
+
+    # Số file đính kèm — cột tín hiệu trên bảng dòng để KTV triage nhanh
+    # (dòng gia công không có đính kèm thường là ứng viên "cần bổ sung").
+    attachment_count = fields.Integer(
+        string="Số file đính kèm", compute="_compute_attachment_count")
+
+    @api.depends("attachment_ids")
+    def _compute_attachment_count(self):
+        for rec in self:
+            rec.attachment_count = len(rec.attachment_ids)
 
     resolved_product_id = fields.Many2one(
         "product.product",
@@ -764,17 +802,26 @@ class DlQuotationRequestLine(models.Model):
     )
 
     @api.depends("product_type", "resolved_product_id", "is_infeasible",
-                 "supplement_note")
+                 "infeasible_reason", "supplement_note")
     def _compute_resolved_summary(self):
+        # Kèm lý do/nội dung rút gọn ngay trong cột kết quả để Sales lướt list
+        # là thấy, khỏi phải mở từng dòng đọc lý do.
+        def _short(text):
+            text = " ".join((text or "").split())
+            return text[:57] + "..." if len(text) > 60 else text
+
         for rec in self:
             if rec.product_type == "trading":
                 rec.resolved_summary = ""
             elif rec.is_infeasible:
-                rec.resolved_summary = "Không khả thi"
+                reason = _short(rec.infeasible_reason)
+                rec.resolved_summary = (
+                    "Không khả thi — %s" % reason if reason else "Không khả thi")
             elif rec.resolved_product_id:
                 rec.resolved_summary = rec.resolved_product_id.display_name
             elif rec.supplement_note:
-                rec.resolved_summary = "Chờ Sales bổ sung"
+                rec.resolved_summary = (
+                    "Chờ Sales bổ sung — %s" % _short(rec.supplement_note))
             else:
                 rec.resolved_summary = "Chưa chọn sản phẩm"
 
@@ -1024,13 +1071,9 @@ class DlQuotationRequestLine(models.Model):
         products._cleanup_unused_rfq_provisional()
         return True
 
-    def action_open_resolve_wizard(self):
-        """Mở workspace Product + BOM và tự tiếp nhận RFQ khi cần.
-
-        Với RFQ Mới/Đã bổ sung, chính thao tác Xử lý là ý định nhận việc rõ
-        ràng nên hệ thống ghi người + thời điểm trước khi mở workspace. RFQ đã
-        Đang xử lý/Đã xử lý xong chỉ được mở lại, không đổi người phụ trách.
-        """
+    def _ensure_tech_processable(self):
+        """Cổng chung cho mọi thao tác kỹ thuật trên dòng (workspace + kết luận
+        nhanh): tự tiếp nhận RFQ Mới/Đã bổ sung, chặn trạng thái đã đóng."""
         self.ensure_one()
         request = self.quotation_request_id
         if request.status in ("new", "supplemented"):
@@ -1038,6 +1081,96 @@ class DlQuotationRequestLine(models.Model):
         if request.status not in ("processing", "confirmed", "returned"):
             raise UserError(_(
                 "RFQ ở trạng thái hiện tại không thể xử lý kỹ thuật."))
+
+    def _mark_supplement(self, note):
+        """Đánh dấu dòng cần Sales bổ sung + notify (chatter + activity cho
+        người tạo RFQ) — dùng chung cho workspace và wizard kết luận nhanh."""
+        self.ensure_one()
+        note = (note or "").strip()
+        if not note:
+            raise UserError(_("Vui lòng nhập nội dung cần Sales bổ sung."))
+        if self.product_type == "trading":
+            raise UserError(_(
+                "Dòng Sản phẩm thương mại không xử lý kỹ thuật."))
+        self.write({"supplement_note": note})
+        request = self.quotation_request_id
+        request.message_post(body=_(
+            "Kỹ thuật yêu cầu bổ sung cho dòng <b>%s</b>: %s"
+        ) % (self.product_name or "", note))
+        if request.created_by:
+            request.activity_schedule(
+                "mail.mail_activity_data_todo",
+                summary=_("Bổ sung thông tin dòng %s") % (
+                    self.product_name or request.name),
+                note=note,
+                user_id=request.created_by.id,
+            )
+
+    def _mark_infeasible(self, reason):
+        """Kết luận dòng không khả thi + notify — trước đây kết luận này hoàn
+        toàn im lặng (Sales chỉ phát hiện khi RFQ sang Đã xử lý xong), giờ
+        notify như supplement vì Sales cần biết sớm để trao đổi lại với khách."""
+        self.ensure_one()
+        reason = (reason or "").strip()
+        if not reason:
+            raise UserError(_("Vui lòng nhập lý do không khả thi."))
+        if self.product_type == "trading":
+            raise UserError(_(
+                "Dòng Sản phẩm thương mại không xử lý kỹ thuật."))
+        self.write({
+            "is_infeasible": True,
+            "infeasible_reason": reason,
+            "resolved_product_id": False,
+            "resolved_bom_id": False,
+            "supplement_note": False,
+        })
+        self._cleanup_rfq_provisional_records()
+        request = self.quotation_request_id
+        request.message_post(body=_(
+            "Kỹ thuật kết luận dòng <b>%s</b> không khả thi: %s"
+        ) % (self.product_name or "", reason))
+        if request.created_by:
+            request.activity_schedule(
+                "mail.mail_activity_data_todo",
+                summary=_("Dòng %s không khả thi — trao đổi lại với khách") % (
+                    self.product_name or request.name),
+                note=reason,
+                user_id=request.created_by.id,
+            )
+
+    def _action_open_quick_wizard(self, wizard_model, name):
+        """Mở wizard kết luận nhanh (modal chỉ hỏi lý do) cho dòng này."""
+        self._ensure_tech_processable()
+        return {
+            "type": "ir.actions.act_window",
+            "name": name,
+            "res_model": wizard_model,
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_rfq_line_id": self.id},
+        }
+
+    def action_open_supplement_wizard(self):
+        """Kết luận nhanh "cần Sales bổ sung" — quyết định nông, không bắt KTV
+        đi qua workspace 3 bước."""
+        return self._action_open_quick_wizard(
+            "dl.rfq.line.supplement.wizard",
+            _("Yêu cầu bổ sung — %s") % (self.product_name or ""))
+
+    def action_open_infeasible_wizard(self):
+        """Kết luận nhanh "không khả thi" ngay tại nơi KTV vừa đọc thông tin."""
+        return self._action_open_quick_wizard(
+            "dl.rfq.line.infeasible.wizard",
+            _("Không khả thi — %s") % (self.product_name or ""))
+
+    def action_open_resolve_wizard(self):
+        """Mở workspace Product + BOM và tự tiếp nhận RFQ khi cần.
+
+        Với RFQ Mới/Đã bổ sung, chính thao tác Xử lý là ý định nhận việc rõ
+        ràng nên hệ thống ghi người + thời điểm trước khi mở workspace. RFQ đã
+        Đang xử lý/Đã xử lý xong chỉ được mở lại, không đổi người phụ trách.
+        """
+        self._ensure_tech_processable()
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
             default_rfq_line_id=self.id,
         ).create({})

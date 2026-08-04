@@ -1,6 +1,6 @@
 {
     "name": "DL-Technical",
-    "version": "17.0.1.12.0",
+    "version": "17.0.1.13.0",
     "summary": "Quản lý BOM, Bản vẽ, Bán thành phẩm, công thức",
     "author": "Dai Linh",
     "category": "Hidden",
@@ -17,6 +17,7 @@
         "views/bom_template_views.xml",
         "views/quotation_request_views.xml",
         "wizard/rfq_resolve_wizard_views.xml",
+        "wizard/rfq_line_quick_wizard_views.xml",
         "wizard/rfq_return_wizard_views.xml",
         "wizard/rfq_history_wizard_views.xml",
         "wizard/bom_from_template_wizard_views.xml",

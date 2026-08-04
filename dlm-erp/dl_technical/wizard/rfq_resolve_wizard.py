@@ -58,6 +58,28 @@ class DlRfqResolveWizard(models.TransientModel):
     has_existing_supplement = fields.Boolean(
         string="Dòng đã có yêu cầu bổ sung từ trước")
 
+    # Dòng gia công CHƯA xử lý kế tiếp trong cùng RFQ (bỏ qua dòng đang chờ
+    # Sales bổ sung — không có việc để làm) — cho nút "Hoàn tất & dòng tiếp theo".
+    next_line_id = fields.Many2one(
+        "dl.quotation.request.line", string="Dòng chưa xử lý kế tiếp",
+        compute="_compute_next_line_id")
+
+    @api.depends("rfq_line_id",
+                 "rfq_line_id.quotation_request_id.line_ids.resolved_product_id",
+                 "rfq_line_id.quotation_request_id.line_ids.resolved_bom_id",
+                 "rfq_line_id.quotation_request_id.line_ids.is_infeasible",
+                 "rfq_line_id.quotation_request_id.line_ids.supplement_note")
+    def _compute_next_line_id(self):
+        for rec in self:
+            nxt = self.env["dl.quotation.request.line"]
+            if rec.rfq_line_id:
+                nxt = rec.rfq_line_id.quotation_request_id.line_ids.filtered(
+                    lambda l: l.id != rec.rfq_line_id.id
+                    and l.product_type == "manufactured"
+                    and not l.supplement_note
+                    and not l._is_resolved())[:1]
+            rec.next_line_id = nxt
+
     # ── A/B ──────────────────────────────────────────────────────────────
     mode = fields.Selection(
         [
@@ -460,47 +482,20 @@ class DlRfqResolveWizard(models.TransientModel):
         return self._action_open_bom(bom, _("Chỉnh sửa BOM cho RFQ"))
 
     def action_mark_infeasible(self):
-        """Kết luận dòng RFQ là không khả thi — ghi thẳng lên dòng, xóa Product/
-        BOM đã chọn (nếu có) và đóng màn."""
+        """Kết luận dòng RFQ là không khả thi — ghi thẳng lên dòng (kèm notify
+        Sales, logic chung ở line._mark_infeasible) và đóng màn."""
         self.ensure_one()
-        if not (self.infeasible_reason or "").strip():
-            raise UserError(_("Vui lòng nhập lý do không khả thi."))
-        self.rfq_line_id.write({
-            "is_infeasible": True,
-            "infeasible_reason": self.infeasible_reason,
-            "resolved_product_id": False,
-            "resolved_bom_id": False,
-            "supplement_note": False,
-        })
-        self.rfq_line_id._cleanup_rfq_provisional_records()
+        self.rfq_line_id._mark_infeasible(self.infeasible_reason)
         return self._action_return_to_rfq()
 
     def action_mark_supplement(self):
-        """KTV đánh dấu dòng cần Sales bổ sung thông tin.
-
-        Tự động tạo activity cho người tạo RFQ (Sales) để họ nhận thông báo
-        ngay — không cần đợi KTV bấm 'Gửi lại Sales' ở cấp RFQ."""
+        """KTV đánh dấu dòng cần Sales bổ sung thông tin (kèm chatter +
+        activity cho người tạo RFQ, logic chung ở line._mark_supplement)."""
         self.ensure_one()
-        if not (self.supplement_note or "").strip():
-            raise UserError(_(
-                "Vui lòng nhập nội dung cần Sales bổ sung."))
-        note = self.supplement_note.strip()
-        self.rfq_line_id.write({"supplement_note": note})
-        request = self.rfq_line_id.quotation_request_id
-        request.message_post(body=_(
-            "Kỹ thuật yêu cầu bổ sung cho dòng <b>%s</b>: %s"
-        ) % (self.rfq_line_id.product_name or "", note))
-        if request.created_by:
-            request.activity_schedule(
-                "mail.mail_activity_data_todo",
-                summary=_("Bổ sung thông tin dòng %s") % (
-                    self.rfq_line_id.product_name or request.name),
-                note=note,
-                user_id=request.created_by.id,
-            )
+        self.rfq_line_id._mark_supplement(self.supplement_note)
         return self._action_return_to_rfq()
 
-    def action_confirm(self):
+    def _do_confirm(self):
         self.ensure_one()
         if self.rfq_line_id.product_type == "trading":
             raise UserError(_(
@@ -529,4 +524,18 @@ class DlRfqResolveWizard(models.TransientModel):
                 "BOM tạm đã được chính thức hóa khi hoàn tất dòng RFQ %s.")
                 % self.rfq_line_id.display_name)
         self.rfq_line_id._cleanup_rfq_provisional_records()
+
+    def action_confirm(self):
+        self._do_confirm()
         return self._action_return_to_rfq()
+
+    def action_confirm_next(self):
+        """Băng chuyền cho RFQ nhiều dòng: hoàn tất dòng này rồi mở luôn
+        workspace của dòng gia công chưa xử lý kế tiếp — khỏi quay về RFQ
+        tự tìm dòng tiếp theo."""
+        self.ensure_one()
+        next_line = self.next_line_id
+        self._do_confirm()
+        if not next_line:
+            return self._action_return_to_rfq()
+        return next_line.action_open_resolve_wizard()
