@@ -128,8 +128,15 @@
                 <field name="email"/>
                 <field name="vat" string="MST"/>
                 <separator/>
-                <filter string="Đang hoạt động" name="active" domain="[('active', '=', True)]"/>
-                <filter string="Không hoạt động" name="inactive" domain="[('active', '=', False)]"/>
+                <filter string="Đang hợp tác" name="active" domain="[('active', '=', True)]"/>
+                <filter string="Ngừng hợp tác" name="inactive" domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="Hôm nay" name="date_today"
+                        domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
+                <filter string="7 ngày qua" name="date_7days"
+                        domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today() + relativedelta(days=-7), datetime.time(0,0,0)))]"/>
+                <filter string="30 ngày qua" name="date_30days"
+                        domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today() + relativedelta(days=-30), datetime.time(0,0,0)))]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter string="Tỉnh/TP" name="group_city" context="{'group_by': 'city'}"/>
                 </group>
