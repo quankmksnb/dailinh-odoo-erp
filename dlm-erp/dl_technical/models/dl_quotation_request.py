@@ -256,6 +256,9 @@ class DlQuotationRequest(models.Model):
     # xử lý" thay cột status 7-state (đỡ rối, đúng phần việc). Chỉ để HIỂN THỊ:
     # không lưu, không lọc — thanh chip vẫn lọc trên `status` thật.
     #   Mới / Đã bổ sung   → Chưa nhận (chờ KTV bắt đầu / tiếp tục)
+    #     NGOẠI LỆ: RFQ đã có người tiếp nhận (bị trả lại bổ sung rồi Sales gửi
+    #     lại) vẫn thuộc KTV đã nhận trước đó → "Đang xử lý", không lùi "Chưa
+    #     nhận" (tránh lệch với cột "Người tiếp nhận" đã có tên).
     #   Đang xử lý         → Đang xử lý
     #   Trả lại bổ sung    → Chờ Sales bổ sung (bóng đang ở Sales)
     #   Đã xử lý xong      → Đã xử lý xong (KTV xong, chờ Sales tạo báo giá)
@@ -282,10 +285,15 @@ class DlQuotationRequest(models.Model):
         compute="_compute_tech_stage",
     )
 
-    @api.depends("status")
+    @api.depends("status", "received_by")
     def _compute_tech_stage(self):
         for rec in self:
-            rec.tech_stage = self._TECH_STAGE_BY_STATUS.get(rec.status, "pending")
+            stage = self._TECH_STAGE_BY_STATUS.get(rec.status, "pending")
+            # Đã có KTV tiếp nhận từ trước (RFQ từng xử lý rồi bị trả lại bổ
+            # sung, nay Sales gửi lại) → giữ "Đang xử lý", không lùi "Chưa nhận".
+            if stage == "pending" and rec.received_by:
+                stage = "processing"
+            rec.tech_stage = stage
 
     # Màn Tạo RFQ tách 2 bảng riêng (trên/dưới) để cột không trùng nhau — cùng
     # trỏ line_ids, lọc + mặc định theo product_type. line_ids gốc vẫn dùng cho
