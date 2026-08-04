@@ -152,6 +152,7 @@
         <field name="name">Bảng giá NCC</field>
         <field name="res_model">product.supplierinfo</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplierinfo_tree')}),
@@ -168,6 +169,7 @@
         <field name="name">Bảng giá NCC</field>
         <field name="res_model">product.supplierinfo</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplierinfo_tree')}),
@@ -209,6 +211,7 @@
         <field name="name">Bảng giá Vật tư</field>
         <field name="res_model">product.supplierinfo</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplierinfo_material_tree')}),
@@ -231,6 +234,7 @@
         <field name="name">Bảng giá Vật tư</field>
         <field name="res_model">product.supplierinfo</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplierinfo_material_tree')}),

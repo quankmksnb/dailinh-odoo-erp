@@ -114,6 +114,7 @@
         <field name="name">Đơn vị tính</field>
         <field name="res_model">uom.uom</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_uom_tree')}),

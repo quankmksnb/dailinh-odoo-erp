@@ -83,7 +83,7 @@
                         string="Ngừng sử dụng"
                         class="btn-secondary"
                         confirm="Đưa sản phẩm này về trạng thái Ngừng sử dụng? SP vẫn giữ trong danh mục để tra lịch sử nhưng không còn được chọn để tái sử dụng."
-                        invisible="dlm_lifecycle_state != 'active'"
+                        invisible="dlm_lifecycle_state != 'active' or not id"
                         groups="dl_base.dl_group_tech,dl_base.dl_group_ba,dl_base.dl_group_admin"
                     />
                     <button
@@ -99,7 +99,7 @@
                         type="object"
                         string="Vô hiệu hóa SP"
                         class="btn-danger"
-                        invisible="not active"
+                        invisible="not active or not id"
                         confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu cũ giữ nguyên."
                         groups="dl_base.dl_group_admin"
                     />
@@ -456,6 +456,7 @@
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
@@ -480,6 +481,7 @@
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
@@ -501,6 +503,7 @@
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
@@ -530,6 +533,7 @@
         <field name="name">Sản phẩm</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),

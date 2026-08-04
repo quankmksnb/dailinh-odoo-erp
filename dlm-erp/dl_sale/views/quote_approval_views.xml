@@ -187,6 +187,7 @@
         <field name="name">Phê duyệt</field>
         <field name="res_model">dl.pricing.approval.request</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain">[('request_type', '=', 'quote_over_threshold')]</field>
         <field name="context">{'search_default_pending': 1}</field>
         <field name="view_ids" eval="[

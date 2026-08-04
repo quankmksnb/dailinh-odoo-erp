@@ -88,6 +88,7 @@
         <field name="name">Danh mục</field>
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain" eval="[('id', 'not in', [ref('product.product_category_all'), ref('product.product_category_1'), ref('product.cat_expense')])]" />
         <field name="context">{'search_default_group_branch': 1}</field>
         <field name="view_ids" eval="[
@@ -106,6 +107,7 @@
         <field name="name">Danh mục</field>
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain" eval="[('id', 'not in', [ref('product.product_category_all'), ref('product.product_category_1'), ref('product.cat_expense')])]" />
         <field name="view_ids" eval="[
             (5, 0, 0),
