@@ -250,21 +250,27 @@
                                            decoration-info="technical_status == 'waiting'"
                                            decoration-success="technical_status == 'done'"
                                            decoration-danger="technical_status == 'infeasible'"/>
+                                    <!-- Cụm thao tác dòng: 3 nút ICON CÙNG KHỔ cho đồng bộ
+                                         (không lẫn nút-chữ với icon). Phân cấp bằng kiểu nút:
+                                         1 icon nền đặc dẫn dắt (Mở xử lý) + 2 icon viền nhẹ
+                                         cho kết luận nhanh; icon "không khả thi" tô đỏ. Mỗi nút
+                                         có title để hover ra nghĩa. Tránh fa-question (dễ đọc
+                                         nhầm là "trợ giúp") — dùng fa-comment-o cho "bổ sung". -->
                                     <button name="action_open_resolve_wizard" type="object"
-                                            string="Mở xử lý"
+                                            icon="fa-cog"
                                             class="btn btn-primary btn-sm"
+                                            title="Mở xử lý dòng này"
                                             invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                                    <!-- Kết luận nhanh ngay trên bảng (icon, modal chỉ hỏi
-                                         lý do) — quyết định nông không phải chui qua
-                                         workspace 3 bước. -->
                                     <button name="action_open_supplement_wizard" type="object"
-                                            icon="fa-question-circle-o"
+                                            icon="fa-comment-o"
+                                            class="btn btn-secondary btn-sm"
                                             title="Yêu cầu Sales bổ sung thông tin"
                                             invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                                     <button name="action_open_infeasible_wizard" type="object"
                                             icon="fa-ban"
+                                            class="btn btn-secondary btn-sm text-danger"
                                             title="Kết luận không khả thi"
                                             invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
@@ -296,11 +302,11 @@
                                              thì chốt được ngay ở đây (modal chỉ hỏi lý do),
                                              không phải đi vòng qua workspace 3 bước. -->
                                         <button name="action_open_supplement_wizard" type="object"
-                                                string="Cần bổ sung..."
+                                                string="Cần bổ sung"
                                                 invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                                 groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                                         <button name="action_open_infeasible_wizard" type="object"
-                                                string="Không khả thi..."
+                                                string="Không khả thi"
                                                 invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                                 groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                                     </header>
