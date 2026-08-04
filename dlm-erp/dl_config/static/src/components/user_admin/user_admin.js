@@ -26,6 +26,8 @@ export class DlUserAdmin extends Component {
             search: "",
             roleFilter: "", // group id (string) hoặc ""
             statusFilter: "",
+            page: 1,
+            pageSize: 10,
             selectedId: null,
             loading: true,
             saving: false,
@@ -93,6 +95,45 @@ export class DlUserAdmin extends Component {
             }
             return true;
         });
+    }
+
+    // --- Phân trang (client-side, trên danh sách đã lọc) --------------------
+    get totalPages() {
+        return Math.max(1, Math.ceil(this.filteredUsers.length / this.state.pageSize));
+    }
+    // Trang hiện tại đã kẹp trong [1, totalPages] (dùng để hiển thị & cắt trang).
+    get currentPage() {
+        return Math.min(Math.max(1, this.state.page), this.totalPages);
+    }
+    get pagedUsers() {
+        const start = (this.currentPage - 1) * this.state.pageSize;
+        return this.filteredUsers.slice(start, start + this.state.pageSize);
+    }
+    get pageNumbers() {
+        return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+    }
+    // Chỉ số dòng đầu/cuối đang hiển thị (1-based) để in "x–y / n".
+    get pageRangeStart() {
+        return this.filteredUsers.length ? (this.currentPage - 1) * this.state.pageSize + 1 : 0;
+    }
+    get pageRangeEnd() {
+        return Math.min(this.currentPage * this.state.pageSize, this.filteredUsers.length);
+    }
+    goToPage(p) {
+        this.state.page = Math.min(Math.max(1, p), this.totalPages);
+    }
+    // Đổi bộ lọc/tìm kiếm thì quay về trang 1 để không "rơi" ra ngoài kết quả.
+    onSearchInput(ev) {
+        this.state.search = ev.target.value;
+        this.state.page = 1;
+    }
+    onRoleFilter(ev) {
+        this.state.roleFilter = ev.target.value;
+        this.state.page = 1;
+    }
+    onStatusFilter(ev) {
+        this.state.statusFilter = ev.target.value;
+        this.state.page = 1;
     }
 
     selectUser(id) {

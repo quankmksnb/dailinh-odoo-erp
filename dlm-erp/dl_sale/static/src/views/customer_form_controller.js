@@ -203,6 +203,25 @@ export class DlCustomerFormController extends FormController {
             return `Email '${d.email}' không hợp lệ.`;
         }
 
+        // Người liên hệ: SĐT/email (nếu nhập) phải đúng định dạng — chặn sớm
+        // bằng toast thay vì để backend bung hộp thoại. Backend vẫn chốt lại.
+        const contacts = d.child_ids?.records || [];
+        for (const contact of contacts) {
+            const cd = contact.data || {};
+            const cname = (cd.name || "").trim() || "(chưa đặt tên)";
+            for (const [label, value] of [
+                ["Điện thoại", cd.phone],
+                ["Di động", cd.mobile],
+            ]) {
+                if (value && !PHONE_RE.test(String(value).replace(/[\s.\-]/g, ""))) {
+                    return `Người liên hệ '${cname}': ${label} '${value}' không hợp lệ. Số điện thoại Việt Nam phải bắt đầu bằng 0 hoặc +84 và gồm 10–11 chữ số.`;
+                }
+            }
+            if (cd.email && !EMAIL_RE.test(String(cd.email).trim())) {
+                return `Người liên hệ '${cname}': Email '${cd.email}' không hợp lệ.`;
+            }
+        }
+
         // Trùng MST — trừ khi đánh dấu chi nhánh khác dùng chung MST
         if (tax && !d.dlm_allow_dup_tax) {
             const dup = await this.dlOrm.searchRead(
