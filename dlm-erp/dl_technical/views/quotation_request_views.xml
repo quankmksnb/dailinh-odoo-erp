@@ -66,11 +66,10 @@
             </xpath>
             <xpath expr="//field[@name='status']" position="after">
                 <field name="tech_stage" widget="badge"
-                       decoration-info="tech_stage == 'pending'"
+                       decoration-muted="tech_stage in ('pending', 'closed')"
                        decoration-warning="tech_stage == 'processing'"
                        decoration-danger="tech_stage == 'waiting_sales'"
-                       decoration-success="tech_stage == 'done'"
-                       decoration-muted="tech_stage == 'closed'"/>
+                       decoration-success="tech_stage == 'done'"/>
             </xpath>
             <xpath expr="//field[@name='technical_progress_label']" position="after">
                 <field name="resolved_product_ids" widget="many2many_tags" string="Sản phẩm đã xác định"/>
@@ -207,11 +206,10 @@
                                          "Chưa chọn sản phẩm" khi chưa xử lý -->
                                     <field name="resolved_summary"/>
                                     <field name="technical_status" widget="badge"
-                                           decoration-info="technical_status == 'pending'"
+                                           decoration-muted="technical_status in ('pending', 'not_required')"
                                            decoration-warning="technical_status == 'processing'"
                                            decoration-success="technical_status == 'done'"
-                                           decoration-danger="technical_status == 'infeasible'"
-                                           decoration-muted="technical_status == 'not_required'"/>
+                                           decoration-danger="technical_status == 'infeasible'"/>
                                     <button name="action_open_resolve_wizard" type="object"
                                             string="Mở xử lý"
                                             class="btn btn-primary btn-sm"

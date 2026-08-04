@@ -71,8 +71,8 @@
                             <field name="line_ids">
                                 <tree editable="bottom">
                                     <field name="line_type" widget="badge"
-                                           decoration-info="line_type == 'trading'"
-                                           decoration-success="line_type == 'manufactured'"/>
+                                           decoration-success="line_type == 'trading'"
+                                           decoration-info="line_type == 'manufactured'"/>
                                     <field name="name"/>
                                     <field name="bom_id" optional="hide"/>
                                     <field name="qty" widget="dl_money" digits="[16, 0]"/>
