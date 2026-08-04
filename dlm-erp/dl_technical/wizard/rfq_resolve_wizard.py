@@ -183,8 +183,16 @@ class DlRfqResolveWizard(models.TransientModel):
 
     bom_ids = fields.Many2many(
         "dl.bom", compute="_compute_bom_ids", string="BOM Version")
+    # Lựa chọn BOM do KTV chỉ định (nếu có). Lưu riêng khỏi selected_bom_id để
+    # selected_bom_id là field TÍNH (không lưu) — tính lại mỗi lần nạp form nên
+    # tự bắt được BOM vừa được Xác nhận khi KTV mở BOM ra duyệt rồi quay lại
+    # workspace (trước đây phải chọn lại sản phẩm mới auto-lấy được BOM đã duyệt).
+    manual_bom_id = fields.Many2one("dl.bom")
     selected_bom_id = fields.Many2one(
-        "dl.bom", string="BOM đã chọn", domain="[('id', 'in', bom_ids)]")
+        "dl.bom", string="BOM đã chọn", domain="[('id', 'in', bom_ids)]",
+        compute="_compute_selected_bom_id",
+        inverse="_inverse_selected_bom_id",
+        store=False, readonly=False)
     selected_bom_is_rfq_provisional = fields.Boolean(
         related="selected_bom_id.is_rfq_provisional",
         string="BOM đang tạm từ RFQ",
@@ -211,32 +219,34 @@ class DlRfqResolveWizard(models.TransientModel):
             else:
                 rec.bom_ids = Bom.browse()
 
-    @api.onchange("product_id", "mode")
-    def _onchange_product_id(self):
-        # Mặc định chọn sẵn phiên bản BOM có version CAO NHẤT đang ở trạng thái
-        # Đã xác nhận/Đã khóa của sản phẩm (không dựa vào cờ is_current — cờ này
-        # theo "confirm sau cùng thắng" nên có thể trỏ về bản version thấp hơn).
-        # KTV vẫn đổi sang version khác được (thiết kế BOM truy xuất §4.3).
-        # Khi mở lại dòng đã xử lý, giữ đúng BOM đã gắn thay vì tự đổi sang
-        # version mới nhất; khi đổi sang Product khác, BOM cũ tự bị thay.
-        if self.mode == "existing" and self.product_id:
-            if (self.selected_bom_id
-                    and self.selected_bom_id.product_id == self.product_id):
-                return
-            current = self.env["dl.bom"].search(
-                [
-                    ("product_id", "=", self.product_id.id),
-                    ("status", "in", ("confirmed", "locked")),
-                    "|",
-                    ("is_rfq_provisional", "=", False),
-                    ("rfq_source_line_id", "=", self.rfq_line_id.id),
-                ],
-                order="version desc",
-                limit=1,
-            )
-            self.selected_bom_id = current.id or False
-        else:
-            self.selected_bom_id = False
+    @api.depends("bom_ids", "manual_bom_id", "mode", "product_id")
+    def _compute_selected_bom_id(self):
+        # selected_bom_id KHÔNG lưu → được tính lại mỗi lần đọc/nạp lại form.
+        # Nhờ vậy khi KTV mở 1 BOM Nháp ra Xác nhận rồi quay lại workspace, giá
+        # trị được tính lại và tự bắt đúng BOM vừa duyệt (không phải chọn lại
+        # sản phẩm mới lấy được — đây là lỗi trước đây do onchange chỉ chạy khi
+        # đổi product_id, còn quay lại workspace là reload phía client).
+        for rec in self:
+            if rec.mode != "existing" or not rec.product_id:
+                rec.selected_bom_id = False
+                continue
+            # Ưu tiên giữ đúng BOM KTV đã chỉ định (nếu còn hợp lệ với SP hiện tại).
+            if rec.manual_bom_id and rec.manual_bom_id in rec.bom_ids:
+                rec.selected_bom_id = rec.manual_bom_id
+                continue
+            # Mặc định: BOM version CAO NHẤT đang Đã xác nhận/Đã khóa của SP
+            # (không dựa vào cờ is_current — cờ theo "confirm sau cùng thắng" nên
+            # có thể trỏ về version thấp hơn). KTV vẫn đổi version khác được.
+            confirmed = rec.bom_ids.filtered(
+                lambda b: b.status in ("confirmed", "locked")).sorted(
+                    key=lambda b: b.version, reverse=True)
+            rec.selected_bom_id = confirmed[:1]
+
+    def _inverse_selected_bom_id(self):
+        # KTV chọn tay 1 BOM → lưu vào manual_bom_id để giữ qua các lần nạp lại
+        # form (kể cả BOM Nháp đang chỉnh dở).
+        for rec in self:
+            rec.manual_bom_id = rec.selected_bom_id
 
     @api.model
     def default_get(self, fields_list):
@@ -264,7 +274,7 @@ class DlRfqResolveWizard(models.TransientModel):
                             "product_id": line.resolved_product_id.id,
                         })
                     if line.resolved_bom_id:
-                        res["selected_bom_id"] = line.resolved_bom_id.id
+                        res["manual_bom_id"] = line.resolved_bom_id.id
                     if line.resolved_product_id and line.resolved_bom_id:
                         res["step"] = "confirm"
                     if not line.resolved_product_id:
@@ -285,7 +295,7 @@ class DlRfqResolveWizard(models.TransientModel):
                                 "step": "bom",
                             })
                         if provisional_bom:
-                            res["selected_bom_id"] = provisional_bom.id
+                            res["manual_bom_id"] = provisional_bom.id
                             if provisional_bom.status in ("confirmed", "locked"):
                                 res["step"] = "confirm"
         return res
@@ -455,7 +465,7 @@ class DlRfqResolveWizard(models.TransientModel):
             "is_rfq_provisional": True,
             "rfq_source_line_id": self.rfq_line_id.id,
         })
-        self.selected_bom_id = bom.id
+        self.manual_bom_id = bom.id
         return self._action_open_bom(bom, _("BOM mới"))
 
     def action_edit_selected_bom(self):
@@ -474,7 +484,7 @@ class DlRfqResolveWizard(models.TransientModel):
                 "is_rfq_provisional": True,
                 "rfq_source_line_id": self.rfq_line_id.id,
             })
-            self.selected_bom_id = bom.id
+            self.manual_bom_id = bom.id
             self.rfq_line_id._cleanup_rfq_provisional_records(
                 keep_product_ids=self.product_id.ids,
                 keep_bom_ids=bom.ids,
