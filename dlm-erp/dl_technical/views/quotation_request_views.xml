@@ -270,6 +270,17 @@
                                     <field name="preview_image" widget="image"
                                            options="{'size': [40, 40]}" string="Ảnh" optional="show"/>
                                     <field name="attachment_count" string="Tệp" optional="show"/>
+                                    <!-- §3.6 — tín hiệu 💡: hệ thống đã dò được SP "đã
+                                         từng gia công" khớp dòng này (giúp KTV triage:
+                                         dòng có 💡 xử lý nhanh, không phải gõ tìm). -->
+                                    <field name="suggestion_state" column_invisible="1"/>
+                                    <field name="suggested_product_id" column_invisible="1"/>
+                                    <button name="action_open_resolve_wizard" type="object"
+                                            icon="fa-lightbulb-o" string="💡"
+                                            class="btn-link btn-sm text-info p-0"
+                                            title="Hệ thống gợi ý sản phẩm đã từng gia công — mở để xem"
+                                            invisible="suggestion_state == 'none'"
+                                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                                     <!-- Kết quả kỹ thuật: hiện tên SP đã chọn hoặc
                                          "Chưa chọn sản phẩm" khi chưa xử lý -->
                                     <field name="resolved_summary"/>

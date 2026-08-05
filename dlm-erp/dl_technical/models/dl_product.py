@@ -44,6 +44,31 @@ class DlProductTechnical(models.Model):
         tracking=True,
     )
 
+    # ── S05 · Thuộc tính kỹ thuật (Đợt 2, §3.6) ─────────────────────────────
+    # Điều kiện tiên quyết của bộ dò khớp: có D/R/C + vật liệu + độ dày + lớp
+    # hoàn thiện thì engine gợi ý SP so được SỐ VỚI SỐ (thay vì chỉ so tên/nhóm),
+    # tái sử dụng BOM/báo giá cũ đúng như S05 đặc tả. Chỉ có nghĩa với SP gia
+    # công / bán thành phẩm (BOM-eligible) — SP thương mại/vật tư bỏ trống.
+    dlm_dim_length = fields.Float(string="Dài (mm)")
+    dlm_dim_width = fields.Float(string="Rộng (mm)")
+    dlm_dim_height = fields.Float(string="Cao (mm)")
+    dlm_thickness = fields.Float(string="Độ dày (mm)")
+    dlm_main_material_id = fields.Many2one(
+        "product.product",
+        string="Vật liệu chính",
+        domain=[("product_kind", "=", "material")],
+        ondelete="restrict",
+    )
+    dlm_finish = fields.Selection(
+        [
+            ("powder", "Sơn tĩnh điện"),
+            ("galv", "Mạ kẽm"),
+            ("raw", "Để nguyên"),
+        ],
+        string="Lớp hoàn thiện",
+    )
+    dlm_est_weight = fields.Float(string="Khối lượng ước tính (kg)")
+
     bom_ids = fields.One2many(
         "dl.bom",
         "product_id",

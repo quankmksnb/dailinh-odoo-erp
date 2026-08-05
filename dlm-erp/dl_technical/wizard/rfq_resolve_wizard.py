@@ -1,6 +1,8 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
+from ..models.dl_quotation_request import _MATCH_THRESHOLD_AUTO
+
 
 class DlRfqResolveWizard(models.TransientModel):
     """Màn 'Nhận RFQ' (Kỹ thuật) — chọn/tạo Product + BOM cho 1 dòng RFQ.
@@ -136,7 +138,7 @@ class DlRfqResolveWizard(models.TransientModel):
         "product.product", compute="_compute_allowed_product_ids",
         string="SP hợp lệ")
 
-    @api.depends("request_category_id", "search_outside_category")
+    @api.depends("request_category_id", "search_outside_category", "rfq_line_id")
     def _compute_allowed_product_ids(self):
         Product = self.env["product.product"]
         for rec in self:
@@ -154,7 +156,65 @@ class DlRfqResolveWizard(models.TransientModel):
                 ])
             else:
                 domain.append(("is_rfq_provisional", "=", False))
-            rec.allowed_product_ids = Product.search(domain)
+            allowed = Product.search(domain)
+            # §3.6 — SP gợi ý có thể nằm NGOÀI nhóm Sales khai (vd khớp tên +
+            # khách từng đặt nhưng khác nhóm). Gộp vào danh sách chọn được để
+            # KTV bấm "Dùng SP này" hoặc chọn từ dropdown mà không phải bật
+            # "Tìm ngoài nhóm" thủ công.
+            for entry in rec._suggestion_candidates():
+                allowed |= entry["product"]
+            rec.allowed_product_ids = allowed
+
+    # ── §3.6 · Gợi ý sản phẩm "đã từng gia công" ─────────────────────────────
+    suggestion_state = fields.Selection(
+        [
+            ("none", "Không có gợi ý"),
+            ("suggest", "Có gợi ý"),
+            ("auto", "Gợi ý tự động"),
+        ],
+        string="Mức gợi ý", compute="_compute_suggestions")
+    suggested_product_id = fields.Many2one(
+        "product.product", string="Sản phẩm gợi ý (tốt nhất)",
+        compute="_compute_suggestions")
+    suggestion_reason = fields.Char(
+        string="Vì sao gợi ý", compute="_compute_suggestions")
+    suggestion_ids = fields.Many2many(
+        "product.product", string="Các sản phẩm gợi ý",
+        compute="_compute_suggestions")
+    # Số ứng viên gợi ý — trình đánh giá biểu thức phía client của Odoo KHÔNG có
+    # len(), nên modifier phải so field đếm này thay vì len(suggestion_ids).
+    suggestion_count = fields.Integer(
+        string="Số ứng viên gợi ý", compute="_compute_suggestions")
+    # Đánh dấu SP hiện tại do hệ thống TỰ CHỌN (đường A, điểm ≥60) — để hiện
+    # nhãn "gợi ý tự chọn" ở khối ⑴ đã thu gọn, nhắc KTV vẫn đang xem thứ máy đoán.
+    auto_selected = fields.Boolean(string="SP do hệ thống tự chọn")
+
+    def _suggestion_candidates(self, limit=3):
+        """Ứng viên gợi ý cho dòng RFQ đang xử lý (dùng lại matcher ở model
+        dòng). Chỉ chạy khi CHƯA chọn sản phẩm — đã chọn thì khối ⑴ thu gọn."""
+        self.ensure_one()
+        if self.product_id or not self.rfq_line_id:
+            return []
+        return self.rfq_line_id._dlm_suggest_candidates(limit=limit)
+
+    @api.depends("rfq_line_id", "product_id")
+    def _compute_suggestions(self):
+        for rec in self:
+            rec.suggestion_state = "none"
+            rec.suggested_product_id = False
+            rec.suggestion_reason = False
+            rec.suggestion_ids = self.env["product.product"]
+            rec.suggestion_count = 0
+            ranked = rec._suggestion_candidates(limit=3)
+            if not ranked:
+                continue
+            best = ranked[0]
+            rec.suggested_product_id = best["product"].id
+            rec.suggestion_reason = ", ".join(best["reasons"])
+            rec.suggestion_ids = [(6, 0, [e["product"].id for e in ranked])]
+            rec.suggestion_count = len(ranked)
+            rec.suggestion_state = (
+                "auto" if best["score"] >= _MATCH_THRESHOLD_AUTO else "suggest")
 
     new_product_name = fields.Char(string="Tên sản phẩm mới")
     # SP tạo mới từ resolve là manufactured → chỉ nhóm nhánh Thành phẩm.
@@ -470,6 +530,18 @@ class DlRfqResolveWizard(models.TransientModel):
                     if (line.supplement_note and not line.resolved_product_id
                             and not line.is_infeasible):
                         res["active_exit"] = "supplement"
+                # §3.6 đường A — chưa có SP nào được khôi phục (không kết quả cũ,
+                # không bản tạm) ⇒ chạy bộ dò khớp; nếu ứng viên tốt nhất đạt
+                # ngưỡng tự động (≥60) thì TỰ CHỌN sẵn để ca lặp lại chỉ còn bấm
+                # Hoàn tất. KTV vẫn "Đổi sản phẩm" được (khối ⑴ vẫn cho mở lại).
+                if (not res.get("product_id") and not line.is_infeasible):
+                    ranked = line._dlm_suggest_candidates(limit=1)
+                    if ranked and ranked[0]["score"] >= _MATCH_THRESHOLD_AUTO:
+                        res.update({
+                            "mode": "existing",
+                            "product_id": ranked[0]["product"].id,
+                            "auto_selected": True,
+                        })
         return res
 
     def _action_reload(self):
@@ -529,6 +601,21 @@ class DlRfqResolveWizard(models.TransientModel):
             "product_id": False,
             "manual_bom_id": False,
             "show_bom_picker": False,
+            "auto_selected": False,
+        })
+        return self._action_reload()
+
+    def action_use_suggested_product(self):
+        """§3.6 — chấp nhận SP hệ thống gợi ý (thẻ 'Có phải cái này?'): gán
+        thẳng làm sản phẩm xác định, khối ⑴ tự thu gọn sang khối ⑵."""
+        self.ensure_one()
+        if not self.suggested_product_id:
+            raise UserError(_("Không có sản phẩm gợi ý để chọn."))
+        self.write({
+            "mode": "existing",
+            "product_id": self.suggested_product_id.id,
+            "manual_bom_id": False,
+            "auto_selected": False,
         })
         return self._action_reload()
 
@@ -547,6 +634,7 @@ class DlRfqResolveWizard(models.TransientModel):
             "search_outside_category": not self.search_outside_category,
             "product_id": False,
             "manual_bom_id": False,
+            "auto_selected": False,
         })
         return self._action_reload()
 
