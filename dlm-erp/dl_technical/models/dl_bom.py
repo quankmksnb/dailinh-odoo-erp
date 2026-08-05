@@ -210,8 +210,25 @@ class DlBom(models.Model):
         return [("bom_type", "=", self.bom_type), ("product_id", "=", self.product_id.id)]
 
     def _should_set_current_version(self):
+        """BOM báo giá KHÔNG BAO GIỜ là "phiên bản hiện hành" của sản phẩm.
+
+        Ba trục khác nhau (thiết kế §3 — Thiet_ke_xu_ly_dong_RFQ_ky_thuat.md):
+        - version  = trục THỜI GIAN: cách làm thay đổi, bản mới THAY THẾ bản cũ;
+        - variant  = trục THUỘC TÍNH: các cấu hình bán song song;
+        - instance = trục ĐƠN HÀNG: định mức sinh cho một đơn cụ thể.
+
+        BOM `bom_type='quotation'` là INSTANCE — nó tồn tại song song với các
+        instance khác (bàn 1200x800 và bàn 1400x830 cùng đặt được), nên không
+        được tham gia cuộc đua `is_current`. Trước đây nó thắng cuộc đua đó và
+        một đơn lẻ ghi đè "định mức chuẩn" của sản phẩm.
+
+        `is_current` chỉ thuộc về BOM chuẩn (`bom_type='template'`) — xem I7/I9.
+        Số `version` của BOM báo giá vẫn tăng, nhưng đó là SỐ SÊ-RI (lần sinh),
+        không phải phiên bản: đánh số vẫn dùng `_version_domain()` như cũ để giữ
+        nguyên SQL constraint unique(product_id, version, bom_type).
+        """
         self.ensure_one()
-        return not self.is_rfq_provisional
+        return self.bom_type != "quotation" and not self.is_rfq_provisional
 
     def action_lock(self):
         if self.filtered("is_rfq_provisional"):

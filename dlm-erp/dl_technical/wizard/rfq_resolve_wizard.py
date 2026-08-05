@@ -22,8 +22,17 @@ class DlRfqResolveWizard(models.TransientModel):
         string="Dòng RFQ",
         required=True,
         readonly=True,
+        # BẮT BUỘC khai cascade: Many2one `required` mà không khai ondelete thì
+        # Odoo mặc định 'restrict' ⇒ Sales loại dòng khỏi phạm vi trong lúc Kỹ
+        # thuật đang mở workspace sẽ vỡ khoá ngoại ở DB (EX-20). Hai wizard kết
+        # luận nhanh đã khai cascade; workspace bị sót.
+        ondelete="cascade",
     )
 
+    # ── Trục tiến độ (display-only) ──────────────────────────────────────────
+    # KHÔNG còn là cổng chặn tuần tự (bỏ action_next_step/previous_step). Chỉ là
+    # khung tiến độ suy TỪ dữ liệu: chọn xong sản phẩm/định mức thì stepper tự
+    # tiến. Thiết kế §5/§9.4 "một màn, ba khối, tự thu gọn".
     step = fields.Selection(
         [
             ("product", "1. Xác định sản phẩm"),
@@ -31,9 +40,20 @@ class DlRfqResolveWizard(models.TransientModel):
             ("confirm", "3. Xác nhận"),
         ],
         string="Công đoạn",
-        default="product",
-        required=True,
+        compute="_compute_step",
     )
+
+    # Trạng thái điều khiển accordion / lối thoát trên MỘT màn. Không lưu lâu
+    # dài — chỉ là trạng thái trình bày của phiên xử lý hiện tại.
+    show_bom_picker = fields.Boolean(
+        string="Đang mở danh sách chọn định mức",
+        help="Bật khi KTV bấm 'Chọn bản khác' để lộ lại bảng phiên bản định mức.")
+    active_exit = fields.Selection(
+        [
+            ("supplement", "Cần bổ sung"),
+            ("infeasible", "Không khả thi"),
+        ],
+        string="Lối thoát đang mở")
 
     # ── Thông tin yêu cầu (chỉ để tham khảo, readonly) ──────────────────────
     request_product_name = fields.Char(
@@ -201,6 +221,108 @@ class DlRfqResolveWizard(models.TransientModel):
     selected_bom_line_ids = fields.One2many(
         related="selected_bom_id.line_ids", string="Chi tiết BOM", readonly=True)
 
+    # ── Tóm tắt định mức để hiện ở khối ⑵ thu gọn + decision dock ────────────
+    selected_bom_label = fields.Char(
+        string="Nhãn định mức", compute="_compute_bom_summary")
+    selected_bom_line_count = fields.Integer(
+        string="Số dòng vật tư", compute="_compute_bom_summary")
+    selected_bom_has_lines = fields.Boolean(
+        string="Định mức có dòng vật tư", compute="_compute_bom_summary")
+    selected_bom_confirmed = fields.Boolean(
+        string="Định mức đã xác nhận", compute="_compute_bom_summary")
+
+    @api.depends("selected_bom_id", "selected_bom_id.status",
+                 "selected_bom_id.bom_type", "selected_bom_id.version",
+                 "selected_bom_id.line_ids")
+    def _compute_bom_summary(self):
+        status_lbl = dict(
+            self.env["dl.bom"]._fields["status"]._description_selection(self.env))
+        for rec in self:
+            bom = rec.selected_bom_id
+            rec.selected_bom_line_count = len(bom.line_ids)
+            rec.selected_bom_has_lines = bool(bom.line_ids)
+            rec.selected_bom_confirmed = bom.status in ("confirmed", "locked")
+            if not bom:
+                rec.selected_bom_label = False
+                continue
+            # BOM báo giá = INSTANCE của một đơn → KHÔNG gọi là "Phiên bản" (DoD
+            # §7.4c #8). Dùng "Lần sinh #" cho báo giá, "Phiên bản" cho BOM mẫu.
+            if bom.bom_type == "quotation":
+                rec.selected_bom_label = _("Định mức đơn #%(n)s — %(st)s") % {
+                    "n": bom.version, "st": status_lbl.get(bom.status, bom.status)}
+            else:
+                rec.selected_bom_label = _("BOM mẫu v%(n)s — %(st)s") % {
+                    "n": bom.version, "st": status_lbl.get(bom.status, bom.status)}
+
+    # ── Checklist ⑶ (tự tick) + điều kiện Hoàn tất (decision dock) ───────────
+    check_product = fields.Boolean(compute="_compute_checklist")
+    check_bom_selected = fields.Boolean(compute="_compute_checklist")
+    check_bom_belongs = fields.Boolean(compute="_compute_checklist")
+    check_bom_has_lines = fields.Boolean(compute="_compute_checklist")
+    check_bom_confirmed = fields.Boolean(compute="_compute_checklist")
+    check_request_unchanged = fields.Boolean(compute="_compute_checklist")
+    checklist_done = fields.Integer(compute="_compute_checklist")
+    checklist_total = fields.Integer(compute="_compute_checklist")
+    can_confirm = fields.Boolean(
+        string="Đủ điều kiện hoàn tất", compute="_compute_checklist")
+    confirm_blocker = fields.Char(
+        string="Còn thiếu", compute="_compute_checklist")
+
+    @api.depends("product_id", "selected_bom_id", "selected_bom_has_lines",
+                 "selected_bom_confirmed", "is_infeasible", "active_exit",
+                 "rfq_line_id.needs_review")
+    def _compute_checklist(self):
+        for rec in self:
+            has_product = bool(rec.product_id)
+            has_bom = bool(rec.selected_bom_id)
+            belongs = has_bom and rec.selected_bom_id.product_id == rec.product_id
+            has_lines = rec.selected_bom_has_lines
+            confirmed = rec.selected_bom_confirmed
+            unchanged = not rec.rfq_line_id.needs_review
+
+            rec.check_product = has_product
+            rec.check_bom_selected = has_bom
+            rec.check_bom_belongs = bool(belongs)
+            rec.check_bom_has_lines = has_lines
+            rec.check_bom_confirmed = confirmed
+            rec.check_request_unchanged = unchanged
+
+            # 4 mục checklist §9.4 (xác nhận định mức tính riêng vì Hoàn tất tự
+            # xác nhận — xem §19.7).
+            done = sum([has_product, bool(belongs), confirmed, unchanged])
+            rec.checklist_done = done
+            rec.checklist_total = 4
+
+            # Đủ điều kiện Hoàn tất: KHÔNG đòi BOM đã xác nhận (Hoàn tất sẽ tự
+            # xác nhận, §19.7) nhưng ĐÒI có dòng vật tư (nếu rỗng, action_confirm
+            # sẽ raise — chặn trước ở đây để nút disable thay vì nổ modal).
+            blockers = []
+            if not has_product:
+                blockers.append(_("chưa xác định sản phẩm"))
+            if not has_bom:
+                blockers.append(_("chưa có định mức"))
+            elif not belongs:
+                blockers.append(_("định mức không thuộc sản phẩm đã chọn"))
+            elif not has_lines:
+                blockers.append(_("định mức chưa có dòng vật tư"))
+            if rec.is_infeasible or rec.active_exit == "infeasible":
+                blockers.append(_("đang ở nhánh Không khả thi"))
+            rec.can_confirm = not blockers
+            rec.confirm_blocker = (
+                _("Còn thiếu: %s") % ", ".join(blockers)) if blockers else False
+
+    @api.depends("product_id", "check_bom_belongs", "check_bom_has_lines")
+    def _compute_step(self):
+        # Trục tiến độ suy từ dữ liệu (không phải cổng chặn): chưa có sản phẩm →
+        # ⑴; có sản phẩm nhưng định mức chưa sẵn sàng → ⑵; đủ → ⑶.
+        for rec in self:
+            if not rec.product_id:
+                rec.step = "product"
+            elif not (rec.check_bom_belongs and rec.check_bom_has_lines):
+                rec.step = "bom"
+            else:
+                rec.step = "confirm"
+
     @api.depends("product_id", "mode")
     def _compute_bom_ids(self):
         Bom = self.env["dl.bom"]
@@ -263,9 +385,12 @@ class DlRfqResolveWizard(models.TransientModel):
                     res["supplement_note"] = line.supplement_note
                     res["has_existing_supplement"] = True
                 if line.is_infeasible:
+                    # Mở lại dòng đã kết luận không khả thi → vào thẳng nhánh
+                    # lối thoát tương ứng ở decision dock.
                     res.update({
                         "is_infeasible": True,
                         "infeasible_reason": line.infeasible_reason,
+                        "active_exit": "infeasible",
                     })
                 else:
                     if line.resolved_product_id:
@@ -275,8 +400,6 @@ class DlRfqResolveWizard(models.TransientModel):
                         })
                     if line.resolved_bom_id:
                         res["manual_bom_id"] = line.resolved_bom_id.id
-                    if line.resolved_product_id and line.resolved_bom_id:
-                        res["step"] = "confirm"
                     if not line.resolved_product_id:
                         provisional_bom = self.env["dl.bom"].sudo().search([
                             ("is_rfq_provisional", "=", True),
@@ -292,12 +415,14 @@ class DlRfqResolveWizard(models.TransientModel):
                             res.update({
                                 "mode": "existing",
                                 "product_id": provisional_product.id,
-                                "step": "bom",
                             })
                         if provisional_bom:
                             res["manual_bom_id"] = provisional_bom.id
-                            if provisional_bom.status in ("confirmed", "locked"):
-                                res["step"] = "confirm"
+                    # Mở lại dòng đang chờ bổ sung (chưa xác định SP) → hiện sẵn
+                    # nhánh bổ sung ở dock để KTV thấy/sửa nội dung đã yêu cầu.
+                    if (line.supplement_note and not line.resolved_product_id
+                            and not line.is_infeasible):
+                        res["active_exit"] = "supplement"
         return res
 
     def _action_reload(self):
@@ -341,33 +466,57 @@ class DlRfqResolveWizard(models.TransientModel):
         self.ensure_one()
         if not self.selected_bom_id:
             raise UserError(_(
-                "Vui lòng chọn hoặc tạo BOM trước khi sang bước Xác nhận."))
+                "Vui lòng chọn hoặc tạo định mức trước khi hoàn tất dòng."))
         if self.selected_bom_id.product_id != self.product_id:
             raise UserError(_("Định mức đã chọn không thuộc sản phẩm đã chọn."))
-        if self.selected_bom_id.status not in ("confirmed", "locked"):
-            raise UserError(_(
-                "BOM phải ở trạng thái Đã xác nhận hoặc Đã khóa trước khi tiếp tục."))
+        # KHÔNG còn đòi BOM đã xác nhận ở đây: Hoàn tất dòng sẽ tự xác nhận định
+        # mức Nháp (§19.7 — "một ý định = một cú bấm"). action_confirm của BOM
+        # vẫn chặn định mức rỗng, nên rỗng bị chặn ở tầng server thật.
 
-    def action_next_step(self):
+    # ── Điều khiển accordion / lối thoát trên MỘT màn ────────────────────────
+    def action_change_product(self):
+        """Khối ⑴ đang thu gọn → bấm 'Đổi sản phẩm' để mở lại: xoá lựa chọn hiện
+        tại (cả BOM đã chọn tay) để KTV chọn/tạo sản phẩm khác."""
         self.ensure_one()
-        if self.is_infeasible:
-            raise UserError(_(
-                "Hãy xác nhận Không khả thi hoặc bỏ lựa chọn này để tiếp tục."))
-        if self.step == "product":
-            self._validate_product_step()
-            self.step = "bom"
-        elif self.step == "bom":
-            self._validate_product_step()
-            self._validate_bom_step()
-            self.step = "confirm"
+        self.write({
+            "product_id": False,
+            "manual_bom_id": False,
+            "show_bom_picker": False,
+        })
         return self._action_reload()
 
-    def action_previous_step(self):
+    def action_toggle_bom_picker(self):
+        """Khối ⑵: bấm 'Chọn bản khác' để lộ lại bảng phiên bản định mức (khi đã
+        có một định mức được tự chọn/thu gọn)."""
         self.ensure_one()
-        if self.step == "confirm":
-            self.step = "bom"
-        elif self.step == "bom":
-            self.step = "product"
+        self.show_bom_picker = not self.show_bom_picker
+        return self._action_reload()
+
+    def action_confirm_bom(self):
+        """Nút [Xác nhận định mức] ngay trong checklist ⑶ — dành cho ai muốn chốt
+        định mức trước rồi mới Hoàn tất (vd bàn giao cho người khác). Hoàn tất
+        dòng vẫn tự xác nhận nếu bỏ qua bước này (§19.7)."""
+        self.ensure_one()
+        if not self.selected_bom_id:
+            raise UserError(_("Chưa có định mức để xác nhận."))
+        if self.selected_bom_id.status == "draft":
+            self.selected_bom_id.action_confirm()
+        return self._action_reload()
+
+    def action_show_supplement(self):
+        self.ensure_one()
+        self.write({"active_exit": "supplement", "is_infeasible": False})
+        return self._action_reload()
+
+    def action_show_infeasible(self):
+        self.ensure_one()
+        self.write({"active_exit": "infeasible", "is_infeasible": True})
+        return self._action_reload()
+
+    def action_hide_exit(self):
+        """Quay lại phương án kỹ thuật (đóng nhánh lối thoát đang mở)."""
+        self.ensure_one()
+        self.write({"active_exit": False, "is_infeasible": False})
         return self._action_reload()
 
     def action_cancel(self):
@@ -478,9 +627,20 @@ class DlRfqResolveWizard(models.TransientModel):
             raise UserError(_("Vui lòng chọn 1 BOM trước khi chỉnh sửa."))
         bom = self.selected_bom_id
         if bom.status != "draft":
-            result = bom.action_create_new_version()
-            bom = self.env["dl.bom"].browse(result["res_id"])
-            bom.write({
+            # KHÔNG dùng action_create_new_version(): copy() kế thừa `bom_type`,
+            # nên chỉnh một BOM MẪU cho một đơn lại đẻ ra thêm một BOM MẪU —
+            # định mức của một đơn bị xếp vào dòng dõi ĐỊNH MỨC CHUẨN của sản
+            # phẩm (chiếm số phiên bản, hiện nhãn "BOM mẫu", và có thể bị lấy
+            # làm giá vốn chuẩn khi sản phẩm là bán thành phẩm — xem
+            # quotation_pricing_service._resolve_child_bom).
+            #
+            # Bản chỉnh cho một đơn LUÔN là BOM báo giá (instance), và nhận số
+            # sê-ri trong dòng dõi báo giá của sản phẩm — tính TRƯỚC khi copy để
+            # không đụng unique(product_id, version, bom_type).
+            bom = bom.copy({
+                "bom_type": "quotation",
+                "version": self._next_version(bom.product_id),
+                "status": "draft",
                 "is_rfq_provisional": True,
                 "rfq_source_line_id": self.rfq_line_id.id,
             })
@@ -505,13 +665,46 @@ class DlRfqResolveWizard(models.TransientModel):
         self.rfq_line_id._mark_supplement(self.supplement_note)
         return self._action_return_to_rfq()
 
+    def _check_still_processable(self):
+        """Kiểm tra LẠI ngay trước khi ghi kết quả (thiết kế RES-002/RES-003).
+
+        Workspace là màn full-page mở lâu: giữa lúc KTV mở và lúc bấm Hoàn tất,
+        Sales có thể đã hủy RFQ, đã đánh dấu đã tạo báo giá, hoặc đã loại dòng
+        khỏi phạm vi. Kiểm ở lúc MỞ là chưa đủ — nếu không kiểm lại thì kết quả
+        được ghi vào một dòng/RFQ đã đóng và không ai biết.
+        """
+        self.ensure_one()
+        line = self.rfq_line_id
+        if not line.exists():
+            raise UserError(_(
+                "Dòng RFQ này đã bị loại khỏi yêu cầu báo giá trong lúc bạn xử "
+                "lý. Hãy quay lại RFQ để xem phạm vi hiện tại."))
+        request = line.quotation_request_id
+        if request.status == "cancelled":
+            raise UserError(_(
+                "Yêu cầu báo giá %s đã bị hủy trong lúc bạn xử lý — không thể "
+                "ghi kết quả kỹ thuật.") % request.name)
+        if request.status == "quoted":
+            raise UserError(_(
+                "Yêu cầu báo giá %s đã được tạo báo giá trong lúc bạn xử lý. "
+                "Muốn đổi kết quả kỹ thuật thì phải làm phiên bản báo giá mới.")
+                % request.name)
+
     def _do_confirm(self):
         self.ensure_one()
+        self._check_still_processable()
         if self.rfq_line_id.product_type == "trading":
             raise UserError(_(
                 "Dòng Sản phẩm thương mại không xử lý qua màn này."))
         self._validate_product_step()
         self._validate_bom_step()
+
+        # §19.7 — Hoàn tất dòng tự XÁC NHẬN định mức còn Nháp và ghi người xử lý
+        # là người duyệt (action_confirm ghi approved_by/date). Bỏ được vòng
+        # "sang form BOM chỉ để bấm Xác nhận rồi quay lại". Định mức rỗng vẫn bị
+        # action_confirm chặn (đã đón đầu bằng nút disable ở dock — can_confirm).
+        if self.selected_bom_id.status == "draft":
+            self.selected_bom_id.action_confirm()
 
         self.rfq_line_id.write({
             "resolved_product_id": self.product_id.id,
@@ -530,9 +723,12 @@ class DlRfqResolveWizard(models.TransientModel):
                 % self.rfq_line_id.display_name)
         if self.selected_bom_id.is_rfq_provisional:
             self.selected_bom_id.write({"is_rfq_provisional": False})
-            # Xác nhận BOM trong workspace chỉ duyệt nội dung; đến đây mới được
-            # phép thay thế phiên bản hiện hành của sản phẩm.
-            self.selected_bom_id._set_current_version()
+            # KHÔNG gọi _set_current_version() ở đây nữa.
+            # BOM báo giá là ĐỊNH MỨC CỦA MỘT ĐƠN (instance), không phải phiên
+            # bản mới của sản phẩm — trước đây gọi hàm này khiến một đơn lẻ
+            # (vd bàn 1400x830) ghi đè "định mức hiện hành" của sản phẩm
+            # (bàn 1200x800), làm hỏng truy xuất đơn cũ. Xem
+            # dl_bom._should_set_current_version() và thiết kế §3/§7.4.
             self.selected_bom_id.message_post(body=_(
                 "BOM tạm đã được chính thức hóa khi hoàn tất dòng RFQ %s.")
                 % self.rfq_line_id.display_name)

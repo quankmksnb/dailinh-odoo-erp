@@ -371,6 +371,33 @@ class DlQuotationPricingService(models.AbstractModel):
         })
         return vals, comp_specs
 
+    def _resolve_child_bom(self, material):
+        """BOM dùng làm GIÁ VỐN CHUẨN của một bán thành phẩm.
+
+        Trước đây chỉ lấy ``version desc`` bất kể loại BOM ⇒ một BOM **báo giá**
+        (sinh khi xử lý RFQ cho một đơn cụ thể) có số version cao hơn sẽ THẮNG
+        BOM chuẩn của chính bán thành phẩm đó — nghĩa là định mức riêng của đơn
+        A âm thầm trở thành giá vốn cho đơn B. Sai lệch chỉ hiện ra ở tiền nên
+        rất khó phát hiện.
+
+        Thứ tự đúng (thiết kế §17.2):
+          1. BOM chuẩn (``template``) đang là phiên bản hiện hành;
+          2. BOM chuẩn mới nhất còn hiệu lực;
+          3. chỉ khi bán thành phẩm CHƯA TỪNG có BOM chuẩn mới đành dùng BOM
+             báo giá mới nhất (trường hợp dữ liệu chưa hoàn chỉnh).
+        """
+        Bom = self.env["dl.bom"].sudo()
+        base = [
+            ("product_id", "=", material.id),
+            ("status", "in", ("confirmed", "locked")),
+        ]
+        standard = [("bom_type", "=", "template")]
+        return (
+            Bom.search(base + standard + [("is_current", "=", True)], limit=1)
+            or Bom.search(base + standard, order="version desc", limit=1)
+            or Bom.search(base, order="version desc", limit=1)
+        )
+
     def _bom_material_cost(self, bom, context, visited):
         """Chi phí vật tư để sản xuất MỘT đơn vị đầu ra của ``bom``.
 
@@ -394,14 +421,7 @@ class DlQuotationPricingService(models.AbstractModel):
                 raise UserError(QTE_004 % bom.display_name)
 
             if material.product_kind == "material_processed":
-                child = self.env["dl.bom"].sudo().search(
-                    [
-                        ("product_id", "=", material.id),
-                        ("status", "in", ("confirmed", "locked")),
-                    ],
-                    order="version desc",
-                    limit=1,
-                )
+                child = self._resolve_child_bom(material)
                 if not child:
                     raise UserError(QTE_004 % material.display_name)
                 unit_price, _child_specs = self._bom_material_cost(child, context, visited)

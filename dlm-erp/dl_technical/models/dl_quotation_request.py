@@ -1249,10 +1249,28 @@ class DlQuotationRequestLine(models.Model):
             raise UserError(_(
                 "RFQ ở trạng thái hiện tại không thể xử lý kỹ thuật."))
 
+    def _check_tech_result_writable(self):
+        """Chốt kiểm LẠI trước khi ghi bất kỳ kết luận kỹ thuật nào (RES-002).
+
+        Wizard/workspace mở lâu; giữa chừng Sales có thể hủy RFQ hoặc đã tạo
+        báo giá. Kiểm lúc mở là chưa đủ — không kiểm lại thì kết luận rơi vào
+        một RFQ đã đóng."""
+        self.ensure_one()
+        request = self.quotation_request_id
+        if request.status == "cancelled":
+            raise UserError(_(
+                "Yêu cầu báo giá %s đã bị hủy — không thể ghi kết luận kỹ thuật.")
+                % request.name)
+        if request.status == "quoted":
+            raise UserError(_(
+                "Yêu cầu báo giá %s đã được tạo báo giá — không thể đổi kết "
+                "luận kỹ thuật. Hãy làm phiên bản báo giá mới.") % request.name)
+
     def _mark_supplement(self, note):
         """Đánh dấu dòng cần Sales bổ sung + notify (chatter + activity cho
         người tạo RFQ) — dùng chung cho workspace và wizard kết luận nhanh."""
         self.ensure_one()
+        self._check_tech_result_writable()
         note = (note or "").strip()
         if not note:
             raise UserError(_("Vui lòng nhập nội dung cần Sales bổ sung."))
@@ -1280,6 +1298,7 @@ class DlQuotationRequestLine(models.Model):
         toàn im lặng (Sales chỉ phát hiện khi RFQ sang Đã xử lý xong), giờ
         notify như supplement vì Sales cần biết sớm để trao đổi lại với khách."""
         self.ensure_one()
+        self._check_tech_result_writable()
         reason = (reason or "").strip()
         if not reason:
             raise UserError(_("Vui lòng nhập lý do không khả thi."))
