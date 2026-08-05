@@ -613,7 +613,15 @@ class DlRfqResolveWizard(models.TransientModel):
         }
 
     def _action_return_to_rfq(self):
-        """Kết thúc workspace và trở về đúng RFQ nguồn."""
+        """Kết thúc workspace và trở về đúng RFQ nguồn.
+
+        Dùng ``target: 'main'`` (KHÔNG phải 'current'): trở về RFQ khi thoát
+        workspace phải ĐẶT LẠI breadcrumb về đúng một mục ``[RFQ]``, không đẩy
+        thêm bản sao. 'current' đẩy một act_window RFQ MỚI lên cuối stack nên
+        mỗi vòng "mở RFQ → xử lý → quay lại" lại nối thêm
+        ``… / RFQ / Workspace / RFQ`` và càng lặp càng rối. 'main' xoá stack
+        (action_service: target === 'main' ⇒ clearBreadcrumbs) rồi mở đúng RFQ.
+        """
         self.ensure_one()
         request = self.rfq_line_id.quotation_request_id
         view = self.env.ref("dl_technical.view_dl_quotation_request_form")
@@ -624,7 +632,7 @@ class DlRfqResolveWizard(models.TransientModel):
             "res_id": request.id,
             "view_mode": "form",
             "views": [(view.id, "form")],
-            "target": "current",
+            "target": "main",
         }
 
     def _validate_product_step(self):
@@ -1093,4 +1101,10 @@ class DlRfqResolveWizard(models.TransientModel):
         self._do_confirm()
         if not next_line:
             return self._action_return_to_rfq()
-        return next_line.action_open_resolve_wizard()
+        # Băng chuyền: mở workspace dòng kế THAY THẾ breadcrumb thay vì chồng
+        # thêm — RFQ nhiều dòng mà cứ đẩy 'current' sẽ dựng
+        # ``[RFQ, ws1, ws2, ws3…]`` càng lúc càng rối. 'main' giữ breadcrumb
+        # gọn ở đúng một workspace đang xử lý; thoát băng chuyền vẫn về [RFQ].
+        action = next_line.action_open_resolve_wizard()
+        action["target"] = "main"
+        return action
