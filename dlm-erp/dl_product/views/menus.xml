@@ -109,6 +109,18 @@
         action="action_dl_pricing_home"
         groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
+    <!-- Vật tư chờ định giá (Mua hàng) — hòm việc EX-13: vật tư thô chưa có giá
+         NCC đang áp dụng. Đặt ĐẦU nhóm Bảng giá vì đây là việc chủ động của Mua
+         hàng (khác 2 màn dưới là tra cứu/sửa bảng giá đã có). -->
+    <menuitem
+        id="menu_dl_material_needs_price"
+        name="Vật tư chờ định giá"
+        action="action_dl_material_needs_price"
+        parent="menu_dl_pricing_root"
+        sequence="5"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_purchasing"
+    />
+
     <!-- Bảng giá SP thương mại — MỘT màn product-centric duy nhất: liệt kê SP
          thương mại + trạng thái giá NCC. Mua hàng/Admin nhập giá NCC (đã cấp
          quyền ghi product giới hạn trading/material); Kế toán/CEO/Trưởng KD chỉ

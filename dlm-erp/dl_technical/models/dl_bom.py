@@ -249,9 +249,11 @@ class DlBom(models.Model):
                 material = line.material_id
                 if not material or material.product_kind != "material":
                     continue
-                priced = material.sudo().seller_ids.filtered(
-                    lambda s: s.is_applied and s.approval_state == "approved")
-                if not priced:
+                # Nguồn duy nhất: dlm_supplier_price_state (stored) — 'applied' ⟺
+                # có bảng giá NCC đã duyệt & đang áp dụng (is_applied kéo theo
+                # approved qua constraint). Dùng field này để đồng nhất với màn
+                # "Vật tư chờ định giá" phía Mua hàng, tránh 2 định nghĩa lệch nhau.
+                if material.dlm_supplier_price_state != "applied":
                     missing |= material
         return missing
 

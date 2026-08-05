@@ -292,7 +292,8 @@ class DlRfqResolveWizard(models.TransientModel):
         string="Vật tư thiếu giá NCC", compute="_compute_pricing_block")
 
     @api.depends("selected_bom_id", "selected_bom_id.line_ids",
-                 "selected_bom_id.line_ids.material_id")
+                 "selected_bom_id.line_ids.material_id",
+                 "selected_bom_id.line_ids.material_id.dlm_supplier_price_state")
     def _compute_pricing_block(self):
         for rec in self:
             missing = rec.selected_bom_id._dlm_unpriced_raw_materials()

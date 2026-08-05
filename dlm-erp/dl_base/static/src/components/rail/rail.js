@@ -291,10 +291,37 @@ export class DlmRail extends Component {
     this._badgeFetchers[key] = fetcher;
   }
 
+  // Badge hiện trên ĐẦU NHÓM khi submenu đang thu gọn: gộp badge của chính nhóm
+  // + của các mục con thấy được. Nhờ đó việc chờ (vd "Vật tư chờ định giá") vẫn
+  // đập vào mắt dù chưa xổ nhóm — giống badge "Phê duyệt". Khi nhóm đã xổ thì
+  // trả 0 để nhường chỗ cho badge riêng của từng mục con (khỏi đếm hai lần).
+  groupBadgeCount(item) {
+    // Nhường badge cho mục con CHỈ khi submenu thực sự đang hiện (đã xổ VÀ rail
+    // không thu gọn). Rail thu gọn ẩn submenu bằng CSS dù state.expanded còn
+    // bật, nên vẫn phải gộp lên đầu nhóm để không mất số việc chờ.
+    if (this.state.expanded[item.key] && !this.sidebar.collapsed) {
+      return 0;
+    }
+    let total = this.badges[item.key] || 0;
+    for (const child of this.visibleChildren(item)) {
+      total += this.badges[child.key] || 0;
+    }
+    return total;
+  }
+
   async _refreshBadges() {
     // Chỉ đếm cho mục user thực sự thấy — vai trò không có tab Phê duyệt thì
-    // không phát sinh truy vấn đếm thừa mỗi chu kỳ poll.
-    const visibleKeys = new Set(this.visibleItems.map((item) => item.key));
+    // không phát sinh truy vấn đếm thừa mỗi chu kỳ poll. Gồm cả mục con của
+    // nhóm (vd "Vật tư chờ định giá" nằm trong nhóm "Bảng giá").
+    const visibleKeys = new Set();
+    for (const item of this.visibleItems) {
+      visibleKeys.add(item.key);
+      if (item.children && item.children.length) {
+        for (const child of this.visibleChildren(item)) {
+          visibleKeys.add(child.key);
+        }
+      }
+    }
     for (const key of Object.keys(this._badgeFetchers)) {
       if (!visibleKeys.has(key)) {
         continue;

@@ -259,4 +259,85 @@
             ])]" />
     </record>
 
+    <!-- ============================================================
+         VẬT TƯ CHỜ ĐỊNH GIÁ (Mua hàng) — worklist EX-13/RES-022.
+         Vật tư thô CHƯA có giá NCC đang áp dụng (none/pending), chưa Ngừng.
+         Bù đúng khoảng trống của màn "Bảng giá Vật tư" (list supplierinfo — vật
+         tư CHƯA có dòng giá nào thì không hiện ở đó). Mở dòng = form Mua hàng
+         (khóa nhận dạng, chỉ mở tab giá NCC); hoặc bấm "Thêm/sửa giá NCC" để
+         nhập nhanh trên list bảng giá đã điền sẵn vật tư.
+    ============================================================ -->
+    <record id="view_dl_material_needs_price_tree" model="ir.ui.view">
+        <field name="name">dl.material.needs.price.tree</field>
+        <field name="model">product.product</field>
+        <field name="arch" type="xml">
+            <tree string="Vật tư chờ định giá" create="0" edit="0"
+                  decoration-danger="dlm_supplier_price_state == 'none'"
+                  decoration-warning="dlm_supplier_price_state == 'pending'">
+                <field name="default_code" string="Mã"/>
+                <field name="name" string="Vật tư"/>
+                <field name="categ_id" string="Nhóm"/>
+                <field name="uom_id" string="Đơn vị"/>
+                <field name="dlm_supplier_price_state" widget="badge"
+                       decoration-danger="dlm_supplier_price_state == 'none'"
+                       decoration-warning="dlm_supplier_price_state == 'pending'"/>
+                <!-- Việc Kỹ thuật đã giao (Cập nhật giá NCC) hiện ngay trên dòng. -->
+                <field name="activity_ids" widget="list_activity" optional="show"/>
+                <button name="action_dlm_add_supplier_price" type="object"
+                        string="Thêm / sửa giá NCC" icon="fa-tag"
+                        class="btn-link"
+                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_material_needs_price_search" model="ir.ui.view">
+        <field name="name">dl.material.needs.price.search</field>
+        <field name="model">product.product</field>
+        <field name="arch" type="xml">
+            <search string="Vật tư chờ định giá">
+                <field name="name"/>
+                <field name="default_code" string="Mã"/>
+                <field name="categ_id" string="Nhóm"/>
+                <separator/>
+                <filter name="none" string="Chưa có giá NCC"
+                        domain="[('dlm_supplier_price_state', '=', 'none')]"/>
+                <filter name="pending" string="Có giá — chưa áp dụng"
+                        domain="[('dlm_supplier_price_state', '=', 'pending')]"/>
+                <filter name="tech_requested" string="Kỹ thuật đã yêu cầu"
+                        domain="[('activity_ids', '!=', False)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_categ" string="Nhóm vật tư"
+                            context="{'group_by': 'categ_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_material_needs_price" model="ir.actions.act_window">
+        <field name="name">Vật tư chờ định giá</field>
+        <field name="res_model">product.product</field>
+        <field name="view_mode">tree,form</field>
+        <field name="limit" eval="25"/>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_material_needs_price_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_pricing_material_form')}),
+        ]" />
+        <field name="search_view_id" ref="view_dl_material_needs_price_search" />
+        <field name="domain">[('product_kind', '=', 'material'),
+            ('dlm_supplier_price_state', '!=', 'applied'),
+            ('dlm_lifecycle_state', '!=', 'obsolete')]</field>
+        <field name="context">{'create': False, 'dl_kind_scope': ['material']}</field>
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_purchasing'),
+        ])]" />
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Không có vật tư nào chờ định giá.</p>
+            <p>Vật tư sẽ hiện ở đây khi được dùng trong định mức mà chưa có giá NCC
+               đang áp dụng — Kỹ thuật bấm "Báo Mua hàng" cũng đẩy vật tư vào danh sách này.</p>
+        </field>
+    </record>
+
 </odoo>

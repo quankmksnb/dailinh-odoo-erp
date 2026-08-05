@@ -966,8 +966,7 @@ class DlQuotationRequestLine(models.Model):
 
     @api.depends("resolved_bom_id",
                  "resolved_bom_id.line_ids.material_id",
-                 "resolved_bom_id.line_ids.material_id.seller_ids.is_applied",
-                 "resolved_bom_id.line_ids.material_id.seller_ids.approval_state")
+                 "resolved_bom_id.line_ids.material_id.dlm_supplier_price_state")
     def _compute_pricing_blocked(self):
         for rec in self:
             missing = rec.resolved_bom_id._dlm_unpriced_raw_materials()
