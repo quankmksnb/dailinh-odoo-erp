@@ -142,6 +142,23 @@ class DlBom(models.Model):
         string="Ghi chú",
     )
 
+    # ── Smart-button: BTP này được dùng ở bao nhiêu định mức cha (§13.2) ──────
+    # Chỉ có nghĩa khi SP của BOM là bán thành phẩm — chống "chuyển đi chuyển
+    # lại": từ BOM của một BTP nhảy thẳng sang các định mức cha đang dùng nó.
+    dlm_used_in_parent_count = fields.Integer(
+        string="Được dùng ở N định mức",
+        compute="_compute_used_in_parent_count")
+
+    @api.depends("product_id")
+    def _compute_used_in_parent_count(self):
+        Line = self.env["dl.bom.line"].sudo()
+        for rec in self:
+            if rec.product_id and rec.product_id.product_kind == "material_processed":
+                rec.dlm_used_in_parent_count = Line.search_count(
+                    [("material_id", "=", rec.product_id.id)])
+            else:
+                rec.dlm_used_in_parent_count = 0
+
     # ── Bản vẽ kỹ thuật của sản phẩm ─────────────────────────────────────
     # Tra theo product_id để KTV vừa xem bản vẽ vừa nhập vật tư vào BOM ngay
     # trên cùng màn (cả màn tạo BOM sản phẩm lẫn wizard tạo BOM khi nhận RFQ).
@@ -169,7 +186,11 @@ class DlBom(models.Model):
                     ("product_id", "=", rec.product_id.id),
                     ("attachment_id", "!=", False),
                 ]
+                # D4 — ưu tiên bản vẽ HIỆN HÀNH (is_current) tường minh; rồi mới
+                # tới confirmed mới nhất; cuối cùng bản mới nhất bất kỳ.
                 drawing = Drawing.search(
+                    domain + [("is_current", "=", True)], limit=1,
+                ) or Drawing.search(
                     domain + [("status", "=", "confirmed")],
                     order="version desc", limit=1,
                 ) or Drawing.search(domain, order="version desc", limit=1)
@@ -213,6 +234,53 @@ class DlBom(models.Model):
     def _compute_total_material_cost(self):
         for rec in self:
             rec.total_material_cost = sum(rec.line_ids.mapped("subtotal"))
+        # LK-16 (P10) — Giá vốn của một BTP = total_material_cost của BOM con
+        # (đọc trong dl.bom.line._compute_price_snapshot). ORM KHÔNG cho khai
+        # @api.depends theo kết quả search, nên khi tổng chi phí BOM con đổi thì
+        # snapshot ở các dòng BOM CHA không tự lan. Vá bằng recompute chủ động.
+        self._dlm_propagate_cost_to_parents()
+
+    @api.model
+    def _standard_child_bom(self, product):
+        """BOM dùng làm GIÁ VỐN CHUẨN của một SP/BTP — NGUỒN DUY NHẤT (§12.2-A).
+
+        Thứ tự (thiết kế §17.2 — cả pricing engine lẫn snapshot dòng BOM đều gọi
+        hàm này để hai đường tính giá vốn KHÔNG bao giờ lệch nhau):
+        1. BOM chuẩn (bom_type='template') đang là phiên bản hiện hành;
+        2. BOM chuẩn mới nhất còn hiệu lực (confirmed/locked);
+        3. chỉ khi SP CHƯA TỪNG có BOM chuẩn mới đành rơi về BOM báo giá mới
+           nhất (dữ liệu chưa hoàn chỉnh).
+        """
+        if not product:
+            return self.browse()
+        base = [
+            ("product_id", "=", product.id),
+            ("status", "in", ("confirmed", "locked")),
+        ]
+        standard = [("bom_type", "=", "template")]
+        return (
+            self.search(base + standard + [("is_current", "=", True)], limit=1)
+            or self.search(base + standard, order="version desc", limit=1)
+            or self.search(base, order="version desc", limit=1)
+        )
+
+    def _dlm_propagate_cost_to_parents(self):
+        """Lan chi phí BTP đổi lên các dòng BOM cha đang dùng nó (LK-16).
+
+        Chỉ recompute ``price_snapshot`` của dòng cha; chuỗi phụ thuộc ORM tự
+        cascade tiếp: price_snapshot → subtotal → total_material_cost (BOM cha)
+        → lại gọi hàm này (nếu tổng thật sự đổi). TỰ DỪNG khi giá trị không đổi
+        (Odoo bỏ qua ghi computed no-op nên không kích recompute vô ích). Cascade
+        nhiều tầng (BTP lồng BTP) hữu hạn nhờ lá chắn vòng lặp LK-01 (đồ thị BOM
+        là DAG)."""
+        products = self.mapped("product_id").filtered(
+            lambda p: p.product_kind == "material_processed")
+        if not products:
+            return
+        parent_lines = self.env["dl.bom.line"].sudo().search(
+            [("material_id", "in", products.ids)])
+        if parent_lines:
+            parent_lines._compute_price_snapshot()
 
     @api.constrains("product_qty")
     def _check_product_qty(self):
@@ -234,9 +302,33 @@ class DlBom(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        # Cache version đã bị chiếm theo (product_id, bom_type) — tính từ DB một
+        # lần, cộng dồn các bản vừa cấp trong cùng batch để không tự đụng nhau.
+        taken_by_key = {}
         for vals in vals_list:
             if vals.get("name", _("New")) == _("New"):
                 vals["name"] = self.env["ir.sequence"].next_by_code("dl.bom") or _("New")
+
+            # Tự dời version về số TRỐNG kế tiếp thay vì để SQL constraint
+            # unique(product_id, version, bom_type) nổ lỗi khó hiểu "Phiên bản BOM
+            # của sản phẩm đã tồn tại". Onchange ở UI tính version có thể LỠ (mở
+            # form với sản phẩm set sẵn, reload, tạo nhiều BOM liên tiếp...) nên
+            # đây là lá chắn cuối cùng, đảm bảo lưu luôn thành công với số kế tiếp.
+            product_id = vals.get("product_id")
+            if product_id:
+                bom_type = vals.get("bom_type", "template")
+                key = (product_id, bom_type)
+                if key not in taken_by_key:
+                    existing = self.search([
+                        ("product_id", "=", product_id),
+                        ("bom_type", "=", bom_type),
+                    ])
+                    taken_by_key[key] = set(existing.mapped("version"))
+                version = vals.get("version") or 1
+                while version in taken_by_key[key]:
+                    version += 1
+                vals["version"] = version
+                taken_by_key[key].add(version)
         return super().create(vals_list)
 
     def _version_domain(self):
@@ -291,6 +383,110 @@ class DlBom(models.Model):
                     missing |= material
         return missing
 
+    def _dlm_unpriced_components(self):
+        """LK-09/LK-10 — Cấu phần khiến định mức tính THIẾU giá vốn:
+        • vật tư thô chưa có giá NCC đã duyệt & đang áp dụng (mở rộng
+          _dlm_unpriced_raw_materials); VÀ
+        • bán thành phẩm chưa có BOM CHUẨN confirmed (giá vốn = 0 âm thầm, §3.3-D).
+
+        Trả recordset product.product. NƠI GỌI chỉ lộ TÊN cấu phần, KHÔNG lộ giá
+        (RBAC §15.4 — _COST_GROUPS)."""
+        missing = self._dlm_unpriced_raw_materials()
+        Bom = self.env["dl.bom"].sudo()
+        for bom in self:
+            for line in bom.line_ids:
+                comp = line.material_id
+                if not comp or comp.product_kind != "material_processed":
+                    continue
+                std = Bom._standard_child_bom(comp)
+                if not std or std.status not in ("confirmed", "locked"):
+                    missing |= comp
+        return missing
+
+    dlm_has_unpriced_component = fields.Boolean(
+        string="Có cấu phần chưa định giá",
+        compute="_compute_dlm_unpriced_component")
+    dlm_unpriced_component_names = fields.Char(
+        string="Cấu phần chưa định giá",
+        compute="_compute_dlm_unpriced_component")
+
+    @api.depends("line_ids.material_id",
+                 "line_ids.material_id.dlm_supplier_price_state")
+    def _compute_dlm_unpriced_component(self):
+        for rec in self:
+            missing = rec._dlm_unpriced_components()
+            rec.dlm_has_unpriced_component = bool(missing)
+            rec.dlm_unpriced_component_names = ", ".join(
+                missing.mapped("display_name")) if missing else False
+
+    def action_notify_purchasing_unpriced(self):
+        """LK-09 — nút "Báo Mua hàng cập nhật giá" trên banner form BOM: giao
+        việc cập nhật giá NCC cho các VẬT TƯ THÔ chưa có giá (BTP thiếu BOM thì
+        KTV tự lập định mức, không phải việc của Mua hàng). Dùng chung khuôn báo
+        Mua hàng của workspace RFQ (chống trùng việc đang mở)."""
+        self.ensure_one()
+        missing = self._dlm_unpriced_raw_materials()
+        if not missing:
+            return True
+        purchasing = self.env.ref(
+            "dl_base.dl_group_purchasing", raise_if_not_found=False)
+        users = purchasing.users if purchasing else self.env["res.users"]
+        todo_type = self.env.ref("mail.mail_activity_data_todo")
+        Activity = self.env["mail.activity"].sudo()
+        for material in missing:
+            material.sudo().message_post(body=_(
+                "Kỹ thuật (định mức %s) cần Mua hàng cập nhật giá NCC (đã duyệt "
+                "&amp; đang áp dụng) cho vật tư này.") % self.display_name)
+            for user in users:
+                if Activity.search_count([
+                        ("res_model", "=", "product.product"),
+                        ("res_id", "=", material.id),
+                        ("user_id", "=", user.id),
+                        ("activity_type_id", "=", todo_type.id)]):
+                    continue
+                material.sudo().activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    summary=_("Cập nhật giá NCC — %s") % material.display_name,
+                    note=_("Yêu cầu từ Kỹ thuật khi lập định mức %s.")
+                    % self.display_name,
+                    user_id=user.id)
+        return True
+
+    def _dlm_check_drawing_policy(self):
+        """LK-06 (§3.2-D1) — cổng bản vẽ theo CHÍNH SÁCH cấu hình
+        (ir.config_parameter dl_technical.require_drawing_for_finished). Mặc định
+        'warn' (không chặn); khi 'block': SP nhánh Thành phẩm (manufactured) phải
+        có ≥1 bản vẽ đã xác nhận trước khi xác nhận BOM. BTP/ca đơn giản không áp
+        (nhiều đơn nhỏ không cần bản vẽ CAD)."""
+        policy = self.env["ir.config_parameter"].sudo().get_param(
+            "dl_technical.require_drawing_for_finished", "warn")
+        if policy != "block":
+            return
+        Drawing = self.env["dl.drawing"].sudo()
+        for rec in self:
+            if rec.product_id.product_kind != "manufactured":
+                continue
+            has = Drawing.search_count([
+                ("product_id", "=", rec.product_id.id),
+                ("status", "=", "confirmed"),
+                ("attachment_id", "!=", False),
+            ])
+            if not has:
+                raise UserError(_(
+                    "Chính sách xưởng yêu cầu sản phẩm thành phẩm phải có bản vẽ "
+                    "đã xác nhận trước khi xác nhận BOM. Hãy dùng nút “Tải lên bản "
+                    "vẽ” trên form BOM để thêm bản vẽ cho “%s”."
+                ) % rec.product_id.display_name)
+
+    def action_confirm(self):
+        self._dlm_check_drawing_policy()      # LK-06 — cổng bản vẽ (nếu bật)
+        result = super().action_confirm()
+        # LK-16 — Xác nhận một BOM (nhất là BOM chuẩn của BTP) đổi kết quả
+        # _standard_child_bom ⇒ các dòng BOM cha đang dùng BTP này phải tính lại
+        # snapshot (trước đây có thể đang rơi về báo giá hoặc = 0).
+        self._dlm_propagate_cost_to_parents()
+        return result
+
     def action_lock(self):
         if self.filtered("is_rfq_provisional"):
             raise UserError(_(
@@ -303,7 +499,18 @@ class DlBom(models.Model):
             raise UserError(_(
                 "Không thể lưu trữ BOM tạm từ RFQ. Hãy hoàn tất hoặc bỏ phương án "
                 "trên dòng RFQ nguồn."))
-        return super().action_archive()
+        result = super().action_archive()
+        # LK-16 — Lưu trữ BOM chuẩn của BTP loại nó khỏi _standard_child_bom ⇒
+        # giá vốn BTP ở các dòng cha có thể đổi (rơi về bản khác/0).
+        self._dlm_propagate_cost_to_parents()
+        return result
+
+    def _set_current_version(self):
+        result = super()._set_current_version()
+        # LK-16 — Đổi phiên bản hiện hành của BOM chuẩn BTP ⇒ _standard_child_bom
+        # ưu tiên bản is_current nên giá vốn ở dòng cha có thể đổi theo.
+        self._dlm_propagate_cost_to_parents()
+        return result
 
     def action_create_new_version(self):
         self.ensure_one()
@@ -358,6 +565,37 @@ class DlBom(models.Model):
             "target": "current",
         }
 
+    def action_open_create_btp_wizard(self):
+        """§13.2 — nút [+ Bán thành phẩm] trên định mức: mở wizard tạo BTP + BOM
+        con + gắn vào dòng (thay 3 bước rời rạc bằng một mạch, §3.3-A)."""
+        self.ensure_one()
+        if self.status != "draft":
+            raise UserError(_(
+                "Chỉ thêm bán thành phẩm khi định mức còn ở trạng thái Nháp."))
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Thêm bán thành phẩm"),
+            "res_model": "dl.bom.create.btp.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_bom_id": self.id},
+        }
+
+    def action_open_used_in_parents(self):
+        """Smart-button "Được dùng ở N định mức": mở list các BOM cha đang dùng
+        BTP này (dòng có material_id = product_id của BOM này)."""
+        self.ensure_one()
+        parent_bom_ids = self.env["dl.bom.line"].sudo().search(
+            [("material_id", "=", self.product_id.id)]).mapped("bom_id").ids
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Định mức dùng %s") % self.product_id.display_name,
+            "res_model": "dl.bom",
+            "view_mode": "tree,form",
+            "domain": [("id", "in", parent_bom_ids)],
+            "target": "current",
+        }
+
     def action_create_from_template(self):
         """Product BOM — nút "Create From BOM Template": mở wizard chọn 1
         BOM mẫu (dl.bom.template) rồi copy toàn bộ dòng sang BOM này."""
@@ -370,18 +608,20 @@ class DlBom(models.Model):
                 'Sản phẩm "%s" chưa được gán Nhóm sản phẩm — hãy gán nhóm cho '
                 'sản phẩm trước khi tạo BOM từ BOM mẫu.'
             ) % self.product_id.display_name)
+        # LK-03/CAT-05 — chỉ tính mẫu ĐÃ DUYỆT (confirmed/locked); nhóm chỉ có
+        # mẫu Nháp coi như CHƯA có mẫu để chép.
         has_template = self.env["dl.bom.template"].search(
             [
                 ("product_category_id", "=", category.id),
-                ("status", "!=", "archived"),
+                ("status", "in", ("confirmed", "locked")),
             ],
             limit=1,
         )
         if not has_template:
             raise UserError(_(
-                'Nhóm sản phẩm "%s" chưa có BOM mẫu nào. Hãy tạo BOM mẫu cho '
-                'nhóm này trước (menu BOM mẫu), hoặc nhập dòng vật tư trực tiếp '
-                'vào BOM.'
+                'Nhóm sản phẩm "%s" chưa có BOM mẫu đã duyệt nào. Hãy tạo & xác '
+                'nhận BOM mẫu cho nhóm này trước (menu BOM mẫu), hoặc nhập dòng '
+                'vật tư trực tiếp vào BOM.'
             ) % category.display_name)
         return {
             "type": "ir.actions.act_window",

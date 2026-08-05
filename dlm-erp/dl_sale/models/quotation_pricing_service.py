@@ -386,17 +386,10 @@ class DlQuotationPricingService(models.AbstractModel):
           3. chỉ khi bán thành phẩm CHƯA TỪNG có BOM chuẩn mới đành dùng BOM
              báo giá mới nhất (trường hợp dữ liệu chưa hoàn chỉnh).
         """
-        Bom = self.env["dl.bom"].sudo()
-        base = [
-            ("product_id", "=", material.id),
-            ("status", "in", ("confirmed", "locked")),
-        ]
-        standard = [("bom_type", "=", "template")]
-        return (
-            Bom.search(base + standard + [("is_current", "=", True)], limit=1)
-            or Bom.search(base + standard, order="version desc", limit=1)
-            or Bom.search(base, order="version desc", limit=1)
-        )
+        # LK-02 — NGUỒN DUY NHẤT chọn BOM chuẩn nằm ở dl.bom._standard_child_bom;
+        # cả snapshot dòng BOM (dl.bom.line) lẫn engine này gọi cùng một hàm nên
+        # hai đường tính giá vốn BTP luôn ra cùng số (§3.3-B). sudo giữ ở đây.
+        return self.env["dl.bom"].sudo()._standard_child_bom(material)
 
     def _bom_material_cost(self, bom, context, visited):
         """Chi phí vật tư để sản xuất MỘT đơn vị đầu ra của ``bom``.

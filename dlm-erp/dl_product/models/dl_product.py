@@ -30,6 +30,12 @@ _KIND_CODE_SEQUENCE = {
     "material_processed": "dl.product.material_processed",
 }
 
+# LK-14 (§6.1) — MỞ ĐƯỜNG cho Kho: mọi SP nghiệp vụ (gia công/thương mại/vật tư/
+# BTP) phải "tồn kho được" (detailed_type='product') để sau này có stock.quant/
+# stock.move. Chỉ SP seed đang đúng chuẩn này; SP tạo qua luồng app trước đây rơi
+# về mặc định Odoo 'consu' (không nhập/xuất/tồn được). Đặt mặc định ở create().
+_STORABLE_KINDS = {"manufactured", "material", "material_processed", "trading"}
+
 
 class ProductProduct(models.Model):
     """PROD-02 — dl.product.
@@ -696,11 +702,19 @@ class ProductProduct(models.Model):
             # có mã (seed/demo/import tự đặt) hoặc là SP tạm từ RFQ
             # (is_rfq_provisional): loại này để trống mã tới khi chốt đơn mới sinh
             # (_dlm_standardize_on_promote), tránh đốt số cho nháp có thể bị dọn.
-            if vals.get("default_code") or vals.get("is_rfq_provisional"):
-                continue
             kind = (vals.get("product_kind")
                     or self.env.context.get("default_product_kind")
                     or "manufactured")
+            # LK-14 — mặc định storable cho SP nghiệp vụ (mở đường Kho). Không
+            # đè khi vals đã khai type/detailed_type (seed/import/service chủ ý).
+            if ("detailed_type" not in vals and "type" not in vals
+                    and kind in _STORABLE_KINDS):
+                vals["detailed_type"] = "product"
+            # Mã SP/vật tư TỰ SINH — bỏ qua khi đã có mã (seed/demo/import) hoặc
+            # là SP tạm từ RFQ (để trống mã tới khi chốt đơn — tránh đốt số cho
+            # nháp có thể bị dọn). Vẫn chạy khối storable phía trên cho SP tạm.
+            if vals.get("default_code") or vals.get("is_rfq_provisional"):
+                continue
             code = self._dlm_next_code_for_kind(kind)
             if code:
                 vals["default_code"] = code

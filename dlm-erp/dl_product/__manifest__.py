@@ -1,6 +1,6 @@
 {
     "name": "DL-Product",
-    "version": "17.0.2.12.0",
+    "version": "17.0.2.13.0",
     "summary": "Sản phẩm hợp nhất (product.product), bảng giá NCC, đo lường - theo Data Model TDS 4",
     "author": "Dai Linh",
     "category": "Hidden",

@@ -22,6 +22,25 @@ class ProductCategoryTechnical(models.Model):
         ondelete="set null",
     )
 
+    @api.constrains("bom_template_id")
+    def _dlm_check_bom_template_id(self):
+        """LK-04 (§3.1-L2) — mẫu mặc định của nhóm không được trỏ bậy: phải CÙNG
+        NHÓM và ĐÃ DUYỆT (confirmed/locked). Giữ field nhập tay (cho override)
+        nhưng chặn trỏ bản Nháp/Archived/khác nhóm để hết lệch phiên bản."""
+        for rec in self:
+            tmpl = rec.bom_template_id
+            if not tmpl:
+                continue
+            if tmpl.product_category_id != rec:
+                raise ValidationError(_(
+                    "BOM mẫu mặc định “%s” không thuộc nhóm “%s”."
+                ) % (tmpl.name, rec.display_name))
+            if tmpl.status not in ("confirmed", "locked"):
+                raise ValidationError(_(
+                    "BOM mẫu mặc định “%s” chưa được duyệt — chỉ chọn mẫu đã "
+                    "Xác nhận/Khóa làm mẫu mặc định của nhóm."
+                ) % tmpl.name)
+
 
 class DlProductTechnical(models.Model):
     # Data Model refactor: dl.product = product.product (mở rộng thuần).

@@ -11,11 +11,15 @@
         <field name="arch" type="xml">
             <tree string="Bản vẽ kỹ thuật"
                   class="dl-drawing-list" js_class="dl_drawing_list"
-                  decoration-muted="status == 'archived'">
+                  decoration-muted="status == 'archived'"
+                  decoration-bf="is_current">
+                <field name="is_current" column_invisible="1"/>
                 <field name="drawing_code"/>
                 <field name="name"/>
                 <field name="product_id"/>
                 <field name="version"/>
+                <field name="is_current" widget="boolean_toggle" string="Hiện hành"
+                       readonly="1" optional="show"/>
                 <field name="status" widget="badge"
                        decoration-info="status == 'draft'"
                        decoration-success="status == 'confirmed'"
@@ -53,6 +57,9 @@
                 <sheet>
                     <widget name="web_ribbon" title="Lưu trữ"
                             bg_color="text-bg-secondary" invisible="status != 'archived'"/>
+                    <widget name="web_ribbon" title="Hiện hành"
+                            bg_color="text-bg-success" invisible="not is_current"/>
+                    <field name="is_current" invisible="1"/>
                     <div class="oe_title">
                         <label for="drawing_code"/>
                         <h1>

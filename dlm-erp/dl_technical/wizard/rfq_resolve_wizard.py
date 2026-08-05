@@ -1030,6 +1030,53 @@ class DlRfqResolveWizard(models.TransientModel):
                 "Muốn đổi kết quả kỹ thuật thì phải làm phiên bản báo giá mới.")
                 % request.name)
 
+    def _dlm_finalize_btp_tree(self):
+        """§12.7 — chính thức hóa cả cây vật tư/BTP tạm của dòng RFQ (không chỉ
+        SP + BOM cha đã chọn). Confirm BOM con (BTP) TRƯỚC BOM cha để giá vốn
+        BTP đã sẵn khi snapshot dòng cha tính lại (LK-16). BTP/BOM con KHÔNG
+        được dùng thì cứ để tạm — _cleanup_rfq_provisional_records() cuối luồng
+        sẽ dọn (has_stored_many2one_reference giữ cái còn được trỏ tới)."""
+        self.ensure_one()
+        line = self.rfq_line_id
+        Bom = self.env["dl.bom"].sudo()
+        Product = self.env["product.product"].sudo()
+        parent_bom = self.selected_bom_id
+
+        line_boms = Bom.search([
+            ("is_rfq_provisional", "=", True),
+            ("rfq_source_line_id", "=", line.id),
+        ])
+        child_boms = line_boms - parent_bom
+        # Vật tư/BTP đang thực sự được các định mức tạm của dòng dùng tới.
+        used_material_ids = set(line_boms.mapped("line_ids.material_id").ids)
+
+        # Confirm BOM con của các BTP đang được dùng (còn Nháp & có dòng).
+        for bom in child_boms:
+            if (bom.status == "draft" and bom.line_ids
+                    and bom.product_id.id in used_material_ids):
+                bom.action_confirm()
+
+        # De-provision BTP tạm đang được dùng.
+        provisional_products = Product.with_context(active_test=False).search([
+            ("is_rfq_provisional", "=", True),
+            ("rfq_source_line_id", "=", line.id),
+            ("id", "!=", self.product_id.id),
+        ])
+        for prod in provisional_products:
+            if prod.id in used_material_ids:
+                prod.write({"is_rfq_provisional": False})
+                prod.message_post(body=_(
+                    "Bán thành phẩm tạm đã được chính thức hóa khi hoàn tất "
+                    "dòng RFQ %s.") % line.display_name)
+        # De-provision BOM con của các BTP đã dùng (đã confirmed ở trên).
+        for bom in child_boms:
+            if (bom.product_id.id in used_material_ids
+                    and bom.is_rfq_provisional and bom.status != "draft"):
+                bom.write({"is_rfq_provisional": False})
+                bom.message_post(body=_(
+                    "Định mức BTP tạm đã được chính thức hóa khi hoàn tất "
+                    "dòng RFQ %s.") % line.display_name)
+
     def _do_confirm(self):
         self.ensure_one()
         self._check_still_processable()
@@ -1038,6 +1085,11 @@ class DlRfqResolveWizard(models.TransientModel):
                 "Dòng Sản phẩm thương mại không xử lý qua màn này."))
         self._validate_product_step()
         self._validate_bom_step()
+
+        # §12.7 — Chính thức hóa CẢ CÂY BTP tạm của dòng TRƯỚC (confirm BOM con
+        # của BTP + de-provision BTP đang dùng) để giá vốn BTP đã sẵn sàng khi
+        # snapshot định mức cha tính lại (LK-16).
+        self._dlm_finalize_btp_tree()
 
         # §19.7 — Hoàn tất dòng tự XÁC NHẬN định mức còn Nháp và ghi người xử lý
         # là người duyệt (action_confirm ghi approved_by/date). Bỏ được vòng

@@ -95,6 +95,15 @@
         sequence="31"
         groups="dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
     />
+    <!-- LK-12 — KTV tự tạo/sửa nhóm nhánh Vật tư (tách khỏi nhánh Thành phẩm). -->
+    <menuitem
+        id="menu_dl_category_material"
+        name="Nhóm vật tư"
+        action="action_dl_category_material"
+        parent="menu_dl_product_root"
+        sequence="32"
+        groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
+    />
 
     <!-- ============================================================
          BẢNG GIÁ (SP thương mại / Vật tư) — chủ sở hữu: Kế toán nội bộ;
