@@ -1,0 +1,38 @@
+// Ô upload bản vẽ (widget dl_drawing_upload) — dropzone rõ ràng thay cho
+// many2one mặc định (vốn chỉ là 1 ô nhỏ khó thấy).
+.o_dl_drawing_upload {
+    .o_dl_upload_zone {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 28px 16px;
+        border: 2px dashed $dl-border;
+        border-radius: $dl-radius-sm;
+        color: $dl-text-2;
+        cursor: pointer;
+        transition: border-color .15s, color .15s, background-color .15s;
+
+        .fa-cloud-upload { color: $dl-primary; }
+
+        &:hover {
+            border-color: $dl-primary;
+            color: $dl-primary;
+            background-color: rgba($dl-primary, .04);
+        }
+
+        // Trạng thái chỉ-xem: không phải nút bấm.
+        &.o_dl_readonly {
+            cursor: default;
+            &:hover {
+                border-color: $dl-border;
+                color: $dl-text-2;
+                background-color: transparent;
+            }
+        }
+    }
+
+    .o_dl_upload_img { max-height: 360px; }
+    .o_dl_upload_pdf { width: 100%; height: 480px; border: 0; }
+}

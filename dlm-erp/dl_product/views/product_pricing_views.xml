@@ -184,6 +184,7 @@
         <field name="name">Bảng giá SP thương mại</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),
@@ -238,6 +239,7 @@
         <field name="name">Bảng giá Vật tư</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_ids"
             eval="[
             (5, 0, 0),

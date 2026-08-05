@@ -303,14 +303,15 @@ $dl-rail-bg:      $dl-nav-bg;
             // quy tắc .dlm-rail-subitem ghi đè do cùng độ ưu tiên).
             &:hover { color: $dl-primary; }
 
-            // Mục con đang xem: tô rõ để biết đang ở màn nào trong submenu.
-            // Cần khai báo tại đây (độ ưu tiên cao hơn) vì quy tắc màu mờ của
-            // .dlm-rail-subitem đứng sau .dlm-rail-item.active, nếu không sẽ đè.
+            // Mục con đang xem: CHỈ in đậm + màu xanh, KHÔNG nền/viền như mục cha
+            // (đây chỉ là màn con). Cần khai báo tại đây (độ ưu tiên cao hơn) vì
+            // quy tắc màu mờ của .dlm-rail-subitem đứng sau .dlm-rail-item.active,
+            // nếu không sẽ đè.
             &.active {
-                background: $dl-active;
+                background: transparent;
                 color: $dl-primary;
-                border-left-color: $dl-primary;
-                font-weight: 600;
+                border-left-color: transparent;
+                font-weight: 700;
 
                 i.fa { color: $dl-primary; }
             }

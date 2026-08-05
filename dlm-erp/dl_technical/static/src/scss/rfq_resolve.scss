@@ -1,17 +1,17 @@
-// Workspace xử lý một dòng RFQ: giữ phần yêu cầu và từng công đoạn thành
-// các khối riêng, dễ rà soát hơn trên màn hình rộng lẫn màn hình nhỏ.
+// Workspace xử lý một dòng RFQ — MỘT màn, ba khối tự thu gọn + decision dock
+// (thiết kế §5 / §9.4). Cột trái (yêu cầu Sales) dính khi cuộn; cột phải là
+// các khối quyết định; dock dính đáy giữ 1 CTA chính luôn nhìn thấy.
 .dl-rfq-resolve {
     .o_form_sheet {
         max-width: 1440px !important;
     }
 
-    .dl-rfq-request-summary {
-        margin-bottom: 20px;
-        padding: 16px 18px;
-        border: 1px solid $dl-border;
-        border-left: 4px solid $dl-primary;
-        border-radius: $dl-radius;
-        background: #f5f9ff;
+    // Field hiển thị nội tuyến (tên SP, nhãn định mức) trong dòng tóm tắt.
+    .dl-rfq-inline-field {
+        display: inline-block;
+        margin: 0;
+        width: auto;
+        vertical-align: baseline;
     }
 
     .dl-rfq-section-title {
@@ -20,27 +20,186 @@
         font-weight: 600;
     }
 
-    .dl-rfq-step-panel {
-        margin-bottom: 18px;
-        padding: 20px 22px;
+    // ── Bố cục 2 cột ────────────────────────────────────────────────────────
+    .dl-rfq-layout {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .dl-rfq-aside {
+        flex: 0 0 34%;
+        position: sticky;
+        top: 8px;
+        align-self: flex-start;
+        padding: 16px 18px;
+        border: 1px solid $dl-border;
+        border-left: 4px solid $dl-primary;
+        border-radius: $dl-radius;
+        background: #f5f9ff;
+
+        .o_group {
+            margin-top: 0;
+        }
+    }
+
+    .dl-rfq-main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    // ── Khối accordion ──────────────────────────────────────────────────────
+    .dl-rfq-block {
+        margin-bottom: 14px;
+        padding: 16px 18px;
         border: 1px solid $dl-border;
         border-radius: $dl-radius;
         background: #fff;
 
-        h2 {
+        .dl-rfq-block-title {
             margin-bottom: 6px;
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+
+        .dl-rfq-block-no {
+            color: $dl-primary;
+            font-weight: 700;
+            margin-right: 4px;
         }
     }
 
-    .dl-rfq-infeasible-panel {
-        margin-top: 18px;
-        padding: 0 4px;
+    // Đã xong → dòng tóm tắt gọn, nền nhạt.
+    .dl-rfq-block--done {
+        background: #f6fbf7;
+        border-left: 4px solid #4caf50;
+
+        .dl-rfq-block-summary {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .dl-rfq-block-actions {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .dl-rfq-bom-preview {
+            margin-top: 10px;
+        }
     }
 
-    @media (max-width: 767.98px) {
-        .dl-rfq-request-summary,
-        .dl-rfq-step-panel {
-            padding: 14px;
+    // Đang mở → viền trái xanh.
+    .dl-rfq-block--active {
+        border-left: 4px solid $dl-primary;
+
+        .dl-rfq-block-actions {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+    }
+
+    // Chưa tới lượt → xám mờ.
+    .dl-rfq-block--pending {
+        background: #fafafa;
+        border-style: dashed;
+        opacity: 0.75;
+
+        .dl-rfq-block-summary {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+    }
+
+    // Checklist tự tick.
+    .dl-rfq-checklist {
+        list-style: none;
+        padding-left: 0;
+        margin-bottom: 0;
+
+        li {
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+
+            .fa {
+                width: 16px;
+                text-align: center;
+            }
+        }
+    }
+
+    // ── Decision dock (dính đáy) ────────────────────────────────────────────
+    .dl-rfq-dock {
+        position: sticky;
+        bottom: 0;
+        margin: 16px -12px -16px;
+        padding: 12px 18px;
+        background: #fff;
+        border-top: 2px solid $dl-primary;
+        box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.06);
+        z-index: 5;
+
+        .dl-rfq-dock-main {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .dl-rfq-dock-summary {
+            flex: 1 1 240px;
+            min-width: 0;
+            font-weight: 500;
+        }
+
+        .dl-rfq-dock-cta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dl-rfq-dock-exits {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        // Nút giả "disable" khi chưa đủ điều kiện — không bấm được.
+        .dl-rfq-btn-disabled {
+            pointer-events: none;
+            opacity: 0.55;
+        }
+
+        .dl-rfq-dock-exit-panel {
+            padding-top: 4px;
+        }
+    }
+
+    // ── Màn hẹp / tablet ở xưởng: xếp cột, aside không dính ─────────────────
+    @media (max-width: 991.98px) {
+        .dl-rfq-layout {
+            flex-direction: column;
+        }
+
+        .dl-rfq-aside {
+            position: static;
+            flex-basis: auto;
+            width: 100%;
+        }
+
+        .dl-rfq-dock .dl-rfq-dock-main {
+            align-items: stretch;
         }
     }
 }

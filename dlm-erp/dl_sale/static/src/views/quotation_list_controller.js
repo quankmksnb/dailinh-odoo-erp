@@ -109,6 +109,9 @@ export class DlQuotationListController extends DlListBaseController {
             }
         }
         amt.textContent = this.dlAmountText || "";
+        // Màn có chipbar nên base ẩn số đếm; nhưng footer vẫn phải hiện để show
+        // ô "Tổng giá trị" — bật lại tường minh.
+        footer.style.display = "";
     }
 
     get dlChips() {

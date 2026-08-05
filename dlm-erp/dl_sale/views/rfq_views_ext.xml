@@ -15,14 +15,30 @@
                 <attribute name="invisible">1</attribute>
             </button>
 
+            <!-- all_infeasible: toàn bộ dòng không khả thi → không có gì để báo
+                 giá (server cũng chặn QTE_INFEASIBLE) — ẩn nút, alert ở form
+                 dl_technical đã hướng dẫn trao đổi lại với khách / Hủy RFQ. -->
             <button name="action_mark_quoted" position="before">
+                <!-- Không có dòng không khả thi: tạo thẳng, không cần xác nhận. -->
                 <button name="action_create_quotation" type="object"
                         string="Tạo báo giá" class="oe_highlight"
-                        invisible="status != 'confirmed' or auto_quote_error"
+                        invisible="status != 'confirmed' or auto_quote_error or all_infeasible or infeasible_count != 0"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                <!-- Có dòng không khả thi (nhưng không phải tất cả): buộc Sales
+                     xác nhận có ý thức việc loại các dòng đó khỏi báo giá. -->
+                <button name="action_create_quotation" type="object"
+                        string="Tạo báo giá" class="oe_highlight"
+                        confirm="Báo giá sẽ chỉ gồm các dòng làm được; các dòng 'Không khả thi' bị loại và ghi rõ trong báo giá. Tiếp tục tạo báo giá?"
+                        invisible="status != 'confirmed' or auto_quote_error or all_infeasible or infeasible_count == 0"
                         groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                 <button name="action_create_quotation" type="object"
                         string="Thử tạo lại báo giá" class="oe_highlight"
-                        invisible="status != 'confirmed' or not auto_quote_error"
+                        invisible="status != 'confirmed' or not auto_quote_error or all_infeasible or infeasible_count != 0"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                <button name="action_create_quotation" type="object"
+                        string="Thử tạo lại báo giá" class="oe_highlight"
+                        confirm="Báo giá sẽ chỉ gồm các dòng làm được; các dòng 'Không khả thi' bị loại và ghi rõ trong báo giá. Tiếp tục tạo báo giá?"
+                        invisible="status != 'confirmed' or not auto_quote_error or all_infeasible or infeasible_count == 0"
                         groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                 <button name="action_open_quotation" type="object"
                         string="Mở báo giá"
@@ -65,13 +81,26 @@
             </button>
 
             <button name="action_mark_quoted" position="before">
+                <!-- Không có dòng không khả thi: tạo thẳng, không cần xác nhận. -->
                 <button name="action_create_quotation" type="object"
                         string="Tạo báo giá" class="oe_highlight"
-                        invisible="status != 'confirmed' or auto_quote_error"
+                        invisible="status != 'confirmed' or auto_quote_error or all_infeasible or infeasible_count != 0"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                <!-- Có dòng không khả thi (nhưng không phải tất cả): buộc Sales
+                     xác nhận có ý thức việc loại các dòng đó khỏi báo giá. -->
+                <button name="action_create_quotation" type="object"
+                        string="Tạo báo giá" class="oe_highlight"
+                        confirm="Báo giá sẽ chỉ gồm các dòng làm được; các dòng 'Không khả thi' bị loại và ghi rõ trong báo giá. Tiếp tục tạo báo giá?"
+                        invisible="status != 'confirmed' or auto_quote_error or all_infeasible or infeasible_count == 0"
                         groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                 <button name="action_create_quotation" type="object"
                         string="Thử tạo lại báo giá" class="oe_highlight"
-                        invisible="status != 'confirmed' or not auto_quote_error"
+                        invisible="status != 'confirmed' or not auto_quote_error or all_infeasible or infeasible_count != 0"
+                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                <button name="action_create_quotation" type="object"
+                        string="Thử tạo lại báo giá" class="oe_highlight"
+                        confirm="Báo giá sẽ chỉ gồm các dòng làm được; các dòng 'Không khả thi' bị loại và ghi rõ trong báo giá. Tiếp tục tạo báo giá?"
+                        invisible="status != 'confirmed' or not auto_quote_error or all_infeasible or infeasible_count == 0"
                         groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                 <button name="action_open_quotation" type="object"
                         string="Mở báo giá"

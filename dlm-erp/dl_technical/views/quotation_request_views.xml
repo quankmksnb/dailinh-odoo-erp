@@ -66,11 +66,10 @@
             </xpath>
             <xpath expr="//field[@name='status']" position="after">
                 <field name="tech_stage" widget="badge"
-                       decoration-info="tech_stage == 'pending'"
+                       decoration-muted="tech_stage in ('pending', 'closed')"
                        decoration-warning="tech_stage == 'processing'"
                        decoration-danger="tech_stage == 'waiting_sales'"
-                       decoration-success="tech_stage == 'done'"
-                       decoration-muted="tech_stage == 'closed'"/>
+                       decoration-success="tech_stage == 'done'"/>
             </xpath>
             <xpath expr="//field[@name='technical_progress_label']" position="after">
                 <field name="resolved_product_ids" widget="many2many_tags" string="Sản phẩm đã xác định"/>
@@ -87,20 +86,27 @@
             <form string="Yêu cầu báo giá" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
                     <!-- Kỹ thuật trả RFQ về Sales bổ sung (thiếu thông tin) -->
+                    <!-- Chỉ trả lại sau khi ĐÃ tiếp nhận (không hiện ở 'Mới' — chưa
+                         xem xét thì chưa có cơ sở yêu cầu bổ sung; bấm Xử lý một
+                         dòng sẽ tự tiếp nhận rồi nút này hiện). -->
                     <button name="action_open_return_wizard" type="object"
                             string="Gửi lại Sales (bổ sung)"
-                            invisible="status in ('returned', 'quoted', 'cancelled')"
+                            invisible="status in ('new', 'returned', 'quoted', 'cancelled')"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
-                    <!-- Sales gửi lại sau khi đã bổ sung -->
+                    <!-- Sales gửi lại sau khi đã bổ sung. Hiện ngay khi có ≥1 dòng
+                         Sales đã bổ sung (không chỉ khi RFQ ở 'Trả lại bổ sung') —
+                         hợp nhất luồng partial/full, chỉ gửi lại đúng dòng đã sửa. -->
+                    <field name="supplement_ready_count" invisible="1"/>
                     <button name="action_resubmit" type="object"
                             string="Gửi lại (đã bổ sung)" class="oe_highlight"
-                            invisible="status != 'returned'"
+                            invisible="supplement_ready_count == 0 or status in ('quoted', 'cancelled')"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <!-- Sale đánh dấu đã tạo báo giá (tạm thời thủ công, xem
-                         docstring model — D3 chưa có quotation_request_id) -->
+                         docstring model — D3 chưa có quotation_request_id).
+                         Ẩn khi toàn bộ dòng không khả thi: không có gì để báo giá. -->
                     <button name="action_mark_quoted" type="object"
                             string="Đánh dấu đã tạo báo giá" class="oe_highlight"
-                            invisible="status != 'confirmed'"
+                            invisible="status != 'confirmed' or all_infeasible"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <!-- Hủy: chỉ Sale/Trưởng KD/CEO/Admin — Kỹ thuật KHÔNG có quyền -->
                     <button name="action_cancel" type="object"
@@ -134,6 +140,55 @@
                         <strong>Sales đã bổ sung và gửi lại RFQ.</strong>
                         Kỹ thuật bấm <em>Xử lý</em> trên dòng cần làm tiếp; hệ thống
                         sẽ tự ghi nhận người và thời điểm tiếp nhận.
+                    </div>
+                    <!-- Cảnh báo cho Sales khi có dòng chờ bổ sung (RFQ vẫn
+                         processing — KTV đánh dấu từng dòng mà chưa trả hẳn). -->
+                    <field name="supplement_count" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="supplement_count == 0"
+                         groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin">
+                        <i class="fa fa-exclamation-triangle me-1" title="Cần bổ sung"/>
+                        <strong>
+                            <field name="supplement_count" nolabel="1" class="d-inline"/>
+                            dòng đang chờ bạn bổ sung thông tin.
+                        </strong>
+                        Sửa thông tin ngay trên dòng (badge "Chờ bổ sung"); sửa xong
+                        dòng nào, dòng đó chuyển "Đã bổ sung".
+                    </div>
+                    <!-- Có dòng Sales đã bổ sung → nhắc bấm "Gửi lại (đã bổ sung)". -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="supplement_ready_count == 0"
+                         groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin">
+                        <i class="fa fa-paper-plane-o me-1" title="Sẵn sàng gửi lại"/>
+                        <strong>
+                            <field name="supplement_ready_count" nolabel="1" class="d-inline"/>
+                            dòng đã bổ sung, sẵn sàng gửi lại Kỹ thuật.
+                        </strong>
+                        Bấm <em>Gửi lại (đã bổ sung)</em> ở trên. Các dòng chưa bổ sung
+                        (nếu còn) vẫn được giữ để Kỹ thuật theo dõi.
+                    </div>
+                    <!-- Tín hiệu không khả thi — đối xứng alert "chờ bổ sung": Sales
+                         thấy sớm để chủ động trao đổi lại với khách hàng. -->
+                    <field name="infeasible_count" invisible="1"/>
+                    <field name="all_infeasible" invisible="1"/>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="not all_infeasible or status in ('quoted', 'cancelled')">
+                        <i class="fa fa-ban me-1" title="Không khả thi"/>
+                        <strong>Tất cả dòng đều được kết luận Không khả thi.</strong>
+                        Không có sản phẩm để báo giá — trao đổi lại với khách hàng
+                        hoặc Hủy RFQ. Lý do chi tiết ở cột "Kết quả kỹ thuật" từng dòng.
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="infeasible_count == 0 or all_infeasible or status in ('quoted', 'cancelled')"
+                         groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin">
+                        <i class="fa fa-ban me-1" title="Không khả thi"/>
+                        <strong>
+                            <field name="infeasible_count" nolabel="1" class="d-inline"/>
+                            dòng được kết luận Không khả thi.
+                        </strong>
+                        Xem lý do ở cột "Kết quả kỹ thuật" từng dòng. Các dòng này sẽ tự
+                        động bị loại khỏi báo giá — báo giá chỉ gồm dòng làm được. Nếu
+                        cần bỏ hẳn, dùng nút "Loại khỏi phạm vi" trên dòng.
                     </div>
                     <!-- KTV xem được RFQ Mới; bấm Xử lý trên dòng sẽ tự tiếp nhận. -->
                     <div class="alert alert-info" role="alert"
@@ -196,42 +251,74 @@
                                 <tree string="Dòng sản phẩm">
                                     <field name="is_technician" column_invisible="1"/>
                                     <field name="request_status" column_invisible="1"/>
-                                    <field name="product_type"/>
-                                    <field name="product_name" required="1"/>
-                                    <field name="technical_status" widget="badge"
-                                           decoration-info="technical_status == 'pending'"
-                                           decoration-warning="technical_status == 'processing'"
-                                           decoration-success="technical_status == 'done'"
-                                           decoration-danger="technical_status == 'infeasible'"
-                                           decoration-muted="technical_status == 'not_required'"/>
-                                    <field name="product_category_id"/>
-                                    <field name="quantity"/>
-                                    <field name="dimension_note" optional="hide"/>
-                                    <field name="reference_product_id" string="SP tham khảo"
-                                           optional="hide"/>
-                                    <field name="preview_image" widget="image"
-                                           options="{'size': [40, 40]}" string="Ảnh" optional="hide"/>
-                                    <!-- Mức 3: kết quả chỉ hiển thị tại tree; mọi thay đổi
-                                         phải đi qua đúng một cửa là nút "Xử lý". -->
-                                    <field name="resolved_product_id" string="Sản phẩm đã xác định"
-                                           readonly="1"/>
-                                    <field name="resolved_bom_id" string="Định mức đã xác định" optional="hide"
-                                           readonly="1"/>
-                                    <!-- Trạng thái "Không khả thi" đã hiển thị qua badge
-                                         technical_status; giữ field ẩn để cột lý do đọc điều
-                                         kiện, KHÔNG hiện checkbox readonly gây hiểu nhầm bấm được. -->
                                     <field name="is_infeasible" column_invisible="1"/>
-                                    <field name="infeasible_reason"
-                                           invisible="not is_infeasible"
-                                           readonly="1" optional="show"/>
-                                    <!-- Cửa xử lý duy nhất cho dòng gia công — nút hành động
-                                         chính của màn nên để nổi (primary). Dòng đã xử lý hoặc
-                                         không khả thi vẫn mở lại được để sửa kết luận. -->
+                                    <!-- Yêu cầu từ Sales — ảnh/mô tả/số file hiện MẶC ĐỊNH
+                                         để KTV triage được ngay trên bảng (phân loại dòng
+                                         thiếu thông tin mà không phải mở từng dòng). -->
+                                    <field name="product_name" required="1"/>
+                                    <field name="quantity" string="SL"/>
+                                    <field name="dimension_note" optional="show"/>
+                                    <field name="preview_image" widget="image"
+                                           options="{'size': [40, 40]}" string="Ảnh" optional="show"/>
+                                    <field name="attachment_count" string="Tệp" optional="show"/>
+                                    <!-- Kết quả kỹ thuật: hiện tên SP đã chọn hoặc
+                                         "Chưa chọn sản phẩm" khi chưa xử lý -->
+                                    <field name="resolved_summary"/>
+                                    <field name="technical_status" widget="badge"
+                                           decoration-muted="technical_status in ('pending', 'not_required')"
+                                           decoration-warning="technical_status in ('processing', 'review')"
+                                           decoration-info="technical_status in ('waiting', 'supplemented')"
+                                           decoration-success="technical_status == 'done'"
+                                           decoration-danger="technical_status == 'infeasible'"/>
+                                    <!-- Cụm thao tác dòng: 3 nút ICON CÙNG KHỔ cho đồng bộ
+                                         (không lẫn nút-chữ với icon). Phân cấp bằng kiểu nút:
+                                         1 icon nền đặc dẫn dắt (Mở xử lý) + 2 icon viền nhẹ
+                                         cho kết luận nhanh; icon "không khả thi" tô đỏ. Mỗi nút
+                                         có title để hover ra nghĩa. Tránh fa-question (dễ đọc
+                                         nhầm là "trợ giúp") — dùng fa-comment-o cho "bổ sung". -->
                                     <button name="action_open_resolve_wizard" type="object"
-                                            string="Xử lý"
+                                            icon="fa-cog"
                                             class="btn btn-primary btn-sm"
+                                            title="Mở xử lý dòng này"
                                             invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                    <button name="action_open_supplement_wizard" type="object"
+                                            icon="fa-comment-o"
+                                            class="btn btn-secondary btn-sm"
+                                            title="Yêu cầu Sales bổ sung thông tin"
+                                            invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
+                                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                    <button name="action_open_infeasible_wizard" type="object"
+                                            icon="fa-ban"
+                                            class="btn btn-secondary btn-sm text-danger"
+                                            title="Kết luận không khả thi"
+                                            invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
+                                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                    <!-- Sales loại dòng đã có kết quả kỹ thuật (không
+                                         khả thi / đã xác định) — con đường duy nhất để
+                                         bỏ dòng như vậy (xóa thẳng bị chặn), có ghi nhận
+                                         + notify Kỹ thuật. -->
+                                    <button name="action_remove_from_scope" type="object"
+                                            icon="fa-trash-o"
+                                            class="btn btn-link btn-sm text-danger"
+                                            title="Loại dòng này khỏi phạm vi RFQ"
+                                            confirm="Loại dòng này khỏi RFQ? Kết quả kỹ thuật (nếu có) sẽ mất."
+                                            invisible="request_status in ('quoted', 'cancelled') or not (is_infeasible or resolved_product_id)"
+                                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
+                                    <!-- Cột phụ — ẩn mặc định, bật qua menu cột -->
+                                    <field name="product_type" optional="hide"/>
+                                    <field name="product_category_id" optional="hide"/>
+                                    <field name="reference_product_id" string="SP tham khảo"
+                                           optional="hide"/>
+                                    <field name="resolved_product_id" string="SP đã xác định"
+                                           readonly="1" optional="hide"/>
+                                    <field name="resolved_bom_id" string="BOM đã xác định"
+                                           readonly="1" optional="hide"/>
+                                    <field name="supplement_note" string="Cần bổ sung"
+                                           readonly="1" optional="hide"/>
+                                    <field name="infeasible_reason"
+                                           invisible="not is_infeasible"
+                                           readonly="1" optional="hide"/>
                                 </tree>
                                 <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
                                     <!-- Một cửa: mở dialog chi tiết vẫn xử lý được ngay tại đây
@@ -242,6 +329,22 @@
                                                 string="Xử lý dòng này" class="btn-primary"
                                                 invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
                                                 groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                        <!-- Kết luận tại nơi đọc: KTV vừa xem chi tiết xong
+                                             thì chốt được ngay ở đây (modal chỉ hỏi lý do),
+                                             không phải đi vòng qua workspace 3 bước. -->
+                                        <button name="action_open_supplement_wizard" type="object"
+                                                string="Cần bổ sung"
+                                                invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
+                                                groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                        <button name="action_open_infeasible_wizard" type="object"
+                                                string="Không khả thi"
+                                                invisible="product_type == 'trading' or request_status in ('returned', 'quoted', 'cancelled')"
+                                                groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                                        <button name="action_remove_from_scope" type="object"
+                                                string="Loại khỏi phạm vi" class="text-danger"
+                                                confirm="Loại dòng này khỏi RFQ? Kết quả kỹ thuật (nếu có) sẽ mất."
+                                                invisible="request_status in ('quoted', 'cancelled') or not (is_infeasible or resolved_product_id)"
+                                                groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                                     </header>
                                     <field name="is_technician" invisible="1"/>
                                     <field name="request_status" invisible="1"/>
@@ -293,9 +396,16 @@
                                                     hệ thống sẽ tự tiếp nhận RFQ.
                                                 </div>
                                                 <div colspan="2" class="text-muted"
-                                                     invisible="request_status in ('new', 'supplemented') or is_infeasible or resolved_product_id or product_type == 'trading'">
+                                                     invisible="request_status in ('new', 'supplemented') or is_infeasible or resolved_product_id or supplement_note or product_type == 'trading'">
                                                     <i class="fa fa-info-circle me-1"/>Chưa xử lý — bấm
                                                     <b>Xử lý dòng này</b> ở trên để chọn/tạo Sản phẩm &amp; BOM.
+                                                </div>
+                                                <div colspan="2" class="alert alert-info py-2" role="status"
+                                                     invisible="not supplement_note">
+                                                    <i class="fa fa-clock-o me-1" title="Chờ bổ sung"/>
+                                                    <b>Chờ Sales bổ sung:</b>
+                                                    <field name="supplement_note" nolabel="1"
+                                                           readonly="1" class="d-inline"/>
                                                 </div>
                                                 <field name="resolved_product_id" string="Sản phẩm xác định"
                                                        invisible="is_infeasible"
@@ -382,13 +492,14 @@
         <field name="arch" type="xml">
             <form string="Tạo RFQ" class="dl-rfq-form" js_class="dl_rfq_form">
                 <header>
+                    <field name="supplement_ready_count" invisible="1"/>
                     <button name="action_resubmit" type="object"
                             string="Gửi lại (đã bổ sung)" class="oe_highlight"
-                            invisible="status != 'returned'"
+                            invisible="supplement_ready_count == 0 or status in ('quoted', 'cancelled')"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <button name="action_mark_quoted" type="object"
                             string="Đánh dấu đã tạo báo giá" class="oe_highlight"
-                            invisible="status != 'confirmed'"
+                            invisible="status != 'confirmed' or all_infeasible"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
                     <!-- Ẩn "Hủy RFQ" khi bản ghi CHƯA LƯU (id falsy): lúc tạo mới
                          chưa có RFQ để hủy → dùng nút "Huỷ" (Discard) native của Odoo
@@ -421,6 +532,51 @@
                         <strong>Đã gửi lại cho Kỹ thuật.</strong>
                         RFQ đang chờ Kỹ thuật tiếp tục xử lý; người phụ trách và
                         thời điểm tiếp nhận sẽ được cập nhật khi họ mở một dòng.
+                    </div>
+                    <!-- Cảnh báo cho Sales khi có dòng chờ bổ sung (RFQ vẫn
+                         processing — KTV đánh dấu từng dòng mà chưa trả hẳn). -->
+                    <field name="supplement_count" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="supplement_count == 0">
+                        <i class="fa fa-exclamation-triangle me-1" title="Cần bổ sung"/>
+                        <strong>
+                            <field name="supplement_count" nolabel="1" class="d-inline"/>
+                            dòng đang chờ bạn bổ sung thông tin.
+                        </strong>
+                        Sửa thông tin ngay trên dòng (badge "Chờ bổ sung"); sửa xong
+                        dòng nào, dòng đó chuyển "Đã bổ sung".
+                    </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="supplement_ready_count == 0">
+                        <i class="fa fa-paper-plane-o me-1" title="Sẵn sàng gửi lại"/>
+                        <strong>
+                            <field name="supplement_ready_count" nolabel="1" class="d-inline"/>
+                            dòng đã bổ sung, sẵn sàng gửi lại Kỹ thuật.
+                        </strong>
+                        Bấm <em>Gửi lại (đã bổ sung)</em> ở trên. Các dòng chưa bổ sung
+                        (nếu còn) vẫn được giữ để Kỹ thuật theo dõi.
+                    </div>
+                    <!-- Tín hiệu không khả thi từ Kỹ thuật — Sales cần thấy sớm để
+                         chủ động trao đổi lại với khách hàng. -->
+                    <field name="infeasible_count" invisible="1"/>
+                    <field name="all_infeasible" invisible="1"/>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="not all_infeasible or status in ('quoted', 'cancelled')">
+                        <i class="fa fa-ban me-1" title="Không khả thi"/>
+                        <strong>Tất cả dòng đều được Kỹ thuật kết luận Không khả thi.</strong>
+                        Không có sản phẩm để báo giá — trao đổi lại với khách hàng
+                        hoặc Hủy RFQ.
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="infeasible_count == 0 or all_infeasible or status in ('quoted', 'cancelled')">
+                        <i class="fa fa-ban me-1" title="Không khả thi"/>
+                        <strong>
+                            <field name="infeasible_count" nolabel="1" class="d-inline"/>
+                            dòng được Kỹ thuật kết luận Không khả thi.
+                        </strong>
+                        Xem lý do ở từng dòng. Các dòng này sẽ tự động bị loại khỏi báo
+                        giá — báo giá chỉ gồm dòng làm được. Nếu cần bỏ hẳn, dùng nút
+                        "Loại khỏi phạm vi" trên dòng.
                     </div>
                     <div class="oe_title">
                         <label for="name"/>
@@ -572,7 +728,7 @@
                         domain="[('status', '=', 'returned')]"/>
                 <filter name="supplemented" string="Đã bổ sung"
                         domain="[('status', '=', 'supplemented')]"/>
-                <filter name="confirmed" string="Đã xử lý xong – chờ tạo báo giá"
+                <filter name="confirmed" string="Chờ tạo báo giá"
                         domain="[('status', '=', 'confirmed')]"/>
                 <filter name="quoted" string="Đã tạo BG"
                         domain="[('status', '=', 'quoted')]"/>
@@ -583,6 +739,8 @@
                         domain="[('deadline', '&lt;', context_today().strftime('%Y-%m-%d')), ('status', 'not in', ('quoted', 'cancelled'))]"/>
                 <filter name="to_process" string="Cần Kỹ thuật xử lý"
                         domain="[('status', 'in', ('new', 'processing', 'supplemented'))]"/>
+                <filter name="has_supplement" string="Cần bổ sung"
+                        domain="[('supplement_count', '&gt;', 0), ('status', 'not in', ('returned', 'quoted', 'cancelled'))]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_status" string="Trạng thái"
                             context="{'group_by': 'status'}"/>
@@ -598,6 +756,7 @@
         <field name="name">Quản lý RFQ</field>
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="context">{'search_default_to_process': 1}</field>
     </record>
 
@@ -605,6 +764,7 @@
         <field name="name">RFQ cần xử lý</field>
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="view_id" ref="view_dl_quotation_request_tree_my"/>
         <field name="context">{'search_default_to_process': 1}</field>
     </record>

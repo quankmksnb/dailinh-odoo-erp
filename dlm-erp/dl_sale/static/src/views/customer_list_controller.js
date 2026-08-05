@@ -45,8 +45,17 @@ export class DlCustomerListController extends DlListBaseController {
                 key: "status",
                 label: "Tất cả trạng thái",
                 filters: [
-                    { name: "active", label: "Đang hoạt động" },
-                    { name: "inactive", label: "Không hoạt động" },
+                    { name: "active", label: "Đang hợp tác" },
+                    { name: "inactive", label: "Ngừng hợp tác" },
+                ],
+            },
+            {
+                key: "date",
+                label: "Tất cả thời gian",
+                filters: [
+                    { name: "date_today", label: "Hôm nay" },
+                    { name: "date_7days", label: "7 ngày qua" },
+                    { name: "date_30days", label: "30 ngày qua" },
                 ],
             },
         ];
@@ -62,7 +71,10 @@ export class DlCustomerListController extends DlListBaseController {
             "res.partner",
             [["partner_role", "in", ["customer", "both"]]],
             ["partner_type"],
-            ["partner_type"]
+            ["partner_type"],
+            // Đếm cả KH "Ngừng hợp tác" (active=False) để khớp với danh sách —
+            // action mở KH đặt active_test:False nên pager hiện cả KH ngừng hợp tác.
+            { context: { active_test: false } }
         );
         const counts = {};
         let total = 0;

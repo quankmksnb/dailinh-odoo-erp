@@ -3,8 +3,12 @@
 import { Component, useState, onWillStart } from "@odoo/owl";
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { browser } from "@web/core/browser/browser";
 import { standardActionServiceProps } from "@web/webclient/actions/action_service";
 import { onMoneyInput, parseMoney, formatMoney } from "@dl_base/js/money_format";
+
+// Nhớ tab đang xem để F5 / mở lại không nhảy về tab đầu.
+const TAB_STORAGE_KEY = "dl_pricing_config_tab";
 
 // ============================================================================
 //  Cấu hình Báo giá (đặc tả V3) — màn OWL nhiều tab, đồng bộ style với S02.
@@ -102,7 +106,7 @@ export class DlPricingConfig extends Component {
             approvalLevel: asOptions(L.approvalLevel),
         };
         this.state = useState({
-            tab: "waste",
+            tab: this._restoreTab(),
             approvalSub: "matrix", // matrix | pending | history
             matrixShowHistory: false, // hiện các dòng "Ngừng áp dụng" trong ma trận
             discountShowHistory: false, // hiện các dòng "Ngừng áp dụng" trong bảng chiết khấu
@@ -302,7 +306,27 @@ export class DlPricingConfig extends Component {
     }
 
     // --- Helpers hiển thị ---------------------------------------------------
-    setTab(k) { this.state.tab = k; }
+    // Khôi phục tab đã lưu (nếu còn hợp lệ), mặc định tab đầu.
+    _restoreTab() {
+        try {
+            const k = browser.localStorage.getItem(TAB_STORAGE_KEY);
+            if (k && TABS.some((t) => t.key === k)) {
+                return k;
+            }
+        } catch (e) {
+            // localStorage bị chặn -> bỏ qua, dùng mặc định.
+        }
+        return "waste";
+    }
+
+    setTab(k) {
+        this.state.tab = k;
+        try {
+            browser.localStorage.setItem(TAB_STORAGE_KEY, k);
+        } catch (e) {
+            // localStorage bị chặn -> chỉ đổi tab trong phiên.
+        }
+    }
     m2oName(v) { return Array.isArray(v) ? v[1] : ""; }
     m2oId(v) { return Array.isArray(v) ? v[0] : false; }
     stLabel(s) { return STATE_LABEL[s] || s; }

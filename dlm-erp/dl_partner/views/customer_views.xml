@@ -6,6 +6,7 @@
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
             <tree string="Khách hàng" class="dl-customer-list" js_class="dl_customer_list"
+                default_order="dlm_code asc"
                 decoration-muted="active == False">
                 <field name="avatar_128" widget="image" class="dl-customer-avatar"
                     options="{'preview_image': 'avatar_128'}" nolabel="1" />
@@ -176,11 +177,12 @@
                             <field name="mobile" string="Di động" readonly="not active" />
                             <field name="email" widget="email" readonly="not active" />
                             <field name="vat" string="Mã số thuế (MST)"
-                                readonly="partner_type == 'individual' or not active"
+                                widget="dl_tax_code"
+                                readonly="not active"
                                 required="partner_type == 'company'"
-                                placeholder="Bắt buộc với Doanh nghiệp" />
+                                placeholder="Bắt buộc với Doanh nghiệp; Cá nhân có thể để trống" />
                             <field name="dlm_allow_dup_tax" readonly="not active"
-                                invisible="partner_type == 'individual'" />
+                                invisible="not vat" />
                         </group>
                         <group string="Địa chỉ">
                             <field name="street" string="Đường" readonly="not active"
@@ -194,7 +196,12 @@
 
                     <notebook>
                         <page string="Người liên hệ" name="contacts">
-                            <field name="child_ids" context="{'default_type': 'contact'}"
+                            <!-- default_partner_role/type=False: chặn default của action
+                                 KH rò xuống người liên hệ (contact con cũng là res.partner).
+                                 Nếu để rò, contact bị coi là 'KH Doanh nghiệp' và dính ràng
+                                 buộc bắt buộc MST khi lưu. Contact KHÔNG phải KH DLM. -->
+                            <field name="child_ids"
+                                context="{'default_type': 'contact', 'default_partner_role': False, 'default_partner_type': False}"
                                 readonly="not active">
                                 <tree editable="bottom">
                                     <field name="name" string="Họ tên" />
@@ -255,8 +262,15 @@
                 <filter string="Đại lý" name="filter_dealer"
                     domain="[('partner_type', '=', 'dealer')]" />
                 <separator />
-                <filter string="Đang hoạt động" name="active" domain="[('active', '=', True)]" />
-                <filter string="Không hoạt động" name="inactive" domain="[('active', '=', False)]" />
+                <filter string="Đang hợp tác" name="active" domain="[('active', '=', True)]" />
+                <filter string="Ngừng hợp tác" name="inactive" domain="[('active', '=', False)]" />
+                <separator />
+                <filter string="Hôm nay" name="date_today"
+                    domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]" />
+                <filter string="7 ngày qua" name="date_7days"
+                    domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today() + relativedelta(days=-7), datetime.time(0,0,0)))]" />
+                <filter string="30 ngày qua" name="date_30days"
+                    domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today() + relativedelta(days=-30), datetime.time(0,0,0)))]" />
                 <group expand="0" string="Nhóm theo">
                     <filter string="Loại khách hàng" name="group_type"
                         context="{'group_by': 'partner_type'}" />
@@ -282,6 +296,7 @@
         <field name="name">Khách hàng</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain">[('partner_role', 'in', ['customer', 'both'])]</field>
         <field name="context">{'default_partner_role': 'customer', 'default_partner_type': 'company', 'active_test': False}</field>
         <field name="view_ids" eval="[
@@ -294,6 +309,17 @@
             <p class="o_view_nocontent_smiling_face">Tạo khách hàng đầu tiên!</p>
             <p>Quản lý toàn bộ danh sách khách hàng của Đại Linh tại đây.</p>
         </field>
+    </record>
+
+    <!-- Action form-only cho mũi tên mở KH (get_formview_action). Có id nên URL
+         giữ được view khi F5/deep-link. Không gắn menu, chỉ dùng qua điều hướng. -->
+    <record id="action_dl_customer_form" model="ir.actions.act_window">
+        <field name="name">Khách hàng</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">form</field>
+        <field name="view_id" ref="view_dl_customer_form" />
+        <field name="target">current</field>
+        <field name="context">{'active_test': False}</field>
     </record>
 
     <!-- EX-42: ngưỡng gộp đơn auto-approval (VNĐ) — CEO/Admin sửa được ở S02.

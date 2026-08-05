@@ -22,8 +22,8 @@ QTE_007 = "QTE-007: Không thể quy đổi định mức '%s' sang đơn vị/t
 QTE_008 = "QTE-008: RFQ này đã có báo giá — hãy mở báo giá hiện có hoặc tạo revision."
 QTE_009 = "QTE-009: Sản phẩm thương mại '%s' chưa có giá bán hợp lệ (Giá bán phải > 0)."
 QTE_INFEASIBLE = (
-    "Không thể tạo báo giá: RFQ còn dòng đánh dấu 'Không khả thi'. "
-    "Sales cần xác nhận lại phạm vi trước khi tạo báo giá."
+    "Không thể tạo báo giá: mọi dòng của RFQ đều 'Không khả thi' — không có "
+    "sản phẩm nào để báo giá. Trao đổi lại với khách hàng hoặc Hủy RFQ."
 )
 
 
@@ -50,6 +50,11 @@ class DlQuotationPricingService(models.AbstractModel):
         context = self._build_context(rfq)
         self._validate_rfq(rfq, context)
 
+        # Dòng không khả thi bị loại khỏi báo giá (đã kiểm ở _validate_rfq là còn
+        # dòng làm được). Giữ lại để ghi chú minh bạch cho Sales/khách.
+        excluded = rfq.line_ids.filtered(lambda l: l.is_infeasible)
+        quotable = rfq.line_ids - excluded
+
         # sudo cho phần ghi dữ liệu: người bấm là Sales (BA) có thể không có
         # quyền write các field chi phí (groups=) hay model price.component —
         # nhưng quyền TẠO báo giá đã được kiểm ở action_create_quotation.
@@ -61,7 +66,7 @@ class DlQuotationPricingService(models.AbstractModel):
         try:
             with self.env.cr.savepoint():
                 quotation = Quotation.create(self._prepare_header_vals(rfq, context))
-                for rfq_line in rfq.line_ids:
+                for rfq_line in quotable:
                     self._create_quotation_line(quotation, rfq_line, context)
                 # Chốt cấu hình thương mại + đánh giá phê duyệt (§7–§8).
                 self._apply_commercial_and_approval(quotation, context)
@@ -73,6 +78,15 @@ class DlQuotationPricingService(models.AbstractModel):
         for rule in (context.get("profit_rule"), context.get("discount_rule")):
             if rule and not rule.used_in_snapshot:
                 rule.sudo().write({"used_in_snapshot": True})
+
+        # Ghi chú minh bạch khi có dòng không khả thi bị loại khỏi báo giá.
+        if excluded:
+            names = ", ".join(excluded.mapped("product_name"))
+            note = _(
+                "Báo giá bỏ %(n)s dòng 'Không khả thi': %(names)s.",
+                n=len(excluded), names=names)
+            quotation.message_post(body=note)
+            rfq.message_post(body=note)
 
         # Chỉ chuyển RFQ sang 'quoted' sau khi báo giá + dòng đã tạo xong.
         rfq.sudo().write({"status": "quoted"})
@@ -101,6 +115,8 @@ class DlQuotationPricingService(models.AbstractModel):
             message = _(
                 "Đã tạo báo giá %(name)s — sẵn sàng gửi khách hàng ngay.",
                 name=quotation.name)
+        if excluded:
+            message += _(" (Đã bỏ %(n)s dòng không khả thi.)", n=len(excluded))
         return {
             "type": "ir.actions.client",
             "tag": "display_notification",
@@ -190,13 +206,17 @@ class DlQuotationPricingService(models.AbstractModel):
         if existing:
             raise UserError(QTE_008)
 
-        if any(line.is_infeasible for line in rfq.line_ids):
-            raise UserError(QTE_INFEASIBLE)
-
         if not rfq.line_ids:
             raise UserError(_("RFQ chưa có dòng sản phẩm nào để báo giá."))
 
-        for line in rfq.line_ids:
+        # Dòng "Không khả thi" được TỰ LOẠI khỏi báo giá (không chặn cả RFQ):
+        # báo giá đúng các dòng làm được, các dòng không khả thi vẫn nằm trên RFQ
+        # làm bằng chứng "không nhận". Chỉ chặn khi KHÔNG còn dòng nào để báo giá.
+        quotable = rfq.line_ids.filtered(lambda l: not l.is_infeasible)
+        if not quotable:
+            raise UserError(QTE_INFEASIBLE)
+
+        for line in quotable:
             self._validate_line(line, context)
 
     def _validate_line(self, rfq_line, context):
@@ -351,6 +371,33 @@ class DlQuotationPricingService(models.AbstractModel):
         })
         return vals, comp_specs
 
+    def _resolve_child_bom(self, material):
+        """BOM dùng làm GIÁ VỐN CHUẨN của một bán thành phẩm.
+
+        Trước đây chỉ lấy ``version desc`` bất kể loại BOM ⇒ một BOM **báo giá**
+        (sinh khi xử lý RFQ cho một đơn cụ thể) có số version cao hơn sẽ THẮNG
+        BOM chuẩn của chính bán thành phẩm đó — nghĩa là định mức riêng của đơn
+        A âm thầm trở thành giá vốn cho đơn B. Sai lệch chỉ hiện ra ở tiền nên
+        rất khó phát hiện.
+
+        Thứ tự đúng (thiết kế §17.2):
+          1. BOM chuẩn (``template``) đang là phiên bản hiện hành;
+          2. BOM chuẩn mới nhất còn hiệu lực;
+          3. chỉ khi bán thành phẩm CHƯA TỪNG có BOM chuẩn mới đành dùng BOM
+             báo giá mới nhất (trường hợp dữ liệu chưa hoàn chỉnh).
+        """
+        Bom = self.env["dl.bom"].sudo()
+        base = [
+            ("product_id", "=", material.id),
+            ("status", "in", ("confirmed", "locked")),
+        ]
+        standard = [("bom_type", "=", "template")]
+        return (
+            Bom.search(base + standard + [("is_current", "=", True)], limit=1)
+            or Bom.search(base + standard, order="version desc", limit=1)
+            or Bom.search(base, order="version desc", limit=1)
+        )
+
     def _bom_material_cost(self, bom, context, visited):
         """Chi phí vật tư để sản xuất MỘT đơn vị đầu ra của ``bom``.
 
@@ -374,14 +421,7 @@ class DlQuotationPricingService(models.AbstractModel):
                 raise UserError(QTE_004 % bom.display_name)
 
             if material.product_kind == "material_processed":
-                child = self.env["dl.bom"].sudo().search(
-                    [
-                        ("product_id", "=", material.id),
-                        ("status", "in", ("confirmed", "locked")),
-                    ],
-                    order="version desc",
-                    limit=1,
-                )
+                child = self._resolve_child_bom(material)
                 if not child:
                     raise UserError(QTE_004 % material.display_name)
                 unit_price, _child_specs = self._bom_material_cost(child, context, visited)

@@ -81,8 +81,8 @@
                         <field name="q_line_ids" readonly="1">
                             <tree>
                                 <field name="line_type" widget="badge"
-                                       decoration-info="line_type == 'trading'"
-                                       decoration-success="line_type == 'manufactured'"/>
+                                       decoration-success="line_type == 'trading'"
+                                       decoration-info="line_type == 'manufactured'"/>
                                 <field name="name"/>
                                 <field name="qty" widget="dl_money" digits="[16, 0]"/>
                                 <field name="material_cost" widget="dl_money" digits="[16, 0]" string="CP vật tư/đv"
@@ -187,6 +187,7 @@
         <field name="name">Phê duyệt</field>
         <field name="res_model">dl.pricing.approval.request</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="domain">[('request_type', '=', 'quote_over_threshold')]</field>
         <field name="context">{'search_default_pending': 1}</field>
         <field name="view_ids" eval="[

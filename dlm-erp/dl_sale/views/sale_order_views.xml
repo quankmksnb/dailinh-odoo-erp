@@ -71,8 +71,8 @@
                             <field name="line_ids">
                                 <tree editable="bottom">
                                     <field name="line_type" widget="badge"
-                                           decoration-info="line_type == 'trading'"
-                                           decoration-success="line_type == 'manufactured'"/>
+                                           decoration-success="line_type == 'trading'"
+                                           decoration-info="line_type == 'manufactured'"/>
                                     <field name="name"/>
                                     <field name="bom_id" optional="hide"/>
                                     <field name="qty" widget="dl_money" digits="[16, 0]"/>
@@ -142,6 +142,7 @@
         <field name="name">Đơn bán hàng</field>
         <field name="res_model">dl.sale.order</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="search_view_id" ref="view_dl_sale_order_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Chưa có đơn bán hàng nào.</p>

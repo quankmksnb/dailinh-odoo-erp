@@ -45,7 +45,7 @@
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_archive" type="object" string="Lưu trữ"
                             class="btn-secondary"
-                            invisible="status == 'archived'"
+                            invisible="status == 'archived' or not id"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <field name="status" widget="dl_stepper"
                            statusbar_visible="draft,confirmed,archived" readonly="1"/>
@@ -67,7 +67,8 @@
                     <!-- Bản vẽ là NỘI DUNG CHÍNH (review UX drawing #f1): đưa file
                          lên đầu, thông tin phụ xuống dưới. -->
                     <group string="File bản vẽ">
-                        <field name="attachment_id" nolabel="1"/>
+                        <field name="attachment_id" nolabel="1" colspan="2"
+                               widget="dl_drawing_upload"/>
                     </group>
                     <group>
                         <group string="Thông tin">
@@ -116,6 +117,7 @@
         <field name="name">Bản vẽ kỹ thuật</field>
         <field name="res_model">dl.drawing</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
     </record>
 
 </odoo>

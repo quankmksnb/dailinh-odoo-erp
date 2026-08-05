@@ -22,6 +22,16 @@ class ResUsers(models.Model):
         help="Dùng khi user vắng / quá SLA — ảnh hưởng Escalation phê duyệt (IP-02).",
     )
 
+    def get_formview_action(self, access_uid=None):
+        """Mở qua mũi tên (Người tạo/duyệt/nhận…) bằng action DLM ĐÃ LƯU (có id)
+        để F5/deep-link giữ UI mới. KHÔNG đặt priority nên form gốc Odoo
+        (Settings → Users, đủ tab bảo mật/phân quyền) vẫn là mặc định toàn hệ
+        thống. Chỉ đổi điều hướng/chọn view, không đổi nghiệp vụ."""
+        action = self.env["ir.actions.act_window"]._for_xml_id(
+            "dl_config.action_dl_user_form")
+        action["res_id"] = self.id
+        return action
+
     # ------------------------------------------------------------------ Guard
     @api.model
     def _check_dlm_admin(self):

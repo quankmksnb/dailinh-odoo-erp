@@ -34,6 +34,10 @@ access_dl_quotation_request_line_tech,dl.quotation.request.line Tech,model_dl_qu
 access_dl_quotation_request_line_sm,dl.quotation.request.line SM,model_dl_quotation_request_line,dl_base.dl_group_sales_manager,1,1,1,0
 access_dl_rfq_resolve_wizard_admin,dl.rfq.resolve.wizard Admin,model_dl_rfq_resolve_wizard,dl_base.dl_group_admin,1,1,1,1
 access_dl_rfq_resolve_wizard_tech,dl.rfq.resolve.wizard Tech,model_dl_rfq_resolve_wizard,dl_base.dl_group_tech,1,1,1,1
+access_dl_rfq_line_supplement_wizard_admin,dl.rfq.line.supplement.wizard Admin,model_dl_rfq_line_supplement_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_rfq_line_supplement_wizard_tech,dl.rfq.line.supplement.wizard Tech,model_dl_rfq_line_supplement_wizard,dl_base.dl_group_tech,1,1,1,1
+access_dl_rfq_line_infeasible_wizard_admin,dl.rfq.line.infeasible.wizard Admin,model_dl_rfq_line_infeasible_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_rfq_line_infeasible_wizard_tech,dl.rfq.line.infeasible.wizard Tech,model_dl_rfq_line_infeasible_wizard,dl_base.dl_group_tech,1,1,1,1
 access_dl_rfq_line_image_ceo,dl.quotation.request.line.image CEO,model_dl_quotation_request_line_image,dl_base.dl_group_ceo,1,0,0,0
 access_dl_rfq_line_image_admin,dl.quotation.request.line.image Admin,model_dl_quotation_request_line_image,dl_base.dl_group_admin,1,1,1,1
 access_dl_rfq_line_image_ba,dl.quotation.request.line.image BA,model_dl_quotation_request_line_image,dl_base.dl_group_ba,1,1,1,1
@@ -41,6 +45,8 @@ access_dl_rfq_line_image_sm,dl.quotation.request.line.image SM,model_dl_quotatio
 access_dl_rfq_line_image_tech,dl.quotation.request.line.image Tech,model_dl_quotation_request_line_image,dl_base.dl_group_tech,1,1,1,1
 access_dl_rfq_return_wizard_admin,dl.rfq.return.wizard Admin,model_dl_rfq_return_wizard,dl_base.dl_group_admin,1,1,1,1
 access_dl_rfq_return_wizard_tech,dl.rfq.return.wizard Tech,model_dl_rfq_return_wizard,dl_base.dl_group_tech,1,1,1,1
+access_dl_rfq_return_wizard_line_admin,dl.rfq.return.wizard.line Admin,model_dl_rfq_return_wizard_line,dl_base.dl_group_admin,1,1,1,1
+access_dl_rfq_return_wizard_line_tech,dl.rfq.return.wizard.line Tech,model_dl_rfq_return_wizard_line,dl_base.dl_group_tech,1,1,1,1
 access_dl_bom_from_template_wizard_admin,dl.bom.from.template.wizard Admin,model_dl_bom_from_template_wizard,dl_base.dl_group_admin,1,1,1,1
 access_dl_bom_from_template_wizard_tech,dl.bom.from.template.wizard Tech,model_dl_bom_from_template_wizard,dl_base.dl_group_tech,1,1,1,1
 access_dl_pricing_waste_tech_read,dl.pricing.waste Tech read (BOM waste link),dl_config.model_dl_pricing_waste,dl_base.dl_group_tech,1,0,0,0

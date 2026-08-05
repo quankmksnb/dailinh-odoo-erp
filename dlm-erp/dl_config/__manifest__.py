@@ -17,6 +17,7 @@
         'views/config_home.xml',
         'views/uom_views.xml',
         'views/user_admin_views.xml',
+        'views/res_users_views.xml',
         'views/role_perm_views.xml',
         'views/pricing_config_views.xml',
         'views/pricing_matrix_views.xml',

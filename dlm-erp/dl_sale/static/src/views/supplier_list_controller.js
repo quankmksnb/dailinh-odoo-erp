@@ -65,8 +65,17 @@ export class DlSupplierListController extends DlListBaseController {
                 key: "status",
                 label: "Tất cả trạng thái",
                 filters: [
-                    { name: "active", label: "Đang hoạt động" },
-                    { name: "inactive", label: "Không hoạt động" },
+                    { name: "active", label: "Đang hợp tác" },
+                    { name: "inactive", label: "Ngừng hợp tác" },
+                ],
+            },
+            {
+                key: "date",
+                label: "Tất cả thời gian",
+                filters: [
+                    { name: "date_today", label: "Hôm nay" },
+                    { name: "date_7days", label: "7 ngày qua" },
+                    { name: "date_30days", label: "30 ngày qua" },
                 ],
             },
         ];

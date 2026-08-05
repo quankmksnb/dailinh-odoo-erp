@@ -13,7 +13,7 @@
         <field name="arch" type="xml">
             <tree string="BOM Template"
                   class="dl-bomtpl-list"
-                  js_class="dl_list"
+                  js_class="dl_bomtpl_list"
                   decoration-muted="status == 'archived'"
                   decoration-bf="is_current">
                 <field name="is_current" column_invisible="1"/>
@@ -52,7 +52,7 @@
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_archive" type="object" string="Lưu trữ"
                             class="btn-danger"
-                            invisible="status == 'archived'"
+                            invisible="status == 'archived' or not id"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn lưu trữ BOM mẫu này?"/>
                     <field name="status" widget="dl_stepper"
@@ -237,6 +237,7 @@
         <field name="name">BOM mẫu</field>
         <field name="res_model">dl.bom.template</field>
         <field name="view_mode">tree,form</field>
+        <field name="limit" eval="15"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm BOM mẫu đầu tiên!</p>
         </field>
