@@ -22,7 +22,6 @@
                 <sheet>
                     <!-- Trạng thái điều khiển / điều kiện (chỉ dùng cho invisible). -->
                     <field name="rfq_line_id" invisible="1"/>
-                    <field name="active_exit" invisible="1"/>
                     <field name="show_bom_picker" invisible="1"/>
                     <field name="is_infeasible" invisible="1"/>
                     <field name="has_existing_supplement" invisible="1"/>
@@ -67,6 +66,27 @@
                         <strong>Dòng này đang chờ Sales bổ sung.</strong>
                         Nếu bạn tiếp tục xử lý và bấm <em>Hoàn tất dòng</em>,
                         yêu cầu bổ sung sẽ được gỡ tự động.
+                        <button name="action_show_supplement" type="object"
+                                string="Sửa nội dung bổ sung"
+                                class="btn-link btn-sm p-0 ms-1 align-baseline"/>
+                    </div>
+
+                    <!-- Mở lại dòng đã kết luận Không khả thi → banner lý do +
+                         2 lối: sửa lý do (modal) hoặc xử lý lại dòng. -->
+                    <div class="alert alert-danger" role="status"
+                         invisible="not is_infeasible">
+                        <i class="fa fa-ban me-1" title="Không khả thi"/>
+                        <strong>Dòng này đã kết luận Không khả thi.</strong>
+                        <span invisible="not infeasible_reason">
+                            Lý do: <field name="infeasible_reason" readonly="1"
+                                   nolabel="1" class="dl-rfq-inline-field"/>.
+                        </span>
+                        <div class="mt-2">
+                            <button name="action_show_infeasible" type="object"
+                                    string="Sửa lý do" class="btn-secondary btn-sm"/>
+                            <button name="action_reopen_feasible" type="object"
+                                    string="Xử lý lại dòng này" class="btn-primary btn-sm ms-1"/>
+                        </div>
                     </div>
 
                     <div class="oe_title">
@@ -430,8 +450,9 @@
 
                     <!-- ══ DECISION DOCK (dính đáy) ══ -->
                     <div class="dl-rfq-dock">
-                        <!-- Chế độ phương án chính. -->
-                        <div class="dl-rfq-dock-main" invisible="active_exit">
+                        <!-- Phương án chính. Lối thoát (bổ sung / không khả thi)
+                             mở trong modal, không xổ ngay trong dock. -->
+                        <div class="dl-rfq-dock-main">
                             <div class="dl-rfq-dock-summary">
                                 <span invisible="not product_id">
                                     <i class="fa fa-cube me-1"/>
@@ -458,41 +479,12 @@
                                 <span class="btn btn-primary disabled dl-rfq-btn-disabled"
                                       invisible="can_confirm">Hoàn tất dòng</span>
                             </div>
-                            <div class="dl-rfq-dock-exits">
+                            <div class="dl-rfq-dock-exits" invisible="is_infeasible">
                                 <button name="action_show_supplement" type="object"
                                         string="Cần bổ sung" class="btn-link"/>
                                 <span class="text-muted">·</span>
                                 <button name="action_show_infeasible" type="object"
                                         string="Không khả thi" class="btn-link text-danger"/>
-                            </div>
-                        </div>
-
-                        <!-- Nhánh "Cần bổ sung". -->
-                        <div class="dl-rfq-dock-exit-panel" invisible="active_exit != 'supplement'">
-                            <label for="supplement_note" string="Thông tin cần Sales bổ sung"/>
-                            <field name="supplement_note" nolabel="1" class="dl-textarea-lg"
-                                   placeholder="Nêu rõ thông tin Sales cần bổ sung (ảnh rõ hơn, kích thước chi tiết, yêu cầu kỹ thuật cụ thể...)"/>
-                            <div class="mt-2">
-                                <button name="action_mark_supplement" type="object"
-                                        string="Gửi yêu cầu bổ sung" class="btn-primary"
-                                        invisible="not supplement_note"/>
-                                <button name="action_hide_exit" type="object"
-                                        string="Quay lại phương án" class="btn-link"/>
-                            </div>
-                        </div>
-
-                        <!-- Nhánh "Không khả thi". -->
-                        <div class="dl-rfq-dock-exit-panel" invisible="active_exit != 'infeasible'">
-                            <label for="infeasible_reason" string="Lý do không khả thi"/>
-                            <field name="infeasible_reason" nolabel="1" class="dl-textarea-lg"
-                                   required="active_exit == 'infeasible'"
-                                   placeholder="Nêu rõ lý do để Sales trao đổi lại với khách hàng..."/>
-                            <div class="mt-2">
-                                <button name="action_mark_infeasible" type="object"
-                                        string="Xác nhận không khả thi" class="btn-danger"
-                                        invisible="not infeasible_reason"/>
-                                <button name="action_hide_exit" type="object"
-                                        string="Quay lại phương án" class="btn-link"/>
                             </div>
                         </div>
                     </div>

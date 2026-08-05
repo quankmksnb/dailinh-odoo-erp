@@ -83,12 +83,6 @@ class DlRfqResolveWizard(models.TransientModel):
     show_bom_picker = fields.Boolean(
         string="Đang mở danh sách chọn định mức",
         help="Bật khi KTV bấm 'Chọn bản khác' để lộ lại bảng phiên bản định mức.")
-    active_exit = fields.Selection(
-        [
-            ("supplement", "Cần bổ sung"),
-            ("infeasible", "Không khả thi"),
-        ],
-        string="Lối thoát đang mở")
 
     # ── Thông tin yêu cầu (chỉ để tham khảo, readonly) ──────────────────────
     request_product_name = fields.Char(
@@ -105,11 +99,11 @@ class DlRfqResolveWizard(models.TransientModel):
     request_attachment_ids = fields.Many2many(
         related="rfq_line_id.attachment_ids", string="Ảnh / File Sales gửi", readonly=True)
 
-    # Đánh dấu "không khả thi" ngay trên màn xử lý (thay vì phải ra form dòng).
+    # Trạng thái kết luận "không khả thi" của dòng (chỉ để hiện banner + chặn
+    # Hoàn tất khi mở lại; nhập/sửa lý do đi qua modal Kết luận không khả thi).
     is_infeasible = fields.Boolean(string="Không khả thi")
-    infeasible_reason = fields.Text(string="Lý do không khả thi")
+    infeasible_reason = fields.Text(string="Lý do không khả thi", readonly=True)
 
-    supplement_note = fields.Text(string="Nội dung cần bổ sung")
     has_existing_supplement = fields.Boolean(
         string="Dòng đã có yêu cầu bổ sung từ trước")
 
@@ -441,7 +435,7 @@ class DlRfqResolveWizard(models.TransientModel):
         string="Còn thiếu", compute="_compute_checklist")
 
     @api.depends("product_id", "selected_bom_id", "selected_bom_has_lines",
-                 "selected_bom_confirmed", "is_infeasible", "active_exit",
+                 "selected_bom_confirmed", "is_infeasible",
                  "rfq_line_id.needs_review")
     def _compute_checklist(self):
         for rec in self:
@@ -477,8 +471,10 @@ class DlRfqResolveWizard(models.TransientModel):
                 blockers.append(_("định mức không thuộc sản phẩm đã chọn"))
             elif not has_lines:
                 blockers.append(_("định mức chưa có dòng vật tư"))
-            if rec.is_infeasible or rec.active_exit == "infeasible":
-                blockers.append(_("đang ở nhánh Không khả thi"))
+            if rec.is_infeasible:
+                blockers.append(_(
+                    "dòng đang kết luận Không khả thi — bấm “Xử lý lại dòng "
+                    "này” nếu muốn tiếp tục"))
             rec.can_confirm = not blockers
             rec.confirm_blocker = (
                 _("Còn thiếu: %s") % ", ".join(blockers)) if blockers else False
@@ -554,15 +550,14 @@ class DlRfqResolveWizard(models.TransientModel):
                 if line.product_name and not res.get("new_product_name"):
                     res["new_product_name"] = line.product_name
                 if line.supplement_note:
-                    res["supplement_note"] = line.supplement_note
                     res["has_existing_supplement"] = True
                 if line.is_infeasible:
-                    # Mở lại dòng đã kết luận không khả thi → vào thẳng nhánh
-                    # lối thoát tương ứng ở decision dock.
+                    # Mở lại dòng đã kết luận không khả thi → hiện banner kết
+                    # luận (kèm lý do) ở đầu workspace; KTV sửa lý do trong modal
+                    # hoặc bấm "Xử lý lại dòng này" để tiếp tục xử lý.
                     res.update({
                         "is_infeasible": True,
                         "infeasible_reason": line.infeasible_reason,
-                        "active_exit": "infeasible",
                     })
                 else:
                     if line.resolved_product_id:
@@ -590,11 +585,6 @@ class DlRfqResolveWizard(models.TransientModel):
                             })
                         if provisional_bom:
                             res["manual_bom_id"] = provisional_bom.id
-                    # Mở lại dòng đang chờ bổ sung (chưa xác định SP) → hiện sẵn
-                    # nhánh bổ sung ở dock để KTV thấy/sửa nội dung đã yêu cầu.
-                    if (line.supplement_note and not line.resolved_product_id
-                            and not line.is_infeasible):
-                        res["active_exit"] = "supplement"
                 # §3.6 đường A — chưa có SP nào được khôi phục (không kết quả cũ,
                 # không bản tạm) ⇒ chạy bộ dò khớp; nếu ứng viên tốt nhất đạt
                 # ngưỡng tự động (≥60) thì TỰ CHỌN sẵn để ca lặp lại chỉ còn bấm
@@ -776,20 +766,38 @@ class DlRfqResolveWizard(models.TransientModel):
             self.selected_bom_id.action_confirm()
         return self._action_reload()
 
-    def action_show_supplement(self):
+    def _open_quick_wizard(self, res_model, view_xmlid, name):
+        """Mở modal kết luận nhanh (dùng chung với luồng triage trên bảng RFQ)
+        thay vì xổ ô nhập ngay trong dock — nhập lý do/nội dung rồi bấm xác nhận
+        trong modal. Modal tự nạp lại nội dung cũ (default_get) nếu dòng đã có."""
         self.ensure_one()
-        self.write({"active_exit": "supplement", "is_infeasible": False})
-        return self._action_reload()
+        return {
+            "type": "ir.actions.act_window",
+            "name": name,
+            "res_model": res_model,
+            "view_mode": "form",
+            "views": [(self.env.ref(view_xmlid).id, "form")],
+            "target": "new",
+            "context": {"default_rfq_line_id": self.rfq_line_id.id},
+        }
+
+    def action_show_supplement(self):
+        return self._open_quick_wizard(
+            "dl.rfq.line.supplement.wizard",
+            "dl_technical.view_dl_rfq_line_supplement_wizard_form",
+            _("Yêu cầu Sales bổ sung"))
 
     def action_show_infeasible(self):
-        self.ensure_one()
-        self.write({"active_exit": "infeasible", "is_infeasible": True})
-        return self._action_reload()
+        return self._open_quick_wizard(
+            "dl.rfq.line.infeasible.wizard",
+            "dl_technical.view_dl_rfq_line_infeasible_wizard_form",
+            _("Kết luận không khả thi"))
 
-    def action_hide_exit(self):
-        """Quay lại phương án kỹ thuật (đóng nhánh lối thoát đang mở)."""
+    def action_reopen_feasible(self):
+        """Mở lại dòng đã kết luận Không khả thi để xử lý tiếp — gỡ cờ tạm trong
+        phiên này; cờ trên dòng RFQ chỉ được xóa hẳn khi bấm Hoàn tất."""
         self.ensure_one()
-        self.write({"active_exit": False, "is_infeasible": False})
+        self.write({"is_infeasible": False})
         return self._action_reload()
 
     def action_cancel(self):
@@ -988,20 +996,6 @@ class DlRfqResolveWizard(models.TransientModel):
                 keep_bom_ids=bom.ids,
             )
         return self._action_open_bom(bom, _("Chỉnh sửa BOM cho RFQ"))
-
-    def action_mark_infeasible(self):
-        """Kết luận dòng RFQ là không khả thi — ghi thẳng lên dòng (kèm notify
-        Sales, logic chung ở line._mark_infeasible) và đóng màn."""
-        self.ensure_one()
-        self.rfq_line_id._mark_infeasible(self.infeasible_reason)
-        return self._action_return_to_rfq()
-
-    def action_mark_supplement(self):
-        """KTV đánh dấu dòng cần Sales bổ sung thông tin (kèm chatter +
-        activity cho người tạo RFQ, logic chung ở line._mark_supplement)."""
-        self.ensure_one()
-        self.rfq_line_id._mark_supplement(self.supplement_note)
-        return self._action_return_to_rfq()
 
     def _check_still_processable(self):
         """Kiểm tra LẠI ngay trước khi ghi kết quả (thiết kế RES-002/RES-003).

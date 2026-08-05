@@ -150,23 +150,34 @@ class TestRfqResolveWorkspace(TransactionCase):
         self.assertEqual(wizard.step, "confirm", "Đủ sản phẩm + định mức → khối ⑶")
 
     # ------------------------------------------------------------------
-    # Nhánh lối thoát "Không khả thi" loại trừ đường Hoàn tất
+    # Lối thoát "Cần bổ sung" / "Không khả thi" mở trong MODAL (không xổ dock)
     # ------------------------------------------------------------------
-    def test_infeasible_branch_blocks_confirm(self):
+    def test_exit_buttons_open_modal(self):
         request, line = self._make_rfq_line()
+        wizard = self._wizard(line, product_id=self.product.id)
+
+        act = wizard.action_show_supplement()
+        self.assertEqual(act.get("res_model"), "dl.rfq.line.supplement.wizard")
+        self.assertEqual(act.get("target"), "new")
+        self.assertEqual(act["context"].get("default_rfq_line_id"), line.id)
+
+        act = wizard.action_show_infeasible()
+        self.assertEqual(act.get("res_model"), "dl.rfq.line.infeasible.wizard")
+        self.assertEqual(act.get("target"), "new")
+        self.assertEqual(act["context"].get("default_rfq_line_id"), line.id)
+
+    def test_reopen_infeasible_line_blocks_then_reprocesses(self):
+        # Mở lại dòng đã kết luận không khả thi: banner + chặn Hoàn tất cho tới
+        # khi bấm "Xử lý lại dòng này".
+        request, line = self._make_rfq_line()
+        line.write({"is_infeasible": True, "infeasible_reason": "Vượt năng lực máy"})
         bom = self._make_draft_bom(line)
         wizard = self._wizard(line, product_id=self.product.id, manual_bom_id=bom.id)
-        self.assertTrue(wizard.can_confirm)
 
-        wizard.action_show_infeasible()
-
-        self.assertEqual(wizard.active_exit, "infeasible")
         self.assertTrue(wizard.is_infeasible)
-        self.assertFalse(wizard.can_confirm, "Đang ở nhánh Không khả thi thì không Hoàn tất")
+        self.assertFalse(wizard.can_confirm, "Đang kết luận Không khả thi thì chưa Hoàn tất")
 
-        # Quay lại phương án → mở lại đường Hoàn tất.
-        wizard.action_hide_exit()
-        self.assertFalse(wizard.active_exit)
+        wizard.action_reopen_feasible()
         self.assertFalse(wizard.is_infeasible)
         self.assertTrue(wizard.can_confirm)
 
