@@ -41,6 +41,11 @@
                     <field name="name_dup_exact_id" invisible="1"/>
                     <field name="allowed_product_ids" invisible="1"/>
                     <field name="next_line_id" invisible="1"/>
+                    <field name="search_outside_category" invisible="1"/>
+                    <field name="has_any_bom" invisible="1"/>
+                    <field name="selected_bom_can_discard" invisible="1"/>
+                    <field name="pricing_block_count" invisible="1"/>
+                    <field name="pricing_block_names" invisible="1"/>
 
                     <!-- Banner dữ liệu tạm / chờ bổ sung (toàn bề ngang). -->
                     <div class="alert alert-warning" role="status"
@@ -130,6 +135,22 @@
                                            domain="[('id', 'in', allowed_product_ids)]"
                                            options="{'no_create': True}"
                                            context="{'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': request_category_id, 'default_name': request_product_name}"/>
+                                    <!-- EX-05 / D-F: lọc nhóm MỀM — Sales có thể khai nhầm nhóm. -->
+                                    <div colspan="2" class="text-muted small mt-1"
+                                         invisible="search_outside_category">
+                                        Không thấy sản phẩm đúng? Có thể Sales khai nhầm nhóm.
+                                        <button name="action_search_outside_category" type="object"
+                                                string="Tìm ngoài nhóm này"
+                                                class="btn-link btn-sm p-0 align-baseline"/>
+                                    </div>
+                                    <div colspan="2" class="alert alert-info py-1 px-2 mt-1" role="status"
+                                         invisible="not search_outside_category">
+                                        <i class="fa fa-search me-1"/>Đang tìm ở <b>mọi nhóm sản phẩm</b>.
+                                        Chọn sản phẩm khác nhóm sẽ được ghi nhận để Sales sửa lại nhóm.
+                                        <button name="action_search_outside_category" type="object"
+                                                string="Quay lại lọc trong nhóm"
+                                                class="btn-link btn-sm p-0 align-baseline"/>
+                                    </div>
                                 </group>
 
                                 <group invisible="mode != 'new'" string="Tạo sản phẩm mới">
@@ -197,6 +218,23 @@
                                     <button name="action_confirm_bom" type="object"
                                             string="Xác nhận định mức" class="btn-secondary btn-sm"
                                             invisible="selected_bom_confirmed"/>
+                                    <button name="action_discard_draft_bom" type="object"
+                                            string="Bỏ bản nháp này" class="btn-link btn-sm text-danger"
+                                            confirm="Bỏ bản định mức nháp này? Không thể hoàn tác."
+                                            invisible="not selected_bom_can_discard"/>
+                                </div>
+                                <!-- EX-13 / RES-022: cảnh báo vật tư thiếu giá NCC (chỉ TÊN,
+                                     không lộ giá). Không chặn Hoàn tất — chỉ báo trước. -->
+                                <div class="alert alert-warning py-2 mt-2" role="status"
+                                     invisible="pricing_block_count == 0">
+                                    <i class="fa fa-money me-1" title="Thiếu giá NCC"/>
+                                    <strong><field name="pricing_block_count" readonly="1" nolabel="1"
+                                            class="dl-rfq-inline-field"/> vật tư chưa có giá NCC đã duyệt</strong>:
+                                    <field name="pricing_block_names" readonly="1" nolabel="1"
+                                           class="dl-rfq-inline-field"/>.
+                                    Sales sẽ chưa tạo được báo giá cho tới khi Mua hàng cập nhật giá.
+                                    <button name="action_notify_purchasing" type="object"
+                                            string="Báo Mua hàng" class="btn-link btn-sm p-0 ms-1 align-baseline"/>
                                 </div>
                                 <field name="selected_bom_line_ids" readonly="1"
                                        class="dl-rfq-bom-preview">
@@ -216,10 +254,18 @@
                                 <h2 class="dl-rfq-block-title">
                                     <span class="dl-rfq-block-no">⑵</span> Định mức vật tư
                                 </h2>
-                                <p class="text-muted mb-2">
+                                <!-- EX-09: SP chưa có định mức nào → KHÔNG hiện bảng rỗng khó
+                                     hiểu, mà hướng dẫn tạo định mức mới ngay. -->
+                                <div class="alert alert-light border py-2" role="status"
+                                     invisible="has_any_bom">
+                                    <i class="fa fa-info-circle me-1"/>
+                                    Sản phẩm này <b>chưa có định mức nào</b> — hãy tạo định mức mới
+                                    cho yêu cầu này.
+                                </div>
+                                <p class="text-muted mb-2" invisible="not has_any_bom">
                                     Chọn một định mức đã có của sản phẩm hoặc tạo định mức mới cho yêu cầu này.
                                 </p>
-                                <field name="bom_ids" nolabel="1">
+                                <field name="bom_ids" nolabel="1" invisible="not has_any_bom">
                                     <tree>
                                         <field name="name"/>
                                         <field name="bom_type" widget="badge"/>
@@ -231,7 +277,7 @@
                                                 title="Mở định mức trên trang đầy đủ"/>
                                     </tree>
                                 </field>
-                                <group>
+                                <group invisible="not has_any_bom">
                                     <field name="selected_bom_id"/>
                                 </group>
                                 <div class="dl-rfq-block-actions">
@@ -240,6 +286,11 @@
                                             invisible="not selected_bom_id"/>
                                     <button name="action_create_bom" type="object"
                                             string="Tạo định mức mới" class="btn-secondary btn-sm"/>
+                                    <!-- EX-16: bỏ NGAY bản nháp tạm (đổi ý) thay vì chờ cron. -->
+                                    <button name="action_discard_draft_bom" type="object"
+                                            string="Bỏ bản nháp này" class="btn-link btn-sm text-danger"
+                                            confirm="Bỏ bản định mức nháp này? Không thể hoàn tác."
+                                            invisible="not selected_bom_can_discard"/>
                                     <button name="action_toggle_bom_picker" type="object"
                                             string="Đóng danh sách" class="btn-link btn-sm"
                                             invisible="not show_bom_picker or not selected_bom_id"/>

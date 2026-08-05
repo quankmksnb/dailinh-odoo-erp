@@ -344,6 +344,34 @@ class DlQuotationRequest(models.Model):
                 stage = "processing"
             rec.tech_stage = stage
 
+    # U3 — RFQ nằm trong hàng đợi Kỹ thuật quá lâu (Chưa nhận/Đang xử lý). Xưởng
+    # nhỏ không ai canh hàng đợi ⇒ RFQ dễ "thối"; badge đỏ nhắc KTV ưu tiên. Mốc
+    # đếm: đang xử lý → từ lúc tiếp nhận; chưa nhận → từ lúc nhận yêu cầu. Ngưỡng
+    # cấu hình qua ir.config_parameter dl_technical.rfq_tech_aging_days (mặc định 3).
+    tech_waiting_days = fields.Integer(
+        string="Số ngày chờ xử lý", compute="_compute_tech_waiting")
+    tech_overdue = fields.Boolean(
+        string="Chờ xử lý quá lâu", compute="_compute_tech_waiting")
+
+    @api.depends("status", "received_by", "received_date", "requested_date")
+    def _compute_tech_waiting(self):
+        raw = self.env["ir.config_parameter"].sudo().get_param(
+            "dl_technical.rfq_tech_aging_days", 3)
+        try:
+            threshold = max(int(raw), 1)
+        except (TypeError, ValueError):
+            threshold = 3
+        now = fields.Datetime.now()
+        for rec in self:
+            days = 0
+            stage = rec.tech_stage
+            if stage in ("pending", "processing"):
+                anchor = rec.received_date if stage == "processing" else rec.requested_date
+                if anchor:
+                    days = (now - anchor).days
+            rec.tech_waiting_days = days
+            rec.tech_overdue = days >= threshold and stage in ("pending", "processing")
+
     # Màn Tạo RFQ tách 2 bảng riêng (trên/dưới) để cột không trùng nhau — cùng
     # trỏ line_ids, lọc + mặc định theo product_type. line_ids gốc vẫn dùng cho
     # status/logic.
@@ -924,6 +952,28 @@ class DlQuotationRequestLine(models.Model):
                 rec.resolved_summary = "Đã bổ sung — chờ Kỹ thuật xử lý"
             else:
                 rec.resolved_summary = "Chưa chọn sản phẩm"
+
+    # EX-13 / RES-022 — dòng đã xác định nhưng định mức còn vật tư THÔ chưa có
+    # giá NCC đã duyệt ⇒ Sales sẽ chưa tạo được báo giá (QTE-003). Hiện SỚM ngay
+    # trên dòng để Sales chủ động hối Mua hàng, thay vì đâm tường ở khâu sau.
+    # compute_sudo để đọc supplierinfo; chỉ lộ cờ + TÊN vật tư, không lộ giá.
+    pricing_blocked = fields.Boolean(
+        string="Thiếu giá NCC", compute="_compute_pricing_blocked",
+        compute_sudo=True)
+    pricing_block_summary = fields.Char(
+        string="Vật tư thiếu giá NCC", compute="_compute_pricing_blocked",
+        compute_sudo=True)
+
+    @api.depends("resolved_bom_id",
+                 "resolved_bom_id.line_ids.material_id",
+                 "resolved_bom_id.line_ids.material_id.seller_ids.is_applied",
+                 "resolved_bom_id.line_ids.material_id.seller_ids.approval_state")
+    def _compute_pricing_blocked(self):
+        for rec in self:
+            missing = rec.resolved_bom_id._dlm_unpriced_raw_materials()
+            rec.pricing_blocked = bool(missing)
+            rec.pricing_block_summary = ", ".join(
+                missing.mapped("display_name")) if missing else False
 
     request_status = fields.Selection(
         related="quotation_request_id.status",

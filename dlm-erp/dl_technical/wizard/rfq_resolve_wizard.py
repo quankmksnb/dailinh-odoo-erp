@@ -122,6 +122,13 @@ class DlRfqResolveWizard(models.TransientModel):
         readonly=True,
     )
 
+    # EX-05 / D-F — lọc nhóm MỀM: mặc định chỉ hiện SP cùng nhóm Sales khai,
+    # nhưng Sales có thể khai nhầm nhóm ⇒ KTV bật cờ này để tìm SP ở MỌI nhóm
+    # (thay vì buộc tạo SP trùng nghĩa). Chọn SP khác nhóm sẽ ghi chatter lúc
+    # Hoàn tất để Sales sửa nhóm cho RFQ sau. Không chặn — người biết việc là KTV.
+    search_outside_category = fields.Boolean(
+        string="Tìm sản phẩm ngoài nhóm Sales khai")
+
     # Danh sách SP hợp lệ để CHỌN: lọc theo Nhóm SP của RFQ (KHÔNG lọc theo
     # trạng thái vòng đời — chọn được cả draft lẫn active). Dùng làm domain cho
     # product_id (giống pattern bom_ids→selected_bom_id).
@@ -129,14 +136,15 @@ class DlRfqResolveWizard(models.TransientModel):
         "product.product", compute="_compute_allowed_product_ids",
         string="SP hợp lệ")
 
-    @api.depends("request_category_id")
+    @api.depends("request_category_id", "search_outside_category")
     def _compute_allowed_product_ids(self):
         Product = self.env["product.product"]
         for rec in self:
             domain = [
                 ("product_kind", "in", ("manufactured", "material_processed")),
             ]
-            if rec.request_category_id:
+            # Lọc nhóm chỉ áp khi KTV CHƯA bật "tìm ngoài nhóm" (EX-05).
+            if rec.request_category_id and not rec.search_outside_category:
                 domain.append(("categ_id", "child_of", rec.request_category_id.id))
             if rec.rfq_line_id:
                 domain.extend([
@@ -253,6 +261,44 @@ class DlRfqResolveWizard(models.TransientModel):
             else:
                 rec.selected_bom_label = _("BOM mẫu v%(n)s — %(st)s") % {
                     "n": bom.version, "st": status_lbl.get(bom.status, bom.status)}
+
+    # ── EX-09: SP đã chọn đã có định mức nào chưa? (ẩn bảng phiên bản rỗng) ──
+    has_any_bom = fields.Boolean(
+        string="Sản phẩm đã có định mức", compute="_compute_has_any_bom")
+
+    @api.depends("bom_ids")
+    def _compute_has_any_bom(self):
+        for rec in self:
+            rec.has_any_bom = bool(rec.bom_ids)
+
+    # ── EX-16: định mức đang chọn có phải bản NHÁP TẠM (bỏ ngay được không) ──
+    selected_bom_can_discard = fields.Boolean(
+        string="Có thể bỏ bản nháp",
+        compute="_compute_selected_bom_can_discard")
+
+    @api.depends("selected_bom_id", "selected_bom_id.is_rfq_provisional",
+                 "selected_bom_id.status")
+    def _compute_selected_bom_can_discard(self):
+        for rec in self:
+            bom = rec.selected_bom_id
+            rec.selected_bom_can_discard = bool(
+                bom and bom.is_rfq_provisional and bom.status == "draft")
+
+    # ── EX-13 / RES-022: vật tư trong định mức chưa có giá NCC đã duyệt ──────
+    # Chỉ lộ TÊN + SỐ LƯỢNG vật tư thiếu giá — KTV KHÔNG thấy con số giá (§15.4).
+    pricing_block_count = fields.Integer(
+        string="Số vật tư thiếu giá NCC", compute="_compute_pricing_block")
+    pricing_block_names = fields.Char(
+        string="Vật tư thiếu giá NCC", compute="_compute_pricing_block")
+
+    @api.depends("selected_bom_id", "selected_bom_id.line_ids",
+                 "selected_bom_id.line_ids.material_id")
+    def _compute_pricing_block(self):
+        for rec in self:
+            missing = rec.selected_bom_id._dlm_unpriced_raw_materials()
+            rec.pricing_block_count = len(missing)
+            rec.pricing_block_names = ", ".join(
+                missing.mapped("display_name")) if missing else False
 
     # ── Checklist ⑶ (tự tick) + điều kiện Hoàn tất (decision dock) ───────────
     check_product = fields.Boolean(compute="_compute_checklist")
@@ -492,6 +538,79 @@ class DlRfqResolveWizard(models.TransientModel):
         self.show_bom_picker = not self.show_bom_picker
         return self._action_reload()
 
+    def action_search_outside_category(self):
+        """EX-05 / D-F — bật/tắt tìm SP ở MỌI nhóm (khi Sales khai nhầm nhóm).
+        Xoá lựa chọn hiện tại để KTV chọn lại trong danh sách mở rộng."""
+        self.ensure_one()
+        self.write({
+            "search_outside_category": not self.search_outside_category,
+            "product_id": False,
+            "manual_bom_id": False,
+        })
+        return self._action_reload()
+
+    def action_discard_draft_bom(self):
+        """EX-16 — bỏ NGAY một bản định mức nháp tạm (đổi ý) thay vì chờ cron 7
+        ngày. Chỉ áp dụng cho BOM đang tạm (is_rfq_provisional) + Nháp."""
+        self.ensure_one()
+        bom = self.selected_bom_id
+        if not (bom and bom.is_rfq_provisional and bom.status == "draft"):
+            raise UserError(_(
+                "Chỉ bỏ được bản định mức nháp tạm của phiên xử lý này."))
+        self.manual_bom_id = False
+        self.show_bom_picker = False
+        bom.sudo().unlink()
+        return self._action_reload()
+
+    def action_notify_purchasing(self):
+        """EX-13 / RES-022 — báo nhóm Mua hàng cập nhật giá NCC cho các vật tư
+        thô còn thiếu giá đã duyệt trong định mức đang chọn.
+
+        Giao việc + đăng chatter TRÊN CHÍNH VẬT TƯ (product.product): nhóm Mua
+        hàng sở hữu vật tư (read+write) nên mở được. KHÔNG gắn việc lên RFQ vì
+        Mua hàng KHÔNG có quyền đọc dl.quotation.request ⇒ activity sẽ trỏ vào
+        bản ghi họ không mở nổi. Có CHỐNG TRÙNG: không tạo lại việc 'cập nhật
+        giá' đang mở cho cùng vật tư + cùng người. KTV chỉ nêu TÊN vật tư, không
+        đụng tới giá. RFQ chỉ nhận một dòng GHI VẾT (Sales/Kỹ thuật đọc được)."""
+        self.ensure_one()
+        missing = self.selected_bom_id._dlm_unpriced_raw_materials()
+        if not missing:
+            return self._action_reload()
+        request = self.rfq_line_id.quotation_request_id
+        line_name = self.rfq_line_id.product_name or ""
+        purchasing = self.env.ref(
+            "dl_base.dl_group_purchasing", raise_if_not_found=False)
+        users = purchasing.users if purchasing else self.env["res.users"]
+        todo_type = self.env.ref("mail.mail_activity_data_todo")
+        Activity = self.env["mail.activity"].sudo()
+        for material in missing:
+            material.sudo().message_post(body=_(
+                "Kỹ thuật (RFQ %(rfq)s — dòng %(line)s) cần Mua hàng cập nhật "
+                "giá NCC (đã duyệt &amp; đang áp dụng) cho vật tư này.",
+                rfq=request.name, line=line_name))
+            for user in users:
+                already_open = Activity.search_count([
+                    ("res_model", "=", "product.product"),
+                    ("res_id", "=", material.id),
+                    ("user_id", "=", user.id),
+                    ("activity_type_id", "=", todo_type.id),
+                ])
+                if already_open:
+                    continue
+                material.sudo().activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    summary=_("Cập nhật giá NCC — %s") % material.display_name,
+                    note=_("Yêu cầu từ Kỹ thuật khi xử lý RFQ %(rfq)s "
+                           "(dòng %(line)s).", rfq=request.name, line=line_name),
+                    user_id=user.id,
+                )
+        # Ghi vết trên RFQ để Sales/Kỹ thuật thấy đã báo Mua hàng (họ đọc RFQ được).
+        request.sudo().message_post(body=_(
+            "Kỹ thuật đã báo Mua hàng cập nhật giá NCC cho vật tư của dòng "
+            "<b>%(line)s</b>: %(names)s.",
+            line=line_name, names=", ".join(missing.mapped("display_name"))))
+        return self._action_reload()
+
     def action_confirm_bom(self):
         """Nút [Xác nhận định mức] ngay trong checklist ⑶ — dành cho ai muốn chốt
         định mức trước rồi mới Hoàn tất (vd bàn giao cho người khác). Hoàn tất
@@ -716,6 +835,20 @@ class DlRfqResolveWizard(models.TransientModel):
             # Xác nhận lại = đã xem lại xong (dùng cho luồng "Cần xem lại").
             "needs_review": False,
         })
+        # EX-05 — SP chốt KHÁC nhóm Sales khai (KTV đã bật "Tìm ngoài nhóm"):
+        # ghi chatter để Sales sửa nhóm cho RFQ sau. So bằng parent_path (child_of).
+        req_categ = self.rfq_line_id.product_category_id
+        prod_categ = self.product_id.categ_id
+        if (req_categ and prod_categ and req_categ.parent_path
+                and not (prod_categ.parent_path or "").startswith(req_categ.parent_path)):
+            self.rfq_line_id.quotation_request_id.sudo().message_post(body=_(
+                "Kỹ thuật chọn sản phẩm <b>%(prod)s</b> thuộc nhóm "
+                "<b>%(pcat)s</b> cho dòng <b>%(line)s</b> mà Sales khai nhóm "
+                "<b>%(rcat)s</b>. Cân nhắc sửa lại nhóm sản phẩm cho các RFQ sau.",
+                prod=self.product_id.display_name, pcat=prod_categ.display_name,
+                line=self.rfq_line_id.product_name or "",
+                rcat=req_categ.display_name))
+
         if self.product_id.is_rfq_provisional:
             self.product_id.write({"is_rfq_provisional": False})
             self.product_id.message_post(body=_(

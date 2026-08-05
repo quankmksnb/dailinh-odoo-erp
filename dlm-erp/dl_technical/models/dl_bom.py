@@ -230,6 +230,31 @@ class DlBom(models.Model):
         self.ensure_one()
         return self.bom_type != "quotation" and not self.is_rfq_provisional
 
+    def _dlm_unpriced_raw_materials(self):
+        """Vật tư THÔ trong định mức chưa có giá NCC đã duyệt & đang áp dụng (EX-13).
+
+        Trả về recordset ``product.product`` (vật tư thô, product_kind='material')
+        mà KHÔNG có supplierinfo nào vừa 'đang áp dụng' vừa 'đã duyệt'. Bán thành
+        phẩm (material_processed) không tính vì giá vốn của nó suy từ BOM con, không
+        phải từ giá NCC — khớp đúng cách pricing engine tính (QTE-003 chỉ áp cho
+        vật tư thô).
+
+        Dùng ``sudo`` để đọc được supplierinfo (Kỹ thuật thường không có quyền) —
+        nhưng NƠI GỌI chỉ được lộ TÊN vật tư/số lượng, KHÔNG lộ giá (RBAC §15.4).
+        """
+        Product = self.env["product.product"]
+        missing = Product.browse()
+        for bom in self:
+            for line in bom.line_ids:
+                material = line.material_id
+                if not material or material.product_kind != "material":
+                    continue
+                priced = material.sudo().seller_ids.filtered(
+                    lambda s: s.is_applied and s.approval_state == "approved")
+                if not priced:
+                    missing |= material
+        return missing
+
     def action_lock(self):
         if self.filtered("is_rfq_provisional"):
             raise UserError(_(
