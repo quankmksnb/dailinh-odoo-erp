@@ -55,3 +55,15 @@ access_dl_rfq_history_wizard_tech,dl.rfq.history.wizard Tech,model_dl_rfq_histor
 access_dl_rfq_history_wizard_ba,dl.rfq.history.wizard BA,model_dl_rfq_history_wizard,dl_base.dl_group_ba,1,1,1,1
 access_dl_rfq_history_wizard_sm,dl.rfq.history.wizard SM,model_dl_rfq_history_wizard,dl_base.dl_group_sales_manager,1,1,1,1
 access_dl_rfq_history_wizard_ceo,dl.rfq.history.wizard CEO,model_dl_rfq_history_wizard,dl_base.dl_group_ceo,1,1,1,1
+access_dl_bom_template_param_ceo,dl.bom.template.param CEO,model_dl_bom_template_param,dl_base.dl_group_ceo,1,0,0,0
+access_dl_bom_template_param_admin,dl.bom.template.param Admin,model_dl_bom_template_param,dl_base.dl_group_admin,1,1,1,1
+access_dl_bom_template_param_tech,dl.bom.template.param Tech,model_dl_bom_template_param,dl_base.dl_group_tech,1,1,1,1
+access_dl_bom_template_param_ba,dl.bom.template.param BA,model_dl_bom_template_param,dl_base.dl_group_ba,1,0,0,0
+access_dl_bom_template_param_sm,dl.bom.template.param SM,model_dl_bom_template_param,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_bom_tmpl_line_param_map_ceo,dl.bom.template.line.param.map CEO,model_dl_bom_template_line_param_map,dl_base.dl_group_ceo,1,0,0,0
+access_dl_bom_tmpl_line_param_map_admin,dl.bom.template.line.param.map Admin,model_dl_bom_template_line_param_map,dl_base.dl_group_admin,1,1,1,1
+access_dl_bom_tmpl_line_param_map_tech,dl.bom.template.line.param.map Tech,model_dl_bom_template_line_param_map,dl_base.dl_group_tech,1,1,1,1
+access_dl_bom_tmpl_line_param_map_ba,dl.bom.template.line.param.map BA,model_dl_bom_template_line_param_map,dl_base.dl_group_ba,1,0,0,0
+access_dl_bom_tmpl_line_param_map_sm,dl.bom.template.line.param.map SM,model_dl_bom_template_line_param_map,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_rfq_resolve_param_admin,dl.rfq.resolve.param Admin,model_dl_rfq_resolve_param,dl_base.dl_group_admin,1,1,1,1
+access_dl_rfq_resolve_param_tech,dl.rfq.resolve.param Tech,model_dl_rfq_resolve_param,dl_base.dl_group_tech,1,1,1,1

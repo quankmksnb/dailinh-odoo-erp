@@ -49,6 +49,9 @@
                     <field name="suggestion_state" invisible="1"/>
                     <field name="suggestion_count" invisible="1"/>
                     <field name="auto_selected" invisible="1"/>
+                    <field name="has_parametric_template" invisible="1"/>
+                    <field name="show_param_panel" invisible="1"/>
+                    <field name="param_from_note" invisible="1"/>
 
                     <!-- Banner dữ liệu tạm / chờ bổ sung (toàn bề ngang). -->
                     <div class="alert alert-warning" role="status"
@@ -305,6 +308,50 @@
                                 <p class="text-muted mb-2" invisible="not has_any_bom">
                                     Chọn một định mức đã có của sản phẩm hoặc tạo định mức mới cho yêu cầu này.
                                 </p>
+
+                                <!-- Đợt 4 — Sinh định mức từ BOM mẫu tham số: nhập D/R/C
+                                     MỘT LẦN, hệ thống tự suy kích thước từng dòng vật tư
+                                     (không tính tay). Chỉ hiện khi nhóm SP có mẫu tham số. -->
+                                <div class="alert alert-info py-2" role="status"
+                                     invisible="not has_parametric_template or show_param_panel">
+                                    <i class="fa fa-magic me-1" title="Mẫu tham số"/>
+                                    Nhóm sản phẩm này có <b>mẫu tham số</b>
+                                    (<field name="parametric_template_id" readonly="1" nolabel="1"
+                                            class="dl-rfq-inline-field"/>) —
+                                    nhập kích thước, hệ thống tự sinh định mức.
+                                    <button name="action_open_param_panel" type="object"
+                                            string="Nhập kích thước &amp; sinh định mức"
+                                            class="btn-primary btn-sm ms-1"/>
+                                </div>
+
+                                <div class="dl-rfq-param-panel border rounded p-2 mb-2"
+                                     invisible="not show_param_panel">
+                                    <div class="fw-bold mb-1">
+                                        <i class="fa fa-magic me-1"/>Sinh định mức từ mẫu:
+                                        <field name="parametric_template_id" readonly="1" nolabel="1"
+                                               class="dl-rfq-inline-field"/>
+                                    </div>
+                                    <field name="param_line_ids" nolabel="1">
+                                        <tree editable="bottom" create="0" delete="0">
+                                            <field name="name" readonly="1"/>
+                                            <field name="value"/>
+                                            <field name="range_hint" readonly="1"/>
+                                            <field name="from_note" readonly="1"
+                                                   string="Đọc từ mô tả" widget="boolean"/>
+                                        </tree>
+                                    </field>
+                                    <div class="text-muted small mt-1" invisible="not param_from_note">
+                                        <i class="fa fa-info-circle me-1"/>Một số giá trị được đọc
+                                        từ mô tả Sales — kiểm tra lại trước khi sinh.
+                                    </div>
+                                    <div class="mt-2">
+                                        <button name="action_generate_instance" type="object"
+                                                string="Sinh định mức" class="btn-primary btn-sm"/>
+                                        <button name="action_close_param_panel" type="object"
+                                                string="Đóng" class="btn-link btn-sm"/>
+                                    </div>
+                                </div>
+
                                 <field name="bom_ids" nolabel="1" invisible="not has_any_bom">
                                     <tree>
                                         <field name="name"/>

@@ -87,6 +87,40 @@ class DlBom(models.Model):
         tracking=True,
     )
 
+    # ── Đợt 4 — vết của một INSTANCE sinh từ mẫu tham số (thiết kế §7.4c) ─────
+    # Chỉ có ý nghĩa với bom_type='quotation' sinh qua generate_instance. BOM
+    # dựng tay để trống các field này.
+    source_template_id = fields.Many2one(
+        "dl.bom.template", string="Sinh từ mẫu",
+        readonly=True, ondelete="restrict", copy=False)
+    source_template_version = fields.Integer(
+        string="Phiên bản mẫu", readonly=True, copy=False)
+    param_values = fields.Json(
+        string="Giá trị tham số", readonly=True, copy=False)
+    # Chữ ký chuẩn hoá của bộ tham số ("C=750|D=1400|R=830") — xương sống của
+    # đường A (khớp cấu hình cũ) và cơ chế catalog (§18.4). Có index để tra nhanh.
+    param_signature = fields.Char(
+        string="Chữ ký tham số", readonly=True, index=True, copy=False)
+    has_deviation = fields.Boolean(
+        string="Có sai khác so với mẫu", readonly=True, copy=False)
+    deviation_note = fields.Text(string="Ghi chú sai khác", copy=False)
+
+    @api.model
+    def _dlm_param_signature(self, param_values):
+        """Chữ ký chuẩn hoá của bộ tham số: khoá sắp alphabet, số làm tròn 1 chữ
+        số thập phân, số nguyên bỏ '.0'. VD {"D":1400,"R":830} → "D=1400|R=830".
+        Dùng để so khớp cấu hình đã sinh (đường A) và đếm lần lặp (catalog)."""
+        parts = []
+        for code in sorted((param_values or {}).keys()):
+            try:
+                value = round(float(param_values[code]), 1)
+            except (TypeError, ValueError):
+                continue
+            if value == int(value):
+                value = int(value)
+            parts.append("%s=%s" % (code, value))
+        return "|".join(parts)
+
     line_ids = fields.One2many(
         "dl.bom.line",
         "bom_id",

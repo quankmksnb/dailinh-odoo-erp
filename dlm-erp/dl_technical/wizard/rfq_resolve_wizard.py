@@ -4,6 +4,39 @@ from odoo.exceptions import UserError
 from ..models.dl_quotation_request import _MATCH_THRESHOLD_AUTO
 
 
+class DlRfqResolveParam(models.TransientModel):
+    """Một dòng nhập tham số (D/R/C) trong panel 'Sinh định mức từ mẫu' của
+    workspace xử lý RFQ (Đợt 4). Chỉ sống trong phiên xử lý hiện tại."""
+
+    _name = "dl.rfq.resolve.param"
+    _description = "Tham số sinh định mức (workspace RFQ)"
+    _order = "sequence, id"
+
+    wizard_id = fields.Many2one(
+        "dl.rfq.resolve.wizard", required=True, ondelete="cascade")
+    template_param_id = fields.Many2one("dl.bom.template.param", readonly=True)
+    sequence = fields.Integer(default=10)
+    code = fields.Char(readonly=True)
+    name = fields.Char(string="Tham số", readonly=True)
+    value = fields.Float(string="Giá trị")
+    value_min = fields.Float(readonly=True)
+    value_max = fields.Float(readonly=True)
+    required = fields.Boolean(readonly=True)
+    # Giá trị được ĐỌC TỪ MÔ TẢ Sales (dimension_note) — cảnh báo KTV kiểm lại
+    # (RES-020: dữ liệu đoán từ văn bản, sai một chữ số là sai cả báo giá).
+    from_note = fields.Boolean(string="Đọc từ mô tả", readonly=True)
+    range_hint = fields.Char(string="Miền hợp lệ", compute="_compute_range_hint")
+
+    @api.depends("value_min", "value_max")
+    def _compute_range_hint(self):
+        for rec in self:
+            if rec.value_min or rec.value_max:
+                rec.range_hint = _("Miền hợp lệ: %(min)s – %(max)s") % {
+                    "min": rec.value_min or "—", "max": rec.value_max or "—"}
+            else:
+                rec.range_hint = False
+
+
 class DlRfqResolveWizard(models.TransientModel):
     """Màn 'Nhận RFQ' (Kỹ thuật) — chọn/tạo Product + BOM cho 1 dòng RFQ.
 
@@ -330,6 +363,38 @@ class DlRfqResolveWizard(models.TransientModel):
     def _compute_has_any_bom(self):
         for rec in self:
             rec.has_any_bom = bool(rec.bom_ids)
+
+    # ── Đợt 4 — sinh định mức từ BOM mẫu tham số ─────────────────────────────
+    parametric_template_id = fields.Many2one(
+        "dl.bom.template", string="Mẫu tham số",
+        compute="_compute_parametric_template")
+    has_parametric_template = fields.Boolean(
+        string="Nhóm SP có mẫu tham số", compute="_compute_parametric_template")
+    show_param_panel = fields.Boolean(string="Đang mở panel tham số")
+    param_line_ids = fields.One2many(
+        "dl.rfq.resolve.param", "wizard_id", string="Tham số")
+    param_from_note = fields.Boolean(
+        string="Có tham số đọc từ mô tả", compute="_compute_param_from_note")
+
+    @api.depends("product_id", "product_id.categ_id")
+    def _compute_parametric_template(self):
+        Template = self.env["dl.bom.template"]
+        for rec in self:
+            tmpl = Template.browse()
+            categ = rec.product_id.categ_id
+            if categ:
+                tmpl = Template.search([
+                    ("product_category_id", "=", categ.id),
+                    ("status", "in", ("confirmed", "locked")),
+                    ("is_parametric", "=", True),
+                ], order="is_current desc, version desc", limit=1)
+            rec.parametric_template_id = tmpl
+            rec.has_parametric_template = bool(tmpl)
+
+    @api.depends("param_line_ids.from_note")
+    def _compute_param_from_note(self):
+        for rec in self:
+            rec.param_from_note = any(rec.param_line_ids.mapped("from_note"))
 
     # ── EX-16: định mức đang chọn có phải bản NHÁP TẠM (bỏ ngay được không) ──
     selected_bom_can_discard = fields.Boolean(
@@ -824,6 +889,71 @@ class DlRfqResolveWizard(models.TransientModel):
         })
         self.manual_bom_id = bom.id
         return self._action_open_bom(bom, _("BOM mới"))
+
+    # ── Đợt 4 — panel nhập tham số + Sinh định mức ───────────────────────────
+    def action_open_param_panel(self):
+        """Mở panel nhập tham số (D/R/C) của mẫu tham số cho nhóm SP hiện tại;
+        tự đọc sẵn giá trị từ mô tả Sales (đánh dấu 'đọc từ mô tả' để KTV kiểm)."""
+        self.ensure_one()
+        tmpl = self.parametric_template_id
+        if not tmpl:
+            raise UserError(_(
+                "Nhóm sản phẩm này chưa có BOM mẫu tham số đã xác nhận."))
+        parsed = {}
+        try:
+            parsed = self.rfq_line_id._dlm_parse_dimensions(
+                self.request_dimension_note, self.request_product_name) or {}
+        except Exception:
+            parsed = {}
+        commands = [(5, 0, 0)]
+        for param in tmpl.param_ids:
+            value = param.default_value
+            from_note = False
+            if param.dim_role and param.dim_role != "none":
+                got = parsed.get(param.dim_role)
+                if got:
+                    value = got
+                    from_note = True
+            commands.append((0, 0, {
+                "template_param_id": param.id,
+                "sequence": param.sequence,
+                "code": param.code,
+                "name": param.name,
+                "value": value,
+                "value_min": param.value_min,
+                "value_max": param.value_max,
+                "required": param.required,
+                "from_note": from_note,
+            }))
+        self.write({"show_param_panel": True, "param_line_ids": commands})
+        return self._action_reload()
+
+    def action_close_param_panel(self):
+        self.ensure_one()
+        self.write({"show_param_panel": False, "param_line_ids": [(5, 0, 0)]})
+        return self._action_reload()
+
+    def action_generate_instance(self):
+        """Sinh định mức từ mẫu tham số + gắn làm định mức đang chọn của dòng.
+        Định mức chuẩn của các dòng vật tư được tính tự động — KTV không nhập tay."""
+        self.ensure_one()
+        tmpl = self.parametric_template_id
+        if not tmpl:
+            raise UserError(_("Không có BOM mẫu tham số để sinh."))
+        if not self.product_id:
+            raise UserError(_("Vui lòng chọn sản phẩm trước khi sinh định mức."))
+        param_values = {pl.code: pl.value for pl in self.param_line_ids}
+        # Dọn bản tạm cũ của dòng (nếu KTV sinh lại) rồi sinh mới; giữ SP đang dùng.
+        self.rfq_line_id._cleanup_rfq_provisional_records(
+            keep_product_ids=self.product_id.ids)
+        bom = tmpl.generate_instance(
+            self.product_id, param_values, self.rfq_line_id)
+        self.write({
+            "manual_bom_id": bom.id,
+            "show_param_panel": False,
+            "param_line_ids": [(5, 0, 0)],
+        })
+        return self._action_reload()
 
     def action_edit_selected_bom(self):
         """Mở BOM nháp để sửa; BOM đã duyệt thì sao chép thành version nháp.
