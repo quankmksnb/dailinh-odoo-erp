@@ -178,13 +178,27 @@ class DlQuotationPricingService(models.AbstractModel):
             order="valid_from desc, revision desc", limit=1)
 
     def _active_discount_rule(self, company, date, partner):
-        group = partner.dlm_customer_group
+        # RV-05 / QTE-006: báo giá KHÔNG được âm thầm thoát khỏi trần chiết khấu.
+        # Trước đây trả rỗng ⇒ above_default/above_max luôn False ⇒ Sales nhập
+        # chiết khấu bao nhiêu cũng không phát sinh duyệt. Hai lỗ hổng cần bịt:
+        #   (1) khách chưa được phân nhóm (dlm_customer_group rỗng) → coi như
+        #       "Khách mới" (nhóm an toàn nhất theo thiết kế §7.3);
+        #   (2) nhóm của khách CHƯA có bảng chiết khấu đang áp dụng → lấy rule an
+        #       toàn nhất (trần max_rate thấp nhất) trong các rule active làm dự
+        #       phòng, thay vì thả nổi trần.
+        group = partner.dlm_customer_group or "new"
         Discount = self.env["dl.pricing.discount.rule"].sudo()
-        if not group:
-            return Discount.browse()
-        return Discount.search(
-            self._active_rule_domain(company, date) + [("customer_group", "=", group)],
+        base_domain = self._active_rule_domain(company, date)
+        rule = Discount.search(
+            base_domain + [("customer_group", "=", group)],
             order="valid_from desc, revision desc", limit=1)
+        if rule:
+            return rule
+        # Không có rule cho nhóm này — dự phòng bằng rule trần thấp nhất còn hiệu
+        # lực. Không có rule nào ⇒ DN chưa thiết lập chính sách chiết khấu (mặc
+        # định 0%, không áp trần) — đó là quyết định cấu hình toàn cục.
+        return Discount.search(
+            base_domain, order="max_rate asc, valid_from desc, revision desc", limit=1)
 
     @staticmethod
     def _round_price(value, rounding_to):

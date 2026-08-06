@@ -64,6 +64,12 @@
                     <button name="action_create_sale_order" string="Tạo đơn bán hàng"
                             type="object" class="btn-primary"
                             invisible="state != 'accepted'"/>
+                    <!-- RV-08 — khách đổi ý trước khi lên đơn: rút lại đồng ý,
+                         đưa báo giá về Đã gửi khách để mở lại các nhánh. -->
+                    <button name="action_customer_withdraw" string="Khách rút đồng ý"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'accepted'"
+                            confirm="Đưa báo giá về 'Đã gửi khách' để khách xem lại?"/>
                     <button name="action_open_sale_order" string="Mở đơn bán hàng"
                             type="object" class="btn-primary"
                             invisible="state != 'ordered'"/>
@@ -175,6 +181,12 @@
                             <label for="pricing_date" string="Ngày tính giá"/>
                             <field name="pricing_date" nolabel="1" readonly="1"/>
                         </div>
+                    </div>
+                    <!-- RV-09 — cảnh báo mềm khi khách thiếu MST/địa chỉ (chỉ
+                         nhắc lúc còn Nháp/Đã duyệt, không chặn gửi). -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state not in ('draft', 'approved') or not customer_data_warning">
+                        <field name="customer_data_warning" nolabel="1" readonly="1"/>
                     </div>
                     <notebook>
                         <page string="Chi tiết báo giá">
@@ -289,7 +301,24 @@
                                 </tree>
                             </field>
                         </page>
-                        <page string="Ghi chú">
+                        <page string="Điều khoản &amp; Ghi chú">
+                            <!-- RV-09 — điều khoản thương mại đưa vào bản gửi
+                                 khách (PDF/Word). Văn bản mô tả, không ảnh hưởng
+                                 giá nên để sửa tới khi lên đơn. -->
+                            <group>
+                                <group string="Điều khoản gửi khách">
+                                    <field name="payment_terms"
+                                           readonly="state in ('ordered', 'cancelled', 'superseded')"
+                                           placeholder="Vd: Tạm ứng 50% khi ký, 50% khi giao hàng..."/>
+                                    <field name="delivery_terms"
+                                           readonly="state in ('ordered', 'cancelled', 'superseded')"
+                                           placeholder="Thời gian / địa điểm giao hàng..."/>
+                                    <field name="warranty_terms"
+                                           readonly="state in ('ordered', 'cancelled', 'superseded')"
+                                           placeholder="Điều kiện và thời gian bảo hành..."/>
+                                </group>
+                            </group>
+                            <separator string="Ghi chú nội bộ"/>
                             <field name="note" nolabel="1" class="dl-textarea-lg"
                                    placeholder="Ghi chú thêm..."/>
                         </page>

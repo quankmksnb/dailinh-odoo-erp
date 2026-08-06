@@ -54,6 +54,13 @@ class DlQuotationDocument(models.Model):
         except Exception:  # noqa: BLE001 — không chặn xuất file nếu đọc chữ lỗi
             amount_words = ""
 
+        # RV-09 — điều khoản thương mại (chỉ hiện mục có nhập) đưa vào bản khách.
+        terms = [(label, text) for label, text in (
+            (_("Thanh toán"), self.payment_terms),
+            (_("Giao hàng"), self.delivery_terms),
+            (_("Bảo hành"), self.warranty_terms),
+        ) if text]
+
         return {
             "company": company,
             "partner": partner,
@@ -61,6 +68,7 @@ class DlQuotationDocument(models.Model):
             "lines": lines,
             "money": money,
             "amount_words": amount_words,
+            "terms": terms,
         }
 
     # ==================================================================
@@ -195,9 +203,20 @@ class DlQuotationDocument(models.Model):
             wr = wp.add_run("Bằng chữ: %s" % ctx["amount_words"])
             wr.italic = True
 
+        # --- Điều khoản gửi khách (RV-09) ---
+        if ctx["terms"]:
+            tp = doc.add_paragraph()
+            tp.add_run("ĐIỀU KHOẢN:").bold = True
+            tp.paragraph_format.space_after = Pt(0)
+            for label, text in ctx["terms"]:
+                lp = doc.add_paragraph()
+                lp.add_run("• %s: " % label).bold = True
+                lp.add_run(text)
+                lp.paragraph_format.space_after = Pt(0)
+
         if self.note:
             np = doc.add_paragraph()
-            np.add_run("Ghi chú / Điều khoản:").bold = True
+            np.add_run("Ghi chú:").bold = True
             doc.add_paragraph(self.note)
 
         # --- Chữ ký ---
@@ -392,9 +411,18 @@ class DlQuotationDocument(models.Model):
             story.append(Paragraph(
                 "<i>Bằng chữ: %s</i>" % ctx["amount_words"], base))
 
+        # --- Điều khoản gửi khách (RV-09) ---
+        if ctx["terms"]:
+            story.append(Spacer(1, 3 * mm))
+            story.append(Paragraph("<b>ĐIỀU KHOẢN:</b>", base))
+            for label, text in ctx["terms"]:
+                story.append(Paragraph(
+                    "<b>%s:</b> %s" % (label, (text or "").replace("\n", "<br/>")),
+                    base))
+
         if self.note:
             story.append(Spacer(1, 3 * mm))
-            story.append(Paragraph("<b>Ghi chú / Điều khoản:</b>", base))
+            story.append(Paragraph("<b>Ghi chú:</b>", base))
             story.append(Paragraph(
                 (self.note or "").replace("\n", "<br/>"), base))
 

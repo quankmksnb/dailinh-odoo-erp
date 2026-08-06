@@ -49,6 +49,26 @@ class DlQuotation(models.Model):
     ], string='Trạng thái', default='draft', tracking=True)
     note = fields.Text(string='Ghi chú')
 
+    # --- Điều khoản thương mại đưa vào bản gửi khách (RV-09) ---
+    # Văn bản mô tả, KHÔNG ảnh hưởng giá/định tuyến phê duyệt nên để sửa tự do
+    # tới khi lên đơn; render vào PDF/Word (quotation_document._document_context).
+    payment_terms = fields.Text(
+        string='Điều khoản thanh toán',
+        help='Vd: Tạm ứng 50% khi ký hợp đồng, 50% khi giao hàng.')
+    delivery_terms = fields.Text(
+        string='Điều khoản giao hàng',
+        help='Thời gian / địa điểm giao hàng, phương thức vận chuyển.')
+    warranty_terms = fields.Text(
+        string='Bảo hành',
+        help='Điều kiện và thời gian bảo hành.')
+
+    # Cảnh báo MỀM (không chặn) khi khách thiếu dữ liệu thương mại tối thiểu để
+    # phát hành báo giá cho doanh nghiệp — hiển thị trên form và ghi chatter khi
+    # gửi (RV-09). Không dùng constrains để không chặn luồng.
+    customer_data_warning = fields.Char(
+        string='Cảnh báo dữ liệu khách',
+        compute='_compute_customer_data_warning')
+
     # --- Hạn hiệu lực với khách (đặc tả "Trường hợp 5 — khách không phản hồi") ---
     validity_date = fields.Date(
         string='Hạn hiệu lực', tracking=True, copy=False,
@@ -95,6 +115,21 @@ class DlQuotation(models.Model):
     def _compute_revision_count(self):
         for rec in self:
             rec.revision_count = len(rec.revision_ids)
+
+    @api.depends('partner_id', 'partner_id.vat', 'partner_id.street')
+    def _compute_customer_data_warning(self):
+        """RV-09 — liệt kê dữ liệu thương mại tối thiểu còn thiếu của khách (MST,
+        địa chỉ). Cảnh báo mềm để Sales bổ sung trước khi phát hành cho DN."""
+        for rec in self:
+            missing = []
+            partner = rec.partner_id
+            if partner and not partner.vat:
+                missing.append(_("mã số thuế"))
+            if partner and not partner.street:
+                missing.append(_("địa chỉ"))
+            rec.customer_data_warning = (_(
+                "Khách hàng thiếu %s — nên bổ sung trước khi gửi báo giá cho "
+                "doanh nghiệp.") % ", ".join(missing)) if missing else False
     # copy=True: "Lập phiên bản mới" (action_create_revision → copy) phải mang
     # theo toàn bộ dòng chi tiết sang bản mới (Odoo mặc định KHÔNG copy o2m).
     line_ids = fields.One2many('dl.quotation.line', 'quotation_id',
@@ -532,6 +567,10 @@ class DlQuotation(models.Model):
         # Đính bản PDF vào chatter làm bằng chứng "bản đã gửi" (RV-02 / SALE-07).
         # Bản dựng bằng reportlab (thuần Python) — không phụ thuộc wkhtmltopdf.
         for rec in self:
+            # RV-09 — cảnh báo mềm (không chặn) khi khách thiếu MST/địa chỉ.
+            if rec.customer_data_warning:
+                rec.message_post(body=_(
+                    "Lưu ý khi phát hành: %s") % rec.customer_data_warning)
             rec._post_quotation_document_to_chatter()
 
     def _default_validity_date(self):
@@ -628,6 +667,20 @@ class DlQuotation(models.Model):
                 raise UserError(_(
                     "Chỉ ghi nhận khách đồng ý trên báo giá đã gửi khách."))
         self.write({'state': 'accepted'})
+
+    def action_customer_withdraw(self):
+        """RV-08 — Khách đã đồng ý nhưng đổi ý / xin chỉnh TRƯỚC khi lên đơn:
+        đưa báo giá về 'Đã gửi khách' để mở lại các nhánh phản hồi (đồng ý lại /
+        yêu cầu điều chỉnh / từ chối) thay vì phải lùi trạng thái thủ công qua
+        RPC. Không áp dụng khi đã lên đơn — 'ordered' là trạng thái cuối."""
+        for rec in self:
+            if rec.state != 'accepted':
+                raise UserError(_(
+                    "Chỉ rút lại đồng ý trên báo giá khách đã đồng ý (chưa lên đơn)."))
+        self.write({'state': 'sent'})
+        for rec in self:
+            rec.message_post(body=_(
+                "Khách rút lại đồng ý — báo giá quay về Đã gửi khách để xử lý tiếp."))
 
     def action_open_revision_wizard(self):
         """Khách yêu cầu điều chỉnh — mở ô nhập LOẠI điều chỉnh (giá/chiết khấu,

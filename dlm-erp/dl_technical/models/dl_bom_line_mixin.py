@@ -267,6 +267,29 @@ class DlBomLineMixin(models.AbstractModel):
             rec.computed_quantity = qty if qty is not None else 0.0
 
     # ==========================================================
+    # CRUD
+    # ==========================================================
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """RV-07 — Dòng BOM tạo BẰNG CODE (bộ sinh định mức tham số Đợt 4, import
+        dữ liệu) KHÔNG chạy onchange nên % hao hụt không tự bung theo hệ số phức
+        tạp ⇒ hao hụt thấp hơn thực, giá vốn thiếu. Nếu người tạo chưa nêu
+        waste_rate rõ ràng mà dòng đã có vật tư, tự tính = hao hụt cơ sở của vật
+        tư × hệ số phức tạp (đối xứng _onchange_material_waste của luồng UI).
+        Không đụng khi caller đã truyền waste_rate (vd _mixin_copy_vals của BOM
+        mẫu đã mang sẵn giá trị đúng)."""
+        for vals in vals_list:
+            if "waste_rate" not in vals and vals.get("material_id"):
+                material = self.env["product.product"].browse(vals["material_id"])
+                factor = 1.0
+                if vals.get("complexity_id"):
+                    factor = self.env["dl.pricing.complexity.level"].browse(
+                        vals["complexity_id"]).factor or 1.0
+                vals["waste_rate"] = (material.dlm_waste_rate or 0.0) * factor
+        return super().create(vals_list)
+
+    # ==========================================================
     # ONCHANGE
     # ==========================================================
 
