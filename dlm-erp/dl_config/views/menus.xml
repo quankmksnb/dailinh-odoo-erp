@@ -43,15 +43,6 @@
     />
 
     <menuitem
-        id="menu_dl_config_sys_config"
-        name="Cấu hình Hệ thống"
-        parent="dl_base.menu_dl_config"
-        sequence="8"
-        action="action_dl_sys_config"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
-    />
-
-    <menuitem
         id="menu_dl_config_uom"
         name="Đơn vị tính"
         parent="dl_base.menu_dl_config"

@@ -26,6 +26,13 @@ const TABS = [
     { key: "master", label: "Danh mục", icon: "fa-sliders" },
 ];
 
+// Làm tròn giá bán — bội số (đ) khớp _round_price của engine (0 = không làm tròn).
+const ROUNDING = [
+    { v: 1000, label: "Làm tròn đến 1.000đ" },
+    { v: 10000, label: "Làm tròn đến 10.000đ" },
+    { v: 0, label: "Không làm tròn" },
+];
+
 const M = {
     waste: "dl.pricing.waste.rule",
     operation: "dl.pricing.operation.rule",
@@ -95,6 +102,7 @@ export class DlPricingConfig extends Component {
         this.parseMoney = parseMoney;
         this.fmtMoneyInput = formatMoney;
         this.tabs = TABS;
+        this.rounding = ROUNDING;
         this.L = L;
         this.opt = {
             wasteTarget: asOptions(L.wasteTarget),
@@ -127,6 +135,9 @@ export class DlPricingConfig extends Component {
             dialog: null,
             // Phân loại khách hàng tự động (ngưỡng lên Khách thân thiết).
             classification: { threshold: 0, canEdit: false },
+            // VAT & làm tròn giá bán — 2 tham số engine đọc từ dl.pricing.config
+            // (dời từ màn S02 cũ về đây để chỉ còn MỘT nguồn cấu hình báo giá).
+            quoteSettings: { vat: 0, rounding: 1000, canEdit: false },
         });
 
         onWillStart(async () => {
@@ -138,6 +149,7 @@ export class DlPricingConfig extends Component {
                 this.load("profit"), this.load("discount"), this.load("approval"),
                 this.load("apprset"), this.load("matrix"), this.load("complexity"),
                 this.load("opcat"), this.loadClassification(), this.loadMaterials(),
+                this.loadQuoteSettings(),
             ]);
             this.state.loading = false;
         });
@@ -207,6 +219,33 @@ export class DlPricingConfig extends Component {
                 "res.partner", "set_loyal_threshold", [val]);
             this.state.classification.threshold = saved;
             this.flash("Đã lưu ngưỡng phân loại khách hàng.");
+        } catch (e) {
+            this.showError(e);
+        }
+    }
+
+    // --- VAT & làm tròn giá bán (dl.pricing.config) ------------------------
+    async loadQuoteSettings() {
+        try {
+            this.state.quoteSettings = await this.orm.call(
+                "dl.pricing.config", "get_quote_settings", []);
+        } catch (e) {
+            this.state.quoteSettings = { vat: 0, rounding: 1000, canEdit: false };
+        }
+    }
+    async saveQuoteSettings() {
+        const s = this.state.quoteSettings;
+        const vat = Number(s.vat);
+        if (isNaN(vat) || vat < 0 || vat > 100) {
+            this.showError({ message: "VAT phải trong khoảng 0–100%." });
+            return;
+        }
+        try {
+            const saved = await this.orm.call(
+                "dl.pricing.config", "save_quote_settings",
+                [Number(s.vat) || 0, Number(s.rounding) || 0]);
+            this.state.quoteSettings = { ...s, ...saved };
+            this.flash("Đã lưu VAT & làm tròn. Áp dụng cho báo giá tạo MỚI.");
         } catch (e) {
             this.showError(e);
         }

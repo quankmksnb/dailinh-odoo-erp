@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 # ============================================================================
-# S02 — Cấu hình Hệ thống · Tab 1 (Tham số báo giá / Cost Structure)
-# Model lưu thật vào DB cho màn OWL sys_config.
-# Cơ cấu giá = 5 thành phần (vật tư/nhân công/vận hành/rủi ro/lợi nhuận) cộng
-# lại nên bằng 100% tổng báo giá — nhưng là tỷ lệ THAM KHẢO (không chặn cứng).
+# dl.pricing.config — singleton cấu hình báo giá.
+# Màn OWL "Cấu hình Hệ thống" (S02) ĐÃ khai tử; nay engine chỉ còn đọc hai tham
+# số vat_pct + rounding_to (quotation_pricing_service._build_context), được sửa
+# trên màn "Cấu hình Báo giá" qua get_quote_settings/save_quote_settings.
+# Các field/method S02 cũ (cơ cấu %, ma trận dl.approval.level, SLA) giữ lại làm
+# dữ liệu chết — không còn UI, engine không đọc; dọn schema là việc riêng.
 # Mọi thay đổi ghi audit vào dl.config.audit.log (BR-28).
 # ============================================================================
 from odoo import api, fields, models, _
@@ -326,6 +328,61 @@ class DlPricingConfig(models.Model):
             "waste": cfg._read_waste(),
             "audit_new": [l._to_dict() for l in created],
         }
+
+    # --- VAT & Làm tròn: 2 tham số S02 THẬT SỰ vào giá bán ------------------
+    # Sau khi khai tử màn "Cấu hình Hệ thống" (S02), hai tham số duy nhất engine
+    # còn đọc từ singleton này (vat_pct, rounding_to — xem quotation_pricing_service
+    # ._build_context) được sửa ngay trên màn "Cấu hình Báo giá" để cả hệ chỉ còn
+    # MỘT nguồn cấu hình. Model + singleton giữ nguyên; chỉ UI chuyển nhà.
+    @api.model
+    def get_quote_settings(self):
+        cfg = self._get_singleton()
+        return {
+            "vat": cfg.vat_pct,
+            "rounding": cfg.rounding_to,
+            "canEdit": cfg._can_edit(),
+        }
+
+    @api.model
+    def save_quote_settings(self, vat, rounding):
+        cfg = self._get_singleton()
+        if not cfg._can_edit():
+            raise AccessError(_("Chỉ Admin/CEO được sửa VAT & làm tròn giá bán."))
+        new_vals = {
+            "vat_pct": float(vat or 0),
+            "rounding_to": int(rounding or 0),
+        }
+        # Diff → audit (giữ BR-28: mọi thay đổi cấu hình đều ghi vết).
+        audit = []
+        if float(cfg.vat_pct) != new_vals["vat_pct"]:
+            audit.append(("VAT mặc định (%)",
+                          "%s → %s" % (_fmt_num(cfg.vat_pct), _fmt_num(new_vals["vat_pct"]))))
+        if int(cfg.rounding_to) != new_vals["rounding_to"]:
+            audit.append(("Làm tròn giá bán",
+                          "%s → %s" % (cfg._round_label(cfg.rounding_to),
+                                       cfg._round_label(new_vals["rounding_to"]))))
+        cfg.write(new_vals)
+        if audit:
+            self.env["dl.config.audit.log"].sudo().create([
+                {
+                    "config_tab": "Thuế & Làm tròn",
+                    "param_label": label,
+                    "detail": detail,
+                    "user_id": self.env.uid,
+                }
+                for label, detail in audit
+            ])
+        return {"vat": cfg.vat_pct, "rounding": cfg.rounding_to}
+
+    @api.constrains("vat_pct", "rounding_to")
+    def _check_quote_settings(self):
+        """VAT & làm tròn là 2 tham số engine áp vào giá bán — chặn giá trị vô
+        lý ở mọi đường ghi (UI, RPC, import)."""
+        for cfg in self:
+            if not (0 <= cfg.vat_pct <= 100):
+                raise ValidationError(_("VAT phải trong khoảng 0–100%."))
+            if cfg.rounding_to < 0:
+                raise ValidationError(_("Mức làm tròn giá bán không được âm."))
 
     # --- Tab 3: SLA & Escalation -------------------------------------------
     @api.model

@@ -232,6 +232,38 @@
                     </div>
                 </div>
 
+                <!-- VAT & Làm tròn giá bán — 2 tham số engine đọc từ dl.pricing.config
+                     (dời từ màn "Cấu hình Hệ thống" cũ về đây; nguồn cấu hình duy nhất). -->
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Thuế &amp; Làm tròn giá bán</span>
+                        <button class="dl-cfg-save" type="button"
+                                t-att-disabled="!state.quoteSettings.canEdit"
+                                t-on-click="() => this.saveQuoteSettings()"><i class="fa fa-check"/> Lưu</button>
+                    </div>
+                    <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
+                        Hai tham số này áp dụng cho <b>giá bán cuối</b> của báo giá tạo mới:
+                        VAT cộng ở cấp báo giá, làm tròn giá bán theo bội số đã chọn (ROUND_HALF_UP).
+                    </div>
+                    <div class="dl-cfg-inline">
+                        <label class="dl-cfg-f">
+                            <span class="k">VAT mặc định (%)</span>
+                            <input type="number" min="0" max="100" step="0.5"
+                                   t-model.number="state.quoteSettings.vat"
+                                   t-att-disabled="!state.quoteSettings.canEdit"/>
+                        </label>
+                        <label class="dl-cfg-f">
+                            <span class="k">Làm tròn giá bán</span>
+                            <select t-model.number="state.quoteSettings.rounding"
+                                    t-att-disabled="!state.quoteSettings.canEdit">
+                                <t t-foreach="rounding" t-as="r" t-key="r.v">
+                                    <option t-att-value="r.v" t-esc="r.label"/>
+                                </t>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">Lợi nhuận và giá sàn</span>
