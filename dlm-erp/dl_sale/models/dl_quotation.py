@@ -529,6 +529,10 @@ class DlQuotation(models.Model):
             if not rec.validity_date:
                 rec.validity_date = rec._default_validity_date()
         self.write({'state': 'sent'})
+        # Đính bản PDF vào chatter làm bằng chứng "bản đã gửi" (RV-02 / SALE-07).
+        # Bản dựng bằng reportlab (thuần Python) — không phụ thuộc wkhtmltopdf.
+        for rec in self:
+            rec._post_quotation_document_to_chatter()
 
     def _default_validity_date(self):
         """Hạn hiệu lực mặc định = ngày báo giá + số ngày cấu hình

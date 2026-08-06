@@ -92,6 +92,12 @@
                     <button name="action_reset_draft" string="Về nháp"
                             type="object" class="btn-link"
                             invisible="state not in ('approved', 'sent', 'revision_requested', 'rejected', 'expired')"/>
+                    <!-- RV-02 — Đầu ra cho khách: xuất Word/PDF (chỉ giá bán)
+                         rồi tải về hoặc gửi email (đọc lại trước khi gửi).
+                         Thuần Python, không cần wkhtmltopdf. -->
+                    <button name="action_open_export_wizard" string="Xuất / Gửi báo giá"
+                            type="object" class="btn-secondary"
+                            invisible="not line_ids"/>
                     <field name="state" widget="dl_stepper" options="{'preset': 'quotation'}"/>
                 </header>
                 <sheet>

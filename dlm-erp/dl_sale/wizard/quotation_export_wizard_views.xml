@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_dl_quotation_export_wizard_form" model="ir.ui.view">
+        <field name="name">dl.quotation.export.wizard.form</field>
+        <field name="model">dl.quotation.export.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Xuất / Gửi báo giá">
+                <field name="quotation_id" invisible="1"/>
+                <group>
+                    <field name="doc_format" widget="radio"/>
+                    <field name="partner_email" readonly="1"/>
+                </group>
+                <p class="text-muted">
+                    Chọn định dạng rồi <strong>Tải về</strong> để lưu file, hoặc
+                    <strong>Gửi email</strong> để mở trình soạn thư đã đính sẵn
+                    file — đọc lại rồi mới bấm Gửi. Bản gửi khách chỉ hiển thị
+                    giá bán.
+                </p>
+                <footer>
+                    <button name="action_download" string="Tải về"
+                            type="object" class="btn-primary"/>
+                    <button name="action_email" string="Gửi email cho khách"
+                            type="object" class="btn-secondary"/>
+                    <button string="Đóng" class="btn-link" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
