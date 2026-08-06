@@ -68,6 +68,50 @@ class DlPricingOperationRule(models.Model):
         self.ensure_one()
         return [("operation_id", "=", self.operation_id.id)]
 
+    # ------------------------------------------------------------------
+    # Tra & tính đơn giá công đoạn — NGUỒN DUY NHẤT dùng chung cho ước tính
+    # tham khảo trên form BOM (dl.bom.operation.line, pha B1) và engine tính
+    # giá báo giá (quotation_pricing_service, pha B2). Để công thức 6 phương
+    # pháp ở một chỗ, hai đường không bao giờ lệch nhau (đối xứng cách BOM &
+    # engine cùng gọi _standard_child_bom cho giá vốn BTP).
+    # ------------------------------------------------------------------
+    @api.model
+    def _get_active(self, operation, company, date):
+        """Đơn giá công đoạn đang áp dụng cho ``operation``, đúng công ty và còn
+        hiệu lực tại ``date``. Trả về recordset rỗng nếu không có (đối xứng
+        _active_material_seller / _active_profit_rule)."""
+        if not operation:
+            return self.browse()
+        return self.search(
+            [
+                ("operation_id", "=", operation.id),
+                ("state", "=", "active"),
+                ("company_id", "=", company.id),
+                ("valid_from", "<=", date),
+                "|", ("valid_to", "=", False), ("valid_to", ">=", date),
+            ],
+            order="valid_from desc, revision desc", limit=1,
+        )
+
+    def variable_unit_amount(self, base_qty, material_unit_base):
+        """Chi phí công đoạn BIẾN ĐỔI cho MỘT đơn vị đầu ra theo phương pháp của
+        rule (bảng §3.1 Thiet_ke_chi_phi_cong_doan_bom_operation.md).
+
+        KHÔNG bao gồm phí setup / per_batch — đó là chi phí theo LÔ, phân bổ /qty
+        ở tầng engine (§3.2). ``material_unit_base`` = chi phí vật tư/đơn vị làm
+        cơ sở cho phương pháp % vật liệu.
+        """
+        self.ensure_one()
+        if self.method == "percent_material":
+            return material_unit_base * self.price_rate / 100.0
+        if self.method in ("per_kg", "per_meter", "per_sqm"):
+            return base_qty * self.price_rate
+        if self.method == "per_unit":
+            return self.price_rate
+        # per_batch: toàn bộ nằm ở chi phí lô (setup/per_batch) — không có phần
+        # biến đổi trên mỗi đơn vị.
+        return 0.0
+
     @api.constrains("method", "price_rate", "setup_fee")
     def _check_values(self):
         for rule in self:

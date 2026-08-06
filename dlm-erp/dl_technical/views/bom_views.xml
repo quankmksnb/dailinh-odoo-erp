@@ -336,6 +336,85 @@
                             </group>
                         </page>
 
+                        <!-- Công đoạn (RV-01/RV-04) — Kỹ thuật chọn công đoạn +
+                             nhập MỘT con số cơ sở khi cách tính cần (kg/m/m²).
+                             Đơn giá/tỷ lệ/setup do Kế toán giá thành cấu hình;
+                             KTV không nhập, không thấy giá (cột ước tính gated). -->
+                        <page string="Công đoạn" name="bom_operations">
+                            <div class="text-muted mb-2" style="font-size:12px;">
+                                <i class="fa fa-info-circle me-1"/>
+                                Chọn công đoạn sản phẩm phải đi qua (cắt, hàn, sơn,
+                                thuê ngoài…). Chỉ nhập <strong>định mức cơ sở</strong>
+                                khi cách tính theo kg/mét/m². Đơn giá và phí setup do
+                                Kế toán giá thành cấu hình ở màn Cấu hình báo giá.
+                            </div>
+                            <field name="operation_line_ids"
+                                   readonly="status in ('locked', 'archived')">
+                                <tree string="Công đoạn">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="has_active_rule" column_invisible="1"/>
+                                    <field name="needs_base_qty" column_invisible="1"/>
+                                    <field name="operation_id"/>
+                                    <field name="method" readonly="1"/>
+                                    <field name="base_qty"/>
+                                    <field name="is_outsourced" optional="show"/>
+                                    <field name="partner_id" optional="show"/>
+                                    <field name="estimated_unit_cost" optional="show"
+                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                    <field name="note" optional="hide"/>
+                                </tree>
+                                <form string="Công đoạn">
+                                    <field name="has_active_rule" invisible="1"/>
+                                    <field name="needs_base_qty" invisible="1"/>
+                                    <group>
+                                        <group string="Công đoạn">
+                                            <field name="operation_id"/>
+                                            <field name="method" readonly="1"
+                                                   invisible="not has_active_rule"/>
+                                            <div colspan="2" class="text-warning"
+                                                 invisible="has_active_rule">
+                                                <i class="fa fa-exclamation-triangle me-1"/>
+                                                Công đoạn này chưa có đơn giá đang áp
+                                                dụng — Kế toán giá thành cần cấu hình
+                                                trước khi tạo báo giá.
+                                            </div>
+                                            <field name="base_qty"/>
+                                            <div colspan="2" class="text-muted"
+                                                 style="font-size:11px;"
+                                                 invisible="not needs_base_qty">
+                                                Cách tính theo kg/mét/m² — hãy nhập
+                                                định mức cơ sở cho MỘT sản phẩm.
+                                            </div>
+                                        </group>
+                                        <group string="Thuê ngoài">
+                                            <field name="is_outsourced"/>
+                                            <field name="partner_id"
+                                                   invisible="not is_outsourced"
+                                                   required="is_outsourced"/>
+                                        </group>
+                                    </group>
+                                    <group string="Cơ sở % vật liệu"
+                                           invisible="method != 'percent_material'">
+                                        <field name="material_scope"/>
+                                        <field name="material_line_ids"
+                                               widget="many2many_tags"
+                                               domain="[('bom_id', '=', parent.id)]"
+                                               invisible="material_scope != 'selected'"
+                                               options="{'no_create': True}"/>
+                                    </group>
+                                    <group>
+                                        <field name="note"/>
+                                    </group>
+                                </form>
+                            </field>
+
+                            <group class="oe_subtotal_footer oe_right"
+                                   groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                                <field name="total_operation_cost_est"
+                                       class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+
                         <page string="Ghi chú" name="notes">
                             <field name="note" nolabel="1"
                                    placeholder="Ghi chú kỹ thuật..."/>

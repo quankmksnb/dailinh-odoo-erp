@@ -138,9 +138,30 @@ class DlBom(models.Model):
         digits="Product Price",
     )
 
+    # ── Công đoạn của định mức (RV-01/RV-04, thiết kế công đoạn §2.2) ─────────
+    # copy=True để "Tạo phiên bản mới BOM" mang theo công đoạn (giống line_ids).
+    operation_line_ids = fields.One2many(
+        "dl.bom.operation.line", "bom_id", string="Công đoạn", copy=True,
+    )
+    # Ước tính THAM KHẢO tổng chi phí công đoạn BIẾN ĐỔI/đơn vị (gated — Kỹ thuật
+    # không thấy). Không phải giá chốt (giá chốt tính khi tạo báo giá, pha B2).
+    total_operation_cost_est = fields.Float(
+        string="Ước tính chi phí công đoạn/đv",
+        compute="_compute_total_operation_cost_est",
+        digits="Product Price",
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,"
+               "dl_base.dl_group_accountant,dl_base.dl_group_sales_manager",
+    )
+
     note = fields.Text(
         string="Ghi chú",
     )
+
+    @api.depends("operation_line_ids.estimated_unit_cost")
+    def _compute_total_operation_cost_est(self):
+        for rec in self:
+            rec.total_operation_cost_est = sum(
+                rec.operation_line_ids.mapped("estimated_unit_cost"))
 
     # ── Smart-button: BTP này được dùng ở bao nhiêu định mức cha (§13.2) ──────
     # Chỉ có nghĩa khi SP của BOM là bán thành phẩm — chống "chuyển đi chuyển

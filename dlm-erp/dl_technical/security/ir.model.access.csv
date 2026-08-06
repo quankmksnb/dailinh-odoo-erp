@@ -12,6 +12,11 @@ access_dl_bom_line_admin,dl.bom.line Admin,model_dl_bom_line,dl_base.dl_group_ad
 access_dl_bom_line_ba,dl.bom.line BA,model_dl_bom_line,dl_base.dl_group_ba,1,0,0,0
 access_dl_bom_line_tech,dl.bom.line Tech,model_dl_bom_line,dl_base.dl_group_tech,1,1,1,1
 access_dl_bom_line_sm,dl.bom.line SM,model_dl_bom_line,dl_base.dl_group_sales_manager,1,0,0,0
+access_dl_bom_operation_line_ceo,dl.bom.operation.line CEO,model_dl_bom_operation_line,dl_base.dl_group_ceo,1,0,0,0
+access_dl_bom_operation_line_admin,dl.bom.operation.line Admin,model_dl_bom_operation_line,dl_base.dl_group_admin,1,1,1,1
+access_dl_bom_operation_line_ba,dl.bom.operation.line BA,model_dl_bom_operation_line,dl_base.dl_group_ba,1,0,0,0
+access_dl_bom_operation_line_tech,dl.bom.operation.line Tech,model_dl_bom_operation_line,dl_base.dl_group_tech,1,1,1,1
+access_dl_bom_operation_line_sm,dl.bom.operation.line SM,model_dl_bom_operation_line,dl_base.dl_group_sales_manager,1,0,0,0
 access_dl_bom_template_ceo,dl.bom.template CEO,model_dl_bom_template,dl_base.dl_group_ceo,1,0,0,0
 access_dl_bom_template_admin,dl.bom.template Admin,model_dl_bom_template,dl_base.dl_group_admin,1,1,1,1
 access_dl_bom_template_tech,dl.bom.template Tech,model_dl_bom_template,dl_base.dl_group_tech,1,1,1,0
