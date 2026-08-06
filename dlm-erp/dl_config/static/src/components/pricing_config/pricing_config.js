@@ -119,6 +119,7 @@ export class DlPricingConfig extends Component {
             matrixShowHistory: false, // hiện các dòng "Ngừng áp dụng" trong ma trận
             discountShowHistory: false, // hiện các dòng "Ngừng áp dụng" trong bảng chiết khấu
             loading: true,
+            health: [], // cảnh báo "chặn báo giá" (thiếu markup / công đoạn chưa định giá)
             perms: {},
             options: { categories: [], products: [], operations: [], complexity: [], approvers: [] },
             rows: {
@@ -149,7 +150,7 @@ export class DlPricingConfig extends Component {
                 this.load("profit"), this.load("discount"), this.load("approval"),
                 this.load("apprset"), this.load("matrix"), this.load("complexity"),
                 this.load("opcat"), this.loadClassification(), this.loadMaterials(),
-                this.loadQuoteSettings(),
+                this.loadQuoteSettings(), this.loadHealth(),
             ]);
             this.state.loading = false;
         });
@@ -248,6 +249,15 @@ export class DlPricingConfig extends Component {
             this.flash("Đã lưu VAT & làm tròn. Áp dụng cho báo giá tạo MỚI.");
         } catch (e) {
             this.showError(e);
+        }
+    }
+
+    // --- Sức khỏe cấu hình (cảnh báo chặn báo giá) -------------------------
+    async loadHealth() {
+        try {
+            this.state.health = await this.orm.call("dl.pricing.ui", "get_health", []);
+        } catch (e) {
+            this.state.health = [];
         }
     }
 
@@ -575,6 +585,7 @@ export class DlPricingConfig extends Component {
             await this.orm.call(M[section], method, [[id]]);
             await this.load(section);
             if (reloadExtra) { await this.load(reloadExtra); }
+            await this.loadHealth();
             this.flash("Đã cập nhật.");
         } catch (e) {
             this.showError(e);
@@ -626,6 +637,7 @@ export class DlPricingConfig extends Component {
         try {
             await this.orm.call(M.approval, "action_approve", [[id]]);
             await Promise.all([this.load("approval"), this.load("profit"), this.load("discount")]);
+            await this.loadHealth();
             this.flash("Đã duyệt.");
         } catch (e) { this.showError(e); }
     }

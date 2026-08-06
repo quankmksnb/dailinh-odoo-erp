@@ -15,6 +15,18 @@
                 </div>
             </div>
 
+            <!-- Sức khỏe cấu hình: cảnh báo "chặn báo giá" (thiếu markup / công
+                 đoạn chưa định giá) hiện ngay đầu màn để người dùng biết vì sao
+                 báo giá lỗi trước khi Sales chạm vào (review 5.3). -->
+            <div t-if="!state.loading and state.health.length" class="dl-cfg-health">
+                <t t-foreach="state.health" t-as="h" t-key="h_index">
+                    <div class="dl-cfg-health-item" t-att-class="'is-' + h.level">
+                        <i class="fa fa-exclamation-triangle"/>
+                        <span t-esc="h.text"/>
+                    </div>
+                </t>
+            </div>
+
             <div class="dl-cfg-tabs">
                 <t t-foreach="tabs" t-as="t" t-key="t.key">
                     <button class="dl-cfg-tab" type="button"
