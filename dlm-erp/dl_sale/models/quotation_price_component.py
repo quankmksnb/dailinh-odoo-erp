@@ -44,6 +44,8 @@ class DlQuotationPriceComponent(models.Model):
             ("material", "Vật tư thô"),
             ("processed_material", "Bán thành phẩm"),
             ("recovery", "Thu hồi phế liệu"),
+            ("operation", "Công đoạn"),
+            ("operation_setup", "Phí setup công đoạn"),
             ("markup", "Lợi nhuận (markup)"),
             ("discount", "Chiết khấu"),
             ("vat", "Thuế GTGT"),

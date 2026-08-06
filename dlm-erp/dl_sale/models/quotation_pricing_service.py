@@ -21,6 +21,11 @@ QTE_005 = "QTE-005: Chưa có cấu hình lợi nhuận (markup) đang áp dụn
 QTE_007 = "QTE-007: Không thể quy đổi định mức '%s' sang đơn vị/tiền tệ giá vật tư (P0 chưa hỗ trợ quy đổi)."
 QTE_008 = "QTE-008: RFQ này đã có báo giá — hãy mở báo giá hiện có hoặc tạo revision."
 QTE_009 = "QTE-009: Sản phẩm thương mại '%s' chưa có giá bán hợp lệ (Giá bán phải > 0)."
+QTE_010 = "QTE-010: Công đoạn '%s' cần định mức cơ sở > 0 (theo kg/mét/m²)."
+QTE_011 = (
+    "QTE-011: Công đoạn '%s' chưa có đơn giá đã áp dụng, còn hiệu lực tại ngày "
+    "tạo báo giá."
+)
 QTE_INFEASIBLE = (
     "Không thể tạo báo giá: mọi dòng của RFQ đều 'Không khả thi' — không có "
     "sản phẩm nào để báo giá. Trao đổi lại với khách hàng hoặc Hủy RFQ."
@@ -31,9 +36,11 @@ class DlQuotationPricingService(models.AbstractModel):
     """Dịch vụ tính giá & tạo báo giá từ RFQ (đặc tả §17.4/§17.5).
 
     Tách khỏi model action để kiểm thử độc lập và tái sử dụng khi tính lại báo
-    giá ở phase sau. P0: chỉ tính giá nền (list_price thương mại + chi phí vật
-    tư BOM/đơn vị) và chiết khấu/VAT header nhập tay. Chưa gồm công đoạn, điều
-    chỉnh chi phí, markup (P1) — thiết kế snapshot đã chừa chỗ.
+    giá ở phase sau. Giá thành sản phẩm gia công = chi phí vật tư BOM (đệ quy
+    BTP) **+ chi phí công đoạn** (biến đổi/đơn vị + setup/lô, tra đơn giá công
+    đoạn active tại ngày tính giá — RV-01/B2), rồi markup/giá sàn/làm tròn;
+    chiết khấu & VAT header nhập tay. Lớp chi phí chung/điều chỉnh (Lớp D) để
+    pha sau — thiết kế snapshot đã chừa chỗ.
     """
 
     _name = "dl.quotation.pricing.service"
@@ -311,16 +318,24 @@ class DlQuotationPricingService(models.AbstractModel):
     def _price_manufactured(self, rfq_line, context):
         bom = rfq_line.resolved_bom_id
         qty = rfq_line.quantity
-        unit_cost, unit_specs = self._bom_material_cost(bom, context, visited=frozenset())
+        # (A) chi phí vật tư + (B) chi phí công đoạn BIẾN ĐỔI cho MỘT đơn vị đầu
+        # ra. Đệ quy BTP: công đoạn của bán thành phẩm tự vào giá vốn của nó.
+        material_unit, op_var_unit, unit_specs = self._bom_unit_cost(
+            bom, context, visited=frozenset())
+        # (C) chi phí công đoạn theo LÔ (phí setup + per_batch) của BOM top-level,
+        # cộng một lần cho cả dòng rồi phân bổ đều trên số lượng (Decision B3).
+        batch_total, batch_specs = self._bom_batch_cost(bom, context)
+        op_setup_unit = batch_total / qty if qty else 0.0
 
         profit_rule = context["profit_rule"]
         if not profit_rule:
             raise UserError(QTE_005)
 
-        # P1: chưa có công đoạn/điều chỉnh chi phí → giá thành = chi phí vật tư.
-        # F/G/H (§6.1): giá mục tiêu = giá thành × (1 + markup); giá sàn = ×(1 +
-        # min_markup); làm tròn giá bán trước chiết khấu.
-        total_cost = unit_cost
+        # F/G/H (§6.1): giá thành = vật tư + công đoạn (biến đổi + setup phân bổ);
+        # giá mục tiêu = giá thành × (1 + markup); giá sàn = ×(1 + min_markup);
+        # làm tròn giá bán trước chiết khấu.
+        operation_cost = op_var_unit + op_setup_unit
+        total_cost = material_unit + operation_cost
         target_markup = profit_rule.target_markup
         min_markup = profit_rule.min_markup
         target_price = total_cost * (1 + target_markup / 100.0)
@@ -337,7 +352,8 @@ class DlQuotationPricingService(models.AbstractModel):
             "bom_version": bom.version,
             "bom_approved_by": bom.approved_by.id,
             "bom_confirmed_date": bom.approved_date,
-            "material_cost": unit_cost,
+            "material_cost": material_unit,
+            "operation_cost": operation_cost,
             "total_cost": total_cost,
             "base_price": target_price,
             "price_unit": price_unit,
@@ -346,18 +362,25 @@ class DlQuotationPricingService(models.AbstractModel):
 
         comp_specs = []
         for spec in unit_specs:
-            # unit_specs tính cho MỘT đơn vị đầu ra — nhân số lượng RFQ để ra
-            # cấu phần theo cả dòng.
+            # unit_specs tính cho MỘT đơn vị đầu ra (vật tư + công đoạn biến đổi)
+            # — nhân số lượng RFQ để ra cấu phần theo cả dòng.
             comp_specs.append({
                 "component_type": spec["component_type"],
                 "source_model": spec["source_model"],
                 "source_id": spec["source_id"],
                 "source_revision": spec["source_revision"],
-                "material_id": spec["material_id"],
+                "material_id": spec.get("material_id", False),
                 "qty": spec["qty"] * qty,
                 "unit_price": spec["unit_price"],
+                "rate": spec.get("rate", 0.0),
                 "amount": spec["amount"] * qty,
             })
+        # Cấu phần công đoạn theo LÔ: amount đã là tổng cho cả dòng (không nhân
+        # qty); đơn giá hiển thị = phân bổ/đơn vị để giải trình.
+        for spec in batch_specs:
+            spec["qty"] = qty
+            spec["unit_price"] = spec["amount"] / qty if qty else 0.0
+            comp_specs.append(spec)
         # Cấu phần markup: giải trình phần lợi nhuận cộng thêm trên giá thành.
         comp_specs.append({
             "component_type": "markup",
@@ -391,13 +414,21 @@ class DlQuotationPricingService(models.AbstractModel):
         # hai đường tính giá vốn BTP luôn ra cùng số (§3.3-B). sudo giữ ở đây.
         return self.env["dl.bom"].sudo()._standard_child_bom(material)
 
-    def _bom_material_cost(self, bom, context, visited):
-        """Chi phí vật tư để sản xuất MỘT đơn vị đầu ra của ``bom``.
+    def _bom_unit_cost(self, bom, context, visited):
+        """Chi phí (vật tư + công đoạn biến đổi) cho MỘT đơn vị đầu ra của ``bom``.
 
-        Trả về (unit_cost, specs) với specs là danh sách cấu phần vật tư đã quy
-        về một đơn vị đầu ra. Đệ quy cho bán thành phẩm và chia product_qty của
-        BOM con (§5.2) — không dùng thẳng total_material_cost của BOM con.
-        Phát hiện vòng lặp BOM (QTE-004).
+        Trả về ``(material_unit, op_var_unit, specs)``:
+          * ``material_unit`` — chi phí vật tư/đơn vị (đệ quy BTP, chia
+            product_qty của BOM con §5.2; gồm hao hụt + thu hồi phế liệu);
+          * ``op_var_unit`` — chi phí công đoạn BIẾN ĐỔI/đơn vị của chính BOM
+            này (không gồm setup/per_batch — phần theo LÔ do ``_bom_batch_cost``
+            xử lý ở BOM top-level, §3.3);
+          * ``specs`` — cấu phần snapshot đã quy về một đơn vị (material /
+            processed_material / recovery / operation).
+
+        Với bán thành phẩm, giá vốn = ``material + op biến đổi`` của BOM con nên
+        chi phí cắt/hàn/sơn của BTP tự vào giá vốn của nó (§3.2). Phát hiện vòng
+        lặp BOM (QTE-004).
         """
         if bom.id in visited:
             raise UserError(QTE_004 % bom.display_name)
@@ -407,7 +438,8 @@ class DlQuotationPricingService(models.AbstractModel):
             raise UserError(QTE_004 % bom.display_name)
 
         specs = []
-        total_output_cost = 0.0  # chi phí cho product_qty đơn vị đầu ra
+        total_output_cost = 0.0  # chi phí vật tư cho product_qty đơn vị đầu ra
+        line_net = {}            # bl.id -> chi phí thuần dòng (cho product_qty)
         for bl in bom.line_ids:
             material = bl.material_id
             if not material:
@@ -417,7 +449,10 @@ class DlQuotationPricingService(models.AbstractModel):
                 child = self._resolve_child_bom(material)
                 if not child:
                     raise UserError(QTE_004 % material.display_name)
-                unit_price, _child_specs = self._bom_material_cost(child, context, visited)
+                child_mat, child_op, _child_specs = self._bom_unit_cost(
+                    child, context, visited)
+                # Giá vốn BTP đã gồm công đoạn của chính nó.
+                unit_price = child_mat + child_op
                 spec_base = {
                     "component_type": "processed_material",
                     "source_model": "dl.bom",
@@ -438,6 +473,7 @@ class DlQuotationPricingService(models.AbstractModel):
                 }
 
             amount = bl.effective_qty * unit_price  # cho product_qty đầu ra
+            net = amount
             total_output_cost += amount
             spec_base.update(
                 material_id=material.id,
@@ -452,6 +488,7 @@ class DlQuotationPricingService(models.AbstractModel):
                 recovery = bl._dlm_recovery_value()
                 if recovery:
                     total_output_cost -= recovery
+                    net -= recovery
                     scrap = material.dlm_scrap_product_id
                     specs.append({
                         "component_type": "recovery",
@@ -464,13 +501,109 @@ class DlQuotationPricingService(models.AbstractModel):
                         "unit_price": material._dlm_scrap_unit_price(),
                         "amount": -recovery,
                     })
+            line_net[bl.id] = net
 
-        unit_cost = total_output_cost / bom.product_qty
-        # Quy specs về một đơn vị đầu ra.
+        material_unit = total_output_cost / bom.product_qty
+        # Quy các cấu phần vật tư về một đơn vị đầu ra.
         for spec in specs:
             spec["qty"] /= bom.product_qty
             spec["amount"] /= bom.product_qty
-        return unit_cost, specs
+
+        # Công đoạn BIẾN ĐỔI/đơn vị của chính BOM này (bảng §3.1). Cấu phần
+        # 'operation' đã tính theo một đơn vị (không cần chia product_qty).
+        op_var_unit, op_specs = self._bom_operation_variable_cost(
+            bom, context, material_unit, line_net)
+        specs.extend(op_specs)
+        return material_unit, op_var_unit, specs
+
+    def _bom_operation_variable_cost(self, bom, context, material_unit, line_net):
+        """Chi phí công đoạn BIẾN ĐỔI cho MỘT đơn vị đầu ra của ``bom`` (không
+        gồm setup/per_batch). Tra đơn giá công đoạn đang áp dụng tại ngày tính
+        giá (đối xứng cách tra giá NCC cho vật tư) và sinh cấu phần 'operation'.
+
+        ``line_net`` = {bl.id: chi phí thuần cho product_qty} dùng làm cơ sở khi
+        phương pháp % vật liệu chỉ tính trên vài dòng vật tư đã chọn (§5.5).
+        """
+        company = context["company"]
+        date = context["pricing_date"]
+        qty_out = bom.product_qty or 1.0
+        Rule = self.env["dl.pricing.operation.rule"].sudo()
+
+        op_unit = 0.0
+        specs = []
+        for op in bom.operation_line_ids:
+            rule = Rule._get_active(op.operation_id, company, date)
+            if not rule:
+                raise UserError(QTE_011 % op.operation_id.display_name)
+            if rule.method in ("per_kg", "per_meter", "per_sqm") and op.base_qty <= 0:
+                raise UserError(QTE_010 % op.operation_id.display_name)
+
+            # Cơ sở cho % vật liệu: 'selected' = tổng thuần các dòng đã chọn (quy
+            # về một đơn vị); ngược lại (kể cả 'selected' rỗng) = toàn bộ vật tư.
+            if op.material_scope == "selected" and op.material_line_ids:
+                base = sum(line_net.get(bl.id, 0.0)
+                           for bl in op.material_line_ids) / qty_out
+            else:
+                base = material_unit
+
+            amount = rule.variable_unit_amount(op.base_qty, base)
+            # Đánh dấu rule đã dùng trong snapshot (mixin bảo vệ không cho sửa).
+            if not rule.used_in_snapshot:
+                rule.write({"used_in_snapshot": True})
+            if not amount:
+                # per_batch: phần biến đổi = 0 (toàn bộ ở chi phí lô); bỏ qua.
+                continue
+            op_unit += amount
+            is_percent = rule.method == "percent_material"
+            per_qty_method = rule.method in ("per_kg", "per_meter", "per_sqm")
+            specs.append({
+                "component_type": "operation",
+                "source_model": "dl.pricing.operation.rule",
+                "source_id": rule.id,
+                "source_revision": rule.revision,
+                "material_id": False,
+                "qty": op.base_qty if per_qty_method else 1.0,
+                # % vật liệu: tỷ lệ ở cột 'rate', bỏ trống đơn giá (không phải tiền).
+                "unit_price": 0.0 if is_percent else rule.price_rate,
+                "rate": rule.price_rate if is_percent else 0.0,
+                "amount": amount,
+            })
+        return op_unit, specs
+
+    def _bom_batch_cost(self, bom, context):
+        """Chi phí công đoạn theo LÔ của BOM top-level: phí setup (mọi phương
+        pháp) + đơn giá ``per_batch``. Cộng MỘT lần cho cả dòng rồi engine chia
+        số lượng (Decision B3). Chỉ áp ở BOM top-level (§3.3 — BTP lồng nhau chỉ
+        hỗ trợ công đoạn theo đơn vị). Sinh cấu phần 'operation_setup'.
+        """
+        company = context["company"]
+        date = context["pricing_date"]
+        Rule = self.env["dl.pricing.operation.rule"].sudo()
+
+        batch_total = 0.0
+        specs = []
+        for op in bom.operation_line_ids:
+            rule = Rule._get_active(op.operation_id, company, date)
+            if not rule:
+                # Đã kiểm ở _bom_operation_variable_cost cho cùng BOM.
+                raise UserError(QTE_011 % op.operation_id.display_name)
+            batch = rule.setup_fee
+            if rule.method == "per_batch":
+                batch += rule.price_rate
+            if not batch:
+                continue
+            batch_total += batch
+            specs.append({
+                "component_type": "operation_setup",
+                "source_model": "dl.pricing.operation.rule",
+                "source_id": rule.id,
+                "source_revision": rule.revision,
+                "material_id": False,
+                "rate": 0.0,
+                # amount = tổng cho cả lô; đơn giá/đơn vị điền ở _price_manufactured.
+                "amount": batch,
+            })
+        return batch_total, specs
 
     @staticmethod
     def _active_material_seller(material, context):
