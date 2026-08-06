@@ -75,6 +75,62 @@ class DlPricingCostAdjustmentRule(models.Model):
         self.ensure_one()
         return [("rule_type", "=", self.rule_type), ("name", "=ilike", self.name)]
 
+    # ------------------------------------------------------------------
+    # Tra & tính khoản điều chỉnh — NGUỒN DUY NHẤT dùng cho engine tính giá
+    # báo giá (quotation_pricing_service, Lớp D). Đặt công thức 6 cách tính ở
+    # một chỗ (đối xứng dl.pricing.operation.rule.variable_unit_amount).
+    # ------------------------------------------------------------------
+    @api.model
+    def _get_active_rules(self, company, date):
+        """Các khoản điều chỉnh đang áp dụng, đúng công ty và còn hiệu lực tại
+        ``date``. Sắp theo ``id`` (thứ tự tạo) để áp dụng tuần tự ổn định —
+        cách tính % giá thành / hệ số nhân cộng dồn trên ``running`` nên thứ tự
+        có ý nghĩa (V3 §6.1)."""
+        return self.search(
+            [
+                ("state", "=", "active"),
+                ("company_id", "=", company.id),
+                ("valid_from", "<=", date),
+                "|", ("valid_to", "=", False), ("valid_to", ">=", date),
+            ],
+            order="id",
+        )
+
+    def adjustment_unit_amount(self, direct_unit, running_unit, qty):
+        """Khoản điều chỉnh cộng lên giá thành cho MỘT đơn vị đầu ra theo cách
+        tính (v1.1 §6.3). ``direct_unit`` = chi phí trực tiếp/đơn vị (vật tư +
+        công đoạn); ``running_unit`` = giá thành lũy kế/đơn vị (đã cộng các
+        khoản trước). Phí theo lô/cố định phân bổ đều trên số lượng (Decision B3)."""
+        self.ensure_one()
+        value = self.value
+        method = self.method
+        if method == "percent_direct":
+            return direct_unit * value / 100.0
+        if method == "percent_cost":
+            return running_unit * value / 100.0
+        if method == "per_unit":
+            return value
+        if method in ("per_batch", "fixed"):
+            return value / qty if qty else 0.0
+        if method == "factor":
+            return running_unit * (value - 1.0)
+        return 0.0
+
+    def applies(self, order_value, delivery_days):
+        """Điều kiện áp dụng (V3 §6.2). Khoản 'Giao gấp' chỉ áp khi thời gian
+        giao ≤ ``condition_days``; khoản 'Đơn hàng nhỏ' chỉ áp khi giá trị đơn ≤
+        ``condition_amount``. Các loại khác luôn áp dụng."""
+        self.ensure_one()
+        if self.rule_type == "urgent":
+            if delivery_days is None or not self.condition_days:
+                return False
+            return delivery_days <= self.condition_days
+        if self.rule_type == "small_order":
+            if not self.condition_amount:
+                return False
+            return order_value <= self.condition_amount
+        return True
+
     @api.constrains("method", "value")
     def _check_value(self):
         for rule in self:

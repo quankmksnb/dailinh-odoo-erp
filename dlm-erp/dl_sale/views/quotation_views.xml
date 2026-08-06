@@ -203,6 +203,8 @@
                                            groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                                     <field name="operation_cost" widget="dl_money" digits="[16, 0]" readonly="1" optional="show"
                                            groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                    <field name="adjustment_cost" widget="dl_money" digits="[16, 0]" readonly="1" optional="hide"
+                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                                     <field name="total_cost" widget="dl_money" digits="[16, 0]" readonly="1"
                                            groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                                     <field name="price_unit" widget="dl_money" digits="[16, 0]"/>

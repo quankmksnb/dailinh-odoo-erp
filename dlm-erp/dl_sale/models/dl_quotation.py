@@ -1021,9 +1021,14 @@ class DlQuotationLine(models.Model):
     material_cost = fields.Float(string='Chi phí vật tư/đv', digits='Product Price',
                                  readonly=True, groups=_COST_GROUPS)
     # Chi phí công đoạn/đơn vị = biến đổi (cắt/hàn/sơn) + phí setup/lô phân bổ
-    # (RV-01/B2). total_cost = material_cost + operation_cost.
+    # (RV-01/B2). total_cost = material_cost + operation_cost + adjustment_cost.
     operation_cost = fields.Float(string='Chi phí công đoạn/đv', digits='Product Price',
                                   readonly=True, groups=_COST_GROUPS)
+    # Chi phí chung/điều chỉnh/đơn vị (Lớp D — RV-01): overhead, đóng gói, giao
+    # gấp, đơn nhỏ, dự phòng... cộng lên giá thành trực tiếp (V3 §6).
+    adjustment_cost = fields.Float(string='Chi phí chung/điều chỉnh/đv',
+                                   digits='Product Price',
+                                   readonly=True, groups=_COST_GROUPS)
     total_cost = fields.Float(string='Giá thành/đv', digits='Product Price',
                               readonly=True, groups=_COST_GROUPS)
     floor_price = fields.Float(string='Giá sàn/đv', digits='Product Price',

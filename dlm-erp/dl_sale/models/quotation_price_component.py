@@ -46,6 +46,7 @@ class DlQuotationPriceComponent(models.Model):
             ("recovery", "Thu hồi phế liệu"),
             ("operation", "Công đoạn"),
             ("operation_setup", "Phí setup công đoạn"),
+            ("adjustment", "Chi phí chung/điều chỉnh"),
             ("markup", "Lợi nhuận (markup)"),
             ("discount", "Chiết khấu"),
             ("vat", "Thuế GTGT"),

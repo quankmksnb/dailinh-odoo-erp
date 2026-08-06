@@ -38,9 +38,10 @@ class DlQuotationPricingService(models.AbstractModel):
     Tách khỏi model action để kiểm thử độc lập và tái sử dụng khi tính lại báo
     giá ở phase sau. Giá thành sản phẩm gia công = chi phí vật tư BOM (đệ quy
     BTP) **+ chi phí công đoạn** (biến đổi/đơn vị + setup/lô, tra đơn giá công
-    đoạn active tại ngày tính giá — RV-01/B2), rồi markup/giá sàn/làm tròn;
-    chiết khấu & VAT header nhập tay. Lớp chi phí chung/điều chỉnh (Lớp D) để
-    pha sau — thiết kế snapshot đã chừa chỗ.
+    đoạn active tại ngày tính giá — RV-01/B2) **+ chi phí chung/điều chỉnh**
+    (Lớp D — overhead/đóng gói/giao gấp/đơn nhỏ/dự phòng, 6 cách tính, tuần tự
+    trên giá thành lũy kế — V3 §6), rồi markup/giá sàn/làm tròn; chiết khấu &
+    VAT header nhập tay.
     """
 
     _name = "dl.quotation.pricing.service"
@@ -61,6 +62,24 @@ class DlQuotationPricingService(models.AbstractModel):
         # dòng làm được). Giữ lại để ghi chú minh bạch cho Sales/khách.
         excluded = rfq.line_ids.filtered(lambda l: l.is_infeasible)
         quotable = rfq.line_ids - excluded
+
+        # Lớp D — pre-pass: tính GIÁ TRỊ ĐƠN (theo chi phí trực tiếp) làm cơ sở
+        # cho điều kiện "Đơn hàng nhỏ", và cache chi phí trực tiếp từng dòng gia
+        # công để KHÔNG duyệt BOM hai lần. Dùng chi phí trực tiếp (không phải giá
+        # bán) để tránh vòng lặp giá↔điều chỉnh.
+        direct_cache = {}
+        order_value = 0.0
+        for rfq_line in quotable:
+            if rfq_line.product_type == "trading":
+                order_value += rfq_line.quantity * (
+                    rfq_line.resolved_product_id.list_price or 0.0)
+            else:
+                dc = self._manufactured_direct_cost(rfq_line, context)
+                direct_cache[rfq_line.id] = dc
+                order_value += rfq_line.quantity * (
+                    dc["material_unit"] + dc["operation_cost"])
+        context["order_value"] = order_value
+        context["direct_cache"] = direct_cache
 
         # sudo cho phần ghi dữ liệu: người bấm là Sales (BA) có thể không có
         # quyền write các field chi phí (groups=) hay model price.component —
@@ -150,6 +169,15 @@ class DlQuotationPricingService(models.AbstractModel):
         discount_rule = self._active_discount_rule(company, date, partner)
         config = self.env["dl.pricing.config"].sudo().search([], limit=1)
 
+        # Lớp D: các khoản chi phí chung/điều chỉnh đang áp dụng + số ngày giao
+        # (để điều kiện "Giao gấp"). delivery_days lấy từ hạn RFQ; None nếu RFQ
+        # không đặt hạn ⇒ khoản Giao gấp không áp dụng.
+        adjustment_rules = self.env[
+            "dl.pricing.cost.adjustment.rule"].sudo()._get_active_rules(company, date)
+        delivery_days = None
+        if rfq.deadline:
+            delivery_days = (rfq.deadline - date).days
+
         return {
             "company": company,
             "currency": company.currency_id,
@@ -161,6 +189,9 @@ class DlQuotationPricingService(models.AbstractModel):
             "discount_pct": discount_rule.default_rate if discount_rule else 0.0,
             "vat_pct": config.vat_pct if config else 0.0,
             "rounding_to": config.rounding_to if config else 0,
+            "adjustment_rules": adjustment_rules,
+            "delivery_days": delivery_days,
+            # order_value + direct_cache do create_from_rfq điền ở pre-pass.
         }
 
     def _active_rule_domain(self, company, date):
@@ -327,9 +358,10 @@ class DlQuotationPricingService(models.AbstractModel):
         return vals, comp_specs
 
     # ------------------------------------------------------------------
-    # Tính giá dòng gia công (Decision A2 + §5.2 chia product_qty)
+    # Chi phí TRỰC TIẾP/đơn vị (vật tư + công đoạn) — tách riêng để pre-pass
+    # tính giá trị đơn (điều kiện Lớp D) mà không lặp lại phần này ở main pass.
     # ------------------------------------------------------------------
-    def _price_manufactured(self, rfq_line, context):
+    def _manufactured_direct_cost(self, rfq_line, context):
         bom = rfq_line.resolved_bom_id
         qty = rfq_line.quantity
         # (A) chi phí vật tư + (B) chi phí công đoạn BIẾN ĐỔI cho MỘT đơn vị đầu
@@ -340,16 +372,45 @@ class DlQuotationPricingService(models.AbstractModel):
         # cộng một lần cho cả dòng rồi phân bổ đều trên số lượng (Decision B3).
         batch_total, batch_specs = self._bom_batch_cost(bom, context)
         op_setup_unit = batch_total / qty if qty else 0.0
+        return {
+            "bom": bom,
+            "qty": qty,
+            "material_unit": material_unit,
+            "operation_cost": op_var_unit + op_setup_unit,
+            "unit_specs": unit_specs,
+            "batch_specs": batch_specs,
+        }
+
+    # ------------------------------------------------------------------
+    # Tính giá dòng gia công (Decision A2 + §5.2 chia product_qty)
+    # ------------------------------------------------------------------
+    def _price_manufactured(self, rfq_line, context):
+        # Lấy chi phí trực tiếp từ cache pre-pass (khỏi duyệt BOM lại); dự phòng
+        # tính thẳng nếu gọi ngoài luồng create_from_rfq (test đơn vị).
+        dc = context.get("direct_cache", {}).get(rfq_line.id)
+        if dc is None:
+            dc = self._manufactured_direct_cost(rfq_line, context)
+        bom = dc["bom"]
+        qty = dc["qty"]
+        material_unit = dc["material_unit"]
+        operation_cost = dc["operation_cost"]
+        unit_specs = dc["unit_specs"]
+        batch_specs = dc["batch_specs"]
 
         profit_rule = context["profit_rule"]
         if not profit_rule:
             raise UserError(QTE_005)
 
-        # F/G/H (§6.1): giá thành = vật tư + công đoạn (biến đổi + setup phân bổ);
-        # giá mục tiêu = giá thành × (1 + markup); giá sàn = ×(1 + min_markup);
-        # làm tròn giá bán trước chiết khấu.
-        operation_cost = op_var_unit + op_setup_unit
-        total_cost = material_unit + operation_cost
+        # (D) Lớp chi phí chung/điều chỉnh: overhead/đóng gói/giao gấp/đơn nhỏ/
+        # dự phòng cộng tuần tự trên giá thành trực tiếp (V3 §6).
+        direct_cost = material_unit + operation_cost
+        adjustment_cost, adj_specs = self._apply_cost_adjustments(
+            direct_cost, context, qty)
+
+        # F/G/H (§6.1): giá thành = trực tiếp + điều chỉnh; giá mục tiêu = giá
+        # thành × (1 + markup); giá sàn = ×(1 + min_markup); làm tròn giá bán
+        # trước chiết khấu.
+        total_cost = direct_cost + adjustment_cost
         target_markup = profit_rule.target_markup
         min_markup = profit_rule.min_markup
         target_price = total_cost * (1 + target_markup / 100.0)
@@ -368,6 +429,7 @@ class DlQuotationPricingService(models.AbstractModel):
             "bom_confirmed_date": bom.approved_date,
             "material_cost": material_unit,
             "operation_cost": operation_cost,
+            "adjustment_cost": adjustment_cost,
             "total_cost": total_cost,
             "base_price": target_price,
             "price_unit": price_unit,
@@ -395,6 +457,20 @@ class DlQuotationPricingService(models.AbstractModel):
             spec["qty"] = qty
             spec["unit_price"] = spec["amount"] / qty if qty else 0.0
             comp_specs.append(spec)
+        # Cấu phần điều chỉnh (Lớp D): amount/đơn vị → nhân qty ra cả dòng.
+        for spec in adj_specs:
+            comp_specs.append({
+                "component_type": "adjustment",
+                "source_model": spec["source_model"],
+                "source_id": spec["source_id"],
+                "source_revision": spec["source_revision"],
+                "material_id": False,
+                "qty": qty,
+                "unit_price": spec["unit_price"],
+                "rate": spec["rate"],
+                "amount": spec["amount"] * qty,
+                "no_discount": spec["no_discount"],
+            })
         # Cấu phần markup: giải trình phần lợi nhuận cộng thêm trên giá thành.
         comp_specs.append({
             "component_type": "markup",
@@ -407,6 +483,47 @@ class DlQuotationPricingService(models.AbstractModel):
             "amount": (price_unit - total_cost) * qty,
         })
         return vals, comp_specs
+
+    def _apply_cost_adjustments(self, direct_unit, context, qty):
+        """Lớp D — chi phí chung/điều chỉnh cộng lên giá thành trực tiếp (V3 §6).
+
+        Trả ``(adjustment_unit, specs)``: tổng khoản điều chỉnh/đơn vị và các
+        cấu phần snapshot (amount/đơn vị). Áp tuần tự theo thứ tự rule; % giá
+        thành và hệ số nhân cộng dồn trên ``running`` (giá thành lũy kế). Đánh
+        dấu rule đã dùng để mixin bảo vệ không cho sửa (đối xứng công đoạn).
+        """
+        rules = context.get("adjustment_rules")
+        if not rules:
+            return 0.0, []
+        order_value = context.get("order_value") or 0.0
+        delivery_days = context.get("delivery_days")
+
+        running = direct_unit
+        adj_total = 0.0
+        specs = []
+        for rule in rules:
+            if not rule.applies(order_value, delivery_days):
+                continue
+            amount = rule.adjustment_unit_amount(direct_unit, running, qty)
+            if not amount:
+                continue
+            running += amount
+            adj_total += amount
+            if not rule.used_in_snapshot:
+                rule.write({"used_in_snapshot": True})
+            is_rate = rule.method in (
+                "percent_direct", "percent_cost", "factor")
+            specs.append({
+                "source_model": "dl.pricing.cost.adjustment.rule",
+                "source_id": rule.id,
+                "source_revision": rule.revision,
+                # % / hệ số: tỷ lệ ở cột 'rate', bỏ trống đơn giá (không phải tiền).
+                "unit_price": 0.0 if is_rate else amount,
+                "rate": rule.value if is_rate else 0.0,
+                "amount": amount,
+                "no_discount": rule.no_discount,
+            })
+        return adj_total, specs
 
     def _resolve_child_bom(self, material):
         """BOM dùng làm GIÁ VỐN CHUẨN của một bán thành phẩm.
