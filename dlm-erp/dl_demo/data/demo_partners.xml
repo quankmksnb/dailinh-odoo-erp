@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         KHÁCH HÀNG & NHÀ CUNG CẤP demo.
+         - Khách hàng: partner_role='customer' → create() tự sinh Mã KH (KH-xxxx).
+         - Nhóm khách (mới/cũ/thân thiết) là field COMPUTED từ báo giá đã thắng;
+           post_init_hook dựng báo giá accepted/ordered cho đúng khách để 3 nhóm
+           hiện đủ (xem hooks.py::build_quotations + refresh_customer_groups).
+         noupdate="1": chỉ nạp một lần, cho sửa tự do sau đó.
+    ============================================================ -->
+    <data noupdate="1">
+
+        <!-- ===================== KHÁCH HÀNG ===================== -->
+
+        <!-- (1) Khách MỚI — chưa có báo giá thắng nào → nhóm "Khách hàng mới". -->
+        <record id="demo_customer_tan_tien" model="res.partner">
+            <field name="name">Công ty TNHH Cơ khí Tân Tiến</field>
+            <field name="partner_role">customer</field>
+            <field name="partner_type">company</field>
+            <field name="company_type">company</field>
+            <field name="vat">0312345678</field>
+            <field name="phone">0283 8712 345</field>
+            <field name="email">contact@cokhitantien.vn</field>
+            <field name="street">12 Nguyễn Văn Bá</field>
+            <field name="city">TP. Thủ Đức</field>
+        </record>
+
+        <!-- (2) Khách CŨ — có báo giá thắng nhưng tổng ≤ ngưỡng thân thiết
+             → nhóm "Khách hàng cũ". -->
+        <record id="demo_customer_minh_long" model="res.partner">
+            <field name="name">Xưởng Cơ khí Minh Long</field>
+            <field name="partner_role">customer</field>
+            <field name="partner_type">company</field>
+            <field name="company_type">company</field>
+            <field name="vat">0398765432</field>
+            <field name="phone">0274 3866 777</field>
+            <field name="email">minhlong.mech@gmail.com</field>
+            <field name="street">45 Đại lộ Bình Dương</field>
+            <field name="city">Thuận An</field>
+        </record>
+
+        <!-- (3) Khách THÂN THIẾT — tổng báo giá thắng > ngưỡng (mặc định 150tr)
+             → nhóm "Khách hàng thân thiết". -->
+        <record id="demo_customer_thanh_do" model="res.partner">
+            <field name="name">Tập đoàn Xây dựng Thành Đô</field>
+            <field name="partner_role">customer</field>
+            <field name="partner_type">company</field>
+            <field name="company_type">company</field>
+            <field name="vat">0301122334</field>
+            <field name="phone">024 3782 1010</field>
+            <field name="email">procurement@thanhdo.com.vn</field>
+            <field name="street">88 Trần Duy Hưng</field>
+            <field name="city">Hà Nội</field>
+        </record>
+
+        <!-- (4) Khách cá nhân — để test loại 'individual' + báo giá nhỏ. -->
+        <record id="demo_customer_anh_hoang" model="res.partner">
+            <field name="name">Anh Hoàng (nhà xưởng gia đình)</field>
+            <field name="partner_role">customer</field>
+            <field name="partner_type">individual</field>
+            <field name="company_type">person</field>
+            <field name="phone">0909 123 456</field>
+            <field name="email">hoang.nx@gmail.com</field>
+            <field name="street">7 Lê Văn Lương</field>
+            <field name="city">TP. HCM</field>
+        </record>
+
+        <!-- ===================== NHÀ CUNG CẤP ===================== -->
+
+        <record id="demo_supplier_hoa_phat" model="res.partner">
+            <field name="name">Thép Hòa Phát — Chi nhánh miền Nam</field>
+            <field name="partner_role">supplier</field>
+            <field name="company_type">company</field>
+            <field name="vat">0400101010</field>
+            <field name="phone">1800 1755</field>
+            <field name="email">sales.south@hoaphat.com.vn</field>
+            <field name="city">Bà Rịa - Vũng Tàu</field>
+        </record>
+
+        <record id="demo_supplier_dai_bang" model="res.partner">
+            <field name="name">Sơn Đại Bàng</field>
+            <field name="partner_role">supplier</field>
+            <field name="company_type">company</field>
+            <field name="vat">0402223344</field>
+            <field name="phone">028 3975 4321</field>
+            <field name="email">order@sondaibang.vn</field>
+            <field name="city">TP. HCM</field>
+        </record>
+
+        <!-- NCC kiêm khách hàng (vai trò 'both') — test partner dùng chung 2 màn. -->
+        <record id="demo_supplier_phu_thinh" model="res.partner">
+            <field name="name">Cơ khí Phú Thịnh</field>
+            <field name="partner_role">both</field>
+            <field name="partner_type">company</field>
+            <field name="company_type">company</field>
+            <field name="vat">0305556677</field>
+            <field name="phone">0251 3777 888</field>
+            <field name="email">phuthinh.mech@gmail.com</field>
+            <field name="city">Đồng Nai</field>
+        </record>
+
+    </data>
+</odoo>

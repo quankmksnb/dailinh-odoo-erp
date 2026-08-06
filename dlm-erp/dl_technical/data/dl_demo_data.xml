@@ -2,10 +2,17 @@
 <odoo>
     <data noupdate="1">
 
-        <!-- TECH-04/05 — BOM mẫu cho nhóm "Khung thép hàn" (khớp kịch bản) -->
+        <!-- TECH-04/05 — BOM mẫu cho nhóm "Khung thép hàn" (khớp kịch bản).
+             Seed ở trạng thái ĐÃ XÁC NHẬN + hiện hành: ràng buộc LK-04
+             (_dlm_check_bom_template_id) chỉ cho gán mẫu Confirmed/Locked làm
+             mẫu mặc định của nhóm (xem nối category ở dưới). -->
         <record id="demo_bom_template_khungthep" model="dl.bom.template">
             <field name="name">BOM mẫu Khung thép hàn</field>
             <field name="product_category_id" ref="dl_product.categ_khung_thep_han"/>
+            <field name="product_qty">1</field>
+            <field name="version">1</field>
+            <field name="status">confirmed</field>
+            <field name="is_current" eval="True"/>
         </record>
 
         <record id="demo_bom_tmpl_line_tamsat" model="dl.bom.template.line">

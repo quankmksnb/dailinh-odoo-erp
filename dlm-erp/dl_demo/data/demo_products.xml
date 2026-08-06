@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         SẢN PHẨM THƯƠNG MẠI (trading) + BÁN THÀNH PHẨM (BTP) demo bổ sung.
+         Giá NCC (product.supplierinfo) cho các sản phẩm/vật tư này được gắn
+         trong post_init_hook (build_supplier_prices) vì cần product_tmpl_id +
+         trạng thái duyệt/áp dụng — xem hooks.py.
+         list_price = giá bán tham chiếu; báo giá hàng thương mại lấy làm giá nền.
+    ============================================================ -->
+    <data noupdate="1">
+
+        <!-- SP thương mại 1 — sẽ có giá NCC "Đang áp dụng" (đủ điều kiện bán). -->
+        <record id="demo_trading_ban_le" model="product.product">
+            <field name="name">Bản lề inox 304 (100×75mm)</field>
+            <field name="default_code">TM-BANLE-304</field>
+            <field name="product_kind">trading</field>
+            <field name="categ_id" ref="dl_product.categ_ban_ghe_sat"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+            <field name="list_price">45000</field>
+        </record>
+
+        <!-- SP thương mại 2 — giá NCC mới chỉ "Đã duyệt", CHƯA áp dụng
+             (test màn Bảng giá trạng thái trung gian). -->
+        <record id="demo_trading_tay_nam" model="product.product">
+            <field name="name">Tay nắm cửa hợp kim nhôm</field>
+            <field name="default_code">TM-TAYNAM-01</field>
+            <field name="product_kind">trading</field>
+            <field name="categ_id" ref="dl_product.categ_ban_ghe_sat"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+            <field name="list_price">62000</field>
+        </record>
+
+        <!-- SP thương mại 3 — CHƯA có giá NCC (test cột/lọc "Chưa có giá NCC"). -->
+        <record id="demo_trading_ke_goc" model="product.product">
+            <field name="name">Ke góc thép mạ kẽm 90°</field>
+            <field name="default_code">TM-KEGOC-90</field>
+            <field name="product_kind">trading</field>
+            <field name="categ_id" ref="dl_product.categ_ban_ghe_sat"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+            <field name="list_price">18000</field>
+        </record>
+
+    </data>
+</odoo>
