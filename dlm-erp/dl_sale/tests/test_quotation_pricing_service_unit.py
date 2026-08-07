@@ -106,7 +106,11 @@ class TestPriceManufactured(unittest.TestCase):
     @staticmethod
     def _rfq_line(qty=3):
         product = SimpleNamespace(id=42, display_name="Khung thép A")
-        bom = SimpleNamespace(id=555)
+        # _price_manufactured() nay stamp thêm dấu vết BOM (version/approved_by/
+        # approved_date) vào vals (§5.2) — bom giả phải có đủ 3 field này.
+        bom = SimpleNamespace(id=555, version=2,
+                               approved_by=SimpleNamespace(id=8),
+                               approved_date="2026-07-01")
         return SimpleNamespace(resolved_product_id=product, quantity=qty,
                                 resolved_bom_id=bom, product_name="Khung thép A")
 
@@ -181,7 +185,8 @@ class TestBomMaterialCost(unittest.TestCase):
         )
         bl = self._bom_line(material, effective_qty=10.0, quantity=10.0, recovery_value=0.0)
         bom = SimpleNamespace(id=1, product_qty=2.0, line_ids=[bl])
-        unit_cost, specs = _svc()._bom_material_cost(bom, context={"currency": "VND"}, visited=frozenset())
+        unit_cost, specs = _svc()._bom_material_cost(
+            bom, context={"currency": "VND", "pricing_date": "2026-07-01"}, visited=frozenset())
         self.assertEqual(unit_cost, 250.0)
         self.assertEqual(len(specs), 1)
         self.assertEqual(specs[0]["amount"], 250.0)
@@ -203,7 +208,8 @@ class TestBomMaterialCost(unittest.TestCase):
         # được cộng thêm hao hụt lần nữa (GB-10), chỉ tiêu thụ effective_qty.
         bl = self._bom_line(material, effective_qty=10.0, quantity=8.0, recovery_value=20.0)
         bom = SimpleNamespace(id=1, product_qty=1.0, line_ids=[bl])
-        unit_cost, specs = _svc()._bom_material_cost(bom, context={"currency": "VND"}, visited=frozenset())
+        unit_cost, specs = _svc()._bom_material_cost(
+            bom, context={"currency": "VND", "pricing_date": "2026-07-01"}, visited=frozenset())
         self.assertEqual(unit_cost, 980.0)  # 10*100 - 20
         material_spec, recovery_spec = specs
         self.assertEqual(material_spec["qty"], 10.0)  # effective_qty nguyên vẹn
@@ -222,7 +228,8 @@ class TestBomMaterialCost(unittest.TestCase):
         bl = self._bom_line(material, effective_qty=10.0, quantity=10.0)
         bom = SimpleNamespace(id=1, product_qty=1.0, line_ids=[bl])
         with self.assertRaises(UserError) as ctx:
-            _svc()._bom_material_cost(bom, context={"currency": "VND"}, visited=frozenset())
+            _svc()._bom_material_cost(
+                bom, context={"currency": "VND", "pricing_date": "2026-07-01"}, visited=frozenset())
         self.assertEqual(str(ctx.exception), QTE_003 % "Thép tấm")
 
     def test_cycle_guard_raises_qte004(self):
@@ -246,33 +253,32 @@ class TestCheckMeasureCompatibility(unittest.TestCase):
     def test_happy_compatible(self):
         """TC-UNIT-DlQuotationPricingService-016"""
         seller = SimpleNamespace(currency_id="VND")
-        sellers = Mock(); sellers.filtered.return_value = FakeRecordset([seller])
-        material = SimpleNamespace(display_name="Thép tấm", uom_id="kg", uom_po_id="kg", seller_ids=sellers)
-        self.assertIsNone(_svc()._check_measure_compatibility(SimpleNamespace(), material, {"currency": "VND"}))
+        material = SimpleNamespace(display_name="Thép tấm", uom_id="kg", uom_po_id="kg")
+        self.assertIsNone(_svc()._check_measure_compatibility(
+            SimpleNamespace(), material, seller, {"currency": "VND"}))
 
     def test_uom_mismatch_raises_qte007(self):
         """TC-UNIT-DlQuotationPricingService-017"""
-        sellers = Mock(); sellers.filtered.return_value = FakeRecordset([])
-        material = SimpleNamespace(display_name="Thép tấm", uom_id="kg", uom_po_id="m", seller_ids=sellers)
+        seller = SimpleNamespace(currency_id="VND")
+        material = SimpleNamespace(display_name="Thép tấm", uom_id="kg", uom_po_id="m")
         with self.assertRaises(UserError) as ctx:
-            _svc()._check_measure_compatibility(SimpleNamespace(), material, {"currency": "VND"})
+            _svc()._check_measure_compatibility(SimpleNamespace(), material, seller, {"currency": "VND"})
         self.assertEqual(str(ctx.exception), QTE_007 % "Thép tấm")
 
     def test_currency_mismatch_raises_qte007(self):
         """TC-UNIT-DlQuotationPricingService-018"""
         seller = SimpleNamespace(currency_id="USD")
-        sellers = Mock(); sellers.filtered.return_value = FakeRecordset([seller])
-        material = SimpleNamespace(display_name="Thép tấm", uom_id="kg", uom_po_id="kg", seller_ids=sellers)
+        material = SimpleNamespace(display_name="Thép tấm", uom_id="kg", uom_po_id="kg")
         with self.assertRaises(UserError) as ctx:
-            _svc()._check_measure_compatibility(SimpleNamespace(), material, {"currency": "VND"})
+            _svc()._check_measure_compatibility(SimpleNamespace(), material, seller, {"currency": "VND"})
         self.assertEqual(str(ctx.exception), QTE_007 % "Thép tấm")
 
     def test_uom_po_id_falsy_skips_uom_check(self):
         """TC-UNIT-DlQuotationPricingService-019"""
         seller = SimpleNamespace(currency_id="VND")
-        sellers = Mock(); sellers.filtered.return_value = FakeRecordset([seller])
-        material = SimpleNamespace(display_name="Thép tấm", uom_id="kg", uom_po_id=False, seller_ids=sellers)
-        self.assertIsNone(_svc()._check_measure_compatibility(SimpleNamespace(), material, {"currency": "VND"}))
+        material = SimpleNamespace(display_name="Thép tấm", uom_id="kg", uom_po_id=False)
+        self.assertIsNone(_svc()._check_measure_compatibility(
+            SimpleNamespace(), material, seller, {"currency": "VND"}))
 
 
 class TestBelowFloor(unittest.TestCase):

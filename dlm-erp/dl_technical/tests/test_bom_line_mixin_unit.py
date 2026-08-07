@@ -33,6 +33,8 @@ class _FakeBomLine:
     thật cần đọc/ghi, mượn thẳng method thật từ DlBomLineMixin."""
 
     _measurement_quantity = DlBomLineMixin._measurement_quantity
+    _measurement_quantity_raw = DlBomLineMixin._measurement_quantity_raw
+    _dimension_sanity_warning = DlBomLineMixin._dimension_sanity_warning
     _onchange_measurement_values = DlBomLineMixin._onchange_measurement_values
     _onchange_measurement_shape = DlBomLineMixin._onchange_measurement_shape
     _onchange_measurement_type = DlBomLineMixin._onchange_measurement_type
@@ -55,6 +57,7 @@ class _FakeBomLine:
         self.effective_qty = 0.0
         self.material_id = None
         self.complexity_id = None
+        self.uom_id = None
         self.__dict__.update(kwargs)
 
     def ensure_one(self):
@@ -62,6 +65,12 @@ class _FakeBomLine:
 
 
 def _shape(code, default_coefficient=0.0, measurement_type_id=None):
+    # _measurement_quantity() (dl_bom_line_mixin.py) đọc
+    # shape.measurement_type_id.formula_uom_id để quy đổi UoM — mặc định
+    # formula_uom_id=False (giữ nguyên hành vi raw cũ, không quy đổi) khi
+    # test không quan tâm tới UoM, tránh AttributeError trên None.
+    if measurement_type_id is None:
+        measurement_type_id = SimpleNamespace(formula_uom_id=False)
     return SimpleNamespace(code=code, default_coefficient=default_coefficient,
                             measurement_type_id=measurement_type_id)
 

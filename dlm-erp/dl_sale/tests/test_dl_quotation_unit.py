@@ -2,10 +2,11 @@
 Sheet nguồn: DlQuotation, DlQuotationLine trong Report_5_1_UnitTests_L1.xlsx.
 """
 import unittest
+from datetime import date, timedelta
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 from ..models.dl_quotation import DlQuotation, DlQuotationLine
 
@@ -95,9 +96,31 @@ class TestQuotationLineComputeSubtotal(unittest.TestCase):
 
 class _RS:
     """Stand-in cho recordset Odoo nhiều bản ghi — hỗ trợ `for rec in self`
-    (đọc field từng bản ghi) và `self.field = x` broadcast xuống MỌI bản ghi
+    (đọc field từng bản ghi), `self.field = x` broadcast xuống MỌI bản ghi
     (đúng ngữ nghĩa gán field ở cấp recordset thật của Odoo, vd
-    `action_send()` làm `self.state = 'sent'` sau vòng lặp kiểm tra)."""
+    `action_send()` làm `self.state = 'sent'` sau vòng lặp kiểm tra), và
+    `self.write(vals)` (action_send/action_customer_accept/_apply_reject đều
+    dùng self.write thay vì gán field trực tiếp)."""
+
+    # _apply_reject() đọc self._fields['reject_reason'].selection để lấy
+    # nhãn hiển thị — mượn nguyên danh sách selection thật từ dl_quotation.py
+    # (reject_reason field) để không lệch khi field đổi.
+    # _apply_reject() đọc self._REJECTABLE_STATES — mượn nguyên tuple thật.
+    _REJECTABLE_STATES = ('draft', 'approved', 'sent', 'revision_requested')
+    # _compute_validity_state()/action_expire() đọc self._EXPIRABLE_STATES.
+    _EXPIRABLE_STATES = ('approved', 'sent', 'revision_requested')
+
+    _fields = {
+        "reject_reason": SimpleNamespace(selection=[
+            ('price_high', 'Giá cao'),
+            ('lead_time', 'Thời gian giao hàng lâu'),
+            ('tech_not_met', 'Không đáp ứng kỹ thuật'),
+            ('chose_competitor', 'Khách chọn nhà cung cấp khác'),
+            ('demand_cancelled', 'Khách hủy nhu cầu'),
+            ('no_contact', 'Không liên hệ được'),
+            ('other', 'Lý do khác'),
+        ]),
+    }
 
     def __init__(self, records):
         object.__setattr__(self, "_records", list(records))
@@ -109,11 +132,21 @@ class _RS:
         for r in self._records:
             setattr(r, name, value)
 
+    def write(self, vals):
+        for r in self._records:
+            for k, v in vals.items():
+                setattr(r, k, v)
+
 
 def _quo_rec(**kwargs):
     rec = SimpleNamespace(
         state="draft", approval_state="not_required", approval_level="",
         approval_request_id=None, sale_order_id=None, name="BG0001",
+        # action_send() cần approval_required (nhánh Nháp) và validity_date
+        # (đặt hạn hiệu lực mặc định nếu chưa có) — cho giá trị "đã có sẵn"
+        # để khỏi phải mock self.env._default_validity_date() ở tầng L1.
+        approval_required=False, validity_date="2026-12-31",
+        message_post=lambda **kw: None,
     )
     rec.__dict__.update(kwargs)
     rec.ensure_one = lambda: rec  # action_open_approval_request/action_open_sale_order cần
@@ -141,11 +174,20 @@ class TestActionSend(unittest.TestCase):
         with self.assertRaises(UserError):
             DlQuotation.action_send(_RS([rec]))
 
-    def test_blocked_when_state_not_approved(self):
-        """TC-UNIT-DlQuotation-008"""
-        rec = _quo_rec(state="draft", approval_state="not_required")
+    def test_blocked_when_draft_and_approval_required(self):
+        """TC-UNIT-DlQuotation-008 — quyết định 2026-07-24: Nháp chỉ gửi
+        thẳng được khi THỰC SỰ không cần duyệt; còn cần duyệt thì phải chặn."""
+        rec = _quo_rec(state="draft", approval_required=True)
         with self.assertRaises(UserError):
             DlQuotation.action_send(_RS([rec]))
+
+    def test_draft_send_allowed_when_no_approval_needed(self):
+        """TC-UNIT-DlQuotation-008a — cùng quyết định trên: báo giá Nháp dưới
+        ngưỡng (approval_required=False, approval_state=not_required) được
+        gửi THẲNG cho khách, không bắt phải qua trạng thái 'Đã duyệt' trước."""
+        rec = _quo_rec(state="draft", approval_state="not_required", approval_required=False)
+        DlQuotation.action_send(_RS([rec]))
+        self.assertEqual(rec.state, "sent")
 
     def test_gb06_gap_ignores_unconfirmed_bom_on_lines(self):
         """TC-UNIT-DlQuotation-020"""
@@ -175,29 +217,36 @@ class TestActionCustomerAccept(unittest.TestCase):
 
 
 class TestActionResetDraft(unittest.TestCase):
-    """GB-01 ("1 chiều") gap: action_reset_draft() không có guard nào trong
-    Python — chỉ ẩn nút ở UI (quotation_views.xml) khi state không thuộc
-    approved/sent/rejected. Test dưới đây khoá lại đúng hiện trạng code thật,
-    không phải hành vi PRD mong muốn."""
+    """GB-01 ("1 chiều"): action_reset_draft() giờ ĐÃ có guard ở tầng Python
+    (chỉ cho về Nháp từ approved/sent/revision_requested/rejected/expired) —
+    trước đây (bản test cũ) chỉ ẩn nút ở UI, không chặn ở Python, 2 test dưới
+    đây khi đó khoá lại đúng "gap". Gap đã được vá (xem dl_quotation.py
+    action_reset_draft) nên nay đổi thành test bảo vệ hành vi chặn đúng,
+    không còn là gap."""
 
-    def test_callable_from_ordered_state_gb01_gap(self):
+    def test_blocked_from_ordered_state(self):
         """TC-UNIT-DlQuotation-011"""
         rec = _quo_rec(state="ordered")
-        DlQuotation.action_reset_draft(_RS([rec]))
-        self.assertEqual(rec.state, "draft")  # không raise — đúng gap GB-01
+        with self.assertRaises(UserError):
+            DlQuotation.action_reset_draft(_RS([rec]))
 
-    def test_callable_from_cancelled_state_gb01_gap(self):
+    def test_blocked_from_cancelled_state(self):
         """TC-UNIT-DlQuotation-012"""
         rec = _quo_rec(state="cancelled")
-        DlQuotation.action_reset_draft(_RS([rec]))
-        self.assertEqual(rec.state, "draft")  # không raise — đúng gap GB-01
+        with self.assertRaises(UserError):
+            DlQuotation.action_reset_draft(_RS([rec]))
 
 
 class TestActionReject(unittest.TestCase):
+    """action_reject() cũ đã đổi thành _apply_reject(reason, note), giờ chỉ
+    gọi được qua dl.quotation.reject.wizard (wizard thu thập reason/note rồi
+    gọi thẳng vào đây) — test dưới đây gọi trực tiếp _apply_reject() như
+    wizard vẫn làm, không qua UI."""
+
     def test_no_pending_request_just_sets_rejected(self):
         """TC-UNIT-DlQuotation-013"""
         rec = _quo_rec(state="sent", approval_request_id=None)
-        DlQuotation.action_reject(_RS([rec]))
+        DlQuotation._apply_reject(_RS([rec]), "other", "Khách chọn NCC khác")
         self.assertEqual(rec.state, "rejected")
 
     def test_pending_request_gets_cancelled(self):
@@ -205,7 +254,7 @@ class TestActionReject(unittest.TestCase):
         req = Mock(state="pending")
         req.sudo.return_value = req
         rec = _quo_rec(state="sent", approval_request_id=req)
-        DlQuotation.action_reject(_RS([rec]))
+        DlQuotation._apply_reject(_RS([rec]), "price_high", "Giá cao hơn đối thủ")
         req.action_cancel_on_change.assert_called_once()
         self.assertEqual(rec.state, "rejected")
 
@@ -214,7 +263,7 @@ class TestActionReject(unittest.TestCase):
         req = Mock(state="approved")
         req.sudo.return_value = req
         rec = _quo_rec(state="sent", approval_request_id=req)
-        DlQuotation.action_reject(_RS([rec]))
+        DlQuotation._apply_reject(_RS([rec]), "no_contact", "Không liên hệ được")
         req.action_cancel_on_change.assert_not_called()
         self.assertEqual(rec.state, "rejected")
 
@@ -247,6 +296,234 @@ class TestActionOpenSaleOrder(unittest.TestCase):
         rec = _quo_rec(sale_order_id=None)
         with self.assertRaises(UserError):
             DlQuotation.action_open_sale_order(rec)
+
+
+_TODAY = date(2026, 8, 5)
+
+
+# =============================================================================
+# _compute_validity_state() — dùng fields.Date.context_today(self), patch để
+# không cần self.env/tz thật (kỹ thuật boundary tương tự patch.object đã dùng
+# ở Priority #1/#2 cho _bom_material_cost/_resolve_value_row).
+# =============================================================================
+class TestComputeValidityState(unittest.TestCase):
+    def test_not_expirable_state_always_ok(self):
+        """TC-UNIT-DlQuotation-031"""
+        rec = SimpleNamespace(state="draft", validity_date=_TODAY - timedelta(days=30))
+        with patch("odoo.fields.Date.context_today", return_value=_TODAY):
+            DlQuotation._compute_validity_state(_RS([rec]))
+        self.assertEqual(rec.validity_state, "ok")
+
+    def test_overdue_when_validity_date_in_past(self):
+        """TC-UNIT-DlQuotation-032"""
+        rec = SimpleNamespace(state="sent", validity_date=_TODAY - timedelta(days=1))
+        with patch("odoo.fields.Date.context_today", return_value=_TODAY):
+            DlQuotation._compute_validity_state(_RS([rec]))
+        self.assertEqual(rec.validity_state, "overdue")
+
+    def test_soon_when_within_7_days(self):
+        """TC-UNIT-DlQuotation-033"""
+        rec = SimpleNamespace(state="sent", validity_date=_TODAY + timedelta(days=7))
+        with patch("odoo.fields.Date.context_today", return_value=_TODAY):
+            DlQuotation._compute_validity_state(_RS([rec]))
+        self.assertEqual(rec.validity_state, "soon")
+
+    def test_ok_when_more_than_7_days_left(self):
+        """TC-UNIT-DlQuotation-034"""
+        rec = SimpleNamespace(state="sent", validity_date=_TODAY + timedelta(days=8))
+        with patch("odoo.fields.Date.context_today", return_value=_TODAY):
+            DlQuotation._compute_validity_state(_RS([rec]))
+        self.assertEqual(rec.validity_state, "ok")
+
+    def test_expirable_state_but_no_validity_date_is_ok(self):
+        """TC-UNIT-DlQuotation-035"""
+        rec = SimpleNamespace(state="approved", validity_date=False)
+        with patch("odoo.fields.Date.context_today", return_value=_TODAY):
+            DlQuotation._compute_validity_state(_RS([rec]))
+        self.assertEqual(rec.validity_state, "ok")
+
+
+# =============================================================================
+# _check_validity_after_order() — constraint thuần, so 2 field ngày trên self.
+# =============================================================================
+class TestCheckValidityAfterOrder(unittest.TestCase):
+    def test_validity_before_order_date_raises(self):
+        """TC-UNIT-DlQuotation-036"""
+        rec = SimpleNamespace(validity_date=date(2026, 1, 1), date_order=date(2026, 2, 1))
+        with self.assertRaises(ValidationError):
+            DlQuotation._check_validity_after_order([rec])
+
+    def test_validity_equal_order_date_passes(self):
+        """TC-UNIT-DlQuotation-037"""
+        rec = SimpleNamespace(validity_date=date(2026, 2, 1), date_order=date(2026, 2, 1))
+        DlQuotation._check_validity_after_order([rec])  # boundary, không raise
+
+    def test_validity_after_order_date_passes(self):
+        """TC-UNIT-DlQuotation-038"""
+        rec = SimpleNamespace(validity_date=date(2026, 3, 1), date_order=date(2026, 2, 1))
+        DlQuotation._check_validity_after_order([rec])  # không raise
+
+    def test_missing_validity_date_skips_check(self):
+        """TC-UNIT-DlQuotation-039"""
+        rec = SimpleNamespace(validity_date=False, date_order=date(2026, 2, 1))
+        DlQuotation._check_validity_after_order([rec])  # không raise, không so sánh
+
+
+# =============================================================================
+# _compute_status_banner() — thuần Python + self._fields['reject_reason']
+# (mượn danh sách selection thật, cùng kỹ thuật _RS._fields ở TestActionReject).
+# =============================================================================
+class _BannerRec(SimpleNamespace):
+    _fields = {
+        "reject_reason": SimpleNamespace(selection=[
+            ('price_high', 'Giá cao'), ('lead_time', 'Thời gian giao hàng lâu'),
+            ('tech_not_met', 'Không đáp ứng kỹ thuật'),
+            ('chose_competitor', 'Khách chọn nhà cung cấp khác'),
+            ('demand_cancelled', 'Khách hủy nhu cầu'), ('no_contact', 'Không liên hệ được'),
+            ('other', 'Lý do khác'),
+        ]),
+    }
+
+    def __init__(self, **kw):
+        base = dict(state="draft", approval_required=False, approval_state="not_required",
+                    approval_level="", approval_reasons="", reject_reason=False,
+                    reject_reason_note=False, revision_request_type=False,
+                    revision_request_note=False, line_ids=[])
+        base.update(kw)
+        super().__init__(**base)
+
+
+class TestComputeStatusBanner(unittest.TestCase):
+    def test_rejected_state(self):
+        """TC-UNIT-DlQuotation-040"""
+        rec = _BannerRec(state="rejected", reject_reason="price_high")
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "danger")
+        self.assertIn("Giá cao", rec.status_banner_message)
+
+    def test_approval_rejected(self):
+        """TC-UNIT-DlQuotation-041"""
+        rec = _BannerRec(state="draft", approval_state="rejected")
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "danger")
+
+    def test_pending_approval(self):
+        """TC-UNIT-DlQuotation-042"""
+        rec = _BannerRec(state="draft", approval_required=True, approval_state="pending",
+                          approval_level="ceo")
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "warning")
+        self.assertIn("ceo", rec.status_banner_message)
+
+    def test_expired_state(self):
+        """TC-UNIT-DlQuotation-043"""
+        rec = _BannerRec(state="expired")
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "warning")
+
+    def test_revision_requested_technical(self):
+        """TC-UNIT-DlQuotation-044"""
+        rec = _BannerRec(state="revision_requested", revision_request_type="technical")
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "warning")
+        self.assertIn("Kỹ thuật sửa BOM", rec.status_banner_message)
+
+    def test_revision_requested_terms(self):
+        """TC-UNIT-DlQuotation-045"""
+        rec = _BannerRec(state="revision_requested", revision_request_type="terms")
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "info")
+
+    def test_revision_requested_price_default(self):
+        """TC-UNIT-DlQuotation-046"""
+        rec = _BannerRec(state="revision_requested", revision_request_type=False)
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "info")
+        self.assertIn("giá / chiết khấu", rec.status_banner_message)
+
+    def test_superseded_state(self):
+        """TC-UNIT-DlQuotation-047"""
+        rec = _BannerRec(state="superseded")
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "secondary")
+
+    def test_approved_ready_to_send(self):
+        """TC-UNIT-DlQuotation-048"""
+        rec = _BannerRec(state="draft", approval_state="approved")
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "success")
+
+    def test_draft_no_approval_needed_with_lines_ready(self):
+        """TC-UNIT-DlQuotation-049"""
+        rec = _BannerRec(state="draft", approval_required=False,
+                          approval_state="not_required", line_ids=[object()])
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertEqual(rec.status_banner_level, "success")
+        self.assertIn("sẵn sàng gửi khách", rec.status_banner_message)
+
+    def test_draft_no_lines_no_banner(self):
+        """TC-UNIT-DlQuotation-050"""
+        rec = _BannerRec(state="draft", approval_required=False,
+                          approval_state="not_required", line_ids=[])
+        DlQuotation._compute_status_banner(_RS([rec]))
+        self.assertFalse(rec.status_banner_level)
+        self.assertFalse(rec.status_banner_message)
+
+
+# =============================================================================
+# _compute_discount_hint() — thuần Python + self._fields['partner_group'].
+# _description_selection(env) mượn/mock để không cần self.env thật.
+# =============================================================================
+class _HintRec(SimpleNamespace):
+    _fields = {
+        "partner_group": SimpleNamespace(
+            _description_selection=lambda env: [
+                ("new", "Khách mới"), ("existing", "Khách cũ"), ("loyal", "Khách thân thiết"),
+            ]
+        ),
+    }
+
+    def __init__(self, **kw):
+        base = dict(state="draft", partner_group="existing", discount_default_rate=5.0,
+                    discount_max_rate=15.0, discount_above_max=False,
+                    discount_above_default=False, env=None)
+        base.update(kw)
+        super().__init__(**base)
+
+
+class TestComputeDiscountHint(unittest.TestCase):
+    def test_not_draft_no_hint(self):
+        """TC-UNIT-DlQuotation-051"""
+        rec = _HintRec(state="sent")
+        DlQuotation._compute_discount_hint([rec])
+        self.assertFalse(rec.discount_hint_level)
+        self.assertFalse(rec.discount_hint_message)
+
+    def test_no_partner_group_no_hint(self):
+        """TC-UNIT-DlQuotation-052"""
+        rec = _HintRec(state="draft", partner_group=False)
+        DlQuotation._compute_discount_hint([rec])
+        self.assertFalse(rec.discount_hint_level)
+
+    def test_above_max_warning(self):
+        """TC-UNIT-DlQuotation-053"""
+        rec = _HintRec(discount_above_max=True)
+        DlQuotation._compute_discount_hint([rec])
+        self.assertEqual(rec.discount_hint_level, "warning")
+        self.assertIn("vượt trần", rec.discount_hint_message)
+
+    def test_above_default_secondary(self):
+        """TC-UNIT-DlQuotation-054"""
+        rec = _HintRec(discount_above_default=True)
+        DlQuotation._compute_discount_hint([rec])
+        self.assertEqual(rec.discount_hint_level, "secondary")
+
+    def test_within_default_info(self):
+        """TC-UNIT-DlQuotation-055"""
+        rec = _HintRec()
+        DlQuotation._compute_discount_hint([rec])
+        self.assertEqual(rec.discount_hint_level, "info")
+        self.assertIn("Khách cũ", rec.discount_hint_message)
 
 
 if __name__ == "__main__":
