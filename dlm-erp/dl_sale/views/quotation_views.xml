@@ -270,38 +270,96 @@
                         </page>
                         <page string="Phân tích giá thành"
                               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
-                            <group>
-                                <group string="Giá thành &amp; lợi nhuận">
-                                    <field name="total_cost" widget="dl_money"/>
-                                    <field name="target_markup"/>
-                                    <field name="effective_markup"/>
-                                    <field name="floor_amount" widget="dl_money"/>
-                                    <field name="below_floor"/>
-                                </group>
-                                <group string="Chiết khấu &amp; phê duyệt">
-                                    <field name="discount_default_rate"/>
-                                    <field name="discount_max_rate"/>
-                                    <field name="discount_above_default"/>
-                                    <field name="discount_above_max"/>
-                                    <field name="approval_state"/>
-                                </group>
-                            </group>
+                            <!-- Cờ chỉ dùng cho chip cảnh báo — nạp ẩn. -->
+                            <field name="below_floor" invisible="1"/>
+                            <field name="discount_above_default" invisible="1"/>
+                            <field name="discount_above_max" invisible="1"/>
+                            <!-- 1. Bức tranh lãi/lỗ: 4 số chốt + dải chip cảnh báo
+                                 (thay các ô tick khó đọc). Mượn khuôn .dl-decision
+                                 của màn Phê duyệt để đồng bộ diện mạo. -->
+                            <div class="dl-cost-summary">
+                                <div class="dl-cost-head">
+                                    <div class="dl-cost-cell">
+                                        <span class="dl-cost-lbl">Tổng giá thành</span>
+                                        <field name="total_cost" widget="dl_money"
+                                               nolabel="1" readonly="1" class="dl-cost-val2"/>
+                                    </div>
+                                    <div class="dl-cost-cell">
+                                        <span class="dl-cost-lbl">Doanh thu (sau CK, trước VAT)</span>
+                                        <field name="amount_before_vat" widget="dl_money"
+                                               nolabel="1" readonly="1" class="dl-cost-val2"/>
+                                    </div>
+                                    <div class="dl-cost-cell">
+                                        <span class="dl-cost-lbl">Lãi gộp</span>
+                                        <field name="gross_profit" widget="dl_money"
+                                               nolabel="1" readonly="1" class="dl-cost-val"/>
+                                    </div>
+                                    <div class="dl-cost-cell">
+                                        <span class="dl-cost-lbl">Markup niêm yết → thực thu (sau CK)</span>
+                                        <span class="dl-cost-val2">
+                                            <field name="list_markup" nolabel="1" readonly="1" class="oe_inline"/>% →
+                                            <field name="effective_markup" nolabel="1" readonly="1" class="oe_inline"/>%
+                                        </span>
+                                        <!-- Mục tiêu chỉ là tham chiếu cho giá NIÊM YẾT; lằn ranh
+                                             thật là markup tại giá sàn (lãi tối thiểu chấp nhận). -->
+                                        <span class="dl-cost-note">mục tiêu
+                                            <field name="target_markup" nolabel="1" readonly="1" class="oe_inline"/>% ·
+                                            sàn <field name="floor_markup" nolabel="1" readonly="1" class="oe_inline"/>%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="dl-cost-risks">
+                                    <!-- Guardrail thật = giá sàn (markup tối thiểu). Không còn
+                                         cảnh báo "dưới mục tiêu" vì chiết khấu luôn bào mòn markup
+                                         thực thu xuống dưới mục tiêu — báo động cấu trúc, vô nghĩa. -->
+                                    <span class="badge text-bg-danger" invisible="not below_floor">Dưới giá sàn</span>
+                                    <span class="badge text-bg-danger" invisible="not discount_above_max">Chiết khấu vượt trần</span>
+                                    <span class="badge text-bg-warning" invisible="discount_above_max or not discount_above_default">Chiết khấu trên mặc định</span>
+                                    <span class="badge text-bg-success" invisible="below_floor or discount_above_max or discount_above_default">Không có cảnh báo</span>
+                                </div>
+                            </div>
+                            <!-- 2. Ba khối gọn thay 10 field rời: tiền đổ vào đâu,
+                                 giá sàn, chính sách chiết khấu/phê duyệt. -->
+                            <div class="dl-cost-cols">
+                                <div class="dl-cost-box">
+                                    <div class="dl-cost-box-title">Cơ cấu giá thành</div>
+                                    <div class="dl-cost-line"><span>Vật tư</span>
+                                        <field name="cost_material_total" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                    <div class="dl-cost-line"><span>Công đoạn</span>
+                                        <field name="cost_operation_total" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                    <div class="dl-cost-line"><span>Chi phí chung/điều chỉnh</span>
+                                        <field name="cost_adjustment_total" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                    <div class="dl-cost-line dl-cost-line-total"><span>Tổng giá thành</span>
+                                        <field name="total_cost" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                </div>
+                                <div class="dl-cost-box">
+                                    <div class="dl-cost-box-title">Giá sàn</div>
+                                    <div class="dl-cost-line"><span>Tổng giá sàn</span>
+                                        <field name="floor_amount" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                    <div class="dl-cost-line dl-cost-line-total"><span>Lãi gộp</span>
+                                        <field name="gross_profit" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                </div>
+                                <div class="dl-cost-box">
+                                    <div class="dl-cost-box-title">Chiết khấu &amp; phê duyệt</div>
+                                    <div class="dl-cost-line"><span>Nhóm khách</span>
+                                        <field name="partner_group" nolabel="1" readonly="1"/></div>
+                                    <div class="dl-cost-line"><span>CK mặc định / tối đa</span>
+                                        <span><field name="discount_default_rate" nolabel="1" readonly="1" class="oe_inline"/>% / <field name="discount_max_rate" nolabel="1" readonly="1" class="oe_inline"/>%</span></div>
+                                    <div class="dl-cost-line"><span>Trạng thái duyệt</span>
+                                        <field name="approval_state" widget="badge" nolabel="1" readonly="1"
+                                               decoration-warning="approval_state == 'pending'"
+                                               decoration-success="approval_state == 'approved'"
+                                               decoration-danger="approval_state == 'rejected'"
+                                               decoration-muted="approval_state == 'not_required'"/></div>
+                                </div>
+                            </div>
                             <field name="approval_reasons" readonly="1"
                                    invisible="not approval_reasons"/>
-                            <field name="component_ids">
-                                <tree string="Cấu phần giá (snapshot)">
-                                    <field name="quotation_line_id"/>
-                                    <field name="component_type"/>
-                                    <field name="material_id"/>
-                                    <field name="qty"/>
-                                    <field name="unit_price" widget="dl_money" digits="[16, 0]"/>
-                                    <field name="rate"/>
-                                    <field name="amount" widget="dl_money" digits="[16, 0]"/>
-                                    <field name="source_model" optional="hide"/>
-                                    <field name="source_id" optional="hide"/>
-                                    <field name="source_revision" optional="hide"/>
-                                </tree>
-                            </field>
+                            <!-- 3. Chi tiết cấu phần — "công thức" cho 1 sản phẩm
+                                 rồi mới × số lượng, cuối cùng cộng markup. Render
+                                 từ field HTML (_compute_cost_breakdown_html). -->
+                            <separator string="Chi tiết cấu phần — tính cho 1 sản phẩm, rồi × số lượng đặt"/>
+                            <field name="cost_breakdown_html" nolabel="1" readonly="1"/>
                         </page>
                         <page string="Điều khoản &amp; Ghi chú">
                             <!-- RV-09 — điều khoản thương mại đưa vào bản gửi
