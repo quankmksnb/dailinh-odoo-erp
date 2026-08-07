@@ -35,6 +35,20 @@ COST_METHOD_SELECTION = [
 
 _PERCENT_METHODS = ("percent_direct", "percent_cost")
 
+# Nhóm cách tính theo cách tác động lên giá thành (review §4.2 — "cộng trước,
+# nhân sau"):
+#  • CỘNG: số tiền cố định trên đơn vị (percent_direct tính trên chi phí trực
+#    tiếp cố định, per_unit/per_batch/fixed là số tiền) — độc lập thứ tự.
+#  • NHÂN: % giá thành / hệ số nhân — nhân trên giá thành LŨY KẾ (running).
+# Engine áp toàn bộ nhóm CỘNG trước rồi mới tới nhóm NHÂN, nên tổng
+# = (trực tiếp + Σ khoản cộng) × Π hệ số — KHÔNG phụ thuộc thứ tự khai báo.
+_MULTIPLICATIVE_METHODS = ("percent_cost", "factor")
+
+
+def _method_phase(method):
+    """0 = nhóm cộng (áp trước), 1 = nhóm nhân (áp sau)."""
+    return 1 if method in _MULTIPLICATIVE_METHODS else 0
+
 
 class DlPricingCostAdjustmentRule(models.Model):
     _name = "dl.pricing.cost.adjustment.rule"
@@ -73,7 +87,11 @@ class DlPricingCostAdjustmentRule(models.Model):
 
     def _target_domain(self):
         self.ensure_one()
-        return [("rule_type", "=", self.rule_type), ("name", "=ilike", self.name)]
+        # MỘT khoản đang áp dụng cho MỖI loại (review §4.2): áp bản mới tự đóng
+        # bản cũ CÙNG LOẠI — đối xứng profit.rule (toàn công ty) / operation.rule
+        # (mỗi công đoạn) / discount.rule (mỗi nhóm khách). Chặn cứng cộng trùng
+        # cùng loại tại gốc, thay vì chỉ cảnh báo mềm.
+        return [("rule_type", "=", self.rule_type)]
 
     # ------------------------------------------------------------------
     # Tra & tính khoản điều chỉnh — NGUỒN DUY NHẤT dùng cho engine tính giá
@@ -83,18 +101,21 @@ class DlPricingCostAdjustmentRule(models.Model):
     @api.model
     def _get_active_rules(self, company, date):
         """Các khoản điều chỉnh đang áp dụng, đúng công ty và còn hiệu lực tại
-        ``date``. Sắp theo ``id`` (thứ tự tạo) để áp dụng tuần tự ổn định —
-        cách tính % giá thành / hệ số nhân cộng dồn trên ``running`` nên thứ tự
-        có ý nghĩa (V3 §6.1)."""
-        return self.search(
+        ``date``. Áp toàn bộ nhóm CỘNG trước, nhóm NHÂN (% giá thành / hệ số)
+        sau cùng (review §4.2) ⇒ tổng = (trực tiếp + Σ cộng) × Π nhân, KHÔNG phụ
+        thuộc thứ tự khai báo. Người dùng không phải sắp thứ tự thủ công nữa; mỗi
+        loại chỉ một bản đang áp dụng nên không có cộng trùng."""
+        rules = self.search(
             [
                 ("state", "=", "active"),
                 ("company_id", "=", company.id),
                 ("valid_from", "<=", date),
                 "|", ("valid_to", "=", False), ("valid_to", ">=", date),
             ],
-            order="id",
         )
+        # Cộng (phase 0) trước, nhân (phase 1) sau; trong cùng phase giữ thứ tự
+        # id ổn định (kết quả bất biến vì cộng giao hoán, nhân giao hoán).
+        return rules.sorted(key=lambda r: (_method_phase(r.method), r.id))
 
     def adjustment_unit_amount(self, direct_unit, running_unit, qty):
         """Khoản điều chỉnh cộng lên giá thành cho MỘT đơn vị đầu ra theo cách
@@ -140,3 +161,21 @@ class DlPricingCostAdjustmentRule(models.Model):
                 raise ValidationError(_("Hệ số nhân phải lớn hơn 0."))
             if rule.method not in ("factor",) and rule.value < 0:
                 raise ValidationError(_("Giá trị không được âm."))
+
+    @api.constrains("rule_type", "condition_days", "condition_amount")
+    def _check_conditions(self):
+        """Điều kiện bắt buộc cho khoản có ngưỡng áp dụng (review §4.1). Nếu để
+        trống thì ``applies()`` luôn trả False ⇒ khoản KHÔNG BAO GIỜ cộng vào báo
+        giá mà không có tín hiệu gì. Chặn cứng ngay khi lưu để tránh 'phụ phí
+        chết'."""
+        for rule in self:
+            if rule.rule_type == "urgent" and rule.condition_days <= 0:
+                raise ValidationError(_(
+                    "Khoản 'Giao gấp' phải nhập 'Số ngày giao tối đa' lớn hơn 0, "
+                    "nếu không khoản này sẽ không bao giờ được áp dụng."
+                ))
+            if rule.rule_type == "small_order" and rule.condition_amount <= 0:
+                raise ValidationError(_(
+                    "Khoản 'Đơn hàng nhỏ' phải nhập 'Giá trị đơn tối đa' lớn hơn 0, "
+                    "nếu không khoản này sẽ không bao giờ được áp dụng."
+                ))

@@ -164,9 +164,9 @@ export class DlPricingConfig extends Component {
                 "state", "revision", "change_reason", "write_uid"],
             operation: ["operation_id", "method", "price_rate", "setup_fee", "valid_from",
                 "valid_to", "state", "revision", "change_reason", "write_uid"],
-            cost: ["name", "rule_type", "method", "value", "no_discount", "condition_days",
-                "condition_amount", "valid_from", "valid_to", "state", "revision",
-                "change_reason", "write_uid"],
+            cost: ["name", "rule_type", "method", "value", "no_discount",
+                "condition_days", "condition_amount", "valid_from", "valid_to", "state",
+                "revision", "change_reason", "write_uid"],
             profit: ["target_markup", "min_markup", "valid_from", "valid_to", "state",
                 "revision", "change_reason", "write_uid"],
             discount: ["customer_group", "group_rank", "default_rate", "max_rate", "valid_from",
@@ -190,6 +190,8 @@ export class DlPricingConfig extends Component {
         if (section === "matrix") return "value_from asc, revision desc";
         // Chiết khấu xếp theo bậc gắn bó (mới→cũ→thân thiết) để đọc thành thang.
         if (section === "discount") return "group_rank asc, state, valid_from desc";
+        // Chi phí chung/hệ số: gom theo loại rồi trạng thái (mỗi loại 1 bản áp dụng).
+        if (section === "cost") return "rule_type, state, valid_from desc";
         return "state, valid_from desc";
     }
     async load(section) {
@@ -526,8 +528,8 @@ export class DlPricingConfig extends Component {
             waste: ["target_type", "category_id", "product_id", "waste_rate", "has_recovery",
                 "recovery_rate", "scrap_product_id", "valid_from", "change_reason"],
             operation: ["operation_id", "method", "price_rate", "setup_fee", "valid_from", "change_reason"],
-            cost: ["name", "rule_type", "method", "value", "no_discount", "condition_days",
-                "condition_amount", "valid_from", "change_reason"],
+            cost: ["name", "rule_type", "method", "value", "no_discount",
+                "condition_days", "condition_amount", "valid_from", "change_reason"],
             profit: ["target_markup", "min_markup", "valid_from", "change_reason"],
             discount: ["customer_group", "default_rate", "max_rate", "valid_from", "change_reason"],
             matrix: ["value_from", "approval_level", "approver_user_id", "note", "valid_from",
@@ -540,8 +542,8 @@ export class DlPricingConfig extends Component {
             waste: { target_type: "category", category_id: false, product_id: false, waste_rate: 0,
                 has_recovery: false, recovery_rate: 0, scrap_product_id: false },
             operation: { operation_id: false, method: "percent_material", price_rate: 0, setup_fee: 0 },
-            cost: { name: "", rule_type: "workshop_overhead", method: "percent_direct", value: 0,
-                no_discount: false, condition_days: 0, condition_amount: 0 },
+            cost: { name: "", rule_type: "workshop_overhead", method: "percent_direct",
+                value: 0, no_discount: false, condition_days: 0, condition_amount: 0 },
             profit: { target_markup: 0, min_markup: 0 },
             discount: { customer_group: "new", default_rate: 0, max_rate: 0 },
             matrix: { value_from: 0, approval_level: "sales_manager", approver_user_id: false, note: "" },
@@ -591,7 +593,30 @@ export class DlPricingConfig extends Component {
             this.showError(e);
         }
     }
-    apply(section, id) { this.runAction(section, id, "action_apply"); }
+    apply(section, id) {
+        // Chi phí chung: mỗi loại chỉ một khoản đang áp dụng. Nếu loại này đã có
+        // khoản active thì HỎI trước khi thay (không âm thầm đóng bản cũ) — người
+        // dùng biết rõ mình đang thay chứ không phải thêm khoản thứ hai.
+        if (section === "cost") {
+            const row = this.state.rows.cost.find((r) => r.id === id);
+            const active = row && this.state.rows.cost.find(
+                (r) => r.id !== id && r.state === "active"
+                    && r.rule_type === row.rule_type);
+            if (active) {
+                this.state.dialog = {
+                    kind: "confirm",
+                    title: "Thay khoản đang áp dụng",
+                    msg: `Loại "${this.lab("costType", row.rule_type)}" đã có khoản `
+                        + `"${active.name}" đang áp dụng. Mỗi loại chỉ giữ MỘT khoản — `
+                        + `áp khoản này sẽ NGỪNG khoản cũ (vẫn giữ trong lịch sử). Tiếp tục?`,
+                    okLabel: "Áp dụng & thay khoản cũ",
+                    onOk: () => this.runAction(section, id, "action_apply"),
+                };
+                return;
+            }
+        }
+        this.runAction(section, id, "action_apply");
+    }
     expire(section, id) {
         this.state.dialog = {
             kind: "confirm", title: "Ngừng áp dụng",
@@ -617,6 +642,23 @@ export class DlPricingConfig extends Component {
         }
     }
     submit(section, id) { this.runAction(section, id, "action_submit_approval", "approval"); }
+    // Giám đốc/Admin: gộp Gửi duyệt + Duyệt cho cấu hình thương mại (review §5.2).
+    // Fallback về quyền profit khi bootstrap cũ chưa có key self_approve.
+    canSelfApprove() {
+        const p = this.state.perms.self_approve;
+        return p === undefined ? this.canEdit("profit") : p;
+    }
+    selfApprove(section, id) {
+        this.state.dialog = {
+            kind: "confirm", title: "Áp dụng ngay (tự duyệt)",
+            msg: "Bạn vừa là người đề xuất vừa là người duyệt — hệ thống sẽ ghi "
+                 + "nhận \"tự duyệt\" vào lịch sử. Áp dụng ngay cấu hình này?",
+            okLabel: "Áp dụng ngay",
+            onOk: async () => {
+                await this.runAction(section, id, "action_apply_self_approve", "approval");
+            },
+        };
+    }
     remove(section, id) {
         this.state.dialog = {
             kind: "confirm", danger: true, title: "Xóa quy tắc",

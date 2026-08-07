@@ -130,6 +130,20 @@
                                 class="btn-link p-0 ms-1"
                                 groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     </div>
+
+                    <!-- §4.3 — banner cảnh báo SỚM công đoạn chưa có đơn giá đang
+                         áp dụng: tạo báo giá sẽ lỗi QTE-011. Chỉ lộ TÊN công đoạn.
+                         Không chặn xác nhận/khóa (chặn cứng vẫn ở bước báo giá). -->
+                    <field name="dlm_has_unpriced_operation" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not dlm_has_unpriced_operation"
+                         groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant">
+                        <i class="fa fa-exclamation-triangle me-1"/>
+                        <strong>Công đoạn chưa có đơn giá.</strong>
+                        Báo giá dùng định mức này sẽ lỗi cho tới khi Kế toán định giá:
+                        <field name="dlm_unpriced_operation_names" nolabel="1" readonly="1"
+                               class="d-inline"/>.
+                    </div>
                     <div class="oe_title">
                         <label for="name"/>
                         <h1>

@@ -83,6 +83,9 @@ class DlPricingUi(models.TransientModel):
                 "cost": self._has("accountant", "tech", "admin"),
                 "profit": self._has("ceo", "admin"),
                 "discount": self._has("sales_manager", "ceo", "admin"),
+                # Được "Áp dụng ngay (tự duyệt)" cấu hình thương mại: chỉ Giám
+                # đốc/Admin — đúng cấp duyệt của loại yêu cầu này (review §5.2).
+                "self_approve": self._has("ceo", "admin"),
                 "approval": self._has("ceo", "sales_manager", "admin"),
                 # Ma trận phê duyệt: chỉ Giám đốc/Admin được kích hoạt/ngừng;
                 # Trưởng KD được ĐỀ XUẤT (tạo/sửa bản Nháp) — guard ở model.

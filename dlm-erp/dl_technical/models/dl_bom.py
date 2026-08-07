@@ -440,6 +440,29 @@ class DlBom(models.Model):
             rec.dlm_unpriced_component_names = ", ".join(
                 missing.mapped("display_name")) if missing else False
 
+    # --- Công đoạn chưa định giá (review §4.3) ---------------------------------
+    # Cảnh báo SỚM: công đoạn trên BOM chưa có dl.pricing.operation.rule đang áp
+    # dụng ⇒ tạo báo giá sẽ văng QTE-011 tận cuối luồng. Đưa tín hiệu lên ngay
+    # form BOM (đối xứng banner "thiếu giá vốn" của vật tư) để KTV thấy trước khi
+    # Xác nhận/Khóa. KHÔNG chặn cứng (chặn vẫn ở bước tạo báo giá); chỉ lộ TÊN
+    # công đoạn — không phải giá.
+    dlm_has_unpriced_operation = fields.Boolean(
+        string="Có công đoạn chưa định giá",
+        compute="_compute_dlm_unpriced_operation")
+    dlm_unpriced_operation_names = fields.Char(
+        string="Công đoạn chưa định giá",
+        compute="_compute_dlm_unpriced_operation")
+
+    @api.depends("operation_line_ids.operation_id",
+                 "operation_line_ids.has_active_rule")
+    def _compute_dlm_unpriced_operation(self):
+        for rec in self:
+            missing = rec.operation_line_ids.filtered(
+                lambda l: l.operation_id and not l.has_active_rule)
+            names = sorted(set(missing.mapped("operation_id.display_name")))
+            rec.dlm_has_unpriced_operation = bool(names)
+            rec.dlm_unpriced_operation_names = ", ".join(names) if names else False
+
     def action_notify_purchasing_unpriced(self):
         """LK-09 — nút "Báo Mua hàng cập nhật giá" trên banner form BOM: giao
         việc cập nhật giá NCC cho các VẬT TƯ THÔ chưa có giá (BTP thiếu BOM thì

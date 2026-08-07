@@ -488,9 +488,12 @@ class DlQuotationPricingService(models.AbstractModel):
         """Lớp D — chi phí chung/điều chỉnh cộng lên giá thành trực tiếp (V3 §6).
 
         Trả ``(adjustment_unit, specs)``: tổng khoản điều chỉnh/đơn vị và các
-        cấu phần snapshot (amount/đơn vị). Áp tuần tự theo thứ tự rule; % giá
-        thành và hệ số nhân cộng dồn trên ``running`` (giá thành lũy kế). Đánh
-        dấu rule đã dùng để mixin bảo vệ không cho sửa (đối xứng công đoạn).
+        cấu phần snapshot (amount/đơn vị). ``_get_active_rules`` đã sắp nhóm CỘNG
+        trước, nhóm NHÂN (% giá thành / hệ số) sau ⇒ tổng = (trực tiếp + Σ cộng)
+        × Π nhân, KHÔNG phụ thuộc thứ tự khai báo (review §4.2). % giá thành và
+        hệ số nhân vẫn cộng dồn trên ``running`` (giá thành lũy kế) — vì đứng
+        sau nên nhân trên nền đã gồm đủ các khoản cộng. Đánh dấu rule đã dùng để
+        mixin bảo vệ không cho sửa (đối xứng công đoạn).
         """
         rules = context.get("adjustment_rules")
         if not rules:
