@@ -1,6 +1,41 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 
+from ..models.dl_quotation_request import _MATCH_THRESHOLD_AUTO
+
+
+class DlRfqResolveParam(models.TransientModel):
+    """Một dòng nhập tham số (D/R/C) trong panel 'Sinh định mức từ mẫu' của
+    workspace xử lý RFQ (Đợt 4). Chỉ sống trong phiên xử lý hiện tại."""
+
+    _name = "dl.rfq.resolve.param"
+    _description = "Tham số sinh định mức (workspace RFQ)"
+    _order = "sequence, id"
+
+    wizard_id = fields.Many2one(
+        "dl.rfq.resolve.wizard", required=True, ondelete="cascade")
+    template_param_id = fields.Many2one("dl.bom.template.param", readonly=True)
+    sequence = fields.Integer(default=10)
+    code = fields.Char(readonly=True)
+    name = fields.Char(string="Tham số", readonly=True)
+    value = fields.Float(string="Giá trị")
+    value_min = fields.Float(readonly=True)
+    value_max = fields.Float(readonly=True)
+    required = fields.Boolean(readonly=True)
+    # Giá trị được ĐỌC TỪ MÔ TẢ Sales (dimension_note) — cảnh báo KTV kiểm lại
+    # (RES-020: dữ liệu đoán từ văn bản, sai một chữ số là sai cả báo giá).
+    from_note = fields.Boolean(string="Đọc từ mô tả", readonly=True)
+    range_hint = fields.Char(string="Miền hợp lệ", compute="_compute_range_hint")
+
+    @api.depends("value_min", "value_max")
+    def _compute_range_hint(self):
+        for rec in self:
+            if rec.value_min or rec.value_max:
+                rec.range_hint = _("Miền hợp lệ: %(min)s – %(max)s") % {
+                    "min": rec.value_min or "—", "max": rec.value_max or "—"}
+            else:
+                rec.range_hint = False
+
 
 class DlRfqResolveWizard(models.TransientModel):
     """Màn 'Nhận RFQ' (Kỹ thuật) — chọn/tạo Product + BOM cho 1 dòng RFQ.
@@ -48,12 +83,6 @@ class DlRfqResolveWizard(models.TransientModel):
     show_bom_picker = fields.Boolean(
         string="Đang mở danh sách chọn định mức",
         help="Bật khi KTV bấm 'Chọn bản khác' để lộ lại bảng phiên bản định mức.")
-    active_exit = fields.Selection(
-        [
-            ("supplement", "Cần bổ sung"),
-            ("infeasible", "Không khả thi"),
-        ],
-        string="Lối thoát đang mở")
 
     # ── Thông tin yêu cầu (chỉ để tham khảo, readonly) ──────────────────────
     request_product_name = fields.Char(
@@ -70,11 +99,11 @@ class DlRfqResolveWizard(models.TransientModel):
     request_attachment_ids = fields.Many2many(
         related="rfq_line_id.attachment_ids", string="Ảnh / File Sales gửi", readonly=True)
 
-    # Đánh dấu "không khả thi" ngay trên màn xử lý (thay vì phải ra form dòng).
+    # Trạng thái kết luận "không khả thi" của dòng (chỉ để hiện banner + chặn
+    # Hoàn tất khi mở lại; nhập/sửa lý do đi qua modal Kết luận không khả thi).
     is_infeasible = fields.Boolean(string="Không khả thi")
-    infeasible_reason = fields.Text(string="Lý do không khả thi")
+    infeasible_reason = fields.Text(string="Lý do không khả thi", readonly=True)
 
-    supplement_note = fields.Text(string="Nội dung cần bổ sung")
     has_existing_supplement = fields.Boolean(
         string="Dòng đã có yêu cầu bổ sung từ trước")
 
@@ -122,6 +151,13 @@ class DlRfqResolveWizard(models.TransientModel):
         readonly=True,
     )
 
+    # EX-05 / D-F — lọc nhóm MỀM: mặc định chỉ hiện SP cùng nhóm Sales khai,
+    # nhưng Sales có thể khai nhầm nhóm ⇒ KTV bật cờ này để tìm SP ở MỌI nhóm
+    # (thay vì buộc tạo SP trùng nghĩa). Chọn SP khác nhóm sẽ ghi chatter lúc
+    # Hoàn tất để Sales sửa nhóm cho RFQ sau. Không chặn — người biết việc là KTV.
+    search_outside_category = fields.Boolean(
+        string="Tìm sản phẩm ngoài nhóm Sales khai")
+
     # Danh sách SP hợp lệ để CHỌN: lọc theo Nhóm SP của RFQ (KHÔNG lọc theo
     # trạng thái vòng đời — chọn được cả draft lẫn active). Dùng làm domain cho
     # product_id (giống pattern bom_ids→selected_bom_id).
@@ -129,14 +165,15 @@ class DlRfqResolveWizard(models.TransientModel):
         "product.product", compute="_compute_allowed_product_ids",
         string="SP hợp lệ")
 
-    @api.depends("request_category_id")
+    @api.depends("request_category_id", "search_outside_category", "rfq_line_id")
     def _compute_allowed_product_ids(self):
         Product = self.env["product.product"]
         for rec in self:
             domain = [
                 ("product_kind", "in", ("manufactured", "material_processed")),
             ]
-            if rec.request_category_id:
+            # Lọc nhóm chỉ áp khi KTV CHƯA bật "tìm ngoài nhóm" (EX-05).
+            if rec.request_category_id and not rec.search_outside_category:
                 domain.append(("categ_id", "child_of", rec.request_category_id.id))
             if rec.rfq_line_id:
                 domain.extend([
@@ -146,7 +183,65 @@ class DlRfqResolveWizard(models.TransientModel):
                 ])
             else:
                 domain.append(("is_rfq_provisional", "=", False))
-            rec.allowed_product_ids = Product.search(domain)
+            allowed = Product.search(domain)
+            # §3.6 — SP gợi ý có thể nằm NGOÀI nhóm Sales khai (vd khớp tên +
+            # khách từng đặt nhưng khác nhóm). Gộp vào danh sách chọn được để
+            # KTV bấm "Dùng SP này" hoặc chọn từ dropdown mà không phải bật
+            # "Tìm ngoài nhóm" thủ công.
+            for entry in rec._suggestion_candidates():
+                allowed |= entry["product"]
+            rec.allowed_product_ids = allowed
+
+    # ── §3.6 · Gợi ý sản phẩm "đã từng gia công" ─────────────────────────────
+    suggestion_state = fields.Selection(
+        [
+            ("none", "Không có gợi ý"),
+            ("suggest", "Có gợi ý"),
+            ("auto", "Gợi ý tự động"),
+        ],
+        string="Mức gợi ý", compute="_compute_suggestions")
+    suggested_product_id = fields.Many2one(
+        "product.product", string="Sản phẩm gợi ý (tốt nhất)",
+        compute="_compute_suggestions")
+    suggestion_reason = fields.Char(
+        string="Vì sao gợi ý", compute="_compute_suggestions")
+    suggestion_ids = fields.Many2many(
+        "product.product", string="Các sản phẩm gợi ý",
+        compute="_compute_suggestions")
+    # Số ứng viên gợi ý — trình đánh giá biểu thức phía client của Odoo KHÔNG có
+    # len(), nên modifier phải so field đếm này thay vì len(suggestion_ids).
+    suggestion_count = fields.Integer(
+        string="Số ứng viên gợi ý", compute="_compute_suggestions")
+    # Đánh dấu SP hiện tại do hệ thống TỰ CHỌN (đường A, điểm ≥60) — để hiện
+    # nhãn "gợi ý tự chọn" ở khối ⑴ đã thu gọn, nhắc KTV vẫn đang xem thứ máy đoán.
+    auto_selected = fields.Boolean(string="SP do hệ thống tự chọn")
+
+    def _suggestion_candidates(self, limit=3):
+        """Ứng viên gợi ý cho dòng RFQ đang xử lý (dùng lại matcher ở model
+        dòng). Chỉ chạy khi CHƯA chọn sản phẩm — đã chọn thì khối ⑴ thu gọn."""
+        self.ensure_one()
+        if self.product_id or not self.rfq_line_id:
+            return []
+        return self.rfq_line_id._dlm_suggest_candidates(limit=limit)
+
+    @api.depends("rfq_line_id", "product_id")
+    def _compute_suggestions(self):
+        for rec in self:
+            rec.suggestion_state = "none"
+            rec.suggested_product_id = False
+            rec.suggestion_reason = False
+            rec.suggestion_ids = self.env["product.product"]
+            rec.suggestion_count = 0
+            ranked = rec._suggestion_candidates(limit=3)
+            if not ranked:
+                continue
+            best = ranked[0]
+            rec.suggested_product_id = best["product"].id
+            rec.suggestion_reason = ", ".join(best["reasons"])
+            rec.suggestion_ids = [(6, 0, [e["product"].id for e in ranked])]
+            rec.suggestion_count = len(ranked)
+            rec.suggestion_state = (
+                "auto" if best["score"] >= _MATCH_THRESHOLD_AUTO else "suggest")
 
     new_product_name = fields.Char(string="Tên sản phẩm mới")
     # SP tạo mới từ resolve là manufactured → chỉ nhóm nhánh Thành phẩm.
@@ -254,6 +349,77 @@ class DlRfqResolveWizard(models.TransientModel):
                 rec.selected_bom_label = _("BOM mẫu v%(n)s — %(st)s") % {
                     "n": bom.version, "st": status_lbl.get(bom.status, bom.status)}
 
+    # ── EX-09: SP đã chọn đã có định mức nào chưa? (ẩn bảng phiên bản rỗng) ──
+    has_any_bom = fields.Boolean(
+        string="Sản phẩm đã có định mức", compute="_compute_has_any_bom")
+
+    @api.depends("bom_ids")
+    def _compute_has_any_bom(self):
+        for rec in self:
+            rec.has_any_bom = bool(rec.bom_ids)
+
+    # ── Đợt 4 — sinh định mức từ BOM mẫu tham số ─────────────────────────────
+    parametric_template_id = fields.Many2one(
+        "dl.bom.template", string="Mẫu tham số",
+        compute="_compute_parametric_template")
+    has_parametric_template = fields.Boolean(
+        string="Nhóm SP có mẫu tham số", compute="_compute_parametric_template")
+    show_param_panel = fields.Boolean(string="Đang mở panel tham số")
+    param_line_ids = fields.One2many(
+        "dl.rfq.resolve.param", "wizard_id", string="Tham số")
+    param_from_note = fields.Boolean(
+        string="Có tham số đọc từ mô tả", compute="_compute_param_from_note")
+
+    @api.depends("product_id", "product_id.categ_id")
+    def _compute_parametric_template(self):
+        Template = self.env["dl.bom.template"]
+        for rec in self:
+            tmpl = Template.browse()
+            categ = rec.product_id.categ_id
+            if categ:
+                tmpl = Template.search([
+                    ("product_category_id", "=", categ.id),
+                    ("status", "in", ("confirmed", "locked")),
+                    ("is_parametric", "=", True),
+                ], order="is_current desc, version desc", limit=1)
+            rec.parametric_template_id = tmpl
+            rec.has_parametric_template = bool(tmpl)
+
+    @api.depends("param_line_ids.from_note")
+    def _compute_param_from_note(self):
+        for rec in self:
+            rec.param_from_note = any(rec.param_line_ids.mapped("from_note"))
+
+    # ── EX-16: định mức đang chọn có phải bản NHÁP TẠM (bỏ ngay được không) ──
+    selected_bom_can_discard = fields.Boolean(
+        string="Có thể bỏ bản nháp",
+        compute="_compute_selected_bom_can_discard")
+
+    @api.depends("selected_bom_id", "selected_bom_id.is_rfq_provisional",
+                 "selected_bom_id.status")
+    def _compute_selected_bom_can_discard(self):
+        for rec in self:
+            bom = rec.selected_bom_id
+            rec.selected_bom_can_discard = bool(
+                bom and bom.is_rfq_provisional and bom.status == "draft")
+
+    # ── EX-13 / RES-022: vật tư trong định mức chưa có giá NCC đã duyệt ──────
+    # Chỉ lộ TÊN + SỐ LƯỢNG vật tư thiếu giá — KTV KHÔNG thấy con số giá (§15.4).
+    pricing_block_count = fields.Integer(
+        string="Số vật tư thiếu giá NCC", compute="_compute_pricing_block")
+    pricing_block_names = fields.Char(
+        string="Vật tư thiếu giá NCC", compute="_compute_pricing_block")
+
+    @api.depends("selected_bom_id", "selected_bom_id.line_ids",
+                 "selected_bom_id.line_ids.material_id",
+                 "selected_bom_id.line_ids.material_id.dlm_supplier_price_state")
+    def _compute_pricing_block(self):
+        for rec in self:
+            missing = rec.selected_bom_id._dlm_unpriced_raw_materials()
+            rec.pricing_block_count = len(missing)
+            rec.pricing_block_names = ", ".join(
+                missing.mapped("display_name")) if missing else False
+
     # ── Checklist ⑶ (tự tick) + điều kiện Hoàn tất (decision dock) ───────────
     check_product = fields.Boolean(compute="_compute_checklist")
     check_bom_selected = fields.Boolean(compute="_compute_checklist")
@@ -269,7 +435,7 @@ class DlRfqResolveWizard(models.TransientModel):
         string="Còn thiếu", compute="_compute_checklist")
 
     @api.depends("product_id", "selected_bom_id", "selected_bom_has_lines",
-                 "selected_bom_confirmed", "is_infeasible", "active_exit",
+                 "selected_bom_confirmed", "is_infeasible",
                  "rfq_line_id.needs_review")
     def _compute_checklist(self):
         for rec in self:
@@ -305,8 +471,10 @@ class DlRfqResolveWizard(models.TransientModel):
                 blockers.append(_("định mức không thuộc sản phẩm đã chọn"))
             elif not has_lines:
                 blockers.append(_("định mức chưa có dòng vật tư"))
-            if rec.is_infeasible or rec.active_exit == "infeasible":
-                blockers.append(_("đang ở nhánh Không khả thi"))
+            if rec.is_infeasible:
+                blockers.append(_(
+                    "dòng đang kết luận Không khả thi — bấm “Xử lý lại dòng "
+                    "này” nếu muốn tiếp tục"))
             rec.can_confirm = not blockers
             rec.confirm_blocker = (
                 _("Còn thiếu: %s") % ", ".join(blockers)) if blockers else False
@@ -382,15 +550,14 @@ class DlRfqResolveWizard(models.TransientModel):
                 if line.product_name and not res.get("new_product_name"):
                     res["new_product_name"] = line.product_name
                 if line.supplement_note:
-                    res["supplement_note"] = line.supplement_note
                     res["has_existing_supplement"] = True
                 if line.is_infeasible:
-                    # Mở lại dòng đã kết luận không khả thi → vào thẳng nhánh
-                    # lối thoát tương ứng ở decision dock.
+                    # Mở lại dòng đã kết luận không khả thi → hiện banner kết
+                    # luận (kèm lý do) ở đầu workspace; KTV sửa lý do trong modal
+                    # hoặc bấm "Xử lý lại dòng này" để tiếp tục xử lý.
                     res.update({
                         "is_infeasible": True,
                         "infeasible_reason": line.infeasible_reason,
-                        "active_exit": "infeasible",
                     })
                 else:
                     if line.resolved_product_id:
@@ -418,11 +585,18 @@ class DlRfqResolveWizard(models.TransientModel):
                             })
                         if provisional_bom:
                             res["manual_bom_id"] = provisional_bom.id
-                    # Mở lại dòng đang chờ bổ sung (chưa xác định SP) → hiện sẵn
-                    # nhánh bổ sung ở dock để KTV thấy/sửa nội dung đã yêu cầu.
-                    if (line.supplement_note and not line.resolved_product_id
-                            and not line.is_infeasible):
-                        res["active_exit"] = "supplement"
+                # §3.6 đường A — chưa có SP nào được khôi phục (không kết quả cũ,
+                # không bản tạm) ⇒ chạy bộ dò khớp; nếu ứng viên tốt nhất đạt
+                # ngưỡng tự động (≥60) thì TỰ CHỌN sẵn để ca lặp lại chỉ còn bấm
+                # Hoàn tất. KTV vẫn "Đổi sản phẩm" được (khối ⑴ vẫn cho mở lại).
+                if (not res.get("product_id") and not line.is_infeasible):
+                    ranked = line._dlm_suggest_candidates(limit=1)
+                    if ranked and ranked[0]["score"] >= _MATCH_THRESHOLD_AUTO:
+                        res.update({
+                            "mode": "existing",
+                            "product_id": ranked[0]["product"].id,
+                            "auto_selected": True,
+                        })
         return res
 
     def _action_reload(self):
@@ -439,7 +613,15 @@ class DlRfqResolveWizard(models.TransientModel):
         }
 
     def _action_return_to_rfq(self):
-        """Kết thúc workspace và trở về đúng RFQ nguồn."""
+        """Kết thúc workspace và trở về đúng RFQ nguồn.
+
+        Dùng ``target: 'main'`` (KHÔNG phải 'current'): trở về RFQ khi thoát
+        workspace phải ĐẶT LẠI breadcrumb về đúng một mục ``[RFQ]``, không đẩy
+        thêm bản sao. 'current' đẩy một act_window RFQ MỚI lên cuối stack nên
+        mỗi vòng "mở RFQ → xử lý → quay lại" lại nối thêm
+        ``… / RFQ / Workspace / RFQ`` và càng lặp càng rối. 'main' xoá stack
+        (action_service: target === 'main' ⇒ clearBreadcrumbs) rồi mở đúng RFQ.
+        """
         self.ensure_one()
         request = self.rfq_line_id.quotation_request_id
         view = self.env.ref("dl_technical.view_dl_quotation_request_form")
@@ -450,7 +632,7 @@ class DlRfqResolveWizard(models.TransientModel):
             "res_id": request.id,
             "view_mode": "form",
             "views": [(view.id, "form")],
-            "target": "current",
+            "target": "main",
         }
 
     def _validate_product_step(self):
@@ -482,6 +664,21 @@ class DlRfqResolveWizard(models.TransientModel):
             "product_id": False,
             "manual_bom_id": False,
             "show_bom_picker": False,
+            "auto_selected": False,
+        })
+        return self._action_reload()
+
+    def action_use_suggested_product(self):
+        """§3.6 — chấp nhận SP hệ thống gợi ý (thẻ 'Có phải cái này?'): gán
+        thẳng làm sản phẩm xác định, khối ⑴ tự thu gọn sang khối ⑵."""
+        self.ensure_one()
+        if not self.suggested_product_id:
+            raise UserError(_("Không có sản phẩm gợi ý để chọn."))
+        self.write({
+            "mode": "existing",
+            "product_id": self.suggested_product_id.id,
+            "manual_bom_id": False,
+            "auto_selected": False,
         })
         return self._action_reload()
 
@@ -490,6 +687,80 @@ class DlRfqResolveWizard(models.TransientModel):
         có một định mức được tự chọn/thu gọn)."""
         self.ensure_one()
         self.show_bom_picker = not self.show_bom_picker
+        return self._action_reload()
+
+    def action_search_outside_category(self):
+        """EX-05 / D-F — bật/tắt tìm SP ở MỌI nhóm (khi Sales khai nhầm nhóm).
+        Xoá lựa chọn hiện tại để KTV chọn lại trong danh sách mở rộng."""
+        self.ensure_one()
+        self.write({
+            "search_outside_category": not self.search_outside_category,
+            "product_id": False,
+            "manual_bom_id": False,
+            "auto_selected": False,
+        })
+        return self._action_reload()
+
+    def action_discard_draft_bom(self):
+        """EX-16 — bỏ NGAY một bản định mức nháp tạm (đổi ý) thay vì chờ cron 7
+        ngày. Chỉ áp dụng cho BOM đang tạm (is_rfq_provisional) + Nháp."""
+        self.ensure_one()
+        bom = self.selected_bom_id
+        if not (bom and bom.is_rfq_provisional and bom.status == "draft"):
+            raise UserError(_(
+                "Chỉ bỏ được bản định mức nháp tạm của phiên xử lý này."))
+        self.manual_bom_id = False
+        self.show_bom_picker = False
+        bom.sudo().unlink()
+        return self._action_reload()
+
+    def action_notify_purchasing(self):
+        """EX-13 / RES-022 — báo nhóm Mua hàng cập nhật giá NCC cho các vật tư
+        thô còn thiếu giá đã duyệt trong định mức đang chọn.
+
+        Giao việc + đăng chatter TRÊN CHÍNH VẬT TƯ (product.product): nhóm Mua
+        hàng sở hữu vật tư (read+write) nên mở được. KHÔNG gắn việc lên RFQ vì
+        Mua hàng KHÔNG có quyền đọc dl.quotation.request ⇒ activity sẽ trỏ vào
+        bản ghi họ không mở nổi. Có CHỐNG TRÙNG: không tạo lại việc 'cập nhật
+        giá' đang mở cho cùng vật tư + cùng người. KTV chỉ nêu TÊN vật tư, không
+        đụng tới giá. RFQ chỉ nhận một dòng GHI VẾT (Sales/Kỹ thuật đọc được)."""
+        self.ensure_one()
+        missing = self.selected_bom_id._dlm_unpriced_raw_materials()
+        if not missing:
+            return self._action_reload()
+        request = self.rfq_line_id.quotation_request_id
+        line_name = self.rfq_line_id.product_name or ""
+        purchasing = self.env.ref(
+            "dl_base.dl_group_purchasing", raise_if_not_found=False)
+        users = purchasing.users if purchasing else self.env["res.users"]
+        todo_type = self.env.ref("mail.mail_activity_data_todo")
+        Activity = self.env["mail.activity"].sudo()
+        for material in missing:
+            material.sudo().message_post(body=_(
+                "Kỹ thuật (RFQ %(rfq)s — dòng %(line)s) cần Mua hàng cập nhật "
+                "giá NCC (đã duyệt &amp; đang áp dụng) cho vật tư này.",
+                rfq=request.name, line=line_name))
+            for user in users:
+                already_open = Activity.search_count([
+                    ("res_model", "=", "product.product"),
+                    ("res_id", "=", material.id),
+                    ("user_id", "=", user.id),
+                    ("activity_type_id", "=", todo_type.id),
+                ])
+                if already_open:
+                    continue
+                material.sudo().activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    summary=_("Cập nhật giá NCC — %s") % material.display_name,
+                    note=_("Yêu cầu từ Kỹ thuật khi xử lý RFQ %(rfq)s "
+                           "(dòng %(line)s).", rfq=request.name, line=line_name),
+                    user_id=user.id,
+                )
+        # Ghi vết trên RFQ để Sales/Kỹ thuật thấy đã báo Mua hàng (họ đọc RFQ được).
+        request.sudo().message_post(body=_(
+            "Kỹ thuật đã báo Mua hàng cập nhật giá NCC cho vật tư của dòng "
+            "<b>%(line)s</b>: %(names)s.",
+            line=line_name, names=", ".join(missing.mapped("display_name"))))
         return self._action_reload()
 
     def action_confirm_bom(self):
@@ -503,20 +774,38 @@ class DlRfqResolveWizard(models.TransientModel):
             self.selected_bom_id.action_confirm()
         return self._action_reload()
 
-    def action_show_supplement(self):
+    def _open_quick_wizard(self, res_model, view_xmlid, name):
+        """Mở modal kết luận nhanh (dùng chung với luồng triage trên bảng RFQ)
+        thay vì xổ ô nhập ngay trong dock — nhập lý do/nội dung rồi bấm xác nhận
+        trong modal. Modal tự nạp lại nội dung cũ (default_get) nếu dòng đã có."""
         self.ensure_one()
-        self.write({"active_exit": "supplement", "is_infeasible": False})
-        return self._action_reload()
+        return {
+            "type": "ir.actions.act_window",
+            "name": name,
+            "res_model": res_model,
+            "view_mode": "form",
+            "views": [(self.env.ref(view_xmlid).id, "form")],
+            "target": "new",
+            "context": {"default_rfq_line_id": self.rfq_line_id.id},
+        }
+
+    def action_show_supplement(self):
+        return self._open_quick_wizard(
+            "dl.rfq.line.supplement.wizard",
+            "dl_technical.view_dl_rfq_line_supplement_wizard_form",
+            _("Yêu cầu Sales bổ sung"))
 
     def action_show_infeasible(self):
-        self.ensure_one()
-        self.write({"active_exit": "infeasible", "is_infeasible": True})
-        return self._action_reload()
+        return self._open_quick_wizard(
+            "dl.rfq.line.infeasible.wizard",
+            "dl_technical.view_dl_rfq_line_infeasible_wizard_form",
+            _("Kết luận không khả thi"))
 
-    def action_hide_exit(self):
-        """Quay lại phương án kỹ thuật (đóng nhánh lối thoát đang mở)."""
+    def action_reopen_feasible(self):
+        """Mở lại dòng đã kết luận Không khả thi để xử lý tiếp — gỡ cờ tạm trong
+        phiên này; cờ trên dòng RFQ chỉ được xóa hẳn khi bấm Hoàn tất."""
         self.ensure_one()
-        self.write({"active_exit": False, "is_infeasible": False})
+        self.write({"is_infeasible": False})
         return self._action_reload()
 
     def action_cancel(self):
@@ -617,6 +906,71 @@ class DlRfqResolveWizard(models.TransientModel):
         self.manual_bom_id = bom.id
         return self._action_open_bom(bom, _("BOM mới"))
 
+    # ── Đợt 4 — panel nhập tham số + Sinh định mức ───────────────────────────
+    def action_open_param_panel(self):
+        """Mở panel nhập tham số (D/R/C) của mẫu tham số cho nhóm SP hiện tại;
+        tự đọc sẵn giá trị từ mô tả Sales (đánh dấu 'đọc từ mô tả' để KTV kiểm)."""
+        self.ensure_one()
+        tmpl = self.parametric_template_id
+        if not tmpl:
+            raise UserError(_(
+                "Nhóm sản phẩm này chưa có BOM mẫu tham số đã xác nhận."))
+        parsed = {}
+        try:
+            parsed = self.rfq_line_id._dlm_parse_dimensions(
+                self.request_dimension_note, self.request_product_name) or {}
+        except Exception:
+            parsed = {}
+        commands = [(5, 0, 0)]
+        for param in tmpl.param_ids:
+            value = param.default_value
+            from_note = False
+            if param.dim_role and param.dim_role != "none":
+                got = parsed.get(param.dim_role)
+                if got:
+                    value = got
+                    from_note = True
+            commands.append((0, 0, {
+                "template_param_id": param.id,
+                "sequence": param.sequence,
+                "code": param.code,
+                "name": param.name,
+                "value": value,
+                "value_min": param.value_min,
+                "value_max": param.value_max,
+                "required": param.required,
+                "from_note": from_note,
+            }))
+        self.write({"show_param_panel": True, "param_line_ids": commands})
+        return self._action_reload()
+
+    def action_close_param_panel(self):
+        self.ensure_one()
+        self.write({"show_param_panel": False, "param_line_ids": [(5, 0, 0)]})
+        return self._action_reload()
+
+    def action_generate_instance(self):
+        """Sinh định mức từ mẫu tham số + gắn làm định mức đang chọn của dòng.
+        Định mức chuẩn của các dòng vật tư được tính tự động — KTV không nhập tay."""
+        self.ensure_one()
+        tmpl = self.parametric_template_id
+        if not tmpl:
+            raise UserError(_("Không có BOM mẫu tham số để sinh."))
+        if not self.product_id:
+            raise UserError(_("Vui lòng chọn sản phẩm trước khi sinh định mức."))
+        param_values = {pl.code: pl.value for pl in self.param_line_ids}
+        # Dọn bản tạm cũ của dòng (nếu KTV sinh lại) rồi sinh mới; giữ SP đang dùng.
+        self.rfq_line_id._cleanup_rfq_provisional_records(
+            keep_product_ids=self.product_id.ids)
+        bom = tmpl.generate_instance(
+            self.product_id, param_values, self.rfq_line_id)
+        self.write({
+            "manual_bom_id": bom.id,
+            "show_param_panel": False,
+            "param_line_ids": [(5, 0, 0)],
+        })
+        return self._action_reload()
+
     def action_edit_selected_bom(self):
         """Mở BOM nháp để sửa; BOM đã duyệt thì sao chép thành version nháp.
 
@@ -651,20 +1005,6 @@ class DlRfqResolveWizard(models.TransientModel):
             )
         return self._action_open_bom(bom, _("Chỉnh sửa BOM cho RFQ"))
 
-    def action_mark_infeasible(self):
-        """Kết luận dòng RFQ là không khả thi — ghi thẳng lên dòng (kèm notify
-        Sales, logic chung ở line._mark_infeasible) và đóng màn."""
-        self.ensure_one()
-        self.rfq_line_id._mark_infeasible(self.infeasible_reason)
-        return self._action_return_to_rfq()
-
-    def action_mark_supplement(self):
-        """KTV đánh dấu dòng cần Sales bổ sung thông tin (kèm chatter +
-        activity cho người tạo RFQ, logic chung ở line._mark_supplement)."""
-        self.ensure_one()
-        self.rfq_line_id._mark_supplement(self.supplement_note)
-        return self._action_return_to_rfq()
-
     def _check_still_processable(self):
         """Kiểm tra LẠI ngay trước khi ghi kết quả (thiết kế RES-002/RES-003).
 
@@ -690,6 +1030,53 @@ class DlRfqResolveWizard(models.TransientModel):
                 "Muốn đổi kết quả kỹ thuật thì phải làm phiên bản báo giá mới.")
                 % request.name)
 
+    def _dlm_finalize_btp_tree(self):
+        """§12.7 — chính thức hóa cả cây vật tư/BTP tạm của dòng RFQ (không chỉ
+        SP + BOM cha đã chọn). Confirm BOM con (BTP) TRƯỚC BOM cha để giá vốn
+        BTP đã sẵn khi snapshot dòng cha tính lại (LK-16). BTP/BOM con KHÔNG
+        được dùng thì cứ để tạm — _cleanup_rfq_provisional_records() cuối luồng
+        sẽ dọn (has_stored_many2one_reference giữ cái còn được trỏ tới)."""
+        self.ensure_one()
+        line = self.rfq_line_id
+        Bom = self.env["dl.bom"].sudo()
+        Product = self.env["product.product"].sudo()
+        parent_bom = self.selected_bom_id
+
+        line_boms = Bom.search([
+            ("is_rfq_provisional", "=", True),
+            ("rfq_source_line_id", "=", line.id),
+        ])
+        child_boms = line_boms - parent_bom
+        # Vật tư/BTP đang thực sự được các định mức tạm của dòng dùng tới.
+        used_material_ids = set(line_boms.mapped("line_ids.material_id").ids)
+
+        # Confirm BOM con của các BTP đang được dùng (còn Nháp & có dòng).
+        for bom in child_boms:
+            if (bom.status == "draft" and bom.line_ids
+                    and bom.product_id.id in used_material_ids):
+                bom.action_confirm()
+
+        # De-provision BTP tạm đang được dùng.
+        provisional_products = Product.with_context(active_test=False).search([
+            ("is_rfq_provisional", "=", True),
+            ("rfq_source_line_id", "=", line.id),
+            ("id", "!=", self.product_id.id),
+        ])
+        for prod in provisional_products:
+            if prod.id in used_material_ids:
+                prod.write({"is_rfq_provisional": False})
+                prod.message_post(body=_(
+                    "Bán thành phẩm tạm đã được chính thức hóa khi hoàn tất "
+                    "dòng RFQ %s.") % line.display_name)
+        # De-provision BOM con của các BTP đã dùng (đã confirmed ở trên).
+        for bom in child_boms:
+            if (bom.product_id.id in used_material_ids
+                    and bom.is_rfq_provisional and bom.status != "draft"):
+                bom.write({"is_rfq_provisional": False})
+                bom.message_post(body=_(
+                    "Định mức BTP tạm đã được chính thức hóa khi hoàn tất "
+                    "dòng RFQ %s.") % line.display_name)
+
     def _do_confirm(self):
         self.ensure_one()
         self._check_still_processable()
@@ -698,6 +1085,11 @@ class DlRfqResolveWizard(models.TransientModel):
                 "Dòng Sản phẩm thương mại không xử lý qua màn này."))
         self._validate_product_step()
         self._validate_bom_step()
+
+        # §12.7 — Chính thức hóa CẢ CÂY BTP tạm của dòng TRƯỚC (confirm BOM con
+        # của BTP + de-provision BTP đang dùng) để giá vốn BTP đã sẵn sàng khi
+        # snapshot định mức cha tính lại (LK-16).
+        self._dlm_finalize_btp_tree()
 
         # §19.7 — Hoàn tất dòng tự XÁC NHẬN định mức còn Nháp và ghi người xử lý
         # là người duyệt (action_confirm ghi approved_by/date). Bỏ được vòng
@@ -716,6 +1108,20 @@ class DlRfqResolveWizard(models.TransientModel):
             # Xác nhận lại = đã xem lại xong (dùng cho luồng "Cần xem lại").
             "needs_review": False,
         })
+        # EX-05 — SP chốt KHÁC nhóm Sales khai (KTV đã bật "Tìm ngoài nhóm"):
+        # ghi chatter để Sales sửa nhóm cho RFQ sau. So bằng parent_path (child_of).
+        req_categ = self.rfq_line_id.product_category_id
+        prod_categ = self.product_id.categ_id
+        if (req_categ and prod_categ and req_categ.parent_path
+                and not (prod_categ.parent_path or "").startswith(req_categ.parent_path)):
+            self.rfq_line_id.quotation_request_id.sudo().message_post(body=_(
+                "Kỹ thuật chọn sản phẩm <b>%(prod)s</b> thuộc nhóm "
+                "<b>%(pcat)s</b> cho dòng <b>%(line)s</b> mà Sales khai nhóm "
+                "<b>%(rcat)s</b>. Cân nhắc sửa lại nhóm sản phẩm cho các RFQ sau.",
+                prod=self.product_id.display_name, pcat=prod_categ.display_name,
+                line=self.rfq_line_id.product_name or "",
+                rcat=req_categ.display_name))
+
         if self.product_id.is_rfq_provisional:
             self.product_id.write({"is_rfq_provisional": False})
             self.product_id.message_post(body=_(
@@ -747,4 +1153,10 @@ class DlRfqResolveWizard(models.TransientModel):
         self._do_confirm()
         if not next_line:
             return self._action_return_to_rfq()
-        return next_line.action_open_resolve_wizard()
+        # Băng chuyền: mở workspace dòng kế THAY THẾ breadcrumb thay vì chồng
+        # thêm — RFQ nhiều dòng mà cứ đẩy 'current' sẽ dựng
+        # ``[RFQ, ws1, ws2, ws3…]`` càng lúc càng rối. 'main' giữ breadcrumb
+        # gọn ở đúng một workspace đang xử lý; thoát băng chuyền vẫn về [RFQ].
+        action = next_line.action_open_resolve_wizard()
+        action["target"] = "main"
+        return action

@@ -64,6 +64,30 @@ class DlPricingCommercialMixin(models.AbstractModel):
             "target": "current",
         }
 
+    def action_apply_self_approve(self):
+        """Gộp Gửi duyệt + Duyệt thành MỘT bước cho người vốn là cấp duyệt của
+        loại cấu hình này (review §5.2 — ở DN nhỏ người đổi markup thường chính
+        là Giám đốc). Vẫn đi qua đúng luồng: tạo yêu cầu, kiểm tra quyền duyệt,
+        rồi tự duyệt — ghi audit "tự duyệt" như bình thường.
+
+        Nếu người bấm KHÔNG đủ quyền duyệt, ``_check_can_resolve`` ném AccessError
+        → cả giao dịch rollback (yêu cầu vừa tạo cũng bị hủy), nên không để lại
+        rác. UI chỉ hiện nút này cho Giám đốc/Admin."""
+        self.ensure_one()
+        # Tạo yêu cầu + chuyển sang Chờ duyệt (giữ mọi kiểm tra của model cụ thể,
+        # vd thang chiết khấu của discount.rule).
+        self.action_submit_approval()
+        request = self.env["dl.pricing.approval.request"].search([
+            ("res_model", "=", self._name),
+            ("res_id", "=", self.id),
+            ("state", "=", "pending"),
+        ], limit=1)
+        if not request:
+            raise UserError(_("Không tạo được yêu cầu phê duyệt để tự duyệt."))
+        request._check_can_resolve()  # AccessError nếu không đủ quyền → rollback
+        request.action_approve()
+        return True
+
     def _on_approval_approved(self, request):
         self.ensure_one()
         self._activate_rule()

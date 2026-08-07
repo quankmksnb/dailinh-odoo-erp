@@ -19,6 +19,46 @@ class DlPricingUi(models.TransientModel):
         return any(self.env.user.has_group("dl_base.dl_group_%s" % c) for c in codes)
 
     @api.model
+    def get_health(self):
+        """Cảnh báo "chặn báo giá" hiện đầu màn Cấu hình Báo giá (review 5.3):
+        (1) chưa có chính sách lợi nhuận (markup) đang áp dụng → mọi báo giá
+        gia công lỗi QTE-005; (2) công đoạn đang dùng trên BOM đã xác nhận/khóa
+        mà chưa có đơn giá → báo giá lỗi QTE-011. Trả list {level, text}."""
+        company = self.env.company
+        date = fields.Date.context_today(self)
+        active_domain = [
+            ("state", "=", "active"),
+            ("company_id", "=", company.id),
+            ("valid_from", "<=", date),
+            "|", ("valid_to", "=", False), ("valid_to", ">=", date),
+        ]
+        items = []
+        profit = self.env["dl.pricing.profit.rule"].sudo().search(active_domain, limit=1)
+        if not profit:
+            items.append({
+                "level": "block",
+                "text": "Chưa có chính sách lợi nhuận (markup) đang áp dụng — "
+                        "mọi báo giá gia công sẽ lỗi. Vào tab \"Lợi nhuận & "
+                        "chiết khấu\" để cấu hình rồi Gửi duyệt.",
+            })
+        # Công đoạn đang dùng trên BOM đã xác nhận/khóa mà chưa có đơn giá.
+        if "dl.bom.operation.line" in self.env:
+            lines = self.env["dl.bom.operation.line"].sudo().search(
+                [("bom_id.status", "in", ("confirmed", "locked"))])
+            missing = sorted({
+                line.operation_id.display_name for line in lines
+                if line.operation_id and not line.has_active_rule
+            })
+            if missing:
+                items.append({
+                    "level": "block",
+                    "text": "Công đoạn đang dùng trên BOM nhưng chưa có đơn giá: "
+                            "%s — báo giá dùng công đoạn này sẽ lỗi. Vào tab "
+                            "\"Chi phí công đoạn\" để định giá." % ", ".join(missing),
+                })
+        return items
+
+    @api.model
     def get_bootstrap(self):
         Category = self.env["product.category"].sudo()
         Product = self.env["product.product"].sudo()
@@ -43,6 +83,9 @@ class DlPricingUi(models.TransientModel):
                 "cost": self._has("accountant", "tech", "admin"),
                 "profit": self._has("ceo", "admin"),
                 "discount": self._has("sales_manager", "ceo", "admin"),
+                # Được "Áp dụng ngay (tự duyệt)" cấu hình thương mại: chỉ Giám
+                # đốc/Admin — đúng cấp duyệt của loại yêu cầu này (review §5.2).
+                "self_approve": self._has("ceo", "admin"),
                 "approval": self._has("ceo", "sales_manager", "admin"),
                 # Ma trận phê duyệt: chỉ Giám đốc/Admin được kích hoạt/ngừng;
                 # Trưởng KD được ĐỀ XUẤT (tạo/sửa bản Nháp) — guard ở model.

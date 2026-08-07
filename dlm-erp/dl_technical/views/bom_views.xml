@@ -87,6 +87,17 @@
                            readonly="1"/>
                 </header>
                 <sheet>
+                    <!-- §13.2 — điều hướng chéo: từ BOM của một BTP nhảy sang các
+                         định mức cha đang dùng nó (chỉ hiện khi có nơi dùng). -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_used_in_parents" type="object"
+                                class="oe_stat_button" icon="fa-sitemap"
+                                invisible="dlm_used_in_parent_count == 0"
+                                groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo">
+                            <field name="dlm_used_in_parent_count" widget="statinfo"
+                                   string="Định mức dùng BTP này"/>
+                        </button>
+                    </div>
                     <field name="is_rfq_provisional" invisible="1"/>
                     <widget name="web_ribbon" title="Tạm từ RFQ"
                             bg_color="text-bg-info" invisible="not is_rfq_provisional"/>
@@ -100,6 +111,38 @@
                         tại đây chỉ duyệt nội dung; BOM sẽ trở thành phiên bản hiện hành khi
                         Kỹ thuật bấm <strong>Hoàn tất dòng</strong> trong workspace RFQ.
                         <field name="rfq_source_line_id" readonly="1"/>
+                    </div>
+
+                    <!-- LK-09/LK-10 — banner cảnh báo định mức đang tính THIẾU giá
+                         vốn (vật tư chưa có giá NCC hoặc BTP chưa có định mức chuẩn).
+                         Chỉ lộ TÊN cấu phần, KHÔNG lộ giá (RBAC). Không chặn lưu. -->
+                    <field name="dlm_has_unpriced_component" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not dlm_has_unpriced_component"
+                         groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo">
+                        <i class="fa fa-exclamation-triangle me-1"/>
+                        <strong>Định mức đang tính thiếu giá vốn.</strong>
+                        Cấu phần chưa định giá:
+                        <field name="dlm_unpriced_component_names" nolabel="1" readonly="1"
+                               class="d-inline"/>.
+                        <button name="action_notify_purchasing_unpriced" type="object"
+                                string="Báo Mua hàng cập nhật giá"
+                                class="btn-link p-0 ms-1"
+                                groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    </div>
+
+                    <!-- §4.3 — banner cảnh báo SỚM công đoạn chưa có đơn giá đang
+                         áp dụng: tạo báo giá sẽ lỗi QTE-011. Chỉ lộ TÊN công đoạn.
+                         Không chặn xác nhận/khóa (chặn cứng vẫn ở bước báo giá). -->
+                    <field name="dlm_has_unpriced_operation" invisible="1"/>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not dlm_has_unpriced_operation"
+                         groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant">
+                        <i class="fa fa-exclamation-triangle me-1"/>
+                        <strong>Công đoạn chưa có đơn giá.</strong>
+                        Báo giá dùng định mức này sẽ lỗi cho tới khi Kế toán định giá:
+                        <field name="dlm_unpriced_operation_names" nolabel="1" readonly="1"
+                               class="d-inline"/>.
                     </div>
                     <div class="oe_title">
                         <label for="name"/>
@@ -155,9 +198,23 @@
 
                     <notebook>
                         <page string="Dòng BOM" name="bom_lines">
+                            <!-- §13.2 — hai đường tạo tại chỗ rõ ràng: vật tư thô
+                                 dùng "Thêm dòng" mặc định; bán thành phẩm TỰ LÀM
+                                 dùng nút riêng (tạo BTP + BOM con + gắn dòng, §3.3-A). -->
+                            <div class="mb-2" invisible="status != 'draft' or not id"
+                                 groups="dl_base.dl_group_tech,dl_base.dl_group_admin">
+                                <button name="action_open_create_btp_wizard"
+                                        type="object" string="+ Bán thành phẩm"
+                                        class="btn-secondary btn-sm" icon="fa-cubes"/>
+                                <span class="text-muted ms-2" style="font-size:12px;">
+                                    Vật tư thô: bấm “Thêm dòng” bên dưới. Bán thành
+                                    phẩm tự làm: dùng nút “+ Bán thành phẩm”.
+                                </span>
+                            </div>
                             <field name="line_ids"
                                    readonly="status in ('locked', 'archived')">
                                 <tree string="Dòng BOM">
+                                    <field name="dlm_material_is_btp" column_invisible="1"/>
                                     <field name="material_id"/>
                                     <field name="measurement_type_id" optional="show"/>
                                     <field name="measurement_shape_id" optional="show"/>
@@ -167,6 +224,10 @@
                                     <field name="waste_rate" string="Hao hụt (%)"/>
                                     <field name="effective_qty" string="SL thực"/>
                                     <field name="uom_id" optional="show"/>
+                                    <button name="action_open_btp_bom" type="object"
+                                            string="Mở định mức BTP"
+                                            icon="fa-external-link" class="btn-link"
+                                            invisible="not dlm_material_is_btp"/>
                                 </tree>
                                 <form string="Dòng BOM" class="dl-bom-line-form">
                                     <field name="shape_code" invisible="1"/>
@@ -178,9 +239,15 @@
                                       <div class="col-12 col-lg-7">
                                     <group>
                                         <group string="1. Vật tư">
+                                            <!-- M1 (§4.1) — vật tư tạo tại chỗ khi
+                                                 định mức cha đang tạm RFQ kế thừa cờ tạm
+                                                 + dòng RFQ nguồn ⇒ được cron dọn nếu RFQ
+                                                 bỏ dở (không thành rác vĩnh viễn). -->
                                             <field name="material_id"
                                                    options="{'no_quick_create': True}"
-                                                   context="{'default_product_kind': 'material'}"/>
+                                                   context="{'default_product_kind': 'material',
+                                                             'default_is_rfq_provisional': parent.is_rfq_provisional,
+                                                             'default_rfq_source_line_id': parent.rfq_source_line_id}"/>
                                             <field name="uom_id" readonly="1"/>
                                         </group>
                                     </group>
@@ -279,6 +346,85 @@
                             <group class="oe_subtotal_footer oe_right"
                                    groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
                                 <field name="total_material_cost"
+                                       class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+
+                        <!-- Công đoạn (RV-01/RV-04) — Kỹ thuật chọn công đoạn +
+                             nhập MỘT con số cơ sở khi cách tính cần (kg/m/m²).
+                             Đơn giá/tỷ lệ/setup do Kế toán giá thành cấu hình;
+                             KTV không nhập, không thấy giá (cột ước tính gated). -->
+                        <page string="Công đoạn" name="bom_operations">
+                            <div class="text-muted mb-2" style="font-size:12px;">
+                                <i class="fa fa-info-circle me-1"/>
+                                Chọn công đoạn sản phẩm phải đi qua (cắt, hàn, sơn,
+                                thuê ngoài…). Chỉ nhập <strong>định mức cơ sở</strong>
+                                khi cách tính theo kg/mét/m². Đơn giá và phí setup do
+                                Kế toán giá thành cấu hình ở màn Cấu hình báo giá.
+                            </div>
+                            <field name="operation_line_ids"
+                                   readonly="status in ('locked', 'archived')">
+                                <tree string="Công đoạn">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="has_active_rule" column_invisible="1"/>
+                                    <field name="needs_base_qty" column_invisible="1"/>
+                                    <field name="operation_id"/>
+                                    <field name="method" readonly="1"/>
+                                    <field name="base_qty"/>
+                                    <field name="is_outsourced" optional="show"/>
+                                    <field name="partner_id" optional="show"/>
+                                    <field name="estimated_unit_cost" optional="show"
+                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                    <field name="note" optional="hide"/>
+                                </tree>
+                                <form string="Công đoạn">
+                                    <field name="has_active_rule" invisible="1"/>
+                                    <field name="needs_base_qty" invisible="1"/>
+                                    <group>
+                                        <group string="Công đoạn">
+                                            <field name="operation_id"/>
+                                            <field name="method" readonly="1"
+                                                   invisible="not has_active_rule"/>
+                                            <div colspan="2" class="text-warning"
+                                                 invisible="has_active_rule">
+                                                <i class="fa fa-exclamation-triangle me-1"/>
+                                                Công đoạn này chưa có đơn giá đang áp
+                                                dụng — Kế toán giá thành cần cấu hình
+                                                trước khi tạo báo giá.
+                                            </div>
+                                            <field name="base_qty"/>
+                                            <div colspan="2" class="text-muted"
+                                                 style="font-size:11px;"
+                                                 invisible="not needs_base_qty">
+                                                Cách tính theo kg/mét/m² — hãy nhập
+                                                định mức cơ sở cho MỘT sản phẩm.
+                                            </div>
+                                        </group>
+                                        <group string="Thuê ngoài">
+                                            <field name="is_outsourced"/>
+                                            <field name="partner_id"
+                                                   invisible="not is_outsourced"
+                                                   required="is_outsourced"/>
+                                        </group>
+                                    </group>
+                                    <group string="Cơ sở % vật liệu"
+                                           invisible="method != 'percent_material'">
+                                        <field name="material_scope"/>
+                                        <field name="material_line_ids"
+                                               widget="many2many_tags"
+                                               domain="[('bom_id', '=', parent.id)]"
+                                               invisible="material_scope != 'selected'"
+                                               options="{'no_create': True}"/>
+                                    </group>
+                                    <group>
+                                        <field name="note"/>
+                                    </group>
+                                </form>
+                            </field>
+
+                            <group class="oe_subtotal_footer oe_right"
+                                   groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                                <field name="total_operation_cost_est"
                                        class="oe_subtotal_footer_separator"/>
                             </group>
                         </page>

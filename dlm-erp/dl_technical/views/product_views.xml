@@ -24,6 +24,34 @@
                     <field name="rfq_source_line_id" readonly="1"/>
                 </div>
             </xpath>
+            <!-- S05 · Thuộc tính kỹ thuật (Đợt 2, §3.6) — nền cho bộ dò khớp SP
+                 "đã từng gia công": có D/R/C + vật liệu + độ dày thì engine so
+                 số-với-số. Chỉ SP gia công / bán thành phẩm. -->
+            <xpath expr="//page[@name='boms']" position="before">
+                <page string="Thuộc tính kỹ thuật" name="tech_attrs"
+                      groups="dl_base.dl_group_admin,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+                      invisible="product_kind not in ('manufactured', 'material_processed')">
+                    <group>
+                        <group string="Kích thước bao (mm)">
+                            <field name="dlm_dim_length"/>
+                            <field name="dlm_dim_width"/>
+                            <field name="dlm_dim_height"/>
+                            <field name="dlm_thickness"/>
+                        </group>
+                        <group string="Vật liệu &amp; hoàn thiện">
+                            <field name="dlm_main_material_id"
+                                   options="{'no_create': True}"/>
+                            <field name="dlm_finish"/>
+                            <field name="dlm_est_weight"/>
+                        </group>
+                    </group>
+                    <div class="text-muted small">
+                        <i class="fa fa-info-circle me-1"/>
+                        Thuộc tính này giúp hệ thống gợi ý lại đúng sản phẩm khi có
+                        yêu cầu tương tự (so khớp kích thước / vật liệu / nhóm).
+                    </div>
+                </page>
+            </xpath>
             <xpath expr="//page[@name='boms']/div" position="replace">
                 <!-- bom_ids là computed field (chỉ đọc) — không hỗ trợ "Add a
                      line" trực tiếp. Dùng nút bên dưới để tạo BOM mới. -->

@@ -1,3 +1,5 @@
+import re
+
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 
@@ -15,6 +17,32 @@ _SALES_ONLY_LINE_FIELDS = {
 }
 # ...cũng như thông tin thương mại ở header (khách hàng, ngày nhận, hạn yêu cầu).
 _SALES_ONLY_HEADER_FIELDS = {'customer_id', 'requested_date', 'deadline'}
+
+# ── Bộ dò khớp SP "đã từng gia công" (§3.6, Đợt 2) ──────────────────────────
+# Điểm số theo bảng §3.6 (LỚP 2 — sản phẩm/instance cụ thể). LỚP 1 (họ có
+# template tham số) thuộc Đợt 4 nên CHƯA tính ở đây: khi bộ sinh instance +
+# param_signature tồn tại, thêm tín hiệu +45 (khớp bộ tham số) và +50 (thuộc họ
+# template) vào đúng chỗ ghi chú trong _dlm_suggest_candidates.
+_MATCH_SCORE_REFERENCE = 50     # Sales đã chọn reference_product_id (mạnh nhất)
+_MATCH_SCORE_NAME_EXACT = 40    # tên chuẩn hoá TRÙNG HỆT
+_MATCH_SCORE_NAME_SIMILAR = 25  # tên GẦN GIỐNG (thiếu dấu / hậu tố...)
+_MATCH_SCORE_SAME_CATEGORY = 10  # cùng nhóm sản phẩm
+_MATCH_SCORE_SAME_CUSTOMER = 10  # đã từng xử lý cho cùng khách hàng
+# So SỐ VỚI SỐ (§3.6, điều kiện tiên quyết S05): kích thước trích từ mô tả Sales
+# khớp thuộc tính kỹ thuật (D/R/C) của SP. Đây là lý do các field dlm_dim_* tồn
+# tại — dấu vân kích thước là tín hiệu bổ trợ mạnh, nhưng KHÔNG tự đủ ngưỡng tự
+# chọn một mình (hai SP khác hẳn nhau vẫn có thể trùng khổ 1200x800), phải cộng
+# với tên/nhóm/tham khảo mới lên auto.
+_MATCH_SCORE_DIM_MATCH = 30     # khổ D×R (và C nếu có) khớp thuộc tính kỹ thuật SP
+_MATCH_PENALTY_OBSOLETE = -60   # SP đang Ngừng sử dụng — vẫn hiện nhưng đội sổ
+# Ngưỡng phân loại (§3.6): ≥60 = đề xuất tự động (auto-điền), 30–59 = gợi ý
+# (hiện thẻ "Có phải cái này?"), <30 = không gợi ý.
+_MATCH_THRESHOLD_AUTO = 60
+_MATCH_THRESHOLD_SUGGEST = 30
+
+# Dung sai khớp kích thước (mm): số đo cùng khổ ghi lệch vài mm do làm tròn /
+# gõ tay vẫn tính là một; lớn hơn coi như khác cỡ.
+_DIM_MATCH_TOLERANCE = 2.0
 
 
 def _user_is_sales(env):
@@ -343,6 +371,34 @@ class DlQuotationRequest(models.Model):
             if stage == "pending" and rec.received_by:
                 stage = "processing"
             rec.tech_stage = stage
+
+    # U3 — RFQ nằm trong hàng đợi Kỹ thuật quá lâu (Chưa nhận/Đang xử lý). Xưởng
+    # nhỏ không ai canh hàng đợi ⇒ RFQ dễ "thối"; badge đỏ nhắc KTV ưu tiên. Mốc
+    # đếm: đang xử lý → từ lúc tiếp nhận; chưa nhận → từ lúc nhận yêu cầu. Ngưỡng
+    # cấu hình qua ir.config_parameter dl_technical.rfq_tech_aging_days (mặc định 3).
+    tech_waiting_days = fields.Integer(
+        string="Số ngày chờ xử lý", compute="_compute_tech_waiting")
+    tech_overdue = fields.Boolean(
+        string="Chờ xử lý quá lâu", compute="_compute_tech_waiting")
+
+    @api.depends("status", "received_by", "received_date", "requested_date")
+    def _compute_tech_waiting(self):
+        raw = self.env["ir.config_parameter"].sudo().get_param(
+            "dl_technical.rfq_tech_aging_days", 3)
+        try:
+            threshold = max(int(raw), 1)
+        except (TypeError, ValueError):
+            threshold = 3
+        now = fields.Datetime.now()
+        for rec in self:
+            days = 0
+            stage = rec.tech_stage
+            if stage in ("pending", "processing"):
+                anchor = rec.received_date if stage == "processing" else rec.requested_date
+                if anchor:
+                    days = (now - anchor).days
+            rec.tech_waiting_days = days
+            rec.tech_overdue = days >= threshold and stage in ("pending", "processing")
 
     # Màn Tạo RFQ tách 2 bảng riêng (trên/dưới) để cột không trùng nhau — cùng
     # trỏ line_ids, lọc + mặc định theo product_type. line_ids gốc vẫn dùng cho
@@ -764,6 +820,188 @@ class DlQuotationRequestLine(models.Model):
                 domain.append(("categ_id", "child_of", rec.product_category_id.id))
             rec.reference_product_ids = Product.search(domain)
 
+    # ── §3.6 · Bộ dò khớp "đã từng gia công" ────────────────────────────────
+    # Trả tín hiệu 💡 để KTV khỏi tự gõ tìm (và khỏi tạo SP trùng vì gõ khác chữ).
+    suggested_product_id = fields.Many2one(
+        "product.product", string="Sản phẩm gợi ý",
+        compute="_compute_suggestion")
+    suggestion_reason = fields.Char(
+        string="Vì sao gợi ý", compute="_compute_suggestion")
+    suggestion_state = fields.Selection(
+        [
+            ("none", "Không có gợi ý"),
+            ("suggest", "Có gợi ý"),
+            ("auto", "Gợi ý tự động"),
+        ],
+        string="Mức gợi ý sản phẩm", compute="_compute_suggestion")
+
+    @api.depends("product_type", "product_name", "reference_product_id",
+                 "product_category_id", "resolved_product_id", "is_infeasible",
+                 "dimension_note")
+    def _compute_suggestion(self):
+        for rec in self:
+            rec.suggested_product_id = False
+            rec.suggestion_reason = False
+            rec.suggestion_state = "none"
+            # Chỉ gợi ý cho dòng gia công CHƯA xác định SP và chưa kết luận
+            # không khả thi — dòng đã xong không cần 💡.
+            if (rec.product_type != "manufactured" or rec.resolved_product_id
+                    or rec.is_infeasible):
+                continue
+            ranked = rec._dlm_suggest_candidates(limit=1)
+            if not ranked:
+                continue
+            best = ranked[0]
+            rec.suggested_product_id = best["product"].id
+            rec.suggestion_reason = ", ".join(best["reasons"])
+            rec.suggestion_state = (
+                "auto" if best["score"] >= _MATCH_THRESHOLD_AUTO else "suggest")
+
+    @api.model
+    def _dlm_parse_dimensions(self, *texts):
+        """Trích kích thước (mm) từ mô tả tự do của Sales (dimension_note + tên SP).
+
+        Bắt các mẫu phổ biến (§3.6): "1400x830", "1200 x 800 x 750",
+        "dài 1400 rộng 830 cao 750", "dày 2". Trả dict chỉ gồm khoá tìm thấy:
+        ``{'length','width','height','thickness'}`` (float, mm). Từ khoá tường
+        minh (dài/rộng/cao/dày) GHI ĐÈ giá trị suy từ mẫu "A×B×C".
+
+        ⚠️ Đây là dữ liệu ĐOÁN từ văn bản tự do — chỉ dùng để CHẤM ĐIỂM gợi ý,
+        không bao giờ tự ghi vào BOM (§3.6: sai một chữ số là sai cả báo giá).
+        """
+        dims = {}
+        blob = " ".join(t for t in texts if t).lower()
+        if not blob:
+            return dims
+
+        def _num(token):
+            return float(token.replace(",", "."))
+
+        num = r"(\d+(?:[.,]\d+)?)"
+        # (1) Mẫu "A × B [× C]" — coi là Dài × Rộng [× Cao].
+        m = re.search(num + r"\s*[x×*]\s*" + num
+                      + r"(?:\s*[x×*]\s*" + num + r")?", blob)
+        if m:
+            dims["length"] = _num(m.group(1))
+            dims["width"] = _num(m.group(2))
+            if m.group(3):
+                dims["height"] = _num(m.group(3))
+        # (2) Từ khoá tường minh — ưu tiên hơn mẫu "A×B".
+        for key, kw in (("length", "dài"), ("width", "rộng"),
+                        ("height", "cao"), ("thickness", "dày")):
+            km = re.search(kw + r"\s*[:=]?\s*" + num, blob)
+            if km:
+                dims[key] = _num(km.group(1))
+        return dims
+
+    @api.model
+    def _dlm_dimensions_match(self, wanted, product):
+        """Khổ D×R (và C nếu cả hai cùng khai) của ``product`` có khớp bộ kích
+        thước ``wanted`` đã trích không? So theo cặp KHÔNG phân biệt chiều
+        (D×R = R×D), dung sai ``_DIM_MATCH_TOLERANCE`` mm. Chỉ khớp khi product
+        khai đủ D, R (>0) — SP chưa nhập thuộc tính kỹ thuật thì bỏ qua."""
+        pl, pw = product.dlm_dim_length, product.dlm_dim_width
+        if not (pl and pw and wanted.get("length") and wanted.get("width")):
+            return False
+        tol = _DIM_MATCH_TOLERANCE
+        want_pair = sorted((wanted["length"], wanted["width"]))
+        prod_pair = sorted((pl, pw))
+        if any(abs(a - b) > tol for a, b in zip(want_pair, prod_pair)):
+            return False
+        # Chiều cao chỉ dùng để LOẠI TRỪ khi cả hai cùng khai mà lệch nhau.
+        wh, ph = wanted.get("height"), product.dlm_dim_height
+        if wh and ph and abs(wh - ph) > tol:
+            return False
+        return True
+
+    def _dlm_suggest_candidates(self, limit=5):
+        """Dò các SP "đã từng gia công" khớp dòng RFQ này, xếp theo điểm §3.6.
+
+        Trả về danh sách dict ``{'product', 'score', 'reasons'}`` đã lọc theo
+        ngưỡng gợi ý (≥30) và sắp giảm dần theo điểm. Chỉ LỚP 2 (§3.6) — LỚP 1
+        (họ có template tham số) để Đợt 4 khi bộ sinh instance tồn tại.
+        """
+        self.ensure_one()
+        Product = self.env["product.product"]
+        if self.product_type != "manufactured":
+            return []
+        kinds = ("manufactured", "material_processed")
+        scores = {}
+
+        def add(product, points, reason):
+            if not product or product.is_rfq_provisional:
+                return
+            entry = scores.get(product.id)
+            if not entry:
+                entry = {"product": product, "score": 0, "reasons": []}
+                scores[product.id] = entry
+            entry["score"] += points
+            entry["reasons"].append(reason)
+
+        # (a) Sales đã chọn SP tham khảo — tín hiệu mạnh nhất (§3.6 nguyên tắc #2).
+        add(self.reference_product_id, _MATCH_SCORE_REFERENCE,
+            _("Sales chọn tham khảo"))
+
+        # (b) Khớp tên (tái dùng _dlm_find_name_matches đã có ở dl_product).
+        if self.product_name:
+            matches = Product._dlm_find_name_matches(
+                self.product_name, kinds=kinds,
+                extra_domain=[("is_rfq_provisional", "=", False)])
+            for product in matches["exact"]:
+                add(product, _MATCH_SCORE_NAME_EXACT, _("Trùng tên"))
+            for product in matches["similar"]:
+                add(product, _MATCH_SCORE_NAME_SIMILAR, _("Tên gần giống"))
+
+        # (c) Cùng nhóm sản phẩm — chỉ cộng dồn cho SP đã có tín hiệu khác
+        #     (đứng một mình +10 < 30 nên tự bị lọc; kết hợp với tên gần giống
+        #     mới đủ ngưỡng gợi ý).
+        if self.product_category_id:
+            same_cat = Product.search([
+                ("product_kind", "in", kinds),
+                ("categ_id", "child_of", self.product_category_id.id),
+                ("is_rfq_provisional", "=", False),
+            ], limit=80)
+            for product in same_cat:
+                add(product, _MATCH_SCORE_SAME_CATEGORY, _("Cùng nhóm"))
+
+        # (d) Khách hàng này từng đặt (đơn lặp lại thường cùng khách).
+        customer = self.quotation_request_id.customer_id
+        if customer:
+            prev_lines = self.env["dl.quotation.request.line"].search([
+                ("quotation_request_id.customer_id", "=", customer.id),
+                ("resolved_product_id", "!=", False),
+                ("id", "!=", self.id),
+            ], limit=200)
+            for product in prev_lines.mapped("resolved_product_id"):
+                add(product, _MATCH_SCORE_SAME_CUSTOMER, _("Khách từng đặt"))
+
+        # (d2) So SỐ VỚI SỐ (§3.6, S05): khổ kích thước trích từ mô tả Sales
+        #      khớp thuộc tính kỹ thuật D/R/C của ứng viên. Đây là lý do các
+        #      field dlm_dim_* tồn tại. CHỈ cộng điểm cho SP đã lọt vào scores
+        #      qua tín hiệu khác — dấu vân kích thước củng cố, không tự phát hiện
+        #      SP mới (khổ trùng nhưng khác hẳn tên/nhóm thường là món khác).
+        wanted = self._dlm_parse_dimensions(self.dimension_note, self.product_name)
+        if wanted.get("length") and wanted.get("width"):
+            for entry in scores.values():
+                if self._dlm_dimensions_match(wanted, entry["product"]):
+                    entry["score"] += _MATCH_SCORE_DIM_MATCH
+                    entry["reasons"].append(_("Khớp kích thước"))
+
+        # ── LỚP 1 (Đợt 4): khi có template tham số + param_signature, cộng ở đây
+        #    +50 (SP thuộc họ template) và +45 (bộ tham số trích được khớp
+        #    instance cũ). Chưa có model nên bỏ qua.
+
+        # (e) Phạt SP đang Ngừng sử dụng — vẫn hiện nhưng đội xuống cuối/bị loại.
+        for entry in scores.values():
+            if entry["product"].dlm_lifecycle_state == "obsolete":
+                entry["score"] += _MATCH_PENALTY_OBSOLETE
+                entry["reasons"].append(_("Ngừng sử dụng"))
+
+        ranked = sorted(
+            (e for e in scores.values() if e["score"] >= _MATCH_THRESHOLD_SUGGEST),
+            key=lambda e: (e["score"], e["product"].id), reverse=True)
+        return ranked[:limit]
+
     # Màn "Nhận RFQ" (Kỹ thuật) — BOM cụ thể được chọn/tạo để sản xuất
     # resolved_product_id. Không áp dụng cho dòng thương mại (không qua BOM).
     resolved_bom_id = fields.Many2one(
@@ -924,6 +1162,27 @@ class DlQuotationRequestLine(models.Model):
                 rec.resolved_summary = "Đã bổ sung — chờ Kỹ thuật xử lý"
             else:
                 rec.resolved_summary = "Chưa chọn sản phẩm"
+
+    # EX-13 / RES-022 — dòng đã xác định nhưng định mức còn vật tư THÔ chưa có
+    # giá NCC đã duyệt ⇒ Sales sẽ chưa tạo được báo giá (QTE-003). Hiện SỚM ngay
+    # trên dòng để Sales chủ động hối Mua hàng, thay vì đâm tường ở khâu sau.
+    # compute_sudo để đọc supplierinfo; chỉ lộ cờ + TÊN vật tư, không lộ giá.
+    pricing_blocked = fields.Boolean(
+        string="Thiếu giá NCC", compute="_compute_pricing_blocked",
+        compute_sudo=True)
+    pricing_block_summary = fields.Char(
+        string="Vật tư thiếu giá NCC", compute="_compute_pricing_blocked",
+        compute_sudo=True)
+
+    @api.depends("resolved_bom_id",
+                 "resolved_bom_id.line_ids.material_id",
+                 "resolved_bom_id.line_ids.material_id.dlm_supplier_price_state")
+    def _compute_pricing_blocked(self):
+        for rec in self:
+            missing = rec.resolved_bom_id._dlm_unpriced_raw_materials()
+            rec.pricing_blocked = bool(missing)
+            rec.pricing_block_summary = ", ".join(
+                missing.mapped("display_name")) if missing else False
 
     request_status = fields.Selection(
         related="quotation_request_id.status",

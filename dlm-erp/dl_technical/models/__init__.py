@@ -4,5 +4,7 @@ from . import dl_bom_header_mixin
 from . import dl_bom_line_mixin
 from . import dl_bom
 from . import dl_bom_line
+from . import dl_bom_operation_line
 from . import dl_bom_template
+from . import dl_bom_template_param
 from . import dl_quotation_request

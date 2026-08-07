@@ -1,4 +1,5 @@
 from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
 
 
 class DlBomLine(models.Model):
@@ -78,14 +79,11 @@ class DlBomLine(models.Model):
             component = rec.material_id
 
             if component and component.product_kind == "material_processed":
-                bom = self.env["dl.bom"].search(
-                    [
-                        ("product_id", "=", component.id),
-                        ("status", "in", ("confirmed", "locked")),
-                    ],
-                    order="version desc",
-                    limit=1,
-                )
+                # LK-02 (P1) — dùng CHUNG helper chọn BOM chuẩn với pricing engine
+                # (_resolve_child_bom). Trước đây tìm "version desc" không lọc
+                # bom_type ⇒ một BOM báo giá (instance đơn) version cao THẮNG BOM
+                # chuẩn của BTP, làm hai đường tính giá vốn lệch nhau (§3.3-B).
+                bom = self.env["dl.bom"]._standard_child_bom(component)
                 if bom:
                     price = bom.total_material_cost
             elif component:
@@ -106,3 +104,86 @@ class DlBomLine(models.Model):
     def _compute_subtotal(self):
         for rec in self:
             rec.subtotal = rec.effective_qty * rec.price_snapshot - rec.recovery_value
+
+    dlm_material_is_btp = fields.Boolean(
+        string="Là bán thành phẩm",
+        compute="_compute_dlm_material_is_btp")
+
+    @api.depends("material_id")
+    def _compute_dlm_material_is_btp(self):
+        for rec in self:
+            rec.dlm_material_is_btp = bool(
+                rec.material_id
+                and rec.material_id.product_kind == "material_processed")
+
+    def action_open_btp_bom(self):
+        """§13.2 — nút "Mở định mức BTP ↗" trên dòng có material_id là BTP: mở
+        BOM CHUẨN của BTP đó trên breadcrumb (chống "chuyển đi chuyển lại"). Nếu
+        BTP chưa có định mức nào thì mở form BOM mới đã gắn sẵn sản phẩm."""
+        self.ensure_one()
+        material = self.material_id
+        if not material or material.product_kind != "material_processed":
+            raise UserError(_("Dòng này không phải bán thành phẩm."))
+        bom = self.env["dl.bom"]._standard_child_bom(material)
+        if not bom:
+            bom = self.env["dl.bom"].search(
+                [("product_id", "=", material.id)], order="version desc", limit=1)
+        view = self.env.ref("dl_technical.view_dl_bom_form")
+        if bom:
+            return {
+                "type": "ir.actions.act_window",
+                "name": bom.display_name,
+                "res_model": "dl.bom",
+                "res_id": bom.id,
+                "view_mode": "form",
+                "views": [(view.id, "form")],
+                "target": "current",
+            }
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Định mức của %s") % material.display_name,
+            "res_model": "dl.bom",
+            "view_mode": "form",
+            "views": [(view.id, "form")],
+            "target": "current",
+            "context": {
+                "default_product_id": material.id,
+                "default_bom_type": "template",
+            },
+        }
+
+    @api.constrains("material_id", "bom_id")
+    def _dlm_check_no_cycle(self):
+        """LK-01 (P2) — chặn định mức VÒNG LẶP: một dòng BOM dùng BTP mà BTP đó
+        (trực tiếp hoặc gián tiếp qua BOM chuẩn của nó) lại chứa chính sản phẩm
+        của BOM cha ⇒ đệ quy giá vốn vô hạn. Duyệt đồ thị BTP qua helper CHUNG
+        _standard_child_bom (đúng đường mà compute snapshot đi)."""
+        Bom = self.env["dl.bom"]
+        for line in self:
+            mat = line.material_id
+            if not mat or mat.product_kind != "material_processed":
+                continue
+            root = line.bom_id.product_id
+            if not root:
+                continue
+            seen, stack, depth = set(), [mat], 0
+            while stack:
+                depth += 1
+                if depth > 100:      # fail-safe tuyệt đối (không tin dữ liệu)
+                    break
+                comp = stack.pop()
+                if comp.id in seen:
+                    continue
+                seen.add(comp.id)
+                if comp.id == root.id:
+                    raise ValidationError(_(
+                        "Định mức vòng lặp: bán thành phẩm “%(mat)s” đã (gián "
+                        "tiếp) dùng chính sản phẩm “%(root)s”. Hãy bỏ mắt xích "
+                        "này khỏi định mức.",
+                        mat=mat.display_name, root=root.display_name))
+                child = Bom._standard_child_bom(comp)
+                stack += [
+                    cl.material_id for cl in child.line_ids
+                    if cl.material_id
+                    and cl.material_id.product_kind == "material_processed"
+                ]

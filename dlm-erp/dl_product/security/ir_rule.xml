@@ -59,6 +59,21 @@
             <field name="perm_unlink">0</field>
         </record>
 
+        <!-- LK-12 (§5.1) — Kỹ thuật tự tạo/sửa NHÓM nhánh Vật tư (nhóm vật tư/BTP
+             + tách nhóm theo kết cấu để làm họ tham số §18.2). KHÔNG đụng nhánh
+             Thành phẩm (quyết định kinh doanh — Admin/Trưởng KD) và 2 nhóm gốc.
+             perm_read=0 ⇒ Kỹ thuật vẫn ĐỌC toàn bộ cây nhóm (rule khác/ACL). -->
+        <record id="rule_category_tech_material" model="ir.rule">
+            <field name="name">KTV tạo/sửa nhóm nhánh Vật tư</field>
+            <field name="model_id" ref="product.model_product_category" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_tech'))]" />
+            <field name="domain_force">[('dl_branch', '=', 'material')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
 
     </data>
 

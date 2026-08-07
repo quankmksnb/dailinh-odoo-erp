@@ -12,7 +12,7 @@ import { localization } from "@web/core/l10n/localization";
 //
 // Dùng cho:
 //   • widget field `dl_money` (money_field.js) — form Odoo chuẩn.
-//   • các ô <input> thủ công trong component OWL (pricing_config, sys_config…).
+//   • các ô <input> thủ công trong component OWL (vd pricing_config).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function thousandsSep() {

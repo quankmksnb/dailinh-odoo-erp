@@ -1,16 +1,21 @@
 {
     'name': 'DL-CRM & Báo giá',
-    'version': '17.0.1.25.0',
+    'version': '17.0.1.28.0',
     'summary': 'Quản lý Khách hàng, NCC, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
     'depends': ['dl_partner', 'dl_product', 'dl_technical', 'dl_base', 'mail'],
+    # RV-02 — xuất báo giá Word/PDF thuần Python (không cần wkhtmltopdf).
+    # python-docx import dưới tên 'docx'.
+    'external_dependencies': {'python': ['docx', 'reportlab']},
     'data': [
         'security/ir.model.access.csv',
         'data/rbac_features.xml',
         'data/quotation_cron.xml',
+        'data/quotation_mail_template.xml',
         'wizard/quotation_reject_wizard_views.xml',
         'wizard/quotation_revision_wizard_views.xml',
+        'wizard/quotation_export_wizard_views.xml',
         'wizard/sale_order_reset_draft_wizard_views.xml',
         'views/customer_views_ext.xml',
         'views/quotation_views.xml',

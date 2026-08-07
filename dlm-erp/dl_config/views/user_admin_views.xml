@@ -7,10 +7,4 @@
         <field name="tag">dl_config.DlUserAdmin</field>
     </record>
 
-    <!-- S02 — Cấu hình Hệ thống (client action, OWL mock) -->
-    <record id="action_dl_sys_config" model="ir.actions.client">
-        <field name="name">Cấu hình Hệ thống</field>
-        <field name="tag">dl_config.DlSysConfig</field>
-    </record>
-
 </odoo>

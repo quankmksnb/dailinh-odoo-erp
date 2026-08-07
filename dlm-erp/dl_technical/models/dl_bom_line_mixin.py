@@ -267,6 +267,29 @@ class DlBomLineMixin(models.AbstractModel):
             rec.computed_quantity = qty if qty is not None else 0.0
 
     # ==========================================================
+    # CRUD
+    # ==========================================================
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """RV-07 — Dòng BOM tạo BẰNG CODE (bộ sinh định mức tham số Đợt 4, import
+        dữ liệu) KHÔNG chạy onchange nên % hao hụt không tự bung theo hệ số phức
+        tạp ⇒ hao hụt thấp hơn thực, giá vốn thiếu. Nếu người tạo chưa nêu
+        waste_rate rõ ràng mà dòng đã có vật tư, tự tính = hao hụt cơ sở của vật
+        tư × hệ số phức tạp (đối xứng _onchange_material_waste của luồng UI).
+        Không đụng khi caller đã truyền waste_rate (vd _mixin_copy_vals của BOM
+        mẫu đã mang sẵn giá trị đúng)."""
+        for vals in vals_list:
+            if "waste_rate" not in vals and vals.get("material_id"):
+                material = self.env["product.product"].browse(vals["material_id"])
+                factor = 1.0
+                if vals.get("complexity_id"):
+                    factor = self.env["dl.pricing.complexity.level"].browse(
+                        vals["complexity_id"]).factor or 1.0
+                vals["waste_rate"] = (material.dlm_waste_rate or 0.0) * factor
+        return super().create(vals_list)
+
+    # ==========================================================
     # ONCHANGE
     # ==========================================================
 
@@ -337,13 +360,36 @@ class DlBomLineMixin(models.AbstractModel):
         "dim_diameter", "dim_height",
     )
     def _onchange_measurement_values(self):
-        warning = self._dimension_sanity_warning()
         if not self.is_override:
             qty = self._measurement_quantity()
             if qty is not None and qty > 0:
                 self.quantity = qty
+        # LK-08 (§4.1-M3) — hình dạng nhóm Khối lượng CẦN hệ số (khối lượng
+        # riêng) mà hệ số = 0 ⇒ định mức tự tính ra 0 ÂM THẦM. Cảnh báo này ưu
+        # tiên hơn cảnh báo kích thước phi lý vì nó chặn hẳn việc tính ra số.
+        warning = self._coefficient_missing_warning() or self._dimension_sanity_warning()
         if warning:
             return {"warning": warning}
+
+    def _coefficient_missing_warning(self):
+        """LK-08 — cảnh báo MỀM (không chặn lưu) khi Shape thuộc nhóm Khối lượng
+        (cần khối lượng riêng) nhưng Hệ số còn 0/để trống: công thức tính khối
+        lượng sẽ ra 0, kéo theo giá vốn thiếu. Vật tư mới hay Shape chưa khai
+        default_coefficient thường rơi vào đây."""
+        self.ensure_one()
+        shape = self.measurement_shape_id
+        code = shape.code if shape else False
+        if code in WEIGHT_SHAPE_CODES and (self.measurement_coefficient or 0.0) <= 0:
+            label = self.shape_coefficient_label or _("khối lượng riêng")
+            return {
+                "title": _("Thiếu hệ số khối lượng riêng"),
+                "message": _(
+                    "Hình dạng “%(shape)s” cần %(label)s để tính khối lượng, "
+                    "nhưng Hệ số đang là 0 — định mức sẽ tính ra 0 và giá vốn "
+                    "thiếu. Nhập Hệ số (%(label)s) cho vật tư/dòng này."
+                ) % {"shape": shape.display_name, "label": label},
+            }
+        return None
 
     def _dimension_sanity_warning(self):
         """Cảnh báo MỀM (không chặn lưu) khi kích thước nhập vào PHI LÝ về

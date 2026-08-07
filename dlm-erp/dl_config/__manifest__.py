@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Cấu hình (Master Data)',
-    'version': '17.0.2.4.0',
+    'version': '17.0.2.7.0',
     'summary': 'Cấu hình hệ thống, cấu hình báo giá có phiên bản và dữ liệu danh mục',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -40,10 +40,8 @@
             'dl_config/static/src/components/role_perm/role_perm.scss',
             'dl_config/static/src/components/role_perm/role_perm.xml',
             'dl_config/static/src/components/role_perm/role_perm.js',
-            # S02 — Cấu hình Hệ thống (OWL mock)
-            'dl_config/static/src/components/sys_config/sys_config.scss',
-            'dl_config/static/src/components/sys_config/sys_config.xml',
-            'dl_config/static/src/components/sys_config/sys_config.js',
+            # Style dùng chung cho các màn cấu hình OWL (.dl-cfg-*).
+            'dl_config/static/src/scss/cfg_shared.scss',
             # Cấu hình Báo giá (V3) — màn OWL nhiều tab, nối model quy tắc thật.
             'dl_config/static/src/components/pricing_config/pricing_config.scss',
             'dl_config/static/src/components/pricing_config/pricing_config.xml',

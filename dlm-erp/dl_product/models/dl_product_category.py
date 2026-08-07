@@ -84,3 +84,54 @@ class ProductCategory(models.Model):
                     "trong nhóm thuộc loại không khớp nhánh này."
                 ) % (rec.display_name, dict(rec._fields["dl_branch"].selection).get(rec.dl_branch),
                      bad.display_name))
+
+    @api.constrains("active")
+    def _dlm_check_archive_active_products(self):
+        """LK-11 / CAT-02 — chặn lưu trữ (archive) nhóm còn sản phẩm ĐANG HOẠT
+        ĐỘNG thuộc nhóm (kể cả nhóm con). Tránh làm 'mất' sản phẩm active khỏi
+        cây danh mục. Bỏ qua lúc nạp data/-u (install_mode) như constrain nhánh."""
+        if self.env.context.get("install_mode"):
+            return
+        Product = self.env["product.product"].sudo().with_context(active_test=False)
+        for rec in self:
+            if rec.active:
+                continue
+            count = Product.search_count([
+                ("categ_id", "child_of", rec.id),
+                ("dlm_lifecycle_state", "=", "active"),
+            ])
+            if count:
+                raise ValidationError(_(
+                    "Không thể lưu trữ nhóm '%s' — còn %s sản phẩm đang hoạt "
+                    "động thuộc nhóm (kể cả nhóm con). Hãy chuyển nhóm hoặc "
+                    "Ngừng các sản phẩm đó trước."
+                ) % (rec.display_name, count))
+
+    @api.onchange("parent_id")
+    def _onchange_dlm_depth_warning(self):
+        """LK-13 (§5.2) — cảnh báo MỀM (không chặn) khi tạo nhóm sâu quá ngưỡng
+        (mặc định 3 cấp dưới gốc). Nhóm quá mịn khiến BOM mẫu/họ tham số nở tràn;
+        chỉ nhắc, xưởng vẫn có thể cần ngoại lệ. Ngưỡng lấy từ ir.config_parameter
+        dl_product.category_max_depth."""
+        if not self.parent_id:
+            return
+        try:
+            max_depth = int(self.env["ir.config_parameter"].sudo().get_param(
+                "dl_product.category_max_depth", 3))
+        except (TypeError, ValueError):
+            max_depth = 3
+        # parent_path của nhóm cha gồm cả gốc → số cấp của nhóm MỚI dưới gốc =
+        # số id trong parent_path của cha (gốc tính là cấp 0).
+        ancestor_ids = [
+            x for x in (self.parent_id.parent_path or "").split("/") if x]
+        new_depth = len(ancestor_ids)
+        if new_depth > max_depth:
+            return {"warning": {
+                "title": _("Nhóm quá sâu"),
+                "message": _(
+                    "Nhóm mới sẽ nằm ở cấp %(depth)s dưới gốc (khuyến nghị tối đa "
+                    "%(max)s cấp). BOM mẫu tham số chỉ nên gắn ở cấp 'Họ kết cấu' "
+                    "— nhóm quá mịn khiến mẫu nở tràn. Cân nhắc dùng THAM SỐ "
+                    "(kích thước) thay vì tách thêm nhóm con.",
+                    depth=new_depth, max=max_depth),
+            }}

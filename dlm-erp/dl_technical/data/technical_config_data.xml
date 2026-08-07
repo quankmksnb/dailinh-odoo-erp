@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- LK-06 (§3.2-D1 / §13.4) — Chính sách bản vẽ cho SP thành phẩm khi xác
+         nhận BOM. Giá trị:
+           • "warn"  (mặc định) — chỉ cảnh báo, KHÔNG chặn xác nhận BOM;
+           • "block" — BẮT BUỘC có bản vẽ đã xác nhận mới cho xác nhận BOM.
+         Admin đổi giá trị ở Cài đặt > Kỹ thuật > Tham số hệ thống (hoặc màn thiết
+         lập kỹ thuật). noupdate=1 để không ghi đè lựa chọn của xưởng khi -u. -->
+    <data noupdate="1">
+        <record id="param_require_drawing_for_finished" model="ir.config_parameter">
+            <field name="key">dl_technical.require_drawing_for_finished</field>
+            <field name="value">warn</field>
+        </record>
+    </data>
+</odoo>

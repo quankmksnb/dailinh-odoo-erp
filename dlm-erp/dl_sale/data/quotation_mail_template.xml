@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================
+         RV-02 — Mẫu email gửi báo giá cho khách.
+
+         Chỉ cung cấp TIÊU ĐỀ + NỘI DUNG thư (được render trong wizard xuất
+         báo giá). File đính kèm (Word/PDF) do wizard tự dựng bằng python-docx /
+         reportlab rồi gắn vào trình soạn thư — KHÔNG dùng report_template_ids
+         (vốn cần wkhtmltopdf). Người dùng ĐỌC LẠI rồi mới bấm Gửi.
+         ================================================================ -->
+    <record id="mail_template_dl_quotation" model="mail.template">
+        <field name="name">Báo giá: Gửi khách hàng</field>
+        <field name="model_id" ref="dl_sale.model_dl_quotation"/>
+        <field name="subject">Báo giá {{ object.name }} — {{ object.company_id.name }}</field>
+        <field name="email_from">{{ (object.company_id.partner_id.email_formatted or user.email_formatted) }}</field>
+        <field name="partner_to">{{ object.partner_id.id }}</field>
+        <field name="lang">{{ object.partner_id.lang }}</field>
+        <field name="body_html" type="html">
+            <div style="margin: 0px; padding: 0px; font-size: 13px;">
+                <p>Kính gửi Quý khách <t t-out="object.partner_id.name or ''">Khách hàng</t>,</p>
+                <p>
+                    Công ty <t t-out="object.company_id.name or ''"></t> trân trọng gửi tới Quý khách
+                    bảng báo giá <strong t-out="object.name or ''"></strong> (đính kèm).
+                </p>
+                <p>
+                    Tổng giá trị:
+                    <strong t-out="format_amount(object.amount_total, object.currency_id) or ''"></strong>.
+                    <t t-if="object.validity_date">
+                        Báo giá có hiệu lực đến <strong t-out="format_date(object.validity_date) or ''"></strong>.
+                    </t>
+                </p>
+                <p>Rất mong nhận được phản hồi và sự hợp tác của Quý khách.</p>
+                <p>Trân trọng,<br/><t t-out="user.name or ''"></t></p>
+            </div>
+        </field>
+    </record>
+</odoo>

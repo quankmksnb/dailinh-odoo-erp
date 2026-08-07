@@ -261,6 +261,10 @@ class ProductSupplierinfo(models.Model):
         product = self._dlm_product()
         if product:
             product._dlm_recompute_reference_cost()
+            # Đóng vòng lặp EX-13: vật tư đã có giá áp dụng ⇒ đóng việc Kỹ thuật
+            # đã giao cho Mua hàng (dọn hòm việc; cờ pricing_blocked phía RFQ tự
+            # hết vì dlm_supplier_price_state chuyển 'applied').
+            product._dlm_close_price_requests()
 
     def _dlm_unapply(self, when=None):
         when = when or fields.Datetime.now()

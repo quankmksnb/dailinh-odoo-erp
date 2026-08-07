@@ -30,6 +30,12 @@ _KIND_CODE_SEQUENCE = {
     "material_processed": "dl.product.material_processed",
 }
 
+# LK-14 (§6.1) — MỞ ĐƯỜNG cho Kho: mọi SP nghiệp vụ (gia công/thương mại/vật tư/
+# BTP) phải "tồn kho được" (detailed_type='product') để sau này có stock.quant/
+# stock.move. Chỉ SP seed đang đúng chuẩn này; SP tạo qua luồng app trước đây rơi
+# về mặc định Odoo 'consu' (không nhập/xuất/tồn được). Đặt mặc định ở create().
+_STORABLE_KINDS = {"manufactured", "material", "material_processed", "trading"}
+
 
 class ProductProduct(models.Model):
     """PROD-02 — dl.product.
@@ -279,6 +285,70 @@ class ProductProduct(models.Model):
                 rec.dlm_supplier_price_state = "pending"
             else:
                 rec.dlm_supplier_price_state = "none"
+
+    def action_dlm_add_supplier_price(self):
+        """Mở màn Bảng giá Vật tư ĐÃ lọc + điền sẵn vật tư này để Mua hàng thêm
+        giá NCC ngay (từ màn 'Vật tư chờ định giá'). Duyệt xong tự áp dụng (ca 1
+        NCC) ⇒ vật tư hết 'chờ định giá', việc Kỹ thuật giao được đóng tự động."""
+        self.ensure_one()
+        tree = self.env.ref("dl_product.view_dl_supplierinfo_material_tree")
+        form = self.env.ref("dl_product.view_dl_supplierinfo_material_form")
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Giá NCC — %s") % self.display_name,
+            "res_model": "product.supplierinfo",
+            "view_mode": "tree,form",
+            "views": [(tree.id, "tree"), (form.id, "form")],
+            "domain": [("product_tmpl_id", "=", self.product_tmpl_id.id)],
+            "context": {
+                "default_product_tmpl_id": self.product_tmpl_id.id,
+                "default_date_start": fields.Date.context_today(self),
+            },
+            "target": "current",
+        }
+
+    # Domain "Vật tư chờ định giá" — GIỮ ĐỒNG BỘ với action_dl_material_needs_price
+    # (product_pricing_views.xml). Tách ra để badge rail đếm đúng phần list hiện.
+    @api.model
+    def _dlm_needs_price_domain(self):
+        return [
+            ("product_kind", "=", "material"),
+            ("dlm_supplier_price_state", "!=", "applied"),
+            ("dlm_lifecycle_state", "!=", "obsolete"),
+        ]
+
+    @api.model
+    def get_needs_price_count(self):
+        """Số vật tư đang chờ định giá — dùng cho badge rail "Vật tư chờ định
+        giá" (giống badge "Phê duyệt" của người duyệt). Chỉ Mua hàng/Admin thấy
+        mục này nên vai trò khác trả 0, không phát sinh truy vấn thừa. sudo để
+        đếm không vướng ACL product.product của từng role."""
+        user = self.env.user
+        if not (user.has_group("dl_base.dl_group_purchasing")
+                or user.has_group("dl_base.dl_group_admin")):
+            return 0
+        return self.sudo().search_count(self._dlm_needs_price_domain())
+
+    def _dlm_close_price_requests(self):
+        """Đóng các việc 'Cập nhật giá NCC' mà Kỹ thuật đã giao cho Mua hàng khi
+        vật tư ĐÃ có giá NCC đang áp dụng — dọn hòm việc Mua hàng + ghi vết. Gọi
+        từ product.supplierinfo._dlm_apply (đóng vòng lặp EX-13/RES-022)."""
+        todo = self.env.ref("mail.mail_activity_data_todo", raise_if_not_found=False)
+        if not todo:
+            return
+        Activity = self.env["mail.activity"].sudo()
+        for prod in self:
+            acts = Activity.search([
+                ("res_model", "=", "product.product"),
+                ("res_id", "=", prod.id),
+                ("activity_type_id", "=", todo.id),
+            ]).filtered(
+                lambda a: a.summary and a.summary.startswith("Cập nhật giá NCC"))
+            if acts:
+                acts.action_feedback(feedback=_("Đã có giá NCC đang áp dụng."))
+                prod.sudo().message_post(body=_(
+                    "Đã cập nhật &amp; áp dụng giá NCC — các yêu cầu cập nhật giá "
+                    "từ Kỹ thuật đã được đóng."))
 
     # ── Readiness kích hoạt SP thương mại (mục 3) — dùng cho UI, KHÔNG chặn ────
     # Nút "Duyệt" của Sales chỉ hiện khi ĐỦ điều kiện (gồm giá NCC do Mua hàng
@@ -632,11 +702,19 @@ class ProductProduct(models.Model):
             # có mã (seed/demo/import tự đặt) hoặc là SP tạm từ RFQ
             # (is_rfq_provisional): loại này để trống mã tới khi chốt đơn mới sinh
             # (_dlm_standardize_on_promote), tránh đốt số cho nháp có thể bị dọn.
-            if vals.get("default_code") or vals.get("is_rfq_provisional"):
-                continue
             kind = (vals.get("product_kind")
                     or self.env.context.get("default_product_kind")
                     or "manufactured")
+            # LK-14 — mặc định storable cho SP nghiệp vụ (mở đường Kho). Không
+            # đè khi vals đã khai type/detailed_type (seed/import/service chủ ý).
+            if ("detailed_type" not in vals and "type" not in vals
+                    and kind in _STORABLE_KINDS):
+                vals["detailed_type"] = "product"
+            # Mã SP/vật tư TỰ SINH — bỏ qua khi đã có mã (seed/demo/import) hoặc
+            # là SP tạm từ RFQ (để trống mã tới khi chốt đơn — tránh đốt số cho
+            # nháp có thể bị dọn). Vẫn chạy khối storable phía trên cho SP tạm.
+            if vals.get("default_code") or vals.get("is_rfq_provisional"):
+                continue
             code = self._dlm_next_code_for_kind(kind)
             if code:
                 vals["default_code"] = code

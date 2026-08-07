@@ -1,6 +1,7 @@
 /** @odoo-module **/
 
 import { patch } from "@web/core/utils/patch";
+import { useService } from "@web/core/utils/hooks";
 import { DlHome } from "@dl_base/components/home/home";
 import { DlmRail } from "@dl_base/components/rail/rail";
 
@@ -51,6 +52,16 @@ const PRODUCT_CHILDREN = [
 
 const PRICING_CHILDREN = [
   {
+    // Hòm việc EX-13: vật tư thô chưa có giá NCC đang áp dụng. Chỉ Mua hàng/Admin
+    // thấy (menuXmlIds → rail tự lọc RBAC như các mục khác). Đặt ĐẦU nhóm vì đây
+    // là việc chủ động của Mua hàng.
+    key: "needs_price",
+    name: "Vật tư chờ định giá",
+    icon: "fa-hourglass-half",
+    preferMenu: true,
+    menuXmlIds: ["dl_product.menu_dl_material_needs_price"],
+  },
+  {
     key: "trading_price",
     name: "Bảng giá SP thương mại",
     icon: "fa-tags",
@@ -99,5 +110,12 @@ patch(DlmRail.prototype, {
     super.setup(...arguments);
     wireRailChildren(this.railItems, "product", PRODUCT_CHILDREN);
     wireRailChildren(this.railItems, "pricing", PRICING_CHILDREN);
+    // Badge "Vật tư chờ định giá": số vật tư chưa có giá NCC áp dụng — cho Mua
+    // hàng thấy ngay việc chờ mà không cần mở màn (giống badge "Phê duyệt").
+    // Chỉ Mua hàng/Admin thấy mục con này nên vai trò khác không truy vấn thừa.
+    const orm = useService("orm");
+    this.registerBadge("needs_price", () =>
+      orm.call("product.product", "get_needs_price_count", [])
+    );
   },
 });

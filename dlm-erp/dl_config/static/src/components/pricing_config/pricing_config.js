@@ -26,6 +26,13 @@ const TABS = [
     { key: "master", label: "Danh mục", icon: "fa-sliders" },
 ];
 
+// Làm tròn giá bán — bội số (đ) khớp _round_price của engine (0 = không làm tròn).
+const ROUNDING = [
+    { v: 1000, label: "Làm tròn đến 1.000đ" },
+    { v: 10000, label: "Làm tròn đến 10.000đ" },
+    { v: 0, label: "Không làm tròn" },
+];
+
 const M = {
     waste: "dl.pricing.waste.rule",
     operation: "dl.pricing.operation.rule",
@@ -95,6 +102,7 @@ export class DlPricingConfig extends Component {
         this.parseMoney = parseMoney;
         this.fmtMoneyInput = formatMoney;
         this.tabs = TABS;
+        this.rounding = ROUNDING;
         this.L = L;
         this.opt = {
             wasteTarget: asOptions(L.wasteTarget),
@@ -111,6 +119,7 @@ export class DlPricingConfig extends Component {
             matrixShowHistory: false, // hiện các dòng "Ngừng áp dụng" trong ma trận
             discountShowHistory: false, // hiện các dòng "Ngừng áp dụng" trong bảng chiết khấu
             loading: true,
+            health: [], // cảnh báo "chặn báo giá" (thiếu markup / công đoạn chưa định giá)
             perms: {},
             options: { categories: [], products: [], operations: [], complexity: [], approvers: [] },
             rows: {
@@ -127,6 +136,9 @@ export class DlPricingConfig extends Component {
             dialog: null,
             // Phân loại khách hàng tự động (ngưỡng lên Khách thân thiết).
             classification: { threshold: 0, canEdit: false },
+            // VAT & làm tròn giá bán — 2 tham số engine đọc từ dl.pricing.config
+            // (dời từ màn S02 cũ về đây để chỉ còn MỘT nguồn cấu hình báo giá).
+            quoteSettings: { vat: 0, rounding: 1000, canEdit: false },
         });
 
         onWillStart(async () => {
@@ -138,6 +150,7 @@ export class DlPricingConfig extends Component {
                 this.load("profit"), this.load("discount"), this.load("approval"),
                 this.load("apprset"), this.load("matrix"), this.load("complexity"),
                 this.load("opcat"), this.loadClassification(), this.loadMaterials(),
+                this.loadQuoteSettings(), this.loadHealth(),
             ]);
             this.state.loading = false;
         });
@@ -151,9 +164,9 @@ export class DlPricingConfig extends Component {
                 "state", "revision", "change_reason", "write_uid"],
             operation: ["operation_id", "method", "price_rate", "setup_fee", "valid_from",
                 "valid_to", "state", "revision", "change_reason", "write_uid"],
-            cost: ["name", "rule_type", "method", "value", "no_discount", "condition_days",
-                "condition_amount", "valid_from", "valid_to", "state", "revision",
-                "change_reason", "write_uid"],
+            cost: ["name", "rule_type", "method", "value", "no_discount",
+                "condition_days", "condition_amount", "valid_from", "valid_to", "state",
+                "revision", "change_reason", "write_uid"],
             profit: ["target_markup", "min_markup", "valid_from", "valid_to", "state",
                 "revision", "change_reason", "write_uid"],
             discount: ["customer_group", "group_rank", "default_rate", "max_rate", "valid_from",
@@ -177,6 +190,8 @@ export class DlPricingConfig extends Component {
         if (section === "matrix") return "value_from asc, revision desc";
         // Chiết khấu xếp theo bậc gắn bó (mới→cũ→thân thiết) để đọc thành thang.
         if (section === "discount") return "group_rank asc, state, valid_from desc";
+        // Chi phí chung/hệ số: gom theo loại rồi trạng thái (mỗi loại 1 bản áp dụng).
+        if (section === "cost") return "rule_type, state, valid_from desc";
         return "state, valid_from desc";
     }
     async load(section) {
@@ -209,6 +224,42 @@ export class DlPricingConfig extends Component {
             this.flash("Đã lưu ngưỡng phân loại khách hàng.");
         } catch (e) {
             this.showError(e);
+        }
+    }
+
+    // --- VAT & làm tròn giá bán (dl.pricing.config) ------------------------
+    async loadQuoteSettings() {
+        try {
+            this.state.quoteSettings = await this.orm.call(
+                "dl.pricing.config", "get_quote_settings", []);
+        } catch (e) {
+            this.state.quoteSettings = { vat: 0, rounding: 1000, canEdit: false };
+        }
+    }
+    async saveQuoteSettings() {
+        const s = this.state.quoteSettings;
+        const vat = Number(s.vat);
+        if (isNaN(vat) || vat < 0 || vat > 100) {
+            this.showError({ message: "VAT phải trong khoảng 0–100%." });
+            return;
+        }
+        try {
+            const saved = await this.orm.call(
+                "dl.pricing.config", "save_quote_settings",
+                [Number(s.vat) || 0, Number(s.rounding) || 0]);
+            this.state.quoteSettings = { ...s, ...saved };
+            this.flash("Đã lưu VAT & làm tròn. Áp dụng cho báo giá tạo MỚI.");
+        } catch (e) {
+            this.showError(e);
+        }
+    }
+
+    // --- Sức khỏe cấu hình (cảnh báo chặn báo giá) -------------------------
+    async loadHealth() {
+        try {
+            this.state.health = await this.orm.call("dl.pricing.ui", "get_health", []);
+        } catch (e) {
+            this.state.health = [];
         }
     }
 
@@ -477,8 +528,8 @@ export class DlPricingConfig extends Component {
             waste: ["target_type", "category_id", "product_id", "waste_rate", "has_recovery",
                 "recovery_rate", "scrap_product_id", "valid_from", "change_reason"],
             operation: ["operation_id", "method", "price_rate", "setup_fee", "valid_from", "change_reason"],
-            cost: ["name", "rule_type", "method", "value", "no_discount", "condition_days",
-                "condition_amount", "valid_from", "change_reason"],
+            cost: ["name", "rule_type", "method", "value", "no_discount",
+                "condition_days", "condition_amount", "valid_from", "change_reason"],
             profit: ["target_markup", "min_markup", "valid_from", "change_reason"],
             discount: ["customer_group", "default_rate", "max_rate", "valid_from", "change_reason"],
             matrix: ["value_from", "approval_level", "approver_user_id", "note", "valid_from",
@@ -491,8 +542,8 @@ export class DlPricingConfig extends Component {
             waste: { target_type: "category", category_id: false, product_id: false, waste_rate: 0,
                 has_recovery: false, recovery_rate: 0, scrap_product_id: false },
             operation: { operation_id: false, method: "percent_material", price_rate: 0, setup_fee: 0 },
-            cost: { name: "", rule_type: "workshop_overhead", method: "percent_direct", value: 0,
-                no_discount: false, condition_days: 0, condition_amount: 0 },
+            cost: { name: "", rule_type: "workshop_overhead", method: "percent_direct",
+                value: 0, no_discount: false, condition_days: 0, condition_amount: 0 },
             profit: { target_markup: 0, min_markup: 0 },
             discount: { customer_group: "new", default_rate: 0, max_rate: 0 },
             matrix: { value_from: 0, approval_level: "sales_manager", approver_user_id: false, note: "" },
@@ -536,12 +587,36 @@ export class DlPricingConfig extends Component {
             await this.orm.call(M[section], method, [[id]]);
             await this.load(section);
             if (reloadExtra) { await this.load(reloadExtra); }
+            await this.loadHealth();
             this.flash("Đã cập nhật.");
         } catch (e) {
             this.showError(e);
         }
     }
-    apply(section, id) { this.runAction(section, id, "action_apply"); }
+    apply(section, id) {
+        // Chi phí chung: mỗi loại chỉ một khoản đang áp dụng. Nếu loại này đã có
+        // khoản active thì HỎI trước khi thay (không âm thầm đóng bản cũ) — người
+        // dùng biết rõ mình đang thay chứ không phải thêm khoản thứ hai.
+        if (section === "cost") {
+            const row = this.state.rows.cost.find((r) => r.id === id);
+            const active = row && this.state.rows.cost.find(
+                (r) => r.id !== id && r.state === "active"
+                    && r.rule_type === row.rule_type);
+            if (active) {
+                this.state.dialog = {
+                    kind: "confirm",
+                    title: "Thay khoản đang áp dụng",
+                    msg: `Loại "${this.lab("costType", row.rule_type)}" đã có khoản `
+                        + `"${active.name}" đang áp dụng. Mỗi loại chỉ giữ MỘT khoản — `
+                        + `áp khoản này sẽ NGỪNG khoản cũ (vẫn giữ trong lịch sử). Tiếp tục?`,
+                    okLabel: "Áp dụng & thay khoản cũ",
+                    onOk: () => this.runAction(section, id, "action_apply"),
+                };
+                return;
+            }
+        }
+        this.runAction(section, id, "action_apply");
+    }
     expire(section, id) {
         this.state.dialog = {
             kind: "confirm", title: "Ngừng áp dụng",
@@ -567,6 +642,23 @@ export class DlPricingConfig extends Component {
         }
     }
     submit(section, id) { this.runAction(section, id, "action_submit_approval", "approval"); }
+    // Giám đốc/Admin: gộp Gửi duyệt + Duyệt cho cấu hình thương mại (review §5.2).
+    // Fallback về quyền profit khi bootstrap cũ chưa có key self_approve.
+    canSelfApprove() {
+        const p = this.state.perms.self_approve;
+        return p === undefined ? this.canEdit("profit") : p;
+    }
+    selfApprove(section, id) {
+        this.state.dialog = {
+            kind: "confirm", title: "Áp dụng ngay (tự duyệt)",
+            msg: "Bạn vừa là người đề xuất vừa là người duyệt — hệ thống sẽ ghi "
+                 + "nhận \"tự duyệt\" vào lịch sử. Áp dụng ngay cấu hình này?",
+            okLabel: "Áp dụng ngay",
+            onOk: async () => {
+                await this.runAction(section, id, "action_apply_self_approve", "approval");
+            },
+        };
+    }
     remove(section, id) {
         this.state.dialog = {
             kind: "confirm", danger: true, title: "Xóa quy tắc",
@@ -587,6 +679,7 @@ export class DlPricingConfig extends Component {
         try {
             await this.orm.call(M.approval, "action_approve", [[id]]);
             await Promise.all([this.load("approval"), this.load("profit"), this.load("discount")]);
+            await this.loadHealth();
             this.flash("Đã duyệt.");
         } catch (e) { this.showError(e); }
     }

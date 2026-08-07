@@ -22,7 +22,6 @@
                 <sheet>
                     <!-- Trạng thái điều khiển / điều kiện (chỉ dùng cho invisible). -->
                     <field name="rfq_line_id" invisible="1"/>
-                    <field name="active_exit" invisible="1"/>
                     <field name="show_bom_picker" invisible="1"/>
                     <field name="is_infeasible" invisible="1"/>
                     <field name="has_existing_supplement" invisible="1"/>
@@ -41,6 +40,17 @@
                     <field name="name_dup_exact_id" invisible="1"/>
                     <field name="allowed_product_ids" invisible="1"/>
                     <field name="next_line_id" invisible="1"/>
+                    <field name="search_outside_category" invisible="1"/>
+                    <field name="has_any_bom" invisible="1"/>
+                    <field name="selected_bom_can_discard" invisible="1"/>
+                    <field name="pricing_block_count" invisible="1"/>
+                    <field name="pricing_block_names" invisible="1"/>
+                    <field name="suggestion_state" invisible="1"/>
+                    <field name="suggestion_count" invisible="1"/>
+                    <field name="auto_selected" invisible="1"/>
+                    <field name="has_parametric_template" invisible="1"/>
+                    <field name="show_param_panel" invisible="1"/>
+                    <field name="param_from_note" invisible="1"/>
 
                     <!-- Banner dữ liệu tạm / chờ bổ sung (toàn bề ngang). -->
                     <div class="alert alert-warning" role="status"
@@ -56,6 +66,27 @@
                         <strong>Dòng này đang chờ Sales bổ sung.</strong>
                         Nếu bạn tiếp tục xử lý và bấm <em>Hoàn tất dòng</em>,
                         yêu cầu bổ sung sẽ được gỡ tự động.
+                        <button name="action_show_supplement" type="object"
+                                string="Sửa nội dung bổ sung"
+                                class="btn-link btn-sm p-0 ms-1 align-baseline"/>
+                    </div>
+
+                    <!-- Mở lại dòng đã kết luận Không khả thi → banner lý do +
+                         2 lối: sửa lý do (modal) hoặc xử lý lại dòng. -->
+                    <div class="alert alert-danger" role="status"
+                         invisible="not is_infeasible">
+                        <i class="fa fa-ban me-1" title="Không khả thi"/>
+                        <strong>Dòng này đã kết luận Không khả thi.</strong>
+                        <span invisible="not infeasible_reason">
+                            Lý do: <field name="infeasible_reason" readonly="1"
+                                   nolabel="1" class="dl-rfq-inline-field"/>.
+                        </span>
+                        <div class="mt-2">
+                            <button name="action_show_infeasible" type="object"
+                                    string="Sửa lý do" class="btn-secondary btn-sm"/>
+                            <button name="action_reopen_feasible" type="object"
+                                    string="Xử lý lại dòng này" class="btn-primary btn-sm ms-1"/>
+                        </div>
                     </div>
 
                     <div class="oe_title">
@@ -106,6 +137,11 @@
                                            class="dl-rfq-inline-field"/>
                                     <span class="badge text-bg-warning ms-1"
                                           invisible="not product_is_rfq_provisional">tạm</span>
+                                    <!-- §3.6 — nhắc KTV đây là SP máy tự đoán (đường A), vẫn kiểm lại được. -->
+                                    <span class="badge text-bg-info ms-1"
+                                          invisible="not auto_selected"
+                                          title="Hệ thống tự chọn từ yêu cầu của Sales — kiểm tra lại giúp">
+                                        <i class="fa fa-lightbulb-o me-1"/>gợi ý tự chọn</span>
                                     <button name="action_change_product" type="object"
                                             string="Đổi sản phẩm" class="btn-link btn-sm ms-auto"/>
                                 </div>
@@ -120,6 +156,38 @@
                                 <p class="text-muted mb-2">
                                     Chọn sản phẩm đã từng gia công hoặc tạo sản phẩm mới từ yêu cầu của Sales.
                                 </p>
+
+                                <!-- §3.6 — thẻ "Có phải cái này?": bộ dò khớp gợi ý SP đã
+                                     từng gia công (khớp SP tham khảo Sales chọn / tên / nhóm
+                                     / khách từng đặt) để KTV khỏi tự gõ tìm và khỏi tạo SP
+                                     trùng. Hiện khi có gợi ý mà chưa đạt ngưỡng tự chọn. -->
+                                <div class="alert alert-info" role="status"
+                                     invisible="suggestion_state == 'none'">
+                                    <div class="fw-bold mb-1">
+                                        <i class="fa fa-lightbulb-o me-1"/>Có phải sản phẩm này?
+                                    </div>
+                                    <div class="d-flex align-items-center flex-wrap">
+                                        <field name="suggested_product_id" readonly="1" nolabel="1"
+                                               class="dl-rfq-inline-field"/>
+                                        <span class="text-muted ms-2">·
+                                            <field name="suggestion_reason" readonly="1" nolabel="1"
+                                                   class="dl-rfq-inline-field"/></span>
+                                        <button name="action_use_suggested_product" type="object"
+                                                string="Dùng sản phẩm này"
+                                                class="btn-primary btn-sm ms-auto"/>
+                                    </div>
+                                    <field name="suggestion_ids" readonly="1" nolabel="1"
+                                           class="mt-2" invisible="suggestion_count &lt; 2">
+                                        <tree string="Ứng viên khác">
+                                            <field name="display_name" string="Sản phẩm"/>
+                                            <field name="categ_id" string="Nhóm"/>
+                                        </tree>
+                                    </field>
+                                    <div class="text-muted small mt-1">
+                                        Không đúng? Bỏ qua và chọn/tạo sản phẩm bên dưới.
+                                    </div>
+                                </div>
+
                                 <group>
                                     <field name="mode" widget="radio"/>
                                 </group>
@@ -130,6 +198,22 @@
                                            domain="[('id', 'in', allowed_product_ids)]"
                                            options="{'no_create': True}"
                                            context="{'default_product_kind': 'manufactured', 'default_dlm_lifecycle_state': 'draft', 'default_categ_id': request_category_id, 'default_name': request_product_name}"/>
+                                    <!-- EX-05 / D-F: lọc nhóm MỀM — Sales có thể khai nhầm nhóm. -->
+                                    <div colspan="2" class="text-muted small mt-1"
+                                         invisible="search_outside_category">
+                                        Không thấy sản phẩm đúng? Có thể Sales khai nhầm nhóm.
+                                        <button name="action_search_outside_category" type="object"
+                                                string="Tìm ngoài nhóm này"
+                                                class="btn-link btn-sm p-0 align-baseline"/>
+                                    </div>
+                                    <div colspan="2" class="alert alert-info py-1 px-2 mt-1" role="status"
+                                         invisible="not search_outside_category">
+                                        <i class="fa fa-search me-1"/>Đang tìm ở <b>mọi nhóm sản phẩm</b>.
+                                        Chọn sản phẩm khác nhóm sẽ được ghi nhận để Sales sửa lại nhóm.
+                                        <button name="action_search_outside_category" type="object"
+                                                string="Quay lại lọc trong nhóm"
+                                                class="btn-link btn-sm p-0 align-baseline"/>
+                                    </div>
                                 </group>
 
                                 <group invisible="mode != 'new'" string="Tạo sản phẩm mới">
@@ -197,6 +281,23 @@
                                     <button name="action_confirm_bom" type="object"
                                             string="Xác nhận định mức" class="btn-secondary btn-sm"
                                             invisible="selected_bom_confirmed"/>
+                                    <button name="action_discard_draft_bom" type="object"
+                                            string="Bỏ bản nháp này" class="btn-link btn-sm text-danger"
+                                            confirm="Bỏ bản định mức nháp này? Không thể hoàn tác."
+                                            invisible="not selected_bom_can_discard"/>
+                                </div>
+                                <!-- EX-13 / RES-022: cảnh báo vật tư thiếu giá NCC (chỉ TÊN,
+                                     không lộ giá). Không chặn Hoàn tất — chỉ báo trước. -->
+                                <div class="alert alert-warning py-2 mt-2" role="status"
+                                     invisible="pricing_block_count == 0">
+                                    <i class="fa fa-money me-1" title="Thiếu giá NCC"/>
+                                    <strong><field name="pricing_block_count" readonly="1" nolabel="1"
+                                            class="dl-rfq-inline-field"/> vật tư chưa có giá NCC đã duyệt</strong>:
+                                    <field name="pricing_block_names" readonly="1" nolabel="1"
+                                           class="dl-rfq-inline-field"/>.
+                                    Sales sẽ chưa tạo được báo giá cho tới khi Mua hàng cập nhật giá.
+                                    <button name="action_notify_purchasing" type="object"
+                                            string="Báo Mua hàng" class="btn-link btn-sm p-0 ms-1 align-baseline"/>
                                 </div>
                                 <field name="selected_bom_line_ids" readonly="1"
                                        class="dl-rfq-bom-preview">
@@ -216,10 +317,62 @@
                                 <h2 class="dl-rfq-block-title">
                                     <span class="dl-rfq-block-no">⑵</span> Định mức vật tư
                                 </h2>
-                                <p class="text-muted mb-2">
+                                <!-- EX-09: SP chưa có định mức nào → KHÔNG hiện bảng rỗng khó
+                                     hiểu, mà hướng dẫn tạo định mức mới ngay. -->
+                                <div class="alert alert-light border py-2" role="status"
+                                     invisible="has_any_bom">
+                                    <i class="fa fa-info-circle me-1"/>
+                                    Sản phẩm này <b>chưa có định mức nào</b> — hãy tạo định mức mới
+                                    cho yêu cầu này.
+                                </div>
+                                <p class="text-muted mb-2" invisible="not has_any_bom">
                                     Chọn một định mức đã có của sản phẩm hoặc tạo định mức mới cho yêu cầu này.
                                 </p>
-                                <field name="bom_ids" nolabel="1">
+
+                                <!-- Đợt 4 — Sinh định mức từ BOM mẫu tham số: nhập D/R/C
+                                     MỘT LẦN, hệ thống tự suy kích thước từng dòng vật tư
+                                     (không tính tay). Chỉ hiện khi nhóm SP có mẫu tham số. -->
+                                <div class="alert alert-info py-2" role="status"
+                                     invisible="not has_parametric_template or show_param_panel">
+                                    <i class="fa fa-magic me-1" title="Mẫu tham số"/>
+                                    Nhóm sản phẩm này có <b>mẫu tham số</b>
+                                    (<field name="parametric_template_id" readonly="1" nolabel="1"
+                                            class="dl-rfq-inline-field"/>) —
+                                    nhập kích thước, hệ thống tự sinh định mức.
+                                    <button name="action_open_param_panel" type="object"
+                                            string="Nhập kích thước &amp; sinh định mức"
+                                            class="btn-primary btn-sm ms-1"/>
+                                </div>
+
+                                <div class="dl-rfq-param-panel border rounded p-2 mb-2"
+                                     invisible="not show_param_panel">
+                                    <div class="fw-bold mb-1">
+                                        <i class="fa fa-magic me-1"/>Sinh định mức từ mẫu:
+                                        <field name="parametric_template_id" readonly="1" nolabel="1"
+                                               class="dl-rfq-inline-field"/>
+                                    </div>
+                                    <field name="param_line_ids" nolabel="1">
+                                        <tree editable="bottom" create="0" delete="0">
+                                            <field name="name" readonly="1"/>
+                                            <field name="value"/>
+                                            <field name="range_hint" readonly="1"/>
+                                            <field name="from_note" readonly="1"
+                                                   string="Đọc từ mô tả" widget="boolean"/>
+                                        </tree>
+                                    </field>
+                                    <div class="text-muted small mt-1" invisible="not param_from_note">
+                                        <i class="fa fa-info-circle me-1"/>Một số giá trị được đọc
+                                        từ mô tả Sales — kiểm tra lại trước khi sinh.
+                                    </div>
+                                    <div class="mt-2">
+                                        <button name="action_generate_instance" type="object"
+                                                string="Sinh định mức" class="btn-primary btn-sm"/>
+                                        <button name="action_close_param_panel" type="object"
+                                                string="Đóng" class="btn-link btn-sm"/>
+                                    </div>
+                                </div>
+
+                                <field name="bom_ids" nolabel="1" invisible="not has_any_bom">
                                     <tree>
                                         <field name="name"/>
                                         <field name="bom_type" widget="badge"/>
@@ -231,7 +384,7 @@
                                                 title="Mở định mức trên trang đầy đủ"/>
                                     </tree>
                                 </field>
-                                <group>
+                                <group invisible="not has_any_bom">
                                     <field name="selected_bom_id"/>
                                 </group>
                                 <div class="dl-rfq-block-actions">
@@ -240,6 +393,11 @@
                                             invisible="not selected_bom_id"/>
                                     <button name="action_create_bom" type="object"
                                             string="Tạo định mức mới" class="btn-secondary btn-sm"/>
+                                    <!-- EX-16: bỏ NGAY bản nháp tạm (đổi ý) thay vì chờ cron. -->
+                                    <button name="action_discard_draft_bom" type="object"
+                                            string="Bỏ bản nháp này" class="btn-link btn-sm text-danger"
+                                            confirm="Bỏ bản định mức nháp này? Không thể hoàn tác."
+                                            invisible="not selected_bom_can_discard"/>
                                     <button name="action_toggle_bom_picker" type="object"
                                             string="Đóng danh sách" class="btn-link btn-sm"
                                             invisible="not show_bom_picker or not selected_bom_id"/>
@@ -292,8 +450,9 @@
 
                     <!-- ══ DECISION DOCK (dính đáy) ══ -->
                     <div class="dl-rfq-dock">
-                        <!-- Chế độ phương án chính. -->
-                        <div class="dl-rfq-dock-main" invisible="active_exit">
+                        <!-- Phương án chính. Lối thoát (bổ sung / không khả thi)
+                             mở trong modal, không xổ ngay trong dock. -->
+                        <div class="dl-rfq-dock-main">
                             <div class="dl-rfq-dock-summary">
                                 <span invisible="not product_id">
                                     <i class="fa fa-cube me-1"/>
@@ -320,41 +479,12 @@
                                 <span class="btn btn-primary disabled dl-rfq-btn-disabled"
                                       invisible="can_confirm">Hoàn tất dòng</span>
                             </div>
-                            <div class="dl-rfq-dock-exits">
+                            <div class="dl-rfq-dock-exits" invisible="is_infeasible">
                                 <button name="action_show_supplement" type="object"
                                         string="Cần bổ sung" class="btn-link"/>
                                 <span class="text-muted">·</span>
                                 <button name="action_show_infeasible" type="object"
                                         string="Không khả thi" class="btn-link text-danger"/>
-                            </div>
-                        </div>
-
-                        <!-- Nhánh "Cần bổ sung". -->
-                        <div class="dl-rfq-dock-exit-panel" invisible="active_exit != 'supplement'">
-                            <label for="supplement_note" string="Thông tin cần Sales bổ sung"/>
-                            <field name="supplement_note" nolabel="1" class="dl-textarea-lg"
-                                   placeholder="Nêu rõ thông tin Sales cần bổ sung (ảnh rõ hơn, kích thước chi tiết, yêu cầu kỹ thuật cụ thể...)"/>
-                            <div class="mt-2">
-                                <button name="action_mark_supplement" type="object"
-                                        string="Gửi yêu cầu bổ sung" class="btn-primary"
-                                        invisible="not supplement_note"/>
-                                <button name="action_hide_exit" type="object"
-                                        string="Quay lại phương án" class="btn-link"/>
-                            </div>
-                        </div>
-
-                        <!-- Nhánh "Không khả thi". -->
-                        <div class="dl-rfq-dock-exit-panel" invisible="active_exit != 'infeasible'">
-                            <label for="infeasible_reason" string="Lý do không khả thi"/>
-                            <field name="infeasible_reason" nolabel="1" class="dl-textarea-lg"
-                                   required="active_exit == 'infeasible'"
-                                   placeholder="Nêu rõ lý do để Sales trao đổi lại với khách hàng..."/>
-                            <div class="mt-2">
-                                <button name="action_mark_infeasible" type="object"
-                                        string="Xác nhận không khả thi" class="btn-danger"
-                                        invisible="not infeasible_reason"/>
-                                <button name="action_hide_exit" type="object"
-                                        string="Quay lại phương án" class="btn-link"/>
                             </div>
                         </div>
                     </div>

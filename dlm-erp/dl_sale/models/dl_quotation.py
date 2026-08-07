@@ -49,6 +49,26 @@ class DlQuotation(models.Model):
     ], string='Trạng thái', default='draft', tracking=True)
     note = fields.Text(string='Ghi chú')
 
+    # --- Điều khoản thương mại đưa vào bản gửi khách (RV-09) ---
+    # Văn bản mô tả, KHÔNG ảnh hưởng giá/định tuyến phê duyệt nên để sửa tự do
+    # tới khi lên đơn; render vào PDF/Word (quotation_document._document_context).
+    payment_terms = fields.Text(
+        string='Điều khoản thanh toán',
+        help='Vd: Tạm ứng 50% khi ký hợp đồng, 50% khi giao hàng.')
+    delivery_terms = fields.Text(
+        string='Điều khoản giao hàng',
+        help='Thời gian / địa điểm giao hàng, phương thức vận chuyển.')
+    warranty_terms = fields.Text(
+        string='Bảo hành',
+        help='Điều kiện và thời gian bảo hành.')
+
+    # Cảnh báo MỀM (không chặn) khi khách thiếu dữ liệu thương mại tối thiểu để
+    # phát hành báo giá cho doanh nghiệp — hiển thị trên form và ghi chatter khi
+    # gửi (RV-09). Không dùng constrains để không chặn luồng.
+    customer_data_warning = fields.Char(
+        string='Cảnh báo dữ liệu khách',
+        compute='_compute_customer_data_warning')
+
     # --- Hạn hiệu lực với khách (đặc tả "Trường hợp 5 — khách không phản hồi") ---
     validity_date = fields.Date(
         string='Hạn hiệu lực', tracking=True, copy=False,
@@ -95,6 +115,21 @@ class DlQuotation(models.Model):
     def _compute_revision_count(self):
         for rec in self:
             rec.revision_count = len(rec.revision_ids)
+
+    @api.depends('partner_id', 'partner_id.vat', 'partner_id.street')
+    def _compute_customer_data_warning(self):
+        """RV-09 — liệt kê dữ liệu thương mại tối thiểu còn thiếu của khách (MST,
+        địa chỉ). Cảnh báo mềm để Sales bổ sung trước khi phát hành cho DN."""
+        for rec in self:
+            missing = []
+            partner = rec.partner_id
+            if partner and not partner.vat:
+                missing.append(_("mã số thuế"))
+            if partner and not partner.street:
+                missing.append(_("địa chỉ"))
+            rec.customer_data_warning = (_(
+                "Khách hàng thiếu %s — nên bổ sung trước khi gửi báo giá cho "
+                "doanh nghiệp.") % ", ".join(missing)) if missing else False
     # copy=True: "Lập phiên bản mới" (action_create_revision → copy) phải mang
     # theo toàn bộ dòng chi tiết sang bản mới (Odoo mặc định KHÔNG copy o2m).
     line_ids = fields.One2many('dl.quotation.line', 'quotation_id',
@@ -193,6 +228,42 @@ class DlQuotation(models.Model):
     component_ids = fields.One2many(
         'dl.quotation.price.component', 'quotation_id',
         string='Cấu phần giá (snapshot)')
+
+    # Lãi gộp & cơ cấu giá thành — chỉ để HIỂN THỊ ở trang Phân tích giá thành
+    # (không lưu, suy thẳng từ số đã có): lãi gộp = doanh thu ròng − giá thành;
+    # cơ cấu = tổng vật tư/công đoạn/điều chỉnh theo dòng × số lượng đặt.
+    gross_profit = fields.Float(
+        string='Lãi gộp', compute='_compute_cost_breakdown',
+        digits='Product Price', groups=_COST_GROUPS)
+    # Markup niêm yết = lãi trên giá BÁN GỐC (trước chiết khấu) — bằng lợi nhuận
+    # mục tiêu vì mỗi dòng được định giá ở đúng mục tiêu. Markup thực thu
+    # (effective_markup) đo trên doanh thu SAU chiết khấu nên luôn thấp hơn khi
+    # có CK: đây là hiện tượng đúng bản chất (CK ăn vào lãi niêm yết), không
+    # phải lỗi. Ta hiển thị cả hai để đọc được mức bào mòn, và lấy GIÁ SÀN
+    # (markup tối thiểu) làm lằn ranh cảnh báo thay vì so với mục tiêu.
+    list_markup = fields.Float(
+        string='Markup niêm yết (%)', compute='_compute_cost_breakdown',
+        digits=(16, 2), groups=_COST_GROUPS)
+    floor_markup = fields.Float(
+        string='Markup tại giá sàn (%)', compute='_compute_cost_breakdown',
+        digits=(16, 2), groups=_COST_GROUPS)
+    cost_material_total = fields.Float(
+        string='Vật tư', compute='_compute_cost_breakdown',
+        digits='Product Price', groups=_COST_GROUPS)
+    cost_operation_total = fields.Float(
+        string='Công đoạn', compute='_compute_cost_breakdown',
+        digits='Product Price', groups=_COST_GROUPS)
+    cost_adjustment_total = fields.Float(
+        string='Chi phí chung/điều chỉnh', compute='_compute_cost_breakdown',
+        digits='Product Price', groups=_COST_GROUPS)
+
+    # Diễn giải giá thành dạng "công thức" — đọc theo từng sản phẩm: vật tư cho
+    # 1 sp → cộng, công đoạn cho 1 sp → cộng, chi phí chung → GIÁ THÀNH 1 SẢN
+    # PHẨM, rồi mới × số lượng đặt, cuối cùng cộng markup ra giá bán. Bảng phẳng
+    # cũ gộp mọi dòng đã ×số lượng nên không đọc được cost/1sp (yêu cầu user).
+    cost_breakdown_html = fields.Html(
+        string='Diễn giải giá thành', compute='_compute_cost_breakdown_html',
+        sanitize=False, groups=_COST_GROUPS)
 
     # --- Snapshot cấu hình thương mại đã dùng (để giải trình phê duyệt) ---
     target_markup = fields.Float(string='Lợi nhuận mục tiêu (%)', digits=(6, 2),
@@ -437,6 +508,212 @@ class DlQuotation(models.Model):
                 if total_cost else 0.0
             )
 
+    @api.depends('line_ids.material_cost', 'line_ids.operation_cost',
+                 'line_ids.adjustment_cost', 'line_ids.qty',
+                 'amount_untaxed', 'amount_before_vat', 'total_cost',
+                 'floor_amount')
+    def _compute_cost_breakdown(self):
+        for rec in self:
+            rec.cost_material_total = sum(
+                line.material_cost * line.qty for line in rec.line_ids)
+            rec.cost_operation_total = sum(
+                line.operation_cost * line.qty for line in rec.line_ids)
+            rec.cost_adjustment_total = sum(
+                line.adjustment_cost * line.qty for line in rec.line_ids)
+            rec.gross_profit = rec.amount_before_vat - rec.total_cost
+            cost = rec.total_cost
+            rec.list_markup = (
+                (rec.amount_untaxed - cost) / cost * 100.0 if cost else 0.0)
+            rec.floor_markup = (
+                (rec.floor_amount - cost) / cost * 100.0 if cost else 0.0)
+
+    # --- Diễn giải giá thành dạng "công thức" (đọc theo từng sản phẩm) --------
+    # Phân lớp cấu phần dòng vào 3 nhóm của công thức (bỏ markup/trading_base:
+    # markup ở chân, trading_base xử lý ở nhánh dòng thương mại).
+    _RECIPE_CATEGORY = {
+        'material': 'material', 'processed_material': 'material',
+        'recovery': 'material', 'operation': 'operation',
+        'operation_setup': 'operation', 'adjustment': 'overhead',
+    }
+
+    @api.depends('line_ids', 'line_ids.component_ids', 'line_ids.qty',
+                 'line_ids.total_cost', 'line_ids.material_cost',
+                 'line_ids.operation_cost', 'line_ids.adjustment_cost',
+                 'line_ids.price_subtotal', 'line_ids.price_unit',
+                 'line_ids.line_type', 'line_ids.name')
+    def _compute_cost_breakdown_html(self):
+        for rec in self:
+            if not rec.line_ids:
+                rec.cost_breakdown_html = False
+                continue
+            # Nhiều sản phẩm: gấp mỗi dòng thành 1 hàng tóm tắt (bấm để bung
+            # công thức), kèm hàng tiêu đề để đọc như bảng so sánh margin.
+            # Chỉ 1 sản phẩm: bung sẵn cho khỏi phải bấm.
+            single = len(rec.line_ids) == 1
+            blocks = [rec._cost_recipe_line_html(line, single)
+                      for line in rec.line_ids]
+            rec.cost_breakdown_html = Markup(
+                '<div class="dl-recipe">%s%s</div>') % (
+                    rec._cost_recipe_header_html(), Markup('').join(blocks))
+
+    def _cost_recipe_header_html(self):
+        # Hàng tiêu đề cột cho các dòng gấp (đồng bộ lưới với .dl-recipe-sum).
+        return Markup(
+            '<div class="dl-recipe-colhead">'
+            '<span class="c-prod">Sản phẩm</span>'
+            '<span class="c-qty">SL đặt</span>'
+            '<span class="c-unit">Giá thành/sp</span>'
+            '<span class="c-sell">Giá bán dòng</span>'
+            '<span class="c-mk">Markup</span></div>')
+
+    def _cost_recipe_summary_html(self, line, unit_txt, markup_chip):
+        # Hàng tóm tắt (thẻ <summary>): tên · SL · giá thành/1sp · giá bán dòng
+        # · chip markup — đọc được kết luận mà không cần bung khối chi tiết.
+        return Markup(
+            '<summary class="dl-recipe-sum">'
+            '<span class="c-prod"><i class="fa fa-chevron-right dl-recipe-chev" '
+            'aria-hidden="true"></i><span class="t">%s</span></span>'
+            '<span class="c-qty">%s</span>'
+            '<span class="c-unit">%s</span>'
+            '<span class="c-sell">%s</span>'
+            '<span class="c-mk">%s</span></summary>') % (
+                line.name or '', self._fmt_qty(line.qty or 0.0),
+                unit_txt, self._fmt_money(line.price_subtotal), markup_chip)
+
+    def _cost_markup_chip(self, markup_rate):
+        # Chip markup theo sức khỏe: âm/0 = đỏ, dưới mục tiêu = vàng, đạt = xanh.
+        rate = round(markup_rate, 1)
+        target = self.target_markup or 0.0
+        if rate <= 0:
+            cls = 'text-bg-danger'
+        elif target and rate < target:
+            cls = 'text-bg-warning'
+        else:
+            cls = 'text-bg-success'
+        sign = '+' if rate > 0 else ''
+        return Markup('<span class="badge %s">%s%s%%</span>') % (
+            cls, sign, self._fmt_qty(rate))
+
+    @staticmethod
+    def _fmt_money(value):
+        # VND: nhóm nghìn bằng dấu chấm, không phần lẻ (đồng bộ widget dl_money).
+        return "{:,.0f}".format(value or 0.0).replace(",", ".")
+
+    @staticmethod
+    def _fmt_qty(value):
+        # Số lượng có thể lẻ: bỏ số 0 thừa, dấu phẩy thập phân kiểu VN.
+        return ("%g" % (value or 0.0)).replace(".", ",")
+
+    def _cost_component_label(self, comp):
+        """Nhãn hiển thị của một cấu phần. Vật tư/SP lấy từ m2o đã lưu; công
+        đoạn/điều chỉnh không lưu tên nên tra SỐNG từ rule nguồn (chỉ nhãn — số
+        tiền vẫn là snapshot bất biến), có fallback nếu rule đã bị xoá."""
+        if comp.material_id:
+            return comp.material_id.display_name
+        model, res_id = comp.source_model, comp.source_id
+        if model and res_id and model in self.env:
+            src = self.env[model].sudo().browse(res_id).exists()
+            if src:
+                if 'operation_id' in src._fields and src.operation_id:
+                    return src.operation_id.display_name
+                if 'name' in src._fields and src.name:
+                    return src.name
+                return src.display_name
+        return dict(comp._fields['component_type'].selection).get(
+            comp.component_type, comp.component_type)
+
+    def _cost_recipe_cat_html(self, title, comps, subtotal_unit, order_qty, with_qty):
+        if not comps:
+            return Markup('')
+        rows = []
+        for comp in comps:
+            amt_unit = (comp.amount / order_qty) if order_qty else comp.amount
+            label = self._cost_component_label(comp)
+            if comp.component_type == 'operation_setup':
+                label = label + ' — phí setup/lô'
+            meta = Markup('<span class="q"></span>')
+            if with_qty and comp.component_type in (
+                    'material', 'processed_material', 'recovery'):
+                q_unit = (comp.qty / order_qty) if order_qty else comp.qty
+                meta = Markup('<span class="q">%s × %s</span>') % (
+                    self._fmt_qty(q_unit), self._fmt_money(comp.unit_price))
+            rows.append(Markup(
+                '<div class="dl-recipe-row"><span class="n">%s</span>%s'
+                '<span class="a">%s</span></div>') % (
+                    label, meta, self._fmt_money(amt_unit)))
+        return Markup(
+            '<div class="dl-recipe-cat">'
+            '<div class="dl-recipe-cat-title">%s</div>%s'
+            '<div class="dl-recipe-sub"><span>Cộng %s / 1 sp</span>'
+            '<span class="a">%s</span></div></div>') % (
+                title, Markup('').join(rows),
+                title.lower(), self._fmt_money(subtotal_unit))
+
+    def _cost_recipe_line_html(self, line, single=False):
+        qty = line.qty or 0.0
+        open_attr = Markup(' open') if single else Markup('')
+
+        # Dòng thương mại: không qua cost engine — chỉ có đơn giá bán.
+        if line.line_type == 'trading':
+            summary = self._cost_recipe_summary_html(
+                line, unit_txt='—',
+                markup_chip=Markup(
+                    '<span class="badge text-bg-secondary">Thương mại</span>'))
+            body = Markup(
+                '<div class="dl-recipe-cat"><div class="dl-recipe-row">'
+                '<span class="n">Sản phẩm thương mại — đơn giá bán</span>'
+                '<span class="q"></span><span class="a">%s</span></div></div>'
+                '<div class="dl-recipe-foot"><div class="dl-recipe-sell">'
+                '<span>Giá bán cả dòng (trước chiết khấu)</span>'
+                '<span class="a">%s</span></div></div>') % (
+                    self._fmt_money(line.price_unit),
+                    self._fmt_money(line.price_subtotal))
+            return Markup(
+                '<details class="dl-recipe-line"%s>%s'
+                '<div class="dl-recipe-body">%s</div></details>') % (
+                    open_attr, summary, body)
+
+        groups = {'material': [], 'operation': [], 'overhead': []}
+        for comp in line.component_ids:
+            cat = self._RECIPE_CATEGORY.get(comp.component_type)
+            if cat:
+                groups[cat].append(comp)
+
+        cats = Markup('').join([
+            self._cost_recipe_cat_html(
+                'Vật tư', groups['material'], line.material_cost, qty, True),
+            self._cost_recipe_cat_html(
+                'Công đoạn', groups['operation'], line.operation_cost, qty, False),
+            self._cost_recipe_cat_html(
+                'Chi phí chung', groups['overhead'], line.adjustment_cost, qty, False),
+        ])
+
+        line_cost = line.total_cost * qty
+        line_markup = line.price_subtotal - line_cost
+        markup_rate = (line_markup / line_cost * 100.0) if line_cost else 0.0
+        summary = self._cost_recipe_summary_html(
+            line, unit_txt=self._fmt_money(line.total_cost),
+            markup_chip=self._cost_markup_chip(markup_rate))
+        foot = Markup(
+            '<div class="dl-recipe-foot">'
+            '<div class="dl-recipe-unit"><span>Giá thành 1 sản phẩm</span>'
+            '<span class="a">%s</span></div>'
+            '<div class="dl-recipe-mul"><span>× %s sản phẩm = Giá thành cả dòng</span>'
+            '<span class="a">%s</span></div>'
+            '<div class="dl-recipe-markup"><span>+ Lợi nhuận (markup ~%s%%)</span>'
+            '<span class="a">%s</span></div>'
+            '<div class="dl-recipe-sell"><span>Giá bán cả dòng (trước chiết khấu)</span>'
+            '<span class="a">%s</span></div></div>') % (
+                self._fmt_money(line.total_cost),
+                self._fmt_qty(qty), self._fmt_money(line_cost),
+                self._fmt_qty(round(markup_rate, 1)), self._fmt_money(line_markup),
+                self._fmt_money(line.price_subtotal))
+
+        return Markup(
+            '<details class="dl-recipe-line"%s>%s'
+            '<div class="dl-recipe-body">%s%s</div></details>') % (
+                open_attr, summary, cats, foot)
+
     # Field ảnh hưởng giá — đổi giá trị là phải đánh giá lại phê duyệt (mục 7).
     _REEVAL_TRIGGER_FIELDS = {'discount_pct', 'line_ids', 'partner_id'}
 
@@ -529,6 +806,14 @@ class DlQuotation(models.Model):
             if not rec.validity_date:
                 rec.validity_date = rec._default_validity_date()
         self.write({'state': 'sent'})
+        # Đính bản PDF vào chatter làm bằng chứng "bản đã gửi" (RV-02 / SALE-07).
+        # Bản dựng bằng reportlab (thuần Python) — không phụ thuộc wkhtmltopdf.
+        for rec in self:
+            # RV-09 — cảnh báo mềm (không chặn) khi khách thiếu MST/địa chỉ.
+            if rec.customer_data_warning:
+                rec.message_post(body=_(
+                    "Lưu ý khi phát hành: %s") % rec.customer_data_warning)
+            rec._post_quotation_document_to_chatter()
 
     def _default_validity_date(self):
         """Hạn hiệu lực mặc định = ngày báo giá + số ngày cấu hình
@@ -624,6 +909,20 @@ class DlQuotation(models.Model):
                 raise UserError(_(
                     "Chỉ ghi nhận khách đồng ý trên báo giá đã gửi khách."))
         self.write({'state': 'accepted'})
+
+    def action_customer_withdraw(self):
+        """RV-08 — Khách đã đồng ý nhưng đổi ý / xin chỉnh TRƯỚC khi lên đơn:
+        đưa báo giá về 'Đã gửi khách' để mở lại các nhánh phản hồi (đồng ý lại /
+        yêu cầu điều chỉnh / từ chối) thay vì phải lùi trạng thái thủ công qua
+        RPC. Không áp dụng khi đã lên đơn — 'ordered' là trạng thái cuối."""
+        for rec in self:
+            if rec.state != 'accepted':
+                raise UserError(_(
+                    "Chỉ rút lại đồng ý trên báo giá khách đã đồng ý (chưa lên đơn)."))
+        self.write({'state': 'sent'})
+        for rec in self:
+            rec.message_post(body=_(
+                "Khách rút lại đồng ý — báo giá quay về Đã gửi khách để xử lý tiếp."))
 
     def action_open_revision_wizard(self):
         """Khách yêu cầu điều chỉnh — mở ô nhập LOẠI điều chỉnh (giá/chiết khấu,
@@ -963,6 +1262,15 @@ class DlQuotationLine(models.Model):
                               readonly=True, groups=_COST_GROUPS)
     material_cost = fields.Float(string='Chi phí vật tư/đv', digits='Product Price',
                                  readonly=True, groups=_COST_GROUPS)
+    # Chi phí công đoạn/đơn vị = biến đổi (cắt/hàn/sơn) + phí setup/lô phân bổ
+    # (RV-01/B2). total_cost = material_cost + operation_cost + adjustment_cost.
+    operation_cost = fields.Float(string='Chi phí công đoạn/đv', digits='Product Price',
+                                  readonly=True, groups=_COST_GROUPS)
+    # Chi phí chung/điều chỉnh/đơn vị (Lớp D — RV-01): overhead, đóng gói, giao
+    # gấp, đơn nhỏ, dự phòng... cộng lên giá thành trực tiếp (V3 §6).
+    adjustment_cost = fields.Float(string='Chi phí chung/điều chỉnh/đv',
+                                   digits='Product Price',
+                                   readonly=True, groups=_COST_GROUPS)
     total_cost = fields.Float(string='Giá thành/đv', digits='Product Price',
                               readonly=True, groups=_COST_GROUPS)
     floor_price = fields.Float(string='Giá sàn/đv', digits='Product Price',

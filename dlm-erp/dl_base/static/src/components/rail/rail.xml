@@ -24,9 +24,9 @@
                      t-on-click="() => this.toggleSubmenu(item.key)">
                     <span class="dlm-rail-icon"><i t-att-class="'fa ' + item.icon"/></span>
                     <span class="dlm-rail-label" t-esc="item.name"/>
-                    <span class="dlm-rail-badge" t-if="badges[item.key]"
-                          t-att-title="badges[item.key] + ' việc cần xử lý'"
-                          t-esc="badges[item.key] &gt; 99 ? '99+' : badges[item.key]"/>
+                    <span class="dlm-rail-badge" t-if="groupBadgeCount(item)"
+                          t-att-title="groupBadgeCount(item) + ' việc cần xử lý'"
+                          t-esc="groupBadgeCount(item) &gt; 99 ? '99+' : groupBadgeCount(item)"/>
                     <button class="dlm-rail-chevron-btn" tabindex="-1"
                             t-att-title="state.expanded[item.key] ? 'Thu gọn' : 'Xem các màn'"
                             t-on-click.stop="() => this.toggleSubmenu(item.key)">
@@ -41,6 +41,9 @@
                              t-on-click.stop="() => this.openChild(child, item.key)">
                             <span class="dlm-rail-icon"><i t-att-class="'fa ' + child.icon"/></span>
                             <span class="dlm-rail-label" t-esc="child.name"/>
+                            <span class="dlm-rail-badge" t-if="badges[child.key]"
+                                  t-att-title="badges[child.key] + ' việc cần xử lý'"
+                                  t-esc="badges[child.key] &gt; 99 ? '99+' : badges[child.key]"/>
                         </div>
                     </t>
                 </div>

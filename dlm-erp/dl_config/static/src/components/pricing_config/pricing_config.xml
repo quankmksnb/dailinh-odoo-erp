@@ -15,6 +15,18 @@
                 </div>
             </div>
 
+            <!-- Sức khỏe cấu hình: cảnh báo "chặn báo giá" (thiếu markup / công
+                 đoạn chưa định giá) hiện ngay đầu màn để người dùng biết vì sao
+                 báo giá lỗi trước khi Sales chạm vào (review 5.3). -->
+            <div t-if="!state.loading and state.health.length" class="dl-cfg-health">
+                <t t-foreach="state.health" t-as="h" t-key="h_index">
+                    <div class="dl-cfg-health-item" t-att-class="'is-' + h.level">
+                        <i class="fa fa-exclamation-triangle"/>
+                        <span t-esc="h.text"/>
+                    </div>
+                </t>
+            </div>
+
             <div class="dl-cfg-tabs">
                 <t t-foreach="tabs" t-as="t" t-key="t.key">
                     <button class="dl-cfg-tab" type="button"
@@ -37,7 +49,7 @@
                         </span>
                     </div>
                     <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
-                        Hệ số hao hụt của từng vật tư — <b>đây là số thực dùng khi tính báo giá</b>. Sửa trực tiếp tại đây hoặc trên form vật tư (cùng một dữ liệu). Bấm tên nhóm để thu gọn/mở rộng; sản phẩm phế liệu đặt trên form vật tư.
+                        Hệ số hao hụt của <b>từng vật tư</b> là <b>nguồn DUY NHẤT</b> mà báo giá dùng — sửa tại đây hoặc trên form vật tư (cùng một dữ liệu). Tỷ lệ mặc định theo nhóm chỉ <b>điền sẵn cho vật tư MỚI khi chưa có số riêng</b> và <b>không hồi tố</b>: đổi mặc định nhóm sẽ không thay đổi các vật tư/báo giá đã có — muốn đổi thì sửa trực tiếp dòng vật tư ở bảng dưới. Bấm tên nhóm để thu gọn/mở rộng; sản phẩm phế liệu đặt trên form vật tư.
                     </div>
 
                     <!-- Thanh công cụ: tìm nhanh + lọc nhóm + chip lọc -->
@@ -175,7 +187,7 @@
                                 t-on-click="() => this.openCreate('cost')"><i class="fa fa-plus"/> Thêm khoản</button>
                     </div>
                     <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
-                        Các khoản chi phí chung / hệ số điều chỉnh áp lên giá thành (vd: quản lý, vận chuyển). Thay đổi phải <b>gửi duyệt</b> mới có hiệu lực.
+                        Các khoản chi phí chung / hệ số điều chỉnh áp lên giá thành (vd: quản lý, vận chuyển). <b>Mỗi loại chỉ một khoản đang áp dụng</b> — nếu loại đã có khoản đang áp dụng, hệ thống <b>hỏi xác nhận trước khi thay</b> (khoản cũ chuyển sang Ngừng, vẫn giữ lịch sử). Engine áp <b>các khoản cộng trước, rồi % giá thành / hệ số nhân sau</b>, nên không phụ thuộc thứ tự nhập. Thay đổi phải <b>gửi duyệt</b> mới có hiệu lực.
                     </div>
                     <table class="dl-cfg-table">
                         <thead><tr>
@@ -209,6 +221,40 @@
                     <i class="fa fa-exclamation-triangle" title="Cảnh báo cấu hình"/>
                     <span t-esc="discountLadderWarning"/>
                 </div>
+
+                <!-- VAT & Làm tròn giá bán — 2 tham số engine đọc từ dl.pricing.config
+                     (dời từ màn "Cấu hình Hệ thống" cũ về đây; nguồn cấu hình duy nhất).
+                     Ghim ĐẦU tab vì tác động trực tiếp lên MỌI báo giá (review §5.1). -->
+                <div class="dl-cfg-panel">
+                    <div class="dl-cfg-panel-head">
+                        <span class="dl-cfg-panel-title">Thuế &amp; Làm tròn giá bán</span>
+                        <button class="dl-cfg-save" type="button"
+                                t-att-disabled="!state.quoteSettings.canEdit"
+                                t-on-click="() => this.saveQuoteSettings()"><i class="fa fa-check"/> Lưu</button>
+                    </div>
+                    <div class="dl-cfg-note info"><i class="fa fa-info-circle"/>
+                        Hai tham số này áp dụng cho <b>giá bán cuối</b> của báo giá tạo mới:
+                        VAT cộng ở cấp báo giá, làm tròn giá bán theo bội số đã chọn (ROUND_HALF_UP).
+                    </div>
+                    <div class="dl-cfg-inline">
+                        <label class="dl-cfg-f">
+                            <span class="k">VAT mặc định (%)</span>
+                            <input type="number" min="0" max="100" step="0.5"
+                                   t-model.number="state.quoteSettings.vat"
+                                   t-att-disabled="!state.quoteSettings.canEdit"/>
+                        </label>
+                        <label class="dl-cfg-f">
+                            <span class="k">Làm tròn giá bán</span>
+                            <select t-model.number="state.quoteSettings.rounding"
+                                    t-att-disabled="!state.quoteSettings.canEdit">
+                                <t t-foreach="rounding" t-as="r" t-key="r.v">
+                                    <option t-att-value="r.v" t-esc="r.label"/>
+                                </t>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
                         <span class="dl-cfg-panel-title">Phân loại khách hàng tự động</span>
@@ -715,6 +761,7 @@
 <t t-name="dl_config.PcCommActions">
     <t t-if="r.state === 'draft' or r.state === 'rejected'">
         <button class="dl-pc-act ok" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.submit(section, r.id)"><i class="fa fa-paper-plane"/> Gửi duyệt</button>
+        <button t-if="canSelfApprove()" class="dl-pc-act ok" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.selfApprove(section, r.id)" title="Gửi duyệt và tự duyệt trong một bước"><i class="fa fa-bolt"/> Áp dụng ngay</button>
         <button class="dl-pc-act" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.openEdit(section, r)"><i class="fa fa-pencil"/></button>
         <button class="dl-pc-act danger" type="button" t-att-disabled="!canEdit(section)" t-on-click="() => this.remove(section, r.id)"><i class="fa fa-trash-o"/></button>
     </t>

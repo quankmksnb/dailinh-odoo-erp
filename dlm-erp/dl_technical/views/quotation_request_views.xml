@@ -56,6 +56,9 @@
                      chặn mở chi tiết: RFQ "Mới/Đã bổ sung" mở xem tự do, cổng tiếp nhận
                      nằm trong form (nút "Nhận xử lý" + khóa field kết quả). -->
                 <attribute name="js_class">dl_rfq_list_my</attribute>
+                <!-- U3: RFQ chờ Kỹ thuật xử lý quá lâu → in đậm để ưu tiên (không
+                     đụng decoration-danger đang dành cho quá hạn khách). -->
+                <attribute name="decoration-bf">tech_overdue</attribute>
             </xpath>
             <!-- Màn Kỹ thuật: ẩn cột status 7-state (vòng đời Sales) — giữ field
                  để row decoration muted/warning/danger vẫn đọc được — và thay
@@ -70,6 +73,12 @@
                        decoration-warning="tech_stage == 'processing'"
                        decoration-danger="tech_stage == 'waiting_sales'"
                        decoration-success="tech_stage == 'done'"/>
+            </xpath>
+            <!-- U3 — cột "Chờ xử lý (ngày)" cho hàng đợi Kỹ thuật. Đặt SAU block
+                 chèn tech_stage ở trên vì xpath được áp theo thứ tự tài liệu. -->
+            <xpath expr="//field[@name='tech_stage']" position="after">
+                <field name="tech_overdue" column_invisible="1"/>
+                <field name="tech_waiting_days" string="Chờ xử lý (ngày)" optional="show"/>
             </xpath>
             <xpath expr="//field[@name='technical_progress_label']" position="after">
                 <field name="resolved_product_ids" widget="many2many_tags" string="Sản phẩm đã xác định"/>
@@ -261,6 +270,17 @@
                                     <field name="preview_image" widget="image"
                                            options="{'size': [40, 40]}" string="Ảnh" optional="show"/>
                                     <field name="attachment_count" string="Tệp" optional="show"/>
+                                    <!-- §3.6 — tín hiệu 💡: hệ thống đã dò được SP "đã
+                                         từng gia công" khớp dòng này (giúp KTV triage:
+                                         dòng có 💡 xử lý nhanh, không phải gõ tìm). -->
+                                    <field name="suggestion_state" column_invisible="1"/>
+                                    <field name="suggested_product_id" column_invisible="1"/>
+                                    <button name="action_open_resolve_wizard" type="object"
+                                            icon="fa-lightbulb-o" string="💡"
+                                            class="btn-link btn-sm text-info p-0"
+                                            title="Hệ thống gợi ý sản phẩm đã từng gia công — mở để xem"
+                                            invisible="suggestion_state == 'none'"
+                                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                                     <!-- Kết quả kỹ thuật: hiện tên SP đã chọn hoặc
                                          "Chưa chọn sản phẩm" khi chưa xử lý -->
                                     <field name="resolved_summary"/>
@@ -319,6 +339,9 @@
                                     <field name="infeasible_reason"
                                            invisible="not is_infeasible"
                                            readonly="1" optional="hide"/>
+                                    <!-- EX-13: cột tín hiệu cho Sales — vật tư thiếu giá NCC. -->
+                                    <field name="pricing_block_summary" string="Thiếu giá NCC"
+                                           readonly="1" optional="hide"/>
                                 </tree>
                                 <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
                                     <!-- Một cửa: mở dialog chi tiết vẫn xử lý được ngay tại đây
@@ -349,6 +372,7 @@
                                     <field name="is_technician" invisible="1"/>
                                     <field name="request_status" invisible="1"/>
                                     <field name="product_type" invisible="1"/>
+                                    <field name="pricing_blocked" invisible="1"/>
                                     <field name="selectable_category_ids" invisible="1"/>
                                     <field name="reference_product_ids" invisible="1"/>
                                     <sheet>
@@ -413,6 +437,16 @@
                                                 <field name="resolved_bom_id" string="BOM"
                                                        invisible="is_infeasible"
                                                        readonly="1"/>
+                                                <!-- EX-13: Sales thấy SỚM vật tư thiếu giá NCC ngay
+                                                     trên dòng (trước khi bấm Tạo báo giá). -->
+                                                <div colspan="2" class="alert alert-warning py-2" role="status"
+                                                     invisible="not pricing_blocked">
+                                                    <i class="fa fa-money me-1" title="Thiếu giá NCC"/>
+                                                    <b>Vật tư chưa có giá NCC đã duyệt:</b>
+                                                    <field name="pricing_block_summary" nolabel="1"
+                                                           readonly="1" class="d-inline"/>.
+                                                    Chưa tạo được báo giá cho tới khi Mua hàng cập nhật giá.
+                                                </div>
                                                 <field name="is_infeasible" readonly="1"/>
                                                 <field name="infeasible_reason"
                                                        invisible="not is_infeasible"

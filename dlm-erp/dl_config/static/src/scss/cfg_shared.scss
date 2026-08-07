@@ -1,5 +1,6 @@
 // ============================================================================
-// S02 — Cấu hình Hệ thống (mock) — 5 tab. Dùng token dl_base.
+// Style dùng chung cho các màn cấu hình OWL (.dl-cfg-*) — hiện màn "Cấu hình
+// Báo giá" (pricing_config) dùng. Dùng token dl_base.
 // ============================================================================
 .dl-cfg {
     background: $dl-app-bg;
@@ -157,6 +158,18 @@
         b { font-weight: 700; }
         &.info { background: $dl-active; color: $dl-text; i { color: $dl-primary; } }
         &.warn { background: $dl-badge-draft-bg; color: $dl-badge-draft-fg; i { color: $dl-badge-draft-fg; } }
+    }
+
+    // --- Sức khỏe cấu hình (cảnh báo chặn báo giá) ---------------------------
+    .dl-cfg-health {
+        display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px;
+        .dl-cfg-health-item {
+            display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; line-height: 1.5;
+            padding: 10px 12px; border-radius: $dl-radius-sm; border-left: 3px solid transparent;
+            i { margin-top: 1px; }
+            &.is-block { background: rgba($dl-danger, 0.08); color: $dl-danger; border-left-color: $dl-danger; }
+            &.is-warn { background: $dl-badge-draft-bg; color: $dl-badge-draft-fg; border-left-color: $dl-badge-draft-fg; }
+        }
     }
 
     // --- Matrix table --------------------------------------------------------

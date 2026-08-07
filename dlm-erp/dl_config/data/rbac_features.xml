@@ -23,14 +23,6 @@
             <field name="sequence">20</field>
         </record>
 
-        <!-- Màn thuần action (chưa có model) — vẫn hiện để minh họa auto-discovery -->
-        <record id="feat_sys_config" model="dl.rbac.feature">
-            <field name="name">Cấu hình Hệ thống</field>
-            <field name="code">sys_config</field>
-            <field name="category">system</field>
-            <field name="sequence">40</field>
-        </record>
-
         <record id="feat_pricing_config" model="dl.rbac.feature">
             <field name="name">Cấu hình Báo giá</field>
             <field name="code">pricing_config</field>

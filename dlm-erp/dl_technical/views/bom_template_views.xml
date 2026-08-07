@@ -106,6 +106,8 @@
                                     <field name="material_uom_category_id" invisible="1"/>
                                     <field name="rule_applicable" invisible="1"/>
                                     <field name="shape_coefficient_label" invisible="1"/>
+                                    <!-- Dùng cho domain param_id của ánh xạ (parent.bom_template_id). -->
+                                    <field name="bom_template_id" invisible="1"/>
                                     <group>
                                         <group string="1. Material">
                                             <field name="material_id"
@@ -191,10 +193,53 @@
                                         <field name="waste_rate"/>
                                         <field name="effective_qty" readonly="1"/>
                                     </group>
+
+                                    <!-- Đợt 4 — ánh xạ tham số sản phẩm (D/R/C) vào ô kích
+                                         thước của dòng này: giá trị = hệ số × tham số + cộng
+                                         thêm. Ô không có ánh xạ giữ giá trị cứng ở trên. -->
+                                    <group string="Ánh xạ tham số → kích thước (sinh định mức)">
+                                        <div colspan="2" class="text-muted small mb-1">
+                                            <i class="fa fa-info-circle me-1"/>Khai tham số ở tab
+                                            "Tham số" của BOM mẫu trước. Ví dụ chân bàn:
+                                            ánh xạ "Chiều dài" ← tham số C, hệ số 4.
+                                        </div>
+                                        <field name="param_map_ids" nolabel="1" colspan="2">
+                                            <tree editable="bottom">
+                                                <field name="target_field"/>
+                                                <field name="param_id"
+                                                       domain="[('bom_template_id', '=', parent.bom_template_id)]"
+                                                       options="{'no_create': True, 'no_open': True}"/>
+                                                <field name="factor"/>
+                                                <field name="offset"/>
+                                            </tree>
+                                        </field>
+                                    </group>
+
                                     <group>
                                         <field name="note"/>
                                     </group>
                                 </form>
+                            </field>
+                        </page>
+                        <page string="Tham số (sinh định mức)" name="params">
+                            <div class="text-muted mb-2">
+                                <i class="fa fa-magic me-1"/>Khai các tham số CẤP SẢN PHẨM
+                                (vd Dài D, Rộng R, Cao C). Khi xử lý một đơn, KTV nhập các
+                                giá trị này một lần; hệ thống suy kích thước từng dòng vật tư
+                                qua ánh xạ ở tab "Dòng BOM".
+                            </div>
+                            <field name="param_ids"
+                                   readonly="status in ('locked', 'archived')">
+                                <tree editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="code"/>
+                                    <field name="name"/>
+                                    <field name="dim_role"/>
+                                    <field name="default_value"/>
+                                    <field name="value_min"/>
+                                    <field name="value_max"/>
+                                    <field name="required"/>
+                                </tree>
                             </field>
                         </page>
                     </notebook>
