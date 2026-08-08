@@ -228,6 +228,18 @@
                     </group>
 
                     <group
+                        name="group_physical_info"
+                        string="Thuộc tính vật lý"
+                        invisible="product_kind not in ('material', 'material_processed')"
+                    >
+                        <field name="dlm_density" />
+                        <div class="text-muted" colspan="2">
+                            Bỏ trống thì định mức dùng mặc định của hình dạng đo lường
+                            (7850 — tỉ trọng thép). Khai đúng cho nhôm/inox/đồng.
+                        </div>
+                    </group>
+
+                    <group
                         name="group_waste_info"
                         string="Hao hụt &amp; thu hồi"
                         invisible="product_kind not in ('material', 'material_processed')"

@@ -37,6 +37,7 @@
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">65.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+            <field name="dlm_density">7850</field>
         </record>
         <record id="seed_mat_tt_ct3_5" model="product.product">
             <field name="name">Thép tấm CT3 dày 5mm (1500×6000)</field>
@@ -50,6 +51,7 @@
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">65.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+            <field name="dlm_density">7850</field>
         </record>
         <record id="seed_mat_tt_ss400_10" model="product.product">
             <field name="name">Thép tấm SS400 dày 10mm</field>
@@ -63,6 +65,7 @@
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">60.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+            <field name="dlm_density">7850</field>
         </record>
 
         <!-- ============ THÉP HỘP (cắt theo cây — hao hụt đầu mẩu) ============ -->
@@ -78,6 +81,7 @@
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+            <field name="dlm_density">7850</field>
         </record>
         <record id="seed_mat_th_50" model="product.product">
             <field name="name">Thép hộp đen 50×50×2.0mm</field>
@@ -91,6 +95,7 @@
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+            <field name="dlm_density">7850</field>
         </record>
         <record id="seed_mat_th_100x50" model="product.product">
             <field name="name">Thép hộp chữ nhật 100×50×2.5mm</field>
@@ -104,6 +109,7 @@
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+            <field name="dlm_density">7850</field>
         </record>
 
         <!-- ============ THÉP ỐNG ============ -->
@@ -119,6 +125,7 @@
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+            <field name="dlm_density">7850</field>
         </record>
         <record id="seed_mat_to_49" model="product.product">
             <field name="name">Thép ống tròn Ø49×2.0mm</field>
@@ -132,6 +139,7 @@
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+            <field name="dlm_density">7850</field>
         </record>
 
         <!-- ============ SƠN (bay hơi/overspray — KHÔNG thu hồi) ============ -->

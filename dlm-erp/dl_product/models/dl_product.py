@@ -561,6 +561,19 @@ class ProductProduct(models.Model):
             "target": "current",
         }
 
+    # ── Khối lượng riêng (chỉ vật tư) ────────────────────────────────────
+    # NGUỒN DUY NHẤT của hệ số khi tính khối lượng từ kích thước. Trước đây hệ
+    # số lấy từ dl.measurement.shape.default_coefficient — tức theo HÌNH DẠNG
+    # (7850 cho mọi hình dạng nhóm Khối lượng) ⇒ nhôm/inox bị tính theo tỉ
+    # trọng thép. Dòng BOM nay ưu tiên field này, chỉ rơi về mặc định của hình
+    # dạng khi vật tư chưa khai (xem dl.bom.line.mixin._dlm_resolve_coefficient).
+    dlm_density = fields.Float(
+        string="Khối lượng riêng (kg/m³)", digits=(16, 2),
+        help="Dùng để tính khối lượng từ kích thước (thép 7850, inox 7930, "
+             "nhôm 2700, đồng 8960). Bỏ trống thì dòng BOM dùng mặc định của "
+             "hình dạng đo lường.",
+    )
+
     # ── Hao hụt & thu hồi (chỉ vật tư) ───────────────────────────────────
     # NGUỒN DUY NHẤT của hao hụt: đặt ngay trên vật tư, kỹ thuật điền khi tạo.
     # Tự điền mặc định theo NHÓM sản phẩm từ cấu hình (dl.pricing.waste.rule
