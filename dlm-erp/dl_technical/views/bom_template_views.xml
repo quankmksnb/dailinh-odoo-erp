@@ -82,8 +82,27 @@
                         </group>
                         <group string="Nhóm sản phẩm">
                             <field name="product_category_id" readonly="status != 'draft'"/>
+                            <field name="is_parametric" invisible="1"/>
+                            <field name="generic_missing" invisible="1"/>
+                            <!-- Sản phẩm dùng chung: đích đến của MỌI kích thước sinh
+                                 từ mẫu này. Thiếu nó thì workspace RFQ không dẫn được
+                                 Kỹ thuật về SP dùng chung ⇒ mỗi cỡ lại đẻ một mã SP. -->
+                            <field name="generic_product_id"
+                                   invisible="not is_parametric"
+                                   options="{'no_quick_create': True}"
+                                   context="{'default_product_kind': 'manufactured',
+                                             'default_categ_id': product_category_id}"/>
                         </group>
                     </group>
+
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not generic_missing">
+                        <i class="fa fa-exclamation-triangle me-1" title="Thiếu"/>
+                        <b>Mẫu tham số này chưa gán “Sản phẩm dùng chung”.</b>
+                        Kỹ thuật xử lý RFQ sẽ không được dẫn về sản phẩm dùng chung,
+                        và mỗi kích thước lại đẻ thêm một mã sản phẩm mới. Hãy chọn
+                        sản phẩm dùng chung cho mẫu.
+                    </div>
 
                     <notebook>
                         <page string="Dòng BOM" name="lines">

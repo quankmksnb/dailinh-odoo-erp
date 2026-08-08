@@ -22,7 +22,7 @@
                 <field name="name"/>
                 <field name="category_id" optional="show"/>
                 <field name="product_id"/>
-                <field name="version"/>
+                <field name="version_label" string="Phiên bản / Lần sinh"/>
                 <field name="product_qty" string="Số lượng thành phẩm"/>
                 <field name="total_material_cost" string="Chi phí VT"
                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
@@ -55,9 +55,12 @@
                             class="btn-primary"
                             invisible="status != 'confirmed'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
+                    <!-- Chỉ BOM mẫu nằm trên trục THỜI GIAN (version). BOM báo giá
+                         là định mức của MỘT đơn, tồn tại song song — không có
+                         khái niệm "phiên bản mới thay bản cũ" ở đây. -->
                     <button name="action_create_new_version" type="object"
                             string="Tạo phiên bản mới" class="btn-primary"
-                            invisible="status != 'locked'"
+                            invisible="status != 'locked' or bom_type == 'quotation'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_create_from_template" type="object"
                             string="Tạo từ BOM mẫu" class="btn-secondary"
@@ -73,7 +76,7 @@
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <button name="action_create_new_version" type="object"
                             string="Tạo phiên bản mới" class="btn-secondary"
-                            invisible="status != 'confirmed'"
+                            invisible="status != 'confirmed' or bom_type == 'quotation'"
                             groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <!-- Cho lưu trữ cả BOM đã khóa để retire bản đã bị phiên bản
                          mới thay thế (đơn cũ vẫn giữ link + snapshot). -->
@@ -154,9 +157,16 @@
                     <group>
                         <group string="Thông tin BOM">
                             <field name="bom_type"/>
-                            <field name="version" readonly="1"/>
+                            <!-- `version` mang 2 nghĩa tuỳ loại BOM — hiện nhãn đã
+                                 diễn giải thay vì con số trần. -->
+                            <field name="version_label" readonly="1"/>
+                            <field name="param_display" readonly="1"
+                                   invisible="not param_display"/>
+                            <!-- Instance KHÔNG BAO GIỜ là bản hiện hành ⇒ hiện dòng
+                                 "Phiên bản hiện hành: No" chỉ gây hiểu nhầm. -->
                             <field name="is_current" readonly="1"
-                                   string="Phiên bản hiện hành"/>
+                                   string="Phiên bản hiện hành"
+                                   invisible="bom_type == 'quotation'"/>
                             <field name="product_qty" string="Số lượng thành phẩm"/>
                             <field name="approved_by" readonly="1"
                                    invisible="not approved_by"/>

@@ -22,9 +22,6 @@ class DlRfqResolveParam(models.TransientModel):
     value_min = fields.Float(readonly=True)
     value_max = fields.Float(readonly=True)
     required = fields.Boolean(readonly=True)
-    # Giá trị được ĐỌC TỪ MÔ TẢ Sales (dimension_note) — cảnh báo KTV kiểm lại
-    # (RES-020: dữ liệu đoán từ văn bản, sai một chữ số là sai cả báo giá).
-    from_note = fields.Boolean(string="Đọc từ mô tả", readonly=True)
     range_hint = fields.Char(string="Miền hợp lệ", compute="_compute_range_hint")
 
     @api.depends("value_min", "value_max")
@@ -143,7 +140,9 @@ class DlRfqResolveWizard(models.TransientModel):
     product_id = fields.Many2one(
         "product.product",
         string="Product",
-        domain=[("product_kind", "in", ("manufactured", "material_processed"))],
+        # CHỈ sản phẩm gia công — bán thành phẩm là cấu phần bên trong định mức,
+        # không phải thứ khách đặt, nên không được lọt vào "SP đã từng gia công".
+        domain=[("product_kind", "=", "manufactured")],
     )
     product_is_rfq_provisional = fields.Boolean(
         related="product_id.is_rfq_provisional",
@@ -169,9 +168,9 @@ class DlRfqResolveWizard(models.TransientModel):
     def _compute_allowed_product_ids(self):
         Product = self.env["product.product"]
         for rec in self:
-            domain = [
-                ("product_kind", "in", ("manufactured", "material_processed")),
-            ]
+            # CHỈ sản phẩm gia công (xem domain của product_id) — bán thành phẩm
+            # thuộc nhánh Vật tư, chọn ở dòng định mức chứ không ở đây.
+            domain = [("product_kind", "=", "manufactured")]
             # Lọc nhóm chỉ áp khi KTV CHƯA bật "tìm ngoài nhóm" (EX-05).
             if rec.request_category_id and not rec.search_outside_category:
                 domain.append(("categ_id", "child_of", rec.request_category_id.id))
@@ -248,6 +247,10 @@ class DlRfqResolveWizard(models.TransientModel):
     new_product_category_id = fields.Many2one(
         "product.category", string="Nhóm sản phẩm",
         domain=[("dl_branch", "=", "finished")])
+    # §8.1 — nhóm đã có mẫu tham số thì các cỡ khác nhau DÙNG CHUNG một sản phẩm;
+    # tạo mã sản phẩm mới ở đây gần như luôn là nhầm "khác cỡ" thành "khác món".
+    confirm_not_just_size = fields.Boolean(
+        string="Đây là sản phẩm khác kết cấu, không phải chỉ khác kích thước")
 
     # ── Soi trùng/gần giống tên khi tạo SP mới (Case B) ───────────────────
     # exact → chặn cứng (chọn lại SP có sẵn); similar → cảnh báo mềm, KTV tick
@@ -367,15 +370,19 @@ class DlRfqResolveWizard(models.TransientModel):
     show_param_panel = fields.Boolean(string="Đang mở panel tham số")
     param_line_ids = fields.One2many(
         "dl.rfq.resolve.param", "wizard_id", string="Tham số")
-    param_from_note = fields.Boolean(
-        string="Có tham số đọc từ mô tả", compute="_compute_param_from_note")
+    # RES-028 — định mức đang chọn là bản TÁI DÙNG (cấu hình này đã từng được
+    # chốt) chứ không phải bản vừa sinh. Chỉ sống trong phiên xử lý hiện tại.
+    param_reused_bom = fields.Boolean(string="Dùng lại định mức đã có")
 
-    @api.depends("product_id", "product_id.categ_id")
+    @api.depends("product_id", "product_id.categ_id", "request_category_id")
     def _compute_parametric_template(self):
         Template = self.env["dl.bom.template"]
         for rec in self:
             tmpl = Template.browse()
-            categ = rec.product_id.categ_id
+            # Chưa chọn SP thì lấy nhóm của dòng RFQ: nếu đợi có product_id mới
+            # tìm được mẫu thì Kỹ thuật đã đi qua ngã ba "tạo SP mới" từ trước
+            # (gà-và-trứng) — đúng cái khiến mỗi cỡ đẻ một mã sản phẩm.
+            categ = rec.product_id.categ_id or rec.request_category_id
             if categ:
                 tmpl = Template.search([
                     ("product_category_id", "=", categ.id),
@@ -384,11 +391,6 @@ class DlRfqResolveWizard(models.TransientModel):
                 ], order="is_current desc, version desc", limit=1)
             rec.parametric_template_id = tmpl
             rec.has_parametric_template = bool(tmpl)
-
-    @api.depends("param_line_ids.from_note")
-    def _compute_param_from_note(self):
-        for rec in self:
-            rec.param_from_note = any(rec.param_line_ids.mapped("from_note"))
 
     # ── EX-16: định mức đang chọn có phải bản NHÁP TẠM (bỏ ngay được không) ──
     selected_bom_can_discard = fields.Boolean(
@@ -524,6 +526,16 @@ class DlRfqResolveWizard(models.TransientModel):
             if rec.manual_bom_id and rec.manual_bom_id in rec.bom_ids:
                 rec.selected_bom_id = rec.manual_bom_id
                 continue
+            # SẢN PHẨM DÙNG CHUNG của mẫu tham số: KHÔNG có định mức mặc định.
+            # Định mức của nó là instance — mỗi bản MỘT CỠ, tồn tại song song —
+            # nên "version cao nhất" chỉ là cỡ được sinh gần nhất. Tự chọn nó là
+            # gán cho đơn đang xử lý một kích thước khác hẳn, mà checklist vẫn
+            # tick đủ nên bấm Hoàn tất là chốt luôn. Để trống, buộc đi qua panel
+            # nhập kích thước (nhập đúng cấu hình cũ thì generate_instance tự
+            # trả về bản đã chốt — RES-028).
+            if rec.product_id._dlm_is_parametric_generic():
+                rec.selected_bom_id = False
+                continue
             # Mặc định: BOM version CAO NHẤT đang Đã xác nhận/Đã khóa của SP
             # (không dựa vào cờ is_current — cờ theo "confirm sau cùng thắng" nên
             # có thể trỏ về version thấp hơn). KTV vẫn đổi version khác được.
@@ -589,9 +601,14 @@ class DlRfqResolveWizard(models.TransientModel):
                 # không bản tạm) ⇒ chạy bộ dò khớp; nếu ứng viên tốt nhất đạt
                 # ngưỡng tự động (≥60) thì TỰ CHỌN sẵn để ca lặp lại chỉ còn bấm
                 # Hoàn tất. KTV vẫn "Đổi sản phẩm" được (khối ⑴ vẫn cho mở lại).
+                # NGOẠI TRỪ sản phẩm dùng chung của mẫu tham số — xem
+                # _dlm_is_parametric_generic(): nó chỉ được GỢI Ý ở thẻ "Có phải
+                # cái này?", vì điểm của nó là điểm "thuộc họ", đúng như nhau cho
+                # mọi cỡ, nên tự gán chỉ khiến máy trông như đã quyết xong.
                 if (not res.get("product_id") and not line.is_infeasible):
                     ranked = line._dlm_suggest_candidates(limit=1)
-                    if ranked and ranked[0]["score"] >= _MATCH_THRESHOLD_AUTO:
+                    if (ranked and ranked[0]["score"] >= _MATCH_THRESHOLD_AUTO
+                            and not ranked[0]["product"]._dlm_is_parametric_generic()):
                         res.update({
                             "mode": "existing",
                             "product_id": ranked[0]["product"].id,
@@ -665,6 +682,7 @@ class DlRfqResolveWizard(models.TransientModel):
             "manual_bom_id": False,
             "show_bom_picker": False,
             "auto_selected": False,
+            "param_reused_bom": False,
         })
         return self._action_reload()
 
@@ -840,6 +858,26 @@ class DlRfqResolveWizard(models.TransientModel):
             raise UserError(_("Vui lòng nhập Tên sản phẩm mới."))
         if not self.new_product_category_id:
             raise UserError(_("Vui lòng chọn Nhóm sản phẩm."))
+        # §8.1 — nhóm này có mẫu tham số ⇒ mọi kích thước dùng CHUNG sản phẩm dùng
+        # chung, chỉ định mức là riêng. Chặn mềm để KTV không đẻ mã cho từng cỡ.
+        parametric = self.env["dl.bom.template"].search([
+            ("product_category_id", "=", self.new_product_category_id.id),
+            ("status", "in", ("confirmed", "locked")),
+            ("is_parametric", "=", True),
+            ("generic_product_id", "!=", False),
+        ], limit=1)
+        if parametric and not self.confirm_not_just_size:
+            raise UserError(_(
+                "Nhóm “%(categ)s” đã có mẫu tham số “%(tmpl)s”: các kích thước "
+                "khác nhau DÙNG CHUNG sản phẩm “%(generic)s”, chỉ định mức là "
+                "riêng cho từng đơn.\n\n"
+                "• Chỉ khác kích thước ⇒ quay lại, chọn sản phẩm dùng chung rồi "
+                "nhập kích thước ở panel tham số.\n"
+                "• Thật sự khác kết cấu ⇒ tick “Đây là sản phẩm khác kết cấu” "
+                "rồi tạo lại.",
+                categ=self.new_product_category_id.display_name,
+                tmpl=parametric.display_name,
+                generic=parametric.generic_product_id.display_name))
         # Soi trùng LẠI ngay lúc bấm (không tin state đã compute) — chặn tạo SP
         # trùng hệt, và đòi xác nhận nếu chỉ gần giống.
         matches = self.env["product.product"]._dlm_find_name_matches(
@@ -907,41 +945,39 @@ class DlRfqResolveWizard(models.TransientModel):
         return self._action_open_bom(bom, _("BOM mới"))
 
     # ── Đợt 4 — panel nhập tham số + Sinh định mức ───────────────────────────
-    def action_open_param_panel(self):
-        """Mở panel nhập tham số (D/R/C) của mẫu tham số cho nhóm SP hiện tại;
-        tự đọc sẵn giá trị từ mô tả Sales (đánh dấu 'đọc từ mô tả' để KTV kiểm)."""
-        self.ensure_one()
-        tmpl = self.parametric_template_id
-        if not tmpl:
-            raise UserError(_(
-                "Nhóm sản phẩm này chưa có BOM mẫu tham số đã xác nhận."))
-        parsed = {}
-        try:
-            parsed = self.rfq_line_id._dlm_parse_dimensions(
-                self.request_dimension_note, self.request_product_name) or {}
-        except Exception:
-            parsed = {}
+    @api.model
+    def _dlm_param_panel_commands(self, tmpl):
+        """Lệnh o2m dựng panel tham số (D/R/C) của một mẫu — LUÔN để TRỐNG.
+
+        Kích thước là số nuôi thẳng vào định mức rồi vào giá bán, nên chỉ nhận
+        số KTV tự nhập theo yêu cầu/bản vẽ. KHÔNG đọc từ mô tả Sales (văn bản tự
+        do, sai một chữ số là sai cả báo giá) và cũng KHÔNG lấy mặc định của mẫu
+        (mọi dòng thiếu kích thước sẽ ra cùng một định mức). Bỏ trống thì
+        _dlm_validate_param_values chặn ngay khi bấm Sinh định mức."""
         commands = [(5, 0, 0)]
         for param in tmpl.param_ids:
-            value = param.default_value
-            from_note = False
-            if param.dim_role and param.dim_role != "none":
-                got = parsed.get(param.dim_role)
-                if got:
-                    value = got
-                    from_note = True
             commands.append((0, 0, {
                 "template_param_id": param.id,
                 "sequence": param.sequence,
                 "code": param.code,
                 "name": param.name,
-                "value": value,
                 "value_min": param.value_min,
                 "value_max": param.value_max,
                 "required": param.required,
-                "from_note": from_note,
             }))
-        self.write({"show_param_panel": True, "param_line_ids": commands})
+        return commands
+
+    def action_open_param_panel(self):
+        """Mở panel nhập tham số (D/R/C) của mẫu tham số cho nhóm SP hiện tại."""
+        self.ensure_one()
+        tmpl = self.parametric_template_id
+        if not tmpl:
+            raise UserError(_(
+                "Nhóm sản phẩm này chưa có BOM mẫu tham số đã xác nhận."))
+        self.write({
+            "show_param_panel": True,
+            "param_line_ids": self._dlm_param_panel_commands(tmpl),
+        })
         return self._action_reload()
 
     def action_close_param_panel(self):
@@ -968,6 +1004,9 @@ class DlRfqResolveWizard(models.TransientModel):
             "manual_bom_id": bom.id,
             "show_param_panel": False,
             "param_line_ids": [(5, 0, 0)],
+            # RES-028 — generate_instance trả bản CŨ khi cấu hình này đã từng
+            # được chốt. Báo cho KTV biết đang tái dùng, không phải vừa sinh mới.
+            "param_reused_bom": not bom.is_rfq_provisional,
         })
         return self._action_reload()
 

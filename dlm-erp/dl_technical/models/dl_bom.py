@@ -105,6 +105,29 @@ class DlBom(models.Model):
         string="Có sai khác so với mẫu", readonly=True, copy=False)
     deviation_note = fields.Text(string="Ghi chú sai khác", copy=False)
 
+    # ── Hiển thị: `version` mang HAI nghĩa tuỳ bom_type ──────────────────────
+    # BOM mẫu = trục THỜI GIAN ⇒ version là PHIÊN BẢN, bản mới thay bản cũ.
+    # BOM báo giá = trục ĐƠN HÀNG ⇒ version chỉ là SỐ SÊ-RI của lần sinh, các
+    # bản tồn tại SONG SONG. Hiện cùng một con số cho hai nghĩa khiến người đọc
+    # tưởng bản #3 thay thế bản #2 (xem _should_set_current_version).
+    version_label = fields.Char(
+        string="Phiên bản / Lần sinh", compute="_compute_version_label")
+    # Bộ tham số của instance, dạng đọc được: "C=750 · D=1200 · R=800".
+    param_display = fields.Char(string="Tham số", compute="_compute_param_display")
+
+    @api.depends("version", "bom_type")
+    def _compute_version_label(self):
+        for rec in self:
+            rec.version_label = (
+                _("Lần sinh #%s") % rec.version
+                if rec.bom_type == "quotation"
+                else _("Phiên bản %s") % rec.version)
+
+    @api.depends("param_signature")
+    def _compute_param_display(self):
+        for rec in self:
+            rec.param_display = (rec.param_signature or "").replace("|", " · ")
+
     @api.model
     def _dlm_param_signature(self, param_values):
         """Chữ ký chuẩn hoá của bộ tham số: khoá sắp alphabet, số làm tròn 1 chữ

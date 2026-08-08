@@ -267,6 +267,28 @@ class DlBomLineMixin(models.AbstractModel):
             rec.computed_quantity = qty if qty is not None else 0.0
 
     # ==========================================================
+    # HỆ SỐ KHỐI LƯỢNG RIÊNG — nguồn là VẬT TƯ, không phải hình dạng
+    # ==========================================================
+
+    def _dlm_material_density(self):
+        """Khối lượng riêng khai trên VẬT TƯ của dòng này. Chỉ có nghĩa với
+        hình dạng nhóm Khối lượng — Diện tích/Chu vi/Thể tích/Chiều dài không
+        dùng hệ số nên trả 0."""
+        self.ensure_one()
+        shape = self.measurement_shape_id
+        if not shape or shape.code not in WEIGHT_SHAPE_CODES:
+            return 0.0
+        return self.material_id.dlm_density or 0.0
+
+    def _dlm_resolve_coefficient(self):
+        """Hệ số dùng cho dòng này: ƯU TIÊN khối lượng riêng của VẬT TƯ, chỉ
+        rơi về mặc định của hình dạng khi vật tư chưa khai. Vật tư chưa khai
+        ⇒ hành vi y như trước (default_coefficient), nên không phá dữ liệu cũ."""
+        self.ensure_one()
+        return self._dlm_material_density() or (
+            self.measurement_shape_id.default_coefficient or 0.0)
+
+    # ==========================================================
     # CRUD
     # ==========================================================
 
@@ -278,15 +300,28 @@ class DlBomLineMixin(models.AbstractModel):
         waste_rate rõ ràng mà dòng đã có vật tư, tự tính = hao hụt cơ sở của vật
         tư × hệ số phức tạp (đối xứng _onchange_material_waste của luồng UI).
         Không đụng khi caller đã truyền waste_rate (vd _mixin_copy_vals của BOM
-        mẫu đã mang sẵn giá trị đúng)."""
+        mẫu đã mang sẵn giá trị đúng).
+
+        Cùng lý do đó, hệ số khối lượng riêng cũng phải tự giải ở đây — ưu tiên
+        khai báo trên vật tư, rồi mới tới mặc định của hình dạng."""
+        Product = self.env["product.product"]
         for vals in vals_list:
             if "waste_rate" not in vals and vals.get("material_id"):
-                material = self.env["product.product"].browse(vals["material_id"])
+                material = Product.browse(vals["material_id"])
                 factor = 1.0
                 if vals.get("complexity_id"):
                     factor = self.env["dl.pricing.complexity.level"].browse(
                         vals["complexity_id"]).factor or 1.0
                 vals["waste_rate"] = (material.dlm_waste_rate or 0.0) * factor
+            if ("measurement_coefficient" not in vals
+                    and vals.get("measurement_shape_id")):
+                shape = self.env["dl.measurement.shape"].browse(
+                    vals["measurement_shape_id"])
+                density = 0.0
+                if shape.code in WEIGHT_SHAPE_CODES and vals.get("material_id"):
+                    density = Product.browse(vals["material_id"]).dlm_density or 0.0
+                vals["measurement_coefficient"] = (
+                    density or shape.default_coefficient or 0.0)
         return super().create(vals_list)
 
     # ==========================================================
@@ -332,10 +367,18 @@ class DlBomLineMixin(models.AbstractModel):
 
     @api.onchange("measurement_shape_id")
     def _onchange_measurement_shape(self):
-        shape = self.measurement_shape_id
         self.dim_length = self.dim_width = self.dim_thickness = self.dim_side = 0.0
         self.dim_diameter = self.dim_height = 0.0
-        self.measurement_coefficient = shape.default_coefficient if shape else 0.0
+        self.measurement_coefficient = self._dlm_resolve_coefficient()
+
+    @api.onchange("material_id")
+    def _onchange_material_coefficient(self):
+        """Đổi vật tư ⇒ hệ số phải đổi theo (nguồn đúng là vật tư). Chỉ ghi khi
+        vật tư CÓ khai khối lượng riêng — vật tư chưa khai thì giữ nguyên số
+        đang có, tránh xoá hệ số Kỹ thuật đã sửa tay."""
+        density = self._dlm_material_density()
+        if density:
+            self.measurement_coefficient = density
 
     @api.onchange("quantity", "is_override")
     def _onchange_quantity_override_warning(self):
@@ -386,8 +429,11 @@ class DlBomLineMixin(models.AbstractModel):
                 "message": _(
                     "Hình dạng “%(shape)s” cần %(label)s để tính khối lượng, "
                     "nhưng Hệ số đang là 0 — định mức sẽ tính ra 0 và giá vốn "
-                    "thiếu. Nhập Hệ số (%(label)s) cho vật tư/dòng này."
-                ) % {"shape": shape.display_name, "label": label},
+                    "thiếu. Nên khai “Khối lượng riêng” trên vật tư “%(mat)s” "
+                    "(dùng lại được cho mọi dòng BOM sau), hoặc nhập Hệ số "
+                    "riêng cho dòng này."
+                ) % {"shape": shape.display_name, "label": label,
+                     "mat": self.material_id.display_name or _("(chưa chọn)")},
             }
         return None
 

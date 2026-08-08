@@ -59,10 +59,38 @@
                         string="+ Tạo BOM"
                         class="btn-secondary mb-2"
                         groups="dl_base.dl_group_admin,dl_base.dl_group_tech"/>
-                <field name="bom_ids" nolabel="1">
-                    <tree string="BOM">
+                <!-- Hai TRỤC khác nhau, không được trộn một bảng: định mức chuẩn
+                     nối tiếp theo thời gian (một bản hiện hành thay bản cũ) còn
+                     định mức theo đơn tồn tại song song (mỗi cấu hình một bản). -->
+                <separator string="Định mức chuẩn của sản phẩm"/>
+                <div class="text-muted small mb-2">
+                    Cách làm chuẩn, dùng cho mọi đơn. Bản mới <b>thay thế</b> bản cũ —
+                    một thời điểm chỉ một bản hiện hành.
+                </div>
+                <field name="standard_bom_ids" nolabel="1">
+                    <tree string="Định mức chuẩn">
                         <field name="name"/>
-                        <field name="version"/>
+                        <field name="version_label" string="Phiên bản"/>
+                        <field name="is_current" widget="boolean_toggle"
+                               string="Hiện hành" readonly="1"/>
+                        <field name="status" widget="badge"/>
+                        <field name="total_material_cost"
+                               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
+                    </tree>
+                </field>
+
+                <separator string="Định mức theo đơn"
+                           invisible="not instance_bom_ids"/>
+                <div class="text-muted small mb-2" invisible="not instance_bom_ids">
+                    Mỗi cấu hình (kích thước) của một đơn. Các bản <b>tồn tại song song</b>,
+                    không bản nào thay thế bản nào.
+                </div>
+                <field name="instance_bom_ids" nolabel="1"
+                       invisible="not instance_bom_ids">
+                    <tree string="Định mức theo đơn">
+                        <field name="name"/>
+                        <field name="version_label" string="Lần sinh"/>
+                        <field name="param_display" string="Tham số"/>
                         <field name="status" widget="badge"/>
                         <field name="total_material_cost"
                                groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>

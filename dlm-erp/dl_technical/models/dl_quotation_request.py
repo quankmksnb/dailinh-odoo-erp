@@ -35,6 +35,11 @@ _MATCH_SCORE_SAME_CUSTOMER = 10  # đã từng xử lý cho cùng khách hàng
 # với tên/nhóm/tham khảo mới lên auto.
 _MATCH_SCORE_DIM_MATCH = 30     # khổ D×R (và C nếu có) khớp thuộc tính kỹ thuật SP
 _MATCH_PENALTY_OBSOLETE = -60   # SP đang Ngừng sử dụng — vẫn hiện nhưng đội sổ
+# LỚP 1 (§3.6) — họ sản phẩm có mẫu tham số. Nhóm có mẫu thì SẢN PHẨM DÙNG CHUNG
+# của mẫu là đích đến đúng cho MỌI cỡ trong họ (không đẻ mã mới theo từng cỡ);
+# nếu đã từng sinh định mức đúng bộ tham số này thì gần như chắc chắn là nó.
+_MATCH_SCORE_TEMPLATE_FAMILY = 50   # SP dùng chung của mẫu tham số cùng nhóm
+_MATCH_SCORE_PARAM_SIGNATURE = 45   # đã từng sinh định mức đúng bộ tham số này
 # Ngưỡng phân loại (§3.6): ≥60 = đề xuất tự động (auto-điền), 30–59 = gợi ý
 # (hiện thẻ "Có phải cái này?"), <30 = không gợi ý.
 _MATCH_THRESHOLD_AUTO = 60
@@ -770,9 +775,9 @@ class DlQuotationRequestLine(models.Model):
     def _compute_resolvable_product_ids(self):
         Product = self.env["product.product"]
         for rec in self:
-            domain = [
-                ("product_kind", "in", ("manufactured", "material_processed")),
-            ]
+            # CHỈ sản phẩm gia công: dòng RFQ là thứ KHÁCH đặt, còn bán thành phẩm
+            # là cấu phần bên trong định mức (chọn ở dòng BOM, không phải ở đây).
+            domain = [("product_kind", "=", "manufactured")]
             if rec.product_category_id:
                 domain.append(("categ_id", "child_of", rec.product_category_id.id))
             domain.extend([
@@ -791,7 +796,14 @@ class DlQuotationRequestLine(models.Model):
         "product.category", compute="_compute_selectable_category_ids",
         string="Nhóm SP chọn được")
 
+    # ĐỪNG BỎ @api.depends("product_type"). Danh sách này KHÔNG phụ thuộc field nào
+    # của dòng, nhưng compute chỉ khai depends_context thì Odoo không đưa field vào
+    # spec onchange ⇒ DÒNG MỚI (chưa lưu, đang mở dialog "Sản phẩm gia công") nhận
+    # [] và ô Nhóm sản phẩm hiện "Không có dữ liệu"; dòng đã lưu thì lại bình thường
+    # nên rất dễ tưởng là lỗi dữ liệu. product_type luôn có mặt (required + default)
+    # nên dùng làm mồi kích hoạt.
     @api.depends_context("uid")
+    @api.depends("product_type")
     def _compute_selectable_category_ids(self):
         # parent_id != False: loại nhóm GỐC "Thành phẩm" (container của cây,
         # không phải nhóm sản phẩm thật để Sales chọn).
@@ -918,14 +930,17 @@ class DlQuotationRequestLine(models.Model):
         """Dò các SP "đã từng gia công" khớp dòng RFQ này, xếp theo điểm §3.6.
 
         Trả về danh sách dict ``{'product', 'score', 'reasons'}`` đã lọc theo
-        ngưỡng gợi ý (≥30) và sắp giảm dần theo điểm. Chỉ LỚP 2 (§3.6) — LỚP 1
-        (họ có template tham số) để Đợt 4 khi bộ sinh instance tồn tại.
+        ngưỡng gợi ý (≥30) và sắp giảm dần theo điểm. Gồm LỚP 2 (sản phẩm/instance
+        cụ thể) và LỚP 1 (họ có mẫu tham số — xem cuối hàm).
         """
         self.ensure_one()
         Product = self.env["product.product"]
         if self.product_type != "manufactured":
             return []
-        kinds = ("manufactured", "material_processed")
+        # CHỈ sản phẩm gia công: gợi ý ở đây là "sản phẩm nào làm ra thứ khách
+        # đặt". Bán thành phẩm là cấu phần bên trong định mức, không bao giờ là
+        # kết quả của một dòng RFQ.
+        kinds = ("manufactured",)
         scores = {}
 
         def add(product, points, reason):
@@ -987,9 +1002,36 @@ class DlQuotationRequestLine(models.Model):
                     entry["score"] += _MATCH_SCORE_DIM_MATCH
                     entry["reasons"].append(_("Khớp kích thước"))
 
-        # ── LỚP 1 (Đợt 4): khi có template tham số + param_signature, cộng ở đây
-        #    +50 (SP thuộc họ template) và +45 (bộ tham số trích được khớp
-        #    instance cũ). Chưa có model nên bỏ qua.
+        # ── LỚP 1 (§3.6) — họ sản phẩm có mẫu tham số ────────────────────────
+        # CHỈ khi dòng đọc được KHỔ: "nhóm có mẫu tham số" một mình là tín hiệu
+        # quá yếu — cộng +50 cho mọi dòng trong nhóm thì "Giá đỡ đặc biệt" cũng
+        # được +50+10(cùng nhóm) = 60, chạm ngưỡng tự chọn, và bị gán nhầm thành
+        # sản phẩm dùng chung. Có khổ mới nghĩa là dòng thật sự là một cấu hình.
+        template = self.env["dl.bom.template"].search([
+            ("product_category_id", "=", self.product_category_id.id),
+            ("status", "in", ("confirmed", "locked")),
+            ("is_parametric", "=", True),
+            ("generic_product_id", "!=", False),
+        ], order="is_current desc, version desc", limit=1)
+        if template and wanted.get("length") and wanted.get("width"):
+            generic = template.generic_product_id
+            add(generic, _MATCH_SCORE_TEMPLATE_FAMILY,
+                _("Thuộc họ có mẫu tham số"))
+            # Dựng bộ tham số y như panel workspace (đọc từ mô tả, thiếu thì lấy
+            # mặc định của mẫu) để chữ ký so được với instance đã sinh.
+            values = {}
+            for param in template.param_ids:
+                got = wanted.get(param.dim_role) if param.dim_role else None
+                values[param.code] = got or param.default_value
+            if all(values.values()):
+                Bom = self.env["dl.bom"]
+                signature = Bom._dlm_param_signature(values)
+                if Bom.search_count([
+                        ("product_id", "=", generic.id),
+                        ("bom_type", "=", "quotation"),
+                        ("param_signature", "=", signature)]):
+                    add(generic, _MATCH_SCORE_PARAM_SIGNATURE,
+                        _("Đã từng làm đúng cấu hình này"))
 
         # (e) Phạt SP đang Ngừng sử dụng — vẫn hiện nhưng đội xuống cuối/bị loại.
         for entry in scores.values():

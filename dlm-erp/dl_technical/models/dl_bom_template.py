@@ -1,5 +1,5 @@
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class DlBomTemplate(models.Model):
@@ -52,6 +52,44 @@ class DlBomTemplate(models.Model):
         for rec in self:
             rec.is_parametric = bool(rec.param_ids)
 
+    # Sản phẩm GENERIC của mẫu — SP dùng chung cho MỌI kích thước sinh ra từ mẫu
+    # này. Không có field này thì workspace RFQ không có cách nào dẫn Kỹ thuật về
+    # sản phẩm dùng chung, và mỗi cỡ lại đẻ một mã SP mới.
+    generic_product_id = fields.Many2one(
+        "product.product",
+        string="Sản phẩm dùng chung",
+        domain=[("product_kind", "=", "manufactured")],
+        ondelete="restrict",
+        tracking=True,
+        help="Sản phẩm đại diện cho MỌI kích thước sinh từ mẫu này. Mỗi đơn chỉ "
+             "sinh thêm một định mức (instance), KHÔNG đẻ sản phẩm mới.",
+    )
+    generic_missing = fields.Boolean(
+        string="Chưa gán sản phẩm dùng chung", compute="_compute_generic_missing")
+
+    @api.depends("is_parametric", "status", "generic_product_id")
+    def _compute_generic_missing(self):
+        for rec in self:
+            rec.generic_missing = bool(
+                rec.is_parametric
+                and rec.status in ("confirmed", "locked")
+                and not rec.generic_product_id)
+
+    @api.constrains("generic_product_id", "product_category_id")
+    def _check_generic_product_category(self):
+        """Sản phẩm dùng chung phải nằm ĐÚNG nhóm của mẫu — nếu không, bộ định
+        tuyến ở workspace RFQ (tìm mẫu theo nhóm rồi lấy generic) sẽ trả về sản
+        phẩm của nhóm khác."""
+        for rec in self:
+            product = rec.generic_product_id
+            if product and product.categ_id != rec.product_category_id:
+                raise ValidationError(_(
+                    "Sản phẩm dùng chung “%(p)s” thuộc nhóm “%(pc)s”, không "
+                    "khớp nhóm “%(c)s” của mẫu.",
+                    p=product.display_name,
+                    pc=product.categ_id.display_name or _("chưa phân nhóm"),
+                    c=rec.product_category_id.display_name))
+
     def _version_domain(self):
         self.ensure_one()
         return [("product_category_id", "=", self.product_category_id.id)]
@@ -93,7 +131,11 @@ class DlBomTemplate(models.Model):
         Trình tự (§7.4d): validate tham số → mỗi dòng mẫu copy field dùng chung
         rồi ÁP ánh xạ tuyến tính (target = factor × tham số + offset) → tạo
         dl.bom kiểu 'quotation' (is_rfq_provisional) → tính lại định mức từ hình
-        dạng có sẵn. Instance KHÔNG BAO GIỜ là phiên bản hiện hành (§3/§7.4c)."""
+        dạng có sẵn. Instance KHÔNG BAO GIỜ là phiên bản hiện hành (§3/§7.4c).
+
+        Trả về định mức ĐÃ CÓ nếu cấu hình này từng được chốt (RES-028) — caller
+        phải kiểm ``is_rfq_provisional``/``status`` nếu cần biết là bản mới hay
+        bản tái dùng."""
         self.ensure_one()
         if not self.param_ids:
             raise UserError(_(
@@ -107,6 +149,23 @@ class DlBomTemplate(models.Model):
 
         Bom = self.env["dl.bom"]
         Line = self.env["dl.bom.line"]
+        signature = Bom._dlm_param_signature(param_values)
+
+        # RES-028 — cùng sản phẩm + cùng bộ tham số nghĩa là ĐÃ có định mức cho
+        # cấu hình này: tái dùng thay vì đẻ bản trùng nội dung. BOM chỉ lưu KẾT
+        # CẤU (giá được snapshot ở báo giá) nên nhiều đơn dùng chung một định mức
+        # là đúng. Chỉ nhận bản đã chốt và KHÔNG còn tạm — bản nháp đang gắn dòng
+        # RFQ khác có thể bị sửa/dọn bất cứ lúc nào, tái dùng sẽ hỏng chéo hai đơn.
+        reusable = Bom.search([
+            ("product_id", "=", product.id),
+            ("bom_type", "=", "quotation"),
+            ("param_signature", "=", signature),
+            ("status", "in", ("confirmed", "locked")),
+            ("is_rfq_provisional", "=", False),
+        ], limit=1)
+        if reusable:
+            return reusable
+
         existing = Bom.search([
             ("product_id", "=", product.id), ("bom_type", "=", "quotation")])
         version = (max(existing.mapped("version")) + 1) if existing else 1
@@ -123,12 +182,17 @@ class DlBomTemplate(models.Model):
             "source_template_id": self.id,
             "source_template_version": self.version,
             "param_values": dict(param_values or {}),
-            "param_signature": Bom._dlm_param_signature(param_values),
+            "param_signature": signature,
         })
 
         for tline in self.line_ids:
             vals = tline._mixin_copy_vals()
             vals["bom_id"] = bom.id
+            # Khối lượng riêng: nguồn đúng là VẬT TƯ. Dòng mẫu có thể mang số cũ
+            # hard-code theo hình dạng (7850) — bỏ đi để create() giải lại theo
+            # vật tư. Vật tư chưa khai thì giữ nguyên số của mẫu.
+            if tline._dlm_material_density():
+                vals.pop("measurement_coefficient", None)
             for m in tline.param_map_ids:
                 base = (param_values or {}).get(m.param_id.code)
                 if base in (None, False, ""):

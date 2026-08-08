@@ -66,6 +66,10 @@
             <field name="version">1</field>
             <field name="status">confirmed</field>
             <field name="is_current" eval="True"/>
+            <!-- Đích đến của MỌI kích thước sinh từ mẫu: workspace RFQ dựa vào
+                 field này để dẫn Kỹ thuật về sản phẩm dùng chung thay vì đẻ mã
+                 sản phẩm mới cho từng cỡ. -->
+            <field name="generic_product_id" ref="demo_product_ban_thep"/>
         </record>
 
         <!-- Tham số cấp sản phẩm: Dài / Rộng / Cao (mm), có miền hợp lệ. -->
