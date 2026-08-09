@@ -35,6 +35,7 @@ class _FakeBomLine:
     _measurement_quantity = DlBomLineMixin._measurement_quantity
     _measurement_quantity_raw = DlBomLineMixin._measurement_quantity_raw
     _dimension_sanity_warning = DlBomLineMixin._dimension_sanity_warning
+    _coefficient_missing_warning = DlBomLineMixin._coefficient_missing_warning
     _onchange_measurement_values = DlBomLineMixin._onchange_measurement_values
     _onchange_measurement_shape = DlBomLineMixin._onchange_measurement_shape
     _onchange_measurement_type = DlBomLineMixin._onchange_measurement_type
@@ -58,6 +59,9 @@ class _FakeBomLine:
         self.material_id = None
         self.complexity_id = None
         self.uom_id = None
+        # _coefficient_missing_warning() (LK-08, thêm 2026-08) đọc field này —
+        # để None (falsy) cho đúng hành vi mặc định "chưa đặt nhãn tùy biến".
+        self.shape_coefficient_label = None
         self.__dict__.update(kwargs)
 
     def ensure_one(self):

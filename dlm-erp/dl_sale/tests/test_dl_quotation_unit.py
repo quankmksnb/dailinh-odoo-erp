@@ -147,6 +147,13 @@ def _quo_rec(**kwargs):
         # để khỏi phải mock self.env._default_validity_date() ở tầng L1.
         approval_required=False, validity_date="2026-12-31",
         message_post=lambda **kw: None,
+        # action_send() (2026-08 — RV-09) đọc customer_data_warning (cảnh báo
+        # mềm thiếu MST/địa chỉ khách) và gọi _post_quotation_document_to_
+        # chatter() (dựng PDF + đính chatter, quotation_document.py — đụng
+        # self.env['ir.attachment']/self.message_post nên không test L1 được,
+        # stub no-op giống message_post ở trên).
+        customer_data_warning=None,
+        _post_quotation_document_to_chatter=lambda **kw: None,
     )
     rec.__dict__.update(kwargs)
     rec.ensure_one = lambda: rec  # action_open_approval_request/action_open_sale_order cần

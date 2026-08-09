@@ -101,32 +101,52 @@ class TestPriceTrading(unittest.TestCase):
 
 
 class TestPriceManufactured(unittest.TestCase):
-    """Method _price_manufactured() — mock _bom_material_cost() để cô lập logic markup/floor."""
+    """Method _price_manufactured() — mock _manufactured_direct_cost() để cô
+    lập logic markup/floor.
+
+    **Sửa lại 2026-08-09**: bản cũ patch _bom_material_cost() trực tiếp —
+    method đó không còn tồn tại. _price_manufactured() nay đọc chi phí trực
+    tiếp qua lớp cache _manufactured_direct_cost() (context['direct_cache'],
+    theo rfq_line.id) thay vì gọi BOM costing thẳng; đây mới là ranh giới mock
+    đúng để cô lập logic markup/floor khỏi toàn bộ phần đệ quy BOM + công đoạn
+    (mà bản thân phần đó giờ đụng self.env — xem TestBomUnitCost bên dưới)."""
 
     @staticmethod
-    def _rfq_line(qty=3):
+    def _rfq_line(qty=3, line_id=1):
         product = SimpleNamespace(id=42, display_name="Khung thép A")
         # _price_manufactured() nay stamp thêm dấu vết BOM (version/approved_by/
         # approved_date) vào vals (§5.2) — bom giả phải có đủ 3 field này.
         bom = SimpleNamespace(id=555, version=2,
                                approved_by=SimpleNamespace(id=8),
                                approved_date="2026-07-01")
-        return SimpleNamespace(resolved_product_id=product, quantity=qty,
+        # _price_manufactured() nay đọc context['direct_cache'].get(rfq_line.id)
+        # trước tiên (lớp cache) — cần .id.
+        return SimpleNamespace(id=line_id, resolved_product_id=product, quantity=qty,
                                 resolved_bom_id=bom, product_name="Khung thép A")
+
+    @staticmethod
+    def _direct_cost(bom, qty, material_unit, operation_cost=0.0, unit_specs=None, batch_specs=None):
+        return {
+            "bom": bom, "qty": qty,
+            "material_unit": material_unit, "operation_cost": operation_cost,
+            "unit_specs": unit_specs or [], "batch_specs": batch_specs or [],
+        }
 
     def test_price_manufactured_happy(self):
         """TC-UNIT-DlQuotationPricingService-008"""
         rfq_line = self._rfq_line(qty=3)
         profit_rule = SimpleNamespace(id=99, revision=1, target_markup=20.0, min_markup=5.0)
         context = {"rounding_to": 0, "profit_rule": profit_rule}
+        dc = self._direct_cost(
+            rfq_line.resolved_bom_id, qty=3, material_unit=100000.0, unit_specs=[
+                {"component_type": "material", "source_model": "product.supplierinfo",
+                 "source_id": 1, "source_revision": 0, "material_id": 9,
+                 "qty": 2.0, "unit_price": 50000.0, "amount": 100000.0},
+            ])
         # DlQuotationPricingService là models.AbstractModel (dùng __slots__) —
         # không gán được method trên instance, phải patch ở cấp class.
-        with patch.object(DlQuotationPricingService, "_bom_material_cost",
-                           return_value=(100000.0, [
-                               {"component_type": "material", "source_model": "product.supplierinfo",
-                                "source_id": 1, "source_revision": 0, "material_id": 9,
-                                "qty": 2.0, "unit_price": 50000.0, "amount": 100000.0},
-                           ])):
+        with patch.object(DlQuotationPricingService, "_manufactured_direct_cost",
+                           return_value=dc):
             vals, comps = _svc()._price_manufactured(rfq_line, context)
         self.assertEqual(vals["total_cost"], 100000.0)
         self.assertEqual(vals["base_price"], 120000.0)
@@ -141,8 +161,9 @@ class TestPriceManufactured(unittest.TestCase):
         rfq_line = self._rfq_line(qty=1)
         profit_rule = SimpleNamespace(id=99, revision=1, target_markup=20.0, min_markup=5.0)
         context = {"rounding_to": 1000, "profit_rule": profit_rule}
-        with patch.object(DlQuotationPricingService, "_bom_material_cost",
-                           return_value=(1000.0, [])):
+        dc = self._direct_cost(rfq_line.resolved_bom_id, qty=1, material_unit=1000.0)
+        with patch.object(DlQuotationPricingService, "_manufactured_direct_cost",
+                           return_value=dc):
             vals, _comps = _svc()._price_manufactured(rfq_line, context)
         self.assertEqual(vals["price_unit"], 1000.0)
         self.assertEqual(vals["floor_price"], 1050.0)
@@ -152,26 +173,52 @@ class TestPriceManufactured(unittest.TestCase):
         """TC-UNIT-DlQuotationPricingService-010"""
         rfq_line = self._rfq_line(qty=1)
         context = {"rounding_to": 0, "profit_rule": None}
-        with patch.object(DlQuotationPricingService, "_bom_material_cost",
-                           return_value=(1000.0, [])):
+        dc = self._direct_cost(rfq_line.resolved_bom_id, qty=1, material_unit=1000.0)
+        with patch.object(DlQuotationPricingService, "_manufactured_direct_cost",
+                           return_value=dc):
             with self.assertRaises(UserError) as ctx:
                 _svc()._price_manufactured(rfq_line, context)
         self.assertEqual(str(ctx.exception), QTE_005)
 
 
-class TestBomMaterialCost(unittest.TestCase):
-    """Method _bom_material_cost() — chỉ nhánh vật tư thô (L1); nhánh
-    material_processed gọi self.env, thuộc L2, không test ở đây."""
+class TestBomUnitCost(unittest.TestCase):
+    """Method _bom_unit_cost() (đổi tên từ _bom_material_cost() — trả về
+    thêm op_var_unit, xem docstring trong quotation_pricing_service.py) —
+    chỉ nhánh vật tư thô (L1); nhánh material_processed gọi self.env, thuộc
+    L2, không test ở đây.
+
+    **Sửa lại 2026-08-09**: method thật nay LUÔN gọi thêm
+    self._bom_operation_variable_cost() ở cuối (kể cả BOM không có công đoạn
+    nào) — method đó chạm self.env["dl.pricing.operation.rule"] ngay ở dòng
+    đầu, trước khi lặp bom.operation_line_ids. 2 test "happy" (đi hết được tới
+    cuối method) nên phải patch riêng _bom_operation_variable_cost() để cô
+    lập đúng phần đang muốn test (chi phí vật tư + thu hồi phế liệu); công
+    đoạn biến đổi tự nó cần một bộ test riêng (chưa có, ngoài phạm vi đợt sửa
+    lỗi này — xem Report 5 §1.6). 3 test còn lại (missing seller/cycle guard/
+    BOM rỗng) raise TRƯỚC khi method chạm tới đoạn công đoạn nên không cần
+    patch gì thêm."""
 
     @staticmethod
     def _seller(price=50.0, currency="VND", id=1):
         return SimpleNamespace(id=id, price=price, currency_id=currency, is_applied=True)
 
     @staticmethod
-    def _bom_line(material, effective_qty, quantity, recovery_value=0.0):
-        bl = SimpleNamespace(material_id=material, effective_qty=effective_qty, quantity=quantity)
+    def _bom_line(material, effective_qty, quantity, recovery_value=0.0, line_id=101):
+        # _bom_unit_cost() nay dùng bl.id làm khoá cho line_net{} (cơ sở % vật
+        # liệu của công đoạn theo dòng đã chọn) — cần .id dù nhánh công đoạn
+        # bị patch no-op ở đây.
+        bl = SimpleNamespace(id=line_id, material_id=material, effective_qty=effective_qty,
+                              quantity=quantity)
         bl._dlm_recovery_value = Mock(return_value=recovery_value)
         return bl
+
+    def _unit_cost_no_operations(self, bom, context, visited):
+        """Gọi _bom_unit_cost() thật với _bom_operation_variable_cost() đã
+        patch trả về (0.0, []) — cô lập khỏi self.env, giữ nguyên phần vật
+        tư/thu hồi thật đang muốn test."""
+        with patch.object(DlQuotationPricingService, "_bom_operation_variable_cost",
+                           return_value=(0.0, [])):
+            return _svc()._bom_unit_cost(bom, context=context, visited=visited)
 
     def test_happy_raw_material_no_recovery(self):
         """TC-UNIT-DlQuotationPricingService-011"""
@@ -185,9 +232,10 @@ class TestBomMaterialCost(unittest.TestCase):
         )
         bl = self._bom_line(material, effective_qty=10.0, quantity=10.0, recovery_value=0.0)
         bom = SimpleNamespace(id=1, product_qty=2.0, line_ids=[bl])
-        unit_cost, specs = _svc()._bom_material_cost(
+        material_unit, op_var_unit, specs = self._unit_cost_no_operations(
             bom, context={"currency": "VND", "pricing_date": "2026-07-01"}, visited=frozenset())
-        self.assertEqual(unit_cost, 250.0)
+        self.assertEqual(material_unit, 250.0)
+        self.assertEqual(op_var_unit, 0.0)
         self.assertEqual(len(specs), 1)
         self.assertEqual(specs[0]["amount"], 250.0)
         self.assertEqual(specs[0]["qty"], 5.0)
@@ -208,9 +256,10 @@ class TestBomMaterialCost(unittest.TestCase):
         # được cộng thêm hao hụt lần nữa (GB-10), chỉ tiêu thụ effective_qty.
         bl = self._bom_line(material, effective_qty=10.0, quantity=8.0, recovery_value=20.0)
         bom = SimpleNamespace(id=1, product_qty=1.0, line_ids=[bl])
-        unit_cost, specs = _svc()._bom_material_cost(
+        material_unit, op_var_unit, specs = self._unit_cost_no_operations(
             bom, context={"currency": "VND", "pricing_date": "2026-07-01"}, visited=frozenset())
-        self.assertEqual(unit_cost, 980.0)  # 10*100 - 20
+        self.assertEqual(material_unit, 980.0)  # 10*100 - 20
+        self.assertEqual(op_var_unit, 0.0)
         material_spec, recovery_spec = specs
         self.assertEqual(material_spec["qty"], 10.0)  # effective_qty nguyên vẹn
         self.assertEqual(recovery_spec["component_type"], "recovery")
@@ -228,7 +277,7 @@ class TestBomMaterialCost(unittest.TestCase):
         bl = self._bom_line(material, effective_qty=10.0, quantity=10.0)
         bom = SimpleNamespace(id=1, product_qty=1.0, line_ids=[bl])
         with self.assertRaises(UserError) as ctx:
-            _svc()._bom_material_cost(
+            _svc()._bom_unit_cost(
                 bom, context={"currency": "VND", "pricing_date": "2026-07-01"}, visited=frozenset())
         self.assertEqual(str(ctx.exception), QTE_003 % "Thép tấm")
 
@@ -236,14 +285,14 @@ class TestBomMaterialCost(unittest.TestCase):
         """TC-UNIT-DlQuotationPricingService-014"""
         bom = SimpleNamespace(id=5, product_qty=1.0, line_ids=[], display_name="BOM vòng lặp")
         with self.assertRaises(UserError) as ctx:
-            _svc()._bom_material_cost(bom, context={}, visited=frozenset({5}))
+            _svc()._bom_unit_cost(bom, context={}, visited=frozenset({5}))
         self.assertEqual(str(ctx.exception), QTE_004 % "BOM vòng lặp")
 
     def test_empty_bom_raises_qte004(self):
         """TC-UNIT-DlQuotationPricingService-015"""
         bom = SimpleNamespace(id=6, product_qty=0.0, line_ids=[], display_name="BOM rỗng")
         with self.assertRaises(UserError) as ctx:
-            _svc()._bom_material_cost(bom, context={}, visited=frozenset())
+            _svc()._bom_unit_cost(bom, context={}, visited=frozenset())
         self.assertEqual(str(ctx.exception), QTE_004 % "BOM rỗng")
 
 

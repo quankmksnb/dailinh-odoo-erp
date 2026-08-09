@@ -4,13 +4,21 @@ dl.bom / dl.bom.template) và dl.bom.line. Sheet nguồn: DlBomHeaderMixin,
 DlBomLine.
 
 Chỉ test nhánh không đụng self.env/self.search/super().write thật:
-action_confirm (đụng self.env.user) và _compute_next_version/
-_set_current_version/action_create_new_version (đụng self.search/self.copy)
-là L2, không test ở đây. write()/unlink() chỉ test được nhánh RAISE (trước
-khi chạm super()), vì super().write() cần self là instance thật.
-"""
+action_confirm (đụng self.env.user) và _set_current_version/
+action_create_new_version (đụng self.search/self.copy) là L2, không test ở
+đây. write()/unlink() chỉ test được nhánh RAISE (trước khi chạm super()), vì
+super().write() cần self là instance thật.
+
+_compute_next_version() cũng đụng self.search(), nhưng khác các method trên
+nó có 1 khối tính toán thuần (max(...)+1) đáng test riêng — dùng đúng kỹ
+thuật patch.object(Class, "search"/"_version_domain"/"ensure_one", ...) +
+object.__new__(Class) đã áp dụng cho DlPricingApprovalMatrix.evaluate_
+quotation() (xem dl_config/tests/test_pricing_matrix_unit.py) để cô lập phần
+thuần khỏi self.search — bổ sung 2026-08-09, chưa có trong workbook gốc
+(FT-69 PRD §4.1, trước đó 0% coverage L1)."""
 import unittest
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from odoo.exceptions import UserError
 
@@ -94,6 +102,51 @@ class TestActionResetDraft(unittest.TestCase):
         with self.assertRaises(UserError):
             DlBomHeaderMixin.action_reset_draft([rec])
         self.assertEqual(rec.status, "confirmed")  # không đổi vì hook chặn trước
+
+
+class _FakeVersionRecordset:
+    """Stand-in cho recordset trả về từ self.search(self._version_domain()).
+    _compute_next_version() chỉ gọi .mapped('version') và kiểm tra truthy khi
+    rỗng — không cần field/method nào khác."""
+
+    def __init__(self, versions):
+        self._versions = versions
+
+    def mapped(self, field_name):
+        assert field_name == "version"
+        return self._versions
+
+    def __bool__(self):
+        return bool(self._versions)
+
+
+def _next_version(existing_versions):
+    fake_existing = _FakeVersionRecordset(existing_versions)
+    with patch.object(DlBomHeaderMixin, "ensure_one", return_value=None), \
+         patch.object(DlBomHeaderMixin, "_version_domain", return_value=[]), \
+         patch.object(DlBomHeaderMixin, "search", return_value=fake_existing):
+        rec = object.__new__(DlBomHeaderMixin)
+        return rec._compute_next_version()
+
+
+class TestComputeNextVersion(unittest.TestCase):
+    def test_no_existing_version_starts_at_1(self):
+        """TC-UNIT-DlBomHeaderMixin-013"""
+        self.assertEqual(_next_version([]), 1)
+
+    def test_existing_versions_returns_max_plus_1(self):
+        """TC-UNIT-DlBomHeaderMixin-014"""
+        self.assertEqual(_next_version([1, 2, 3]), 4)
+
+    def test_single_existing_version(self):
+        """TC-UNIT-DlBomHeaderMixin-015"""
+        self.assertEqual(_next_version([5]), 6)
+
+    def test_non_sequential_versions_uses_max_not_count(self):
+        """TC-UNIT-DlBomHeaderMixin-016 — phiên bản 2 (giữa) có thể đã bị xóa/
+        không tồn tại (VD dữ liệu cũ); công thức phải lấy max(...)+1, không
+        phải count(...)+1, để không sinh trùng version đã có."""
+        self.assertEqual(_next_version([1, 3, 7]), 8)
 
 
 class TestWriteGuard(unittest.TestCase):
