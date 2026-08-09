@@ -32,10 +32,7 @@ class TestMaterialCalcKind(TransactionCase):
             "uom_id": cls.uom_cay.id,
             "uom_po_id": cls.uom_cay.id,
             "dlm_calc_kind": "cut_length",
-            "dlm_profile_kind": "box",
-            "dlm_spec_a": 25, "dlm_spec_b": 50, "dlm_spec_t": 1.4,
-            "dlm_stock_length": 6000,
-            "dlm_density": 7850,
+            "dlm_stock_length": 6,        # quy cách MUA khai theo MÉT
             "dlm_mass_per_unit": 8.5,
         })
         cls.categ_ban = cls.env["product.category"].create({
@@ -64,12 +61,16 @@ class TestMaterialCalcKind(TransactionCase):
     # T1 · T2 — cắt đoạn ra SỐ CÂY
     # ------------------------------------------------------------------
     def test_t1_cut_length_to_cay(self):
-        """700mm × 2 đoạn ÷ cây 6000mm = 0.2333 cây — không có kg ở đâu cả."""
+        """700mm × 2 đoạn ÷ cây 6 m = 0.2333 cây — không có kg ở đâu cả.
+
+        Đoạn cắt nhập MM (số trên bản vẽ), cây khai MÉT (số lúc mua): phép chia
+        phải quy đơn vị trước, nên viết 1,4 m ÷ 6 m chứ không phải 1400 ÷ 6.
+        """
         line = self._line(self.hop_25x50, dim_length=700, piece_count=2)
-        self.assertAlmostEqual(line._dlm_auto_quantity(), 1400 / 6000, places=6)
+        self.assertAlmostEqual(line._dlm_auto_quantity(), 1.4 / 6, places=6)
 
     def test_t2_real_totals_divide_by_stock_length(self):
-        """Bốn tổng mm có thật trong file BOM của Đại Linh ÷ 6000 phải ra đúng
+        """Bốn tổng mm có thật trong file BOM của Đại Linh ÷ cây 6 m phải ra đúng
         số cây mà file ghi (§2.1). Đây là bằng chứng gốc của quyết định Q1."""
         for total_mm, expected_cay in ((10230, 1.705), (7410, 1.235),
                                        (23030, 3.8383), (570, 0.095)):
@@ -84,7 +85,7 @@ class TestMaterialCalcKind(TransactionCase):
         chan = self._line(self.hop_25x50, dim_length=700, piece_count=2)
         giang = self._line(self.hop_25x50, dim_length=940, piece_count=4)
         self.assertAlmostEqual(chan._dlm_auto_quantity(), 0.233333, places=5)
-        self.assertAlmostEqual(giang._dlm_auto_quantity(), 3760 / 6000, places=6)
+        self.assertAlmostEqual(giang._dlm_auto_quantity(), 3.76 / 6, places=6)
 
     def test_cut_length_sold_by_kg_uses_mass_per_meter(self):
         """Cùng vật tư nhưng NCC bán theo KG ⇒ định mức ra kg qua kg/m."""
@@ -92,8 +93,7 @@ class TestMaterialCalcKind(TransactionCase):
             "name": "Thép hộp 30×60×1,4 (test kg)",
             "product_kind": "material",
             "uom_id": self.uom_kg.id, "uom_po_id": self.uom_kg.id,
-            "dlm_calc_kind": "cut_length", "dlm_profile_kind": "box",
-            "dlm_spec_a": 30, "dlm_spec_b": 60, "dlm_spec_t": 1.4,
+            "dlm_calc_kind": "cut_length",
             "dlm_mass_per_meter": 1.693,      # số CÂN THẬT: 10.16 kg/cây ÷ 6m
         })
         line = self._line(hop_kg, dim_length=2000, piece_count=3)
@@ -103,13 +103,13 @@ class TestMaterialCalcKind(TransactionCase):
     # T3 — tấm
     # ------------------------------------------------------------------
     def test_t3_sheet_to_tam(self):
-        """Mặt bàn 1200×500 trên tôn khổ 1250×2500 = 0.192 tấm."""
+        """Mặt bàn 1200×500 mm trên tôn khổ 1,25×2,5 m = 0.192 tấm."""
         ton = self.Product.create({
             "name": "Tôn CT3 2mm (test tấm)",
             "product_kind": "material",
             "uom_id": self.uom_tam.id, "uom_po_id": self.uom_tam.id,
-            "dlm_calc_kind": "sheet", "dlm_spec_t": 2,
-            "dlm_sheet_w": 1250, "dlm_sheet_h": 2500, "dlm_density": 7850,
+            "dlm_calc_kind": "sheet",
+            "dlm_sheet_w": 1.25, "dlm_sheet_h": 2.5,
         })
         line = self._line(ton, dim_length=1200, dim_width=500, piece_count=1)
         self.assertAlmostEqual(line._dlm_auto_quantity(), 0.192, places=6)
@@ -144,7 +144,7 @@ class TestMaterialCalcKind(TransactionCase):
             "Product Unit of Measure")
         self.assertGreaterEqual(precision, 4, "Cần ≥4 chữ số cho định mức cây")
         bom = self._bom(self.hop_25x50, dim_length=700, piece_count=2,
-                        quantity=1400 / 6000)
+                        quantity=1.4 / 6)
         self.assertAlmostEqual(bom.line_ids.quantity, 0.2333, places=4)
         nho = self._bom(self.hop_25x50, dim_length=570, piece_count=1,
                         quantity=570 / 6000)
@@ -182,7 +182,7 @@ class TestMaterialCalcKind(TransactionCase):
         ton_kg = self.Product.create({
             "name": "Tôn CT3 (test bán theo kg)", "product_kind": "material",
             "uom_id": self.uom_kg.id, "uom_po_id": self.uom_kg.id,
-            "dlm_calc_kind": "sheet", "dlm_spec_t": 2, "dlm_density": 7850,
+            "dlm_calc_kind": "sheet", "dlm_mass_per_sqm": 15.7,
             "dlm_has_recovery": True, "dlm_recovery_rate": 60.0,
             "dlm_scrap_product_id": scrap.id,
         })
@@ -199,8 +199,7 @@ class TestMaterialCalcKind(TransactionCase):
             "name": "Thép hộp thiếu chiều dài cây (test)",
             "product_kind": "material",
             "uom_id": self.uom_cay.id, "uom_po_id": self.uom_cay.id,
-            "dlm_calc_kind": "cut_length", "dlm_profile_kind": "box",
-            "dlm_spec_a": 40, "dlm_spec_t": 1.8,
+            "dlm_calc_kind": "cut_length",
             "dlm_stock_length": 0,
         })
         self.assertIn("Chiều dài cây", thieu._dlm_calc_missing_fields())
@@ -283,22 +282,40 @@ class TestMaterialCalcKind(TransactionCase):
     # ------------------------------------------------------------------
     # T10 — tiết diện hộp CHỮ NHẬT (b tách khỏi a)
     # ------------------------------------------------------------------
-    def test_t10_section_area_rectangular_box(self):
-        """25×50×1,4 = 202.16 mm². Bản cũ chỉ có 'cạnh' nên hộp chữ nhật bị
-        tính như hộp vuông — đây là lỗi V1 của đối chiếu."""
-        self.assertAlmostEqual(self.hop_25x50._dlm_section_area_mm2(),
-                               202.16, places=2)
-        vuong = self.Product.create({
-            "name": "Thép hộp 25×25×1,4 (test vuông)",
+    # ------------------------------------------------------------------
+    # T10 — tấm bán theo kg dùng kg/m² KHAI THẲNG, không suy từ quy cách
+    # ------------------------------------------------------------------
+    def _ton_kg(self, **extra):
+        return self.Product.create(dict({
+            "name": "Tôn CT3 2mm (test bán theo kg)",
             "product_kind": "material",
-            "uom_id": self.uom_cay.id, "uom_po_id": self.uom_cay.id,
-            "dlm_calc_kind": "cut_length", "dlm_profile_kind": "box",
-            "dlm_spec_a": 25, "dlm_spec_t": 1.4,      # b để trống ⇒ vuông
-        })
-        self.assertAlmostEqual(vuong._dlm_section_area_mm2(), 132.16, places=2)
+            "uom_id": self.uom_kg.id, "uom_po_id": self.uom_kg.id,
+            "dlm_calc_kind": "sheet", "dlm_mass_per_sqm": 15.7,
+        }, **extra))
 
-    def test_mass_hint_is_barem_not_reality(self):
-        """Gợi ý kg/cây suy từ quy cách ra số BAREM, cao hơn thép thật ~12-31%
-        nên KHÔNG được tự ghi đè số cân thật kỹ thuật đã khai."""
-        self.assertGreater(self.hop_25x50.dlm_mass_per_unit_hint,
-                           self.hop_25x50.dlm_mass_per_unit)
+    def test_t10_sheet_sold_by_kg_uses_declared_mass_per_sqm(self):
+        """Miếng 1200×500 = 0.6 m² × 15.7 kg/m² = 9.42 kg.
+
+        Con số 15.7 là kg CÂN THẬT do người dùng khai. Bản trước tính
+        `diện tích × độ dày × khối lượng riêng` — ra đúng số BAREM, tức lặp lại
+        chính lỗi mà cả đợt thiết kế này sinh ra để loại bỏ.
+        """
+        line = self._line(self._ton_kg(), dim_length=1200, dim_width=500,
+                          piece_count=1)
+        self.assertAlmostEqual(line._dlm_auto_quantity(), 0.6 * 15.7, places=6)
+
+    def test_t10b_sheet_by_kg_missing_mass_per_sqm_is_blocked(self):
+        """Thiếu kg/m² thì cổng cứng phải nêu đúng tên ô, không im lặng ra 0."""
+        thieu = self._ton_kg(dlm_mass_per_sqm=0)
+        self.assertIn("kg/m²", thieu._dlm_calc_missing_fields())
+        bom = self._bom(thieu, dim_length=1200, dim_width=500, quantity=1)
+        with self.assertRaises(UserError) as ctx:
+            bom.action_confirm()
+        self.assertIn("kg/m²", str(ctx.exception))
+
+    def test_no_geometry_fields_left_on_material(self):
+        """Quy cách hình học đã GỠ khỏi vật tư — mọi mẫu số nay khai thẳng."""
+        for gone in ("dlm_profile_kind", "dlm_spec_a", "dlm_spec_b",
+                     "dlm_spec_t", "dlm_density"):
+            self.assertNotIn(gone, self.Product._fields,
+                             "%s phải được gỡ khỏi product.product" % gone)

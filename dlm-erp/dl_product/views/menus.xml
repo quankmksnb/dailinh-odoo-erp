@@ -182,9 +182,9 @@
 
     <!-- ============================================================
          ĐO LƯỜNG (PROD-04/05/06) — 😴 NGỦ ĐÔNG.
-         Quy cách vật tư nay nằm trên chính vật tư (dlm_calc_kind +
-         dlm_profile_kind + a/b/t), dòng BOM không còn chọn Loại/Hình dạng
-         đo lường nữa. Model và màn hình GIỮ NGUYÊN để còn đường lui, nhưng
+         Cách tính định mức nay nằm trên chính vật tư (dlm_calc_kind + mẫu số
+         khai thẳng), dòng BOM không còn chọn Loại/Hình dạng đo lường nữa.
+         Model và màn hình GIỮ NGUYÊN để còn đường lui, nhưng
          không seed bản ghi và ẩn khỏi menu thường (group_no_one = chỉ hiện
          khi bật Chế độ nhà phát triển).
          Thiết kế: docs/Doi_chieu_du_lieu_doanh_nghiep_va_thiet_ke_dinh_muc_vat_tu.md §14
