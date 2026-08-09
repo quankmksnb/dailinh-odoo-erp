@@ -110,25 +110,27 @@
                                    readonly="status in ('locked', 'archived')">
                                 <tree string="Dòng mẫu">
                                     <field name="material_id"/>
-                                    <field name="measurement_type_id" optional="show"/>
-                                    <field name="measurement_shape_id" optional="show"/>
+                                    <!-- Cùng mixin với dòng BOM thật: cut list =
+                                         đoạn cắt × số đoạn (xem bom_views.xml). -->
+                                    <field name="dim_length" string="Dài đoạn (mm)"/>
+                                    <field name="dim_width" string="Rộng (mm)" optional="hide"/>
+                                    <field name="piece_count"/>
                                     <field name="computed_quantity" string="Định mức"/>
                                     <field name="quantity"/>
-                                    <field name="complexity_id" optional="show"/>
+                                    <field name="uom_id" string="ĐVT"/>
+                                    <field name="complexity_id" optional="hide"/>
                                     <field name="waste_rate" string="Hao hụt (%)"/>
                                     <field name="effective_qty" string="SL thực"/>
-                                    <field name="uom_id" optional="show"/>
                                     <field name="note" optional="show"/>
                                 </tree>
                                 <form string="Dòng mẫu">
-                                    <field name="shape_code" invisible="1"/>
-                                    <field name="material_uom_category_id" invisible="1"/>
-                                    <field name="rule_applicable" invisible="1"/>
-                                    <field name="shape_coefficient_label" invisible="1"/>
+                                    <!-- Kiểu tính của VẬT TƯ quyết định dòng này hỏi
+                                         gì (§13) — không còn quy tắc/hình dạng. -->
+                                    <field name="material_calc_kind" invisible="1"/>
                                     <!-- Dùng cho domain param_id của ánh xạ (parent.bom_template_id). -->
                                     <field name="bom_template_id" invisible="1"/>
                                     <group>
-                                        <group string="1. Material">
+                                        <group string="1. Vật tư">
                                             <field name="material_id"
                                                    options="{'no_quick_create': True}"
                                                    context="{'default_product_kind': 'material'}"/>
@@ -136,14 +138,13 @@
                                         </group>
                                     </group>
 
-                                    <!-- Vật tư dùng đơn vị đếm (Cái/Con/Bộ...) — không có
-                                         Rule nào tương thích: ẩn hẳn khối Rule/Shape/Kích
-                                         thước, chỉ còn nhập tay Số lượng. -->
-                                    <div invisible="rule_applicable">
-                                        <div class="text-muted mb-2">
+                                    <!-- Vật tư mua-dùng-thẳng (ốc/vít/sơn/que hàn):
+                                         không có kích thước nào để suy — nhập tay. -->
+                                    <div invisible="material_calc_kind in ('cut_length', 'sheet')">
+                                        <div class="text-muted mb-2" invisible="not material_id">
                                             <i class="fa fa-info-circle me-1"/>Vật tư này dùng
-                                            đơn vị đếm (vd: Cái/Con/Bộ) — nhập trực tiếp Số
-                                            lượng bên dưới.
+                                            thẳng theo đơn vị mua (Cái/Túi/kg/Lít) — nhập trực
+                                            tiếp Số lượng bên dưới.
                                         </div>
                                         <group>
                                             <label for="quantity" string="Số lượng"/>
@@ -154,36 +155,17 @@
                                         </group>
                                     </div>
 
-                                    <div invisible="not rule_applicable">
-                                    <group>
-                                        <group string="2-3. Quy tắc tính / Hình dạng">
-                                            <field name="measurement_type_id"
-                                                   domain="[('formula_uom_id.category_id', '=', material_uom_category_id)]"
-                                                   options="{'no_create': True, 'no_create_edit': True}"/>
-                                            <field name="measurement_shape_id"
-                                                   options="{'no_create': True, 'no_create_edit': True}"/>
-                                            <field name="measurement_coefficient"
-                                                   invisible="shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar')"/>
-                                            <div class="text-muted" style="font-size:11px;"
-                                                 invisible="not shape_coefficient_label or shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar')">
-                                                <field name="shape_coefficient_label" readonly="1" nolabel="1"/>
-                                            </div>
-                                        </group>
+                                    <div invisible="material_calc_kind not in ('cut_length', 'sheet')">
+                                    <group string="2. Kích thước cắt"
+                                           invisible="material_calc_kind != 'cut_length'">
+                                        <field name="dim_length"/>
+                                        <field name="piece_count"/>
                                     </group>
-                                    <group string="4. Kích thước (theo hình dạng đã chọn)"
-                                           invisible="not measurement_shape_id or shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube', 'solid_round_bar', 'solid_square_bar', 'area_rectangle', 'area_square', 'area_circle', 'area_triangle', 'perimeter_rectangle', 'perimeter_square', 'perimeter_circle', 'volume_box', 'volume_cube', 'volume_cylinder', 'volume_sphere', 'length_segment')">
-                                        <field name="dim_length"
-                                               invisible="shape_code in ('area_circle', 'perimeter_circle', 'volume_cylinder', 'area_square', 'perimeter_square', 'volume_cube', 'volume_sphere')"/>
-                                        <field name="dim_width"
-                                               invisible="shape_code not in ('flat_plate', 'area_rectangle', 'perimeter_rectangle', 'volume_box')"/>
-                                        <field name="dim_side"
-                                               invisible="shape_code not in ('hollow_square_tube', 'solid_square_bar', 'area_square', 'perimeter_square', 'volume_cube')"/>
-                                        <field name="dim_diameter"
-                                               invisible="shape_code not in ('hollow_round_tube', 'solid_round_bar', 'area_circle', 'perimeter_circle', 'volume_cylinder', 'volume_sphere')"/>
-                                        <field name="dim_thickness"
-                                               invisible="shape_code not in ('flat_plate', 'hollow_square_tube', 'hollow_round_tube')"/>
-                                        <field name="dim_height"
-                                               invisible="shape_code not in ('area_triangle', 'volume_box', 'volume_cylinder')"/>
+                                    <group string="2. Kích thước tấm"
+                                           invisible="material_calc_kind != 'sheet'">
+                                        <field name="dim_length" string="Chiều dài (mm)"/>
+                                        <field name="dim_width"/>
+                                        <field name="piece_count" string="Số tấm"/>
                                     </group>
                                     <group>
                                         <group string="Kết quả">
@@ -192,11 +174,23 @@
                                                 <field name="computed_quantity" nolabel="1"/>
                                                 <field name="uom_id" readonly="1" nolabel="1"/>
                                             </div>
+                                            <div class="text-muted" style="font-size:11px;"
+                                                 colspan="2"
+                                                 invisible="material_calc_kind != 'cut_length'">
+                                                = (Chiều dài đoạn × Số đoạn) ÷ chiều dài cây
+                                                khai ở vật tư.
+                                            </div>
+                                            <div class="text-muted" style="font-size:11px;"
+                                                 colspan="2"
+                                                 invisible="material_calc_kind != 'sheet'">
+                                                = (Dài × Rộng × Số tấm) ÷ khổ tấm khai ở vật tư.
+                                            </div>
                                         </group>
-                                        <group string="5. Quantity (dùng thực tế — sửa được)">
+                                        <group string="3. Số lượng (dùng thực tế)">
                                             <label for="quantity" string="Số lượng"/>
                                             <div class="o_row">
-                                                <field name="quantity" nolabel="1"/>
+                                                <field name="quantity" nolabel="1"
+                                                       readonly="not is_override"/>
                                                 <field name="uom_id" readonly="1" nolabel="1"/>
                                             </div>
                                             <field name="is_override"/>
@@ -207,7 +201,7 @@
                                     </group>
                                     </div>
 
-                                    <group string="6. Hao hụt">
+                                    <group string="4. Hao hụt">
                                         <field name="complexity_id"/>
                                         <field name="waste_rate"/>
                                         <field name="effective_qty" readonly="1"/>
@@ -219,8 +213,10 @@
                                     <group string="Ánh xạ tham số → kích thước (sinh định mức)">
                                         <div colspan="2" class="text-muted small mb-1">
                                             <i class="fa fa-info-circle me-1"/>Khai tham số ở tab
-                                            "Tham số" của BOM mẫu trước. Ví dụ chân bàn:
-                                            ánh xạ "Chiều dài" ← tham số C, hệ số 4.
+                                            "Tham số" của BOM mẫu trước. Ví dụ 4 chân bàn cao C:
+                                            ánh xạ "Chiều dài đoạn" ← tham số C (hệ số 1) và đặt
+                                            <b>Số đoạn = 4</b> — đừng nhân 4 vào chiều dài, vì
+                                            như vậy mất cut list của xưởng.
                                         </div>
                                         <field name="param_map_ids" nolabel="1" colspan="2">
                                             <tree editable="bottom">

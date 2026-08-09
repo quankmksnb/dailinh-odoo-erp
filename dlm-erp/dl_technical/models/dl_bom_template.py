@@ -188,21 +188,20 @@ class DlBomTemplate(models.Model):
         for tline in self.line_ids:
             vals = tline._mixin_copy_vals()
             vals["bom_id"] = bom.id
-            # Khối lượng riêng: nguồn đúng là VẬT TƯ. Dòng mẫu có thể mang số cũ
-            # hard-code theo hình dạng (7850) — bỏ đi để create() giải lại theo
-            # vật tư. Vật tư chưa khai thì giữ nguyên số của mẫu.
-            if tline._dlm_material_density():
-                vals.pop("measurement_coefficient", None)
             for m in tline.param_map_ids:
                 base = (param_values or {}).get(m.param_id.code)
                 if base in (None, False, ""):
                     continue
-                vals[m.target_field] = m.factor * float(base) + m.offset
+                value = m.factor * float(base) + m.offset
+                # piece_count là Integer — ánh xạ tuyến tính trả float, ép về int
+                # để không ghi 3.9999 rồi bị cắt cụt âm thầm.
+                vals[m.target_field] = (
+                    int(round(value)) if m.target_field == "piece_count" else value)
             line = Line.create(vals)
-            # onchange KHÔNG chạy khi tạo qua ORM — tự tính định mức từ hình
-            # dạng + kích thước vừa áp, rồi ghi vào quantity (số thực dùng).
+            # onchange KHÔNG chạy khi tạo qua ORM — tự tính định mức từ kích
+            # thước cắt vừa áp, rồi ghi vào quantity (số thực dùng).
             if not line.is_override:
-                qty = line._measurement_quantity()
+                qty = line._dlm_auto_quantity()
                 if qty is not None and qty > 0:
                     line.quantity = qty
         return bom

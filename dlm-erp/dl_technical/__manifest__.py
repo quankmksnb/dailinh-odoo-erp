@@ -1,6 +1,6 @@
 {
     "name": "DL-Technical",
-    "version": "17.0.1.22.0",
+    "version": "17.0.2.0.0",
     "summary": "Quản lý BOM, Bản vẽ, Bán thành phẩm, công thức",
     "author": "Dai Linh",
     "category": "Hidden",
@@ -9,7 +9,9 @@
         "security/ir.model.access.csv",
         "data/rbac_features.xml",
         "data/ir_sequence_data.xml",
-        "data/measurement_shape_data.xml",
+        # data/measurement_shape_data.xml — 😴 NGỦ ĐÔNG (§14): 17 hình dạng
+        # không còn được dòng BOM tham chiếu. Giữ file để còn đường lui, KHÔNG
+        # nạp vào DB mới (nạp = đẻ bản ghi mồ côi).
         "data/rfq_provisional_data.xml",
         "data/technical_config_data.xml",
         "views/product_views.xml",

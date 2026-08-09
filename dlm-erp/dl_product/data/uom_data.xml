@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         B1 — ĐƠN VỊ TÍNH theo cách Đại Linh MUA vật tư.
+
+         Thiết kế: docs/Doi_chieu_du_lieu_doanh_nghiep_va_thiet_ke_dinh_muc_vat_tu.md
+                   §10.5 Q1 + §17.1
+
+         Quyết định Q1: `uom_id` của vật tư = ĐÚNG đơn vị NCC bán, và
+         `price` = đồng trên đúng đơn vị đó. Bằng chứng từ sổ mua hàng thật:
+             Thép hộp 14   | cây  |    40.000đ
+             ống D114×3,96 | cây  | 2.110.000đ
+             Tấm alu       | tấm  |   145.000đ
+             Lưới          | cuộn | 1.150.000đ
+             Vít cá        | túi  |    60.000đ
+             Đá cắt        | hộp  |   155.000đ
+
+         🔴 BẪY 4 (§17.1): `rounding` PHẢI đủ nhỏ.
+         Mặc định của Odoo là 1.0 ⇒ một dòng BOM cần 0.233 cây sẽ bị LÀM TRÒN
+         VỀ 0 ⇒ giá vốn hụt âm thầm. Test T5 khoá ca này.
+
+         ⚠️ Các đơn vị dưới đây nằm chung nhóm "Đơn vị" (factor_inv = 1) nên
+         Odoo coi 1 Cây = 1 Cái về mặt quy đổi. Điều đó vô hại vì mỗi vật tư
+         chỉ dùng MỘT đơn vị và ta luôn đặt uom_id = uom_po_id. Đừng đặt
+         uom_po_id khác nhóm với uom_id — sẽ quy đổi sai âm thầm.
+
+         noupdate="1": seed một lần, sau đó người dùng sửa được mà lần -u
+         sau không ghi đè.
+    ============================================================ -->
+    <!-- ============================================================
+         🔴 BẪY 4 — TẦNG THỨ HAI, quan trọng hơn `rounding` của ĐVT.
+
+         "Product Unit of Measure" của Odoo mặc định chỉ 2 chữ số thập phân
+         (product/data/product_data.xml). Khi định mức tính theo CÂY thì con số
+         thật rất nhỏ, và 2 chữ số bóp méo tiền ngay lập tức:
+
+             1400mm ÷ 6000  = 0.2333 cây  →  lưu 0.23   (−1.4% giá vốn)
+               570mm ÷ 6000 = 0.095  cây  →  lưu 0.10   (+5.3% giá vốn)
+             23030mm ÷ 6000 = 3.8383 cây  →  lưu 3.84
+
+         Chính file BOM của Đại Linh cũng ghi 4 chữ số (3.8383), nên 4 là con số
+         khớp thực tế. Ảnh hưởng: mọi field digits="Product Unit of Measure"
+         (quantity · effective_qty · computed_quantity).
+
+         ⚠️ Phải dùng <function> chứ KHÔNG dùng <record>: bản ghi gốc của Odoo
+         mang cờ noupdate=True nên mọi <record> ghi đè đều bị BỎ QUA lặng lẽ
+         (đã thử — DB vẫn giữ 2). Khối này cố ý để ngoài noupdate vì đây là
+         ràng buộc đúng-sai của cách tính tiền, phải áp lại mỗi lần cập nhật.
+
+         ⚠️ Độ chính xác được nạp lúc dựng registry, tức TRƯỚC khi data file
+         chạy ⇒ lần cập nhật đầu tiên chưa có tác dụng, phải chạy lại lần hai
+         (hoặc khởi động lại server) mới thấy.
+    ============================================================ -->
+    <data>
+        <function model="decimal.precision" name="write">
+            <value eval="[ref('product.decimal_product_uom')]" />
+            <value eval="{'digits': 4}" />
+        </function>
+    </data>
+
+    <data noupdate="1">
+
+        <!-- Thanh/ống/hộp thép, thép cây — bán theo CÂY (mặc định 6m) -->
+        <record id="dlm_uom_cay" model="uom.uom">
+            <field name="name">Cây</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit" />
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">1</field>
+            <field name="rounding">0.001</field>
+        </record>
+
+        <!-- Tôn, alu, gỗ tấm — bán theo TẤM (khổ khai trên vật tư) -->
+        <record id="dlm_uom_tam" model="uom.uom">
+            <field name="name">Tấm</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit" />
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">1</field>
+            <field name="rounding">0.001</field>
+        </record>
+
+        <!-- Lưới, dây — bán theo CUỘN -->
+        <record id="dlm_uom_cuon" model="uom.uom">
+            <field name="name">Cuộn</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit" />
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">1</field>
+            <field name="rounding">0.001</field>
+        </record>
+
+        <!-- Vít, đinh rút — bán theo TÚI -->
+        <record id="dlm_uom_tui" model="uom.uom">
+            <field name="name">Túi</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit" />
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">1</field>
+            <field name="rounding">0.01</field>
+        </record>
+
+        <!-- Đá cắt, phụ kiện — bán theo HỘP -->
+        <record id="dlm_uom_hop" model="uom.uom">
+            <field name="name">Hộp</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit" />
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">1</field>
+            <field name="rounding">0.01</field>
+        </record>
+
+        <!-- Thành phẩm bán theo BỘ (1 bàn + 2 ghế) — theo báo giá thật -->
+        <record id="dlm_uom_bo" model="uom.uom">
+            <field name="name">Bộ</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit" />
+            <field name="uom_type">bigger</field>
+            <field name="factor_inv">1</field>
+            <field name="rounding">0.01</field>
+        </record>
+
+    </data>
+</odoo>

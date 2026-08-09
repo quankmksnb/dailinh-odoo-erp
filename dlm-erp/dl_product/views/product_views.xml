@@ -184,7 +184,26 @@
                         </group>
                         <group string="Đơn vị tính">
                             <field name="uom_id" />
+                            <!-- Q1 — MỘT quy tắc đơn vị duy nhất: ô này vừa là
+                                 đơn vị NCC bán, vừa là đơn vị định mức quy về.
+                                 Nói rõ tại chỗ để không ai đi tìm "đơn vị mua"
+                                 thứ hai ở đâu đó. -->
+                            <div
+                                class="text-muted"
+                                colspan="2"
+                                invisible="product_kind not in ('material', 'material_processed')"
+                            >
+                                Đơn vị nhà cung cấp <b>bán</b> vật tư này (Cây ·
+                                Tấm · Cuộn · Túi · kg · Lít). Giá NCC là đồng trên
+                                <b>chính đơn vị này</b>, và định mức cũng quy về nó
+                                — không có đơn vị trung gian.
+                            </div>
                             <field name="uom_po_id" groups="uom.group_uom" />
+                            <div class="text-muted" colspan="2" groups="uom.group_uom">
+                                Phải giữ <b>trùng</b> với Đơn vị tính. Để lệch thì
+                                engine báo giá chặn cứng (QTE-007) vì giá nhà cung
+                                cấp không còn cùng đơn vị với định mức.
+                            </div>
                         </group>
                     </group>
 
@@ -227,16 +246,171 @@
                         </div>
                     </group>
 
+                    <!-- Nhắc MỀM: vật tư khai thiếu thì dòng định mức không tự
+                         tính được, im lặng ra 0. Cổng CỨNG nằm ở lúc Xác nhận
+                         định mức — đây chỉ là lời nhắc sớm ngay nơi sửa được. -->
+                    <div
+                        class="alert alert-warning mb-3"
+                        role="status"
+                        invisible="product_kind not in ('material', 'material_processed') or not dlm_calc_missing_hint"
+                    >
+                        <i class="fa fa-exclamation-triangle me-1" title="Thiếu" />
+                        <b>Chưa dùng được trong định mức</b> — còn thiếu: <field
+                            name="dlm_calc_missing_hint"
+                            readonly="1"
+                            nolabel="1"
+                            class="oe_inline"
+                        />.
+                    </div>
+
+                    <!-- Quy cách nằm ở ĐÂY, không gõ lại mỗi dòng BOM: một vật
+                         tư = một quy cách + một đơn vị mua. Kiểu tính quyết định
+                         dòng BOM hỏi gì và định mức quy ra đơn vị nào. -->
                     <group
                         name="group_physical_info"
-                        string="Thuộc tính vật lý"
+                        string="Quy cách &amp; cách tính định mức"
                         invisible="product_kind not in ('material', 'material_processed')"
                     >
-                        <field name="dlm_density" />
-                        <div class="text-muted" colspan="2">
-                            Bỏ trống thì định mức dùng mặc định của hình dạng đo lường
-                            (7850 — tỉ trọng thép). Khai đúng cho nhôm/inox/đồng.
-                        </div>
+                        <field name="dlm_uom_group" invisible="1" />
+                        <group>
+                            <field name="dlm_calc_kind" />
+                            <!-- Giải thích ngay tại chỗ chọn: mỗi kiểu tính đổi
+                                 hẳn việc dòng định mức hỏi gì. Nói bằng đúng câu
+                                 người dùng sẽ thấy ở màn Định mức. -->
+                            <div class="text-muted" colspan="2"
+                                invisible="dlm_calc_kind != 'cut_length'">
+                                Dòng định mức sẽ hỏi <b>Chiều dài đoạn</b> ×
+                                <b>Số đoạn</b>, rồi chia cho chiều dài cây →
+                                ra <b>số cây</b>. <br />Thanh · ống · hộp · thép cây.
+                            </div>
+                            <div class="text-muted" colspan="2"
+                                invisible="dlm_calc_kind != 'sheet'">
+                                Dòng định mức sẽ hỏi <b>Dài × Rộng</b> và
+                                <b>Số tấm</b>, rồi chia cho khổ tấm → ra
+                                <b>số tấm</b>. <br />Tôn · lưới · alu · tấm nhựa.
+                            </div>
+                            <div class="text-muted" colspan="2"
+                                invisible="dlm_calc_kind != 'count'">
+                                Dòng định mức <b>chỉ hỏi Số lượng</b> — không có
+                                kích thước nào để suy ra. <br />Ốc · vít · bản lề ·
+                                tay nắm · đá cắt.
+                            </div>
+                            <div class="text-muted" colspan="2"
+                                invisible="dlm_calc_kind != 'bulk'">
+                                Dòng định mức <b>chỉ hỏi Số lượng</b> theo kg/lít,
+                                kỹ thuật tự ước lượng. <br />Sơn · que hàn · hoá chất.
+                            </div>
+
+                            <field
+                                name="dlm_profile_kind"
+                                invisible="dlm_calc_kind != 'cut_length'"
+                            />
+                            <!-- Mặt cắt KHÔNG vào tiền. Nói thẳng ra để không ai
+                                 tưởng khai sai mặt cắt là báo giá sai. -->
+                            <div class="text-muted" colspan="2"
+                                invisible="dlm_calc_kind != 'cut_length'">
+                                <i class="fa fa-info-circle me-1" title="Ghi chú" />
+                                Mặt cắt <b>chỉ dùng để gợi ý khối lượng</b> —
+                                không tham gia tính tiền. Tiền = số cây × đơn giá
+                                nhà cung cấp.
+                            </div>
+                            <field
+                                name="dlm_spec_a"
+                                invisible="dlm_calc_kind != 'cut_length'"
+                            />
+                            <!-- Cạnh B chỉ hỏi khi mặt cắt có hai chiều khác nhau
+                                 (hộp 25×50). Vuông/tròn để trống. -->
+                            <field
+                                name="dlm_spec_b"
+                                invisible="dlm_calc_kind != 'cut_length' or dlm_profile_kind not in ('box', 'solid_sq')"
+                            />
+                            <!-- Thanh ĐẶC không có độ dày thành — ẩn hẳn thay vì
+                                 để ô trống khó hiểu. -->
+                            <field
+                                name="dlm_spec_t"
+                                invisible="dlm_calc_kind not in ('cut_length', 'sheet') or dlm_profile_kind in ('solid_bar', 'solid_sq')"
+                            />
+                            <field
+                                name="dlm_density"
+                                invisible="dlm_calc_kind not in ('cut_length', 'sheet')"
+                            />
+                            <!-- Khối lượng riêng + Độ dày ĐỔI VAI TRÒ theo đơn vị
+                                 mua: mua theo tấm/cây thì chỉ gợi ý, nhưng mua
+                                 theo kg thì vào THẲNG định mức (xem
+                                 dl_bom_line_mixin._dlm_auto_quantity, ca sheet ×
+                                 weight). Không nói rõ thì người dùng dễ suy từ
+                                 dòng "mặt cắt không vào tiền" ra kết luận sai. -->
+                            <div class="text-muted" colspan="2"
+                                invisible="dlm_calc_kind not in ('cut_length', 'sheet') or dlm_uom_group == 'weight'">
+                                Vật tư này mua theo đơn vị rời nên khối lượng riêng
+                                <b>chỉ để gợi ý</b>, không vào tiền.
+                            </div>
+                            <div class="text-muted" colspan="2"
+                                invisible="dlm_calc_kind != 'sheet' or dlm_uom_group != 'weight'">
+                                <i class="fa fa-exclamation-triangle me-1" title="Lưu ý" />
+                                Vật tư này mua theo <b>kg</b> ⇒ độ dày và khối lượng
+                                riêng <b>vào thẳng định mức</b>: định mức = diện tích
+                                × độ dày × khối lượng riêng. Khai sai là sai tiền.
+                            </div>
+                        </group>
+                        <!-- KHÔNG phải một ô chọn đơn vị nào cả — đây là các MẪU SỐ
+                             biến kích thước cắt thành đơn vị mua (và một hệ số quy
+                             ngược ra kg cho tiền phế liệu). -->
+                        <group
+                            string="Quy đổi sang đơn vị mua"
+                            invisible="dlm_calc_kind not in ('cut_length', 'sheet') and not dlm_has_recovery"
+                        >
+                            <!-- Chỉ hỏi mẫu số ĐÚNG với cách nhà cung cấp bán:
+                                 bán theo cây/tấm thì cần chiều dài cây/khổ tấm;
+                                 bán theo kg thì cần kg/m. Hỏi cả hai là bắt người
+                                 dùng đoán xem ô nào mới thật sự dùng. -->
+                            <field
+                                name="dlm_stock_length"
+                                invisible="dlm_calc_kind != 'cut_length' or dlm_uom_group != 'unit'"
+                            />
+                            <field
+                                name="dlm_sheet_w"
+                                invisible="dlm_calc_kind != 'sheet' or dlm_uom_group != 'unit'"
+                            />
+                            <field
+                                name="dlm_sheet_h"
+                                invisible="dlm_calc_kind != 'sheet' or dlm_uom_group != 'unit'"
+                            />
+                            <field
+                                name="dlm_mass_per_meter"
+                                invisible="dlm_calc_kind != 'cut_length' or dlm_uom_group != 'weight'"
+                            />
+                            <div
+                                class="text-muted"
+                                colspan="2"
+                                invisible="dlm_calc_kind != 'cut_length' or dlm_uom_group != 'weight' or not dlm_mass_per_meter_hint"
+                            >
+                                Theo quy cách thì khoảng <field
+                                    name="dlm_mass_per_meter_hint"
+                                    readonly="1"
+                                    nolabel="1"
+                                    class="oe_inline"
+                                /> kg/m — đây là số <b>barem</b>, thép thật thường
+                                nhẹ hơn 10–30%.
+                            </div>
+                            <field
+                                name="dlm_mass_per_unit"
+                                invisible="not dlm_has_recovery"
+                            />
+                            <div
+                                class="text-muted"
+                                colspan="2"
+                                invisible="not dlm_has_recovery or not dlm_mass_per_unit_hint"
+                            >
+                                Theo quy cách thì khoảng <field
+                                    name="dlm_mass_per_unit_hint"
+                                    readonly="1"
+                                    nolabel="1"
+                                    class="oe_inline"
+                                /> kg — dùng để quy lượng hao hụt sang kg khi tính
+                                tiền phế liệu thu hồi.
+                            </div>
+                        </group>
                     </group>
 
                     <group

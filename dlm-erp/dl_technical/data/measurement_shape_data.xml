@@ -3,10 +3,20 @@
     <data noupdate="1">
 
         <!-- ================================================================
+             😴 FILE NÀY ĐÃ NGỦ ĐÔNG — KHÔNG còn nằm trong __manifest__.py.
+
+             Từ 2026-08-09 (thiết kế §14), quy cách vật tư nằm trên chính vật tư
+             (dlm_calc_kind + dlm_profile_kind + a/b/t) và dòng BOM không tham
+             chiếu dl.measurement.* nữa. Giữ file để còn đường lui nếu sau này
+             cần công thức hình học tổng quát.
+
+             ⚠️ Muốn bật lại thì phải khôi phục trước các bản ghi
+             demo_meas_type_weight / demo_meas_type_area / demo_meas_shape_flat /
+             demo_meas_shape_square_tube ở dl_product/data/dl_demo_data.xml —
+             chúng đã bị gỡ, các ref bên dưới sẽ không resolve được.
+
              Bộ Rule (dl.measurement.type) + Shape (dl.measurement.shape) đầy
              đủ cho 13→17 công thức hard-code trong dl_bom_line_mixin.py.
-             "Khối lượng" và "Tấm phẳng"/"Ống vuông rỗng" TÁI SỬ DỤNG record đã
-             có sẵn ở dl_product (không tạo trùng) — chỉ thêm mới phần còn thiếu.
         ================================================================ -->
 
         <!-- Rule còn thiếu (Khối lượng + Diện tích đã có sẵn ở dl_product) -->
