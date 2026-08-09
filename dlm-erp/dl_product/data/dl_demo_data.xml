@@ -50,11 +50,9 @@
             <field name="uom_id" ref="dlm_uom_cuon" />
             <field name="uom_po_id" ref="dlm_uom_cuon" />
             <field name="dlm_calc_kind">sheet</field>
-            <field name="dlm_spec_t">2</field>
             <field name="dlm_sheet_w">1250</field>
             <field name="dlm_sheet_h">20000</field>
             <field name="dlm_mass_per_unit">392.5</field>
-            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">3.0</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">60.0</field>
@@ -71,12 +69,8 @@
             <field name="uom_id" ref="dlm_uom_cay" />
             <field name="uom_po_id" ref="dlm_uom_cay" />
             <field name="dlm_calc_kind">cut_length</field>
-            <field name="dlm_profile_kind">box</field>
-            <field name="dlm_spec_a">25</field>
-            <field name="dlm_spec_t">1.5</field>
             <field name="dlm_stock_length">6000</field>
             <field name="dlm_mass_per_unit">5.6</field>
-            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">4.5</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>

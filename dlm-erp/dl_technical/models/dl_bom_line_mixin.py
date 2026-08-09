@@ -171,7 +171,7 @@ class DlBomLineMixin(models.AbstractModel):
             if area_mm2 <= 0:
                 return None
             if group == "weight":                       # ĐVT kg
-                return area_mm2 * (mat.dlm_spec_t or 0.0) * 1e-9 * (mat.dlm_density or 0.0)
+                return area_mm2 * 1e-6 * (mat.dlm_mass_per_sqm or 0.0)
             if group == "surface":                      # ĐVT m²
                 return area_mm2 * 1e-6
             if mat.dlm_sheet_w and mat.dlm_sheet_h:     # ĐVT tấm
