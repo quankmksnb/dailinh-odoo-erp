@@ -265,14 +265,19 @@
 
                     <!-- Quy cách nằm ở ĐÂY, không gõ lại mỗi dòng BOM: một vật
                          tư = một quy cách + một đơn vị mua. Kiểu tính quyết định
-                         dòng BOM hỏi gì và định mức quy ra đơn vị nào. -->
+                         dòng BOM hỏi gì và định mức quy ra đơn vị nào.
+
+                         KHÔNG đặt string cho group NGOÀI: tiêu đề group ngoài
+                         chiếm trọn một dòng, làm tiêu đề cột phải tụt xuống thấp
+                         hơn ô đầu tiên của cột trái (separator mang mt-4). Đặt
+                         tiêu đề cho CẢ HAI group trong thì hai đầu cột canh
+                         thẳng nhau — đúng khuôn "Phân loại / Đơn vị tính" ở trên. -->
                     <group
                         name="group_physical_info"
-                        string="Quy cách &amp; cách tính định mức"
                         invisible="product_kind not in ('material', 'material_processed')"
                     >
                         <field name="dlm_uom_group" invisible="1" />
-                        <group>
+                        <group string="Cách tính định mức">
                             <field name="dlm_calc_kind" />
                             <!-- Giải thích ngay tại chỗ chọn: mỗi kiểu tính đổi
                                  hẳn việc dòng định mức hỏi gì. Nói bằng đúng câu
@@ -280,14 +285,16 @@
                             <div class="text-muted" colspan="2"
                                 invisible="dlm_calc_kind != 'cut_length'">
                                 Dòng định mức sẽ hỏi <b>Chiều dài đoạn</b> ×
-                                <b>Số đoạn</b>, rồi chia cho chiều dài cây →
-                                ra <b>số cây</b>. <br />Thanh · ống · hộp · thép cây.
+                                <b>Số đoạn</b> (theo <b>mm</b> trên bản vẽ), rồi
+                                chia cho chiều dài cây → ra <b>số cây</b>.
+                                <br />Thanh · ống · hộp · thép cây.
                             </div>
                             <div class="text-muted" colspan="2"
                                 invisible="dlm_calc_kind != 'sheet'">
                                 Dòng định mức sẽ hỏi <b>Dài × Rộng</b> và
-                                <b>Số tấm</b>, rồi chia cho khổ tấm → ra
-                                <b>số tấm</b>. <br />Tôn · lưới · alu · tấm nhựa.
+                                <b>Số tấm</b> (theo <b>mm</b> trên bản vẽ), rồi
+                                chia cho khổ tấm → ra <b>số tấm</b>.
+                                <br />Tôn · lưới · alu · tấm nhựa.
                             </div>
                             <div class="text-muted" colspan="2"
                                 invisible="dlm_calc_kind != 'count'">
@@ -319,6 +326,8 @@
                                 Một <b>cây</b> dài bao nhiêu, một <b>tấm</b> khổ bao
                                 nhiêu, nặng bao nhiêu — hệ thống lấy đây làm mẫu số
                                 để biến kích thước cắt thành số cây / số tấm.
+                                <br />Khai theo <b>mét</b> (cây 6 m, tôn khổ
+                                1,25 × 2,5 m); kích thước cắt vẫn nhập <b>mm</b>.
                             </div>
                             <field
                                 name="dlm_stock_length"

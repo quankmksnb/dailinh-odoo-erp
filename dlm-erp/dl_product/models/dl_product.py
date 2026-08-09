@@ -596,21 +596,26 @@ class ProductProduct(models.Model):
              "• Định lượng — chỉ hỏi Số lượng theo kg/lít, kỹ thuật tự ước "
              "lượng (sơn · que hàn).\n"
              "Tự gợi ý theo Đơn vị tính khi tạo vật tư, sửa lại được.")
+    # ĐƠN VỊ: quy cách MUA khai bằng MÉT (đây là số người ta nói ra miệng —
+    # "cây 6 mét", "tôn khổ 1m2 × 2m4"), còn kích thước CẮT ở dòng định mức giữ
+    # MILIMÉT (số trên bản vẽ). Chỗ quy đổi giữa hai đơn vị nằm DUY NHẤT ở
+    # dl_technical/models/dl_bom_line_mixin.py::_dlm_auto_quantity.
     dlm_stock_length = fields.Float(
-        string="Chiều dài cây (mm)", digits=(16, 1), default=6000.0,
-        help="Chiều dài MỘT CÂY khi mua — thép hình thường 6000mm.\n"
-             "Đây là mẫu số biến đoạn cắt thành số cây: cắt 700mm × 2 đoạn "
-             "= 1400mm ÷ 6000 = 0,2333 cây.")
+        string="Chiều dài cây (m)", digits=(16, 3), default=6.0,
+        help="Chiều dài MỘT CÂY khi mua, tính bằng MÉT — thép hình thường 6 m.\n"
+             "Đây là mẫu số biến đoạn cắt thành số cây: cắt 700 mm × 2 đoạn "
+             "= 1,4 m ÷ 6 m = 0,2333 cây.")
     dlm_sheet_w = fields.Float(
-        string="Khổ tấm — rộng (mm)", digits=(16, 1),
-        help="Bề rộng một tấm khi mua (tôn CT3 thường 1250 hoặc 1500).")
+        string="Khổ tấm — rộng (m)", digits=(16, 3),
+        help="Bề rộng một tấm khi mua, tính bằng MÉT (tôn CT3 thường 1,25 "
+             "hoặc 1,5 m).")
     dlm_sheet_h = fields.Float(
-        string="Khổ tấm — dài (mm)", digits=(16, 1),
-        help="Chiều dài một tấm khi mua (thường 2500 hoặc 6000). Cùng với bề "
-             "rộng, đây là mẫu số biến miếng cắt thành số tấm: 1200×500 trên "
-             "khổ 1250×2500 = 0,192 tấm.")
+        string="Khổ tấm — dài (m)", digits=(16, 3),
+        help="Chiều dài một tấm khi mua, tính bằng MÉT (thường 2,5 hoặc 6 m). "
+             "Cùng với bề rộng, đây là mẫu số biến miếng cắt thành số tấm: "
+             "miếng 1200×500 mm trên khổ 1,25×2,5 m = 0,192 tấm.")
     dlm_mass_per_unit = fields.Float(
-        string="Khối lượng mỗi đơn vị (kg)", digits=(16, 3),
+        string="Khối lượng (kg)", digits=(16, 3),
         help="Số kg CÂN THẬT của 1 cây / 1 tấm — lấy theo chứng từ nhà cung cấp, "
              "đừng tính từ kích thước danh nghĩa.\n"
              "Hai việc cần tới nó: (1) quy lượng hao hụt sang kg để tính tiền phế "
@@ -703,7 +708,7 @@ class ProductProduct(models.Model):
         # Vật tư mua theo kg: hao hụt đã là kg, không cần khai quy đổi.
         if (self.dlm_has_recovery and not self.dlm_mass_per_unit
                 and group != "weight"):
-            miss.append("Khối lượng mỗi đơn vị (cần cho thu hồi phế liệu)")
+            miss.append("Khối lượng (cần cho thu hồi phế liệu)")
         return miss
 
     @api.depends("product_kind", "dlm_calc_kind", "uom_id",

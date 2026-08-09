@@ -56,6 +56,10 @@ class DlBomLineMixin(models.AbstractModel):
     # ── Kích thước cắt (mm) ──────────────────────────────────────────────
     # Chỉ còn 2 ô: mặt cắt (cạnh/đường kính/độ dày) nay là quy cách của VẬT TƯ,
     # không gõ lại mỗi dòng nữa — đó là cách xoá hẳn lỗi nhập nhầm mặt cắt.
+    #
+    # Cố ý giữ MILIMÉT: đây là số đọc thẳng từ bản vẽ (650 · 940 · 1200), gõ
+    # 0,65 m thay cho 650 mm chỉ tạo thêm cơ hội lệch dấu phẩy. Quy cách MUA
+    # trên vật tư thì ngược lại, khai theo MÉT — xem _dlm_auto_quantity.
     dim_length = fields.Float(string="Chiều dài đoạn (mm)", digits=(16, 3))
     dim_width = fields.Float(string="Chiều rộng (mm)", digits=(16, 3))
     piece_count = fields.Integer(
@@ -158,24 +162,26 @@ class DlBomLineMixin(models.AbstractModel):
             total_mm = (self.dim_length or 0.0) * n
             if total_mm <= 0:
                 return None
+            total_m = total_mm / 1000.0        # mm (bản vẽ) → m (quy cách mua)
             if group == "weight":                       # ĐVT kg
-                return total_mm / 1000.0 * (mat.dlm_mass_per_meter or 0.0)
+                return total_m * (mat.dlm_mass_per_meter or 0.0)
             if group == "length":                       # ĐVT mét
-                return total_mm / 1000.0
-            if mat.dlm_stock_length:                    # ĐVT cây
-                return total_mm / mat.dlm_stock_length
+                return total_m
+            if mat.dlm_stock_length:                    # ĐVT cây — cây khai theo m
+                return total_m / mat.dlm_stock_length
             return None
 
         if kind == "sheet":
             area_mm2 = (self.dim_length or 0.0) * (self.dim_width or 0.0) * n
             if area_mm2 <= 0:
                 return None
+            area_m2 = area_mm2 * 1e-6         # mm² (bản vẽ) → m² (quy cách mua)
             if group == "weight":                       # ĐVT kg
-                return area_mm2 * 1e-6 * (mat.dlm_mass_per_sqm or 0.0)
+                return area_m2 * (mat.dlm_mass_per_sqm or 0.0)
             if group == "surface":                      # ĐVT m²
-                return area_mm2 * 1e-6
-            if mat.dlm_sheet_w and mat.dlm_sheet_h:     # ĐVT tấm
-                return area_mm2 / (mat.dlm_sheet_w * mat.dlm_sheet_h)
+                return area_m2
+            if mat.dlm_sheet_w and mat.dlm_sheet_h:     # ĐVT tấm — khổ khai theo m
+                return area_m2 / (mat.dlm_sheet_w * mat.dlm_sheet_h)
             return None
 
         return None                 # count · bulk ⇒ nhập thẳng `quantity`
