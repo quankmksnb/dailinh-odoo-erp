@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Toàn bộ nghiệp vụ Phase 1 sử dụng VND. Chỉ đổi tiền tệ vận hành,
-         không thay đổi tên hay các thông tin pháp lý của công ty. -->
-    <record id="base.VND" model="res.currency">
-        <field name="active" eval="True"/>
-    </record>
-    <record id="base.main_company" model="res.company">
-        <field name="currency_id" ref="base.VND"/>
-    </record>
+         không thay đổi tên hay các thông tin pháp lý của công ty.
+
+         Dùng <function> chứ KHÔNG dùng <record>: base.main_company và base.VND
+         đều có ir.model.data.noupdate = True nên <record> trỏ vào chúng bị bỏ
+         qua ở chế độ update — chỉ chạy đúng lần cài đầu, rồi cài account là mất
+         (account đặt lại tiền tệ theo hệ thống tài khoản mặc định, USD).
+         <function> chạy ở CẢ init lẫn update nên mỗi `-u dl_base` là một lần
+         tự chữa. -->
+    <function model="res.company" name="_dlm_enforce_vnd"/>
 </odoo>

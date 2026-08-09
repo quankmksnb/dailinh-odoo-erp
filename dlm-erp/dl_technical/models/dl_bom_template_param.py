@@ -2,16 +2,18 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 
-# Các ô kích thước của một dòng vật tư mà tham số sản phẩm có thể ánh xạ vào.
-# Trùng tên field kích thước cứng trên dl.bom.line.mixin + "quantity" (số lượng
-# cố định theo tham số, vd số nan = tham số N).
+# Các ô của một dòng vật tư mà tham số sản phẩm có thể ánh xạ vào.
+# Trùng tên field trên dl.bom.line.mixin + "quantity" (số lượng cố định theo
+# tham số, vd số nan = tham số N).
+#
+# Mặt cắt (độ dày / cạnh / đường kính) ĐÃ RỜI sang quy cách của VẬT TƯ nên
+# không còn là đích ánh xạ — xem thiết kế §15.1. Chi tiết cần nhiều đoạn cắt
+# (vd "khung bao = 2×(D+R)") nay diễn đạt bằng 2 DÒNG, mỗi dòng một chiều —
+# vừa đúng bản chất, vừa ra cut list thật cho xưởng (§15.2).
 _TARGET_FIELDS = [
-    ("dim_length", "Chiều dài (mm)"),
+    ("dim_length", "Chiều dài đoạn (mm)"),
     ("dim_width", "Chiều rộng (mm)"),
-    ("dim_thickness", "Độ dày (mm)"),
-    ("dim_side", "Cạnh ngoài (mm)"),
-    ("dim_diameter", "Đường kính ngoài (mm)"),
-    ("dim_height", "Chiều cao (mm)"),
+    ("piece_count", "Số đoạn"),
     ("quantity", "Số lượng"),
 ]
 

@@ -7,3 +7,4 @@ from . import test_parametric_generator
 from . import test_bom_btp_linkage
 from . import test_cron_cleanup_rfq_provisional
 from . import test_cost_field_visibility_security
+from . import test_material_calc_kind

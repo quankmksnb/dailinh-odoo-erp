@@ -3,8 +3,8 @@ from odoo.exceptions import UserError
 
 
 class DlBomFromTemplateWizard(models.TransientModel):
-    """Product BOM — "Create From BOM Template": chọn 1 BOM mẫu rồi copy toàn
-    bộ dòng (Material/Rule/Shape/Formula/Waste/Quantity) sang BOM đang tạo,
+    """Product BOM — "Tạo từ BOM mẫu": chọn 1 BOM mẫu rồi copy toàn bộ dòng
+    (vật tư, kích thước cắt, số đoạn, số lượng, hao hụt) sang BOM đang tạo,
     vẫn chỉnh sửa tiếp được sau khi copy."""
 
     _name = "dl.bom.from.template.wizard"

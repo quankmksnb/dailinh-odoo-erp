@@ -50,7 +50,7 @@
                     <field name="auto_selected" invisible="1"/>
                     <field name="has_parametric_template" invisible="1"/>
                     <field name="show_param_panel" invisible="1"/>
-                    <field name="param_from_note" invisible="1"/>
+                    <field name="param_reused_bom" invisible="1"/>
 
                     <!-- Banner dữ liệu tạm / chờ bổ sung (toàn bề ngang). -->
                     <div class="alert alert-warning" role="status"
@@ -244,9 +244,31 @@
                                         </div>
                                     </div>
 
+                                    <!-- Nhóm có mẫu tham số: khác kích thước KHÔNG phải
+                                         lý do đẻ mã sản phẩm mới. Cảnh báo + bắt tick,
+                                         và hạ nút tạo xuống thứ cấp. -->
+                                    <div class="alert alert-warning" colspan="2" role="alert"
+                                         invisible="not has_parametric_template">
+                                        <i class="fa fa-magic me-1" title="Có mẫu tham số"/>
+                                        Nhóm này có <b>mẫu tham số</b>: các kích thước khác nhau
+                                        <b>dùng chung một sản phẩm</b>, chỉ định mức là riêng cho
+                                        từng đơn. Chỉ tạo sản phẩm mới khi <b>khác kết cấu</b>
+                                        (thêm/bớt bộ phận), không phải khi khác cỡ.
+                                        <div class="mt-2">
+                                            <field name="confirm_not_just_size"
+                                                   class="d-inline-block me-1"/>
+                                            <label for="confirm_not_just_size"
+                                                   string="Đây là sản phẩm khác kết cấu, không phải chỉ khác kích thước"
+                                                   class="fw-normal"/>
+                                        </div>
+                                    </div>
+
                                     <button name="action_create_product" type="object"
                                             string="Tạo sản phẩm" class="btn-primary"
-                                            invisible="name_dup_state == 'exact'"/>
+                                            invisible="name_dup_state == 'exact' or has_parametric_template"/>
+                                    <button name="action_create_product" type="object"
+                                            string="Tạo sản phẩm" class="btn-secondary"
+                                            invisible="name_dup_state == 'exact' or not has_parametric_template"/>
                                 </group>
                             </div>
 
@@ -303,8 +325,10 @@
                                        class="dl-rfq-bom-preview">
                                     <tree>
                                         <field name="material_id"/>
-                                        <field name="measurement_shape_id"/>
+                                        <field name="dim_length" string="Dài đoạn (mm)"/>
+                                        <field name="piece_count"/>
                                         <field name="quantity"/>
+                                        <field name="uom_id" string="ĐVT"/>
                                         <field name="waste_rate"/>
                                         <field name="effective_qty"/>
                                     </tree>
@@ -328,6 +352,16 @@
                                 <p class="text-muted mb-2" invisible="not has_any_bom">
                                     Chọn một định mức đã có của sản phẩm hoặc tạo định mức mới cho yêu cầu này.
                                 </p>
+
+                                <!-- RES-028 — cấu hình này đã từng chốt: dùng lại định
+                                     mức cũ thay vì đẻ thêm bản trùng nội dung. -->
+                                <div class="alert alert-success py-2" role="status"
+                                     invisible="not param_reused_bom">
+                                    <i class="fa fa-recycle me-1" title="Dùng lại"/>
+                                    <b>Dùng lại định mức đã chốt</b> cho đúng cấu hình này —
+                                    hệ thống không sinh bản mới. Giá vẫn được tính lại theo
+                                    giá vật tư hiện hành khi lập báo giá.
+                                </div>
 
                                 <!-- Đợt 4 — Sinh định mức từ BOM mẫu tham số: nhập D/R/C
                                      MỘT LẦN, hệ thống tự suy kích thước từng dòng vật tư
@@ -356,13 +390,12 @@
                                             <field name="name" readonly="1"/>
                                             <field name="value"/>
                                             <field name="range_hint" readonly="1"/>
-                                            <field name="from_note" readonly="1"
-                                                   string="Đọc từ mô tả" widget="boolean"/>
                                         </tree>
                                     </field>
-                                    <div class="text-muted small mt-1" invisible="not param_from_note">
-                                        <i class="fa fa-info-circle me-1"/>Một số giá trị được đọc
-                                        từ mô tả Sales — kiểm tra lại trước khi sinh.
+                                    <div class="text-muted small mt-1">
+                                        <i class="fa fa-info-circle me-1"/>Nhập kích thước theo
+                                        <b>yêu cầu / bản vẽ</b> của đơn này — hệ thống không tự
+                                        đọc số từ mô tả và không điền sẵn số nào.
                                     </div>
                                     <div class="mt-2">
                                         <button name="action_generate_instance" type="object"
@@ -377,6 +410,10 @@
                                         <field name="name"/>
                                         <field name="bom_type" widget="badge"/>
                                         <field name="version" string="Bản #"/>
+                                        <!-- Định mức của SP dùng chung chỉ khác nhau ở CỠ —
+                                             thiếu cột này thì bảng chỉ là "Bản #2 / Bản #3",
+                                             không có cách nào biết bản nào là cỡ nào. -->
+                                        <field name="param_display" string="Tham số"/>
                                         <field name="status" widget="badge"/>
                                         <field name="create_date" string="Ngày tạo"/>
                                         <button name="action_open_form" type="object"

@@ -6,13 +6,28 @@
          "Vật tư" và bảng Hao hụt của "Cấu hình Báo giá": SỬA Ở BẤT KỲ
          MÀN NÀO CŨNG LÀ CÙNG MỘT DỮ LIỆU (các field dlm_*).
 
+         🔑 QUY TẮC ĐƠN VỊ (§10.5 Q1 — chốt 2026-08-09):
+             uom_id = ĐÚNG đơn vị nhà cung cấp bán  ·  giá = đ trên đơn vị đó.
+         Bằng chứng từ sổ mua hàng thật: "Thép hộp 14 | cây | 40.000đ",
+         "ống D114×3,96 | cây | 2.110.000đ", "Vít cá | túi | 60.000đ".
+         Vì vậy thép hộp/ống ở đây mua theo CÂY (6m) chứ KHÔNG theo kg —
+         định mức của dòng BOM cũng ra số cây, khối lượng không vào giá.
+
+         Quy cách (a/b/t · chiều dài cây · khổ tấm) khai MỘT LẦN ở đây,
+         kỹ thuật không gõ lại mỗi dòng BOM nữa.
+
+         ⚠️ Khối lượng mỗi cây (dlm_mass_per_unit) là số THỰC TẾ cân được,
+         thấp hơn số tính từ kích thước danh nghĩa 10–30% (§2.3). Nó CHỈ
+         dùng để quy lượng hao hụt sang kg khi tính tiền phế liệu thu hồi,
+         không tham gia tính giá vốn.
+
          noupdate="1": seed một lần khi cài/-u, sau đó cho phép sửa tự do
          (config linh động) mà lần -u sau KHÔNG ghi đè giá trị đã chỉnh.
     ============================================================ -->
     <data noupdate="1">
 
         <!-- Sản phẩm phế liệu: đơn giá thu hồi lấy từ list_price của nó.
-             Recovery của vật tư bên dưới trỏ về đây. -->
+             Recovery của vật tư bên dưới trỏ về đây. Bán theo kg. -->
         <record id="seed_scrap_steel" model="product.product">
             <field name="name">Phế liệu thép (thu hồi)</field>
             <field name="default_code">SCRAP-STEEL</field>
@@ -21,59 +36,174 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_calc_kind">bulk</field>
             <field name="list_price">8000</field>
         </record>
 
-        <!-- ============ THÉP TẤM (cắt CNC/plasma — hao hụt cao, thu hồi tốt) ============ -->
-        <record id="seed_mat_tt_ct3_2" model="product.product">
-            <field name="name">Thép tấm CT3 dày 2mm (1250×2500)</field>
-            <field name="default_code">VT-TT-CT3-2</field>
+        <!-- ============================================================
+             THÉP HỘP — mua theo CÂY 6m. Định mức = (dài đoạn × số đoạn) ÷ 6000.
+        ============================================================ -->
+        <record id="seed_mat_th_14" model="product.product">
+            <field name="name">Thép hộp mạ kẽm 14×14×0.6mm</field>
+            <field name="default_code">VT-TH-14</field>
             <field name="product_kind">material</field>
-            <field name="categ_id" ref="material_categ_steel_sheet" />
+            <field name="categ_id" ref="material_categ_steel_box" />
             <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
-            <field name="dlm_waste_rate">7.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">65.0</field>
-            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
-        </record>
-        <record id="seed_mat_tt_ct3_5" model="product.product">
-            <field name="name">Thép tấm CT3 dày 5mm (1500×6000)</field>
-            <field name="default_code">VT-TT-CT3-5</field>
-            <field name="product_kind">material</field>
-            <field name="categ_id" ref="material_categ_steel_sheet" />
-            <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
-            <field name="dlm_waste_rate">5.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">65.0</field>
-            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
-        </record>
-        <record id="seed_mat_tt_ss400_10" model="product.product">
-            <field name="name">Thép tấm SS400 dày 10mm</field>
-            <field name="default_code">VT-TT-SS400-10</field>
-            <field name="product_kind">material</field>
-            <field name="categ_id" ref="material_categ_steel_sheet" />
-            <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">14</field>
+            <field name="dlm_spec_t">0.6</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">1.35</field>
+            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">4.0</field>
             <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">60.0</field>
+            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
-
-        <!-- ============ THÉP HỘP (cắt theo cây — hao hụt đầu mẩu) ============ -->
+        <record id="seed_mat_th_20" model="product.product">
+            <field name="name">Thép hộp mạ kẽm 20×20×0.8mm</field>
+            <field name="default_code">VT-TH-20</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_box" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">20</field>
+            <field name="dlm_spec_t">0.8</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">2.55</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">4.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_th_20x40" model="product.product">
+            <field name="name">Thép hộp chữ nhật 20×40×1.0mm</field>
+            <field name="default_code">VT-TH-20X40</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_box" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">20</field>
+            <field name="dlm_spec_b">40</field>
+            <field name="dlm_spec_t">1.0</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">4.9</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">4.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_th_25" model="product.product">
+            <field name="name">Thép hộp vuông 25×25×1.0mm</field>
+            <field name="default_code">VT-TH-25</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_box" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">25</field>
+            <field name="dlm_spec_t">1.0</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">4.05</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">4.5</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <!-- Ca kiểm chứng T1 của thiết kế: hộp CHỮ NHẬT b ≠ a. -->
+        <record id="seed_mat_th_25x50" model="product.product">
+            <field name="name">Thép hộp chữ nhật 25×50×1.4mm</field>
+            <field name="default_code">VT-TH-25X50</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_box" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">25</field>
+            <field name="dlm_spec_b">50</field>
+            <field name="dlm_spec_t">1.4</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">8.5</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">4.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_th_30" model="product.product">
+            <field name="name">Thép hộp vuông 30×30×1.2mm</field>
+            <field name="default_code">VT-TH-30</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_box" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">30</field>
+            <field name="dlm_spec_t">1.2</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">5.8</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">4.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <!-- 10.16 kg/cây là số CÂN THẬT từ chứng từ Hiệp Việt Hưng
+             (120 cây = 1219 kg), thấp hơn số hình học 11.5 kg khoảng 12%. -->
+        <record id="seed_mat_th_30x60" model="product.product">
+            <field name="name">Thép hộp chữ nhật 30×60×1.4mm</field>
+            <field name="default_code">VT-TH-30X60</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_box" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">30</field>
+            <field name="dlm_spec_b">60</field>
+            <field name="dlm_spec_t">1.4</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">10.16</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">3.5</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
         <record id="seed_mat_th_40" model="product.product">
             <field name="name">Thép hộp mạ kẽm 40×40×1.8mm</field>
             <field name="default_code">VT-TH-40</field>
             <field name="product_kind">material</field>
             <field name="categ_id" ref="material_categ_steel_box" />
             <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">40</field>
+            <field name="dlm_spec_t">1.8</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">11.6</field>
+            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">4.0</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
@@ -85,8 +215,15 @@
             <field name="product_kind">material</field>
             <field name="categ_id" ref="material_categ_steel_box" />
             <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">50</field>
+            <field name="dlm_spec_t">2.0</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">16.2</field>
+            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">4.0</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
@@ -98,23 +235,40 @@
             <field name="product_kind">material</field>
             <field name="categ_id" ref="material_categ_steel_box" />
             <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">100</field>
+            <field name="dlm_spec_b">50</field>
+            <field name="dlm_spec_t">2.5</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">30.5</field>
+            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">3.5</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
 
-        <!-- ============ THÉP ỐNG ============ -->
+        <!-- ============================================================
+             THÉP ỐNG TRÒN — cũng mua theo CÂY 6m.
+        ============================================================ -->
         <record id="seed_mat_to_34" model="product.product">
             <field name="name">Thép ống tròn Ø34×1.8mm</field>
             <field name="default_code">VT-TO-34</field>
             <field name="product_kind">material</field>
             <field name="categ_id" ref="material_categ_steel_pipe" />
             <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">round_tube</field>
+            <field name="dlm_spec_a">34</field>
+            <field name="dlm_spec_t">1.8</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">7.7</field>
+            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">4.5</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
@@ -126,15 +280,161 @@
             <field name="product_kind">material</field>
             <field name="categ_id" ref="material_categ_steel_pipe" />
             <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">round_tube</field>
+            <field name="dlm_spec_a">49</field>
+            <field name="dlm_spec_t">2.0</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">12.5</field>
+            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">4.5</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
+        <record id="seed_mat_to_76" model="product.product">
+            <field name="name">Thép ống tròn D76×2.0mm</field>
+            <field name="default_code">VT-TO-76</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_pipe" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">round_tube</field>
+            <field name="dlm_spec_a">76</field>
+            <field name="dlm_spec_t">2.0</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">19.7</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">4.5</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_to_90" model="product.product">
+            <field name="name">Thép ống tròn D90×2.5mm</field>
+            <field name="default_code">VT-TO-90</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_pipe" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">round_tube</field>
+            <field name="dlm_spec_a">90</field>
+            <field name="dlm_spec_t">2.5</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">29.1</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">4.5</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_to_114" model="product.product">
+            <field name="name">Thép ống tròn D114×3.96mm</field>
+            <field name="default_code">VT-TO-114</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_pipe" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">round_tube</field>
+            <field name="dlm_spec_a">114</field>
+            <field name="dlm_spec_t">3.96</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">58.0</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">4.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">55.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
 
-        <!-- ============ SƠN (bay hơi/overspray — KHÔNG thu hồi) ============ -->
+        <!-- ============================================================
+             TÔN / THÉP TẤM — mua theo TẤM. Định mức = (dài × rộng × số tấm)
+             ÷ khổ tấm. Khổ khai ngay dưới đây, kỹ thuật chỉ nhập kích thước cắt.
+        ============================================================ -->
+        <record id="seed_mat_tt_ct3_2" model="product.product">
+            <field name="name">Thép tấm CT3 dày 2mm (1250×2500)</field>
+            <field name="default_code">VT-TT-CT3-2</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_sheet" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_tam" />
+            <field name="uom_po_id" ref="dlm_uom_tam" />
+            <field name="dlm_calc_kind">sheet</field>
+            <field name="dlm_spec_t">2</field>
+            <field name="dlm_sheet_w">1250</field>
+            <field name="dlm_sheet_h">2500</field>
+            <field name="dlm_mass_per_unit">49.06</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">7.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">65.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_tt_ct3_5" model="product.product">
+            <field name="name">Thép tấm CT3 dày 5mm (1500×6000)</field>
+            <field name="default_code">VT-TT-CT3-5</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_sheet" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_tam" />
+            <field name="uom_po_id" ref="dlm_uom_tam" />
+            <field name="dlm_calc_kind">sheet</field>
+            <field name="dlm_spec_t">5</field>
+            <field name="dlm_sheet_w">1500</field>
+            <field name="dlm_sheet_h">6000</field>
+            <field name="dlm_mass_per_unit">353.25</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">5.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">65.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <record id="seed_mat_tt_ss400_10" model="product.product">
+            <field name="name">Thép tấm SS400 dày 10mm (1500×6000)</field>
+            <field name="default_code">VT-TT-SS400-10</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_sheet" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_tam" />
+            <field name="uom_po_id" ref="dlm_uom_tam" />
+            <field name="dlm_calc_kind">sheet</field>
+            <field name="dlm_spec_t">10</field>
+            <field name="dlm_sheet_w">1500</field>
+            <field name="dlm_sheet_h">6000</field>
+            <field name="dlm_mass_per_unit">706.5</field>
+            <field name="dlm_density">7850</field>
+            <field name="dlm_waste_rate">4.0</field>
+            <field name="dlm_has_recovery">1</field>
+            <field name="dlm_recovery_rate">60.0</field>
+            <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
+        </record>
+        <!-- Lưới cũng là "tấm", chỉ khác đơn vị mua: khổ = một CUỘN trải ra. -->
+        <record id="seed_mat_luoi_b40" model="product.product">
+            <field name="name">Lưới thép B40 (khổ 1m × cuộn 20m)</field>
+            <field name="default_code">VT-LUOI-B40</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_steel_sheet" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_cuon" />
+            <field name="uom_po_id" ref="dlm_uom_cuon" />
+            <field name="dlm_calc_kind">sheet</field>
+            <field name="dlm_sheet_w">1000</field>
+            <field name="dlm_sheet_h">20000</field>
+            <field name="dlm_waste_rate">6.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+
+        <!-- ============================================================
+             SƠN — định lượng, kỹ thuật nhập thẳng số kg/lít.
+        ============================================================ -->
         <record id="seed_mat_son_td" model="product.product">
             <field name="name">Sơn tĩnh điện dạng bột RAL9005</field>
             <field name="default_code">VT-SON-TD</field>
@@ -143,6 +443,7 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_calc_kind">bulk</field>
             <field name="dlm_waste_rate">12.0</field>
             <field name="dlm_has_recovery">0</field>
         </record>
@@ -154,11 +455,14 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_litre" />
             <field name="uom_po_id" ref="uom.product_uom_litre" />
+            <field name="dlm_calc_kind">bulk</field>
             <field name="dlm_waste_rate">10.0</field>
             <field name="dlm_has_recovery">0</field>
         </record>
 
-        <!-- ============ VẬT TƯ TIÊU HAO ============ -->
+        <!-- ============================================================
+             VẬT TƯ TIÊU HAO & PHỤ KIỆN — đếm/định lượng theo đơn vị mua.
+        ============================================================ -->
         <record id="seed_mat_quehan_25" model="product.product">
             <field name="name">Que hàn thép 2.5mm</field>
             <field name="default_code">VT-QUEHAN-25</field>
@@ -167,6 +471,7 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_kgm" />
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="dlm_calc_kind">bulk</field>
             <field name="dlm_waste_rate">5.0</field>
             <field name="dlm_has_recovery">0</field>
         </record>
@@ -178,7 +483,69 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="uom_po_id" ref="uom.product_uom_unit" />
+            <field name="dlm_calc_kind">count</field>
             <field name="dlm_waste_rate">0.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+        <record id="seed_mat_banle" model="product.product">
+            <field name="name">Bản lề lá 3 inch</field>
+            <field name="default_code">VT-BANLE-3</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_consumable" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_po_id" ref="uom.product_uom_unit" />
+            <field name="dlm_calc_kind">count</field>
+            <field name="dlm_waste_rate">0.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+        <record id="seed_mat_taynam" model="product.product">
+            <field name="name">Tay nắm cửa inox</field>
+            <field name="default_code">VT-TAYNAM-INOX</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_consumable" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_po_id" ref="uom.product_uom_unit" />
+            <field name="dlm_calc_kind">count</field>
+            <field name="dlm_waste_rate">0.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+        <record id="seed_mat_ocvit_m8" model="product.product">
+            <field name="name">Bu lông lục giác M8×40 (kèm ê cu)</field>
+            <field name="default_code">VT-OCVIT-M8</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_consumable" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit" />
+            <field name="uom_po_id" ref="uom.product_uom_unit" />
+            <field name="dlm_calc_kind">count</field>
+            <field name="dlm_waste_rate">1.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+        <!-- Vít/đinh rút bán theo TÚI (sổ mua hàng thật: "Vít cá | túi | 60.000đ") -->
+        <record id="seed_mat_vit_ca" model="product.product">
+            <field name="name">Vít cá 4.2×19 (túi 500 con)</field>
+            <field name="default_code">VT-VIT-CA</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_consumable" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_tui" />
+            <field name="uom_po_id" ref="dlm_uom_tui" />
+            <field name="dlm_calc_kind">count</field>
+            <field name="dlm_waste_rate">2.0</field>
+            <field name="dlm_has_recovery">0</field>
+        </record>
+        <record id="seed_mat_dinh_rut" model="product.product">
+            <field name="name">Đinh rút nhôm 4×10 (túi 1000 con)</field>
+            <field name="default_code">VT-DINHRUT-4</field>
+            <field name="product_kind">material</field>
+            <field name="categ_id" ref="material_categ_consumable" />
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="dlm_uom_tui" />
+            <field name="uom_po_id" ref="dlm_uom_tui" />
+            <field name="dlm_calc_kind">count</field>
+            <field name="dlm_waste_rate">2.0</field>
             <field name="dlm_has_recovery">0</field>
         </record>
 

@@ -94,6 +94,15 @@ class DlProductTechnical(models.Model):
         string="Danh sách BOM",
         compute="_compute_bom_ids",
     )
+    # Tách hai TRỤC khác nhau để người đọc không tưởng chúng cùng một dòng dõi:
+    # định mức chuẩn nối tiếp nhau theo thời gian (một bản hiện hành), định mức
+    # theo đơn tồn tại song song (mỗi cấu hình một bản).
+    standard_bom_ids = fields.One2many(
+        "dl.bom", "product_id", string="Định mức chuẩn",
+        compute="_compute_bom_ids")
+    instance_bom_ids = fields.One2many(
+        "dl.bom", "product_id", string="Định mức theo đơn",
+        compute="_compute_bom_ids")
 
     @api.depends("product_kind")
     def _compute_bom_ids(self):
@@ -107,11 +116,33 @@ class DlProductTechnical(models.Model):
             else self.env["dl.bom"]
         )
         for product in self:
-            product.bom_ids = boms.filtered(
+            visible = boms.filtered(
                 lambda b: b.product_id.id == product.id
                 and (not b.is_rfq_provisional
                      or (product.is_rfq_provisional
                          and b.rfq_source_line_id == product.rfq_source_line_id)))
+            product.bom_ids = visible
+            product.standard_bom_ids = visible.filtered(
+                lambda b: b.bom_type == "template")
+            product.instance_bom_ids = visible.filtered(
+                lambda b: b.bom_type == "quotation")
+
+    def _dlm_is_parametric_generic(self):
+        """SP này có phải SẢN PHẨM DÙNG CHUNG của một mẫu tham số không?
+
+        Hai hệ quả, đều là "đừng tự quyết hộ" ở workspace xử lý RFQ:
+          • KHÔNG tự gán làm sản phẩm của dòng — điểm nó nhận là điểm "thuộc họ",
+            tức tín hiệu về HỌ chứ không phải về món cụ thể; mọi cỡ trong họ đều
+            khớp như nhau.
+          • KHÔNG tự chọn định mức — định mức của nó là INSTANCE, mỗi bản một cỡ
+            và tồn tại SONG SONG, nên không bản nào là "mặc định".
+        """
+        self.ensure_one()
+        return bool(self.env["dl.bom.template"].search_count([
+            ("generic_product_id", "=", self.id),
+            ("is_parametric", "=", True),
+            ("status", "in", ("confirmed", "locked")),
+        ]))
 
     @api.constrains("name", "product_kind", "is_rfq_provisional")
     def _check_dlm_name_duplicate(self):

@@ -2,9 +2,9 @@
 <odoo>
     <!-- Nhóm sản phẩm dùng chung (product.category) — cây 2 cấp:
          • Thành phẩm  : SP bán ra (gia công theo BOM / thương mại nhập bán).
-         • Vật tư      : đầu vào sản xuất (NVL thô, sơn, tiêu hao, gia công
-                         ngoài, kể cả Bán thành phẩm — khớp màn Vật tư gồm
-                         product_kind material + material_processed).
+         • Vật tư      : đầu vào sản xuất (NVL thô, sơn, tiêu hao, kể cả
+                         Bán thành phẩm — khớp màn Vật tư gồm product_kind
+                         material + material_processed).
          Lưu ý: nhóm CHỈ là danh mục catalog + nơi treo BOM mẫu; phân loại
          nghiệp vụ nằm ở product_kind cấp sản phẩm ('category_kind' cũ đã bỏ). -->
     <record id="categ_root_finished" model="product.category">
@@ -32,10 +32,6 @@
     </record>
     <record id="material_categ_consumable" model="product.category">
         <field name="name">Vật tư tiêu hao</field>
-        <field name="parent_id" ref="categ_root_material"/>
-    </record>
-    <record id="material_categ_outsource" model="product.category">
-        <field name="name">Gia công ngoài</field>
         <field name="parent_id" ref="categ_root_material"/>
     </record>
     <record id="material_categ_semi" model="product.category">

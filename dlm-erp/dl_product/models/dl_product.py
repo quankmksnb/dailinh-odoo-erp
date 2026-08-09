@@ -1,4 +1,5 @@
 import difflib
+import math
 import re
 
 from markupsafe import Markup
@@ -7,6 +8,24 @@ from odoo import api, fields, models, _, SUPERUSER_ID
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools import float_compare
 from odoo.tools.safe_eval import safe_eval
+
+# Kiểu tính định mức của vật tư — quyết định dòng BOM hỏi gì và tính ra sao
+# (thiết kế §10.5 Q3). Thay cho cơ chế Rule/Shape cũ trên dòng BOM.
+_DLM_CALC_KINDS = [
+    ("cut_length", "Cắt đoạn (thanh · ống · hộp)"),
+    ("sheet", "Tấm (tôn · lưới · alu)"),
+    ("count", "Đếm (ốc · vít · phụ kiện)"),
+    ("bulk", "Định lượng (sơn · que hàn)"),
+]
+# Dạng mặt cắt — chỉ để GỢI Ý khối lượng từ quy cách. Cố ý dùng Selection thay
+# vì M2O tới dl.measurement.shape: mặt cắt là thuộc tính lõi của vật tư, không
+# nên phụ thuộc một danh mục seed mà phần lớn bản ghi đã chết.
+_DLM_PROFILE_KINDS = [
+    ("box", "Hộp vuông / chữ nhật"),
+    ("round_tube", "Ống tròn"),
+    ("solid_bar", "Thanh đặc tròn"),
+    ("solid_sq", "Thanh đặc vuông"),
+]
 
 # Data Model PROD-02: default_code validate ^[A-Z0-9\-]+$ (chữ hoa, số, gạch ngang)
 _CODE_RE = re.compile(r"^[A-Z0-9\-]+$")
@@ -560,6 +579,213 @@ class ProductProduct(models.Model):
             "domain": [("id", "in", orphan_ids)],
             "target": "current",
         }
+
+    # ── Khối lượng riêng (chỉ vật tư) ────────────────────────────────────
+    # NGUỒN DUY NHẤT của hệ số khi quy kích thước ra khối lượng. Trước đây hệ số
+    # lấy từ dl.measurement.shape.default_coefficient — tức theo HÌNH DẠNG (7850
+    # cho mọi hình dạng nhóm Khối lượng) ⇒ nhôm/inox bị tính theo tỉ trọng thép.
+    # Cơ chế đó đã ngủ đông; nay chỉ vật tư mới mang khối lượng riêng.
+    dlm_density = fields.Float(
+        string="Khối lượng riêng (kg/m³)", digits=(16, 2),
+        help="Thép 7850, inox 7930, nhôm 2700, đồng 8960. Dùng để GỢI Ý khối "
+             "lượng từ quy cách, và để tính định mức khi vật tư bán theo kg.",
+    )
+
+    # ── Kiểu tính định mức & quy cách (chỉ vật tư) ───────────────────────
+    # Thiết kế: docs/Doi_chieu_du_lieu_doanh_nghiep_va_thiet_ke_dinh_muc_vat_tu.md
+    #   §10.5 Q1 — uom_id của vật tư = ĐÚNG đơn vị NCC bán, price = đ/đơn vị đó.
+    #   §10.5 Q3 — công thức suy từ (dlm_calc_kind × nhóm ĐVT), KHÔNG còn từ
+    #              dl.measurement.shape trên dòng BOM (cơ chế đó đã ngủ đông).
+    # Quy cách nằm ở ĐÂY (cố định theo vật tư) thay vì gõ lại mỗi dòng BOM —
+    # đó là cách vá lỗi hộp CHỮ NHẬT: dlm_spec_b tách khỏi dlm_spec_a.
+    dlm_calc_kind = fields.Selection(
+        _DLM_CALC_KINDS, string="Kiểu tính định mức", default="count",
+        help="Quyết định DÒNG ĐỊNH MỨC hỏi gì và định mức quy ra đơn vị nào:\n"
+             "• Cắt đoạn — hỏi Chiều dài đoạn × Số đoạn, chia cho chiều dài cây "
+             "⇒ ra số cây (thanh · ống · hộp · thép cây).\n"
+             "• Tấm — hỏi Dài × Rộng × Số tấm, chia cho khổ tấm ⇒ ra số tấm "
+             "(tôn · lưới · alu).\n"
+             "• Đếm — chỉ hỏi Số lượng, không suy được gì từ kích thước "
+             "(ốc · vít · bản lề · tay nắm).\n"
+             "• Định lượng — chỉ hỏi Số lượng theo kg/lít, kỹ thuật tự ước "
+             "lượng (sơn · que hàn).\n"
+             "Tự gợi ý theo Đơn vị tính khi tạo vật tư, sửa lại được.")
+    dlm_profile_kind = fields.Selection(
+        _DLM_PROFILE_KINDS, string="Dạng mặt cắt",
+        help="Hình dạng lát cắt ngang của thanh vật tư. CHỈ dùng để gợi ý khối "
+             "lượng từ quy cách — KHÔNG tham gia tính tiền (tiền = số cây × đơn "
+             "giá nhà cung cấp). Mỗi dạng cần bộ kích thước khác nhau:\n"
+             "• Hộp vuông/chữ nhật — Cạnh A, Cạnh B, Độ dày thành.\n"
+             "• Ống tròn — Đường kính ngoài, Độ dày thành.\n"
+             "• Thanh đặc tròn — chỉ Đường kính (đặc ruột, không có độ dày).\n"
+             "• Thanh đặc vuông — Cạnh A, Cạnh B (đặc ruột).")
+    dlm_spec_a = fields.Float(
+        string="Cạnh A / Đường kính (mm)", digits=(16, 2),
+        help="Kích thước ngoài đầu tiên của mặt cắt. Hộp 25×50 ⇒ khai 25. "
+             "Ống Ø34 ⇒ khai 34 (đường kính NGOÀI).")
+    dlm_spec_b = fields.Float(
+        string="Cạnh B (mm)", digits=(16, 2),
+        help="Chiều còn lại của mặt cắt chữ nhật. Hộp 25×50 ⇒ khai 50.\n"
+             "Để TRỐNG (0) nếu mặt cắt VUÔNG (25×25) hoặc TRÒN — hệ thống tự "
+             "hiểu cạnh B bằng cạnh A.")
+    dlm_spec_t = fields.Float(
+        string="Độ dày (mm)", digits=(16, 2),
+        help="Độ dày THÀNH ống/hộp (hộp 25×50×1,4 ⇒ khai 1,4), hoặc độ dày "
+             "tấm tôn. Thanh đặc không có độ dày.")
+    dlm_stock_length = fields.Float(
+        string="Chiều dài cây (mm)", digits=(16, 1), default=6000.0,
+        help="Chiều dài MỘT CÂY khi mua — thép hình thường 6000mm.\n"
+             "Đây là mẫu số biến đoạn cắt thành số cây: cắt 700mm × 2 đoạn "
+             "= 1400mm ÷ 6000 = 0,2333 cây.")
+    dlm_sheet_w = fields.Float(
+        string="Khổ tấm — rộng (mm)", digits=(16, 1),
+        help="Bề rộng một tấm khi mua (tôn CT3 thường 1250 hoặc 1500).")
+    dlm_sheet_h = fields.Float(
+        string="Khổ tấm — dài (mm)", digits=(16, 1),
+        help="Chiều dài một tấm khi mua (thường 2500 hoặc 6000). Cùng với bề "
+             "rộng, đây là mẫu số biến miếng cắt thành số tấm: 1200×500 trên "
+             "khổ 1250×2500 = 0,192 tấm.")
+    dlm_mass_per_unit = fields.Float(
+        string="Khối lượng mỗi đơn vị (kg)", digits=(16, 3),
+        help="Số kg CÂN THẬT của 1 cây / 1 tấm. CHỈ dùng để quy lượng hao hụt "
+             "sang kg khi tính tiền phế liệu thu hồi — KHÔNG tham gia tính giá "
+             "vốn. Nên lấy số cân thật, thấp hơn số tính từ kích thước 10-30%.")
+    dlm_mass_per_meter = fields.Float(
+        string="kg/m", digits=(16, 3),
+        help="Số kg của 1 mét dài. CHỈ cần khi vật tư cắt đoạn mà nhà cung cấp "
+             "bán theo KG — khi đó định mức quy ra kg thay vì ra cây.")
+
+    dlm_mass_per_meter_hint = fields.Float(
+        string="kg/m gợi ý", digits=(16, 3),
+        compute="_compute_dlm_mass_hints")
+    dlm_mass_per_unit_hint = fields.Float(
+        string="kg mỗi đơn vị gợi ý", digits=(16, 3),
+        compute="_compute_dlm_mass_hints")
+
+    # Banner mềm ở form vật tư — cùng nguồn với cổng cứng lúc xác nhận BOM.
+    dlm_calc_missing_hint = fields.Char(
+        string="Còn thiếu để dùng trong định mức",
+        compute="_compute_dlm_calc_missing_hint")
+
+    # Nhóm ĐVT dạng token, để VIEW ẩn đúng những ô không liên quan: vật tư mua
+    # theo Cây thì không hỏi kg/m, mua theo kg thì không hỏi chiều dài cây.
+    # View đọc CHÍNH nguồn mà công thức đọc, không đoán lại theo tên đơn vị.
+    dlm_uom_group = fields.Char(
+        string="Nhóm đơn vị tính", compute="_compute_dlm_uom_group")
+
+    @api.depends("uom_id")
+    def _compute_dlm_uom_group(self):
+        for rec in self:
+            rec.dlm_uom_group = rec._dlm_uom_group()
+
+    # Nhóm ĐVT → token. Chỉ resolve xmlid Ở ĐÂY (tên xmlid khác nhau giữa các
+    # bản Odoo) — raise_if_not_found=False để sai id thì rơi về 'unit', không nổ.
+    def _dlm_uom_group(self):
+        self.ensure_one()
+        categ = self.uom_id.category_id
+        if not categ:
+            return "unit"
+        ref = self.env.ref
+        known = (
+            ("weight", "uom.product_uom_categ_kgm"),
+            ("volume", "uom.product_uom_categ_vol"),
+            ("length", "uom.uom_categ_length"),
+            ("surface", "uom.uom_categ_surface"),
+        )
+        for token, xmlid in known:
+            rec = ref(xmlid, raise_if_not_found=False)
+            if rec and rec.id == categ.id:
+                return token
+        return "unit"
+
+    def _dlm_section_area_mm2(self):
+        """Tiết diện mặt cắt (mm²). Hộp CHỮ NHẬT tính đúng nhờ b tách khỏi a."""
+        self.ensure_one()
+        a = self.dlm_spec_a or 0.0
+        b = self.dlm_spec_b or a          # b = 0 ⇒ vuông/tròn
+        t = self.dlm_spec_t or 0.0
+        kind = self.dlm_profile_kind
+        if kind == "box":
+            return a * b - max(a - 2 * t, 0.0) * max(b - 2 * t, 0.0)
+        if kind == "round_tube":
+            return math.pi * ((a / 2) ** 2 - max(a / 2 - t, 0.0) ** 2)
+        if kind == "solid_bar":
+            return math.pi * (a / 2) ** 2
+        if kind == "solid_sq":
+            return a * b
+        return 0.0
+
+    @api.depends("dlm_profile_kind", "dlm_spec_a", "dlm_spec_b", "dlm_spec_t",
+                 "dlm_density", "dlm_stock_length", "dlm_sheet_w", "dlm_sheet_h",
+                 "dlm_calc_kind")
+    def _compute_dlm_mass_hints(self):
+        """GỢI Ý khối lượng suy từ quy cách — chỉ để hiển thị cạnh ô nhập tay.
+        Ra số 'barem' (danh nghĩa); thép thực tế nhẹ hơn 12-31% nên KHÔNG tự
+        ghi đè giá trị người dùng đã khai."""
+        for rec in self:
+            per_m = rec._dlm_section_area_mm2() * 1e-6 * (rec.dlm_density or 0.0)
+            rec.dlm_mass_per_meter_hint = per_m
+            if rec.dlm_calc_kind == "sheet":
+                rec.dlm_mass_per_unit_hint = (
+                    (rec.dlm_sheet_w or 0.0) * (rec.dlm_sheet_h or 0.0)
+                    * (rec.dlm_spec_t or 0.0) * 1e-9 * (rec.dlm_density or 0.0))
+            else:
+                rec.dlm_mass_per_unit_hint = per_m * (rec.dlm_stock_length or 0.0) / 1000.0
+
+    @api.onchange("uom_id", "product_kind")
+    def _onchange_dlm_suggest_calc_kind(self):
+        """GỢI Ý kiểu tính theo nhóm ĐVT — không ép, KTV sửa lại được."""
+        if self.product_kind not in ("material", "material_processed"):
+            return
+        group = self._dlm_uom_group()
+        if group in ("weight", "volume"):
+            self.dlm_calc_kind = self.dlm_calc_kind or "bulk"
+        elif group == "length":
+            self.dlm_calc_kind = "cut_length"
+        elif group == "surface":
+            self.dlm_calc_kind = "sheet"
+        else:
+            self.dlm_calc_kind = self.dlm_calc_kind or "count"
+
+    def _dlm_calc_missing_fields(self, for_auto_calc=True):
+        """Field còn thiếu để vật tư này DÙNG ĐƯỢC trong BOM. Rỗng = đủ.
+        Dùng ở 3 nơi: banner form vật tư (mềm) · onchange dòng BOM (mềm) ·
+        dl.bom.action_confirm (CỨNG).
+
+        for_auto_calc=False cho dòng kỹ thuật đã GHI ĐÈ số lượng: dòng đó không
+        cần tự tính nữa nên quy cách không còn bắt buộc — nhưng khối lượng mỗi
+        đơn vị thì vẫn cần, vì tiền phế liệu thu hồi luôn quy qua kg."""
+        self.ensure_one()
+        group, miss = self._dlm_uom_group(), []
+        if for_auto_calc:
+            if self.dlm_calc_kind == "cut_length":
+                if not self.dlm_profile_kind:
+                    miss.append("Dạng mặt cắt")
+                if group == "weight" and not self.dlm_mass_per_meter:
+                    miss.append("kg/m")
+                if group == "unit" and not self.dlm_stock_length:
+                    miss.append("Chiều dài cây")
+            elif self.dlm_calc_kind == "sheet":
+                if group == "weight" and not (self.dlm_spec_t and self.dlm_density):
+                    miss.append("Độ dày + Khối lượng riêng")
+                if group == "unit" and not (self.dlm_sheet_w and self.dlm_sheet_h):
+                    miss.append("Khổ tấm")
+        # Vật tư mua theo kg: hao hụt đã là kg, không cần khai quy đổi.
+        if (self.dlm_has_recovery and not self.dlm_mass_per_unit
+                and group != "weight"):
+            miss.append("Khối lượng mỗi đơn vị (cần cho thu hồi phế liệu)")
+        return miss
+
+    @api.depends("product_kind", "dlm_calc_kind", "dlm_profile_kind", "uom_id",
+                 "dlm_mass_per_meter", "dlm_stock_length", "dlm_spec_t",
+                 "dlm_density", "dlm_sheet_w", "dlm_sheet_h",
+                 "dlm_has_recovery", "dlm_mass_per_unit")
+    def _compute_dlm_calc_missing_hint(self):
+        for rec in self:
+            if rec.product_kind not in ("material", "material_processed"):
+                rec.dlm_calc_missing_hint = False
+                continue
+            rec.dlm_calc_missing_hint = ", ".join(rec._dlm_calc_missing_fields())
 
     # ── Hao hụt & thu hồi (chỉ vật tư) ───────────────────────────────────
     # NGUỒN DUY NHẤT của hao hụt: đặt ngay trên vật tư, kỹ thuật điền khi tạo.

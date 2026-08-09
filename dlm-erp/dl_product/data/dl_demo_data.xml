@@ -40,27 +40,43 @@
 
         <!-- (3) material — vật tư thô, tra giá NCC. Nhóm = nhóm VẬT TƯ chuẩn
              (material_category_data.xml), mã theo convention seed VT-<nhóm>-<spec>. -->
+        <!-- Tôn cuộn: mua theo CUỘN, tính như tấm (khổ = cuộn trải ra). -->
         <record id="demo_product_thep_cuon" model="product.product">
-            <field name="name">Thép cuộn CT3</field>
+            <field name="name">Thép cuộn CT3 dày 2mm (khổ 1250 × cuộn 20m)</field>
             <field name="default_code">VT-TT-CT3-CUON</field>
             <field name="product_kind">material</field>
             <field name="categ_id" ref="material_categ_steel_sheet" />
             <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="uom_id" ref="dlm_uom_cuon" />
+            <field name="uom_po_id" ref="dlm_uom_cuon" />
+            <field name="dlm_calc_kind">sheet</field>
+            <field name="dlm_spec_t">2</field>
+            <field name="dlm_sheet_w">1250</field>
+            <field name="dlm_sheet_h">20000</field>
+            <field name="dlm_mass_per_unit">392.5</field>
+            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">3.0</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">60.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
+        <!-- Mã VT-TH-25 đã là vật tư seed chuẩn; bản demo này là quy cách dày
+             1.5mm nên tách mã riêng để không đụng ràng buộc mã duy nhất. -->
         <record id="demo_product_ong_vuong" model="product.product">
             <field name="name">Thép hộp vuông 25×25×1.5mm</field>
-            <field name="default_code">VT-TH-25</field>
+            <field name="default_code">VT-TH-25-15</field>
             <field name="product_kind">material</field>
             <field name="categ_id" ref="material_categ_steel_box" />
             <field name="detailed_type">product</field>
-            <field name="uom_id" ref="uom.product_uom_kgm" />
-            <field name="uom_po_id" ref="uom.product_uom_kgm" />
+            <field name="uom_id" ref="dlm_uom_cay" />
+            <field name="uom_po_id" ref="dlm_uom_cay" />
+            <field name="dlm_calc_kind">cut_length</field>
+            <field name="dlm_profile_kind">box</field>
+            <field name="dlm_spec_a">25</field>
+            <field name="dlm_spec_t">1.5</field>
+            <field name="dlm_stock_length">6000</field>
+            <field name="dlm_mass_per_unit">5.6</field>
+            <field name="dlm_density">7850</field>
             <field name="dlm_waste_rate">4.5</field>
             <field name="dlm_has_recovery">1</field>
             <field name="dlm_recovery_rate">55.0</field>
@@ -74,6 +90,7 @@
             <field name="detailed_type">product</field>
             <field name="uom_id" ref="uom.product_uom_unit" />
             <field name="uom_po_id" ref="uom.product_uom_unit" />
+            <field name="dlm_calc_kind">count</field>
             <field name="dlm_waste_rate">1.0</field>
             <field name="dlm_has_recovery">0</field>
         </record>
@@ -99,63 +116,9 @@
             <field name="uom_po_id" ref="uom.product_uom_unit" />
         </record>
 
-        <!-- ============ PROD-04/05/06 — MEASUREMENT ============ -->
-        <record id="demo_meas_type_weight" model="dl.measurement.type">
-            <field name="name">Khối lượng (Weight)</field>
-            <field name="description">Đo theo kg — vật tư kim loại tính theo trọng lượng.</field>
-            <field name="formula_uom_id" ref="uom.product_uom_kgm" />
-        </record>
-        <record id="demo_meas_type_area" model="dl.measurement.type">
-            <field name="name">Diện tích (Area)</field>
-            <field name="description">Đo theo m² — vật tư dạng tấm/khối lưu kho theo diện tích.</field>
-            <field name="formula_uom_id" ref="uom.uom_square_meter" />
-        </record>
-
-        <record id="demo_meas_shape_flat" model="dl.measurement.shape">
-            <field name="measurement_type_id" ref="demo_meas_type_weight" />
-            <field name="name">Tấm phẳng</field>
-            <field name="code">flat_plate</field>
-            <field name="default_coefficient">7850</field>
-            <field name="coefficient_label">Khối lượng riêng (kg/m³)</field>
-        </record>
-        <record id="demo_meas_shape_square_tube" model="dl.measurement.shape">
-            <field name="measurement_type_id" ref="demo_meas_type_weight" />
-            <field name="name">Ống vuông rỗng</field>
-            <field name="code">hollow_square_tube</field>
-            <field name="default_coefficient">7850</field>
-            <field name="coefficient_label">Khối lượng riêng (kg/m³)</field>
-        </record>
-
-        <record id="demo_meas_param_flat_len" model="dl.measurement.shape.param">
-            <field name="shape_id" ref="demo_meas_shape_flat" />
-            <field name="name">Chiều dài</field>
-            <field name="code">length</field>
-        </record>
-        <record id="demo_meas_param_flat_wid" model="dl.measurement.shape.param">
-            <field name="shape_id" ref="demo_meas_shape_flat" />
-            <field name="name">Chiều rộng</field>
-            <field name="code">width</field>
-        </record>
-        <record id="demo_meas_param_flat_thick" model="dl.measurement.shape.param">
-            <field name="shape_id" ref="demo_meas_shape_flat" />
-            <field name="name">Độ dày</field>
-            <field name="code">thickness</field>
-        </record>
-        <record id="demo_meas_param_tube_len" model="dl.measurement.shape.param">
-            <field name="shape_id" ref="demo_meas_shape_square_tube" />
-            <field name="name">Chiều dài</field>
-            <field name="code">length</field>
-        </record>
-        <record id="demo_meas_param_tube_side" model="dl.measurement.shape.param">
-            <field name="shape_id" ref="demo_meas_shape_square_tube" />
-            <field name="name">Cạnh ngoài</field>
-            <field name="code">side</field>
-        </record>
-        <record id="demo_meas_param_tube_thick" model="dl.measurement.shape.param">
-            <field name="shape_id" ref="demo_meas_shape_square_tube" />
-            <field name="name">Độ dày thành ống</field>
-            <field name="code">thickness</field>
-        </record>
+        <!-- PROD-04/05/06 — seed Loại/Hình dạng đo lường đã GỠ (§14 ngủ đông).
+             Quy cách nay nằm trên chính vật tư; DB mới không có bản ghi đo lường
+             nào để tránh dữ liệu mồ côi. Model vẫn còn nếu cần bật lại. -->
 
     </data>
 </odoo>

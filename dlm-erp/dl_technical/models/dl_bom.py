@@ -105,6 +105,29 @@ class DlBom(models.Model):
         string="Có sai khác so với mẫu", readonly=True, copy=False)
     deviation_note = fields.Text(string="Ghi chú sai khác", copy=False)
 
+    # ── Hiển thị: `version` mang HAI nghĩa tuỳ bom_type ──────────────────────
+    # BOM mẫu = trục THỜI GIAN ⇒ version là PHIÊN BẢN, bản mới thay bản cũ.
+    # BOM báo giá = trục ĐƠN HÀNG ⇒ version chỉ là SỐ SÊ-RI của lần sinh, các
+    # bản tồn tại SONG SONG. Hiện cùng một con số cho hai nghĩa khiến người đọc
+    # tưởng bản #3 thay thế bản #2 (xem _should_set_current_version).
+    version_label = fields.Char(
+        string="Phiên bản / Lần sinh", compute="_compute_version_label")
+    # Bộ tham số của instance, dạng đọc được: "C=750 · D=1200 · R=800".
+    param_display = fields.Char(string="Tham số", compute="_compute_param_display")
+
+    @api.depends("version", "bom_type")
+    def _compute_version_label(self):
+        for rec in self:
+            rec.version_label = (
+                _("Lần sinh #%s") % rec.version
+                if rec.bom_type == "quotation"
+                else _("Phiên bản %s") % rec.version)
+
+    @api.depends("param_signature")
+    def _compute_param_display(self):
+        for rec in self:
+            rec.param_display = (rec.param_signature or "").replace("|", " · ")
+
     @api.model
     def _dlm_param_signature(self, param_values):
         """Chữ ký chuẩn hoá của bộ tham số: khoá sắp alphabet, số làm tròn 1 chữ
@@ -522,8 +545,32 @@ class DlBom(models.Model):
                     "vẽ” trên form BOM để thêm bản vẽ cho “%s”."
                 ) % rec.product_id.display_name)
 
+    def _dlm_check_material_spec(self):
+        """§12.4 — CỔNG CỨNG: vật tư khai thiếu quy cách thì định mức không tự
+        tính được, dòng BOM âm thầm giữ số mặc định (1) ⇒ giá vốn sai mà không
+        có tín hiệu nào. Chặn ngay lúc xác nhận và nêu đúng vật tư thiếu gì.
+
+        Dòng đã bật Ghi đè số lượng không cần tự tính (kỹ thuật gõ thẳng số cây)
+        nên chỉ còn bị soi phần khối lượng phục vụ tiền phế liệu."""
+        for rec in self:
+            problems = []
+            for line in rec.line_ids:
+                missing = line.material_id._dlm_calc_missing_fields(
+                    for_auto_calc=not line.is_override)
+                if missing:
+                    problems.append("• %s — thiếu: %s" % (
+                        line.material_id.display_name, ", ".join(missing)))
+            if problems:
+                raise UserError(_(
+                    "Chưa xác nhận được “%(bom)s”: những vật tư sau chưa khai đủ "
+                    "quy cách nên định mức không tự tính được.\n\n%(list)s\n\n"
+                    "Bổ sung ở màn Vật tư — mục “Quy cách & cách tính định mức”."
+                ) % {"bom": rec.display_name,
+                     "list": "\n".join(dict.fromkeys(problems))})
+
     def action_confirm(self):
         self._dlm_check_drawing_policy()      # LK-06 — cổng bản vẽ (nếu bật)
+        self._dlm_check_material_spec()       # §12.4 — cổng quy cách vật tư
         result = super().action_confirm()
         # LK-16 — Xác nhận một BOM (nhất là BOM chuẩn của BTP) đổi kết quả
         # _standard_child_bom ⇒ các dòng BOM cha đang dùng BTP này phải tính lại

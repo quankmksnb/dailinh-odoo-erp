@@ -26,6 +26,23 @@
                            options="{'no_quick_create': True}"/>
                     <field name="quantity"/>
 
+                    <!-- M9 — chặn phản xạ đẻ một BTP cho mỗi khổ. -->
+                    <field name="will_be_stocked"/>
+                    <div class="alert alert-warning mb-0" role="alert" colspan="2"
+                         invisible="will_be_stocked">
+                        <i class="fa fa-exclamation-triangle me-1" title="Cân nhắc"/>
+                        <b>Đây có phải chỉ là cắt vật tư theo khổ của đơn này không?</b>
+                        Nếu đúng thì <b>đừng tạo bán thành phẩm</b> — hãy thêm một
+                        <b>dòng định mức</b> với vật tư gốc và nhập kích thước, hệ thống
+                        tự tính khối lượng. Bán thành phẩm có định mức riêng, tạo theo
+                        từng khổ sẽ nhân đôi dữ liệu rất nhanh.
+                        <div class="mt-1">
+                            Chỉ tạo bán thành phẩm khi nó <b>tự nằm trong kho</b> và
+                            <b>dùng lại cho đơn khác</b> (VD: chân bàn tiêu chuẩn mạ kẽm
+                            làm hàng loạt).
+                        </div>
+                    </div>
+
                     <field name="init_mode" widget="radio"/>
                     <field name="copy_from_bom_id"
                            invisible="init_mode != 'copy'"

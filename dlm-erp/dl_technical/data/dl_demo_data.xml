@@ -41,9 +41,9 @@
 
         <!-- ================================================================
              ĐỢT 4 — BOM MẪU THAM SỐ demo "Bàn thép khung hộp" cho nhóm
-             "Bàn ghế sắt". KTV nhập D/R/C một lần, hệ thống suy kích thước
-             từng dòng vật tư (chân = 4×C, thanh dọc = 2×D, thanh ngang = 2×R,
-             mặt bàn = D×R) rồi tính định mức theo hình dạng có sẵn.
+             "Bàn ghế sắt". KTV nhập D/R/C một lần, hệ thống suy kích thước cắt
+             từng dòng vật tư (chân: 4 đoạn × C · dọc: 2 đoạn × D · ngang:
+             2 đoạn × R · mặt bàn: 1 tấm D×R) rồi quy ra đơn vị mua của vật tư.
         ================================================================ -->
 
         <!-- Sản phẩm generic để gắn định mức sinh ra (đường B). -->
@@ -66,6 +66,10 @@
             <field name="version">1</field>
             <field name="status">confirmed</field>
             <field name="is_current" eval="True"/>
+            <!-- Đích đến của MỌI kích thước sinh từ mẫu: workspace RFQ dựa vào
+                 field này để dẫn Kỹ thuật về sản phẩm dùng chung thay vì đẻ mã
+                 sản phẩm mới cho từng cỡ. -->
+            <field name="generic_product_id" ref="demo_product_ban_thep"/>
         </record>
 
         <!-- Tham số cấp sản phẩm: Dài / Rộng / Cao (mm), có miền hợp lệ. -->
@@ -100,68 +104,58 @@
             <field name="value_max">900</field>
         </record>
 
-        <!-- Dòng 1 — Chân bàn: 4 chân, dài mỗi thanh = C ⇒ tổng dài = 4×C. -->
+        <!-- ⚠️ Ánh xạ đúng cách (§15.2): CHIỀU DÀI MỘT ĐOẠN ← tham số (hệ số 1),
+             số lượng đoạn để ở "Số đoạn". Nhân 4 vào chiều dài như bản cũ thì
+             ra đúng tổng mét nhưng MẤT cut list — xưởng không biết cắt mấy đoạn
+             dài bao nhiêu. Quy cách (cạnh 25, dày 1.5) đã nằm trên vật tư. -->
+
+        <!-- Dòng 1 — Chân bàn: 4 đoạn, mỗi đoạn dài = C. -->
         <record id="demo_bom_tmpl_ban_line_chan" model="dl.bom.template.line">
             <field name="bom_template_id" ref="demo_bom_tmpl_ban_thep"/>
             <field name="material_id" ref="dl_product.demo_product_ong_vuong"/>
-            <field name="measurement_type_id" ref="dl_product.demo_meas_type_weight"/>
-            <field name="measurement_shape_id" ref="dl_product.demo_meas_shape_square_tube"/>
-            <field name="measurement_coefficient">7850</field>
-            <field name="dim_side">25</field>
-            <field name="dim_thickness">1.5</field>
+            <field name="piece_count">4</field>
             <field name="note">4 chân bàn</field>
         </record>
         <record id="demo_bom_map_chan_len" model="dl.bom.template.line.param.map">
             <field name="template_line_id" ref="demo_bom_tmpl_ban_line_chan"/>
             <field name="target_field">dim_length</field>
             <field name="param_id" ref="demo_bom_param_C"/>
-            <field name="factor">4</field>
+            <field name="factor">1</field>
         </record>
 
-        <!-- Dòng 2 — Thanh dọc khung: 2 thanh, dài = D ⇒ tổng dài = 2×D. -->
+        <!-- Dòng 2 — Thanh dọc khung: 2 đoạn, mỗi đoạn dài = D. -->
         <record id="demo_bom_tmpl_ban_line_doc" model="dl.bom.template.line">
             <field name="bom_template_id" ref="demo_bom_tmpl_ban_thep"/>
             <field name="material_id" ref="dl_product.demo_product_ong_vuong"/>
-            <field name="measurement_type_id" ref="dl_product.demo_meas_type_weight"/>
-            <field name="measurement_shape_id" ref="dl_product.demo_meas_shape_square_tube"/>
-            <field name="measurement_coefficient">7850</field>
-            <field name="dim_side">25</field>
-            <field name="dim_thickness">1.5</field>
+            <field name="piece_count">2</field>
             <field name="note">2 thanh dọc</field>
         </record>
         <record id="demo_bom_map_doc_len" model="dl.bom.template.line.param.map">
             <field name="template_line_id" ref="demo_bom_tmpl_ban_line_doc"/>
             <field name="target_field">dim_length</field>
             <field name="param_id" ref="demo_bom_param_D"/>
-            <field name="factor">2</field>
+            <field name="factor">1</field>
         </record>
 
-        <!-- Dòng 3 — Thanh ngang khung: 2 thanh, dài = R ⇒ tổng dài = 2×R. -->
+        <!-- Dòng 3 — Thanh ngang khung: 2 đoạn, mỗi đoạn dài = R. -->
         <record id="demo_bom_tmpl_ban_line_ngang" model="dl.bom.template.line">
             <field name="bom_template_id" ref="demo_bom_tmpl_ban_thep"/>
             <field name="material_id" ref="dl_product.demo_product_ong_vuong"/>
-            <field name="measurement_type_id" ref="dl_product.demo_meas_type_weight"/>
-            <field name="measurement_shape_id" ref="dl_product.demo_meas_shape_square_tube"/>
-            <field name="measurement_coefficient">7850</field>
-            <field name="dim_side">25</field>
-            <field name="dim_thickness">1.5</field>
+            <field name="piece_count">2</field>
             <field name="note">2 thanh ngang</field>
         </record>
         <record id="demo_bom_map_ngang_len" model="dl.bom.template.line.param.map">
             <field name="template_line_id" ref="demo_bom_tmpl_ban_line_ngang"/>
             <field name="target_field">dim_length</field>
             <field name="param_id" ref="demo_bom_param_R"/>
-            <field name="factor">2</field>
+            <field name="factor">1</field>
         </record>
 
-        <!-- Dòng 4 — Mặt bàn (tấm phẳng): diện tích = D × R, dày cố định 2mm. -->
+        <!-- Dòng 4 — Mặt bàn (tấm): 1 tấm cắt D × R. Độ dày/khổ nằm ở vật tư. -->
         <record id="demo_bom_tmpl_ban_line_mat" model="dl.bom.template.line">
             <field name="bom_template_id" ref="demo_bom_tmpl_ban_thep"/>
             <field name="material_id" ref="dl_product.demo_product_thep_cuon"/>
-            <field name="measurement_type_id" ref="dl_product.demo_meas_type_weight"/>
-            <field name="measurement_shape_id" ref="dl_product.demo_meas_shape_flat"/>
-            <field name="measurement_coefficient">7850</field>
-            <field name="dim_thickness">2</field>
+            <field name="piece_count">1</field>
             <field name="note">Mặt bàn</field>
         </record>
         <record id="demo_bom_map_mat_len" model="dl.bom.template.line.param.map">
@@ -179,7 +173,7 @@
         <record id="demo_bom_tmpl_ban_line_bulong" model="dl.bom.template.line">
             <field name="bom_template_id" ref="demo_bom_tmpl_ban_thep"/>
             <field name="material_id" ref="dl_product.demo_product_oc_vit"/>
-            <field name="quantity">8</field>
+            <field name="quantity">16</field>
             <field name="note">Bulông liên kết (cố định)</field>
         </record>
 

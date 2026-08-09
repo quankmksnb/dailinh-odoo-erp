@@ -29,6 +29,13 @@ class DlBomCreateBtpWizard(models.TransientModel):
     quantity = fields.Float(
         string="Số lượng dùng trong định mức cha", default=1.0, required=True)
 
+    # M9 — phân biệt BTP THẬT (tự nằm trong kho, tái dùng cho đơn khác) với
+    # "cắt vật tư theo khổ của đơn này". BTP có BOM riêng, nên đẻ một BTP cho mỗi
+    # khổ là đường nổ dữ liệu nhanh nhất: 10 cỡ × 4 bộ phận = 40 BTP + 40 BOM.
+    # Cảnh báo MỀM (không chặn) — Kỹ thuật vẫn có thể có lý do chính đáng.
+    will_be_stocked = fields.Boolean(
+        string="Bán thành phẩm này nhập kho & dùng lại cho đơn khác")
+
     init_mode = fields.Selection(
         [
             ("empty", "Tạo trống"),

@@ -14,9 +14,7 @@ def post_init_hook(env):
     # VND is archived by default in some Odoo databases. If it stays archived,
     # monetary widgets fall back to a generic 2-decimal number and omit the ₫
     # symbol even when business records already point to VND.
-    vnd = env.ref("base.VND")
-    vnd.active = True
-    env["res.company"].search([]).write({"currency_id": vnd.id})
+    env["res.company"]._dlm_enforce_vnd()
     env["res.users"].with_context(active_test=False).search(
         [("share", "=", False)]
     ).write({"lang": "vi_VN"})

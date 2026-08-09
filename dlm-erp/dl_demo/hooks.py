@@ -103,14 +103,26 @@ class DemoBuilder:
 
         # Vật tư dùng trong BOM → phải "Đang áp dụng" để price_snapshot > 0
         # (giá vốn BOM, giá sàn báo giá). (product_xmlid, ncc, đơn giá).
+        #
+        # 🔴 ĐƠN GIÁ Ở ĐÂY LÀ ĐỒNG TRÊN ĐÚNG ĐVT MUA CỦA VẬT TƯ (đ/cây · đ/tấm ·
+        # đ/cuộn · đ/kg), không phải đ/kg cho mọi thứ. Để nhầm đ/kg cho một vật
+        # tư bán theo cây là hỏng ngay và hỏng lặng: giá vốn hụt ~10 lần, và
+        # tiền phế liệu thu hồi (luôn quy về kg) có thể LỚN HƠN cả tiền vật tư
+        # ⇒ thành tiền dòng BOM ÂM. Quy đổi tham chiếu: giá thị trường ~18.500
+        # đ/kg × khối lượng mỗi đơn vị khai trên vật tư.
         applied_materials = [
-            ("dl_product.seed_mat_th_40", hoa_phat, 22_000),
-            ("dl_product.seed_mat_tt_ct3_2", hoa_phat, 18_500),
-            ("dl_product.seed_mat_tt_ct3_5", hoa_phat, 17_800),
-            ("dl_product.demo_product_ong_vuong", hoa_phat, 21_000),
-            ("dl_product.demo_product_thep_cuon", hoa_phat, 16_500),
-            ("dl_product.demo_product_oc_vit", phu_thinh, 1_500),
-            ("dl_product.seed_mat_son_td", dai_bang, 85_000),
+            # 11.6 kg/cây × ~18.500 đ/kg
+            ("dl_product.seed_mat_th_40", hoa_phat, 215_000),        # đ/cây
+            # 49.06 kg/tấm (1250×2500×2mm)
+            ("dl_product.seed_mat_tt_ct3_2", hoa_phat, 910_000),     # đ/tấm
+            # 353.25 kg/tấm (1500×6000×5mm)
+            ("dl_product.seed_mat_tt_ct3_5", hoa_phat, 6_290_000),   # đ/tấm
+            # 5.6 kg/cây (hộp 25×25×1,5)
+            ("dl_product.demo_product_ong_vuong", hoa_phat, 105_000),  # đ/cây
+            # 392.5 kg/cuộn (khổ 1250 × 20m × 2mm)
+            ("dl_product.demo_product_thep_cuon", hoa_phat, 7_260_000),  # đ/cuộn
+            ("dl_product.demo_product_oc_vit", phu_thinh, 1_500),    # đ/cái
+            ("dl_product.seed_mat_son_td", dai_bang, 85_000),        # đ/kg
         ]
         for xmlid, supplier, price in applied_materials:
             self._price_row(self.ref(xmlid), supplier, price, state="applied")
@@ -118,10 +130,10 @@ class DemoBuilder:
         # Một vật tư có 2 bảng giá đã duyệt (2 NCC) — 1 áp dụng, 1 chỉ duyệt:
         # test màn Bảng giá vật tư có nhiều dòng + trạng thái khác nhau.
         self._price_row(self.ref("dl_product.seed_mat_th_40"), phu_thinh,
-                        23_500, state="approved")
+                        275_000, state="approved")       # đ/cây, NCC đắt hơn
         # Một vật tư mới có giá NHÁP chờ Kế toán duyệt.
         self._price_row(self.ref("dl_product.seed_mat_th_50"), hoa_phat,
-                        24_000, state="draft")
+                        390_000, state="draft")          # đ/cây (16.2 kg/cây)
 
         # SP thương mại: 1 đang áp dụng (đủ điều kiện bán), 1 mới duyệt, 1 chưa có.
         self._price_row(self.ref("dl_demo.demo_trading_ban_le"), phu_thinh,
@@ -136,22 +148,36 @@ class DemoBuilder:
     def _make_bom(self, product, lines, status="confirmed", bom_type="quotation"):
         """Tạo 1 dl.bom + dòng vật tư; đưa về trạng thái mong muốn qua action thật.
 
-        lines: list các (material_product, quantity).
+        lines: list dict giá trị dòng, bắt buộc có khoá "material" (recordset).
+            Vật tư cắt đoạn/tấm nên nêu kích thước cắt (dim_length · piece_count)
+            để định mức TỰ TÍNH ra đúng số cây/tấm — đó mới là dữ liệu demo thật;
+            đưa thẳng "quantity" chỉ dùng cho vật tư đếm/định lượng.
         status: 'draft' | 'confirmed' | 'locked'.
         """
         if not product:
             return None
+        line_vals = []
+        for line in lines:
+            vals = dict(line)
+            material = vals.pop("material", None)
+            if not material:
+                continue
+            vals["material_id"] = material.id
+            line_vals.append((0, 0, vals))
         try:
             with self.env.cr.savepoint():
                 bom = self.env["dl.bom"].create({
                     "product_id": product.id,
                     "bom_type": bom_type,
                     "product_qty": 1,
-                    "line_ids": [
-                        (0, 0, {"material_id": mat.id, "quantity": qty})
-                        for mat, qty in lines if mat
-                    ],
+                    "line_ids": line_vals,
                 })
+                # ORM không chạy onchange ⇒ tự tính định mức từ kích thước cắt,
+                # đúng như luồng UI (dòng nào chưa nêu kích thước thì giữ nguyên).
+                for line in bom.line_ids:
+                    qty = line._dlm_auto_quantity()
+                    if qty is not None and qty > 0 and not line.is_override:
+                        line.quantity = qty
                 if status in ("confirmed", "locked"):
                     bom.action_confirm()
                 if status == "locked":
@@ -170,23 +196,47 @@ class DemoBuilder:
         son_td = self.ref("dl_product.seed_mat_son_td")
         tam_sat = self.ref("dl_product.demo_product_tam_sat")  # BTP
 
-        # (a) BOM cho BTP "Tấm sắt phủ sơn" (material_processed) — confirmed để
-        #     BTP có giá vốn (đệ quy) + demo BOM cha–con khi dùng trong SP cha.
-        self._make_bom(tam_sat, [(thep_cuon, 2.5), (son_td, 0.3)],
-                       status="confirmed")
-
-        # (b) BOM CHÍNH cho "Khung thép hàn CT-200" — có cả BTP (cha–con) →
-        #     confirmed + là bom tham chiếu cho RFQ manufactured (build_rfqs).
-        ct200 = self.ref("dl_product.demo_product_ct200")
+        # (a) BOM cho BTP "Tấm sắt phủ sơn 600×400×2mm" — cắt 1 miếng 600×400 từ
+        #     cuộn tôn ⇒ định mức tự ra ~0.0096 cuộn (KHÔNG phải 2.5 cuộn!).
         self._make_bom(
-            ct200,
-            [(th40, 12), (oc_vit, 24), (tam_sat, 1)],
+            tam_sat,
+            [
+                {"material": thep_cuon, "dim_length": 600, "dim_width": 400,
+                 "piece_count": 1},
+                {"material": son_td, "quantity": 0.3},          # kg — nhập thẳng
+            ],
             status="confirmed",
         )
 
-        # (c) BOM Nháp (màn BOM có bản Nháp) — cho "Bàn thép khung hộp".
+        # (b) BOM CHÍNH cho "Khung thép hàn CT-200" — có cả BTP (cha–con) →
+        #     confirmed + là bom tham chiếu cho RFQ manufactured (build_rfqs).
+        #     Khung 2000×1000: 4 đứng 1000 + 4 ngang 2000 = 12.000mm = 2 cây.
+        ct200 = self.ref("dl_product.demo_product_ct200")
+        self._make_bom(
+            ct200,
+            [
+                {"material": th40, "dim_length": 1000, "piece_count": 4},
+                {"material": th40, "dim_length": 2000, "piece_count": 4},
+                {"material": oc_vit, "quantity": 24},
+                {"material": tam_sat, "quantity": 1},
+            ],
+            status="confirmed",
+        )
+
+        # (c) BOM Nháp (màn BOM có bản Nháp) — cho "Bàn thép khung hộp"
+        #     1200×800×750: 4 chân 750 + 2 dọc 1200 + 2 ngang 800, mặt bàn tôn.
         ban_thep = self.ref("dl_technical.demo_product_ban_thep")
-        self._make_bom(ban_thep, [(ong_vuong, 8), (thep_cuon, 1)], status="draft")
+        self._make_bom(
+            ban_thep,
+            [
+                {"material": ong_vuong, "dim_length": 750, "piece_count": 4},
+                {"material": ong_vuong, "dim_length": 1200, "piece_count": 2},
+                {"material": ong_vuong, "dim_length": 800, "piece_count": 2},
+                {"material": thep_cuon, "dim_length": 1200, "dim_width": 800,
+                 "piece_count": 1},
+            ],
+            status="draft",
+        )
 
         # (d) Bản vẽ kỹ thuật gắn với SP CT-200 (màn Bản vẽ có dữ liệu).
         #     Để 'draft' (xác nhận đòi file đính kèm — seed không có file thật).

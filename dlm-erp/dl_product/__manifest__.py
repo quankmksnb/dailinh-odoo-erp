@@ -1,6 +1,6 @@
 {
     "name": "DL-Product",
-    "version": "17.0.2.13.0",
+    "version": "17.0.3.0.0",
     "summary": "Sản phẩm hợp nhất (product.product), bảng giá NCC, đo lường - theo Data Model TDS 4",
     "author": "Dai Linh",
     "category": "Hidden",
@@ -9,8 +9,10 @@
         "security/ir.model.access.csv",
         "data/rbac_features.xml",
         "security/ir_rule.xml",
-        # Thứ tự: nhóm chuẩn → seed vật tư (có SCRAP-STEEL) → demo
-        # (demo tham chiếu seed_scrap_steel nên seed phải nạp trước).
+        # Thứ tự: ĐVT → nhóm chuẩn → seed vật tư (có SCRAP-STEEL) → demo
+        # (seed vật tư tham chiếu ĐVT Cây/Tấm/... nên uom_data phải nạp TRƯỚC;
+        #  demo tham chiếu seed_scrap_steel nên seed vật tư nạp trước demo).
+        "data/uom_data.xml",
         "data/material_category_data.xml",
         "data/material_seed_data.xml",
         "data/dl_demo_data.xml",
