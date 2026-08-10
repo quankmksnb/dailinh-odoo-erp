@@ -1,52 +1,14 @@
 // dl_sale — Control panel overrides ĐẶC THÙ.
-// Phần chung (breadcrumb, btn, save/cancel) đã nằm ở dl_base/global_cp.scss.
+// Phần chung (breadcrumb, btn, save/cancel, ẩn nút New trên form, breadcrumb
+// nowrap) đã nằm ở dl_base/global_cp.scss — KHÔNG thêm class của màn thuộc
+// module khác vào đây nữa. Form dl mới được phủ tự động nhờ selector chung
+// `[class*="dl-"][class*="-form"]`, không phải đăng ký ở đâu cả.
 
-// Ẩn nút "New" boxed chỉ ở form (list/kanban vẫn giữ nút Thêm/Tạo báo giá).
-.o_action_manager:has(.dl-quotation-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-customer-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-cust-kanban) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-supplier-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-product-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-material-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-bom-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-rfq-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-drawing-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-saleorder-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-supplierinfo-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-bomtpl-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-company-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-meastype-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-measshape-form) .o_control_panel_main_buttons,
-.o_action_manager:has(.dl-quote-approval-form) .o_control_panel_main_buttons {
+// Ngoại lệ DUY NHẤT: kanban Khách hàng cũng ẩn nút New (nút tạo nằm trong cụm
+// .dl-create-cluster riêng). Selector chung ở dl_base chỉ bắt form, nên phải
+// khai riêng — và đây là màn của dl_sale nên đúng chỗ.
+.o_action_manager:has(.dl-cust-kanban) .o_control_panel_main_buttons {
     display: none !important;
-}
-
-// CogMenu + Menu ⋮ đã chuyển về dl_base/global_cp.scss
-
-// Breadcrumb nowrap cho form views
-.o_action_manager:has(.dl-quotation-form),
-.o_action_manager:has(.dl-customer-form),
-.o_action_manager:has(.dl-supplier-form),
-.o_action_manager:has(.dl-product-form),
-.o_action_manager:has(.dl-material-form),
-.o_action_manager:has(.dl-bom-form),
-.o_action_manager:has(.dl-rfq-form),
-.o_action_manager:has(.dl-drawing-form),
-.o_action_manager:has(.dl-saleorder-form),
-.o_action_manager:has(.dl-supplierinfo-form),
-.o_action_manager:has(.dl-bomtpl-form),
-.o_action_manager:has(.dl-company-form),
-.o_action_manager:has(.dl-meastype-form),
-.o_action_manager:has(.dl-measshape-form),
-.o_action_manager:has(.dl-quote-approval-form) {
-    .o_control_panel_main { flex-wrap: nowrap !important; }
-    .o_control_panel_breadcrumbs { flex-wrap: nowrap !important; min-width: 0; }
-    .o_breadcrumb .o_last_breadcrumb_item { flex-shrink: 0; }
-    .o_breadcrumb .o_last_breadcrumb_item span {
-        text-overflow: clip;
-        overflow: visible;
-        min-width: max-content;
-    }
 }
 
 // Many2one external button trong form
@@ -72,5 +34,3 @@
         background: transparent;
     }
 }
-
-// dl-cp-actions đã chuyển về dl_base/global_cp.scss

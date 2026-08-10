@@ -53,7 +53,7 @@ const RAIL_ITEMS = [
     menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
   },
   // Phê duyệt — chỉ hiện với user thấy được menu (CEO/Trưởng KD/vai trò duyệt).
-  // menuXmlIds ⇒ rail LỌC RBAC đồng bộ Home; actionXmlId do dl_sale nav_patch gán.
+  // menuXmlIds ⇒ rail LỌC RBAC đồng bộ Home; actionXmlId do dl_sale/nav_patch.js gán.
   {
     key: "approval",
     name: "Phê duyệt",

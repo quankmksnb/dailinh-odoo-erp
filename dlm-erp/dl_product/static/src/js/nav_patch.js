@@ -2,13 +2,9 @@
 
 import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
-import { DlHome } from "@dl_base/components/home/home";
 import { DlmRail } from "@dl_base/components/rail/rail";
 
-const PRODUCT_ACTION = "dl_product.action_dl_product_home";
-const PRICING_ACTION = "dl_product.action_dl_pricing_home";
-
-// Rail: dẹp hub Sản phẩm & Bảng giá thành mục con điều hướng thẳng.
+// Rail: nhóm Sản phẩm & Bảng giá xổ thành mục con điều hướng thẳng.
 // preferMenu → mở qua menu để lấy đúng action theo vai trò (bản đầy đủ / kỹ thuật
 // / chỉ-đọc khác nhau), không trỏ cứng 1 action bị cấm.
 const PRODUCT_CHILDREN = [
@@ -82,28 +78,12 @@ const PRICING_CHILDREN = [
   },
 ];
 
-// Home (fallback): giữ card mở hub như cũ.
-function wireHomeCard(cards, key, actionXmlId) {
-  const item = cards && cards.find((i) => i.key === key);
-  if (item && !item.actionXmlId) {
-    item.actionXmlId = actionXmlId;
-  }
-}
-
 function wireRailChildren(items, key, children) {
   const item = items && items.find((i) => i.key === key);
   if (item) {
     item.children = children;
   }
 }
-
-patch(DlHome.prototype, {
-  setup() {
-    super.setup(...arguments);
-    wireHomeCard(this.cards, "product", PRODUCT_ACTION);
-    wireHomeCard(this.cards, "pricing", PRICING_ACTION);
-  },
-});
 
 patch(DlmRail.prototype, {
   setup() {

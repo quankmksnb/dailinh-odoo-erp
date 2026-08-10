@@ -1,12 +1,10 @@
 /** @odoo-module **/
 
 import { patch } from "@web/core/utils/patch";
-import { DlHome } from "@dl_base/components/home/home";
 import { DlmRail } from "@dl_base/components/rail/rail";
 
-const CONFIG_ACTION = "dl_config.action_dl_config_home";
-
-// Rail: dẹp hub Cấu hình thành mục con điều hướng thẳng (bỏ màn hub trung chuyển).
+// Rail: nhóm Cấu hình xổ thành mục con điều hướng thẳng (không có màn hub trung
+// chuyển). Card trên Home không cần actionXmlId — DlHome tự mở menu con đầu tiên.
 const CONFIG_CHILDREN = [
     {
         key: "uom",
@@ -38,27 +36,12 @@ const CONFIG_CHILDREN = [
     },
 ];
 
-// Home (fallback): giữ card mở hub như cũ.
-function wireConfigHome(cards) {
-    const item = cards && cards.find((i) => i.key === "config");
-    if (item && !item.actionXmlId) {
-        item.actionXmlId = CONFIG_ACTION;
-    }
-}
-
 function wireConfigRail(items) {
     const item = items && items.find((i) => i.key === "config");
     if (item) {
         item.children = CONFIG_CHILDREN;
     }
 }
-
-patch(DlHome.prototype, {
-    setup() {
-        super.setup(...arguments);
-        wireConfigHome(this.cards);
-    },
-});
 
 patch(DlmRail.prototype, {
     setup() {

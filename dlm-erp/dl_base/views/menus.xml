@@ -45,6 +45,11 @@
         <field name="active" eval="False"/>
     </record>
 
+    <!-- ⚠️ Đây KHÔNG phải danh sách đầy đủ. dl_config/views/menus.xml nới thêm
+         Trưởng KD / Kỹ thuật / Kế toán / BA bằng (4, ref(...)), vì menu con
+         "Cấu hình Báo giá" cấp cho 6 vai trò mà Odoo bắt phải pass groups CẢ
+         TỔ TIÊN. Đọc riêng file này sẽ tưởng chỉ CEO/Admin vào được Cấu hình —
+         DB thật có 6 group và đó là ĐÚNG, đừng "siết" lại. -->
     <menuitem
         id="menu_dl_config"
         name="Cấu hình"

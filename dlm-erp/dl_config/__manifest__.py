@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Cấu hình (Master Data)',
-    'version': '17.0.2.7.0',
+    'version': '17.0.2.9.0',
     'summary': 'Cấu hình hệ thống, cấu hình báo giá có phiên bản và dữ liệu danh mục',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -14,7 +14,6 @@
         'data/pricing_config_data.xml',
         'data/pricing_seed.xml',
         'views/login_templates.xml',
-        'views/config_home.xml',
         'views/uom_views.xml',
         'views/user_admin_views.xml',
         'views/res_users_views.xml',
@@ -28,10 +27,6 @@
     'assets': {
         'web.assets_backend': [
             'dl_config/static/src/js/nav_patch.js',
-            'dl_config/static/src/scss/control_panel.scss',
-            'dl_config/static/src/components/config_home/config_home.scss',
-            'dl_config/static/src/components/config_home/config_home.xml',
-            'dl_config/static/src/components/config_home/config_home.js',
             # S01 — Quản lý User & Phân quyền (OWL mock)
             'dl_config/static/src/components/user_admin/user_admin.scss',
             'dl_config/static/src/components/user_admin/user_admin.xml',

@@ -271,13 +271,8 @@ export class DlHome extends Component {
         if (!menu) return;
         // Ghi lại card đang active để rail/sidebar highlight (đồng bộ develop).
         setActiveKey(card.key);
-        // Ưu tiên "trang chủ module" (landing) khi module có — đồng bộ với rail,
-        // tránh nhảy thẳng vào menu con đầu tiên (view sâu). actionXmlId do
-        // nav_patch của từng module gán vào card.
-        if (card.actionXmlId) {
-            this.actionService.doAction(card.actionXmlId, { clearBreadcrumbs: true });
-            return;
-        }
+        // Mở menu con đầu tiên có action. (Trước đây nav_patch gán actionXmlId
+        // để card mở màn hub của module — tầng hub đã bỏ, xem CLAUDE.md.)
         const target = this._findFirstActionMenu(menu);
         if (target) this.menuService.selectMenu(target);
     }

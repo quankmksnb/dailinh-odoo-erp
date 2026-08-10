@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-
-    <record id="action_dl_config_home" model="ir.actions.client">
-        <field name="name">Cấu hình</field>
-        <field name="tag">dl_config.DlConfigHome</field>
-    </record>
-
-</odoo>

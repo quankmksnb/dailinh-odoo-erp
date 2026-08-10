@@ -1,6 +1,6 @@
 {
     'name': 'DL-CRM & Báo giá',
-    'version': '17.0.1.28.0',
+    'version': '17.0.1.30.0',
     'summary': 'Quản lý Khách hàng, NCC, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -22,7 +22,6 @@
         'views/quote_approval_views.xml',
         'views/sale_order_views.xml',
         'views/rfq_views_ext.xml',
-        'views/quote_actions.xml',
         'views/menus.xml',
     ],
     'assets': {
@@ -55,10 +54,6 @@
             'dl_sale/static/src/views/saleorder_form_controller.js',
             # JS — patch điều hướng
             'dl_sale/static/src/js/nav_patch.js',
-            # Component — Hub Báo giá (Tạo RFQ · Quản lý RFQ · Báo giá · Đơn bán hàng)
-            'dl_sale/static/src/components/quote_home/quote_home.scss',
-            'dl_sale/static/src/components/quote_home/quote_home.js',
-            'dl_sale/static/src/components/quote_home/quote_home.xml',
         ],
     },
     'installable': True,
