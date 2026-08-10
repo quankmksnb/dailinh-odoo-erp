@@ -54,45 +54,7 @@
         font-weight: 600;
     }
 
-    // Tóm tắt quyết định lên đầu form (review UX aform #f2/#f4): giá trị + markup
-    // nổi bật, cờ rủi ro dạng chip màu thay vì true/false.
-    .dl-decision {
-        border: 1px solid $dl-border;
-        border-radius: $dl-radius;
-        background: $dl-surface;
-        padding: 14px 18px;
-        margin-bottom: 16px;
-
-        .dl-decision-head {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 32px;
-            align-items: flex-end;
-        }
-
-        .dl-decision-cell { display: flex; flex-direction: column; gap: 3px; }
-
-        .dl-decision-lbl {
-            font-size: 12px;
-            font-weight: 500;
-            color: $dl-text-2;
-        }
-
-        .dl-decision-val {
-            font-size: 22px;
-            font-weight: 700;
-            color: $dl-primary;
-        }
-
-        .dl-decision-val2 { font-size: 15px; font-weight: 600; color: $dl-heading; }
-
-        .dl-decision-risks {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-
-            .badge { font-size: 12px; font-weight: 600; padding: 5px 11px; }
-        }
-    }
+    // Tóm tắt quyết định + cơ cấu giá thành + "công thức" theo sản phẩm dùng
+    // chung khuôn .dl-cost-* / .dl-recipe-* (cost_analysis.scss) với trang
+    // Phân tích giá thành của form Báo giá — người duyệt đọc đúng một ngôn ngữ.
 }

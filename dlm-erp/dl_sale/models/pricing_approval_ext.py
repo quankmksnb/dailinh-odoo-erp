@@ -30,8 +30,6 @@ class DlPricingApprovalRequest(models.Model):
                                string="Trạng thái báo giá")
     q_line_ids = fields.One2many(related="quotation_id.line_ids",
                                  string="Dòng báo giá")
-    q_component_ids = fields.One2many(related="quotation_id.component_ids",
-                                      string="Cấu phần giá")
     q_amount_untaxed = fields.Float(related="quotation_id.amount_untaxed")
     q_discount_pct = fields.Float(related="quotation_id.discount_pct",
                                   string="Chiết khấu (%)")
@@ -47,6 +45,8 @@ class DlPricingApprovalRequest(models.Model):
         related="quotation_id.discount_above_default")
     q_discount_above_max = fields.Boolean(
         related="quotation_id.discount_above_max")
+    q_partner_group = fields.Selection(related="quotation_id.partner_group",
+                                       string="Nhóm khách")
 
     # --- Nhóm chi phí nội bộ: giữ đúng hàng rào groups như trên báo giá ---
     q_total_cost = fields.Float(related="quotation_id.total_cost",
@@ -59,6 +59,27 @@ class DlPricingApprovalRequest(models.Model):
                                   groups=_COST_GROUPS)
     q_below_floor = fields.Boolean(related="quotation_id.below_floor",
                                    groups=_COST_GROUPS)
+    # Cùng bộ số của trang "Phân tích giá thành" (form Báo giá): lãi gộp, cơ
+    # cấu 3 lớp chi phí, markup niêm yết/tại giá sàn và bản diễn giải "công
+    # thức" theo từng sản phẩm. Người duyệt cần đọc giá cấu thành từ đâu ngay
+    # tại màn quyết định, không phải mở lại báo giá đầy đủ.
+    q_gross_profit = fields.Float(related="quotation_id.gross_profit",
+                                  groups=_COST_GROUPS)
+    q_list_markup = fields.Float(related="quotation_id.list_markup",
+                                 groups=_COST_GROUPS)
+    q_floor_markup = fields.Float(related="quotation_id.floor_markup",
+                                  groups=_COST_GROUPS)
+    q_cost_material_total = fields.Float(
+        related="quotation_id.cost_material_total", groups=_COST_GROUPS)
+    q_cost_operation_total = fields.Float(
+        related="quotation_id.cost_operation_total", groups=_COST_GROUPS)
+    q_cost_adjustment_total = fields.Float(
+        related="quotation_id.cost_adjustment_total", groups=_COST_GROUPS)
+    # sanitize=False khớp field nguồn: nội dung do server dựng (Markup), không
+    # phải người dùng nhập — sanitize sẽ cắt mất cấu trúc <details>/<summary>.
+    q_cost_breakdown_html = fields.Html(
+        related="quotation_id.cost_breakdown_html", sanitize=False,
+        groups=_COST_GROUPS)
 
     # --- SLA: tuổi chờ duyệt cho hòm phê duyệt (review UX inbox #f1) ---
     # Người duyệt cần biết yêu cầu đã chờ bao lâu để ưu tiên; sắp theo "tuổi"

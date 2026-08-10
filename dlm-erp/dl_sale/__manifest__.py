@@ -29,6 +29,9 @@
             # SCSS — token & mixin dùng chung nằm ở dl_base (nạp trước theo
             # thứ tự phụ thuộc). Ở đây chỉ còn style theo màn của dl_sale.
             'dl_sale/static/src/scss/control_panel.scss',
+            # Khuôn phân tích giá thành dùng chung cho form Báo giá + màn
+            # Phê duyệt — nạp trước hai file dùng nó.
+            'dl_sale/static/src/scss/cost_analysis.scss',
             'dl_sale/static/src/scss/quotation_form.scss',
             'dl_sale/static/src/scss/quotation_list.scss',
             'dl_sale/static/src/scss/quote_approval_list.scss',
