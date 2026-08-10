@@ -258,6 +258,19 @@ class DlQuotationRequest(models.Model):
         string="Tiến độ kỹ thuật",
         compute="_compute_technical_progress",
     )
+    # Bản GỌN của tiến độ cho list Sales: "2/4" (đã xử lý / tổng dòng gia công).
+    # Sales nắm được RFQ nhiều dòng đã xong tới đâu ngay trên list, KHÔNG phải mở
+    # chi tiết. RỖNG khi RFQ không có dòng gia công (chỉ hàng thương mại) — tránh
+    # nhiễu như cột "Tiến độ kỹ thuật" câu-dài (technical_progress_label) đã gỡ
+    # khỏi list Sales; câu dài vẫn giữ cho list Kỹ thuật.
+    tech_progress_short = fields.Char(
+        string="Tiến độ kỹ thuật",
+        compute="_compute_technical_progress",
+    )
+    tech_progress_complete = fields.Boolean(
+        string="Kỹ thuật đã xử lý xong",
+        compute="_compute_technical_progress",
+    )
 
     @api.depends(
         "line_ids.product_type",
@@ -303,6 +316,9 @@ class DlQuotationRequest(models.Model):
                 label += _(" · %(n)s cần bổ sung", n=supplement)
 
             rec.technical_progress_label = label
+            # Bản gọn "2/4" cho list Sales — rỗng khi không có dòng gia công.
+            rec.tech_progress_short = ("%s/%s" % (done, total)) if total else False
+            rec.tech_progress_complete = bool(total) and done >= total
 
     # Tô màu dòng RFQ cận/quá hạn ngay trên danh sách (đồng bộ list Báo giá):
     # deadline sắp tới hoặc đã qua → cảnh báo để Kỹ thuật/Sales ưu tiên xử lý.
@@ -332,6 +348,76 @@ class DlQuotationRequest(models.Model):
                 elif (rec.deadline - today).days <= 7:
                     state = "soon"
             rec.deadline_state = state
+
+    # Ưu tiên hiển thị trên danh sách Sales ("Quản lý RFQ"): RFQ đang chờ CHÍNH
+    # SALES ra tay (tạo báo giá / bổ sung) nổi lên đầu, kế đến là RFQ đang ở Kỹ
+    # thuật (Sales chỉ theo dõi), cuối cùng là RFQ đã đóng (đã tạo báo giá / đã
+    # hủy). Đây là "hàng đợi việc" nên việc cần làm phải nằm trên, không để 9
+    # dòng đã xong che mất 2 dòng cần xử lý. store=True để tree default_order sắp
+    # bằng SQL. CHỈ áp cho list Sales — list Kỹ thuật ("RFQ cần xử lý") giữ thứ
+    # tự riêng (xem view_dl_quotation_request_tree_my), vì "việc của tôi" của KTV
+    # khác Sales.
+    _SALES_PRIORITY_BY_STATUS = {
+        "returned": 10,       # bóng ở Sales — cần bổ sung để gửi lại Kỹ thuật
+        "confirmed": 10,      # bóng ở Sales — cần tạo báo giá
+        "new": 20,            # đang/chờ ở Kỹ thuật — Sales theo dõi
+        "processing": 20,
+        "supplemented": 20,
+        "quoted": 30,         # đã đóng
+        "cancelled": 30,
+    }
+
+    sales_priority = fields.Integer(
+        string="Ưu tiên xử lý (Sales)",
+        compute="_compute_sales_priority",
+        store=True,
+    )
+
+    @api.depends("status")
+    def _compute_sales_priority(self):
+        for rec in self:
+            rec.sales_priority = self._SALES_PRIORITY_BY_STATUS.get(rec.status, 20)
+
+    # Đối xứng sales_priority nhưng theo GÓC KỸ THUẬT cho hàng đợi "RFQ cần xử
+    # lý": RFQ đang cần KTV ra tay (chưa nhận / đang xử lý / Sales vừa gửi lại)
+    # nổi đầu; RFQ bóng đang ở Sales (trả lại / chờ báo giá) và RFQ đã đóng xuống
+    # dưới. Lưu ý confirmed với KTV là ĐÃ XONG (không phải việc cần làm) — ngược
+    # với sales_priority. store=True để tree default_order sắp bằng SQL.
+    _TECH_PRIORITY_BY_STATUS = {
+        "new": 10,           # chờ Kỹ thuật nhận
+        "processing": 10,    # Kỹ thuật đang làm
+        "supplemented": 10,  # Sales gửi lại — chờ Kỹ thuật làm tiếp
+        "returned": 20,      # bóng ở Sales (chờ bổ sung)
+        "confirmed": 25,     # Kỹ thuật xong, chờ Sales báo giá
+        "quoted": 30,        # đã đóng
+        "cancelled": 30,
+    }
+
+    tech_priority = fields.Integer(
+        string="Ưu tiên xử lý (Kỹ thuật)",
+        compute="_compute_tech_priority",
+        store=True,
+    )
+
+    @api.depends("status")
+    def _compute_tech_priority(self):
+        for rec in self:
+            rec.tech_priority = self._TECH_PRIORITY_BY_STATUS.get(rec.status, 10)
+
+    # Mốc "vào hàng đợi Kỹ thuật": đã nhận thì tính từ lúc nhận, chưa nhận thì từ
+    # lúc nhận yêu cầu. Dùng làm khóa sort PHỤ (chờ lâu nhất lên đầu trong cùng
+    # nhóm ưu tiên). Stored được vì CHỈ phụ thuộc field stored — khác
+    # tech_waiting_days (phụ thuộc now(), không stored, không sort SQL được).
+    tech_queue_since = fields.Datetime(
+        string="Vào hàng đợi Kỹ thuật lúc",
+        compute="_compute_tech_queue_since",
+        store=True,
+    )
+
+    @api.depends("status", "received_date", "requested_date")
+    def _compute_tech_queue_since(self):
+        for rec in self:
+            rec.tech_queue_since = rec.received_date or rec.requested_date
 
     # Giai đoạn theo GÓC NHÌN KỸ THUẬT — gộp 7 trạng thái vòng đời (phần lớn do
     # Sales sở hữu) về đúng các mốc KTV quan tâm, dùng cho badge list "RFQ cần
@@ -982,11 +1068,19 @@ class DlQuotationRequestLine(models.Model):
         # (d) Khách hàng này từng đặt (đơn lặp lại thường cùng khách).
         customer = self.quotation_request_id.customer_id
         if customer:
-            prev_lines = self.env["dl.quotation.request.line"].search([
+            # Loại chính dòng này khỏi lịch sử. Dùng _origin.id: khi đang soạn
+            # dòng CHƯA lưu (onchange), self.id là NewId ("NewId_4") — đẩy thẳng
+            # vào SQL sẽ nổ "invalid input syntax for type integer". _origin.id
+            # là id thật trong DB (falsy nếu dòng hoàn toàn mới, khi đó không có
+            # gì để loại).
+            domain = [
                 ("quotation_request_id.customer_id", "=", customer.id),
                 ("resolved_product_id", "!=", False),
-                ("id", "!=", self.id),
-            ], limit=200)
+            ]
+            if self._origin.id:
+                domain.append(("id", "!=", self._origin.id))
+            prev_lines = self.env["dl.quotation.request.line"].search(
+                domain, limit=200)
             for product in prev_lines.mapped("resolved_product_id"):
                 add(product, _MATCH_SCORE_SAME_CUSTOMER, _("Khách từng đặt"))
 

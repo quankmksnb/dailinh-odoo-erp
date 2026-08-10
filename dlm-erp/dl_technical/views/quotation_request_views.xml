@@ -11,28 +11,52 @@
         <field name="name">dl.quotation.request.tree</field>
         <field name="model">dl.quotation.request</field>
         <field name="arch" type="xml">
+            <!-- default_order: hàng đợi việc của Sales — RFQ cần Sales xử lý
+                 (Chờ tạo báo giá / Trả lại bổ sung) nổi lên đầu, RFQ đã đóng
+                 (Đã tạo BG / Đã hủy) xuống đáy. Xem sales_priority ở model. -->
             <tree string="Yêu cầu báo giá"
                   class="dl-rfq-list" js_class="dl_rfq_list"
+                  default_order="sales_priority, id desc"
                   decoration-muted="status in ('cancelled', 'quoted')"
                   decoration-warning="deadline_state == 'soon'"
                   decoration-danger="deadline_state == 'overdue'">
                 <field name="name"/>
                 <!-- Tô màu dòng cận/quá hạn: chỉ fetch để decoration đọc, không hiện cột. -->
                 <field name="deadline_state" column_invisible="1"/>
+                <!-- Chỉ fetch để default_order sắp theo ưu tiên xử lý, không hiện cột. -->
+                <field name="sales_priority" column_invisible="1"/>
                 <field name="customer_id"/>
-                <field name="requested_date" widget="date"/>
+                <!-- requested_date là Datetime: widget="date" KHÔNG cắt giờ (nó
+                     chỉ dành cho field kiểu date, gặp datetime sẽ rơi về
+                     formatDateTime → hiện cả giờ:phút:giây). Dùng widget datetime
+                     + show_time=False mới ra date-only. Sửa ở tree gốc → cả Sales
+                     lẫn Kỹ thuật cùng hết hiện giờ. -->
+                <field name="requested_date" widget="datetime" options="{'show_time': False}"/>
                 <field name="deadline" widget="date"/>
+                <!-- Màu theo GÓC SALES (thang leo "cần tôi để ý"): xanh dương =
+                     đang ở Kỹ thuật (Sales chờ) < amber = tới lượt Sales tạo báo
+                     giá < đỏ = Sales phải bổ sung < xám = đã đóng. KHÔNG để
+                     'confirmed' xanh success (đọc nhầm là "đã xong" trong khi
+                     thực ra là "chờ BẠN báo giá"); xanh nhường cho việc thật sự
+                     đóng (dòng đã muted nên không cần success riêng). Badge luôn
+                     kèm chữ nên không vi phạm "màu là tín hiệu duy nhất". -->
                 <field name="status" widget="badge"
-                       decoration-info="status == 'new'"
-                       decoration-warning="status in ('processing', 'supplemented')"
+                       decoration-info="status in ('new', 'processing', 'supplemented')"
+                       decoration-warning="status == 'confirmed'"
                        decoration-danger="status == 'returned'"
-                       decoration-success="status == 'confirmed'"
                        decoration-muted="status in ('quoted', 'cancelled')"/>
-                <!-- Tiến độ dùng chung để Sales theo dõi ngay trên danh sách;
-                     trường compute chỉ đọc, Kỹ thuật cũng kế thừa cùng một cột. -->
-                <field name="technical_progress_label" string="Tiến độ kỹ thuật"/>
-                <!-- Ai đang xử lý — được ghi tự động khi KTV bấm Xử lý. -->
-                <field name="received_by" optional="show"/>
+                <!-- Tiến độ Kỹ thuật dạng GỌN "2/4" cho Sales: RFQ nhiều dòng đã
+                     xử lý tới đâu, liếc là biết, khỏi mở chi tiết. Rỗng khi RFQ
+                     không có dòng gia công (badge không hiện). Xanh khi KT xong
+                     đủ. Bản câu-dài dành cho list Kỹ thuật (tree_my). -->
+                <field name="tech_progress_complete" column_invisible="1"/>
+                <field name="tech_progress_short" string="Tiến độ kỹ thuật" widget="badge"
+                       decoration-success="tech_progress_complete"
+                       decoration-info="tech_progress_short and not tech_progress_complete"/>
+                <!-- Ai đang xử lý (KTV nào tiếp nhận) — khái niệm Kỹ thuật, với
+                     Sales gần như luôn rỗng ⇒ ẩn mặc định trên list Sales; màn
+                     Kỹ thuật (tree_my) bật lại. -->
+                <field name="received_by" optional="hide"/>
                 <!-- Modal lịch sử RFQ (timeline chỉ đọc) — tree "RFQ cần xử lý"
                      kế thừa tree này nên cả 2 màn Sales & Kỹ thuật cùng có. -->
                 <button name="action_open_history" type="object" string="Lịch sử"
@@ -59,6 +83,12 @@
                 <!-- U3: RFQ chờ Kỹ thuật xử lý quá lâu → in đậm để ưu tiên (không
                      đụng decoration-danger đang dành cho quá hạn khách). -->
                 <attribute name="decoration-bf">tech_overdue</attribute>
+                <!-- Hàng đợi KỸ THUẬT: việc KTV phải làm (chưa nhận / đang xử lý /
+                     Sales gửi lại) nổi lên đầu, trong đó chờ LÂU NHẤT trên cùng
+                     (tech_queue_since tăng dần); RFQ ở Sales & đã đóng xuống đáy.
+                     Dùng tech_priority thay sales_priority (confirmed với KTV là
+                     đã xong, không phải việc cần làm). -->
+                <attribute name="default_order">tech_priority, tech_queue_since, id desc</attribute>
             </xpath>
             <!-- Màn Kỹ thuật: ẩn cột status 7-state (vòng đời Sales) — giữ field
                  để row decoration muted/warning/danger vẫn đọc được — và thay
@@ -66,6 +96,11 @@
                  lý / Chờ Sales / Đã xử lý xong / Đã đóng). -->
             <xpath expr="//field[@name='status']" position="attributes">
                 <attribute name="column_invisible">1</attribute>
+            </xpath>
+            <!-- Màn Kỹ thuật đã có "Người tiếp nhận" (ai đang xử lý) nên bật lại
+                 cột này (list Sales ẩn mặc định). -->
+            <xpath expr="//field[@name='received_by']" position="attributes">
+                <attribute name="optional">show</attribute>
             </xpath>
             <xpath expr="//field[@name='status']" position="after">
                 <field name="tech_stage" widget="badge"
@@ -80,7 +115,11 @@
                 <field name="tech_overdue" column_invisible="1"/>
                 <field name="tech_waiting_days" string="Chờ xử lý (ngày)" optional="show"/>
             </xpath>
-            <xpath expr="//field[@name='technical_progress_label']" position="after">
+            <!-- SP/BOM đã xác định — cột riêng của màn Kỹ thuật, chèn TRƯỚC "Người
+                 tiếp nhận". Tiến độ giờ dùng badge gọn "2/4" (tech_progress_short,
+                 kế thừa từ tree gốc) thay câu-dài — bỏ wall "Không có dòng gia
+                 công cần xử lý" ở RFQ thương mại/đã đóng và đỡ cắt chữ. -->
+            <xpath expr="//field[@name='received_by']" position="before">
                 <field name="resolved_product_ids" widget="many2many_tags" string="Sản phẩm đã xác định"/>
                 <field name="resolved_bom_ids" widget="many2many_tags" string="Định mức đã xác định"/>
             </xpath>
@@ -764,13 +803,17 @@
                         domain="[('status', '=', 'supplemented')]"/>
                 <filter name="confirmed" string="Chờ tạo báo giá"
                         domain="[('status', '=', 'confirmed')]"/>
-                <filter name="quoted" string="Đã tạo BG"
+                <filter name="quoted" string="Đã tạo báo giá"
                         domain="[('status', '=', 'quoted')]"/>
                 <filter name="cancelled" string="Đã hủy"
                         domain="[('status', '=', 'cancelled')]"/>
                 <separator/>
                 <filter name="overdue" string="Quá hạn"
                         domain="[('deadline', '&lt;', context_today().strftime('%Y-%m-%d')), ('status', 'not in', ('quoted', 'cancelled'))]"/>
+                <!-- Việc bóng đang ở SALES: tạo báo giá (confirmed) hoặc bổ sung
+                     theo yêu cầu Kỹ thuật (returned). Chip mặc định màn Sales. -->
+                <filter name="sales_todo" string="Sales cần xử lý"
+                        domain="[('status', 'in', ('confirmed', 'returned'))]"/>
                 <filter name="to_process" string="Cần Kỹ thuật xử lý"
                         domain="[('status', 'in', ('new', 'processing', 'supplemented'))]"/>
                 <filter name="has_supplement" string="Cần bổ sung"
@@ -791,7 +834,10 @@
         <field name="res_model">dl.quotation.request</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
-        <field name="context">{'search_default_to_process': 1}</field>
+        <!-- Màn Sales mở thẳng vào "Cần tôi xử lý" (việc bóng ở Sales) — không
+             phải "Cần Kỹ thuật xử lý" như trước (đó là việc đang ở Kỹ thuật,
+             Sales chỉ chờ). Khớp với sales_priority + bộ chip màn Sales. -->
+        <field name="context">{'search_default_sales_todo': 1}</field>
     </record>
 
     <record id="action_dl_quotation_request_my" model="ir.actions.act_window">

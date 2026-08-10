@@ -13,19 +13,21 @@ import { listView } from "@web/views/list/list_view";
 import { serializeDate, today } from "@web/core/l10n/dates";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
-// Chip lọc màn Sales/chung (list "Yêu cầu báo giá") — single-select, có số đếm.
-// Gom theo MỐC QUYẾT ĐỊNH cho thanh chip gọn (không 1 chip / status):
-//  - "Cần xử lý" (to_process) GỘP Mới + Đang xử lý + Đã bổ sung — cùng bản chất
-//    "RFQ đang ở phía Kỹ thuật để xử lý"; là chip mặc định.
-//  - Các mốc còn lại tách riêng vì bóng ở người khác / trạng thái chốt.
-// Vẫn lọc lẻ Mới/Đang xử lý/Đã bổ sung được qua ô Search nâng cao. key CHÍNH
-// LÀ name filter trong search view.
+// Chip lọc màn Sales (list "Yêu cầu báo giá") — single-select, có số đếm.
+// Gom theo AI ĐANG CẦM BÓNG, nói bằng ngôn ngữ Sales:
+//  - "Sales cần xử lý" (sales_todo) = việc bóng ở SALES: tạo báo giá (confirmed)
+//    hoặc bổ sung theo yêu cầu Kỹ thuật (returned). Là chip MẶC ĐỊNH — Sales mở
+//    màn thấy ngay việc của mình.
+//  - "Cần Kỹ thuật xử lý" (to_process) = Sales xong bước đầu, bóng đang ở Kỹ
+//    thuật (Mới + Đang xử lý + Đã bổ sung) — Sales chỉ theo dõi (cột "Tiến độ
+//    KT" cho biết KT làm tới đâu).
+// Vẫn lọc lẻ từng status qua ô Search nâng cao. key CHÍNH LÀ name filter trong
+// search view.
 const CHIPS = [
     { key: "all", label: "Tất cả" },
-    { key: "to_process", label: "Cần xử lý" },
-    { key: "returned", label: "Trả lại bổ sung" },
-    { key: "confirmed", label: "Chờ tạo báo giá" },
-    { key: "quoted", label: "Đã tạo BG" },
+    { key: "sales_todo", label: "Sales cần xử lý" },
+    { key: "to_process", label: "Cần Kỹ thuật xử lý" },
+    { key: "quoted", label: "Đã tạo báo giá" },
     { key: "cancelled", label: "Đã hủy" },
     { key: "overdue", label: "Quá hạn" },
 ];
@@ -89,9 +91,11 @@ export class DlRfqListController extends DlListBaseController {
             quoted: byStatus.quoted ?? 0,
             cancelled: byStatus.cancelled ?? 0,
         };
-        // "Cần xử lý" = tổng các trạng thái còn phải làm (khớp domain filter
-        // to_process). "Quá hạn" là điều kiện chéo (deadline + status) nên phải
-        // đếm riêng, khớp đúng domain filter overdue trong search view.
+        // "Cần tôi xử lý" (Sales) = confirmed + returned (bóng ở Sales).
+        // "Cần Kỹ thuật xử lý" = new + processing + supplemented (bóng ở Kỹ
+        // thuật). "Quá hạn" là điều kiện chéo (deadline + status) nên phải đếm
+        // riêng, khớp đúng domain filter overdue trong search view.
+        counts.sales_todo = counts.confirmed + counts.returned;
         counts.to_process = counts.new + counts.processing + counts.supplemented;
         counts.overdue = await this.orm.searchCount(model, [
             ["deadline", "<", serializeDate(today())],

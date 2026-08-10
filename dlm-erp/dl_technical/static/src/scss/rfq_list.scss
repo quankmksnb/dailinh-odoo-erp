@@ -11,13 +11,14 @@
 
         // Tổng width các cột (kể cả cột nút) phải ĐÚNG 100% — table-layout
         // fixed: vượt 100% là bảng phình ra ngoài, tràn scroll ngang.
+        // List Sales: cột "Người tiếp nhận" ẩn mặc định (Tech-centric) — không
+        // tính width; thêm cột gọn "Tiến độ KT". Tổng vẫn = 100%.
         th[data-name="name"] { width: 11% !important; }
-        th[data-name="customer_id"] { width: 17% !important; }
-        th[data-name="requested_date"] { width: 12% !important; }
-        th[data-name="deadline"] { width: 10% !important; }
-        th[data-name="status"] { width: 12% !important; }
-        th[data-name="technical_progress_label"] { width: 17% !important; }
-        th[data-name="received_by"] { width: 11% !important; }
+        th[data-name="customer_id"] { width: 25% !important; }
+        th[data-name="requested_date"] { width: 13% !important; }
+        th[data-name="deadline"] { width: 11% !important; }
+        th[data-name="status"] { width: 15% !important; }
+        th[data-name="tech_progress_short"] { width: 15% !important; }
 
         // Cột nút "Lịch sử" (th.o_list_button, không có data-name) — phải cấp
         // width riêng, nếu không table-layout fixed bóp về 0px (ẩn nút).
@@ -36,17 +37,19 @@
     .o_list_table {
         th[data-name="tech_stage"] { border-top-right-radius: 0; }
 
+        // Tiến độ dùng badge gọn "2/4" (tech_progress_short) thay câu-dài
+        // technical_progress_label ⇒ cột hẹp hơn, nhường bề ngang cho SP/Định
+        // mức khỏi bị cắt. Tổng (kể cả cột nút) = 100%.
         th[data-name="name"] { width: 8% !important; }
-        th[data-name="customer_id"] { width: 10% !important; }
-        th[data-name="requested_date"] { width: 9% !important; }
-        th[data-name="deadline"] { width: 8% !important; }
+        th[data-name="customer_id"] { width: 11% !important; }
+        th[data-name="requested_date"] { width: 8% !important; }
+        th[data-name="deadline"] { width: 7% !important; }
         th[data-name="tech_stage"] { width: 9% !important; }
-        th[data-name="technical_progress_label"] { width: 12% !important; }
+        th[data-name="tech_waiting_days"] { width: 7% !important; }
+        th[data-name="tech_progress_short"] { width: 7% !important; }
+        th[data-name="resolved_product_ids"] { width: 14% !important; }
+        th[data-name="resolved_bom_ids"] { width: 12% !important; }
         th[data-name="received_by"] { width: 9% !important; }
-        th[data-name="resolved_product_ids"] { width: 10% !important; }
-        th[data-name="resolved_bom_ids"] { width: 9% !important; }
-        // Odoo tạo một cột riêng cho từng button (Nhận xử lý, Lịch sử).
-        // Hai cột 8% cộng với các cột dữ liệu 84% = đúng 100%.
         thead th.o_list_button { width: 8% !important; }
     }
 }
