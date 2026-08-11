@@ -109,10 +109,10 @@ const LANDING_RULES = [
     { group: "dl_base.dl_group_ceo", actionXmlId: "dl_sale.action_dl_quote_approval", railKey: "approval" },
     { group: "dl_base.dl_group_sales_manager", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation", railChildKey: "quotation_list" },
     { group: "dl_base.dl_group_ba", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation", railChildKey: "quotation_list" },
-    // Thủ kho land vào HÀNG ĐỢI PHIẾU (K8): việc chính là xử lý phiếu (nhận /
-    // kiểm / chuyển / giao) đang chờ, không phải ngắm tồn kho. Vệt sáng rail tô
-    // ở "Nhận hàng" — mục con gần nhất với hàng đợi (hàng đợi không lên rail).
-    { group: "dl_base.dl_group_warehouse", actionXmlId: "dl_inventory.action_dl_picking_todo", railKey: "inventory", railChildKey: "receipt" },
+    // Thủ kho land thẳng vào "Nhận hàng" — cùng mục với vệt sáng rail, hết lệch.
+    // (Land vào Hàng đợi phiếu gây khó chịu: màn "Hàng đợi" nhưng rail tô "Nhận
+    // hàng", vì hàng đợi cố ý không lên rail nên chỉ tô được mục con gần nhất.)
+    { group: "dl_base.dl_group_warehouse", actionXmlId: "dl_inventory.action_dl_picking_receipt", railKey: "inventory", railChildKey: "receipt" },
     // Mua hàng sở hữu giá NCC → land thẳng Bảng giá Vật tư (bản có quyền sửa).
     { group: "dl_base.dl_group_purchasing", actionXmlId: "dl_product.action_dl_supplierinfo_material_full", railKey: "pricing", railChildKey: "material_price" },
     // Kế toán không còn sở hữu giá NCC (chuyển cho Mua hàng) → land bản chỉ-xem.
