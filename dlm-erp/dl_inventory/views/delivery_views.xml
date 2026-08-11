@@ -86,6 +86,7 @@
                             <label for="partner_id" string="Khách hàng"/>
                             <field name="partner_id" nolabel="1" required="1"
                                    readonly="state in ('done', 'cancel')"
+                                   domain="[('partner_role', 'in', ['customer', 'both'])]"
                                    context="{'default_partner_role': 'customer'}"/>
                         </div>
                         <div class="dl-field">
