@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K6 — M5 Giao hàng khách (phiếu [5]: Kho thành phẩm → Khách)
+         docs/Thiet_ke_phan_he_kho.md §9.1, §11.6
+
+         Cột định danh là ĐƠN BÁN HÀNG, không phải loại phiếu: câu hỏi thường
+         trực của thủ kho ở màn này là "đơn nào chưa giao", còn loại phiếu thì
+         cả màn chỉ có một giá trị.
+    ============================================================ -->
+
+    <record id="view_dl_delivery_tree" model="ir.ui.view">
+        <field name="name">dl.stock.picking.delivery.tree</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <tree string="Giao hàng khách" class="dl-delivery-list"
+                  decoration-muted="state == 'cancel'">
+                <field name="name" string="Số phiếu"/>
+                <field name="partner_id" string="Khách hàng"/>
+                <field name="dlm_sale_order_id" string="Đơn bán hàng"/>
+                <field name="scheduled_date" string="Ngày giao" widget="date"/>
+                <field name="state" string="Trạng thái" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-info="state == 'assigned'"
+                       decoration-warning="state in ('confirmed', 'waiting')"
+                       decoration-muted="state in ('draft', 'cancel')"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_delivery_form" model="ir.ui.view">
+        <field name="name">dl.stock.picking.delivery.form</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <form string="Giao hàng khách" class="dl-delivery-form">
+                <header>
+                    <button name="action_confirm" string="Xác nhận phiếu"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="button_validate" string="Xác nhận đã giao"
+                            type="object" class="btn-primary"
+                            invisible="state not in ('waiting', 'confirmed', 'assigned')"/>
+                    <button name="action_assign" string="Kiểm tra tồn"
+                            type="object" class="btn-secondary"
+                            invisible="state not in ('waiting', 'confirmed')"/>
+                    <button name="action_cancel" string="Huỷ phiếu"
+                            type="object" class="btn-danger"
+                            invisible="state in ('done', 'cancel')"/>
+                    <field name="state" widget="dl_stepper"
+                           statusbar_visible="draft,assigned,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_dlm_open_sale_order" type="object"
+                                class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="not dlm_sale_order_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Đơn bán</span>
+                                <span class="o_stat_text">hàng</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <field name="company_id" invisible="1"/>
+                    <field name="dlm_banner_level" invisible="1"/>
+                    <div class="alert alert-info" role="alert"
+                         invisible="dlm_banner_level != 'info'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="dlm_banner_level != 'success'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="dlm_banner_level != 'warning'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <div class="dl-fields-row">
+                        <div class="dl-field">
+                            <label for="partner_id" string="Khách hàng"/>
+                            <field name="partner_id" nolabel="1" required="1"
+                                   readonly="state in ('done', 'cancel')"
+                                   context="{'default_partner_role': 'customer'}"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="dlm_sale_order_id" string="Đơn bán hàng"/>
+                            <field name="dlm_sale_order_id" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"
+                                   options="{'no_create': True}"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="scheduled_date" string="Ngày giao"/>
+                            <field name="scheduled_date" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="location_id" string="Lấy hàng từ"/>
+                            <field name="location_id" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"
+                                   options="{'no_create': True}"
+                                   domain="[('usage', '=', 'internal')]"/>
+                        </div>
+                    </div>
+
+                    <notebook>
+                        <page string="Hàng giao" name="moves">
+                            <field name="move_ids" readonly="state in ('done', 'cancel')">
+                                <tree editable="bottom">
+                                    <field name="product_id" string="Mặt hàng"
+                                           required="1"/>
+                                    <field name="product_uom_qty" string="Cần giao"/>
+                                    <field name="quantity" string="Thực giao"/>
+                                    <field name="product_uom" string="ĐVT"
+                                           groups="uom.group_uom"/>
+                                    <field name="lot_ids" string="Số lô"
+                                           widget="many2many_tags" optional="show"/>
+                                    <field name="picked" column_invisible="1"/>
+                                    <!-- company_id: domain của product_id trên
+                                         stock.move tham chiếu tới nó ⇒ thiếu là
+                                         view không nạp được. -->
+                                    <field name="company_id" column_invisible="1"/>
+                                    <field name="product_uom_category_id" column_invisible="1"/>
+                                    <field name="state" column_invisible="1"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_delivery_search" model="ir.ui.view">
+        <field name="name">dl.stock.picking.delivery.search</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <search string="Giao hàng khách">
+                <field name="name" string="Số phiếu"/>
+                <field name="partner_id" string="Khách hàng"/>
+                <field name="dlm_sale_order_id" string="Đơn bán hàng"/>
+                <field name="product_id" string="Mặt hàng"/>
+
+                <filter name="todo" string="Cần giao"
+                        domain="[('state', 'in', ('waiting', 'confirmed', 'assigned'))]"/>
+                <filter name="delivered" string="Đã giao"
+                        domain="[('state', '=', 'done')]"/>
+                <filter name="draft" string="Nháp"
+                        domain="[('state', '=', 'draft')]"/>
+                <separator/>
+                <filter name="cancelled" string="Đã huỷ"
+                        domain="[('state', '=', 'cancel')]"/>
+
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_partner" string="Khách hàng"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_order" string="Đơn bán hàng"
+                            context="{'group_by': 'dlm_sale_order_id'}"/>
+                    <filter name="group_state" string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_picking_delivery" model="ir.actions.act_window">
+        <field name="name">Giao hàng</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">tree,form</field>
+        <!-- Loại trừ Trả hàng NCC: cũng là outgoing nhưng đi tới NCC, có màn và
+             chủ sở hữu riêng (Mua hàng). -->
+        <field name="domain">[('picking_type_id.code', '=', 'outgoing'),
+                             ('picking_type_id.sequence_code', '!=', 'TR')]</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_delivery_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_delivery_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_delivery_search"/>
+        <field name="context">{'restricted_picking_type_code': 'outgoing'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có phiếu giao hàng nào</p>
+            <p>Phiếu giao được tạo từ nút <b>Tạo phiếu giao</b> trên đơn bán hàng
+               đã xác nhận — không tự sinh lúc chốt đơn, vì hàng gia công lúc đó
+               chưa có.</p>
+        </field>
+    </record>
+
+</odoo>

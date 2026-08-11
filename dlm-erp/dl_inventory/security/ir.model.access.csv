@@ -56,3 +56,5 @@ access_dl_stock_picking_type_acc,stock.picking.type Acc,stock.model_stock_pickin
 access_dl_stock_warehouse_wh,stock.warehouse Warehouse,stock.model_stock_warehouse,dl_base.dl_group_warehouse,1,0,0,0
 access_dl_stock_warehouse_admin,stock.warehouse Admin,stock.model_stock_warehouse,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_warehouse_ceo,stock.warehouse CEO,stock.model_stock_warehouse,dl_base.dl_group_ceo,1,0,0,0
+access_dl_sale_order_wh,dl.sale.order Warehouse,dl_sale.model_dl_sale_order,dl_base.dl_group_warehouse,1,0,0,0
+access_dl_sale_order_line_wh,dl.sale.order.line Warehouse,dl_sale.model_dl_sale_order_line,dl_base.dl_group_warehouse,1,0,0,0

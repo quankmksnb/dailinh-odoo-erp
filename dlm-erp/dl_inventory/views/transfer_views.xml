@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K6 — M4 Chuyển kho nội bộ (phiếu [4]: khu này → khu kia)
+         docs/Thiet_ke_phan_he_kho.md §11.5
+
+         KHÔNG dùng chung list phiếu của Nhận/Kiểm: ở đó cột định danh là "Đối
+         tác" (NCC), còn chuyển kho không có đối tác nào — câu hỏi duy nhất là
+         "hàng đi từ đâu tới đâu". Cột trống suốt cả bảng là cột phải bỏ.
+    ============================================================ -->
+
+    <record id="view_dl_transfer_tree" model="ir.ui.view">
+        <field name="name">dl.stock.picking.transfer.tree</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <tree string="Chuyển kho nội bộ" class="dl-transfer-list"
+                  decoration-muted="state == 'cancel'">
+                <field name="name" string="Số phiếu"/>
+                <field name="location_id" string="Từ vị trí"/>
+                <field name="location_dest_id" string="Đến vị trí"/>
+                <field name="scheduled_date" string="Ngày" widget="date"/>
+                <field name="origin" string="Nguồn" optional="hide"/>
+                <field name="state" string="Trạng thái" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-info="state == 'assigned'"
+                       decoration-warning="state in ('confirmed', 'waiting')"
+                       decoration-muted="state in ('draft', 'cancel')"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_transfer_form" model="ir.ui.view">
+        <field name="name">dl.stock.picking.transfer.form</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <form string="Chuyển kho nội bộ" class="dl-transfer-form">
+                <header>
+                    <button name="action_confirm" string="Xác nhận phiếu"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="button_validate" string="Xác nhận chuyển kho"
+                            type="object" class="btn-primary"
+                            invisible="state not in ('waiting', 'confirmed', 'assigned')"/>
+                    <button name="action_cancel" string="Huỷ phiếu"
+                            type="object" class="btn-danger"
+                            invisible="state in ('done', 'cancel')"/>
+                    <field name="state" widget="dl_stepper"
+                           statusbar_visible="draft,assigned,done"/>
+                </header>
+                <sheet>
+                    <field name="company_id" invisible="1"/>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <!-- Hai tuyến chiếm >90% số lần chuyển kho: điền sẵn thay vì
+                         bắt thủ kho lần trong cây vị trí mỗi ngày. Là NÚT phụ
+                         (btn-secondary) chứ không chiếm chỗ CTA chính. -->
+                    <div class="dl-preset-row" invisible="state != 'draft'">
+                        <span class="dl-preset-label">Tuyến hay dùng:</span>
+                        <button name="action_dlm_preset_to_workshop" type="object"
+                                class="btn btn-secondary btn-sm"
+                                title="Vật tư &amp; hàng thương mại → Kho nhà máy sản xuất">
+                            Vật tư ra xưởng
+                        </button>
+                        <button name="action_dlm_preset_to_fg" type="object"
+                                class="btn btn-secondary btn-sm"
+                                title="Vật tư &amp; hàng thương mại → Kho thành phẩm (bước bắt buộc trước khi giao hàng thương mại)">
+                            Hàng TM sang kho TP
+                        </button>
+                    </div>
+
+                    <div class="dl-fields-row">
+                        <div class="dl-field">
+                            <label for="location_id" string="Từ vị trí"/>
+                            <field name="location_id" nolabel="1" required="1"
+                                   readonly="state in ('done', 'cancel')"
+                                   options="{'no_create': True}"
+                                   domain="[('usage', '=', 'internal')]"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="location_dest_id" string="Đến vị trí"/>
+                            <field name="location_dest_id" nolabel="1" required="1"
+                                   readonly="state in ('done', 'cancel')"
+                                   options="{'no_create': True}"
+                                   domain="[('usage', '=', 'internal')]"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="scheduled_date" string="Ngày chuyển"/>
+                            <field name="scheduled_date" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="picking_type_id" string="Loại phiếu"/>
+                            <!-- Loại trừ KC như domain của action: chọn "Kiểm &amp;
+                                 cất hàng" ở đây sẽ đẻ ra phiếu biến mất khỏi
+                                 chính màn vừa tạo nó. -->
+                            <field name="picking_type_id" nolabel="1"
+                                   readonly="state != 'draft'"
+                                   domain="[('code', '=', 'internal'),
+                                            ('sequence_code', '!=', 'KC')]"/>
+                        </div>
+                    </div>
+
+                    <notebook>
+                        <page string="Hàng chuyển" name="moves">
+                            <field name="move_ids"
+                                   readonly="state in ('done', 'cancel')"
+                                   context="{'default_location_id': location_id,
+                                             'default_location_dest_id': location_dest_id}">
+                                <tree editable="bottom">
+                                    <field name="product_id" string="Mặt hàng"
+                                           required="1"/>
+                                    <field name="product_uom_qty" string="Số lượng"/>
+                                    <field name="quantity" string="Thực chuyển"/>
+                                    <field name="product_uom" string="ĐVT"
+                                           groups="uom.group_uom"/>
+                                    <field name="lot_ids" string="Số lô"
+                                           widget="many2many_tags"
+                                           optional="show"/>
+                                    <field name="picked" column_invisible="1"/>
+                                    <!-- company_id: domain của product_id trên
+                                         stock.move tham chiếu tới nó ⇒ thiếu là
+                                         view không nạp được. -->
+                                    <field name="company_id" column_invisible="1"/>
+                                    <field name="product_uom_category_id" column_invisible="1"/>
+                                    <field name="state" column_invisible="1"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_transfer_search" model="ir.ui.view">
+        <field name="name">dl.stock.picking.transfer.search</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <search string="Chuyển kho nội bộ">
+                <field name="name" string="Số phiếu"/>
+                <field name="location_id" string="Từ vị trí"/>
+                <field name="location_dest_id" string="Đến vị trí"/>
+                <field name="product_id" string="Mặt hàng"/>
+
+                <!-- 3 chip CÙNG một nhóm ⇒ chọn nhiều = OR; "Đã huỷ" tách ra sau
+                     separator vì nó loại trừ chứ không cộng thêm. -->
+                <filter name="todo" string="Cần chuyển"
+                        domain="[('state', 'in', ('waiting', 'confirmed', 'assigned'))]"/>
+                <filter name="done" string="Đã chuyển"
+                        domain="[('state', '=', 'done')]"/>
+                <filter name="draft" string="Nháp"
+                        domain="[('state', '=', 'draft')]"/>
+                <separator/>
+                <filter name="cancelled" string="Đã huỷ"
+                        domain="[('state', '=', 'cancel')]"/>
+
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_src" string="Từ vị trí"
+                            context="{'group_by': 'location_id'}"/>
+                    <filter name="group_dest" string="Đến vị trí"
+                            context="{'group_by': 'location_dest_id'}"/>
+                    <filter name="group_state" string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_picking_transfer" model="ir.actions.act_window">
+        <field name="name">Chuyển kho</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">tree,form</field>
+        <!-- Loại trừ "Kiểm &amp; cất hàng": nó cũng là internal nhưng có màn
+             riêng với nhãn cột hoàn toàn khác (NCC giao / Đạt / Loại). -->
+        <field name="domain">[('picking_type_id.code', '=', 'internal'),
+                             ('picking_type_id.sequence_code', '!=', 'KC')]</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_transfer_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_transfer_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_transfer_search"/>
+        <field name="context">{'restricted_picking_type_code': 'internal'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có phiếu chuyển kho nào</p>
+            <p>Chuyển hàng giữa các khu: vật tư từ khu nhận <b>ra xưởng</b>, hoặc
+               hàng thương mại sang <b>kho thành phẩm</b> để sẵn sàng giao.</p>
+        </field>
+    </record>
+
+</odoo>

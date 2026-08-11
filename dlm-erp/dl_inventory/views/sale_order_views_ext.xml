@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K6 — Đơn bán hàng nhìn thấy phần kho của nó
+         docs/Thiet_ke_phan_he_kho.md §9.1, §11.6
+
+         Kế thừa từ dl_inventory (không sửa view gốc ở dl_sale): dl_sale KHÔNG
+         depends stock, nên mọi thứ chạm phiếu kho phải nằm ở phía sau mũi tên
+         phụ thuộc, không thì gỡ dl_inventory là form đơn bán hàng chết.
+
+         CTA "Tạo phiếu giao" để btn-secondary chứ không primary: ở trạng thái
+         "Đã xác nhận", CTA chính của form đơn đã là "Hoàn tất" (quy ước 1 CTA
+         primary / trạng thái, §11.1). Đổi tier của nút có sẵn là việc của
+         dl_sale, không phải của phân hệ Kho.
+    ============================================================ -->
+
+    <record id="view_dl_sale_order_form_inventory" model="ir.ui.view">
+        <field name="name">dl.sale.order.form.inventory</field>
+        <field name="model">dl.sale.order</field>
+        <field name="inherit_id" ref="dl_sale.view_dl_sale_order_form"/>
+        <field name="arch" type="xml">
+
+            <button name="action_open_quotation" position="before">
+                <button name="action_dlm_create_delivery" string="Tạo phiếu giao"
+                        type="object" class="btn-secondary"
+                        invisible="state != 'confirmed'
+                                   or not dlm_has_deliverable
+                                   or dlm_delivery_state == 'done'"
+                        groups="dl_base.dl_group_warehouse,dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
+            </button>
+
+            <!-- Smart button: cửa duy nhất từ đơn sang chứng từ kho. Ẩn khi chưa
+                 có phiếu nào — nút "0 phiếu giao" chỉ tốn chỗ. -->
+            <div class="oe_title" position="before">
+                <div class="oe_button_box" name="dlm_button_box">
+                    <button name="action_dlm_open_pickings" type="object"
+                            class="oe_stat_button" icon="fa-truck"
+                            invisible="dlm_picking_count == 0">
+                        <field name="dlm_picking_count" widget="statinfo"
+                               string="Phiếu giao hàng"/>
+                    </button>
+                </div>
+            </div>
+
+            <field name="quotation_id" position="after">
+                <field name="dlm_has_deliverable" invisible="1"/>
+                <!-- Chip tình trạng giao: trả lời "đơn này giao xong chưa" ngay
+                     trên form, không phải mở phiếu kho ra đếm. -->
+                <field name="dlm_delivery_state" string="Tình trạng giao hàng"
+                       widget="badge"
+                       decoration-success="dlm_delivery_state == 'done'"
+                       decoration-warning="dlm_delivery_state == 'partial'"
+                       decoration-muted="dlm_delivery_state == 'nothing'"
+                       invisible="state == 'draft' or not dlm_has_deliverable"/>
+            </field>
+
+        </field>
+    </record>
+
+    <record id="view_dl_sale_order_tree_inventory" model="ir.ui.view">
+        <field name="name">dl.sale.order.tree.inventory</field>
+        <field name="model">dl.sale.order</field>
+        <field name="inherit_id" ref="dl_sale.view_dl_sale_order_tree"/>
+        <field name="arch" type="xml">
+            <!-- optional="hide": cột thêm cho người theo dõi giao hàng, không ép
+                 vào mặt Sales — họ mở màn này để xem tiền, không xem kho. -->
+            <field name="state" position="before">
+                <field name="dlm_delivery_state" string="Giao hàng" widget="badge"
+                       optional="hide"
+                       decoration-success="dlm_delivery_state == 'done'"
+                       decoration-warning="dlm_delivery_state == 'partial'"
+                       decoration-muted="dlm_delivery_state == 'nothing'"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

@@ -1,6 +1,6 @@
 {
     "name": "DL-Inventory",
-    "version": "17.0.2.2.0",
+    "version": "17.0.2.3.0",
     "summary": "Kho Đại Linh — 1 kho, 3 khu, nhận hàng 2 bước có kiểm hàng",
     "description": """
 Phân hệ Kho (Giai đoạn B1). Đặc tả: docs/Thiet_ke_phan_he_kho.md
@@ -17,15 +17,25 @@ Phân hệ Kho (Giai đoạn B1). Đặc tả: docs/Thiet_ke_phan_he_kho.md
     khu Chờ trả NCC và sinh phiếu Trả hàng NCC ở trạng thái NHÁP giao cho Mua
     hàng. Tách bạch "NCC giao thiếu" (backorder) với "NCC giao hàng kém" (loại).
 
-Chưa có (K6–K8): màn Chuyển kho / Giao hàng / Phế liệu / Kiểm kê, hàng đợi
-phiếu cho thủ kho, và mối nối phiếu giao ↔ dl.sale.order.
+Thêm ở K6:
+  • Chuyển kho nội bộ với 2 preset tuyến hay dùng (vật tư ra xưởng, hàng
+    thương mại sang kho thành phẩm).
+  • Giao hàng khách gắn với dl.sale.order: nút Tạo phiếu giao trên đơn (KHÔNG
+    tự sinh lúc chốt đơn), chip tình trạng giao, và khoá đưa đơn về nháp khi
+    đã phát sinh phiếu giao.
+  • Màn Trả hàng NCC cho bộ phận Mua hàng, kèm lý do loại gộp từ các dòng.
+
+Chưa có (K7–K8): màn Phế liệu / Kiểm kê và hàng đợi phiếu cho thủ kho.
 
 KHÔNG dựng lại tầng "hub" (màn lưới thẻ trung chuyển): tầng đó đã bị gỡ khỏi cả
 hệ thống, điều hướng đi thẳng qua submenu rail.
 """,
     "author": "Dai Linh",
     "category": "Hidden",
-    "depends": ["dl_base", "dl_product", "dl_partner", "stock"],
+    # ⚠️ dl_sale làm dl_inventory chuyển từ nhánh song song sang SAU dl_sale
+    # trong thứ tự cài (K6 _inherit dl.sale.order). Khai tường minh, không dựa
+    # vào phụ thuộc bắc cầu — xem bảng đồ thị phụ thuộc ở CLAUDE.md.
+    "depends": ["dl_base", "dl_product", "dl_partner", "dl_sale", "stock"],
     "data": [
         # ACL phải nạp trước mọi thứ chạm dữ liệu.
         "security/ir.model.access.csv",
@@ -36,8 +46,13 @@ hệ thống, điều hướng đi thẳng qua submenu rail.
         "security/ir_rule.xml",
         "data/rbac_features.xml",
         "views/picking_views.xml",
+        "views/transfer_views.xml",
+        "views/delivery_views.xml",
+        "views/vendor_return_views.xml",
         "views/stock_quant_views.xml",
         "views/stock_lot_views.xml",
+        # Kế thừa form dl.sale.order ⇒ nạp sau khi action phiếu giao đã có.
+        "views/sale_order_views_ext.xml",
         # menus.xml nạp CUỐI: menuitem tham chiếu action khai ở các file trên.
         "views/menus.xml",
     ],

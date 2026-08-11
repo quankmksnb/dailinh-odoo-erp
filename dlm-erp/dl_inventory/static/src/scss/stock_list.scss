@@ -107,6 +107,113 @@
     }
 }
 
+// ── K6 — Chuyển kho nội bộ ──────────────────────────────────────────────────
+// Hai cột vị trí phải rộng bằng nhau: câu hỏi của màn này là "từ đâu tới đâu",
+// đọc theo cặp. Lệch bề rộng là mắt phải nhảy để so.
+.dl-transfer-list {
+    .o_list_table thead th[data-name="name"] { border-top-left-radius: $dl-radius; }
+    .o_list_table thead th[data-name="state"] { border-top-right-radius: $dl-radius; }
+
+    .o_list_table {
+        table-layout: fixed !important;
+        width: 100% !important;
+
+        th[data-name="name"] { width: 14% !important; }
+        th[data-name="location_id"] { width: 27% !important; }
+        th[data-name="location_dest_id"] { width: 27% !important; }
+        th[data-name="scheduled_date"] { width: 14% !important; }
+        th[data-name="state"] { width: 12% !important; }
+
+        th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
+        td[name="name"] { font-weight: 600; color: $dl-heading; }
+
+        td[name="location_id"], td[name="location_dest_id"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        td[name="scheduled_date"] { white-space: nowrap; }
+    }
+}
+
+// ── K6 — Giao hàng khách ────────────────────────────────────────────────────
+.dl-delivery-list {
+    .o_list_table thead th[data-name="name"] { border-top-left-radius: $dl-radius; }
+    .o_list_table thead th[data-name="state"] { border-top-right-radius: $dl-radius; }
+
+    .o_list_table {
+        table-layout: fixed !important;
+        width: 100% !important;
+
+        th[data-name="name"] { width: 15% !important; }
+        th[data-name="partner_id"] { width: 30% !important; }
+        th[data-name="dlm_sale_order_id"] { width: 18% !important; }
+        th[data-name="scheduled_date"] { width: 15% !important; }
+        th[data-name="state"] { width: 14% !important; }
+
+        th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
+        td[name="name"] { font-weight: 600; color: $dl-heading; }
+
+        td[name="partner_id"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        td[name="dlm_sale_order_id"], td[name="scheduled_date"] { white-space: nowrap; }
+    }
+}
+
+// ── K6 — Trả hàng NCC ───────────────────────────────────────────────────────
+.dl-vendor-return-list {
+    .o_list_table thead th[data-name="name"] { border-top-left-radius: $dl-radius; }
+    .o_list_table thead th[data-name="state"] { border-top-right-radius: $dl-radius; }
+
+    .o_list_table {
+        table-layout: fixed !important;
+        width: 100% !important;
+
+        th[data-name="name"] { width: 13% !important; }
+        th[data-name="partner_id"] { width: 22% !important; }
+        th[data-name="dlm_origin_picking_id"] { width: 15% !important; }
+        th[data-name="dlm_qty_total"] { width: 11% !important; }
+        th[data-name="dlm_reject_summary"] { width: 24% !important; }
+        th[data-name="state"] { width: 15% !important; }
+
+        th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
+        td[name="name"] { font-weight: 600; color: $dl-heading; }
+
+        th[data-name="dlm_qty_total"] { text-align: right !important; }
+        th[data-name="dlm_qty_total"] > div { justify-content: flex-end !important; }
+        td[name="dlm_qty_total"] {
+            text-align: right !important;
+            font-variant-numeric: tabular-nums;
+        }
+
+        td[name="partner_id"], td[name="dlm_reject_summary"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        td[name="dlm_origin_picking_id"] { white-space: nowrap; }
+    }
+}
+
+// ── K6 — Hàng nút "tuyến hay dùng" trên form Chuyển kho ─────────────────────
+// Không phải CTA: đặt trong thân form, cạnh nhãn giải thích, để không tranh chỗ
+// với nút chính ở header. Cỡ chữ nhỏ hơn một nấc so với nhãn field.
+.dl-preset-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+
+    .dl-preset-label {
+        font-size: 12px;
+        color: $dl-text-muted;
+    }
+}
+
 // ── K5 — Bảng kiểm hàng trên form Kiểm & cất ────────────────────────────────
 // Ba cột số NCC giao / Đạt / Loại phải đọc được theo cột dọc: cùng bề rộng,
 // cùng canh phải, cùng chữ số đều bề ngang (tabular-nums). Lệch một trong ba

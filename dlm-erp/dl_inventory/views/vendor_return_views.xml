@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K6 — M6 Trả hàng NCC (phiếu [3]: Chờ trả NCC → NCC)
+         docs/Thiet_ke_phan_he_kho.md §6.4, §11.7
+
+         Chủ sở hữu là MUA HÀNG, không phải thủ kho: trả hàng là việc đối ngoại
+         (đổi hàng? giảm trừ công nợ? NCC tự đến lấy?). Thủ kho ghi nhận ở bước
+         kiểm, Mua hàng quyết định ở đây — đúng ranh giới kiểm soát chéo.
+
+         Phiếu KHÔNG tạo tay ở màn này: nó sinh ra từ kết quả kiểm hàng. Hàng
+         phát hiện lỗi SAU khi đã cất kho thì làm phiếu tay từ khu Vật tư & hàng
+         thương mại (§6.5) — ca hiếm, không dựng lối đi riêng ở B1.
+    ============================================================ -->
+
+    <record id="view_dl_vendor_return_tree" model="ir.ui.view">
+        <field name="name">dl.stock.picking.vendor.return.tree</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <tree string="Trả hàng NCC" class="dl-vendor-return-list"
+                  decoration-muted="state == 'cancel'"
+                  decoration-bf="state == 'draft'">
+                <field name="name" string="Số phiếu"/>
+                <field name="partner_id" string="Nhà cung cấp"/>
+                <field name="dlm_origin_picking_id" string="Phiếu nhận gốc"/>
+                <field name="dlm_qty_total" string="Số lượng trả"/>
+                <field name="dlm_reject_summary" string="Lý do"/>
+                <field name="scheduled_date" string="Ngày" widget="date"
+                       optional="hide"/>
+                <field name="state" string="Trạng thái" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-warning="state == 'draft'"
+                       decoration-info="state == 'assigned'"
+                       decoration-muted="state == 'cancel'"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Không cho tạo tay: `create` chỉ đọc được từ thuộc tính trên arch,
+         context={'create': False} của act_window KHÔNG có tác dụng ở Odoo 17. -->
+    <record id="view_dl_vendor_return_tree_nocreate" model="ir.ui.view">
+        <field name="name">dl.stock.picking.vendor.return.tree.nocreate</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="view_dl_vendor_return_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <tree position="attributes">
+                <attribute name="create">0</attribute>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_vendor_return_form" model="ir.ui.view">
+        <field name="name">dl.stock.picking.vendor.return.form</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <form string="Trả hàng NCC" class="dl-vendor-return-form" create="0">
+                <header>
+                    <button name="action_confirm" string="Chốt trả hàng"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="button_validate" string="Xác nhận đã trả"
+                            type="object" class="btn-primary"
+                            invisible="state not in ('waiting', 'confirmed', 'assigned')"/>
+                    <!-- Huỷ = thoả thuận xong không trả nữa (NCC giảm trừ công
+                         nợ chẳng hạn). Hàng vẫn nằm ở khu Chờ trả NCC — xử lý
+                         tiếp bằng chuyển kho hoặc kiểm kê. -->
+                    <button name="action_cancel" string="Không trả nữa"
+                            type="object" class="btn-danger"
+                            invisible="state in ('done', 'cancel')"/>
+                    <field name="state" widget="dl_stepper"
+                           statusbar_visible="draft,assigned,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_dlm_open_source_receipt" type="object"
+                                class="oe_stat_button" icon="fa-download"
+                                invisible="not dlm_origin_picking_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Phiếu nhận</span>
+                                <span class="o_stat_text">gốc</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <field name="company_id" invisible="1"/>
+                    <field name="dlm_banner_level" invisible="1"/>
+                    <div class="alert alert-info" role="alert"
+                         invisible="dlm_banner_level != 'info'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="dlm_banner_level != 'success'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <div class="dl-fields-row">
+                        <div class="dl-field">
+                            <label for="partner_id" string="Nhà cung cấp"/>
+                            <field name="partner_id" nolabel="1" required="1"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="dlm_origin_picking_id" string="Phiếu nhận gốc"/>
+                            <field name="dlm_origin_picking_id" nolabel="1"
+                                   readonly="1"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="scheduled_date" string="Ngày trả"/>
+                            <field name="scheduled_date" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                    </div>
+
+                    <notebook>
+                        <page string="Hàng trả" name="moves">
+                            <field name="move_ids" readonly="state in ('done', 'cancel')">
+                                <tree editable="bottom" create="0">
+                                    <field name="product_id" string="Mặt hàng"
+                                           readonly="1"/>
+                                    <field name="lot_ids" string="Lô"
+                                           widget="many2many_tags" readonly="1"/>
+                                    <field name="product_uom_qty" string="Số lượng trả"
+                                           sum="Tổng"/>
+                                    <field name="product_uom" string="ĐVT"
+                                           groups="uom.group_uom" readonly="1"/>
+                                    <field name="dlm_reject_reason" string="Lý do"
+                                           readonly="1"/>
+                                    <field name="dlm_reject_note" string="Ghi chú"
+                                           readonly="1" optional="show"/>
+                                    <field name="picked" column_invisible="1"/>
+                                    <!-- company_id: domain của product_id trên
+                                         stock.move tham chiếu tới nó ⇒ thiếu là
+                                         view không nạp được. -->
+                                    <field name="company_id" column_invisible="1"/>
+                                    <field name="product_uom_category_id" column_invisible="1"/>
+                                    <field name="state" column_invisible="1"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_vendor_return_search" model="ir.ui.view">
+        <field name="name">dl.stock.picking.vendor.return.search</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <search string="Trả hàng NCC">
+                <field name="name" string="Số phiếu"/>
+                <field name="partner_id" string="Nhà cung cấp"/>
+                <field name="dlm_origin_picking_id" string="Phiếu nhận gốc"/>
+
+                <!-- "Chờ xử lý" đứng đầu và là filter mặc định của action: phiếu
+                     nháp là VIỆC TỒN của Mua hàng, không phải kho lưu trữ. -->
+                <filter name="todo" string="Chờ xử lý"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter name="in_progress" string="Đã chốt, chờ trả"
+                        domain="[('state', 'in', ('waiting', 'confirmed', 'assigned'))]"/>
+                <filter name="returned" string="Đã trả"
+                        domain="[('state', '=', 'done')]"/>
+                <separator/>
+                <filter name="cancelled" string="Không trả nữa"
+                        domain="[('state', '=', 'cancel')]"/>
+
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_partner" string="Nhà cung cấp"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_state" string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_picking_vendor_return" model="ir.actions.act_window">
+        <field name="name">Trả hàng NCC</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('picking_type_id.sequence_code', '=', 'TR')]</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_vendor_return_tree_nocreate')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_vendor_return_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_vendor_return_search"/>
+        <field name="context">{'search_default_todo': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Không có phiếu trả hàng nào</p>
+            <p>Phiếu trả sinh ra <b>tự động</b> khi bước kiểm hàng ghi nhận hàng
+               không đạt, và để ở trạng thái <b>nháp</b> để Mua hàng thoả thuận
+               với nhà cung cấp trước.</p>
+        </field>
+    </record>
+
+</odoo>

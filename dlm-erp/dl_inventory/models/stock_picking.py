@@ -20,6 +20,7 @@ from odoo.tools.float_utils import float_compare, float_is_zero
 # Mã trình tự của loại hoạt động — neo vào đây thay vì XML ID vì `sequence_code`
 # không đổi khi người dùng sửa tên hiển thị (cùng lý do như ir_rule.xml).
 _DLM_QC_CODE = "KC"
+_DLM_RETURN_CODE = "TR"
 
 
 def _dlm_fmt(qty):
@@ -39,6 +40,24 @@ class StockPicking(models.Model):
     # tra chung cho cả hai chặng thay vì hai field nói cùng một chuyện.
     dlm_return_count = fields.Integer(
         string="Số phiếu trả NCC", compute="_compute_dlm_return_count")
+
+    # ── K6 — Liên kết phiếu giao ↔ đơn bán hàng ──────────────────────────────
+    # ⚠️ Chính field này KÍCH HOẠT khoá reset-nháp của đơn: _reset_draft_blockers
+    # (dl_sale) dò MỌI many2one lưu trữ trỏ tới dl.sale.order bằng metadata, nên
+    # không phải viết thêm gì — nhưng cũng có nghĩa là ĐỔI TÊN/GỠ field này sẽ
+    # âm thầm mở lại đường đưa đơn đã giao về nháp.
+    dlm_sale_order_id = fields.Many2one(
+        "dl.sale.order", string="Đơn bán hàng", index=True, copy=False,
+        ondelete="restrict",
+        help="Đơn đã sinh ra phiếu giao này.")
+    # Tổng số lượng trên phiếu — cột "Số lượng trả" của màn Trả hàng NCC. Không
+    # store: chỉ dùng để đọc, và store sẽ phải theo dõi mọi thay đổi dòng hàng
+    # của MỌI phiếu kho chỉ để phục vụ một cột của một màn.
+    dlm_qty_total = fields.Float(
+        string="Tổng số lượng", digits="Product Unit of Measure",
+        compute="_compute_dlm_qty_total")
+    dlm_reject_summary = fields.Char(
+        string="Lý do", compute="_compute_dlm_reject_summary")
 
     # ── K5 — Trạng thái kiểm hàng ────────────────────────────────────────────
     dlm_is_qc = fields.Boolean(
@@ -77,6 +96,28 @@ class StockPicking(models.Model):
         for picking in self:
             picking.dlm_return_count = len(picking._dlm_vendor_returns())
 
+    @api.depends("move_ids.product_uom_qty")
+    def _compute_dlm_qty_total(self):
+        for picking in self:
+            picking.dlm_qty_total = sum(
+                picking.move_ids.mapped("product_uom_qty"))
+
+    @api.depends("move_ids.dlm_reject_reason", "move_ids.dlm_reject_note")
+    def _compute_dlm_reject_summary(self):
+        """Gộp lý do loại của các dòng thành MỘT dòng đọc được trên list.
+
+        Mua hàng cần biết "trả vì cái gì" ngay ở danh sách để xếp thứ tự gọi NCC
+        — giao sai mặt hàng gấp hơn hẳn vài cây thép cong.
+        """
+        labels = dict(
+            self.env["stock.move"]._fields["dlm_reject_reason"].selection)
+        for picking in self:
+            reasons = []
+            for reason in picking.move_ids.mapped("dlm_reject_reason"):
+                if reason and labels.get(reason) not in reasons:
+                    reasons.append(labels.get(reason))
+            picking.dlm_reject_summary = ", ".join(reasons)
+
     @api.depends("move_ids.dlm_qty_rejected")
     def _compute_dlm_qty_rejected_total(self):
         for picking in self:
@@ -99,7 +140,7 @@ class StockPicking(models.Model):
         "state", "picking_type_id", "partner_id", "dlm_qty_rejected_total",
         "move_ids.quantity", "move_ids.product_uom_qty", "move_ids.dlm_qc_over",
         "move_ids.dlm_qty_rejected", "move_ids.dlm_reject_reason",
-        "move_ids.dlm_reject_note", "move_ids.product_id",
+        "move_ids.dlm_reject_note", "move_ids.product_id", "move_ids.state",
         "move_line_ids.lot_id", "move_line_ids.lot_name")
     def _compute_dlm_banner(self):
         """MỘT dải thông báo theo ngữ cảnh cho cả phiếu nhận lẫn phiếu kiểm.
@@ -126,6 +167,10 @@ class StockPicking(models.Model):
             return self._dlm_banner_qc()
         if self.picking_type_id.code == "incoming":
             return self._dlm_banner_receipt()
+        if self.picking_type_id.sequence_code == _DLM_RETURN_CODE:
+            return self._dlm_banner_return()
+        if self.picking_type_id.code == "outgoing":
+            return self._dlm_banner_delivery()
         return False, False, False
 
     def _dlm_banner_qc(self):
@@ -187,6 +232,70 @@ class StockPicking(models.Model):
         return "info", _(
             "Nhập số thực nhận rồi xác nhận. Số lô do hệ thống tự sinh "
             "(LO/năm/số) — sửa được nếu cần."), False
+
+    def _dlm_banner_delivery(self):
+        """Dải cho phiếu [5] Giao hàng khách."""
+        if self.state == "done":
+            return "success", _("Đã giao hàng cho khách."), False
+        if self.state == "draft":
+            return "info", _(
+                "Xác nhận phiếu để hệ thống <b>giữ chỗ</b> hàng trong kho. Chưa "
+                "xác nhận thì hàng vẫn có thể bị đơn khác lấy mất."), False
+
+        short = self.move_ids.filtered(
+            lambda move: move.state in (
+                "waiting", "confirmed", "partially_available"))
+        if short:
+            items = "".join(
+                "<li>%s</li>" % move.product_id.display_name for move in short)
+            message = _(
+                "Kho thành phẩm chưa đủ hàng để giữ chỗ:<ul>%s</ul>") % items
+            if self._dlm_stock_elsewhere(short):
+                message += _(
+                    "Hàng đang nằm ở khu <b>Vật tư &amp; hàng thương mại</b> — "
+                    "làm một phiếu <b>Chuyển kho nội bộ</b> sang Kho thành phẩm "
+                    "trước, rồi quay lại phiếu này.")
+            else:
+                message += _(
+                    "Xác nhận giao ngay bây giờ sẽ chỉ giao được phần đang có, "
+                    "phần còn lại tách sang một phiếu giao mới.")
+            return "warning", message, False
+
+        return "info", _(
+            "Đã giữ chỗ đủ hàng. Xác nhận giao sẽ trừ tồn kho thành phẩm."), False
+
+    def _dlm_stock_elsewhere(self, moves):
+        """Có hàng của các dòng này nằm ở khu Vật tư & hàng thương mại không?
+
+        Đây là ca nhầm phổ biến nhất của hàng thương mại: hàng đã nhập kho rồi
+        nhưng còn ở khu nhận, chưa chuyển sang kho thành phẩm nơi phiếu giao lấy
+        hàng (§5.3). Không nói ra thì người dùng chỉ thấy "không đủ hàng" trong
+        khi hàng đang nằm cách đó một bước chuyển kho.
+        """
+        location = self.env.ref(
+            "dl_inventory.stock_location_nhan_kho", raise_if_not_found=False)
+        if not location:
+            return False
+        quants = self.env["stock.quant"].sudo().search([
+            ("location_id", "child_of", location.id),
+            ("product_id", "in", moves.product_id.ids),
+        ])
+        return any(quant.quantity > 0 for quant in quants)
+
+    def _dlm_banner_return(self):
+        """Dải cho phiếu [3] Trả hàng NCC — chủ sở hữu là Mua hàng."""
+        if self.state == "done":
+            return "success", _(
+                "Đã trả hàng cho nhà cung cấp và trừ khỏi khu Chờ trả NCC."), False
+        if self.state == "draft":
+            return "info", _(
+                "Phiếu này do bước <b>kiểm hàng</b> sinh ra và cố ý để "
+                "<b>nháp</b>: thoả thuận với %s trước (đổi hàng, giảm trừ công "
+                "nợ, hay NCC tự đến lấy), rồi mới xác nhận. Xác nhận sẽ trừ hàng "
+                "khỏi khu <b>Chờ trả NCC</b>."
+            ) % (self.partner_id.display_name or _("nhà cung cấp")), False
+        return "info", _(
+            "Đã chốt trả hàng. Xác nhận phiếu khi hàng thực sự rời kho."), False
 
     def _dlm_qc_problems(self):
         """Danh sách lỗi CỤ THỂ chặn xác nhận kiểm (QC-02/03/04 + thiếu lô).
@@ -535,11 +644,21 @@ class StockPicking(models.Model):
 
     # ── K5 — Điều hướng giữa các chặng chứng từ ──────────────────────────────
     def _dlm_source_receipt(self):
-        """Phiếu nhận [1] đứng trước phiếu kiểm này (rỗng nếu tạo tay)."""
+        """Phiếu nhận [1] đứng trước phiếu này (rỗng nếu tạo tay).
+
+        Hai đường truy ngược, vì hai loại phiếu nối vào phiếu nhận theo hai cách
+        khác nhau: phiếu KIỂM nối bằng chuỗi move (tuyến 2 bước tự sinh), còn
+        phiếu TRẢ nối bằng `dlm_origin_picking_id` (dòng của nó được tạo mới nên
+        không có `move_orig_ids`).
+        """
         self.ensure_one()
         origins = self.move_ids.move_orig_ids.picking_id.filtered(
             lambda p: p.picking_type_id.code == "incoming")
-        return origins[:1]
+        if origins:
+            return origins[:1]
+        if self.dlm_origin_picking_id.picking_type_id.code == "incoming":
+            return self.dlm_origin_picking_id
+        return self.browse()
 
     def action_dlm_open_source_receipt(self):
         """Phiếu kiểm → phiếu nhận gốc."""
@@ -585,6 +704,56 @@ class StockPicking(models.Model):
             "view_mode": "tree,form",
             "domain": [("id", "in", returns.ids)],
         }
+
+    def action_dlm_open_sale_order(self):
+        """Phiếu giao → đơn bán hàng nguồn."""
+        self.ensure_one()
+        if not self.dlm_sale_order_id:
+            raise UserError(_("Phiếu giao này không gắn với đơn bán hàng nào."))
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "dl.sale.order",
+            "res_id": self.dlm_sale_order_id.id,
+            "view_mode": "form",
+            "name": _("Đơn %s") % self.dlm_sale_order_id.name,
+        }
+
+    # ── K6 — Preset chuyển kho ───────────────────────────────────────────────
+    # Hai tuyến dưới đây chiếm >90% số lần chuyển kho (§11.5). Là NÚT chứ không
+    # phải field lựa chọn: field sẽ nói dối ngay khi người dùng sửa tay vị trí,
+    # còn nút chỉ điền một lần rồi thôi — hai ô vị trí vẫn là nguồn sự thật.
+    def action_dlm_preset_to_workshop(self):
+        """Vật tư ra xưởng: Vật tư & hàng thương mại → Kho nhà máy sản xuất."""
+        return self._dlm_set_transfer_route(
+            "dl_inventory.stock_location_nhan_kho",
+            "dl_inventory.stock_location_xuong")
+
+    def action_dlm_preset_to_fg(self):
+        """Hàng thương mại sang kho TP: Vật tư & hàng thương mại → Kho thành phẩm.
+
+        Bước bắt buộc trước khi giao hàng thương mại: phiếu giao lấy hàng từ Kho
+        thành phẩm (§5.3), hàng còn ở khu nhận thì không giữ chỗ được.
+        """
+        return self._dlm_set_transfer_route(
+            "dl_inventory.stock_location_nhan_kho",
+            "dl_inventory.stock_location_tp")
+
+    def _dlm_set_transfer_route(self, source_xmlid, dest_xmlid):
+        self.ensure_one()
+        Location = self.env["stock.location"]
+        source = Location._dlm_location(source_xmlid)
+        destination = Location._dlm_location(dest_xmlid)
+        self.write({
+            "location_id": source.id,
+            "location_dest_id": destination.id,
+        })
+        # Dòng hàng đã nhập trước khi bấm preset phải đi theo — nếu không, phiếu
+        # nói một đằng mà hàng chạy một nẻo.
+        self.move_ids.write({
+            "location_id": source.id,
+            "location_dest_id": destination.id,
+        })
+        return True
 
     def _dlm_open_picking(self, picking, name):
         return {
