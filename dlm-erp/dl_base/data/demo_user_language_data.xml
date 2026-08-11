@@ -24,4 +24,10 @@
     <record id="demo_user_accountant" model="res.users">
         <field name="lang">vi_VN</field>
     </record>
+    <record id="demo_user_purchasing" model="res.users">
+        <field name="lang">vi_VN</field>
+    </record>
+    <record id="demo_user_warehouse" model="res.users">
+        <field name="lang">vi_VN</field>
+    </record>
 </odoo>

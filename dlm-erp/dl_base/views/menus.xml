@@ -7,8 +7,13 @@
         sequence="1"
         web_icon="dl_base,static/description/icon.png"
         action="action_dl_home"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_purchasing"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_purchasing,dl_base.dl_group_warehouse"
     />
+    <!-- ⚠️ THÊM VAI TRÒ MỚI thì phải thêm vào ĐÂY nữa, không chỉ ở menu nghiệp
+         vụ: Odoo bắt pass groups CẢ TỔ TIÊN. Thiếu ở menu gốc ⇒ user đăng nhập
+         vào KHÔNG thấy app DLM-ERP đâu cả, và KHÔNG có lỗi nào nổ — chỉ là màn
+         hình trống. (Đã vấp thật với vai trò Thủ kho, 2026-08-11.)
+         Có test canh: dl_inventory test_thu_kho_vao_duoc_app_dlm. -->
 
     <menuitem
         id="menu_dl_sale"
@@ -35,6 +40,19 @@
         parent="menu_dl_root"
         sequence="20"
         groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+    />
+
+    <!-- Menu CONTAINER của phân hệ Kho (menu con khai ở dl_inventory/views/menus.xml).
+         ⚠️ Odoo bắt pass groups CẢ TỔ TIÊN ⇒ phải liệt kê ĐỦ mọi vai trò có ít
+         nhất một menu con: Thủ kho (chủ sở hữu), Mua hàng (Trả hàng NCC), Admin,
+         Kỹ thuật (xem tồn vật tư khi lập BOM), CEO/Trưởng KD (xem), Kế toán (xem).
+         Sales KHÔNG vào nhóm này — họ xem phiếu giao qua smart button trên đơn. -->
+    <menuitem
+        id="menu_dl_inventory"
+        name="Kho"
+        parent="menu_dl_root"
+        sequence="30"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
     />
 
     <!-- Chưa có màn báo cáo thực tế: ẩn hẳn để người dùng không mở vào ngõ cụt. -->

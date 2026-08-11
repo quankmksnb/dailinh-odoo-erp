@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Base',
-    'version': '17.0.1.5.0',
+    'version': '17.0.1.8.0',
     'summary': 'App gốc — định nghĩa Groups (CEO/Admin/BA/Tech) và menu chính 5 module Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -32,6 +32,9 @@
             'dl_base/static/src/components/loading_indicator/loading_indicator.xml',
             # State dùng chung sidebar (Home nav + Rail) — nạp trước component
             'dl_base/static/src/js/sidebar_state.js',
+            # API gắn submenu vào rail cho module nghiệp vụ (thay vì mỗi module
+            # copy lại hàm wireRailChildren — xem chú thích trong file).
+            'dl_base/static/src/js/rail_children.js',
             # JS — hạ tầng list/form dùng chung toàn hệ thống (menu ⋮ Thao
             # tác + DlListBaseController). Các module con (dl_sale, dl_product,
             # dl_bom, dl_config...) đều import từ đây, KHÔNG từ dl_sale, để

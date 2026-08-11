@@ -75,6 +75,18 @@
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         </record>
 
+        <!-- Thủ kho: sở hữu HÀNG VẬT LÝ — nhận/kiểm/cất/chuyển/giao, kiểm kê,
+             lô hàng. KHÔNG thấy giá (không nằm trong _COST_GROUPS, không nằm
+             trong groups= của price_snapshot/recovery_value/subtotal).
+             TÁCH khỏi Mua hàng có chủ đích: người ĐẶT hàng không được đồng thời
+             là người xác nhận ĐÃ NHẬN ĐỦ hàng — mất kiểm soát chéo. -->
+        <record id="dl_group_warehouse" model="res.groups">
+            <field name="name">Thủ kho</field>
+            <field name="comment">Nhận hàng, kiểm hàng (QC), cất/chuyển kho, giao hàng, kiểm kê, lô hàng — KHÔNG thấy giá</field>
+            <field name="category_id" ref="module_category_dl_rbac"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
         <!-- ============================================================
              Seed: gán tài khoản admin mặc định của Odoo vào vai trò
              Admin/IT của DLM. Nếu không có dòng này, DB mới cài xong sẽ

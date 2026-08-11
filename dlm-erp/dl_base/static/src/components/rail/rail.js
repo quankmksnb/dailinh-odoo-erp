@@ -82,6 +82,15 @@ const RAIL_ITEMS = [
     actionXmlId: null,
     menuXmlIds: ["dl_product.menu_dl_pricing_root"],
   },
+  // Kho — mục con do dl_inventory/nav_patch.js gắn (Tồn kho, Lô hàng...).
+  // menuXmlIds trỏ menu container ⇒ rail lọc RBAC đồng bộ với Home.
+  {
+    key: "inventory",
+    name: "Kho",
+    icon: "fa-archive",
+    actionXmlId: null,
+    menuXmlIds: ["dl_base.menu_dl_inventory"],
+  },
   {
     key: "report",
     name: "Báo cáo",
