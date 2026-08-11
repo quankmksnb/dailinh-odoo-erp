@@ -8,13 +8,37 @@ nào" mà KHÔNG phải mở từng lô. Không lưu (`store=False`): dữ liệ
 stock.lot, nhân bản sang quant chỉ tạo thêm chỗ lệch.
 """
 
-from odoo import _, api, fields, models
+from odoo import _, api, fields, models, SUPERUSER_ID
 from odoo.exceptions import UserError
 from odoo.tools.float_utils import float_is_zero
 
 
 class StockQuant(models.Model):
     _inherit = "stock.quant"
+
+    # ── K8 — Cho Thủ kho áp kiểm kê mà KHÔNG cấp group_stock_manager ──────────
+    def _apply_inventory(self):
+        """Áp số kiểm kê ⇒ sinh phiếu điều chỉnh, tồn khớp số đếm.
+
+        🔴 Native `stock.quant._apply_inventory` chốt cứng: chỉ
+        `stock.group_stock_manager` mới validate được. Nhưng §8.3 CẤM cấp
+        manager cho Thủ kho — manager mở kèm cả xoá quant, sửa vị trí, cấu hình
+        tồn kho. Thay vì nới group (rủi ro rộng), kiểm vai trò Thủ kho tường
+        minh rồi chạy phần thân native dưới quyền superuser — đúng khuôn "kiểm
+        vai trò rồi nâng quyền" đã dùng ở K6 (`action_dlm_create_delivery`).
+
+        `base.user_root` là thành viên `stock.group_stock_manager`
+        (stock/security/stock_security.xml) nên `with_user(SUPERUSER_ID)` vượt
+        được chốt native mà không phải chép logic sinh move.
+
+        Một chốt này vá cho CẢ màn Kiểm kê (K8) lẫn màn Phế liệu (K7): mọi lối
+        áp kiểm kê của Thủ kho đều đi qua đây. Vai trò khác giữ nguyên luật
+        native (admin/CEO có manager thì rẽ thẳng super).
+        """
+        if (not self.user_has_groups("stock.group_stock_manager")
+                and self.user_has_groups("dl_base.dl_group_warehouse")):
+            return super(StockQuant, self.with_user(SUPERUSER_ID))._apply_inventory()
+        return super()._apply_inventory()
 
     dlm_supplier_id = fields.Many2one(
         related="lot_id.dlm_supplier_id", string="Nhà cung cấp", readonly=True)

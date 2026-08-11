@@ -1,6 +1,6 @@
 {
     "name": "DL-Inventory",
-    "version": "17.0.2.4.0",
+    "version": "17.0.2.5.0",
     "summary": "Kho Đại Linh — 1 kho, 3 khu, nhận hàng 2 bước có kiểm hàng",
     "description": """
 Phân hệ Kho (Giai đoạn B1). Đặc tả: docs/Thiet_ke_phan_he_kho.md
@@ -31,7 +31,14 @@ Thêm ở K7:
   • Báo cáo đối chiếu thu hồi theo tháng: dự toán (từ BOM) vs cân thực tế —
     vòng phản hồi cho biết định mức hao hụt đặt đúng hay sai.
 
-Chưa có (K8): kiểm kê chung + hàng đợi phiếu cho thủ kho.
+Thêm ở K8:
+  • Màn Kiểm kê chung: chế độ kiểm kê native của stock.quant trên mọi vị trí
+    nội bộ, nút [Kiểm kê] trên màn Tồn kho. Thủ kho áp được số đếm dù KHÔNG có
+    group_stock_manager (§8.3) — nâng quyền có kiểm vai trò ở _apply_inventory,
+    vá luôn cùng lỗ hổng cho màn Phế liệu K7.
+  • Hàng đợi phiếu: gom mọi phiếu `assigned` thủ kho phụ trách; mỗi dòng mở
+    bằng ĐÚNG form chuyên biệt của loại (định tuyến ở picking_todo.js). Thủ kho
+    land thẳng vào đây thay vì màn Tồn kho.
 
 KHÔNG dựng lại tầng "hub" (màn lưới thẻ trung chuyển): tầng đó đã bị gỡ khỏi cả
 hệ thống, điều hướng đi thẳng qua submenu rail.
@@ -69,6 +76,8 @@ hệ thống, điều hướng đi thẳng qua submenu rail.
             # phụ thuộc; đây chỉ còn style theo màn của dl_inventory.
             "dl_inventory/static/src/scss/stock_list.scss",
             "dl_inventory/static/src/js/nav_patch.js",
+            # Định tuyến hàng đợi phiếu (K8): mỗi dòng mở đúng form chuyên biệt.
+            "dl_inventory/static/src/js/picking_todo.js",
         ],
     },
     "installable": True,

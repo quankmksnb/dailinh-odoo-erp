@@ -419,12 +419,82 @@
         </field>
     </record>
 
-    <!-- 🔜 K8 — "Hàng đợi phiếu" (action_dl_picking_todo) CỐ Ý chưa làm ở đây.
-         Một action gộp mọi loại phiếu chỉ khai được MỘT form view, mà form Nhận
-         hàng và form Kiểm hàng dùng nhãn cột trái ngược nhau ("Dự kiến/Thực
-         nhận" ≠ "NCC giao/Đạt/Loại"). Mở phiếu kiểm bằng form nhận hàng là mời
-         thủ kho ghi hàng lỗi vào ô hàng thiếu — đúng cái nhầm mà cả §6 dựng lên
-         để tránh. Làm cùng K8 khi có đủ 5 loại phiếu và giải được chuyện định
-         tuyến form; tới lúc đó mới đổi LANDING_RULES của Thủ kho. -->
+    <!-- ============================================================
+         K8 — Hàng đợi phiếu (docs/Thiet_ke_phan_he_kho.md §11.11)
+
+         Màn LAND của Thủ kho: việc chính của họ là XỬ LÝ PHIẾU, không phải ngắm
+         tồn kho ⇒ gom mọi phiếu đang ở trạng thái `assigned` (sẵn sàng thao tác)
+         của các loại thủ kho phụ trách.
+
+         🔴 Định tuyến form: một list nhưng mỗi dòng mở bằng ĐÚNG form chuyên
+         biệt của loại phiếu đó (form Nhận ≠ form Kiểm — nhãn cột trái ngược).
+         Không dồn về một form chung: mở phiếu kiểm bằng form nhận là mời thủ kho
+         ghi hàng lỗi vào ô hàng thiếu (đúng cái nhầm §6 dựng lên để tránh). Việc
+         định tuyến do `js_class="dl_picking_todo_list"` (picking_todo.js) lo,
+         đọc `dlm_picking_kind` rồi doAction sang action chuyên biệt.
+    ============================================================ -->
+    <record id="view_dl_picking_todo_tree" model="ir.ui.view">
+        <field name="name">dl.stock.picking.todo.tree</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="view_dl_picking_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <tree position="attributes">
+                <attribute name="create">0</attribute>
+                <attribute name="js_class">dl_picking_todo_list</attribute>
+            </tree>
+            <!-- Nạp kind để JS định tuyến; ẩn cột vì "Loại phiếu" đã hiện tên. -->
+            <field name="state" position="after">
+                <field name="dlm_picking_kind" column_invisible="1"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_dl_picking_todo_search" model="ir.ui.view">
+        <field name="name">dl.stock.picking.todo.search</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <search string="Hàng đợi phiếu">
+                <field name="name" string="Số phiếu"/>
+                <field name="partner_id" string="Đối tác"/>
+                <!-- 4 chip theo loại việc — cùng nhóm nên chọn nhiều là OR. -->
+                <filter name="kind_receipt" string="Cần nhận"
+                        domain="[('picking_type_id.code', '=', 'incoming')]"/>
+                <filter name="kind_qc" string="Cần kiểm"
+                        domain="[('picking_type_id.sequence_code', '=', 'KC')]"/>
+                <filter name="kind_transfer" string="Cần chuyển"
+                        domain="[('picking_type_id.sequence_code', '=', 'CK')]"/>
+                <filter name="kind_delivery" string="Cần giao"
+                        domain="[('picking_type_id.sequence_code', '=', 'GH')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_type" string="Loại phiếu"
+                            context="{'group_by': 'picking_type_id'}"/>
+                    <filter name="group_partner" string="Đối tác"
+                            context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_picking_todo" model="ir.actions.act_window">
+        <field name="name">Hàng đợi phiếu</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">tree</field>
+        <!-- assigned = đã giữ chỗ đủ, sẵn sàng thao tác. Chỉ loại thủ kho phụ
+             trách (Nhận/Kiểm/Chuyển/Giao); Trả NCC là việc Mua hàng, Bán phế
+             liệu đi từ màn Phế liệu — không dồn vào hàng đợi của thủ kho. -->
+        <field name="domain">[('state', '=', 'assigned'),
+            ('picking_type_id.sequence_code', 'in', ['NH', 'KC', 'CK', 'GH'])]</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_picking_todo_tree')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_picking_todo_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Hết việc — không còn phiếu nào chờ xử lý</p>
+            <p>Đây là <b>hàng đợi</b> mọi phiếu đang chờ bạn: nhận hàng, kiểm &amp;
+               cất, chuyển kho, giao hàng. Bấm một dòng để mở đúng phiếu.</p>
+        </field>
+    </record>
 
 </odoo>

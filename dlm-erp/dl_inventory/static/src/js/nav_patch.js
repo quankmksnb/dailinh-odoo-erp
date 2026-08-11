@@ -99,5 +99,22 @@ patch(DlmRail.prototype, {
         ["state", "=", "draft"],
       ]),
     );
+
+    // §11.11 — badge việc còn treo của thủ kho: phiếu chờ kiểm và phiếu cần
+    // giao. `assigned` = đã giữ chỗ đủ, sẵn sàng thao tác (đúng bộ lọc hàng
+    // đợi). Rail chỉ gọi fetcher của mục user THẤY được nên vai trò khác không
+    // phát sinh truy vấn thừa.
+    this.registerBadge("qc", () =>
+      orm.searchCount("stock.picking", [
+        ["picking_type_id.sequence_code", "=", "KC"],
+        ["state", "=", "assigned"],
+      ]),
+    );
+    this.registerBadge("delivery", () =>
+      orm.searchCount("stock.picking", [
+        ["picking_type_id.sequence_code", "=", "GH"],
+        ["state", "=", "assigned"],
+      ]),
+    );
   },
 });

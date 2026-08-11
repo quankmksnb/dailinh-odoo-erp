@@ -2,6 +2,117 @@
 <odoo>
 
     <!-- ============================================================
+         K8 — M9 Kiểm kê (docs/Thiet_ke_phan_he_kho.md §11.10)
+
+         Chế độ kiểm kê NATIVE của stock.quant (inventory_mode) — KHÔNG tự xây
+         model kiểm kê (§2, §10.1). Thủ kho đếm thực tế, bấm Áp dụng ⇒ Odoo sinh
+         phiếu điều chỉnh, tồn khớp số đếm.
+
+         Đặt TRƯỚC màn Tồn kho vì nút [Kiểm kê] trên đó trỏ tới action ở đây.
+
+         🔴 Nút Áp dụng KHÔNG gán groups="stock.group_stock_manager" như bản
+         native (§8.3 cấm cấp manager cho Thủ kho). Quyền áp được kiểm ở tầng
+         model: stock_quant._apply_inventory nâng quyền cho dl_group_warehouse.
+    ============================================================ -->
+    <record id="view_dl_inventory_tree" model="ir.ui.view">
+        <field name="name">dl.stock.quant.inventory.tree</field>
+        <field name="model">stock.quant</field>
+        <field name="arch" type="xml">
+            <!-- editable: nhập số đếm ngay trên bảng. inventory_quantity_set +
+                 3 nút Đặt/Áp dụng/Xoá là cơ chế native — không phát minh lại. -->
+            <tree string="Kiểm kê" class="dl-inventory-list"
+                  editable="bottom" create="1" delete="0"
+                  default_order="location_id, product_id"
+                  decoration-info="inventory_quantity_set">
+                <field name="tracking" column_invisible="1"/>
+                <field name="inventory_quantity_set" column_invisible="1"/>
+                <!-- company_id: domain của product_id/lot_id trên stock.quant
+                     tham chiếu tới nó ⇒ thiếu là list EDITABLE không nạp được
+                     (cùng bẫy màn Phế liệu K7). -->
+                <field name="company_id" column_invisible="1"/>
+                <field name="product_id" string="Hàng hoá"
+                       readonly="id != False" options="{'no_create': True}"/>
+                <field name="lot_id" string="Lô"
+                       readonly="tracking not in ('lot', 'serial') or (id and (lot_id or quantity != 0))"
+                       context="{'default_product_id': product_id}"
+                       optional="show"/>
+                <field name="location_id" string="Vị trí"
+                       domain="[('usage', '=', 'internal')]"
+                       readonly="id != False" options="{'no_create': True}"/>
+                <field name="quantity" string="Tồn hệ thống" readonly="1"
+                       sum="Tổng"/>
+                <field name="product_uom_id" string="ĐVT" readonly="1"/>
+                <field name="inventory_quantity" string="Tồn thực đếm"
+                       widget="counted_quantity_widget"/>
+                <field name="inventory_diff_quantity" string="Chênh lệch"
+                       invisible="not inventory_quantity_set"
+                       decoration-muted="inventory_diff_quantity == 0"
+                       decoration-danger="inventory_diff_quantity &lt; 0"
+                       decoration-success="inventory_diff_quantity &gt; 0"
+                       decoration-bf="inventory_diff_quantity != 0"/>
+                <!-- Nút thao tác trên dòng. KHÔNG groups="…_manager": Thủ kho
+                     phải bấm được. Quyền áp thật do model canh (§8.3). -->
+                <button name="action_set_inventory_quantity" type="object"
+                        string="Đặt = tồn" icon="fa-bullseye"
+                        class="btn btn-link"
+                        invisible="inventory_quantity_set"/>
+                <button name="action_apply_inventory" type="object"
+                        string="Áp dụng" icon="fa-save"
+                        class="btn btn-link"
+                        invisible="not inventory_quantity_set"/>
+                <button name="action_clear_inventory_quantity" type="object"
+                        string="Xoá" icon="fa-times"
+                        class="btn text-warning"
+                        invisible="not inventory_quantity_set"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_inventory_search" model="ir.ui.view">
+        <field name="name">dl.stock.quant.inventory.search</field>
+        <field name="model">stock.quant</field>
+        <field name="arch" type="xml">
+            <search string="Kiểm kê">
+                <field name="product_id" string="Hàng hoá"/>
+                <field name="lot_id" string="Số lô"/>
+                <field name="location_id" string="Vị trí"/>
+                <!-- Chờ áp: dòng đã đếm nhưng chưa bấm Áp dụng — việc còn dở. -->
+                <filter name="to_apply" string="Chờ áp dụng"
+                        domain="[('inventory_quantity_set', '=', True)]"/>
+                <separator/>
+                <filter name="negative" string="Tồn bất thường (≤ 0)"
+                        domain="[('quantity', '&lt;=', 0)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_location" string="Vị trí"
+                            context="{'group_by': 'location_id'}"/>
+                    <filter name="group_product" string="Hàng hoá"
+                            context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_stock_inventory" model="ir.actions.act_window">
+        <field name="name">Kiểm kê</field>
+        <field name="res_model">stock.quant</field>
+        <field name="view_mode">tree</field>
+        <field name="domain">[('location_id.usage', '=', 'internal')]</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_inventory_tree')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_inventory_search"/>
+        <!-- inventory_mode: bật cột "Tồn thực đếm" + nút Áp dụng của native. -->
+        <field name="context">{'inventory_mode': True, 'search_default_group_location': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có gì để kiểm kê</p>
+            <p>Bấm <b>Đặt = tồn</b> ở dòng cần đếm rồi sửa lại <b>Tồn thực đếm</b>,
+               hoặc <b>Tạo</b> dòng mới. Bấm <b>Áp dụng</b> để hệ thống sinh phiếu
+               điều chỉnh cho phần chênh lệch — tồn kho sẽ khớp số đếm.</p>
+        </field>
+    </record>
+
+    <!-- ============================================================
          K4 — M1 Tồn kho (docs/Thiet_ke_phan_he_kho.md §11.2)
 
          Chỉ-đọc: thay đổi số lượng là việc của KIỂM KÊ (màn riêng, K8) hoặc của
@@ -17,6 +128,14 @@
             <tree string="Tồn kho" class="dl-stock-quant-list"
                   create="0" edit="0" delete="0"
                   decoration-warning="quantity &lt;= 0">
+                <!-- [Kiểm kê] LUÔN hiện (display="always") — không cần chọn dòng.
+                     §11.11: kiểm kê là NÚT trên màn Tồn kho, cố ý KHÔNG lên rail
+                     (rail 9 mục là quá dài để quét). -->
+                <header>
+                    <button name="%(action_dl_stock_inventory)d" type="action"
+                            string="Kiểm kê" class="btn-secondary"
+                            display="always"/>
+                </header>
                 <field name="product_id" string="Hàng hoá"/>
                 <field name="lot_id" string="Lô" optional="show"/>
                 <field name="dlm_supplier_id" string="Nhà cung cấp" optional="show"/>

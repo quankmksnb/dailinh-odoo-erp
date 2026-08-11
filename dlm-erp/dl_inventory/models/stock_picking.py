@@ -59,6 +59,22 @@ class StockPicking(models.Model):
     dlm_reject_summary = fields.Char(
         string="Lý do", compute="_compute_dlm_reject_summary")
 
+    # ── K8 — Loại việc cho "Hàng đợi phiếu" ──────────────────────────────────
+    # Một action gộp mọi loại phiếu chỉ khai được MỘT form view, mà form Nhận
+    # hàng và form Kiểm hàng dùng nhãn cột trái ngược nhau ("Dự kiến/Thực nhận"
+    # ≠ "NCC giao/Đạt/Loại"). Field này cho JS (picking_todo.js) biết mở phiếu
+    # bằng ĐÚNG action chuyên biệt của từng loại — không dồn về một form chung.
+    # Non-store: chỉ để hiển thị/định tuyến, suy thẳng từ loại hoạt động.
+    dlm_picking_kind = fields.Selection([
+        ("receipt", "Nhận hàng"),
+        ("qc", "Kiểm hàng"),
+        ("transfer", "Chuyển kho"),
+        ("delivery", "Giao hàng"),
+        ("vendor_return", "Trả hàng NCC"),
+        ("scrap_sale", "Bán phế liệu"),
+        ("other", "Khác"),
+    ], string="Loại việc", compute="_compute_dlm_picking_kind")
+
     # ── K5 — Trạng thái kiểm hàng ────────────────────────────────────────────
     dlm_is_qc = fields.Boolean(
         string="Là phiếu kiểm hàng", compute="_compute_dlm_is_qc")
@@ -90,6 +106,33 @@ class StockPicking(models.Model):
         for picking in self:
             picking.dlm_is_qc = (
                 picking.picking_type_id.sequence_code == _DLM_QC_CODE)
+
+    @api.depends("picking_type_id")
+    def _compute_dlm_picking_kind(self):
+        """Suy loại việc từ loại hoạt động — thứ tự kiểm QUAN TRỌNG.
+
+        Phiếu kiểm (KC) và chuyển kho (CK) đều là `internal`; phiếu trả (TR) và
+        bán phế liệu (BPL) đều là `outgoing`. Phải khớp `sequence_code` TRƯỚC khi
+        rơi về `code`, không thì kiểm hàng bị nhận nhầm là chuyển kho.
+        """
+        for picking in self:
+            code = picking.picking_type_id.code
+            seq = picking.picking_type_id.sequence_code
+            if code == "incoming":
+                kind = "receipt"
+            elif seq == _DLM_QC_CODE:
+                kind = "qc"
+            elif seq == _DLM_RETURN_CODE:
+                kind = "vendor_return"
+            elif seq == "BPL":
+                kind = "scrap_sale"
+            elif code == "internal":
+                kind = "transfer"
+            elif code == "outgoing":
+                kind = "delivery"
+            else:
+                kind = "other"
+            picking.dlm_picking_kind = kind
 
     @api.depends("dlm_origin_picking_id", "state", "move_ids")
     def _compute_dlm_return_count(self):
