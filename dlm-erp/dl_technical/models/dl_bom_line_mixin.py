@@ -251,12 +251,16 @@ class DlBomLineMixin(models.AbstractModel):
     # THU HỒI PHẾ LIỆU
     # ==========================================================
 
-    def _dlm_recovery_value(self):
-        """Giá trị phế liệu thu hồi được trừ khỏi chi phí vật tư.
+    def _dlm_recovery_kg(self):
+        """Khối lượng phế liệu THU HỒI ĐƯỢC của dòng này, theo KG.
 
-        🔴 Lượng hao hụt tính theo ĐVT của vật tư (vd CÂY), còn phế liệu bán
-        theo KG ⇒ BẮT BUỘC quy đổi qua dlm_mass_per_unit. Bỏ bước này thì tiền
-        thu hồi sai hàng nghìn lần (0.23 "kg" thay vì 0.23 cây × 11.5 kg/cây).
+        🔴 Lượng hao hụt tính theo ĐVT của vật tư (vd CÂY), còn phế liệu cân và
+        bán theo KG ⇒ BẮT BUỘC quy đổi qua dlm_mass_per_unit. Bỏ bước này thì
+        con số sai hàng nghìn lần (0,23 "kg" thay vì 0,23 cây × 11,5 kg/cây).
+
+        Tách khỏi `_dlm_recovery_value` vì phân hệ Kho cần đúng số KG này để đối
+        chiếu dự toán với lượng cân thực tế (thiết kế Kho §7.4) — chép lại công
+        thức sang đó là mở đường cho hai con số "thu hồi" lệch nhau.
         """
         self.ensure_one()
         mat = self.material_id
@@ -268,8 +272,17 @@ class DlBomLineMixin(models.AbstractModel):
         # phế liệu thành 0 mà không ai thấy.
         per_unit = (1.0 if mat._dlm_uom_group() == "weight"
                     else (mat.dlm_mass_per_unit or 0.0))
-        waste_kg = waste_qty * per_unit
-        return waste_kg * mat.dlm_recovery_rate / 100.0 * mat._dlm_scrap_unit_price()
+        return waste_qty * per_unit * mat.dlm_recovery_rate / 100.0
+
+    def _dlm_recovery_value(self):
+        """Giá trị phế liệu thu hồi được trừ khỏi chi phí vật tư."""
+        self.ensure_one()
+        recovery_kg = self._dlm_recovery_kg()
+        # Thoát sớm khi không thu hồi: _dlm_scrap_unit_price() có ensure_one()
+        # nên gọi trên dòng chưa chọn vật tư sẽ nổ thay vì trả 0.
+        if not recovery_kg:
+            return 0.0
+        return recovery_kg * self.material_id._dlm_scrap_unit_price()
 
     def _mixin_copy_vals(self):
         """Trả về dict giá trị các field dùng chung — dùng khi copy 1 dòng

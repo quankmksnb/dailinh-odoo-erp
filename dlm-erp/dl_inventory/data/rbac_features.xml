@@ -51,5 +51,16 @@
             <field name="sequence">54</field>
         </record>
 
+        <!-- Phế liệu là tài sản có giá trị, luồng bán riêng — tách khỏi tồn kho
+             thường để người quản trị cấp quyền độc lập. Không model_id: dữ liệu
+             nằm trên stock.quant/stock.move (lọc theo vị trí), như feat_supplier
+             của dl_partner cố ý bỏ trống. -->
+        <record id="feat_stock_scrap" model="dl.rbac.feature">
+            <field name="name">Phế liệu</field>
+            <field name="code">stock_scrap</field>
+            <field name="category">master</field>
+            <field name="sequence">55</field>
+        </record>
+
     </data>
 </odoo>

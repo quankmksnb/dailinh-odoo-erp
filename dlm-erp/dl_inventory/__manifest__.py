@@ -1,6 +1,6 @@
 {
     "name": "DL-Inventory",
-    "version": "17.0.2.3.0",
+    "version": "17.0.2.4.0",
     "summary": "Kho Đại Linh — 1 kho, 3 khu, nhận hàng 2 bước có kiểm hàng",
     "description": """
 Phân hệ Kho (Giai đoạn B1). Đặc tả: docs/Thiet_ke_phan_he_kho.md
@@ -25,7 +25,13 @@ Thêm ở K6:
     đã phát sinh phiếu giao.
   • Màn Trả hàng NCC cho bộ phận Mua hàng, kèm lý do loại gộp từ các dòng.
 
-Chưa có (K7–K8): màn Phế liệu / Kiểm kê và hàng đợi phiếu cho thủ kho.
+Thêm ở K7:
+  • Màn Phế liệu: cân thực tế (chế độ kiểm kê) + nút Bán phế liệu, luôn kèm
+    dải chú thích "tiền bán phế liệu không phải lợi nhuận tăng thêm".
+  • Báo cáo đối chiếu thu hồi theo tháng: dự toán (từ BOM) vs cân thực tế —
+    vòng phản hồi cho biết định mức hao hụt đặt đúng hay sai.
+
+Chưa có (K8): kiểm kê chung + hàng đợi phiếu cho thủ kho.
 
 KHÔNG dựng lại tầng "hub" (màn lưới thẻ trung chuyển): tầng đó đã bị gỡ khỏi cả
 hệ thống, điều hướng đi thẳng qua submenu rail.
@@ -51,6 +57,7 @@ hệ thống, điều hướng đi thẳng qua submenu rail.
         "views/vendor_return_views.xml",
         "views/stock_quant_views.xml",
         "views/stock_lot_views.xml",
+        "views/scrap_views.xml",
         # Kế thừa form dl.sale.order ⇒ nạp sau khi action phiếu giao đã có.
         "views/sale_order_views_ext.xml",
         # menus.xml nạp CUỐI: menuitem tham chiếu action khai ở các file trên.

@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K7 — M7 Phế liệu (docs/Thiet_ke_phan_he_kho.md §7, §11.8)
+
+         🔴 Phế liệu là TÀI SẢN, không phải hàng huỷ. Odoo có sẵn vị trí ảo
+         "Virtual Locations/Scrap" nhưng đó là write-off — giá trị biến mất.
+         Phế liệu Đại Linh bán lại được và đã tham gia tính giá, nên nó nằm ở
+         một vị trí nội bộ THẬT: DL/XUONG/PL.
+
+         Cả hai màn đều mang `banner_route` — dải chú thích "không phải lợi
+         nhuận tăng thêm" phải LUÔN hiện, không đóng được (§7.2).
+    ============================================================ -->
+
+    <record id="view_dl_scrap_quant_tree" model="ir.ui.view">
+        <field name="name">dl.stock.quant.scrap.tree</field>
+        <field name="model">stock.quant</field>
+        <field name="arch" type="xml">
+            <!-- MỘT màn cho cả hai việc, không tách "xem tồn" với "cân thực
+                 tế": ở B1 cân tay LÀ cách duy nhất phế liệu vào kho (§7.3), nên
+                 nhập số chính là thao tác chính của màn này, không phải chế độ
+                 phụ. Chế độ kiểm kê native vẫn bắt bấm Áp dụng và tự sinh phiếu
+                 điều chỉnh ⇒ có dấu vết, không phải sửa lén con số tồn. -->
+            <tree string="Phế liệu" class="dl-scrap-list"
+                  banner_route="/dl_inventory/scrap_banner"
+                  editable="bottom" delete="0">
+                <!-- Nút thao tác trên dòng đang chọn. Bán phế liệu luôn theo cả
+                     thùng chứa (chọn dòng rồi lập phiếu), không bao giờ bán lẻ
+                     từng ký ⇒ hành động theo lựa chọn là đúng nhịp làm việc. -->
+                <header>
+                    <button name="action_dlm_sell_scrap" type="object"
+                            string="Bán phế liệu" class="btn-primary"/>
+                </header>
+                <field name="product_id" string="Phế liệu"
+                       readonly="id != False"/>
+                <field name="location_id" string="Vị trí" optional="hide"
+                       readonly="id != False"/>
+                <field name="quantity" string="Tồn hệ thống" readonly="1"
+                       sum="Tổng"/>
+                <field name="inventory_quantity" string="Cân thực tế"
+                       widget="counted_quantity_widget"/>
+                <field name="inventory_diff_quantity" string="Chênh lệch"
+                       decoration-danger="inventory_diff_quantity &lt; 0"
+                       decoration-success="inventory_diff_quantity &gt; 0"/>
+                <field name="product_uom_id" string="ĐVT" readonly="1"/>
+                <field name="dlm_scrap_unit_price" string="Đơn giá"
+                       widget="dl_money"/>
+                <field name="dlm_scrap_value" string="Thành tiền"
+                       widget="dl_money" sum="Tổng"/>
+                <field name="inventory_quantity_set" column_invisible="1"/>
+                <!-- company_id: domain của product_id trên stock.quant tham
+                     chiếu tới nó ⇒ thiếu là view EDITABLE không nạp được. Màn
+                     Tồn kho (K4) không cần vì nó edit="0". -->
+                <field name="company_id" column_invisible="1"/>
+                <field name="reserved_quantity" string="Đang giữ" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_scrap_quant_search" model="ir.ui.view">
+        <field name="name">dl.stock.quant.scrap.search</field>
+        <field name="model">stock.quant</field>
+        <field name="arch" type="xml">
+            <search string="Phế liệu">
+                <field name="product_id" string="Phế liệu"/>
+                <filter name="in_stock" string="Còn tồn"
+                        domain="[('quantity', '&gt;', 0)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_product" string="Phế liệu"
+                            context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_scrap_quant" model="ir.actions.act_window">
+        <field name="name">Phế liệu</field>
+        <field name="res_model">stock.quant</field>
+        <field name="view_mode">tree</field>
+        <!-- eval + ref: `%(xmlid)d` CHỈ được nội suy trong arch (type="xml"),
+             field char thường thì Odoo trả nguyên chuỗi ⇒ domain hỏng câm. -->
+        <field name="domain"
+               eval="[('location_id', 'child_of', ref('stock_location_xuong_pl'))]"/>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_scrap_quant_tree')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_scrap_quant_search"/>
+        <!-- inventory_mode: bật chế độ kiểm kê native ⇒ có cột "Cân thực tế" và
+             nút Áp dụng. Đây là đường DUY NHẤT phế liệu vào kho ở B1 (§7.3);
+             từ Lệnh sản xuất (B2) phần hao hụt theo định mức sẽ tự ghi nhận. -->
+        <field name="context" eval="{
+            'inventory_mode': True,
+            'default_location_id': ref('stock_location_xuong_pl'),
+        }"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có phế liệu trong kho</p>
+            <p>Bấm <b>Tạo</b>, chọn loại phế liệu và nhập số <b>cân thực tế</b>.
+               Từ giai đoạn Lệnh sản xuất, phần hao hụt theo định mức sẽ tự ghi
+               nhận vào đây.</p>
+        </field>
+    </record>
+
+    <!-- Form phiếu Bán phế liệu — mở ra ngay sau khi bấm nút trên màn tồn. -->
+    <record id="view_dl_scrap_sale_form" model="ir.ui.view">
+        <field name="name">dl.stock.picking.scrap.sale.form</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <form string="Bán phế liệu" class="dl-scrap-sale-form">
+                <header>
+                    <button name="action_confirm" string="Xác nhận phiếu"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="button_validate" string="Xác nhận đã giao"
+                            type="object" class="btn-primary"
+                            invisible="state not in ('waiting', 'confirmed', 'assigned')"/>
+                    <button name="action_cancel" string="Huỷ phiếu"
+                            type="object" class="btn-danger"
+                            invisible="state in ('done', 'cancel')"/>
+                    <field name="state" widget="dl_stepper"
+                           statusbar_visible="draft,assigned,done"/>
+                </header>
+                <sheet>
+                    <field name="company_id" invisible="1"/>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <div class="dl-fields-row">
+                        <div class="dl-field">
+                            <label for="partner_id" string="Bên thu mua"/>
+                            <field name="partner_id" nolabel="1" required="1"
+                                   readonly="state in ('done', 'cancel')"
+                                   placeholder="Chọn bên mua phế liệu"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="scheduled_date" string="Ngày giao"/>
+                            <field name="scheduled_date" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="origin" string="Tham chiếu"/>
+                            <field name="origin" nolabel="1"
+                                   placeholder="VD: phiếu cân của bên thu mua"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                    </div>
+
+                    <notebook>
+                        <page string="Hàng bán" name="moves">
+                            <field name="move_ids" readonly="state in ('done', 'cancel')">
+                                <tree editable="bottom">
+                                    <field name="product_id" string="Phế liệu"
+                                           required="1"/>
+                                    <field name="product_uom_qty" string="Số lượng"
+                                           sum="Tổng"/>
+                                    <field name="quantity" string="Thực giao"/>
+                                    <field name="product_uom" string="ĐVT"
+                                           groups="uom.group_uom"/>
+                                    <field name="picked" column_invisible="1"/>
+                                    <!-- company_id: domain của product_id trên
+                                         stock.move tham chiếu tới nó ⇒ thiếu là
+                                         view không nạp được. -->
+                                    <field name="company_id" column_invisible="1"/>
+                                    <field name="product_uom_category_id" column_invisible="1"/>
+                                    <field name="state" column_invisible="1"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         Tab 2 — Đối chiếu thu hồi (§7.4)
+    ============================================================ -->
+    <record id="view_dl_scrap_recovery_tree" model="ir.ui.view">
+        <field name="name">dl.scrap.recovery.report.tree</field>
+        <field name="model">dl.scrap.recovery.report</field>
+        <field name="arch" type="xml">
+            <tree string="Đối chiếu thu hồi" class="dl-scrap-recovery-list"
+                  banner_route="/dl_inventory/scrap_banner"
+                  create="0" edit="0" delete="0"
+                  decoration-danger="diff_level == 'short'"
+                  decoration-warning="diff_level == 'over'">
+                <field name="period" string="Kỳ" widget="date"/>
+                <field name="qty_estimated" string="Dự toán (kg)"/>
+                <field name="qty_in" string="Thực nhập (kg)"/>
+                <field name="qty_diff" string="Chênh lệch (kg)"/>
+                <field name="qty_sold" string="Đã bán (kg)"/>
+                <field name="diff_level" string="Đánh giá" widget="badge"
+                       decoration-danger="diff_level == 'short'"
+                       decoration-warning="diff_level == 'over'"
+                       decoration-success="diff_level == 'match'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="action_dl_scrap_recovery" model="ir.actions.act_window">
+        <field name="name">Đối chiếu thu hồi</field>
+        <field name="res_model">dl.scrap.recovery.report</field>
+        <field name="view_mode">tree</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_scrap_recovery_tree')}),
+        ]"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có kỳ nào để đối chiếu</p>
+            <p>Bảng này so <b>lượng phế liệu dự toán</b> khi báo giá với
+               <b>lượng cân được thực tế</b>. Cân ít hơn dự toán nghĩa là định
+               mức hao hụt đang đặt thấp so với thực tế sản xuất.</p>
+        </field>
+    </record>
+
+</odoo>

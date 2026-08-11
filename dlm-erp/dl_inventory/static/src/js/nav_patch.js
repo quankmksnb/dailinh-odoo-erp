@@ -61,6 +61,20 @@ const INVENTORY_CHILDREN = [
     menuXmlIds: ["dl_inventory.menu_dl_picking_vendor_return"],
   },
   {
+    key: "scrap",
+    name: "Phế liệu",
+    icon: "fa-recycle",
+    preferMenu: true,
+    menuXmlIds: ["dl_inventory.menu_dl_scrap"],
+  },
+  {
+    key: "scrap_recovery",
+    name: "Đối chiếu thu hồi",
+    icon: "fa-balance-scale",
+    preferMenu: true,
+    menuXmlIds: ["dl_inventory.menu_dl_scrap_recovery"],
+  },
+  {
     key: "stock_lot",
     name: "Lô hàng",
     icon: "fa-barcode",

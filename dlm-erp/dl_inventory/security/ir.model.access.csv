@@ -58,3 +58,8 @@ access_dl_stock_warehouse_admin,stock.warehouse Admin,stock.model_stock_warehous
 access_dl_stock_warehouse_ceo,stock.warehouse CEO,stock.model_stock_warehouse,dl_base.dl_group_ceo,1,0,0,0
 access_dl_sale_order_wh,dl.sale.order Warehouse,dl_sale.model_dl_sale_order,dl_base.dl_group_warehouse,1,0,0,0
 access_dl_sale_order_line_wh,dl.sale.order.line Warehouse,dl_sale.model_dl_sale_order_line,dl_base.dl_group_warehouse,1,0,0,0
+access_dl_scrap_report_wh,dl.scrap.recovery.report Warehouse,model_dl_scrap_recovery_report,dl_base.dl_group_warehouse,1,0,0,0
+access_dl_scrap_report_admin,dl.scrap.recovery.report Admin,model_dl_scrap_recovery_report,dl_base.dl_group_admin,1,0,0,0
+access_dl_scrap_report_ceo,dl.scrap.recovery.report CEO,model_dl_scrap_recovery_report,dl_base.dl_group_ceo,1,0,0,0
+access_dl_scrap_report_acc,dl.scrap.recovery.report Acc,model_dl_scrap_recovery_report,dl_base.dl_group_accountant,1,0,0,0
+access_dl_scrap_report_tech,dl.scrap.recovery.report Tech,model_dl_scrap_recovery_report,dl_base.dl_group_tech,1,0,0,0

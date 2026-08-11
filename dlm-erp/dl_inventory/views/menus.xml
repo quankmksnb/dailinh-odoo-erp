@@ -71,6 +71,27 @@
     />
 
     <menuitem
+        id="menu_dl_scrap"
+        name="Phế liệu"
+        action="action_dl_scrap_quant"
+        parent="dl_base.menu_dl_inventory"
+        sequence="65"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <!-- Kỹ thuật CÓ mục này dù không đụng hàng vật lý: đây là vòng phản hồi duy
+         nhất cho biết hệ số hao hụt (dlm_waste_rate) họ đặt có khớp thực tế
+         không — mà hệ số đó đi thẳng vào giá báo khách. -->
+    <menuitem
+        id="menu_dl_scrap_recovery"
+        name="Đối chiếu thu hồi"
+        action="action_dl_scrap_recovery"
+        parent="dl_base.menu_dl_inventory"
+        sequence="66"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant,dl_base.dl_group_tech"
+    />
+
+    <menuitem
         id="menu_dl_stock_lot"
         name="Lô hàng"
         action="action_dl_stock_lot"
