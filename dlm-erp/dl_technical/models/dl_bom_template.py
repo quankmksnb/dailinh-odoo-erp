@@ -75,6 +75,36 @@ class DlBomTemplate(models.Model):
                 and rec.status in ("confirmed", "locked")
                 and not rec.generic_product_id)
 
+    # ── 🔴 SP dùng chung KHÔNG được tồn kho (Kho §3.5) ───────────────────────
+    # Odoo giữ hàng (reserve) theo product_id, KHÔNG theo kích thước. Nếu SP dùng
+    # chung là storable và trong kho có 5 "Bàn thép" gồm nhiều cỡ, một đơn đặt
+    # 1200×800 sẽ được giữ nhầm một cái 1000×600 rồi báo "đủ hàng" — tới lúc giao
+    # mới lộ. Không chặn được bằng cấu hình; phải đè cơ chế reservation của Odoo.
+    # ⇒ Ép 'consu' ngay tại nơi TÍNH GENERIC được khai. Cấu hình nào cần tồn kho
+    # thì thăng hạng thành SKU riêng — lúc đó reserve theo product_id lại ĐÚNG.
+    #
+    # Ép ở đây (dl_technical) chứ không ở dl_product vì dl_product KHÔNG depends
+    # dl_technical ⇒ không thấy được model này.
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        records._dlm_enforce_generic_not_stocked()
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if "generic_product_id" in vals:
+            self._dlm_enforce_generic_not_stocked()
+        return res
+
+    def _dlm_enforce_generic_not_stocked(self):
+        """SP dùng chung ⇒ detailed_type='consu'. sudo vì Kỹ thuật không có
+        quyền ghi loại lưu kho của sản phẩm."""
+        products = self.mapped("generic_product_id").filtered(
+            lambda p: p.detailed_type == "product")
+        if products:
+            products.sudo().product_tmpl_id.write({"detailed_type": "consu"})
+
     @api.constrains("generic_product_id", "product_category_id")
     def _check_generic_product_category(self):
         """Sản phẩm dùng chung phải nằm ĐÚNG nhóm của mẫu — nếu không, bộ định
