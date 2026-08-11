@@ -8,3 +8,4 @@ from . import test_qc_receipt
 from . import test_delivery_link
 from . import test_scrap_flow
 from . import test_inventory_adjustment
+from . import test_smart_domains

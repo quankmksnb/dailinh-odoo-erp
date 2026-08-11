@@ -123,6 +123,13 @@
                 </header>
                 <sheet>
                     <field name="company_id" invisible="1"/>
+                    <!-- location_id/dest do picking_type Bán phế liệu suy ra
+                         (Phế liệu chờ bán → khách). Khai để o2m move_ids truyền
+                         xuống làm vị trí nguồn/đích cho mỗi dòng — thiếu thì
+                         stock.move không có vị trí, Lưu lỗi "trường bắt buộc chưa
+                         được đặt". Ẩn: cả hai cố định theo loại phiếu. -->
+                    <field name="location_id" invisible="1"/>
+                    <field name="location_dest_id" invisible="1"/>
 
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
@@ -152,16 +159,38 @@
 
                     <notebook>
                         <page string="Hàng bán" name="moves">
-                            <field name="move_ids" readonly="state in ('done', 'cancel')">
+                            <field name="move_ids"
+                                   readonly="state in ('done', 'cancel')"
+                                   context="{'default_location_id': location_id,
+                                             'default_location_dest_id': location_dest_id}">
                                 <tree editable="bottom">
+                                    <!-- SM-06: chỉ bán được phế liệu ĐANG CÓ TỒN
+                                         ở khu DL/XUONG/PL — không mời chọn SP bất
+                                         kỳ (bán phế liệu đòi phải có tồn trước).
+                                         Nội suy xmlid trong domain (arch xml) trả
+                                         về id vị trí. Chỉ lọc theo location (không
+                                         kèm điều kiện tồn>0 trên cùng o2m — bẫy
+                                         match độc lập §3); SP chưa từng có quant ở
+                                         PL thì danh sách rỗng, đúng mong muốn. -->
                                     <field name="product_id" string="Phế liệu"
-                                           required="1"/>
+                                           required="1"
+                                           options="{'no_create': True}"
+                                           domain="[('stock_quant_ids.location_id', 'child_of',
+                                                     %(dl_inventory.stock_location_xuong_pl)d)]"/>
                                     <field name="product_uom_qty" string="Số lượng"
                                            sum="Tổng"/>
                                     <field name="quantity" string="Thực giao"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom"/>
                                     <field name="picked" column_invisible="1"/>
+                                    <!-- name/location_id/dest: trường bắt buộc của
+                                         stock.move điền gián tiếp (onchange product_id /
+                                         default_location_* ở context); phải nằm trong
+                                         active fields của tree con mới được giữ lại.
+                                         Xem picking_views để biết chi tiết. -->
+                                    <field name="name" column_invisible="1"/>
+                                    <field name="location_id" column_invisible="1"/>
+                                    <field name="location_dest_id" column_invisible="1"/>
                                     <!-- company_id: domain của product_id trên
                                          stock.move tham chiếu tới nó ⇒ thiếu là
                                          view không nạp được. -->

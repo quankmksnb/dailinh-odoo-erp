@@ -59,6 +59,24 @@ class StockPicking(models.Model):
     dlm_reject_summary = fields.Char(
         string="Lý do", compute="_compute_dlm_reject_summary")
 
+    # ── P1 (SM-03/SM-04) — Lọc mặt hàng theo ngữ cảnh phiếu ──────────────────
+    # Nguồn: docs/Thiet_ke_kho_thong_minh_context_aware.md SM-03, SM-04.
+    # Hai field này nuôi domain của product_id trên dòng hàng: chỉ hiện mặt hàng
+    # HỢP LỆ trong ngữ cảnh (có tồn ở nguồn / nằm trong đơn) thay vì mọi SP.
+    # Phải đặt invisible trên form để web client có giá trị mà evaluate
+    # `parent.<field>` trong domain. Non-store: chỉ phục vụ domain, tính lại mỗi
+    # lần đổi vị trí nguồn / đơn (đúng cơ chế "domain phụ thuộc field khác").
+    dlm_source_available_product_ids = fields.Many2many(
+        "product.product", string="Mặt hàng có tồn ở nguồn",
+        compute="_compute_dlm_source_available_product_ids",
+        help="Sản phẩm đang có tồn > 0 tại/dưới vị trí nguồn — dùng lọc dòng "
+             "chuyển kho, tránh chọn mặt hàng không thể giữ chỗ.")
+    dlm_orderable_product_ids = fields.Many2many(
+        "product.product", string="Mặt hàng trong đơn",
+        compute="_compute_dlm_orderable_product_ids",
+        help="Sản phẩm nằm trên đơn bán gắn với phiếu giao — dùng lọc dòng "
+             "giao hàng, tránh giao thứ khách không đặt.")
+
     # ── K8 — Loại việc cho "Hàng đợi phiếu" ──────────────────────────────────
     # Một action gộp mọi loại phiếu chỉ khai được MỘT form view, mà form Nhận
     # hàng và form Kiểm hàng dùng nhãn cột trái ngược nhau ("Dự kiến/Thực nhận"
@@ -161,6 +179,34 @@ class StockPicking(models.Model):
                     reasons.append(labels.get(reason))
             picking.dlm_reject_summary = ", ".join(reasons)
 
+    @api.depends("location_id")
+    def _compute_dlm_source_available_product_ids(self):
+        """SM-03: SP đang có tồn > 0 tại/dưới vị trí nguồn.
+
+        Dùng search stock.quant (không lọc bằng static domain trên o2m) để tránh
+        bẫy "hai điều kiện location + quantity match độc lập" — ở đây quantity > 0
+        và location được ràng trên CÙNG bản ghi quant.
+        """
+        Quant = self.env["stock.quant"]
+        products = self.env["product.product"]
+        for picking in self:
+            if not picking.location_id:
+                picking.dlm_source_available_product_ids = products
+                continue
+            quants = Quant.search([
+                ("location_id", "child_of", picking.location_id.id),
+                ("quantity", ">", 0),
+            ])
+            picking.dlm_source_available_product_ids = quants.product_id
+
+    @api.depends("dlm_sale_order_id", "dlm_sale_order_id.line_ids.product_id")
+    def _compute_dlm_orderable_product_ids(self):
+        """SM-04: SP nằm trên đơn bán gắn với phiếu giao. Rỗng khi chưa gắn đơn
+        (khi đó form khoá bảng dòng + mời chọn đơn — xem delivery_views)."""
+        for picking in self:
+            picking.dlm_orderable_product_ids = (
+                picking.dlm_sale_order_id.line_ids.product_id)
+
     @api.depends("move_ids.dlm_qty_rejected")
     def _compute_dlm_qty_rejected_total(self):
         for picking in self:
@@ -254,7 +300,20 @@ class StockPicking(models.Model):
             return "success", _(
                 "Đã nhận hàng vào khu <b>Chờ kiểm hàng</b>. Bước tiếp theo là "
                 "<b>kiểm & cất hàng</b>."), False
+
+        # SM-07: mặt hàng NCC này chưa có bảng giá ĐANG ÁP DỤNG ⇒ giá vốn có thể
+        # trống/sai. Chỉ CẢNH BÁO (không chặn — hàng đã về, vẫn phải nhập); nêu
+        # ở mọi bước trước khi xong để còn kịp báo Mua hàng chốt giá.
+        unpriced = self._dlm_receipt_unpriced_names()
+        price_block = _(
+            "<b>Chưa có bảng giá đang áp dụng</b> từ NCC này cho:<ul>%s</ul>"
+            "Giá vốn có thể chưa cập nhật — báo <b>Mua hàng</b> chốt giá. "
+            "Vẫn nhận hàng bình thường."
+        ) % "".join("<li>%s</li>" % n for n in unpriced) if unpriced else ""
+
         if self.state == "draft":
+            if price_block:
+                return "warning", price_block, False
             return False, False, False
 
         short = []
@@ -267,14 +326,42 @@ class StockPicking(models.Model):
                     _dlm_fmt(move.product_uom_qty - move.quantity),
                     move.product_uom.name))
         if short:
-            return "warning", _(
+            message = _(
                 "NCC giao thiếu so với dự kiến:<ul>%s</ul>Xác nhận sẽ tạo "
                 "<b>phiếu chờ giao tiếp</b> cho phần còn thiếu — không phải "
                 "hàng lỗi, đừng ghi vào mục Loại ở bước kiểm."
-            ) % "".join("<li>%s</li>" % s for s in short), False
+            ) % "".join("<li>%s</li>" % s for s in short)
+            return "warning", message + price_block, False
+        if price_block:
+            return "warning", price_block, False
         return "info", _(
             "Nhập số thực nhận rồi xác nhận. Số lô do hệ thống tự sinh "
             "(LO/năm/số) — sửa được nếu cần."), False
+
+    def _dlm_receipt_unpriced_names(self):
+        """SM-07: tên mặt hàng trên phiếu mà NCC này CHƯA có bảng giá đang áp dụng.
+
+        SM-01 đã lọc domain theo `seller_ids` (link tồn tại), nhưng link tồn tại
+        khác với bảng giá ĐÃ DUYỆT & ĐANG ÁP DỤNG (`is_applied` — xem
+        product_supplierinfo.py). Nhận mặt hàng chưa có giá đang áp dụng ⇒ giá vốn
+        tham chiếu có thể trống/sai.
+
+        sudo: thủ kho không được xem giá NCC (§8.3 doc gốc). Ta chỉ đọc CÓ/KHÔNG
+        bảng giá đang áp dụng — không đưa số tiền lên UI Kho.
+        """
+        self.ensure_one()
+        if not self.partner_id:
+            return []
+        Supplierinfo = self.env["product.supplierinfo"].sudo()
+        names = []
+        for product in self.move_ids.product_id:
+            if not Supplierinfo.search_count([
+                ("partner_id", "=", self.partner_id.id),
+                ("product_tmpl_id", "=", product.product_tmpl_id.id),
+                ("is_applied", "=", True),
+            ]):
+                names.append(product.display_name)
+        return names
 
     def _dlm_banner_delivery(self):
         """Dải cho phiếu [5] Giao hàng khách."""

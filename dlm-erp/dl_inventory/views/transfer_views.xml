@@ -50,6 +50,15 @@
                 </header>
                 <sheet>
                     <field name="company_id" invisible="1"/>
+                    <!-- SM-03: nuôi domain product_id — SP có tồn ở vị trí nguồn. -->
+                    <field name="dlm_source_available_product_ids" invisible="1"/>
+
+                    <!-- SM-03: chưa chọn nguồn thì không biết lọc theo tồn ở đâu.
+                         Khoá bảng dòng (bên dưới) + dải giải thích — inline. -->
+                    <div class="alert alert-info" role="alert" invisible="location_id">
+                        Chọn <b>Từ vị trí</b> (hoặc một tuyến hay dùng) trước —
+                        danh sách mặt hàng sẽ lọc theo những gì đang có tồn ở đó.
+                    </div>
 
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
@@ -106,21 +115,38 @@
 
                     <notebook>
                         <page string="Hàng chuyển" name="moves">
+                            <!-- SM-03: khoá thêm dòng tới khi có vị trí nguồn —
+                                 domain product_id neo vào parent tồn ở nguồn. -->
                             <field name="move_ids"
-                                   readonly="state in ('done', 'cancel')"
+                                   readonly="not location_id or state in ('done', 'cancel')"
                                    context="{'default_location_id': location_id,
                                              'default_location_dest_id': location_dest_id}">
                                 <tree editable="bottom">
+                                    <!-- SM-03: chỉ hiện mặt hàng đang có tồn ở vị
+                                         trí nguồn (tránh phiếu chuyển treo vì không
+                                         giữ chỗ được). -->
                                     <field name="product_id" string="Mặt hàng"
-                                           required="1"/>
+                                           required="1"
+                                           domain="[('id', 'in', parent.dlm_source_available_product_ids)]"/>
                                     <field name="product_uom_qty" string="Số lượng"/>
                                     <field name="quantity" string="Thực chuyển"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom"/>
+                                    <!-- SM-05: lô của đúng SP + đang nằm ở nguồn. -->
                                     <field name="lot_ids" string="Số lô"
                                            widget="many2many_tags"
-                                           optional="show"/>
+                                           optional="show"
+                                           domain="[('product_id', '=', product_id),
+                                                    ('quant_ids.location_id', 'child_of', parent.location_id)]"/>
                                     <field name="picked" column_invisible="1"/>
+                                    <!-- name/location_id/dest: trường bắt buộc của
+                                         stock.move điền gián tiếp (onchange product_id /
+                                         default_location_* ở context); phải nằm trong
+                                         active fields của tree con mới được giữ lại.
+                                         Xem picking_views để biết chi tiết. -->
+                                    <field name="name" column_invisible="1"/>
+                                    <field name="location_id" column_invisible="1"/>
+                                    <field name="location_dest_id" column_invisible="1"/>
                                     <!-- company_id: domain của product_id trên
                                          stock.move tham chiếu tới nó ⇒ thiếu là
                                          view không nạp được. -->

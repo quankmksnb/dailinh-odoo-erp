@@ -63,6 +63,21 @@
                     </div>
 
                     <field name="company_id" invisible="1"/>
+                    <!-- location_dest_id (vị trí khách) do picking_type suy ra; khai
+                         để o2m move_ids truyền xuống làm vị trí đích cho mỗi dòng —
+                         thiếu thì stock.move không có Destination Location, Lưu sẽ
+                         lỗi "trường bắt buộc chưa được đặt". location_id ("Lấy hàng
+                         từ") đã hiện ở header. -->
+                    <field name="location_dest_id" invisible="1"/>
+                    <!-- SM-04: nuôi domain product_id — SP nằm trong đơn gắn phiếu. -->
+                    <field name="dlm_orderable_product_ids" invisible="1"/>
+                    <!-- SM-04: chưa gắn đơn thì không biết được phép giao gì.
+                         Khoá bảng dòng (bên dưới) + dải giải thích — inline. -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="dlm_sale_order_id">
+                        Chọn <b>Đơn bán hàng</b> trước — danh sách mặt hàng sẽ lọc
+                        theo đúng những gì khách đã đặt trên đơn đó.
+                    </div>
                     <field name="dlm_banner_level" invisible="1"/>
                     <div class="alert alert-info" role="alert"
                          invisible="dlm_banner_level != 'info'">
@@ -111,17 +126,36 @@
 
                     <notebook>
                         <page string="Hàng giao" name="moves">
-                            <field name="move_ids" readonly="state in ('done', 'cancel')">
+                            <!-- SM-04: khoá thêm dòng tới khi có đơn — domain
+                                 product_id neo vào parent SP-trong-đơn. -->
+                            <field name="move_ids"
+                                   readonly="not dlm_sale_order_id or state in ('done', 'cancel')"
+                                   context="{'default_location_id': location_id,
+                                             'default_location_dest_id': location_dest_id}">
                                 <tree editable="bottom">
+                                    <!-- SM-04: chỉ hiện mặt hàng khách đã đặt trên
+                                         đơn (không giao thứ ngoài đơn). -->
                                     <field name="product_id" string="Mặt hàng"
-                                           required="1"/>
+                                           required="1"
+                                           domain="[('id', 'in', parent.dlm_orderable_product_ids)]"/>
                                     <field name="product_uom_qty" string="Cần giao"/>
                                     <field name="quantity" string="Thực giao"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom"/>
+                                    <!-- SM-05: lô của đúng SP + đang nằm ở nguồn. -->
                                     <field name="lot_ids" string="Số lô"
-                                           widget="many2many_tags" optional="show"/>
+                                           widget="many2many_tags" optional="show"
+                                           domain="[('product_id', '=', product_id),
+                                                    ('quant_ids.location_id', 'child_of', parent.location_id)]"/>
                                     <field name="picked" column_invisible="1"/>
+                                    <!-- name/location_id/dest: trường bắt buộc của
+                                         stock.move điền gián tiếp (onchange product_id /
+                                         default_location_* ở context); phải nằm trong
+                                         active fields của tree con mới được giữ lại.
+                                         Xem picking_views để biết chi tiết. -->
+                                    <field name="name" column_invisible="1"/>
+                                    <field name="location_id" column_invisible="1"/>
+                                    <field name="location_dest_id" column_invisible="1"/>
                                     <!-- company_id: domain của product_id trên
                                          stock.move tham chiếu tới nó ⇒ thiếu là
                                          view không nạp được. -->

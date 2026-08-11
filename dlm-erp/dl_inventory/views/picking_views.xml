@@ -100,6 +100,19 @@
                     <!-- company_id: domain của partner_id/picking_type_id trên
                          stock.picking tham chiếu tới nó ⇒ thiếu là view không nạp được. -->
                     <field name="company_id" invisible="1"/>
+                    <!-- location_id/dest do picking_type suy ra (NCC → Chờ kiểm).
+                         Phải khai để o2m move_ids truyền xuống làm vị trí nguồn/đích
+                         cho mỗi dòng — thiếu thì stock.move không có Source Location,
+                         Lưu sẽ lỗi "trường bắt buộc chưa được đặt". Ẩn: thủ kho không
+                         chọn tay, cả hai đã cố định theo loại phiếu Nhận hàng NCC. -->
+                    <field name="location_id" invisible="1"/>
+                    <field name="location_dest_id" invisible="1"/>
+                    <!-- SM-02: khi chưa chọn NCC thì bảng dòng bị khoá (bên dưới),
+                         dải này giải thích vì sao — inline, không modal. -->
+                    <div class="alert alert-info" role="alert" invisible="partner_id">
+                        Chọn <b>Nhà cung cấp</b> trước — danh sách mặt hàng sẽ lọc
+                        theo đúng những gì nhà cung cấp đó cung cấp.
+                    </div>
                     <field name="dlm_banner_level" invisible="1"/>
                     <div class="alert alert-info" role="alert"
                          invisible="dlm_banner_level != 'info'">
@@ -153,10 +166,24 @@
 
                     <notebook>
                         <page string="Hàng nhận" name="moves">
-                            <field name="move_ids" readonly="state in ('done', 'cancel')">
+                            <!-- SM-02: khoá thêm dòng tới khi có NCC — domain của
+                                 product_id (SM-01) neo vào parent.partner_id, chưa
+                                 có NCC thì danh sách rỗng, thêm dòng là vô nghĩa. -->
+                            <field name="move_ids"
+                                   readonly="not partner_id or state in ('done', 'cancel')"
+                                   context="{'default_location_id': location_id,
+                                             'default_location_dest_id': location_dest_id}">
                                 <tree editable="bottom">
-                                    <field name="product_id" string="Vật tư"
-                                           required="1"/>
+                                    <!-- SM-01: chỉ hiện mặt hàng NCC đang chọn thực
+                                         sự cung cấp (seller_ids = bảng giá NCC). Đai
+                                         an toàn product_kind: gia công/BTP tự sản
+                                         xuất, không mua. no_create: hàng nhận phải là
+                                         SP đã tồn tại (đã chốt giá), không đẻ tại chỗ. -->
+                                    <field name="product_id" string="Mặt hàng"
+                                           required="1"
+                                           options="{'no_create': True}"
+                                           domain="[('seller_ids.partner_id', '=', parent.partner_id),
+                                                    ('product_kind', 'in', ('material', 'trading'))]"/>
                                     <field name="product_uom_qty" string="Dự kiến"/>
                                     <field name="quantity" string="Thực nhận"/>
                                     <field name="product_uom" string="ĐVT"
@@ -167,6 +194,17 @@
                                     <field name="lot_ids" string="Số lô"
                                            widget="many2many_tags" readonly="1"/>
                                     <field name="picked" column_invisible="1"/>
+                                    <!-- name/location_id/dest: đều là trường BẮT BUỘC của
+                                         stock.move được điền GIÁN TIẾP (name qua onchange
+                                         product_id = product.partner_ref; vị trí qua
+                                         default_location_* ở context move_ids). Web chỉ
+                                         GIỮ giá trị gián tiếp nếu field nằm trong active
+                                         fields của tree con — thiếu khai thì bị bỏ, lưu
+                                         móc lỗi "trường bắt buộc chưa được đặt". Đây là lý
+                                         do Odoo core cũng khai column_invisible cả ba. -->
+                                    <field name="name" column_invisible="1"/>
+                                    <field name="location_id" column_invisible="1"/>
+                                    <field name="location_dest_id" column_invisible="1"/>
                                     <!-- company_id: domain của product_id trên
                                          stock.move tham chiếu tới nó ⇒ thiếu là
                                          view không nạp được. -->
@@ -330,7 +368,10 @@
                                 <tree editable="bottom" create="0" delete="0"
                                       decoration-danger="dlm_qc_over"
                                       decoration-warning="dlm_qty_rejected &gt; 0 and not dlm_qc_over">
-                                    <field name="product_id" string="Vật tư"
+                                    <!-- SM-08: khu Chờ kiểm chứa cả SP thương mại,
+                                         không riêng vật tư — nhãn "Mặt hàng" nhất
+                                         quán với Nhận hàng (SM-01)/Chuyển/Giao. -->
+                                    <field name="product_id" string="Mặt hàng"
                                            readonly="1"/>
                                     <field name="lot_ids" string="Lô"
                                            widget="many2many_tags" readonly="1"
