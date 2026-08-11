@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Màn "Phê duyệt báo giá" cho Trưởng KD / Giám đốc.
-         Kế thừa form yêu cầu duyệt (dl_config) để nhúng CHI TIẾT báo giá:
-         dòng + giá thành + markup + giá sàn + chiết khấu + cấu phần snapshot —
-         người duyệt thấy toàn cảnh báo giá cấu thành từ gì trong MỘT màn. -->
+         Kế thừa form yêu cầu duyệt (dl_config) để nhúng NGUYÊN trang "Phân tích
+         giá thành" của form Báo giá: tóm tắt lãi/lỗ + cơ cấu chi phí 3 lớp +
+         "công thức" giá thành theo từng sản phẩm, cạnh dòng báo giá và khung
+         chiết khấu. Người duyệt quyết định ngay tại đây — nút "Mở báo giá đầy
+         đủ" chỉ còn dùng khi cần chatter/đính kèm/lịch sử. -->
 
     <record id="view_dl_pricing_approval_request_form_quote" model="ir.ui.view">
         <field name="name">dl.pricing.approval.request.form.quote</field>
@@ -22,28 +24,48 @@
                         invisible="not quotation_id"/>
             </xpath>
             <!-- Tóm tắt quyết định LÊN ĐẦU, cạnh nút Duyệt/Từ chối (review UX
-                 aform #f2/#f4): người duyệt thấy ngay giá trị, markup vs giá sàn
-                 và cờ rủi ro dạng chip nổi bật (thay true/false). Lý do từ chối
-                 (#f1) nhập trong dialog khi bấm Từ chối, không để thường trực. -->
+                 aform #f2/#f4): người duyệt thấy ngay giá trị, lãi gộp, mức bào
+                 mòn markup và cờ rủi ro dạng chip (thay true/false). Dùng ĐÚNG
+                 khuôn .dl-cost-summary của trang "Phân tích giá thành" — cùng số,
+                 cùng cách đọc. Lý do từ chối (#f1) nhập trong dialog khi bấm
+                 Từ chối, không để thường trực. -->
             <xpath expr="//div[hasclass('oe_title')]" position="after">
-                <div class="dl-decision" invisible="not quotation_id">
-                    <div class="dl-decision-head">
-                        <div class="dl-decision-cell">
-                            <span class="dl-decision-lbl">Tổng thanh toán</span>
+                <div class="dl-cost-summary" invisible="not quotation_id">
+                    <div class="dl-cost-head">
+                        <div class="dl-cost-cell">
+                            <span class="dl-cost-lbl">Tổng thanh toán</span>
                             <field name="q_amount_total" widget="dl_money"
                                    options="{'currency_field': 'q_currency_id'}"
-                                   nolabel="1" readonly="1" class="dl-decision-val"/>
+                                   nolabel="1" readonly="1" class="dl-cost-val"/>
                         </div>
-                        <div class="dl-decision-cell"
+                        <div class="dl-cost-cell"
                              groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
-                            <span class="dl-decision-lbl">Markup thực / mục tiêu</span>
-                            <span class="dl-decision-val2">
-                                <field name="q_effective_markup" readonly="1" nolabel="1" class="oe_inline"/>% /
-                                <field name="q_target_markup" readonly="1" nolabel="1" class="oe_inline"/>%
+                            <span class="dl-cost-lbl">Lãi gộp</span>
+                            <field name="q_gross_profit" widget="dl_money"
+                                   nolabel="1" readonly="1" class="dl-cost-val"/>
+                        </div>
+                        <div class="dl-cost-cell"
+                             groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                            <span class="dl-cost-lbl">Tổng giá thành</span>
+                            <field name="q_total_cost" widget="dl_money"
+                                   nolabel="1" readonly="1" class="dl-cost-val2"/>
+                        </div>
+                        <div class="dl-cost-cell"
+                             groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                            <span class="dl-cost-lbl">Markup niêm yết → thực thu (sau CK)</span>
+                            <span class="dl-cost-val2">
+                                <field name="q_list_markup" readonly="1" nolabel="1" class="oe_inline"/>% →
+                                <field name="q_effective_markup" readonly="1" nolabel="1" class="oe_inline"/>%
+                            </span>
+                            <!-- Mục tiêu chỉ là tham chiếu cho giá NIÊM YẾT; lằn ranh
+                                 thật khi duyệt là markup tại giá sàn. -->
+                            <span class="dl-cost-note">mục tiêu
+                                <field name="q_target_markup" readonly="1" nolabel="1" class="oe_inline"/>% ·
+                                sàn <field name="q_floor_markup" readonly="1" nolabel="1" class="oe_inline"/>%
                             </span>
                         </div>
                     </div>
-                    <div class="dl-decision-risks">
+                    <div class="dl-cost-risks">
                         <span class="badge text-bg-danger" invisible="not q_discount_above_max">Vượt trần chiết khấu</span>
                         <span class="badge text-bg-warning" invisible="q_discount_above_max or not q_discount_above_default">Cao hơn chiết khấu mặc định</span>
                         <span class="badge text-bg-danger" invisible="not q_below_floor"
@@ -56,28 +78,67 @@
                 <field name="quotation_id" invisible="1"/>
                 <field name="q_currency_id" invisible="1"/>
                 <field name="q_in_safe_range" invisible="1"/>
+                <!-- Cờ chỉ dùng cho chip cảnh báo ở đầu form — nạp ẩn. Bản gated
+                     đi kèm chip gated tương ứng nên bị lược cùng nhau với vai
+                     trò không được xem giá vốn. -->
+                <field name="q_discount_above_default" invisible="1"/>
+                <field name="q_discount_above_max" invisible="1"/>
+                <field name="q_below_floor" invisible="1"
+                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                 <group invisible="not quotation_id">
                     <group string="Báo giá được duyệt">
                         <field name="q_partner_id" readonly="1"/>
                         <field name="q_date_order" readonly="1"/>
                         <field name="q_state" readonly="1"/>
                     </group>
-                    <group string="Giá thành &amp; lợi nhuận (nội bộ)"
-                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
-                        <field name="q_total_cost" widget="dl_money" readonly="1"
-                               string="Tổng giá thành (vật tư)"/>
-                        <field name="q_target_markup" readonly="1"
-                               string="Markup mục tiêu (%)"/>
-                        <field name="q_effective_markup" readonly="1"
-                               string="Markup thực (%)"/>
-                        <field name="q_floor_amount" widget="dl_money" readonly="1"
-                               string="Tổng giá sàn"/>
-                        <field name="q_below_floor" readonly="1"
-                               string="Dưới giá sàn"/>
-                    </group>
                 </group>
+                <!-- Trang Phân tích giá thành ĐỨNG TRƯỚC: đây mới là tài liệu ra
+                     quyết định của người duyệt. Bố cục copy nguyên khuôn của form
+                     Báo giá (3 hộp + "công thức" theo từng sản phẩm) để không phải
+                     mở lại báo giá đầy đủ mới xem được giá cấu thành từ đâu. -->
                 <notebook invisible="not quotation_id">
-                    <page string="Dòng báo giá">
+                    <page string="Phân tích giá thành"
+                          groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                        <div class="dl-cost-cols">
+                            <div class="dl-cost-box">
+                                <div class="dl-cost-box-title">Cơ cấu giá thành</div>
+                                <div class="dl-cost-line"><span>Vật tư</span>
+                                    <field name="q_cost_material_total" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                <div class="dl-cost-line"><span>Công đoạn</span>
+                                    <field name="q_cost_operation_total" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                <div class="dl-cost-line"><span>Chi phí chung/điều chỉnh</span>
+                                    <field name="q_cost_adjustment_total" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                <div class="dl-cost-line dl-cost-line-total"><span>Tổng giá thành</span>
+                                    <field name="q_total_cost" widget="dl_money" nolabel="1" readonly="1"/></div>
+                            </div>
+                            <div class="dl-cost-box">
+                                <div class="dl-cost-box-title">Giá sàn</div>
+                                <div class="dl-cost-line"><span>Tổng giá sàn</span>
+                                    <field name="q_floor_amount" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                <div class="dl-cost-line"><span>Doanh thu (sau CK, trước VAT)</span>
+                                    <field name="q_amount_before_vat" widget="dl_money" nolabel="1" readonly="1"/></div>
+                                <div class="dl-cost-line dl-cost-line-total"><span>Lãi gộp</span>
+                                    <field name="q_gross_profit" widget="dl_money" nolabel="1" readonly="1"/></div>
+                            </div>
+                            <div class="dl-cost-box">
+                                <div class="dl-cost-box-title">Chiết khấu &amp; phê duyệt</div>
+                                <div class="dl-cost-line"><span>Nhóm khách</span>
+                                    <field name="q_partner_group" nolabel="1" readonly="1"/></div>
+                                <div class="dl-cost-line"><span>CK áp dụng</span>
+                                    <span><field name="q_discount_pct" nolabel="1" readonly="1" class="oe_inline"/>%</span></div>
+                                <div class="dl-cost-line"><span>CK mặc định / tối đa</span>
+                                    <span><field name="q_discount_default_rate" nolabel="1" readonly="1" class="oe_inline"/>% / <field name="q_discount_max_rate" nolabel="1" readonly="1" class="oe_inline"/>%</span></div>
+                                <div class="dl-cost-line"><span>Cấp duyệt yêu cầu</span>
+                                    <field name="approval_level" nolabel="1" readonly="1"/></div>
+                            </div>
+                        </div>
+                        <!-- Diễn giải "công thức": vật tư/công đoạn/chi phí chung
+                             CHO 1 SẢN PHẨM → × số lượng → + markup → giá bán.
+                             Thay bảng cấu phần phẳng cũ (không đọc được cost/1sp). -->
+                        <separator string="Chi tiết cấu phần — tính cho 1 sản phẩm, rồi × số lượng đặt"/>
+                        <field name="q_cost_breakdown_html" nolabel="1" readonly="1"/>
+                    </page>
+                    <page string="Chi tiết báo giá">
                         <field name="q_line_ids" readonly="1">
                             <tree>
                                 <field name="line_type" widget="badge"
@@ -85,7 +146,9 @@
                                        decoration-info="line_type == 'manufactured'"/>
                                 <field name="name"/>
                                 <field name="qty" widget="dl_money" digits="[16, 0]"/>
-                                <field name="material_cost" widget="dl_money" digits="[16, 0]" string="CP vật tư/đv"
+                                <field name="material_cost" widget="dl_money" digits="[16, 0]" string="CP vật tư/đv" optional="hide"
+                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                <field name="operation_cost" widget="dl_money" digits="[16, 0]" string="CP công đoạn/đv" optional="hide"
                                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                                 <field name="total_cost" widget="dl_money" digits="[16, 0]" string="Giá thành/đv"
                                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
@@ -109,41 +172,6 @@
                             <field name="q_amount_total" widget="dl_money" readonly="1"
                                    string="Tổng thanh toán" class="oe_subtotal_footer_separator"/>
                         </group>
-                        <group>
-                            <group string="Khung chiết khấu áp dụng">
-                                <field name="q_discount_default_rate" readonly="1"
-                                       string="Chiết khấu mặc định (%)"/>
-                                <field name="q_discount_max_rate" readonly="1"
-                                       string="Chiết khấu tối đa (%)"/>
-                                <field name="q_discount_above_default" readonly="1"
-                                       string="Vượt mặc định"/>
-                                <field name="q_discount_above_max" readonly="1"
-                                       string="Vượt tối đa"/>
-                            </group>
-                        </group>
-                    </page>
-                    <page string="Cấu phần giá (snapshot)"
-                          groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
-                        <!-- Giá thành hiện gồm chi phí VẬT TƯ theo BOM (± thu hồi)
-                             + markup; chi phí công đoạn/chi phí chung sẽ bổ sung
-                             ở phase sau — người duyệt cần biết giới hạn này. -->
-                        <div class="alert alert-info" role="alert">
-                            Giá thành = chi phí vật tư theo BOM (đã trừ thu hồi phế liệu).
-                            Chi phí công đoạn và chi phí chung/hệ số chưa được cộng ở phase này.
-                        </div>
-                        <field name="q_component_ids" readonly="1">
-                            <tree>
-                                <field name="quotation_line_id"/>
-                                <field name="component_type"/>
-                                <field name="material_id"/>
-                                <field name="qty"/>
-                                <field name="unit_price" widget="dl_money" digits="[16, 0]"/>
-                                <field name="rate"/>
-                                <field name="amount" widget="dl_money" digits="[16, 0]"/>
-                                <field name="source_model" optional="hide"/>
-                                <field name="source_revision" optional="hide"/>
-                            </tree>
-                        </field>
                     </page>
                 </notebook>
             </xpath>

@@ -1,6 +1,6 @@
 {
     "name": "DL-Technical",
-    "version": "17.0.2.0.0",
+    "version": "17.0.2.1.0",
     "summary": "Quản lý BOM, Bản vẽ, Bán thành phẩm, công thức",
     "author": "Dai Linh",
     "category": "Hidden",
@@ -25,7 +25,6 @@
         "wizard/rfq_history_wizard_views.xml",
         "wizard/bom_from_template_wizard_views.xml",
         "wizard/dl_bom_create_btp_wizard_views.xml",
-        "views/technical_home.xml",
         "views/menus.xml",
         "data/dl_demo_data.xml",
     ],
@@ -51,10 +50,6 @@
             "dl_technical/static/src/views/drawing_list_controller.js",
             "dl_technical/static/src/views/drawing_form_controller.js",
             "dl_technical/static/src/views/bomtpl_form_controller.js",
-            # Dashboard "Kỹ thuật"
-            "dl_technical/static/src/components/technical_home/technical_home.scss",
-            "dl_technical/static/src/components/technical_home/technical_home.xml",
-            "dl_technical/static/src/components/technical_home/technical_home.js",
             "dl_technical/static/src/js/nav_patch.js",
         ],
     },

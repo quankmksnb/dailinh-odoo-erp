@@ -222,6 +222,28 @@
     }
 }
 
+// ── Ẩn nút "New" trên MỌI form dl (list/kanban vẫn giữ nút Thêm) ───────────
+// Tạo bản ghi đi từ list; nút New của Odoo trên form chỉ để tạo nối tiếp, gây
+// nhiễu. Trước đây quy tắc này là danh sách class viết tay trong
+// dl_sale/control_panel.scss (kèm cả class của dl_product/dl_technical/dl_base
+// — sai chủ sở hữu). Danh sách đó đã mục: 5 class chết, 9 form bị sót. Dùng
+// selector chung để form mới KHÔNG phải đăng ký ở đâu nữa.
+.o_action_manager:has([class*="dl-"][class*="-form"]) .o_control_panel_main_buttons {
+    display: none !important;
+}
+
+// ── Breadcrumb không xuống dòng trên form dl ───────────────────────────────
+.o_action_manager:has([class*="dl-"][class*="-form"]) {
+    .o_control_panel_main { flex-wrap: nowrap !important; }
+    .o_control_panel_breadcrumbs { flex-wrap: nowrap !important; min-width: 0; }
+    .o_breadcrumb .o_last_breadcrumb_item { flex-shrink: 0; }
+    .o_breadcrumb .o_last_breadcrumb_item span {
+        text-overflow: clip;
+        overflow: visible;
+        min-width: max-content;
+    }
+}
+
 // ── Nút tạo mới: label cụ thể theo từng trang ──────────────────────────────
 // Base: ẩn text gốc Odoo, style chung cho tất cả nút create
 .o_action_manager:has([class*="dl-"][class*="-list"]),

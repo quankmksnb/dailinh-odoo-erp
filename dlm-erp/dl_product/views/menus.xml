@@ -110,14 +110,21 @@
          CEO/Trưởng KD chỉ xem (ACL write=0); KTV không được vào.
          Trước đây 2 action bảng giá KHÔNG có menu nào trỏ tới (mồ côi).
     ============================================================ -->
+    <!-- Menu CONTAINER (không action): điều hướng đi qua các menu con bên dưới
+         — rail suy ra tính khả dụng của nhóm từ menu con (_hasActionableMenu). -->
     <menuitem
         id="menu_dl_pricing_root"
         name="Bảng giá"
         parent="dl_base.menu_dl_product"
         sequence="20"
-        action="action_dl_pricing_home"
         groups="dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
+    <!-- Bỏ thuộc tính action khỏi <menuitem> KHÔNG xoá giá trị cũ trên DB đã
+         nâng cấp (menuitem chỉ ghi field nào có mặt). Phải clear tường minh,
+         không thì menu còn trỏ tới action hub đã xoá ⇒ bấm vào là lỗi. -->
+    <record id="menu_dl_pricing_root" model="ir.ui.menu">
+        <field name="action" eval="False"/>
+    </record>
     <!-- Vật tư chờ định giá (Mua hàng) — hòm việc EX-13: vật tư thô chưa có giá
          NCC đang áp dụng. Đặt ĐẦU nhóm Bảng giá vì đây là việc chủ động của Mua
          hàng (khác 2 màn dưới là tra cứu/sửa bảng giá đã có). -->

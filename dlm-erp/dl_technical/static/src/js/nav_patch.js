@@ -1,12 +1,10 @@
 /** @odoo-module **/
 
 import { patch } from "@web/core/utils/patch";
-import { DlHome } from "@dl_base/components/home/home";
 import { DlmRail } from "@dl_base/components/rail/rail";
 
-const TECHNICAL_ACTION = "dl_technical.action_dl_technical_home";
-
-// Rail: dẹp hub Kỹ thuật thành mục con điều hướng thẳng (bỏ màn hub trung chuyển).
+// Rail: nhóm Kỹ thuật xổ thành mục con điều hướng thẳng (không có màn hub trung
+// chuyển). Card trên Home không cần actionXmlId — DlHome tự mở menu con đầu tiên.
 const TECHNICAL_CHILDREN = [
     {
         key: "bom_quotation",
@@ -38,27 +36,12 @@ const TECHNICAL_CHILDREN = [
     },
 ];
 
-// Home (fallback): giữ card mở hub như cũ.
-function wireTechnicalHome(cards) {
-    const item = cards && cards.find((i) => i.key === "technical");
-    if (item && !item.actionXmlId) {
-        item.actionXmlId = TECHNICAL_ACTION;
-    }
-}
-
 function wireTechnicalRail(items) {
     const item = items && items.find((i) => i.key === "technical");
     if (item) {
         item.children = TECHNICAL_CHILDREN;
     }
 }
-
-patch(DlHome.prototype, {
-    setup() {
-        super.setup(...arguments);
-        wireTechnicalHome(this.cards);
-    },
-});
 
 patch(DlmRail.prototype, {
     setup() {

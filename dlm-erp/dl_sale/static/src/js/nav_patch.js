@@ -2,14 +2,12 @@
 
 import { patch } from "@web/core/utils/patch";
 import { useService } from "@web/core/utils/hooks";
-import { DlHome } from "@dl_base/components/home/home";
 import { DlmRail } from "@dl_base/components/rail/rail";
 
-const QUOTE_HOME_ACTION = "dl_sale.action_dl_quotation_home";
 const APPROVAL_ACTION = "dl_sale.action_dl_quote_approval";
 
-// Rail: dẹp hub "Báo giá" thành các mục con điều hướng THẲNG (bỏ màn hub trung
-// chuyển). Điều hướng theo actionXmlId; menuXmlIds chỉ để lọc RBAC (mục con nào
+// Rail: nhóm "Báo giá" xổ thành các mục con điều hướng THẲNG (không có màn hub
+// trung chuyển). Điều hướng theo actionXmlId; menuXmlIds chỉ để lọc RBAC (mục nào
 // user không thấy menu thì ẩn). Thứ tự = độ ưu tiên; mục đầu là màn mặc định khi
 // bấm nhãn nhóm.
 const QUOTE_CHILDREN = [
@@ -43,14 +41,6 @@ const QUOTE_CHILDREN = [
     },
 ];
 
-// Home (fallback): vẫn mở hub bằng card như cũ.
-function wireQuoteHome(cards) {
-    const item = cards && cards.find((i) => i.key === "quotation");
-    if (item) {
-        item.actionXmlId = QUOTE_HOME_ACTION;
-    }
-}
-
 function wireQuoteRail(items) {
     const item = items && items.find((i) => i.key === "quotation");
     if (item) {
@@ -65,13 +55,6 @@ function wireApproval(items) {
         item.actionXmlId = APPROVAL_ACTION;
     }
 }
-
-patch(DlHome.prototype, {
-    setup() {
-        super.setup(...arguments);
-        wireQuoteHome(this.cards);
-    },
-});
 
 patch(DlmRail.prototype, {
     setup() {
