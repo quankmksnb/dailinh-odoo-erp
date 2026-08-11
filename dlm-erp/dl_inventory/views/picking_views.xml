@@ -144,7 +144,7 @@
                         <div class="dl-field">
                             <!-- Số chứng từ của NCC: mắt xích đối chiếu khi khiếu
                                  nại — hoá đơn/phiếu giao của họ ghi số này. -->
-                            <label for="origin" string="Số CT của NCC"/>
+                            <label for="origin" string="Số chứng từ của NCC"/>
                             <field name="origin" nolabel="1"
                                    placeholder="VD: HD-2026-8841"
                                    readonly="state in ('done', 'cancel')"/>
@@ -194,7 +194,7 @@
             <search string="Nhận hàng NCC">
                 <field name="name" string="Số phiếu"/>
                 <field name="partner_id" string="Nhà cung cấp"/>
-                <field name="origin" string="Số CT của NCC"/>
+                <field name="origin" string="Số chứng từ của NCC"/>
 
                 <!-- Segment: 3 chip cùng một nhóm (chọn nhiều = OR, KHÔNG
                      separator giữa chúng) — tiền lệ filter trạng thái Báo giá. -->
