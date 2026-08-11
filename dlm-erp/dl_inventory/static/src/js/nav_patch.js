@@ -9,8 +9,8 @@ import { wireRailChildren } from "@dl_base/js/rail_children";
 // mục con của nhóm Kho rồi gắn vào rail.
 
 // Xếp theo TẦN SUẤT dùng của thủ kho, không theo thứ tự luồng nghiệp vụ.
-// K5–K8 sẽ chèn thêm: Nhận hàng, Kiểm hàng (có badge), Chuyển kho, Giao hàng,
-// Phế liệu. Trả hàng NCC và Kiểm kê CỐ Ý không lên rail (xem §11.11 thiết kế).
+// K6–K8 sẽ chèn thêm: Chuyển kho, Giao hàng, Phế liệu.
+// Trả hàng NCC và Kiểm kê CỐ Ý không lên rail (xem §11.11 thiết kế).
 const INVENTORY_CHILDREN = [
   {
     key: "stock_quant",
@@ -18,6 +18,20 @@ const INVENTORY_CHILDREN = [
     icon: "fa-cubes",
     preferMenu: true,
     menuXmlIds: ["dl_inventory.menu_dl_stock_quant"],
+  },
+  {
+    key: "receipt",
+    name: "Nhận hàng",
+    icon: "fa-download",
+    preferMenu: true,
+    menuXmlIds: ["dl_inventory.menu_dl_picking_receipt"],
+  },
+  {
+    key: "qc",
+    name: "Kiểm hàng",
+    icon: "fa-check-square-o",
+    preferMenu: true,
+    menuXmlIds: ["dl_inventory.menu_dl_picking_qc"],
   },
   {
     key: "stock_lot",

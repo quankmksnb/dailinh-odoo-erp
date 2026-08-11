@@ -58,3 +58,16 @@ class DlInventoryCase(TransactionCase):
         picking.move_ids.picked = True
         picking.button_validate()
         return picking
+
+    def _qc_picking(self, receipt):
+        """Phiếu [2] "Kiểm & cất hàng" tuyến nhận 2 bước tự sinh ra."""
+        return receipt.move_ids.move_dest_ids.picking_id.filtered(
+            lambda p: p.picking_type_id.sequence_code == "KC")[:1]
+
+    def _qty_at(self, location, product=None):
+        """Tồn thực tế của một mặt hàng tại một vị trí."""
+        quants = self.env["stock.quant"].search([
+            ("location_id", "=", location.id),
+            ("product_id", "=", (product or self.material).id),
+        ])
+        return sum(quants.mapped("quantity"))

@@ -2,11 +2,13 @@
 <odoo>
 
     <!-- ============================================================
-         K4 — Menu phân hệ Kho. Cha là dl_base.menu_dl_inventory (container).
+         K4–K5 — Menu phân hệ Kho. Cha là dl_base.menu_dl_inventory (container).
          ⚠️ Menu LÁ bắt buộc có action: rail và Home lọc mục bằng
          _hasActionableMenu — menu lá rỗng action sẽ BIẾN MẤT khỏi rail.
-         Các mục còn lại (Nhận hàng / Kiểm hàng / Chuyển kho / Giao hàng /
-         Phế liệu) thêm ở K5–K8.
+         Các mục còn lại (Chuyển kho / Giao hàng / Phế liệu) thêm ở K6–K8.
+
+         "Trả hàng NCC" CỐ Ý không có menu ở đây: phiếu trả là việc của Mua hàng
+         (§11.7), thủ kho tới nó qua smart button trên phiếu nhận/phiếu kiểm.
     ============================================================ -->
 
     <menuitem
@@ -16,6 +18,24 @@
         parent="dl_base.menu_dl_inventory"
         sequence="10"
         groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+    />
+
+    <menuitem
+        id="menu_dl_picking_receipt"
+        name="Nhận hàng"
+        action="action_dl_picking_receipt"
+        parent="dl_base.menu_dl_inventory"
+        sequence="20"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <menuitem
+        id="menu_dl_picking_qc"
+        name="Kiểm hàng"
+        action="action_dl_picking_qc"
+        parent="dl_base.menu_dl_inventory"
+        sequence="30"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
     />
 
     <menuitem

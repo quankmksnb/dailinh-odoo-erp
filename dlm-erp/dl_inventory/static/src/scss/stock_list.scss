@@ -1,4 +1,4 @@
-// K4 — Danh sách Tồn kho & Lô hàng.
+// K4–K5 — Danh sách Tồn kho / Lô hàng / Phiếu kho + bảng kiểm hàng.
 // Phần chung (list card, thead, tbody hover, badge) đã ở dl_base/global_list.scss
 // — ở đây CHỈ bề rộng cột và canh lề số, đúng như quotation_list.scss làm.
 
@@ -68,4 +68,69 @@
         }
         td[name="dlm_receipt_date"], td[name="dlm_receipt_picking_id"] { white-space: nowrap; }
     }
+}
+
+// ── K5 — Danh sách phiếu kho (dùng chung cho Nhận hàng & Kiểm hàng) ─────────
+.dl-picking-list {
+    .o_list_table thead th[data-name="name"] { border-top-left-radius: $dl-radius; }
+    .o_list_table thead th[data-name="state"] { border-top-right-radius: $dl-radius; }
+
+    .o_list_table {
+        table-layout: fixed !important;
+        width: 100% !important;
+
+        th[data-name="name"] { width: 14% !important; }
+        th[data-name="picking_type_id"] { width: 16% !important; }
+        th[data-name="partner_id"] { width: 24% !important; }
+        th[data-name="scheduled_date"] { width: 12% !important; }
+        th[data-name="dlm_qty_rejected_total"] { width: 10% !important; }
+        th[data-name="dlm_qc_state"] { width: 12% !important; }
+        th[data-name="state"] { width: 12% !important; }
+
+        th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
+        // Số phiếu là danh tính của dòng — nhấn như cột mã ở các màn khác.
+        td[name="name"] { font-weight: 600; color: $dl-heading; }
+
+        th[data-name="dlm_qty_rejected_total"] { text-align: right !important; }
+        th[data-name="dlm_qty_rejected_total"] > div { justify-content: flex-end !important; }
+        td[name="dlm_qty_rejected_total"] {
+            text-align: right !important;
+            font-variant-numeric: tabular-nums;
+        }
+
+        td[name="partner_id"], td[name="picking_type_id"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        td[name="scheduled_date"] { white-space: nowrap; }
+    }
+}
+
+// ── K5 — Bảng kiểm hàng trên form Kiểm & cất ────────────────────────────────
+// Ba cột số NCC giao / Đạt / Loại phải đọc được theo cột dọc: cùng bề rộng,
+// cùng canh phải, cùng chữ số đều bề ngang (tabular-nums). Lệch một trong ba
+// thứ đó là mắt phải dừng lại đối chiếu từng dòng thay vì quét một lượt.
+.dl-qc-form {
+    .o_field_x2many_list .o_list_table {
+        th[data-name="product_uom_qty"],
+        th[data-name="quantity"],
+        th[data-name="dlm_qty_rejected"] { width: 9% !important; }
+
+        th[data-name="product_uom_qty"] > div,
+        th[data-name="quantity"] > div,
+        th[data-name="dlm_qty_rejected"] > div { justify-content: flex-end !important; }
+
+        td[name="product_uom_qty"],
+        td[name="quantity"],
+        td[name="dlm_qty_rejected"] {
+            text-align: right !important;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+
+    // Cột "Loại" là con số quyết định hàng có bị trả lại hay không — tô đậm để
+    // không lẫn vào hai cột số bên trái khi lướt.
+    td[name="dlm_qty_rejected"] { font-weight: 600; }
+    tr:not(.o_selected_row) td[name="dlm_qty_rejected"]:not(:empty) { color: $dl-danger; }
 }

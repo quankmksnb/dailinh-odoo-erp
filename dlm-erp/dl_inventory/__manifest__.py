@@ -1,19 +1,24 @@
 {
     "name": "DL-Inventory",
-    "version": "17.0.2.1.0",
+    "version": "17.0.2.2.0",
     "summary": "Kho Đại Linh — 1 kho, 3 khu, nhận hàng 2 bước có kiểm hàng",
     "description": """
 Phân hệ Kho (Giai đoạn B1). Đặc tả: docs/Thiet_ke_phan_he_kho.md
 
-Đã có (K1–K3):
+Đã có (K1–K5):
   • Vai trò THỦ KHO (dl_base.dl_group_warehouse) + ACL + record rule + RBAC.
   • Bố cục kho: MỘT stock.warehouse, ba khu (Nhập / Xưởng / Thành phẩm) và
     5 vị trí con; 8 loại hoạt động; nhận hàng 2 BƯỚC (về khu Chờ kiểm rồi mới
     cất) — nền cho bước QC.
-  • Số lô do Đại Linh TỰ SINH (LO/2026/00001), tự điền khi nhận hàng.
+  • Số lô do Đại Linh TỰ SINH (LO/2026/00001), tự điền khi nhận hàng; lô mang
+    theo NCC + ngày nhập + phiếu nguồn.
+  • Màn Tồn kho (chỉ-đọc, không có cột giá) và Lô hàng.
+  • Kiểm hàng NCC: ghi Đạt/Loại + lý do ngay trên dòng phiếu, hàng loại sang
+    khu Chờ trả NCC và sinh phiếu Trả hàng NCC ở trạng thái NHÁP giao cho Mua
+    hàng. Tách bạch "NCC giao thiếu" (backorder) với "NCC giao hàng kém" (loại).
 
-Chưa có (K4–K8): màn Tồn kho / Nhận hàng / Kiểm hàng (QC) / Chuyển kho /
-Giao hàng / Phế liệu / Lô / Kiểm kê, và các field QC trên stock.move.
+Chưa có (K6–K8): màn Chuyển kho / Giao hàng / Phế liệu / Kiểm kê, hàng đợi
+phiếu cho thủ kho, và mối nối phiếu giao ↔ dl.sale.order.
 
 KHÔNG dựng lại tầng "hub" (màn lưới thẻ trung chuyển): tầng đó đã bị gỡ khỏi cả
 hệ thống, điều hướng đi thẳng qua submenu rail.
