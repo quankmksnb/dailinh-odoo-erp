@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K4 — M9 Lô hàng (docs/Thiet_ke_phan_he_kho.md §11.9)
+
+         Đây là màn trả lời câu hỏi khiến dự án phải bật theo lô:
+         "khách báo nứt mối hàn — thép lô nào, mua của ai, về ngày nào?"
+    ============================================================ -->
+    <record id="view_dl_stock_lot_tree" model="ir.ui.view">
+        <field name="name">dl.stock.lot.tree</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <tree string="Lô hàng" class="dl-stock-lot-list" create="0">
+                <field name="name" string="Số lô"/>
+                <field name="product_id" string="Hàng hoá"/>
+                <field name="dlm_supplier_id" string="Nhà cung cấp"/>
+                <field name="dlm_receipt_date" string="Ngày nhập"/>
+                <field name="dlm_receipt_picking_id" string="Phiếu nhận" optional="show"/>
+                <field name="product_qty" string="Tồn hiện tại"/>
+                <field name="ref" string="Số của NCC" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_stock_lot_form" model="ir.ui.view">
+        <field name="name">dl.stock.lot.form</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <form string="Lô hàng" class="dl-stock-lot-form" create="0">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_dlm_open_receipt" type="object"
+                                class="oe_stat_button" icon="fa-download"
+                                invisible="not dlm_receipt_picking_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Phiếu nhận</span>
+                                <span class="o_stat_text">nguồn gốc</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1" placeholder="Số lô"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Nguồn gốc">
+                            <field name="product_id" readonly="1"/>
+                            <field name="dlm_supplier_id"/>
+                            <field name="dlm_receipt_date"/>
+                            <field name="dlm_receipt_picking_id"/>
+                            <!-- Số lô do Đại Linh tự sinh; số in trên chứng từ
+                                 NCC (nếu có) ghi vào đây để đối chiếu khi khiếu nại. -->
+                            <field name="ref" string="Số lô của NCC"
+                                   placeholder="Ghi số in trên chứng từ NCC (nếu có)"/>
+                        </group>
+                        <group string="Hiện trạng">
+                            <field name="product_qty" string="Tồn hiện tại"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Đang nằm ở đâu" name="quants">
+                            <field name="quant_ids" readonly="1">
+                                <tree create="0" edit="0" delete="0">
+                                    <field name="location_id" string="Vị trí"/>
+                                    <field name="quantity" string="Số lượng" sum="Tổng"/>
+                                    <field name="product_uom_id" string="ĐVT"/>
+                                    <field name="reserved_quantity" string="Đang giữ"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_stock_lot_search" model="ir.ui.view">
+        <field name="name">dl.stock.lot.search</field>
+        <field name="model">stock.lot</field>
+        <field name="arch" type="xml">
+            <search string="Lô hàng">
+                <field name="name" string="Số lô"/>
+                <field name="product_id" string="Hàng hoá"/>
+                <field name="dlm_supplier_id" string="Nhà cung cấp"/>
+                <field name="ref" string="Số của NCC"/>
+
+                <filter name="con_ton" string="Còn tồn"
+                        domain="[('product_qty', '>', 0)]"/>
+                <separator/>
+                <!-- Lô không rõ nguồn = thủng truy vết. Thường là lô tạo tay
+                     hoặc nhập qua điều chỉnh tồn thay vì phiếu nhận NCC. -->
+                <filter name="khong_ro_nguon" string="Chưa rõ nguồn gốc"
+                        domain="[('dlm_receipt_picking_id', '=', False)]"/>
+
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_product" string="Hàng hoá"
+                            context="{'group_by': 'product_id'}"/>
+                    <filter name="group_supplier" string="Nhà cung cấp"
+                            context="{'group_by': 'dlm_supplier_id'}"/>
+                    <filter name="group_date" string="Ngày nhập"
+                            context="{'group_by': 'dlm_receipt_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_stock_lot" model="ir.actions.act_window">
+        <field name="name">Lô hàng</field>
+        <field name="res_model">stock.lot</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_stock_lot_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_stock_lot_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_stock_lot_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có lô hàng nào</p>
+            <p>Lô sinh ra tự động khi <b>nhận hàng NCC</b> — mỗi lần nhận vật tư
+               là một lô mới, đánh số <b>LO/năm/số thứ tự</b>.</p>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- K2 — Bố cục kho: 1 kho, 3 khu, 8 loại hoạt động.
+         Dùng <function> chứ không phải <record> vì phải SỬA bản ghi Odoo tạo
+         sẵn (stock.warehouse0, vị trí Input/Stock, 3 loại hoạt động native) —
+         những bản ghi đó mang noupdate=True nên <record> sẽ bị bỏ qua. -->
+    <function model="stock.warehouse" name="_dlm_setup_inventory_layout"/>
+</odoo>

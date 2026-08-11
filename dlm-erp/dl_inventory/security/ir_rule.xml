@@ -1,6 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <data noupdate="0">
 
-    
+        <!-- ============================================================
+             K1 — Giới hạn phạm vi ghi của Mua hàng trên phiếu kho.
+             ACL cho Mua hàng quyền write/create stock.picking để họ xử lý phiếu
+             TRẢ HÀNG NCC (sinh ra từ bước kiểm hàng). Không có rule này thì họ
+             sửa được MỌI phiếu kho, kể cả phiếu giao hàng khách.
 
+             ⚠️ domain_force được eval KHÔNG có hàm ref() ⇒ không trỏ được XML ID
+             của loại hoạt động. Neo vào `sequence_code` ('TR') — trường này do
+             seed đặt và không đổi khi người dùng sửa tên hiển thị.
+        ============================================================ -->
+        <record id="rule_picking_purchasing_vendor_return" model="ir.rule">
+            <field name="name">Mua hàng: chỉ thao tác phiếu Trả hàng NCC</field>
+            <field name="model_id" ref="stock.model_stock_picking" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_purchasing'))]" />
+            <field name="domain_force">[('picking_type_id.sequence_code', '=', 'TR')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+    </data>
 </odoo>

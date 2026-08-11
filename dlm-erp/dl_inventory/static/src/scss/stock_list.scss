@@ -1,0 +1,71 @@
+// K4 — Danh sách Tồn kho & Lô hàng.
+// Phần chung (list card, thead, tbody hover, badge) đã ở dl_base/global_list.scss
+// — ở đây CHỈ bề rộng cột và canh lề số, đúng như quotation_list.scss làm.
+
+.dl-stock-quant-list {
+    .o_list_table thead th[data-name="product_id"] { border-top-left-radius: $dl-radius; }
+    .o_list_table thead th[data-name="product_uom_id"] { border-top-right-radius: $dl-radius; }
+
+    .o_list_table {
+        table-layout: fixed !important;
+        width: 100% !important;
+
+        th[data-name="product_id"] { width: 26% !important; }
+        th[data-name="lot_id"] { width: 14% !important; }
+        th[data-name="dlm_supplier_id"] { width: 16% !important; }
+        th[data-name="dlm_receipt_date"] { width: 10% !important; }
+        th[data-name="location_id"] { width: 18% !important; }
+        th[data-name="quantity"] { width: 10% !important; }
+        th[data-name="product_uom_id"] { width: 6% !important; }
+
+        th[data-name="product_id"], td[name="product_id"] { padding-left: 24px !important; }
+
+        // Cột số canh phải để so sánh bằng mắt theo cột dọc — chuẩn bảng ERP.
+        th[data-name="quantity"] { text-align: right !important; }
+        th[data-name="quantity"] > div { justify-content: flex-end !important; }
+        td[name="quantity"] { text-align: right !important; font-variant-numeric: tabular-nums; }
+
+        td[name="product_id"], td[name="location_id"], td[name="dlm_supplier_id"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        td[name="lot_id"], td[name="dlm_receipt_date"] { white-space: nowrap; }
+    }
+}
+
+.dl-stock-lot-list {
+    .o_list_table thead th[data-name="name"] { border-top-left-radius: $dl-radius; }
+    .o_list_table thead th[data-name="product_qty"] { border-top-right-radius: $dl-radius; }
+
+    .o_list_table {
+        table-layout: fixed !important;
+        width: 100% !important;
+
+        th[data-name="name"] { width: 16% !important; }
+        th[data-name="product_id"] { width: 28% !important; }
+        th[data-name="dlm_supplier_id"] { width: 18% !important; }
+        th[data-name="dlm_receipt_date"] { width: 12% !important; }
+        th[data-name="dlm_receipt_picking_id"] { width: 14% !important; }
+        th[data-name="product_qty"] { width: 12% !important; }
+
+        th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
+        // Số lô là danh tính của dòng ⇒ nhấn mạnh như cột mã ở các màn khác.
+        td[name="name"] { font-weight: 600; color: $dl-heading; }
+
+        th[data-name="product_qty"] { text-align: right !important; }
+        th[data-name="product_qty"] > div { justify-content: flex-end !important; }
+        td[name="product_qty"] {
+            text-align: right !important;
+            padding-right: 20px !important;
+            font-variant-numeric: tabular-nums;
+        }
+
+        td[name="product_id"], td[name="dlm_supplier_id"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        td[name="dlm_receipt_date"], td[name="dlm_receipt_picking_id"] { white-space: nowrap; }
+    }
+}

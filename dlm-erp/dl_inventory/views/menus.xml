@@ -1,6 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    
+    <!-- ============================================================
+         K4 — Menu phân hệ Kho. Cha là dl_base.menu_dl_inventory (container).
+         ⚠️ Menu LÁ bắt buộc có action: rail và Home lọc mục bằng
+         _hasActionableMenu — menu lá rỗng action sẽ BIẾN MẤT khỏi rail.
+         Các mục còn lại (Nhận hàng / Kiểm hàng / Chuyển kho / Giao hàng /
+         Phế liệu) thêm ở K5–K8.
+    ============================================================ -->
+
+    <menuitem
+        id="menu_dl_stock_quant"
+        name="Tồn kho"
+        action="action_dl_stock_quant"
+        parent="dl_base.menu_dl_inventory"
+        sequence="10"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+    />
+
+    <menuitem
+        id="menu_dl_stock_lot"
+        name="Lô hàng"
+        action="action_dl_stock_lot"
+        parent="dl_base.menu_dl_inventory"
+        sequence="70"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+    />
 
 </odoo>
