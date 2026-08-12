@@ -60,6 +60,7 @@ export class DlStepper extends Component {
         ...standardFieldProps,
         axis: { type: Array, element: String, optional: true },
         branches: { type: Object, optional: true },
+        labels: { type: Object, optional: true },
         preset: { type: String, optional: true },
     };
 
@@ -78,12 +79,16 @@ export class DlStepper extends Component {
         for (const [value, label] of this.selection) {
             labels[value] = label;
         }
+        // Nhãn riêng theo từng màn: selection của Odoo nói ngôn ngữ của Odoo
+        // ("Sẵn sàng", "Hoàn tất"), không phải ngôn ngữ của xưởng. Trên phiếu
+        // nhận, "Hoàn tất" khiến thủ kho tưởng xong cả việc kiểm.
+        Object.assign(labels, this.props.labels || {});
 
         // Preset Báo giá — giữ nguyên giao diện cũ (nhãn rút gọn + mốc rẽ nhánh).
         if (this.props.preset === "quotation") {
             return {
                 axis: QUOTATION_AXIS,
-                labels: { ...labels, ...QUOTATION_LABELS },
+                labels: { ...labels, ...QUOTATION_LABELS, ...(this.props.labels || {}) },
                 branches: QUOTATION_BRANCHES,
             };
         }
@@ -163,6 +168,7 @@ export const dlStepper = {
     extractProps: ({ attrs, options }) => ({
         axis: attrs.statusbar_visible?.trim().split(/\s*,\s*/g),
         branches: options.branches,
+        labels: options.labels,
         preset: options.preset,
     }),
 };

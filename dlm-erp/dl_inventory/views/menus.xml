@@ -1,6 +1,116 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    
+    <!-- ============================================================
+         K4–K5 — Menu phân hệ Kho. Cha là dl_base.menu_dl_inventory (container).
+         ⚠️ Menu LÁ bắt buộc có action: rail và Home lọc mục bằng
+         _hasActionableMenu — menu lá rỗng action sẽ BIẾN MẤT khỏi rail.
+         Mục còn lại (Phế liệu / Kiểm kê) thêm ở K7–K8.
+
+         "Trả hàng NCC" CÓ menu ở đây dù §11.7 xếp nó về phía Mua hàng: chưa có
+         phân hệ Mua hàng (B3) nên chưa có rail nào để gắn, mà không có menu thì
+         Mua hàng KHÔNG có đường nào tới việc của chính họ ngoài smart button
+         trên phiếu kiểm — chứng từ họ không được phép mở. Khi B3 có rail riêng
+         thì chuyển mục này sang đó.
+    ============================================================ -->
+
+    <!-- RS-10 — "Hàng đợi" đứng ĐẦU: thủ kho mở máy là thấy VIỆC, không phải
+         thấy tồn kho. Màn này đã có sẵn từ K8 nhưng không menu nào trỏ tới nên
+         UI chết. Landing của thủ kho vẫn là Nhận hàng (commit b081ebf) — vệt
+         sáng trên rail phải khớp mục đang mở. -->
+    <menuitem
+        id="menu_dl_picking_todo"
+        name="Hàng đợi"
+        action="action_dl_picking_todo"
+        parent="dl_base.menu_dl_inventory"
+        sequence="5"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+    />
+
+    <menuitem
+        id="menu_dl_stock_quant"
+        name="Tồn kho"
+        action="action_dl_stock_quant"
+        parent="dl_base.menu_dl_inventory"
+        sequence="10"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+    />
+
+    <menuitem
+        id="menu_dl_picking_receipt"
+        name="Nhận hàng"
+        action="action_dl_picking_receipt"
+        parent="dl_base.menu_dl_inventory"
+        sequence="20"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <menuitem
+        id="menu_dl_picking_qc"
+        name="Kiểm hàng"
+        action="action_dl_picking_qc"
+        parent="dl_base.menu_dl_inventory"
+        sequence="30"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <menuitem
+        id="menu_dl_picking_transfer"
+        name="Chuyển kho"
+        action="action_dl_picking_transfer"
+        parent="dl_base.menu_dl_inventory"
+        sequence="40"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <menuitem
+        id="menu_dl_picking_delivery"
+        name="Giao hàng"
+        action="action_dl_picking_delivery"
+        parent="dl_base.menu_dl_inventory"
+        sequence="50"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+    />
+
+    <!-- Chủ sở hữu là Mua hàng; Thủ kho CỐ Ý không có mục này — họ đã ghi nhận
+         hàng loại ở bước kiểm, quyết định trả là việc đối ngoại của Mua hàng. -->
+    <menuitem
+        id="menu_dl_picking_vendor_return"
+        name="Trả hàng NCC"
+        action="action_dl_picking_vendor_return"
+        parent="dl_base.menu_dl_inventory"
+        sequence="60"
+        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+    />
+
+    <menuitem
+        id="menu_dl_scrap"
+        name="Phế liệu"
+        action="action_dl_scrap_quant"
+        parent="dl_base.menu_dl_inventory"
+        sequence="65"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <!-- Kỹ thuật CÓ mục này dù không đụng hàng vật lý: đây là vòng phản hồi duy
+         nhất cho biết hệ số hao hụt (dlm_waste_rate) họ đặt có khớp thực tế
+         không — mà hệ số đó đi thẳng vào giá báo khách. -->
+    <menuitem
+        id="menu_dl_scrap_recovery"
+        name="Đối chiếu thu hồi"
+        action="action_dl_scrap_recovery"
+        parent="dl_base.menu_dl_inventory"
+        sequence="66"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant,dl_base.dl_group_tech"
+    />
+
+    <menuitem
+        id="menu_dl_stock_lot"
+        name="Lô hàng"
+        action="action_dl_stock_lot"
+        parent="dl_base.menu_dl_inventory"
+        sequence="70"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+    />
 
 </odoo>

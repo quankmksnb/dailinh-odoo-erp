@@ -68,5 +68,14 @@
             <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_purchasing')])]" />
         </record>
 
+        <record id="demo_user_warehouse" model="res.users">
+            <field name="name">Thủ kho</field>
+            <field name="login">thukho@gmail.com</field>
+            <field name="email">thukho@gmail.com</field>
+            <field name="lang">vi_VN</field>
+            <field name="password">123456</field>
+            <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_warehouse')])]" />
+        </record>
+
     </data>
 </odoo>

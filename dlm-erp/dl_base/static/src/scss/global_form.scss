@@ -41,12 +41,105 @@
     }
 
     // --- Input (dl-input mixin) ----------------------------------------------
+    // Phủ CẢ 2 layout: .o_group (form Odoo chuẩn) VÀ .dl-field (layout tùy biến
+    // dl-fields-row dùng ở form Kho, Báo giá, Khách hàng...). Trước đây chỉ scope
+    // .o_group nên field trong .dl-field của form Kho không có viền — trông như
+    // chữ tĩnh, many2one (dropdown) không lộ affordance.
     .o_group .o_field_widget input.o_input,
     .o_group .o_field_many2one .o_input,
     .o_group .o_field_date input,
     .o_group .o_field_widget .o_input_dropdown input,
-    .o_group textarea.o_input {
+    .o_group textarea.o_input,
+    .dl-field input.o_input,
+    .dl-field .o_field_many2one .o_input,
+    .dl-field .o_field_date input,
+    .dl-field .o_input_dropdown input,
+    .dl-field textarea.o_input {
         @include dl-input;
+    }
+
+    // --- Selection (<select>): lộ affordance dropdown ------------------------
+    // Odoo core (selection_field.scss) cố ý GIẤU mũi tên xổ tới khi hover ⇒ ô
+    // selection trông y hệt chữ tĩnh, người dùng không biết chỗ đó chọn được.
+    // Mixin dl-input ở trên KHÔNG với tới <select>, và cũng không dùng lại được
+    // vì nó có `background:` shorthand sẽ xoá luôn chevron. Nên khối riêng:
+    // viền như input + mũi tên LUÔN hiện (dùng background-color, không shorthand).
+    .o_group .o_field_selection select,
+    .dl-field .o_field_selection select {
+        border: 1px solid $dl-border !important;
+        border-radius: $dl-radius-sm;
+        padding: 6px 28px 6px 10px;
+        background-color: $dl-surface;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none' stroke='%235b6b7b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E") !important;
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 14px;
+        transition: border-color .1s, box-shadow .1s;
+
+        &:focus {
+            border-color: $dl-primary !important;
+            box-shadow: 0 0 0 2px rgba($dl-primary, 0.16);
+            outline: 0;
+        }
+    }
+
+    // --- Layout dl-fields-row / dl-field -------------------------------------
+    // Layout tùy biến (thay .o_group) dùng ở form Kho, Báo giá, Khách hàng,
+    // Trả NCC, Chuyển kho...: hàng field NGANG, mỗi field NHÃN TRÊN – Ô DƯỚI,
+    // các cột rộng BẰNG NHAU để mép trái/phải thẳng hàng. Trước đây chỉ dl_sale
+    // tự style (dl-quotation-form/customer) nên form Kho lệch: nhãn dính cùng
+    // dòng, ô so le rộng hẹp khác nhau. Bê bản chuẩn lên global cho nhất quán.
+    // (dl_sale vẫn giữ bản riêng — trùng lặp, gộp dần khi đụng tới.)
+    .dl-fields-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        margin: 6px 0 16px;
+
+        .dl-field {
+            flex: 1 1 0;
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+
+            > label {
+                margin: 0;
+                color: $dl-text-2;
+                font-weight: 500;
+                font-size: 13px;
+            }
+
+            .o_field_widget { width: 100%; }
+            input.o_input,
+            .o_input_dropdown input,
+            .o_field_date input,
+            .o_field_selection select { width: 100%; }
+
+            // Many2one: ô full-width + nút "mở bản ghi" nằm gọn trong ô (Odoo
+            // mặc định đẩy nút ra ngoài làm hàng lệch).
+            .o_field_many2one {
+                position: relative;
+                width: 100%;
+
+                .o_input_dropdown,
+                input.o_input { width: 100% !important; }
+                input.o_input { padding-right: 32px; }
+
+                .o_external_button {
+                    position: absolute;
+                    right: 6px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    margin: 0 !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    color: $dl-primary !important;
+                    border: 0;
+                    background: transparent;
+                }
+            }
+        }
     }
 
     // --- Section separator ---------------------------------------------------

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+
+        <!-- ============================================================
+             K1 — Nối vai trò Thủ kho với các nhóm kỹ thuật của Odoo `stock`.
+             Khai ở ĐÂY chứ không ở dl_base/security/groups.xml vì dl_base KHÔNG
+             depends `stock` ⇒ ref('stock....') sẽ vỡ.
+        ============================================================ -->
+
+        <!-- group_stock_user: cho Thủ kho các hành vi native của phiếu kho
+             (nút xác nhận, chi tiết thao tác, kiểm kê). Không cấp cho vai trò
+             chỉ-xem — họ dùng ACL read đã khai trong ir.model.access.csv. -->
+        <record id="dl_base.dl_group_warehouse" model="res.groups">
+            <field name="implied_ids" eval="[(4, ref('stock.group_stock_user'))]"/>
+        </record>
+
+        <!-- Hai nhóm dưới đây là CỜ TÍNH NĂNG của Odoo (bình thường bật bằng
+             Cài đặt > Tồn kho), không phải vai trò:
+               • group_stock_multi_locations — hiện ô Vị trí. BẮT BUỘC vì mô hình
+                 3 khu; thiếu nó thì mọi ô vị trí bị ẩn và hàng luôn rơi về vị
+                 trí mặc định.
+               • group_production_lot — hiện ô Số lô.
+             Gắn vào base.group_user (đúng cách Cài đặt làm) thay vì liệt kê 7
+             vai trò: mọi vai trò DL đều implied base.group_user, và vai trò
+             không có menu Kho thì cũng không gặp hai ô này ở đâu. -->
+        <record id="base.group_user" model="res.groups">
+            <field name="implied_ids" eval="[
+                (4, ref('stock.group_stock_multi_locations')),
+                (4, ref('stock.group_production_lot')),
+            ]"/>
+        </record>
+
+        <!-- Ẩn app "Inventory" gốc của Odoo: điều hướng của DLM-ERP đi qua rail
+             + menu Kho riêng. Để lại sẽ có HAI lối vào cùng dữ liệu với hai
+             ngôn ngữ giao diện khác nhau. Dùng active=False (đã có tiền lệ ở
+             dl_base menu_dl_report) thay vì siết groups — siết groups thì
+             group_stock_user vẫn kéo menu về. -->
+        <record id="stock.menu_stock_root" model="ir.ui.menu">
+            <field name="active" eval="False"/>
+        </record>
+
+    </data>
+</odoo>

@@ -44,6 +44,15 @@ _KIND_CODE_SEQUENCE = {
 # về mặc định Odoo 'consu' (không nhập/xuất/tồn được). Đặt mặc định ở create().
 _STORABLE_KINDS = {"manufactured", "material", "material_processed", "trading"}
 
+# K3 (Kho §3.4) — loại SP bật THEO LÔ mặc định: nơi lỗi PHÁT SINH và lỗi theo mẻ.
+#   • Vật tư: thép xấu là xấu cả lô ⇒ truy về NCC + ngày nhập.
+#   • BTP: một mẻ hàn/mạ lỗi thì lỗi cả mẻ.
+# SP gia công & thương mại KHÔNG theo lô: đơn hàng đã là danh tính, còn hàng
+# thương mại là mua đi bán lại (không phải nguồn lỗi gia công).
+# 🔴 Bật/tắt phải chốt TRƯỚC phiếu nhập đầu tiên: hàng nhập khi chưa bật thì
+# vĩnh viễn không có lô, không vá được.
+_LOT_TRACKED_KINDS = {"material", "material_processed"}
+
 
 class ProductProduct(models.Model):
     """PROD-02 — dl.product.
@@ -750,6 +759,16 @@ class ProductProduct(models.Model):
         self.ensure_one()
         return self.dlm_scrap_product_id.list_price if self.dlm_scrap_product_id else 0.0
 
+    def _dlm_is_scrap_product(self):
+        """SP này có đang được dùng làm SẢN PHẨM PHẾ LIỆU của vật tư nào không.
+
+        Phế liệu tuy mang product_kind='material' nhưng KHÔNG theo lô: nó là vụn
+        gom từ nhiều lô khác nhau trong cùng thùng chứa — bắt thủ kho nhập số lô
+        mỗi lần cân là vô nghĩa và không truy vết được gì.
+        """
+        self.ensure_one()
+        return bool(self.search_count([("dlm_scrap_product_id", "=", self.id)]))
+
     def set_dlm_waste(self, vals):
         """Cập nhật hao hụt vật tư từ màn Cấu hình (sửa inline). Guard quyền
         (Kỹ thuật/Kế toán/Admin) rồi sudo-ghi để không phụ thuộc quyền write
@@ -871,6 +890,12 @@ class ProductProduct(models.Model):
             if ("detailed_type" not in vals and "type" not in vals
                     and kind in _STORABLE_KINDS):
                 vals["detailed_type"] = "product"
+            # K3 — mặc định THEO LÔ cho vật tư & BTP: đây là mắt xích truy vết
+            # hàng lỗi về đúng lô thép/NCC. Chỉ đặt mặc định (sửa được sau) và
+            # chỉ khi bản ghi thực sự vào kho được.
+            if ("tracking" not in vals and kind in _LOT_TRACKED_KINDS
+                    and vals.get("detailed_type") == "product"):
+                vals["tracking"] = "lot"
             # Mã SP/vật tư TỰ SINH — bỏ qua khi đã có mã (seed/demo/import) hoặc
             # là SP tạm từ RFQ (để trống mã tới khi chốt đơn — tránh đốt số cho
             # nháp có thể bị dọn). Vẫn chạy khối storable phía trên cho SP tạm.
@@ -926,7 +951,15 @@ class ProductProduct(models.Model):
                     raise AccessError(_(
                         "Bạn không có quyền sửa '%s'."
                     ) % self._fields[fname].get_description(self.env)["string"])
-        return super().write(vals)
+        res = super().write(vals)
+        # K3 — vừa gắn SP phế liệu cho vật tư ⇒ tắt theo lô trên chính SP phế đó
+        # (xem _dlm_is_scrap_product). sudo vì người sửa cấu hình hao hụt
+        # (Kỹ thuật/Mua hàng) không có quyền ghi loại theo dõi của SP khác.
+        if vals.get("dlm_scrap_product_id"):
+            scrap = self.browse(vals["dlm_scrap_product_id"])
+            if scrap.tracking != "none":
+                scrap.sudo().product_tmpl_id.write({"tracking": "none"})
+        return res
 
     def get_formview_id(self, access_uid=None):
         return self.env.ref('dl_product.view_dl_product_form').id

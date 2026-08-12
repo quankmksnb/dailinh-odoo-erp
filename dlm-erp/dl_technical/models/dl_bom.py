@@ -284,6 +284,18 @@ class DlBom(models.Model):
         # snapshot ở các dòng BOM CHA không tự lan. Vá bằng recompute chủ động.
         self._dlm_propagate_cost_to_parents()
 
+    def _dlm_recovery_kg_per_unit(self):
+        """Phế liệu DỰ TOÁN thu hồi được cho MỘT đơn vị sản phẩm, theo KG.
+
+        Chia cho `product_qty` vì BOM có thể khai đầu ra khác 1 (vd một bộ 4
+        chân bàn): không chia thì dự toán phế liệu của cả đơn bị nhân lên theo
+        số đầu ra, và màn đối chiếu (thiết kế Kho §7.4) sẽ báo "cân thiếu" ở mọi
+        kỳ trong khi xưởng không hề làm sai.
+        """
+        self.ensure_one()
+        total = sum(line._dlm_recovery_kg() for line in self.line_ids)
+        return total / (self.product_qty or 1.0)
+
     @api.model
     def _standard_child_bom(self, product):
         """BOM dùng làm GIÁ VỐN CHUẨN của một SP/BTP — NGUỒN DUY NHẤT (§12.2-A).

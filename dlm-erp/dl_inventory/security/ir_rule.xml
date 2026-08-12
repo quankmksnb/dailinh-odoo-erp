@@ -1,6 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <data noupdate="0">
 
-    
+        <!-- ============================================================
+             K1 — Giới hạn phạm vi ghi của Mua hàng trên phiếu kho.
+             ACL cho Mua hàng quyền write/create stock.picking để họ xử lý phiếu
+             TRẢ HÀNG NCC (sinh ra từ bước kiểm hàng). Không có rule này thì họ
+             sửa được MỌI phiếu kho, kể cả phiếu giao hàng khách.
 
+             ⚠️ domain_force được eval KHÔNG có hàm ref() ⇒ không trỏ được XML ID
+             của loại hoạt động. Neo vào `sequence_code` ('TR') — trường này do
+             seed đặt và không đổi khi người dùng sửa tên hiển thị.
+        ============================================================ -->
+        <record id="rule_picking_purchasing_vendor_return" model="ir.rule">
+            <field name="name">Mua hàng: chỉ thao tác phiếu Trả hàng NCC</field>
+            <field name="model_id" ref="stock.model_stock_picking" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_purchasing'))]" />
+            <field name="domain_force">[('picking_type_id.sequence_code', '=', 'TR')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!-- ============================================================
+             K6 — Sales chỉ ĐỌC phiếu GIAO HÀNG, không thấy chứng từ mua sắm.
+             (§8.4 ghi chú ², §8.5)
+
+             ACL cho Sales quyền đọc stock.picking để smart button "Phiếu giao
+             hàng" trên đơn bán hoạt động. Không có rule này thì họ đọc luôn
+             phiếu nhận / phiếu kiểm / phiếu trả NCC — toàn bộ mặt mua sắm của
+             doanh nghiệp, không liên quan gì tới việc của họ.
+
+             ⚠️ CỐ Ý KHÔNG thu hẹp theo `create_uid` như §8.5 phác thảo. Đơn bán
+             hàng do NGƯỜI BẤM "Tạo đơn" trên báo giá tạo ra, mà người đó có thể
+             là Trưởng KD hoặc Giám đốc lúc duyệt — `create_uid` vì thế không
+             phải "chủ đơn". Neo vào đó sẽ giấu phiếu giao khỏi đúng người phụ
+             trách khách hàng, còn phần bảo mật thật (không cho Sales dòm chứng
+             từ mua sắm) thì điều kiện dưới đây đã lo trọn.
+        ============================================================ -->
+        <record id="rule_picking_sales_delivery_only" model="ir.rule">
+            <field name="name">Sales: chỉ xem phiếu giao hàng của đơn bán</field>
+            <field name="model_id" ref="stock.model_stock_picking" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_ba'))]" />
+            <field name="domain_force">[('dlm_sale_order_id', '!=', False)]</field>
+            <field name="perm_read">1</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">0</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!-- ============================================================
+             RS-03 — Thủ kho KHÔNG tạo được phiếu Trả hàng NCC.
+             (§8.4/§11.7 — trả hàng là việc của Mua hàng)
+
+             Phiếu TR do bước kiểm hàng TỰ SINH (chạy dưới sudo), không ai tạo
+             tay — nên chặn `create` không cản trở luồng nào.
+
+             read/write CỐ Ý để mở: thủ kho vẫn phải bấm "Xác nhận đã trả" khi
+             xe NCC tới lấy hàng (Mô hình B), mà `button_validate` ghi lên phiếu.
+             Hai quyết định đối ngoại — chốt và huỷ — được chặn ở tầng khác:
+             `groups` trên nút + guard server, vì ir.rule không phân biệt được
+             "write để validate" với "write để chốt".
+        ============================================================ -->
+        <record id="rule_picking_warehouse_no_return_create" model="ir.rule">
+            <field name="name">Thủ kho: không tạo phiếu Trả hàng NCC</field>
+            <field name="model_id" ref="stock.model_stock_picking" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_warehouse'))]" />
+            <field name="domain_force">[('picking_type_id.sequence_code', '!=', 'TR')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">0</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+    </data>
 </odoo>
