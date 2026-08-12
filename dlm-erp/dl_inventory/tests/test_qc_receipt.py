@@ -29,10 +29,31 @@ class TestQcReceipt(DlInventoryCase):
         return receipt, self._qc_picking(receipt)
 
     def _qc_move(self, qc):
-        """Dòng của vật tư test. Lọc theo mặt hàng chứ không lấy dòng đầu: DB dev
-        có sẵn phiếu kiểm treo từ trước (chưa có group_id) nên vẫn gom thêm dòng
-        lạ vào được."""
+        """Dòng của vật tư test. Lọc theo mặt hàng cho chắc — RS-01 đã chặn việc
+        gộp phiếu kiểm nhiều NCC, nhưng lọc theo SP vẫn là cách bền nếu DB test
+        chia sẻ còn phiếu kiểm cũ (sinh trước fix, group_id NULL)."""
         return qc.move_ids.filtered(lambda m: m.product_id == self.material)[:1]
+
+    def _make_receipt_from(self, vendor, product, qty):
+        """Phiếu nhận từ MỘT NCC cụ thể, đã nhận đủ và xác nhận. Dùng cho các ca
+        cần nhiều NCC cùng chờ kiểm (RS-01)."""
+        picking = self.env["stock.picking"].create({
+            "picking_type_id": self.warehouse.in_type_id.id,
+            "partner_id": vendor.id,
+            "location_id": self.loc_vendors.id,
+            "location_dest_id": self.loc_qc.id,
+            "move_ids": [(0, 0, {
+                "name": product.name,
+                "product_id": product.id,
+                "product_uom_qty": qty,
+                "product_uom": product.uom_id.id,
+                "location_id": self.loc_vendors.id,
+                "location_dest_id": self.loc_qc.id,
+            })],
+        })
+        picking.action_confirm()
+        picking.action_assign()
+        return self._receive(picking, qty=qty)
 
     def _fill_qc(self, qc, passed, rejected, reason="defect", note=False):
         move = self._qc_move(qc)
@@ -127,6 +148,110 @@ class TestQcReceipt(DlInventoryCase):
         ])
         self.assertEqual(quant_tra.lot_id, lot,
                          "Hàng ở khu Chờ trả NCC phải giữ đúng lô đã nhận.")
+
+    # ── RS-01 — Nhóm cung ứng tách phiếu kiểm theo từng NCC ──────────────────
+    def test_hai_ncc_ra_hai_phieu_kiem_rieng(self):
+        """🔴 RS-01 — Hai phiếu nhận của hai NCC ⇒ HAI phiếu kiểm RIÊNG.
+
+        Nếu đỏ: phiếu kiểm gộp hàng nhiều NCC, ô Nhà cung cấp trống — đúng cái
+        ảnh chụp DL/KC/00463 gom 3 NCC. Đây là gốc của việc trả nhầm NCC.
+        """
+        vendor_b = self.env["res.partner"].create({"name": "NCC Sơn (test)"})
+        product_b = self.env["product.product"].create({
+            "name": "Sơn tĩnh điện (test)", "product_kind": "material"})
+
+        receipt_a = self._receive(self._make_receipt(qty=100.0), qty=100.0)
+        receipt_b = self._make_receipt_from(vendor_b, product_b, 50.0)
+
+        qc_a = self._qc_picking(receipt_a)
+        qc_b = self._qc_picking(receipt_b)
+
+        self.assertTrue(qc_a and qc_b, "Cả hai phiếu nhận phải tự sinh phiếu kiểm.")
+        self.assertNotEqual(qc_a, qc_b,
+                            "Hai NCC phải ra hai phiếu kiểm riêng, không gộp.")
+        self.assertEqual(qc_a.partner_id, self.vendor,
+                         "Phiếu kiểm A phải mang đúng NCC A (không để trống).")
+        self.assertEqual(qc_b.partner_id, vendor_b)
+        self.assertEqual(qc_a.move_ids.product_id, self.material,
+                         "Phiếu kiểm A chỉ được chứa hàng của NCC A.")
+        self.assertEqual(qc_b.move_ids.product_id, product_b)
+
+    def test_hai_lan_nhan_cung_mot_ncc_van_hai_phieu_kiem(self):
+        """🔴 RS-01 — Đơn vị tách là LẦN NHẬN, không phải nhà cung cấp.
+
+        Cùng một NCC giao hai chuyến trong ngày vẫn phải ra hai phiếu kiểm: hàng
+        lỗi ở chuyến nào thì khiếu nại theo chứng từ của chuyến đó.
+        """
+        receipt_1 = self._receive(self._make_receipt(qty=100.0), qty=100.0)
+        receipt_2 = self._receive(self._make_receipt(qty=30.0), qty=30.0)
+
+        qc_1 = self._qc_picking(receipt_1)
+        qc_2 = self._qc_picking(receipt_2)
+        self.assertNotEqual(qc_1, qc_2,
+                            "Mỗi lần nhận hàng phải có phiếu kiểm riêng.")
+        self.assertEqual(qc_1.origin, receipt_1.name,
+                         "Phiếu kiểm phải chỉ đúng phiếu nhận đã sinh ra nó.")
+        self.assertEqual(qc_2.origin, receipt_2.name)
+
+    def test_khong_gop_phieu_kiem_ngay_ca_khi_thieu_nhom_cung_ung(self):
+        """🔴 RS-01 — Mất nhóm cung ứng cũng KHÔNG được gộp hai phiếu nhận.
+
+        Nhóm cung ứng là cơ chế chuẩn của Odoo nhưng vẫn là một ô có thể trống:
+        dữ liệu cũ, phiếu tạo tay, hoặc một đường xác nhận khác ghi đè. Chính ca
+        này đã xảy ra thật trên dlm_dev (DL/KC/00003 gom DL/NH/00003 +
+        DL/NH/00004). Bất biến "một phiếu nhận = một phiếu kiểm" phải đứng vững
+        cả khi nhóm biến mất.
+        """
+        vendor_b = self.env["res.partner"].create({"name": "NCC Sơn (test)"})
+        product_b = self.env["product.product"].create({
+            "name": "Sơn tĩnh điện (test)", "product_kind": "material"})
+
+        Picking = type(self.env["stock.picking"])
+        goc = Picking._dlm_group_receipt_moves
+        Picking._dlm_group_receipt_moves = lambda self: True
+        try:
+            receipt_a = self._receive(self._make_receipt(qty=100.0), qty=100.0)
+            receipt_b = self._make_receipt_from(vendor_b, product_b, 50.0)
+        finally:
+            Picking._dlm_group_receipt_moves = goc
+
+        qc_a = self._qc_picking(receipt_a)
+        qc_b = self._qc_picking(receipt_b)
+        self.assertFalse(qc_a.move_ids.group_id,
+                         "Ca test phải thật sự chạy ở trạng thái KHÔNG có nhóm.")
+        self.assertNotEqual(qc_a, qc_b,
+                            "Thiếu nhóm vẫn không được nhồi chung phiếu kiểm.")
+        self.assertEqual(qc_a.move_ids.product_id, self.material)
+        self.assertEqual(qc_b.move_ids.product_id, product_b)
+
+    def test_tra_hang_ghi_dung_ncc_khi_nhieu_ncc_cho_kiem(self):
+        """🔴 RS-01 + RS-08 — Loại hàng NCC B ⇒ phiếu trả ghi ĐÚNG NCC B.
+
+        Ca tốn tiền nhất: hàng của nhiều NCC cùng nằm khu Chờ kiểm; loại hàng
+        NCC nào thì phiếu trả phải về đúng NCC đó, và trỏ về phiếu NHẬN gốc
+        (không phải phiếu kiểm — RS-08).
+        """
+        vendor_b = self.env["res.partner"].create({"name": "NCC Sơn (test)"})
+        product_b = self.env["product.product"].create({
+            "name": "Sơn tĩnh điện (test)", "product_kind": "material"})
+
+        # NCC A nhận trước (hàng A nằm sẵn khu Chờ kiểm), NCC B nhận sau.
+        self._receive(self._make_receipt(qty=100.0), qty=100.0)
+        receipt_b = self._make_receipt_from(vendor_b, product_b, 50.0)
+
+        qc_b = self._qc_picking(receipt_b)
+        move_b = qc_b.move_ids.filtered(lambda m: m.product_id == product_b)
+        move_b.write({
+            "quantity": 42.0, "picked": True,
+            "dlm_qty_rejected": 8.0, "dlm_reject_reason": "defect"})
+        qc_b.action_dlm_validate_qc()
+
+        returns = qc_b._dlm_vendor_returns()
+        self.assertEqual(len(returns), 1)
+        self.assertEqual(returns.partner_id, vendor_b,
+                         "Phiếu trả phải ghi ĐÚNG NCC của mặt hàng bị loại.")
+        self.assertEqual(returns.dlm_origin_picking_id, receipt_b,
+                         "RS-08 — trỏ về phiếu NHẬN gốc, không phải phiếu kiểm.")
 
     # ── Phiếu trả NCC ────────────────────────────────────────────────────────
     def test_sinh_phieu_tra_ncc_o_trang_thai_nhap(self):

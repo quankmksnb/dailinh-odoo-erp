@@ -469,10 +469,6 @@ class StockPicking(models.Model):
         return sorted(names)
 
     # ── K5 — Mỗi phiếu nhận sinh ĐÚNG MỘT phiếu kiểm ─────────────────────────
-    def action_confirm(self):
-        self._dlm_group_receipt_moves()
-        return super().action_confirm()
-
     def _dlm_group_receipt_moves(self):
         """Gắn mỗi phiếu nhận một nhóm cung ứng riêng.
 
@@ -483,8 +479,10 @@ class StockPicking(models.Model):
         chỉ ra một trong số đó, và phiếu trả hàng sinh ra sẽ ghi **SAI NCC** —
         trả nhầm 8 cây thép gỉ cho nhà cung cấp không giao lô đó.
 
-        `group_id` được stock.rule truyền tiếp sang chặng sau, nên đặt ở đây là
-        đủ cho cả chuỗi.
+        Người gọi là `stock.move._action_confirm` — KHÔNG phải `action_confirm`
+        của phiếu. Nhóm phải có mặt trước khi `_push_apply` copy sang dòng kiểm,
+        mà push chỉ chạy trong `_action_confirm` của move; đóng dấu ở tầng phiếu
+        thì mọi đường xác nhận khác đều lọt (xem RS-01 trong `stock_move.py`).
         """
         Group = self.env["procurement.group"]
         for picking in self:
@@ -711,7 +709,10 @@ class StockPicking(models.Model):
             "location_id": reject_location.id,
             "location_dest_id": return_type.default_location_dest_id.id,
             "origin": receipt.name or self.name,
-            "dlm_origin_picking_id": (receipt or self).id,
+            # RS-08 — trỏ về phiếu NHẬN gốc, KHÔNG rơi về `self` (chính phiếu
+            # kiểm): field mang tên "Phiếu nhận gốc", để trống còn đúng hơn là
+            # chỉ vào một phiếu kiểm không có trên chứng từ nào của NCC.
+            "dlm_origin_picking_id": receipt.id,
             "move_ids": [(0, 0, {
                 "name": move.product_id.display_name,
                 "product_id": move.product_id.id,
