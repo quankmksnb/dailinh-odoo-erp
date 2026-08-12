@@ -393,5 +393,177 @@ class TestWasteRuleOnchangeHasRecovery(unittest.TestCase):
         self.assertEqual(rec.recovery_rate, 50.0)
 
 
+# =============================================================================
+# dl.pricing.rule.mixin — action_apply/action_expire/action_create_revision
+# (nhánh raise-sớm, trước khi chạm self._activate_rule()/self.search/write).
+# Bổ sung 2026-08-11 (Round 3 — trước đó 0% coverage, ngoài phạm vi tự đặt
+# ban đầu của file này, xem docstring đầu file).
+# =============================================================================
+class _RuleRow:
+    def __init__(self, state):
+        self.state = state
+
+    def ensure_one(self):
+        return self
+
+    def __iter__(self):
+        return iter([self])
+
+
+class TestRuleMixinActionApply(unittest.TestCase):
+    def test_non_draft_raises(self):
+        """TC-UNIT-DlPricingRuleMixin-008"""
+        rec = _RuleRow(state="active")
+        with self.assertRaises(UserError):
+            DlPricingRuleMixin.action_apply(rec)
+
+
+class TestRuleMixinActionExpire(unittest.TestCase):
+    def test_neither_active_nor_pending_raises(self):
+        """TC-UNIT-DlPricingRuleMixin-009"""
+        rec = _RuleRow(state="draft")
+        with self.assertRaises(UserError):
+            DlPricingRuleMixin.action_expire(rec)
+
+
+class TestRuleMixinActionCreateRevision(unittest.TestCase):
+    def test_non_active_raises(self):
+        """TC-UNIT-DlPricingRuleMixin-010"""
+        rec = _RuleRow(state="draft")
+        with self.assertRaises(UserError):
+            DlPricingRuleMixin.action_create_revision(rec)
+
+
+# =============================================================================
+# dl.pricing.commercial.mixin — action_submit_approval() (nhánh raise-sớm) /
+# action_apply_self_approve() (happy path, tự chế self để verify đúng thứ tự
+# gọi submit -> check quyền -> approve mà không cần self.env thật).
+# =============================================================================
+class TestCommercialMixinActionSubmitApproval(unittest.TestCase):
+    def test_non_draft_non_rejected_raises(self):
+        """TC-UNIT-DlPricingCommercialMixin-002"""
+        rec = SimpleNamespace(state="pending")
+        rec.ensure_one = lambda: rec
+        with self.assertRaises(UserError):
+            DlPricingCommercialMixin.action_submit_approval(rec)
+
+    def test_missing_change_reason_raises(self):
+        """TC-UNIT-DlPricingCommercialMixin-003"""
+        rec = SimpleNamespace(state="draft", change_reason=False)
+        rec.ensure_one = lambda: rec
+        with self.assertRaises(ValidationError):
+            DlPricingCommercialMixin.action_submit_approval(rec)
+
+
+class TestCommercialMixinActionApplySelfApprove(unittest.TestCase):
+    def test_happy_delegates_submit_then_check_then_approve(self):
+        """TC-UNIT-DlPricingCommercialMixin-004"""
+        calls = []
+        fake_request = SimpleNamespace(
+            _check_can_resolve=lambda: calls.append("check"),
+            action_approve=lambda: calls.append("approve"))
+        rec = SimpleNamespace(
+            _name="dl.pricing.profit.rule", id=42,
+            action_submit_approval=lambda: calls.append("submit"),
+            env={"dl.pricing.approval.request": SimpleNamespace(
+                search=lambda domain, limit=None: fake_request)},
+        )
+        rec.ensure_one = lambda: rec
+        result = DlPricingCommercialMixin.action_apply_self_approve(rec)
+        self.assertEqual(calls, ["submit", "check", "approve"])
+        self.assertTrue(result)
+
+
+# =============================================================================
+# dl.pricing.discount.rule — thang chiết khấu theo độ gắn bó (mới ≤ cũ ≤
+# thân thiết). lower[field]/higher[field] dùng subscript nên cần __getitem__.
+# =============================================================================
+class _DiscountRow:
+    def __init__(self, customer_group, default_rate, max_rate, state="active",
+                 others=None):
+        self.customer_group = customer_group
+        self.default_rate = default_rate
+        self.max_rate = max_rate
+        self.state = state
+        self.company_id = SimpleNamespace(id=1)
+        self.ids = [1]
+        self._others = others or []
+        # rule._assert_fits_group_ladder() gọi trên chính instance stub —
+        # gán thẳng method thật (unbound) làm callable trên self, vì
+        # _DiscountRow không kế thừa DlPricingDiscountRule.
+        self._assert_fits_group_ladder = lambda: (
+            DlPricingDiscountRule._assert_fits_group_ladder(self))
+
+    def __getitem__(self, key):
+        return getattr(self, key)
+
+    def ensure_one(self):
+        return self
+
+    def search(self, domain):
+        return self._others
+
+    def __iter__(self):
+        return iter([self])
+
+
+class TestDiscountRuleCheckGroupLadder(unittest.TestCase):
+    def test_less_loyal_group_with_higher_discount_raises(self):
+        """TC-UNIT-DlPricingDiscountRule-009 — nhóm 'Khách mới' (ít gắn bó
+        hơn) có chiết khấu CAO hơn nhóm 'Khách thân thiết' đang áp dụng —
+        đảo bậc, phải chặn."""
+        loyal_active = _DiscountRow(customer_group="loyal", default_rate=5.0,
+                                     max_rate=10.0)
+        new_rule = _DiscountRow(customer_group="new", default_rate=10.0,
+                                 max_rate=15.0, others=[loyal_active])
+        with self.assertRaises(ValidationError):
+            DlPricingDiscountRule._check_group_ladder([new_rule])
+
+    def test_ascending_ladder_passes(self):
+        loyal_active = _DiscountRow(customer_group="loyal", default_rate=15.0,
+                                     max_rate=20.0)
+        new_rule = _DiscountRow(customer_group="new", default_rate=5.0,
+                                 max_rate=10.0, others=[loyal_active])
+        DlPricingDiscountRule._check_group_ladder([new_rule])  # không raise
+
+
+class TestDiscountRuleActionSubmitApproval(unittest.TestCase):
+    def test_ladder_inversion_blocked_early_at_submit(self):
+        """TC-UNIT-DlPricingDiscountRule-010 — chặn NGAY lúc Gửi duyệt (trước
+        khi tới super().action_submit_approval()), không đợi tới lúc Áp
+        dụng mới phát hiện đảo bậc."""
+        loyal_active = _DiscountRow(customer_group="loyal", default_rate=5.0,
+                                     max_rate=10.0)
+        new_rule = _DiscountRow(customer_group="new", default_rate=10.0,
+                                 max_rate=15.0, others=[loyal_active])
+        with self.assertRaises(ValidationError):
+            DlPricingDiscountRule.action_submit_approval(new_rule)
+
+
+# =============================================================================
+# dl.pricing.cost.adjustment.rule — _check_conditions() (thuần, không
+# self.env). Bổ sung 2026-08-11.
+# =============================================================================
+class TestCostAdjustmentCheckConditions(unittest.TestCase):
+    def test_urgent_without_condition_days_raises(self):
+        """TC-UNIT-DlPricingCostAdjustmentRule-007"""
+        rec = SimpleNamespace(rule_type="urgent", condition_days=0,
+                               condition_amount=0.0)
+        with self.assertRaises(ValidationError):
+            DlPricingCostAdjustmentRule._check_conditions([rec])
+
+    def test_small_order_without_condition_amount_raises(self):
+        """TC-UNIT-DlPricingCostAdjustmentRule-008"""
+        rec = SimpleNamespace(rule_type="small_order", condition_days=0,
+                               condition_amount=0.0)
+        with self.assertRaises(ValidationError):
+            DlPricingCostAdjustmentRule._check_conditions([rec])
+
+    def test_other_rule_type_skips(self):
+        rec = SimpleNamespace(rule_type="material_surcharge", condition_days=0,
+                               condition_amount=0.0)
+        DlPricingCostAdjustmentRule._check_conditions([rec])  # không raise
+
+
 if __name__ == "__main__":
     unittest.main()

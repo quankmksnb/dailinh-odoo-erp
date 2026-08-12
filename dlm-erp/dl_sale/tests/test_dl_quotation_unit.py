@@ -154,9 +154,15 @@ def _quo_rec(**kwargs):
         # stub no-op giống message_post ở trên).
         customer_data_warning=None,
         _post_quotation_document_to_chatter=lambda **kw: None,
+        # action_create_revision() đọc self._REVISABLE_STATES (mượn nguyên
+        # tuple thật); action_reopen() gọi fields.Date.context_today(self)
+        # -> record._context.get('tz') — cho sẵn tz để khỏi chạm record.env.
+        _REVISABLE_STATES=('sent', 'revision_requested', 'rejected', 'expired'),
+        _context={'tz': 'UTC'},
     )
     rec.__dict__.update(kwargs)
     rec.ensure_one = lambda: rec  # action_open_approval_request/action_open_sale_order cần
+    rec.write = lambda vals: rec.__dict__.update(vals)  # action_reopen() dùng self.write(...)
     return rec
 
 
@@ -531,6 +537,132 @@ class TestComputeDiscountHint(unittest.TestCase):
         DlQuotation._compute_discount_hint([rec])
         self.assertEqual(rec.discount_hint_level, "info")
         self.assertIn("Khách cũ", rec.discount_hint_message)
+
+
+# =============================================================================
+# action_approve() / action_create_sale_order() / action_create_revision() /
+# action_reopen() / action_send_back_to_tech() — bổ sung 2026-08-11 (Round 3,
+# trước đó 0% coverage). _ApproveRS mở rộng _RS thêm .env (qua object.
+# __setattr__ để né __setattr__ broadcast của _RS) cho _check_internal_
+# approver(); action_create_sale_order()/action_create_revision() dùng
+# _quo_rec() + _RS sẵn có, chỉ cần thêm self.env["dl.sale.order"].search khi
+# chạm nhánh đó.
+# =============================================================================
+class _ApproveRS(_RS):
+    def __init__(self, records, env):
+        super().__init__(records)
+        object.__setattr__(self, "env", env)
+
+    def _check_internal_approver(self):
+        return DlQuotation._check_internal_approver(self)
+
+    def sudo(self):
+        return self
+
+
+def _approver_env(allowed):
+    user = SimpleNamespace(has_group=lambda g: allowed)
+    return SimpleNamespace(su=False, user=user)
+
+
+class TestActionApprove(unittest.TestCase):
+    def test_non_approver_role_raises(self):
+        """TC-UNIT-DlQuotation-056"""
+        rec = _quo_rec(state="draft")
+        rs = _ApproveRS([rec], _approver_env(allowed=False))
+        with self.assertRaises(UserError):
+            DlQuotation.action_approve(rs)
+
+    def test_non_draft_raises(self):
+        """TC-UNIT-DlQuotation-057"""
+        rec = _quo_rec(state="sent")
+        rs = _ApproveRS([rec], _approver_env(allowed=True))
+        with self.assertRaises(UserError):
+            DlQuotation.action_approve(rs)
+
+    def test_approval_pending_raises(self):
+        """TC-UNIT-DlQuotation-058"""
+        rec = _quo_rec(state="draft", approval_state="pending",
+                        approval_level="sales_manager")
+        rs = _ApproveRS([rec], _approver_env(allowed=True))
+        with self.assertRaises(UserError):
+            DlQuotation.action_approve(rs)
+
+    def test_approval_rejected_raises(self):
+        """TC-UNIT-DlQuotation-059"""
+        rec = _quo_rec(state="draft", approval_state="rejected")
+        rs = _ApproveRS([rec], _approver_env(allowed=True))
+        with self.assertRaises(UserError):
+            DlQuotation.action_approve(rs)
+
+    def test_happy_sets_state_approved(self):
+        rec = _quo_rec(state="draft", approval_state="not_required")
+        rs = _ApproveRS([rec], _approver_env(allowed=True))
+        DlQuotation.action_approve(rs)
+        self.assertEqual(rec.state, "approved")
+
+
+class TestActionCreateSaleOrder(unittest.TestCase):
+    def test_not_accepted_raises(self):
+        """TC-UNIT-DlQuotation-060"""
+        rec = _quo_rec(state="sent")
+        with self.assertRaises(UserError):
+            DlQuotation.action_create_sale_order(rec)
+
+    def test_existing_order_reused_sets_state_ordered(self):
+        """TC-UNIT-DlQuotation-061 — đơn đã tồn tại (vd tạo từ phiên trước
+        rồi báo giá bị reset) thì KHÔNG tạo đơn mới, chỉ khoá lại state."""
+        existing_order = SimpleNamespace(id=99)
+        sale_order_model = SimpleNamespace(
+            search=lambda domain, limit=None: existing_order,
+            create=lambda vals: (_ for _ in ()).throw(
+                AssertionError("must not create a new order when one exists")))
+        rec = _quo_rec(state="accepted", id=1,
+                        env={"dl.sale.order": sale_order_model})
+        DlQuotation.action_create_sale_order(rec)
+        self.assertEqual(rec.state, "ordered")
+
+
+class TestActionCreateRevision(unittest.TestCase):
+    def test_non_revisable_state_raises(self):
+        """TC-UNIT-DlQuotation-062"""
+        rec = _quo_rec(state="draft")
+        with self.assertRaises(UserError):
+            DlQuotation.action_create_revision(rec)
+
+
+class TestActionReopen(unittest.TestCase):
+    def test_non_expired_raises(self):
+        """TC-UNIT-DlQuotation-063"""
+        rec = _quo_rec(state="sent")
+        with self.assertRaises(UserError):
+            DlQuotation.action_reopen(rec)
+
+    def test_missing_future_validity_date_raises(self):
+        """TC-UNIT-DlQuotation-064"""
+        rec = _quo_rec(state="expired", validity_date=False)
+        with self.assertRaises(UserError):
+            DlQuotation.action_reopen(rec)
+
+    def test_happy_reopens_to_sent(self):
+        rec = _quo_rec(state="expired", validity_date=date(2030, 1, 1))
+        DlQuotation.action_reopen(rec)
+        self.assertEqual(rec.state, "sent")
+
+
+class TestActionSendBackToTech(unittest.TestCase):
+    def test_no_source_rfq_raises(self):
+        """TC-UNIT-DlQuotation-065"""
+        rec = _quo_rec(state="revision_requested", quotation_request_id=False)
+        with self.assertRaises(UserError):
+            DlQuotation.action_send_back_to_tech(rec)
+
+    def test_wrong_state_raises(self):
+        rfq = SimpleNamespace(action_reopen_for_revision=lambda **kw: None,
+                               name="RFQ0001")
+        rec = _quo_rec(state="draft", quotation_request_id=rfq)
+        with self.assertRaises(UserError):
+            DlQuotation.action_send_back_to_tech(rec)
 
 
 if __name__ == "__main__":

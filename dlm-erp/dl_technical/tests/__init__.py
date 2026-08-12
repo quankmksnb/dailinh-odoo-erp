@@ -1,4 +1,6 @@
 from . import test_bom_line_mixin_unit
+from . import test_dl_bom_header_and_line_unit
+from . import test_dl_quotation_request_unit
 from . import test_bom_axis
 from . import test_rfq_result_guard
 from . import test_rfq_resolve_workspace
@@ -8,3 +10,4 @@ from . import test_bom_btp_linkage
 from . import test_cron_cleanup_rfq_provisional
 from . import test_cost_field_visibility_security
 from . import test_material_calc_kind
+from . import test_rfq_return_and_notify_wizards

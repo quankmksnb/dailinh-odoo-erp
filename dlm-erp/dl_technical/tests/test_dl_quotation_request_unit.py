@@ -491,5 +491,122 @@ class TestRecomputeStatusFromLines(unittest.TestCase):
         self.assertEqual(rec.return_reason, "cũ")  # không bị ghi đè khi status không đổi
 
 
+# =============================================================================
+# Field mới thêm 2026-08-10 (commit 549bcb9) — bổ sung 2026-08-11, trước đó
+# 0% coverage (xác nhận bởi đối chiếu code-vs-doc lượt 2).
+# =============================================================================
+class _PriorityRQS(list):
+    _SALES_PRIORITY_BY_STATUS = DlQuotationRequest._SALES_PRIORITY_BY_STATUS
+    _TECH_PRIORITY_BY_STATUS = DlQuotationRequest._TECH_PRIORITY_BY_STATUS
+
+
+class TestComputeSalesPriority(unittest.TestCase):
+    def test_maps_status_to_priority(self):
+        """TC-UNIT-DlQuotationRequest-023"""
+        cases = {"returned": 10, "confirmed": 10, "new": 20, "quoted": 30,
+                  "unknown_status": 20}
+        for status, expected in cases.items():
+            rec = _rfq(status=status)
+            DlQuotationRequest._compute_sales_priority(_PriorityRQS([rec]))
+            self.assertEqual(rec.sales_priority, expected, status)
+
+
+class TestComputeTechPriority(unittest.TestCase):
+    def test_maps_status_to_priority(self):
+        """TC-UNIT-DlQuotationRequest-024"""
+        cases = {"new": 10, "returned": 20, "confirmed": 25, "quoted": 30}
+        for status, expected in cases.items():
+            rec = _rfq(status=status)
+            DlQuotationRequest._compute_tech_priority(_PriorityRQS([rec]))
+            self.assertEqual(rec.tech_priority, expected, status)
+
+
+class TestComputeTechQueueSince(unittest.TestCase):
+    def test_received_date_wins_when_set(self):
+        """TC-UNIT-DlQuotationRequest-025"""
+        rec = _rfq(received_date=date(2026, 8, 1), requested_date=date(2026, 7, 1))
+        DlQuotationRequest._compute_tech_queue_since([rec])
+        self.assertEqual(rec.tech_queue_since, date(2026, 8, 1))
+
+    def test_falls_back_to_requested_date(self):
+        rec = _rfq(received_date=False, requested_date=date(2026, 7, 1))
+        DlQuotationRequest._compute_tech_queue_since([rec])
+        self.assertEqual(rec.tech_queue_since, date(2026, 7, 1))
+
+
+class _WaitRQS(list):
+    def __init__(self, records, aging_param):
+        super().__init__(records)
+        self.env = {
+            "ir.config_parameter": SimpleNamespace(
+                sudo=lambda: SimpleNamespace(
+                    get_param=lambda key, default: aging_param)),
+        }
+
+
+class TestComputeTechWaiting(unittest.TestCase):
+    NOW = SimpleNamespace()
+
+    def test_overdue_when_pending_past_threshold(self):
+        """TC-UNIT-DlQuotationRequest-026"""
+        from odoo import fields as odoo_fields
+        now = odoo_fields.Datetime.now()
+        rec = _rfq(requested_date=now - timedelta(days=4))
+        rec.tech_stage = "pending"
+        rs = _WaitRQS([rec], aging_param=3)
+        DlQuotationRequest._compute_tech_waiting(rs)
+        self.assertEqual(rec.tech_waiting_days, 4)
+        self.assertTrue(rec.tech_overdue)
+
+    def test_invalid_config_param_falls_back_to_default_3(self):
+        """TC-UNIT-DlQuotationRequest-027"""
+        from odoo import fields as odoo_fields
+        now = odoo_fields.Datetime.now()
+        rec = _rfq(requested_date=now - timedelta(days=3))
+        rec.tech_stage = "pending"
+        rs = _WaitRQS([rec], aging_param="not_a_number")
+        DlQuotationRequest._compute_tech_waiting(rs)
+        self.assertEqual(rec.tech_waiting_days, 3)
+        self.assertTrue(rec.tech_overdue)  # 3 >= fallback threshold 3
+
+    def test_closed_stage_not_overdue(self):
+        from odoo import fields as odoo_fields
+        now = odoo_fields.Datetime.now()
+        rec = _rfq(requested_date=now - timedelta(days=100))
+        rec.tech_stage = "closed"
+        rs = _WaitRQS([rec], aging_param=3)
+        DlQuotationRequest._compute_tech_waiting(rs)
+        self.assertEqual(rec.tech_waiting_days, 0)
+        self.assertFalse(rec.tech_overdue)
+
+
+class _EnvRS(list):
+    def __init__(self, records, env):
+        super().__init__(records)
+        self.env = env
+
+
+class TestComputeResolvableProductIds(unittest.TestCase):
+    def test_domain_is_manufactured_only_no_material_processed(self):
+        """TC-UNIT-DlQuotationRequest-028 (method thật nằm trên
+        DlQuotationRequestLine — sheet gốc ghi nhầm dưới DlQuotationRequest,
+        giữ nguyên ID cho khớp Report 5.1). Domain đổi 2026-08-08: CHỈ
+        product_kind='manufactured', không còn 'in' (manufactured,
+        material_processed) — bán thành phẩm chỉ chọn được ở dòng BOM."""
+        captured = {}
+
+        def _search(domain):
+            captured["domain"] = domain
+            return SimpleNamespace(ids=[])
+
+        product_model = SimpleNamespace(search=_search)
+        rec = _line(id=5, product_category_id=False)
+        rs = _EnvRS([rec], {"product.product": product_model})
+        DlQuotationRequestLine._compute_resolvable_product_ids(rs)
+        self.assertIn(("product_kind", "=", "manufactured"), captured["domain"])
+        self.assertNotIn(("product_kind", "in", ("manufactured", "material_processed")),
+                          captured["domain"])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,4 +1,7 @@
 from . import test_quotation_pricing_service_unit
+from . import test_bom_reset_draft_guard
+from . import test_res_partner_quote_stats_unit
+from . import test_quotation_wizards_unit
 from . import test_dl_quotation_unit
 from . import test_dl_sale_order_unit
 from . import test_rfq_views

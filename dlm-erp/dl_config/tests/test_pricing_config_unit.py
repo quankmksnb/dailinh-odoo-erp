@@ -105,5 +105,31 @@ class TestCheckQuoteSettings(unittest.TestCase):
         self._check(rec)
 
 
+# =============================================================================
+# get_quote_settings() — đụng self.env.search/create (singleton) nên KHÔNG
+# thuần L1 như các test trên; đặt cùng file cho dễ đối chiếu, chạy qua
+# odoo.tests.common.TransactionCase (DB thật). Bổ sung 2026-08-11.
+# =============================================================================
+from odoo.tests.common import TransactionCase, tagged  # noqa: E402
+
+
+@tagged("post_install", "-at_install", "dl_config")
+class TestGetQuoteSettings(TransactionCase):
+    def test_returns_singleton_values_and_can_edit_flag(self):
+        """TC-UNIT-DlPricingConfig-013"""
+        admin_user = self.env["res.users"].create({
+            "name": "Admin test get_quote_settings", "login": "admin_gqs_test",
+            "groups_id": [(6, 0, [
+                self.env.ref("base.group_user").id,
+                self.env.ref("dl_base.dl_group_admin").id,
+            ])],
+        })
+        Config = self.env["dl.pricing.config"].with_user(admin_user)
+        cfg = Config._get_singleton()
+        cfg.sudo().write({"vat_pct": 10.0, "rounding_to": 1000})
+        result = Config.get_quote_settings()
+        self.assertEqual(result, {"vat": 10.0, "rounding": 1000, "canEdit": True})
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -15,17 +15,17 @@
       "value": "en_US",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1817211874.024655,
+      "expires": 1817993998.390708,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "session_id",
-      "value": "155c61158eb5f91080e3e2875d710618c28bf69f",
+      "value": "fe713ba289d9e48ad265cdc57af1d579735301c1",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1786280675.11814,
+      "expires": 1787062799.854208,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
@@ -35,7 +35,7 @@
       "value": "1",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1817211874.998181,
+      "expires": 1817993999.698388,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -47,19 +47,11 @@
       "localStorage": [
         {
           "name": "presence.lastPresence",
-          "value": "1785675874043"
-        },
-        {
-          "name": "dlm.sidebar.activeKey",
-          "value": "pricing"
+          "value": "1786457998419"
         },
         {
           "name": "multi_tab.http_127.0.0.1_8069.lastPresenceByTab",
           "value": "{}"
-        },
-        {
-          "name": "dlm.sidebar.activeChildKey",
-          "value": "material_price"
         },
         {
           "name": "multi_tab.http_127.0.0.1_8069.main",
@@ -67,7 +59,7 @@
         },
         {
           "name": "multi_tab.http_127.0.0.1_8069.heartbeat",
-          "value": "1785675874985"
+          "value": "1786457999681"
         },
         {
           "name": "presence.focus",

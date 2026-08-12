@@ -660,6 +660,221 @@ Theo FDS §2.2: Đăng nhập (SCR-01) → Cấu hình›Quản lý User (SCR-03
 ---
 ---
 
+## Lô 7 — System Test L3 (re-run toàn bộ suite + bổ sung luồng CEO), 2026-08-11
+
+Môi trường: Odoo 17 CE local, `http://127.0.0.1:8069`, DB `dlm_dev` (đã tồn tại từ trước, KHÔNG reset — một số dòng dữ liệu rác từ các lần chạy test trước còn tồn đọng, ví dụ nhiều bản ghi "NCC Test Validate QA - spec" trùng tên trên SCR-07). Mục tiêu: (1) chạy lại toàn bộ 11 file spec cũ để xác nhận trạng thái Pass/Fail hiện tại so với lần ghi trước, (2) bổ sung luồng CEO (SCR-27/33/34/Cấu hình) — luồng duy nhất trong 6 luồng FDS §2.2 chưa từng có spec tự động dù account `ceo@dlm.demo` đã có sẵn trong `fixtures/roles.ts`.
+
+### SCR-07/08/12/13 — Kế toán nội bộ mất quyền tạo/sửa NCC và Bảng giá NCC [BUG MỚI — Critical — REGRESSION]
+
+- **Role test:** Kế toán nội bộ (`ketoan@dlm.demo`)
+- **Loại lỗi:** Logic/RBAC (ir.model.access sai) — KHÁC với các lỗi UI đã ghi trước đây
+- **Mức độ:** Critical — chặn hoàn toàn nghiệp vụ lõi "quản lý nhà cung cấp và giá vật tư" của vai trò Kế toán (đúng luồng chính theo FDS §2.2: "Đăng nhập → NCC/Thầu phụ (SCR-07) - khai báo nhà cung cấp")
+- **Đây là REGRESSION:** dòng log cũ tại mục "Lô 3 (Kế toán nội bộ)" (xem dòng "SCR-07: Nút '+ Thêm NCC' hiển thị, đúng cột... — PASS") xác nhận trước đây test này **PASS**. Lần chạy lại hiện tại (2026-08-11) cùng 1 test case trong `tests/screens/scr-07-12-ketoan.spec.ts` và `scr-08-13-validate.spec.ts` (4 test) đều FAIL.
+- **Bước tái hiện (từ đầu):**
+  1. Đăng nhập bằng `ketoan@dlm.demo` / `Demo@2026`
+  2. Vào CRM & Báo giá › NCC / Thầu phụ (SCR-07, action `dl_partner.action_dl_supplier` — action CRUD đầy đủ, KHÔNG phải action chỉ đọc `action_dl_supplier_readonly`)
+  3. Quan sát control panel: chỉ có nút "Thao tác" (Nhập/Xuất dữ liệu), KHÔNG có nút "+ Thêm NCC" nào — xác nhận bằng cả `read_page` accessibility tree lẫn screenshot
+  4. Tương tự tại SP & VT › Bảng giá › Bảng giá Vật tư (SCR-12, `product.supplierinfo`): không có nút "+ Thêm bảng giá NCC", không có nút "Duyệt"/"Áp dụng" trên các dòng
+- **Nguyên nhân gốc rễ (đã xác nhận trực tiếp trong DB, không suy đoán):** Bảng `ir_model_access` hiện tại:
+  - `access_dl_partner_accountant` (group `dl_group_accountant`, model `res.partner`): `perm_read=True, perm_write=False, perm_create=False, perm_unlink=False`
+  - `product.supplierinfo Acc` (group `dl_group_accountant`, model `product.supplierinfo`): `perm_read=True, perm_write=False, perm_create=False, perm_unlink=False`
+  - Cả 2 định nghĩa trong `dl_partner/security/ir.model.access.csv` và `dl_product/security/ir.model.access.csv` — Kế toán hiện là **read-only tuyệt đối** trên cả 2 model.
+- **Xung đột trực tiếp với code khác cùng dự án (không chỉ với FDS):** comment ngay trong `dl_sale/static/src/views/supplier_list_controller.js` dòng 38 ghi rõ: *"Trưởng KD chỉ được XEM danh sách NCC (S04) — ẩn nút Thêm/Xoá... Kế toán/Admin vẫn full CRUD."* — tức chính tác giả code frontend cũng lập trình theo giả định Kế toán có quyền tạo/sửa, nhưng ACL backend lại chặn hoàn toàn. Đây là ví dụ rõ nhất của "code đi trước/lệch tài liệu" — ở đây là 2 phần code (frontend JS vs ACL CSV) tự mâu thuẫn nhau, không phải chỉ lệch với FDS.
+- **Kỳ vọng (theo FDS):** SCR-07 "Ai xem được: Admin/IT, CEO, Kế toán (full)...", SCR-12/13 tương tự — Kế toán phải có full CRUD trên NCC và Bảng giá NCC.
+- **Nghi vấn nguyên nhân:** rất có thể liên quan đến việc tách vai trò "Mua hàng" (`dl_group_purchasing`, xuất hiện trong DB nhưng KHÔNG có trong 6 luồng FDS §2.2 hay bảng account matrix của guide) — khi tách quyền mua hàng ra nhóm riêng, có thể quyền ghi/tạo của Kế toán trên 2 model này bị vô tình gỡ bỏ theo, thay vì chỉ giới hạn lại phạm vi.
+- **Ảnh/trace:** xác nhận qua Playwright MCP (accessibility snapshot) + trực tiếp query `ir_model_access` trong PostgreSQL `dlm_dev` — test tự động: `tests/screens/scr-07-12-ketoan.spec.ts` (3 test FAIL), `tests/screens/scr-08-13-validate.spec.ts` (2 test FAIL, cùng gốc rễ: 1 do không bấm được "Thêm NCC", 1 do không có nút "Áp dụng")
+- **Trạng thái:** Open — CẦN xác nhận với BA/Dev: nhóm `dl_group_purchasing` có nên tồn tại độc lập tách quyền khỏi Kế toán hay không (đây là quyết định nghiệp vụ, không tự sửa ACL). Nếu giữ tách nhóm, FDS/Report 5 cũng cần bổ sung vai trò "Mua hàng" vào §2.2 (hiện chỉ có 6/7 nhóm quyền trong README).
+
+### SCR-27/33/34 + Cấu hình — Luồng CEO (bổ sung mới, trước đây chưa có spec)
+
+- **Role test:** CEO (`ceo@dlm.demo`)
+- **Kết quả:** 3/4 nhóm test PASS đúng FDS — CEO thấy cột Giá thành/đv + tab "Phân tích giá thành" + chatter trên SCR-27, có nút "+ Tạo báo giá" (toàn quyền CRUD), SCR-33 (Đơn vị tính) có nút "Mới", SCR-34 (Công ty) mở được form qua URL trực tiếp (action `base.action_res_company_form`) dù không có link menu.
+- **Xác nhận chéo lỗi đã biết:** submenu "Cấu hình" của CEO trên rail chỉ hiện 2 mục (Đơn vị tính, Cấu hình Báo giá) — KHÔNG có Công ty, Cấu hình Hệ thống, Quản lý User, Phân quyền. Đây là cùng gốc rễ đã ghi ở mục "SCR-34 — 'Công ty' KHÔNG có mục trong menu Cấu hình cho CEO (và toàn hệ thống)" (Lô 5) và "SCR-32" (Lô 6) — test mới ở Lô 7 chỉ xác nhận lại bằng Playwright tự động (trước đây ghi nhận thủ công), không phải lỗi mới.
+- **Test tự động:** `tests/screens/scr-27-33-34-ceo.spec.ts` (5 test PASS, 1 `test.fixme` ghi lại kỳ vọng đầy đủ theo FDS để dùng lại khi bug SCR-32/34 được fix).
+
+### SCR-03 — "Không thể tự khóa tài khoản đang đăng nhập" — KHÔNG PHẢI BUG, do test giả định sai trang phân trang
+
+- **Role test:** Admin/IT
+- **Kết quả:** Test cũ giả định tài khoản `QA Admin/IT` luôn nằm ở trang 1 danh sách User (10 dòng/trang). DB hiện có 19 user (tăng so với lúc viết test, có thêm nhiều user demo như `abc`, `HoangAnhTuan`, `Mua hàng`...), nên `QA Admin/IT` bị đẩy sang trang 2 theo thứ tự alphabet → locator tìm dòng trên trang 1 timeout.
+- **Kết luận:** Lỗi test fragility (phụ thuộc thứ tự phân trang), KHÔNG phải bug sản phẩm — chưa sửa lại test trong phiên này (ưu tiên thời gian cho phần bổ sung coverage CEO và ghi nhận bug ACL Kế toán), cần backlog: sửa test dùng ô tìm kiếm thay vì giả định trang 1.
+- **Trạng thái:** Không tính vào Defect — ghi chú kỹ thuật cho việc bảo trì bộ test.
+
+---
+---
+
+## Lô 8 — Mở rộng coverage: BOM, wizard RFQ, phê duyệt thật, Cấu hình, Sản phẩm/Bản vẽ, RBAC/Session (2026-08-11, tiếp Lô 7)
+
+Mục tiêu: lấp các gap "Not Run" đã liệt kê ở sheet `TomTat_KetQua_L3`/`E2E_BF_DLM_Playwright` — BOM (BF-02),
+wizard xử lý RFQ (BF-01 A4), click Duyệt/Từ chối thật (BF-04), thao tác trong Cấu hình Báo giá (BF-06),
+SCR-09/17 (Sản phẩm/Bản vẽ), và RBAC/Session spot-check. Spec mới: `scr-14-16-bom.spec.ts`,
+`scr-25-rfq-wizard.spec.ts`, `scr-30-approval-flow.spec.ts`, `scr-31-pricing-config.spec.ts`,
+`scr-09-17-product-drawing.spec.ts`, `scr-sec-rbac-session.spec.ts`.
+
+### SCR-14/15 — BOM "Đã khóa" không có cách nào tạo phiên bản mới [BUG MỚI — Critical]
+
+- **Role test:** Kỹ thuật
+- **Loại lỗi:** Logic — thiếu chức năng cốt lõi của workflow BOM
+- **Mức độ:** Critical — chặn hoàn toàn quy trình sửa đổi BOM đã khóa (không có lối nào khác để tạo bản mới)
+- **Bước tái hiện:**
+  1. Đăng nhập `kythuat@dlm.demo` / `Demo@2026`
+  2. Vào Kỹ thuật › BOM › BOM sản phẩm (SCR-14, action=319), mở BOM-0005 (trạng thái "Đã khóa")
+  3. Bấm nút "Tác vụ" ở góc trên — menu chỉ có "Tạo BOM mẫu cho nhóm" và "Lưu trữ"
+- **Kỳ vọng (theo FDS SCR-15):** 'Nút "Tạo phiên bản mới" ... Hiện khi trạng thái = Đã xác nhận HOẶC Đã khóa. Chỉ Kỹ thuật/Admin thấy'
+- **Thực tế quan sát:** Hoàn toàn không có nút "Tạo phiên bản mới" ở bất kỳ đâu trên form khi BOM đã khóa — xác nhận bằng Playwright MCP (đọc toàn bộ accessibility tree + mở menu "Tác vụ").
+- **Ảnh/trace:** xác nhận qua Playwright MCP snapshot — test tự động: `tests/screens/scr-14-16-bom.spec.ts` (`test.fixme`)
+- **Trạng thái:** Open
+
+### SCR-15 — BOM "Đã khóa" vẫn còn nút "Lưu trữ" [BUG MỚI — Major]
+
+- **Role test:** Kỹ thuật
+- **Loại lỗi:** Logic — vi phạm ràng buộc trạng thái
+- **Mức độ:** Major
+- **Kỳ vọng (theo FDS SCR-15):** "Không lưu trữ được BOM đã khóa"
+- **Thực tế quan sát:** Menu "Tác vụ" của BOM-0005 (Đã khóa) vẫn hiện nút "Lưu trữ" — có thể lưu trữ nhầm 1 BOM đã khóa trái quy định.
+- **Ảnh/trace:** Playwright MCP snapshot — test tự động: `tests/screens/scr-14-16-bom.spec.ts` (`test.fixme`)
+- **Trạng thái:** Open
+
+### SCR-25 — Wizard xử lý dòng RFQ [PASS — coverage mới]
+
+- **Role test:** BA/Sales (tạo RFQ) → Kỹ thuật (xử lý)
+- **Kết quả:** PASS toàn bộ luồng thật — Sales tạo RFQ mới (trạng thái Mới) → Kỹ thuật mở SCR-24, bấm "Xử lý" → wizard SCR-25 mở đúng 3 bước, RFQ tự chuyển Mới → Đang xử lý → chọn "Không khả thi" kèm lý do bắt buộc → xác nhận → quay về SCR-24, RFQ tự chuyển Chờ tạo báo giá (100% dòng đã xử lý), activity nhắc Sales được tạo tự động, chatter ghi log đầy đủ. Đúng hoàn toàn theo FDS §BF-01 A4.
+- **Test tự động:** `tests/screens/scr-25-rfq-wizard.spec.ts` (PASS)
+- **Trạng thái:** Closed (PASS) — màn hình này trước đây (Lô 1-7) chưa từng được test tự động thao tác thật.
+
+### SCR-30 — Click Duyệt/Từ chối thật trên form yêu cầu phê duyệt [PASS — coverage mới]
+
+- **Role test:** Trưởng KD (mức "Trưởng kinh doanh"), CEO (mức "Giám đốc"), Admin/IT (đối chứng RBAC)
+- **Kết quả:** PASS — Trưởng KD bấm "Phê duyệt" trên yêu cầu mức mình → chuyển "Đã duyệt" thành công (BG/2026/0016). CEO bấm "Phê duyệt" trên yêu cầu mức Giám đốc (BG/2026/0028) → chuyển "Đã duyệt" thành công. Trưởng KD KHÔNG thấy nút "Phê duyệt" trên yêu cầu mức Giám đốc (đúng RBAC phân cấp). Admin/IT KHÔNG thấy nút "Phê duyệt" ở bất kỳ yêu cầu nào — đúng FDS "Admin không được duyệt báo giá".
+- **Test tự động:** `tests/screens/scr-30-approval-flow.spec.ts` (PASS)
+- **Lưu ý:** test này ghi dữ liệu thật (đã duyệt 2 yêu cầu demo) — không rollback vì Playwright E2E chạy ngoài transaction. Chạy lại nhiều lần sẽ không idempotent (số "Chờ duyệt" giảm dần) — cần biết trước khi CI hoá.
+- **Trạng thái:** Closed (PASS)
+
+### SCR-31 — Sửa & lưu Hao hụt vật tư (quy tắc kỹ thuật) [PASS — coverage mới]
+
+- **Role test:** Kỹ thuật
+- **Kết quả:** PASS — sửa hệ số hao hụt 1 vật tư trong tab "Hao hụt & thu hồi", xác nhận có gọi RPC `product.product/set_dlm_waste` trả 200 OK (lưu ngay, không cần gửi duyệt) — đúng FDS "Quy tắc kỹ thuật ... áp dụng ngay, không cần phê duyệt".
+- **Test tự động:** `tests/screens/scr-31-pricing-config.spec.ts` (PASS)
+- **Trạng thái:** Closed (PASS)
+
+### SCR-32 — Làm rõ thêm gốc rễ: action "Cấu hình Hệ thống" hoàn toàn không tồn tại trong DB [Bổ sung cho bug đã biết Lô 6]
+
+- **Kết quả tra cứu trực tiếp DB `dlm_dev`:** Bảng `ir_ui_menu` dưới menu cha "Cấu hình" chỉ có đúng 4 submenu: Quản lý người dùng (`ir.actions.client,313`), Phân quyền (`,315`), Cấu hình Báo giá (`,316`), Đơn vị tính (`ir.actions.act_window,312`). KHÔNG có bản ghi menu nào tên "Cấu hình Hệ thống" hay "Công ty". Bảng `ir_actions_client` cũng không có action nào tên `action_dl_system_config` hay tương đương.
+- **Làm rõ so với giả thuyết cũ (Lô 6):** bug-log trước đó suy đoán nguyên nhân là "`dl_group_admin` thiếu `base.group_system`" khiến menu bị ẩn do ACL. Dữ liệu tra cứu trực tiếp lần này cho thấy vấn đề sâu hơn: **menu item cho SCR-32 chưa từng được định nghĩa trong code** (không phải bị ẩn bởi quyền) — tức đây là tính năng CHƯA LÀM, không phải lỗi ACL đơn thuần. Cần Dev xác nhận lại hướng fix: thêm mới menu+action, hay đây thực sự đã đổi hướng dùng Settings chuẩn của Odoo (`base.action_general_configuration`, id=13, đã thấy tồn tại trong DB nhưng không có menu riêng theo rail Cấu hình tùy biến của DLM-ERP).
+- **Test tự động:** `tests/screens/scr-31-pricing-config.spec.ts` (`test.fixme` ghi lại kỳ vọng theo FDS + 1 test PASS xác nhận thực trạng)
+- **Trạng thái:** Open — cần Product Owner/Dev quyết định hướng xử lý trước khi làm tiếp
+
+### SCR-09/SCR-17 — Sản phẩm & Bản vẽ kỹ thuật [PASS — coverage mới]
+
+- **Kết quả:** Toàn bộ PASS, đúng FDS: BA/Sales có nút "Mới" trên SCR-09; CEO và Trưởng KD KHÔNG có nút "Mới" (chỉ đọc/không tạo). SCR-17 (Bản vẽ): Kỹ thuật có nút "Mới"; CEO chỉ đọc, không có nút "Mới"; BA/Sales hoàn toàn không có menu rail "Kỹ thuật" nên không tiếp cận được Bản vẽ.
+- **Test tự động:** `tests/screens/scr-09-17-product-drawing.spec.ts` (PASS 6/6)
+- **Trạng thái:** Closed (PASS)
+
+### RBAC/Session — Chặn truy cập chéo bằng URL trực tiếp + vô hiệu hoá session sau logout [PASS]
+
+- **Kết quả:** BA/Sales cố mở thẳng URL action Quản lý User (Admin/IT only, action=313) → bị redirect an toàn về landing action của chính role mình (Báo giá), KHÔNG thấy dữ liệu người dùng khác — xác nhận bằng Playwright MCP thủ công (network/DOM). Kỹ thuật cố mở URL model Báo giá (không có ACL đọc) → không đọc được dòng dữ liệu nào. Sau `/web/session/logout`, gọi lại RPC `search_read` bằng session cũ → không trả dữ liệu thật.
+- **Test tự động:** `tests/screens/scr-sec-rbac-session.spec.ts` (PASS 4/4)
+- **Trạng thái:** Closed (PASS) — không phát hiện lỗ hổng RBAC/session nào ở phạm vi đã test.
+
+### Ghi chú kỹ thuật: session storageState hết hạn khi chạy full suite quá lâu
+
+- Khi chạy toàn bộ ~90 test liên tục (~5 phút+), 2 test dùng storageState đã cache từ đầu phiên (`scr-01-login.spec.ts`, `scr-14-16-bom.spec.ts`) gặp dialog "Phiên làm việc đã hết hạn" — KHÔNG PHẢI bug sản phẩm, do cookie session Odoo hết hạn giữa lúc thao tác dài. Khuyến nghị: chạy `auth.setup.ts` lại trước mỗi lần chạy full suite nếu khoảng cách giữa 2 lần > 1 giờ.
+
+---
+
+## Lô 9 — Hoàn thiện phần "Not Run" còn lại + §3a HTTP Flows / Performance / Security (2026-08-11, tiếp Lô 8)
+
+Mục tiêu: đóng hết các mục "Not Run" còn lại trong `E2E_BF_DLM_Playwright` (BOM đủ vòng đời,
+RFQ nhánh A5, gửi báo giá BF-05, ma trận thương mại SCR-31), và bổ sung 3 phần workbook L3 còn
+thiếu theo `00_Guide`: §3a HTTP Flows (JSON-RPC thuần, không browser — thay thế MockMvc vì dự án
+không phải Java/Spring), Performance (đo NFR-P thật), Security Spot-Checks (mức hệ thống).
+Spec mới: `scr-15-bom-lifecycle.spec.ts`, `scr-25-rfq-wizard-a5.spec.ts`, `scr-27-send-quotation.spec.ts`,
+`scr-31-approval-matrix.spec.ts`, `tests/http/http-flows.spec.ts`, `tests/http/perf-measure.spec.ts`,
+`tests/http/security-spotchecks.spec.ts`. `playwright.config.ts` được sửa: `testDir` gốc đổi từ
+`./tests/screens` sang `./tests`, thêm project `http` (testDir `./tests/http`, không cần browser/storageState)
+tách biệt với project `chromium` (testDir `./tests/screens`) — không ảnh hưởng cách chạy suite cũ.
+
+### BOM vòng đời đầy đủ (BF-02) [PASS]
+
+Tạo BOM mới từ đầu (Kỹ thuật, action=319): chọn sản phẩm, thêm dòng vật tư, Lưu (Nháp) → "Xác nhận BOM"
+(Đã xác nhận) → "Khóa" (Đã khóa) — cả 3 chuyển trạng thái đều đúng theo FDS SCR-15. Xác nhận thêm: nút
+Xác nhận BOM/Khóa/Tác vụ có thể xuất hiện trực tiếp trên header HOẶC gộp trong dropdown "Tác vụ" tuỳ độ
+rộng render — không phải bug, chỉ là responsive UI, đã viết helper `clickAction()` xử lý cả 2 trường hợp.
+
+### RFQ nhánh A5 — Trả lại Sales bổ sung (BF-01) [PASS]
+
+Kỹ thuật mở wizard SCR-25, bấm "Cần bổ sung" (khác "Không khả thi" đã test ở Lô 8), nhập nội dung cần
+bổ sung → RFQ chuyển "Trả lại bổ sung", Sales đăng nhập lại thấy đúng trạng thái và ghi chú. Đúng FDS
+BF-01 Alternative Flow A5.
+
+### Gửi báo giá cho khách (BF-05) [PASS]
+
+Sales bấm "Gửi khách hàng" trên báo giá "Đã duyệt nội bộ" → chuyển "Đã gửi khách", hệ thống TỰ ĐỘNG
+sinh file PDF đính kèm ("Bao_gia_BG_2026_00xx.pdf") và set "Hạn hiệu lực" (+30 ngày). Tính năng hoạt
+động đúng, đầy đủ — không có bug.
+
+### Ma trận phê duyệt thương mại SCR-31 (BF-06) [PASS — phát hiện validate đúng nghiệp vụ]
+
+CEO bấm "Áp dụng" trên 1 dòng Nháp có cùng cấp duyệt (Trưởng kinh doanh) với 1 dòng đã "Đang áp dụng"
+khác ngưỡng → hệ thống ĐÚNG ĐẮN chặn với thông báo rõ ràng "Ngưỡng ... là thừa: ... Mỗi cấp duyệt chỉ
+cần một ngưỡng bắt đầu". Xác nhận thêm: CEO thấy đủ nút "Sửa đổi"/"Ngừng" trên dòng Đang áp dụng, đúng
+RBAC "chỉ Giám đốc/Admin được Áp dụng trực tiếp hoặc Ngừng".
+
+### §3a HTTP Flows (JSON-RPC thuần, không browser) [PASS, có 1 xác nhận quan trọng]
+
+Dùng `/web/session/authenticate` + `/web/dataset/call_kw` trực tiếp qua Playwright APIRequestContext
+(không mở browser — tương đương MockMvc của Java/Spring mà dự án Odoo/Python này không có):
+- Đăng nhập sai mật khẩu bị từ chối, đúng mật khẩu thành công, đọc RFQ qua API OK, field `password`
+  không bao giờ lộ, session bị vô hiệu hoá đúng sau logout.
+- **Quan trọng:** gọi thẳng `res.partner.create()` qua RPC bằng session Kế toán (bỏ qua hoàn toàn UI)
+  vẫn bị `AccessError` — **xác nhận BUG-L3-001 là lỗi ở tầng SERVER (ir.model.access), không phải chỉ
+  ẩn nút trên UI**. Bằng chứng mạnh hơn nhiều so với test UI đơn thuần.
+
+### Performance — đo NFR-P thật (PRD §6.1) [PASS, trong ngưỡng]
+
+Đo bằng Playwright thật, KHÔNG mock, môi trường dev 1 user (không phải 50-100 user đồng thời như PRD
+mô tả — ghi rõ khác biệt điều kiện, không nhận vơ là đã đo đúng tải PRD):
+- Tải danh sách Báo giá: 0.03-0.04s (target NFR-P01 < 4s) — PASS, còn dư rất nhiều margin.
+- Tải danh sách BOM: ~0.22-0.25s — PASS.
+- Tải danh sách RFQ: ~0.21-0.22s — PASS.
+- Mở chi tiết báo giá kèm dữ liệu tính giá: ~0.14s (target NFR-P02 < 10s) — PASS.
+Kết quả lưu tại `tests/reports/perf-results.json`.
+
+### Security Spot-Checks mức hệ thống (PRD §6.2) [PASS, không phát hiện lỗ hổng]
+
+- Tải file PDF báo giá bằng session KHÔNG đăng nhập → không trả về nội dung PDF thật (đúng NFR-SEC
+  "liên kết tải tệp phải qua kiểm tra quyền, không dùng URL công khai tĩnh").
+- Gọi `read()` trực tiếp field `password`/`password_crypt` trên chính user đăng nhập → không lộ giá trị.
+- HTTPS toàn site: KHÔNG THỂ TEST ở môi trường dev (chỉ chạy HTTP) — ghi nhận đúng thực trạng, cần môi
+  trường staging/production để test đầy đủ mục này (Not Run, không phải Fail).
+
+---
+
+## Tổng hợp Lô 9
+
+- **Test case mới:** 7 file spec (4 UI + 3 HTTP/Performance/Security), 15 test case — 15 PASS, 0 Fail mới.
+- **Không phát hiện bug mới** trong Lô 9 — toàn bộ tính năng test (BOM lifecycle, RFQ A5, gửi báo giá,
+  ma trận phê duyệt, Performance, Security) hoạt động ĐÚNG theo FDS/PRD.
+- **Củng cố bằng chứng bug đã biết:** BUG-L3-001 (Kế toán mất quyền CRUD NCC/Bảng giá) nay được xác
+  nhận ở CẢ tầng UI (Lô 7) VÀ tầng HTTP/RPC thuần (Lô 9) — chắc chắn là lỗi ACL server-side, mức độ tin
+  cậy cao nhất, ưu tiên fix trước.
+- **Coverage "Not Run" còn lại sau Lô 9:** BF-04 phê duyệt nhiều cấp nối tiếp nhau (Trưởng KD → CEO
+  trong CÙNG 1 báo giá, mới test riêng lẻ từng cấp), BF-10/BF-11 (module chưa lập trình), SCR-16 (BOM
+  mẫu), SCR-18 (form Bản vẽ chi tiết đầy đủ), SCR-19/20 (bị chặn bởi bug menu SCR-04/32 đã biết),
+  account lockout sau nhiều lần đăng nhập sai (không tìm thấy code implement — nghi ngờ CHƯA LÀM, cần
+  Dev xác nhận trước khi tính là bug).
+
+---
+
+## Tổng hợp Lô 8
+
+- **Test case mới:** 6 file spec, 34 test case (28 PASS, 2 `test.fixme` ghi bug mới, 2 lỗi hạ tầng session — không tính bug sản phẩm).
+- **Bug MỚI phát hiện:** 3 — SCR-07/08/12/13 (Kế toán mất quyền CRUD, Critical, Lô 7), SCR-14/15 (không tạo được phiên bản mới cho BOM khóa, Critical), SCR-15 (Lưu trữ được BOM khóa trái phép, Major).
+- **Làm rõ bug cũ:** SCR-32 (Cấu hình Hệ thống) — nguyên nhân thật là thiếu menu/action, không chỉ thiếu quyền.
+- **Coverage BF mới đạt PASS thật (click qua UI, không chỉ xem):** BF-01 nhánh A4 (Không khả thi), BF-04 (Duyệt/Từ chối thật, 2 cấp), BF-06 (sửa Hao hụt kỹ thuật, lưu ngay).
+- **Coverage vẫn còn "Not Run"** (xem `TomTat_KetQua_L3` để cập nhật): BF-01 nhánh A5 (Trả lại Sales bổ sung), BF-02 (tạo mới 1 BOM từ đầu, workflow Nháp→Đã xác nhận→Khóa), BF-05 (gửi báo giá cho khách + ghi nhận phản hồi), BF-07 (không có màn — xác nhận code chưa làm), SCR-16 (BOM mẫu), SCR-18 (form Bản vẽ chi tiết), SCR-19/20 (bị chặn bởi bug menu đã biết).
+
+---
+
 # Tổng kết toàn bộ đợt test (Lô 1 → Lô 6)
 
 Đã hoàn thành test đầy đủ cả 6 vai trò theo FDS §2.2: BA/Sales, Kỹ thuật, Kế toán nội bộ, Trưởng phòng Kinh doanh, CEO, Admin/IT — bao gồm cả sweep bổ sung nhóm Validate (SCR-08, SCR-13, SCR-23) sau khi rà soát lại độ phủ.
@@ -669,6 +884,7 @@ Theo FDS §2.2: Đăng nhập (SCR-01) → Cấu hình›Quản lý User (SCR-03
 2. **SCR-27 — Nút "Thêm một dòng" báo giá không bấm được** (lỗi CSS `font-size:0`) — chặn thao tác lõi cho mọi role xem báo giá.
 3. **SCR-04 — Ma trận phân quyền RBAC không tick được checkbox nào** (Lô 6) — chặn hoàn toàn màn quản trị phân quyền cho chính Admin/IT.
 4. **SCR-32 — Menu "Cấu hình Hệ thống" biến mất** (Lô 6) — cùng gốc rễ với #3, có thể fix chung 1 lần.
+5. **SCR-07/08/12/13 — Kế toán nội bộ mất quyền tạo/sửa NCC và Bảng giá NCC** (Lô 7, 2026-08-11) — REGRESSION, `ir.model.access` hiện chặn `perm_write`/`perm_create` cho `dl_group_accountant` trên `res.partner` và `product.supplierinfo`, mâu thuẫn với chính comment trong code frontend.
 
 **Danh sách lỗi Major:**
 - SCR-28 (Trưởng KD tạo được đơn bán hàng trái phép — Lô 4)

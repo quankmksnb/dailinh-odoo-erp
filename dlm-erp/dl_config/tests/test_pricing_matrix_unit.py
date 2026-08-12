@@ -11,7 +11,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 from ..models.pricing_matrix import DlPricingApprovalMatrix
 
@@ -320,6 +320,201 @@ class TestComputePendingRequest(unittest.TestCase):
         DlPricingApprovalMatrix._compute_pending_request([rec])
         self.assertEqual(rec.pending_request_id, [])
         self.assertFalse(rec.has_pending_request)
+
+
+# =============================================================================
+# _check_approver_in_role() / _check_unique_threshold() — cả 2 chạm self.env
+# (ref/search) nên self truyền vào cần vừa lặp được (for rec in self) vừa có
+# .env — dùng _RecordsetStub (list con) thay vì SimpleNamespace/object.__new__.
+# Bổ sung 2026-08-11 (Round 3 — trước đó 0% coverage).
+# =============================================================================
+class _RecordsetStub(list):
+    """list con mang thêm .env — self thật vừa lặp được (for rec in self)
+    vừa cho self.env.<method> hoạt động, không cần patch.object cấp class."""
+
+    def __init__(self, records, env):
+        super().__init__(records)
+        self.env = env
+
+
+class TestCheckApproverInRole(unittest.TestCase):
+    def test_approver_not_in_role_raises(self):
+        """TC-UNIT-DlPricingApprovalMatrix-028"""
+        approver = SimpleNamespace(name="Nguyễn Văn A")
+        other_user = SimpleNamespace(name="Người khác")
+        group = SimpleNamespace(users=[other_user])
+        rec = SimpleNamespace(approver_user_id=approver, approval_level="ceo")
+        env = SimpleNamespace(ref=lambda *a, **kw: group)
+        with self.assertRaises(ValidationError):
+            DlPricingApprovalMatrix._check_approver_in_role(_RecordsetStub([rec], env))
+
+    def test_approver_in_role_passes(self):
+        approver = SimpleNamespace(name="Nguyễn Văn A")
+        group = SimpleNamespace(users=[approver])
+        rec = SimpleNamespace(approver_user_id=approver, approval_level="ceo")
+        env = SimpleNamespace(ref=lambda *a, **kw: group)
+        DlPricingApprovalMatrix._check_approver_in_role(_RecordsetStub([rec], env))
+
+    def test_no_approver_user_id_skips(self):
+        rec = SimpleNamespace(approver_user_id=False, approval_level="ceo")
+        env = SimpleNamespace(ref=lambda *a, **kw: (_ for _ in ()).throw(
+            AssertionError("env.ref should not be called")))
+        DlPricingApprovalMatrix._check_approver_in_role(_RecordsetStub([rec], env))
+
+
+class TestCheckUniqueThreshold(unittest.TestCase):
+    def test_duplicate_active_threshold_same_company_raises(self):
+        """TC-UNIT-DlPricingApprovalMatrix-029"""
+        rec = SimpleNamespace(id=1, state="active", company_id=SimpleNamespace(id=1),
+                               value_from=5_000_000.0, currency_id=False)
+        env = SimpleNamespace()
+        stub = _RecordsetStub([rec], env)
+        stub.search = lambda domain, limit=None: [SimpleNamespace(id=2)]  # "twin"
+        with self.assertRaises(ValidationError):
+            DlPricingApprovalMatrix._check_unique_threshold(stub)
+
+    def test_no_duplicate_passes(self):
+        rec = SimpleNamespace(id=1, state="active", company_id=SimpleNamespace(id=1),
+                               value_from=5_000_000.0, currency_id=False)
+        env = SimpleNamespace()
+        stub = _RecordsetStub([rec], env)
+        stub.search = lambda domain, limit=None: []
+        DlPricingApprovalMatrix._check_unique_threshold(stub)
+
+    def test_draft_state_skips_check(self):
+        rec = SimpleNamespace(id=1, state="draft", company_id=SimpleNamespace(id=1),
+                               value_from=5_000_000.0)
+        env = SimpleNamespace()
+        stub = _RecordsetStub([rec], env)
+        stub.search = lambda domain: (_ for _ in ()).throw(
+            AssertionError("search should not run for non-active state"))
+        DlPricingApprovalMatrix._check_unique_threshold(stub)
+
+
+# =============================================================================
+# _assert_fits_ladder() — self đóng vai trò 1 bản ghi đã ensure_one() (KHÔNG
+# phải recordset nhiều dòng), cần .search()/.ids/.revised_from_id/.company_id/
+# .value_from/.level_rank/.currency_id — dùng _LadderRow tự chế.
+# =============================================================================
+class _LadderRow:
+    def __init__(self, value_from, level_rank, approval_level="ceo", others=None):
+        self.value_from = value_from
+        self.level_rank = level_rank
+        self.approval_level = approval_level
+        self.currency_id = False
+        self.ids = [1]
+        self.revised_from_id = SimpleNamespace(ids=[])
+        self.company_id = SimpleNamespace(id=1)
+        self._others = others or []
+
+    def ensure_one(self):
+        return self
+
+    def search(self, domain):
+        return self._others
+
+
+class TestAssertFitsLadder(unittest.TestCase):
+    def test_rank_inversion_raises(self):
+        """TC-UNIT-DlPricingApprovalMatrix-030 — ngưỡng thấp (2tr) đòi cấp cao
+        (ceo, rank2) trong khi ngưỡng cao hơn (10tr) chỉ cần cấp thấp
+        (sales_manager, rank1) — nghịch lý, phải chặn."""
+        other = SimpleNamespace(value_from=10_000_000.0, level_rank=1,
+                                 approval_level="sales_manager", currency_id=False)
+        row = _LadderRow(value_from=2_000_000.0, level_rank=2, others=[other])
+        with self.assertRaises(ValidationError):
+            DlPricingApprovalMatrix._assert_fits_ladder(row)
+
+    def test_duplicate_rank_raises(self):
+        """TC-UNIT-DlPricingApprovalMatrix-031 — 2 ngưỡng khác nhau cùng đòi
+        cùng 1 cấp duyệt (rank trùng) — thừa, phải chặn."""
+        other = SimpleNamespace(value_from=5_000_000.0, level_rank=1,
+                                 approval_level="sales_manager", currency_id=False)
+        row = _LadderRow(value_from=2_000_000.0, level_rank=1,
+                          approval_level="sales_manager", others=[other])
+        with self.assertRaises(ValidationError):
+            DlPricingApprovalMatrix._assert_fits_ladder(row)
+
+    def test_ascending_ladder_passes(self):
+        other = SimpleNamespace(value_from=10_000_000.0, level_rank=2,
+                                 approval_level="ceo", currency_id=False)
+        row = _LadderRow(value_from=2_000_000.0, level_rank=1,
+                          approval_level="sales_manager", others=[other])
+        DlPricingApprovalMatrix._assert_fits_ladder(row)  # không raise
+
+
+# =============================================================================
+# action_apply() — 4 nhánh raise-sớm (trước khi chạm super().action_apply()),
+# tự chế self đủ ._is_matrix_manager()/lặp được/self.env.uid,su.
+# =============================================================================
+class _ApplyRow:
+    def __init__(self, approval_level="ceo", approver_user_id=None, revision=1,
+                 change_reason=False, env_uid=1, env_su=False, is_manager=True):
+        self.approval_level = approval_level
+        self.approver_user_id = approver_user_id or SimpleNamespace(id=0)
+        self.revision = revision
+        self.change_reason = change_reason
+        self.env = SimpleNamespace(uid=env_uid, su=env_su)
+        self._is_manager = is_manager
+
+    def _is_matrix_manager(self):
+        return self._is_manager
+
+    def __iter__(self):
+        return iter([self])
+
+
+class TestActionApply(unittest.TestCase):
+    def test_non_manager_raises(self):
+        """TC-UNIT-DlPricingApprovalMatrix-032"""
+        rec = _ApplyRow(is_manager=False)
+        with self.assertRaises(AccessError):
+            DlPricingApprovalMatrix.action_apply(rec)
+
+    def test_missing_approval_level_raises(self):
+        """TC-UNIT-DlPricingApprovalMatrix-033"""
+        rec = _ApplyRow(is_manager=True, approval_level=False)
+        with self.assertRaises(ValidationError):
+            DlPricingApprovalMatrix.action_apply(rec)
+
+    def test_self_activation_blocked(self):
+        """TC-UNIT-DlPricingApprovalMatrix-034"""
+        rec = _ApplyRow(is_manager=True, approval_level="ceo",
+                         approver_user_id=SimpleNamespace(id=5),
+                         env_uid=5, env_su=False)
+        with self.assertRaises(ValidationError):
+            DlPricingApprovalMatrix.action_apply(rec)
+
+    def test_revision_without_reason_raises(self):
+        """TC-UNIT-DlPricingApprovalMatrix-035"""
+        rec = _ApplyRow(is_manager=True, approval_level="ceo", revision=2,
+                         change_reason=False)
+        with self.assertRaises(ValidationError):
+            DlPricingApprovalMatrix.action_apply(rec)
+
+
+# =============================================================================
+# action_submit_approval() — chỉ nhánh raise-sớm (state != draft), trước khi
+# chạm self._assert_fits_ladder()/self.env.
+# =============================================================================
+class _SubmitRow:
+    def __init__(self, state="draft"):
+        self.state = state
+        self.env = {"dl.pricing.approval.request": None}
+
+    def ensure_one(self):
+        return self
+
+    def __iter__(self):
+        return iter([self])
+
+
+class TestActionSubmitApproval(unittest.TestCase):
+    def test_non_draft_raises(self):
+        """TC-UNIT-DlPricingApprovalMatrix-036"""
+        rec = _SubmitRow(state="active")
+        with self.assertRaises(UserError):
+            DlPricingApprovalMatrix.action_submit_approval(rec)
 
 
 if __name__ == "__main__":

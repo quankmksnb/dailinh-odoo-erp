@@ -10,7 +10,7 @@ self.search) là L2, không test ở đây.
 import unittest
 from types import SimpleNamespace
 
-from odoo.exceptions import ValidationError
+from odoo.exceptions import AccessError, ValidationError
 
 from ..models.res_partner import ResPartner
 
@@ -296,6 +296,60 @@ class TestCheckContactEmailFormat(unittest.TestCase):
                      email="bad-email")
         with self.assertRaises(ValidationError):
             ResPartner._check_contact_email_format([p])
+
+
+# =============================================================================
+# _check_unique_tax_code() / write() (khoá vô hiệu hoá KH) — bổ sung
+# 2026-08-11 (Round 3, trước đó 0% coverage, ngoài phạm vi tự đặt ban đầu —
+# xem docstring đầu file).
+# =============================================================================
+class _TaxCodeRS(list):
+    def __init__(self, records, search_result):
+        super().__init__(records)
+        self._search_result = search_result
+
+    def with_context(self, **kw):
+        return self
+
+    def search(self, domain, limit=None):
+        return self._search_result
+
+
+class TestCheckUniqueTaxCode(unittest.TestCase):
+    def test_duplicate_tax_code_raises(self):
+        """TC-UNIT-ResPartner-039"""
+        dup = SimpleNamespace(name="Công ty A", dlm_code="KH0001")
+        rec = _partner(id=1, partner_role="customer", partner_type="company",
+                        vat="0123456789", dlm_allow_dup_tax=False)
+        rs = _TaxCodeRS([rec], dup)
+        with self.assertRaises(ValidationError):
+            ResPartner._check_unique_tax_code(rs)
+
+    def test_allow_dup_tax_bypasses_check(self):
+        """TC-UNIT-ResPartner-040"""
+        dup = SimpleNamespace(name="Công ty A", dlm_code="KH0001")
+        rec = _partner(id=1, partner_role="customer", partner_type="company",
+                        vat="0123456789", dlm_allow_dup_tax=True)
+        rs = _TaxCodeRS([rec], dup)
+        ResPartner._check_unique_tax_code(rs)  # không raise
+
+    def test_no_vat_skips_check(self):
+        rec = _partner(partner_role="customer", partner_type="company",
+                        vat=False, dlm_allow_dup_tax=False)
+        rs = _TaxCodeRS([rec], SimpleNamespace())
+        ResPartner._check_unique_tax_code(rs)  # không raise
+
+
+class TestWriteDeactivateGuard(unittest.TestCase):
+    def test_unauthorized_role_cannot_deactivate_customer(self):
+        """TC-UNIT-ResPartner-041"""
+        rec = _partner(partner_role="customer")
+        rs = _PRS([rec])
+        rs.env = SimpleNamespace(
+            su=False,
+            user=SimpleNamespace(has_group=lambda g: False))
+        with self.assertRaises(AccessError):
+            ResPartner.write(rs, {"active": False})
 
 
 if __name__ == "__main__":
