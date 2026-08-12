@@ -34,6 +34,11 @@ _DLM_FORM_BY_KIND = {
     "vendor_return": "dl_inventory.view_dl_vendor_return_form",
     "scrap_sale": "dl_inventory.view_dl_scrap_sale_form",
 }
+# Loại hàng được phép NẰM ở Kho thành phẩm. Đại Linh chỉ bán sản phẩm thương mại
+# và sản phẩm gia công hoàn chỉnh (người dùng chốt 2026-08-12), mà Kho thành phẩm
+# chính là nơi phiếu Giao hàng lấy hàng (§5.3) — vật tư/BTP lọt vào đây thì sớm
+# muộn cũng bị giao cho khách.
+_DLM_FG_KINDS = ("trading", "manufactured")
 # RS-03 — Ai được QUYẾT ĐỊNH trả hàng NCC (chốt / huỷ). Thủ kho không nằm đây.
 _DLM_RETURN_DECIDERS = (
     "dl_base.dl_group_purchasing",
@@ -206,13 +211,18 @@ class StockPicking(models.Model):
                     reasons.append(labels.get(reason))
             picking.dlm_reject_summary = ", ".join(reasons)
 
-    @api.depends("location_id")
+    @api.depends("location_id", "location_dest_id")
     def _compute_dlm_source_available_product_ids(self):
-        """SM-03: SP đang có tồn > 0 tại/dưới vị trí nguồn.
+        """SM-03: SP đang có tồn > 0 tại/dưới vị trí nguồn, HỢP LỆ ở vị trí đích.
 
         Dùng search stock.quant (không lọc bằng static domain trên o2m) để tránh
         bẫy "hai điều kiện location + quantity match độc lập" — ở đây quantity > 0
         và location được ràng trên CÙNG bản ghi quant.
+
+        Lọc thêm theo đích vì hai lối tắt "Vật tư ra xưởng" và "Hàng thương mại
+        sang Kho thành phẩm" đi từ CÙNG một khu nguồn: chỉ lọc theo nguồn thì hai
+        tuyến cho ra danh sách y hệt nhau, và tuyến mang tên "hàng thương mại"
+        vẫn xổ ra vật tư.
         """
         Quant = self.env["stock.quant"]
         products = self.env["product.product"]
@@ -224,7 +234,31 @@ class StockPicking(models.Model):
                 ("location_id", "child_of", picking.location_id.id),
                 ("quantity", ">", 0),
             ])
-            picking.dlm_source_available_product_ids = quants.product_id
+            available = quants.product_id
+            kinds = picking._dlm_dest_allowed_kinds()
+            if kinds:
+                available = available.filtered(
+                    lambda p: p.product_kind in kinds)
+            picking.dlm_source_available_product_ids = available
+
+    def _dlm_dest_allowed_kinds(self):
+        """Loại hàng được phép nằm ở vị trí ĐÍCH của phiếu (rỗng = không hạn chế).
+
+        Neo vào VỊ TRÍ ĐÍCH chứ không vào nút lối tắt vừa bấm: hai ô vị trí vẫn
+        là nguồn sự thật (xem ghi chú ở `action_dlm_preset_to_workshop`), người
+        dùng sửa tay sau khi bấm nút thì cái nút không hề biết.
+
+        Chỉ ràng Kho thành phẩm. Kho nhà máy sản xuất CỐ Ý để mở: hàng gia công
+        hoàn chỉnh vẫn có thể quay lại xưởng để sửa, chặn ở đó là chặn nhầm.
+        """
+        self.ensure_one()
+        fg = self.env.ref(
+            "dl_inventory.stock_location_tp", raise_if_not_found=False)
+        destination = self.location_dest_id
+        if (fg and destination and fg.parent_path and destination.parent_path
+                and destination.parent_path.startswith(fg.parent_path)):
+            return _DLM_FG_KINDS
+        return ()
 
     @api.depends("dlm_sale_order_id", "dlm_sale_order_id.line_ids.product_id")
     def _compute_dlm_orderable_product_ids(self):
@@ -253,7 +287,8 @@ class StockPicking(models.Model):
                 picking.dlm_qc_state = "pending"
 
     @api.depends(
-        "state", "picking_type_id", "partner_id", "dlm_qty_rejected_total",
+        "state", "picking_type_id", "partner_id", "location_id",
+        "location_dest_id", "dlm_qty_rejected_total",
         "move_ids.quantity", "move_ids.product_uom_qty", "move_ids.dlm_qc_over",
         "move_ids.dlm_qty_rejected", "move_ids.dlm_reject_reason",
         "move_ids.dlm_reject_note", "move_ids.product_id", "move_ids.state",
@@ -316,6 +351,20 @@ class StockPicking(models.Model):
         if rong:
             problems.append(_(
                 "Số lượng phải lớn hơn 0: %s.") % ", ".join(rong))
+        # Lọc dropdown chỉ chặn được dòng THÊM MỚI. Ca lọt: thêm dòng vật tư
+        # (tuyến mặc định ra xưởng — hợp lệ) rồi mới bấm lối tắt sang Kho thành
+        # phẩm — `_dlm_set_transfer_route` ghi đè đích của CẢ dòng đã có, dòng
+        # vật tư âm thầm thành sai chỗ mà không ô nào đổi màu.
+        kinds = self._dlm_dest_allowed_kinds()
+        if kinds:
+            sai = [move.product_id.display_name for move in self.move_ids
+                   if move.product_id.product_kind not in kinds]
+            if sai:
+                problems.append(_(
+                    "%s không được đưa vào %s. Kho này chỉ chứa hàng để bán "
+                    "(sản phẩm thương mại và sản phẩm gia công hoàn chỉnh) — "
+                    "vật tư lọt vào đây sớm muộn cũng bị giao cho khách."
+                ) % (", ".join(sai), self.location_dest_id.display_name))
         return problems
 
     def _dlm_banner_problems(self, problems, loi_mo_dau):
@@ -332,7 +381,26 @@ class StockPicking(models.Model):
         if problems:
             return self._dlm_banner_problems(
                 problems, _("Chưa xác nhận phiếu được:"))
+        # Chuyển nhiều hơn tồn ở khu nguồn: domain SM-03 chỉ lọc mặt hàng CÓ tồn
+        # (>0), không nói gì về SỐ LƯỢNG — chọn đúng mặt hàng rồi gõ số vượt tồn
+        # vẫn lọt. Native để phiếu treo `confirmed` mà không nói vì sao.
+        thieu = self._dlm_shortage_lines()
+        if thieu:
+            return "warning", _(
+                "%s không đủ hàng để chuyển:<ul>%s</ul>Xác nhận thì phiếu treo "
+                "chờ hàng, không chuyển được ngay. Sửa lại số, hoặc chọn khu "
+                "khác đang có hàng."
+            ) % (self.location_id.display_name or _("Khu nguồn"),
+                 "".join("<li>%s</li>" % t for t in thieu)), False
         if self.state == "draft":
+            # Nói ra vì sao danh sách mặt hàng ngắn đi: đích Kho thành phẩm lọc
+            # bỏ vật tư, không giải thích thì dropdown trống thành bí ẩn.
+            if self._dlm_dest_allowed_kinds():
+                return "info", _(
+                    "<b>%s</b> chỉ nhận hàng để bán — danh sách mặt hàng đã bỏ "
+                    "vật tư và bán thành phẩm, chỉ còn sản phẩm thương mại và "
+                    "sản phẩm gia công hoàn chỉnh đang có tồn ở nơi lấy hàng."
+                ) % self.location_dest_id.display_name, False
             return "info", _(
                 "Chọn nơi lấy hàng và nơi nhận, hoặc bấm một trong hai lối tắt "
                 "phía trên. Xác nhận phiếu để hệ thống <b>giữ chỗ</b> hàng."
@@ -340,6 +408,32 @@ class StockPicking(models.Model):
         return "info", _(
             "Đã giữ chỗ. Xác nhận chuyển kho sẽ dời hàng sang vị trí đích."
         ), False
+
+    def _dlm_shortage_lines(self):
+        """Dòng đang đòi chuyển nhiều hơn tồn thực ở khu nguồn.
+
+        Cộng gộp theo mặt hàng: hai dòng cùng SP mỗi dòng 3 trong khi tồn 5 thì
+        từng dòng đều "đủ" mà cả phiếu vẫn thiếu.
+
+        Giới hạn đã biết: đọc tồn THỰC, không trừ phần đang bị phiếu khác giữ
+        chỗ — hàng có mặt ở khu nhưng đã hứa cho đơn khác thì đây vẫn báo đủ.
+        """
+        self.ensure_one()
+        can = {}
+        for move in self.move_ids:
+            if move.state in ("done", "cancel"):
+                continue
+            can.setdefault(move.product_id, 0.0)
+            can[move.product_id] += move.product_uom_qty
+        thieu = []
+        for product, qty in can.items():
+            con = self._dlm_qty_available(product)
+            rounding = product.uom_id.rounding or 0.01
+            if float_compare(qty, con, precision_rounding=rounding) > 0:
+                thieu.append(_("%s: cần chuyển %s nhưng ở đó chỉ còn %s %s") % (
+                    product.display_name, _dlm_fmt(qty), _dlm_fmt(con),
+                    product.uom_id.name))
+        return thieu
 
     def _dlm_banner_scrap_sale(self):
         """Dải cho phiếu [6] Bán phế liệu."""
