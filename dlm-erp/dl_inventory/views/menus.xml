@@ -14,6 +14,19 @@
          thì chuyển mục này sang đó.
     ============================================================ -->
 
+    <!-- RS-10 — "Hàng đợi" đứng ĐẦU: thủ kho mở máy là thấy VIỆC, không phải
+         thấy tồn kho. Màn này đã có sẵn từ K8 nhưng không menu nào trỏ tới nên
+         UI chết. Landing của thủ kho vẫn là Nhận hàng (commit b081ebf) — vệt
+         sáng trên rail phải khớp mục đang mở. -->
+    <menuitem
+        id="menu_dl_picking_todo"
+        name="Hàng đợi"
+        action="action_dl_picking_todo"
+        parent="dl_base.menu_dl_inventory"
+        sequence="5"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+    />
+
     <menuitem
         id="menu_dl_stock_quant"
         name="Tồn kho"

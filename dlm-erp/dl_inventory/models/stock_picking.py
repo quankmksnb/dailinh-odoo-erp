@@ -22,6 +22,33 @@ from odoo.tools.float_utils import float_compare, float_is_zero
 _DLM_QC_CODE = "KC"
 _DLM_RETURN_CODE = "TR"
 
+# RS-02 — Form/list Đại Linh theo từng loại việc. MỌI đường mở phiếu kho phải đi
+# qua bảng này; thiếu nó là rơi về form gốc Odoo với nguyên bộ nút native.
+# Tra thẳng (không `.get`): loại việc mới mà quên khai ở đây thì KeyError kêu to
+# ngay, còn hơn im lặng mở lại cửa native mà không ai biết.
+_DLM_FORM_BY_KIND = {
+    "receipt": "dl_inventory.view_dl_receipt_form",
+    "qc": "dl_inventory.view_dl_qc_form",
+    "transfer": "dl_inventory.view_dl_transfer_form",
+    "delivery": "dl_inventory.view_dl_delivery_form",
+    "vendor_return": "dl_inventory.view_dl_vendor_return_form",
+    "scrap_sale": "dl_inventory.view_dl_scrap_sale_form",
+}
+# RS-03 — Ai được QUYẾT ĐỊNH trả hàng NCC (chốt / huỷ). Thủ kho không nằm đây.
+_DLM_RETURN_DECIDERS = (
+    "dl_base.dl_group_purchasing",
+    "dl_base.dl_group_admin",
+    "dl_base.dl_group_ceo",
+)
+_DLM_TREE_BY_KIND = {
+    "receipt": "dl_inventory.view_dl_picking_tree",
+    "qc": "dl_inventory.view_dl_picking_tree_nocreate",
+    "transfer": "dl_inventory.view_dl_transfer_tree",
+    "delivery": "dl_inventory.view_dl_delivery_tree",
+    "vendor_return": "dl_inventory.view_dl_vendor_return_tree",
+    "scrap_sale": "dl_inventory.view_dl_picking_tree_nocreate",
+}
+
 
 def _dlm_fmt(qty):
     """Số lượng cho câu thông báo: bỏ số 0 thừa, dấu thập phân kiểu Việt."""
@@ -258,9 +285,100 @@ class StockPicking(models.Model):
             return self._dlm_banner_receipt()
         if self.picking_type_id.sequence_code == _DLM_RETURN_CODE:
             return self._dlm_banner_return()
+        if self.picking_type_id.sequence_code == "BPL":
+            return self._dlm_banner_scrap_sale()
         if self.picking_type_id.code == "outgoing":
             return self._dlm_banner_delivery()
+        if self.picking_type_id.code == "internal":
+            return self._dlm_banner_transfer()
         return False, False, False
+
+    # ── RS-11 — Ca ngoại lệ báo INLINE, không modal tiếng Anh ────────────────
+    def _dlm_confirm_problems(self):
+        """Lỗi CHẶN xác nhận, dùng chung cho dải đỏ và guard server.
+
+        Một nguồn sự thật: dải đỏ trên form và lỗi khi bấm phải nói cùng một
+        câu, không thì người dùng sửa theo dải rồi vẫn bị chặn bởi câu khác.
+        """
+        self.ensure_one()
+        problems = []
+        if (self.dlm_picking_kind == "transfer" and self.location_id
+                and self.location_id == self.location_dest_id):
+            problems.append(_(
+                "Lấy hàng từ và Chuyển tới đang là cùng một chỗ (%s) — phiếu "
+                "này không làm tồn kho thay đổi gì.")
+                % self.location_id.display_name)
+        rong = [
+            move.product_id.display_name for move in self.move_ids
+            if float_compare(move.product_uom_qty, 0.0,
+                             precision_rounding=move.product_uom.rounding
+                             or 0.01) <= 0]
+        if rong:
+            problems.append(_(
+                "Số lượng phải lớn hơn 0: %s.") % ", ".join(rong))
+        return problems
+
+    def _dlm_banner_problems(self, problems, loi_mo_dau):
+        """Dải đỏ chuẩn cho danh sách lỗi chặn."""
+        return "danger", "%s<ul>%s</ul>" % (
+            loi_mo_dau,
+            "".join("<li>%s</li>" % p for p in problems)), True
+
+    def _dlm_banner_transfer(self):
+        """Dải cho phiếu [4] Chuyển kho nội bộ."""
+        if self.state == "done":
+            return "success", _("Đã chuyển hàng sang vị trí đích."), False
+        problems = self._dlm_confirm_problems()
+        if problems:
+            return self._dlm_banner_problems(
+                problems, _("Chưa xác nhận phiếu được:"))
+        if self.state == "draft":
+            return "info", _(
+                "Chọn nơi lấy hàng và nơi nhận, hoặc bấm một trong hai lối tắt "
+                "phía trên. Xác nhận phiếu để hệ thống <b>giữ chỗ</b> hàng."
+            ), False
+        return "info", _(
+            "Đã giữ chỗ. Xác nhận chuyển kho sẽ dời hàng sang vị trí đích."
+        ), False
+
+    def _dlm_banner_scrap_sale(self):
+        """Dải cho phiếu [6] Bán phế liệu."""
+        if self.state == "done":
+            return "success", _("Đã giao phế liệu cho người mua."), False
+        problems = self._dlm_confirm_problems()
+        if problems:
+            return self._dlm_banner_problems(
+                problems, _("Chưa xác nhận phiếu được:"))
+        # Bán nhiều hơn tồn ở khu phế liệu: native chỉ để phiếu treo `confirmed`
+        # mà không nói vì sao. Nêu thẳng số cân được.
+        thieu = []
+        for move in self.move_ids:
+            con = self._dlm_qty_available(move.product_id)
+            rounding = move.product_uom.rounding or 0.01
+            if float_compare(move.product_uom_qty, con,
+                             precision_rounding=rounding) > 0:
+                thieu.append(_("%s: bán %s nhưng khu phế liệu chỉ còn %s %s") % (
+                    move.product_id.display_name,
+                    _dlm_fmt(move.product_uom_qty), _dlm_fmt(con),
+                    move.product_uom.name))
+        if thieu:
+            return "warning", _(
+                "Số bán đang vượt tồn thực:<ul>%s</ul>Xác nhận thì phiếu treo "
+                "chờ hàng, không giao được. Cân lại rồi sửa số."
+            ) % "".join("<li>%s</li>" % t for t in thieu), False
+        return "info", _(
+            "Nhập số cân thực tế và đơn giá thoả thuận với người mua."), False
+
+    def _dlm_qty_available(self, product):
+        """Tồn thực của một mặt hàng tại/dưới vị trí lấy hàng của phiếu."""
+        self.ensure_one()
+        if not self.location_id:
+            return 0.0
+        quants = self.env["stock.quant"].sudo().search([
+            ("location_id", "child_of", self.location_id.id),
+            ("product_id", "=", product.id),
+        ])
+        return sum(quants.mapped("quantity"))
 
     def _dlm_banner_qc(self):
         """Dải cho phiếu [2] Kiểm & cất hàng."""
@@ -300,6 +418,11 @@ class StockPicking(models.Model):
             return "success", _(
                 "Đã nhận hàng vào khu <b>Chờ kiểm hàng</b>. Bước tiếp theo là "
                 "<b>kiểm & cất hàng</b>."), False
+
+        problems = self._dlm_confirm_problems()
+        if problems:
+            return self._dlm_banner_problems(
+                problems, _("Chưa xác nhận phiếu được:"))
 
         # SM-07: mặt hàng NCC này chưa có bảng giá ĐANG ÁP DỤNG ⇒ giá vốn có thể
         # trống/sai. Chỉ CẢNH BÁO (không chặn — hàng đã về, vẫn phải nhập); nêu
@@ -367,6 +490,10 @@ class StockPicking(models.Model):
         """Dải cho phiếu [5] Giao hàng khách."""
         if self.state == "done":
             return "success", _("Đã giao hàng cho khách."), False
+        problems = self._dlm_confirm_problems()
+        if problems:
+            return self._dlm_banner_problems(
+                problems, _("Chưa xác nhận phiếu được:"))
         if self.state == "draft":
             return "info", _(
                 "Xác nhận phiếu để hệ thống <b>giữ chỗ</b> hàng trong kho. Chưa "
@@ -378,8 +505,10 @@ class StockPicking(models.Model):
         if short:
             items = "".join(
                 "<li>%s</li>" % move.product_id.display_name for move in short)
-            message = _(
-                "Kho thành phẩm chưa đủ hàng để giữ chỗ:<ul>%s</ul>") % items
+            # RS-11 — đọc theo `location_id` THẬT: ô "Lấy hàng từ" đổi được, mà
+            # dải viết cứng "Kho thành phẩm" thì báo sai ngay khi người dùng đổi.
+            message = _("%s chưa đủ hàng để giữ chỗ:<ul>%s</ul>") % (
+                self.location_id.display_name or _("Vị trí lấy hàng"), items)
             if self._dlm_stock_elsewhere(short):
                 message += _(
                     "Hàng đang nằm ở khu <b>Vật tư &amp; hàng thương mại</b> — "
@@ -451,6 +580,17 @@ class StockPicking(models.Model):
                 problems.append(_("%s: lý do \"Khác\" phải ghi rõ ở ô ghi chú.") % name)
         problems.extend(
             _("%s: chưa có số lô.") % n for n in self._dlm_lot_missing_names())
+        # RS-11 — xác nhận khi MỌI dòng đều Đạt 0 và Loại 0. Không bắt ở đây thì
+        # rơi xuống lỗi native tiếng Anh dạng modal ("You cannot validate a
+        # transfer if no quantities are reserved nor done"), thứ phá vỡ "chuẩn
+        # Đại Linh" rõ nhất. Kiểm SAU CÙNG: đây là ca "chưa làm gì", nêu trước
+        # các lỗi cụ thể sẽ che mất chúng.
+        if not problems and self.move_ids and not any(
+                move.quantity or move.dlm_qty_rejected
+                for move in self.move_ids):
+            problems.append(_(
+                "Chưa nhập kết quả kiểm cho dòng nào — điền số Đạt (và số Loại "
+                "nếu có hàng lỗi), hoặc bấm \"Đạt tất cả\"."))
         return problems
 
     def _dlm_lot_missing_names(self):
@@ -467,6 +607,41 @@ class StockPicking(models.Model):
                     and not line.lot_id and not line.lot_name):
                 names.add(line.product_id.display_name)
         return sorted(names)
+
+    # ── RS-03 — Quyết định trả hàng là của Mua hàng, không của Thủ kho ───────
+    def action_confirm(self):
+        self._dlm_check_return_decision(_("chốt phiếu trả hàng NCC"))
+        # RS-11 — lưới chặn cuối. Đường chính vẫn là dải đỏ INLINE + nút Xác
+        # nhận tự ẩn; cái này chỉ bắt đường RPC / smart button không qua form.
+        for picking in self:
+            problems = picking._dlm_confirm_problems()
+            if problems:
+                raise UserError(_("Chưa xác nhận phiếu %s được:\n%s") % (
+                    picking.name, "\n".join("• %s" % p for p in problems)))
+        return super().action_confirm()
+
+    def action_cancel(self):
+        self._dlm_check_return_decision(_("huỷ phiếu trả hàng NCC"))
+        return super().action_cancel()
+
+    def _dlm_check_return_decision(self, viec):
+        """Chặn ở SERVER, không tin `groups` trên nút.
+
+        Nút ẩn chỉ giấu khỏi mắt; smart button, RPC hay một action khác vẫn gọi
+        thẳng được method. Bài học chính RS-03: ẩn menu "Trả hàng NCC" khỏi thủ
+        kho rồi vẫn để họ chốt được phiếu qua đường khác.
+        """
+        returns = self.filtered(
+            lambda p: p.picking_type_id.sequence_code == _DLM_RETURN_CODE)
+        if not returns or self.env.su:
+            return True
+        if any(self.env.user.has_group(role) for role in _DLM_RETURN_DECIDERS):
+            return True
+        raise UserError(_(
+            "Bạn không có quyền %s. Trả hàng cho nhà cung cấp là quyết định của "
+            "bộ phận Mua hàng — họ còn phải thoả thuận đổi hàng hay giảm trừ "
+            "công nợ. Thủ kho chỉ bấm \"Xác nhận đã trả\" khi xe NCC tới lấy "
+            "hàng.") % viec)
 
     # ── K5 — Mỗi phiếu nhận sinh ĐÚNG MỘT phiếu kiểm ─────────────────────────
     def _dlm_group_receipt_moves(self):
@@ -703,7 +878,11 @@ class StockPicking(models.Model):
         receipt = self._dlm_source_receipt()
         partner = receipt.partner_id or self.partner_id
 
-        picking = self.env["stock.picking"].create({
+        # sudo: RS-03 chặn Thủ kho TẠO phiếu trả NCC (quyết định đối ngoại là
+        # của Mua hàng). Phiếu này không phải thủ kho tạo — nó là HỆ QUẢ máy móc
+        # của kết quả kiểm: có hàng loại thì phải có chỗ ghi nợ NCC. Không sudo
+        # thì lá chắn RS-03 chặn luôn chính bước kiểm hàng.
+        picking = self.env["stock.picking"].sudo().create({
             "picking_type_id": return_type.id,
             "partner_id": partner.id,
             "location_id": reject_location.id,
@@ -825,16 +1004,11 @@ class StockPicking(models.Model):
         """Phiếu nhận / phiếu kiểm → các phiếu trả NCC của chặng này."""
         self.ensure_one()
         returns = self._dlm_vendor_returns()
-        if len(returns) == 1:
-            return self._dlm_open_picking(
-                returns, _("Phiếu trả NCC %s") % returns.name)
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "stock.picking",
-            "name": _("Phiếu trả NCC của %s") % self.name,
-            "view_mode": "tree,form",
-            "domain": [("id", "in", returns.ids)],
-        }
+        if not returns:
+            raise UserError(_("Chặng nhận hàng này chưa có phiếu trả NCC nào."))
+        name = (_("Phiếu trả NCC %s") % returns.name if len(returns) == 1
+                else _("Phiếu trả NCC của %s") % self.name)
+        return returns._dlm_open_pickings(name)
 
     def action_dlm_open_sale_order(self):
         """Phiếu giao → đơn bán hàng nguồn."""
@@ -887,10 +1061,49 @@ class StockPicking(models.Model):
         return True
 
     def _dlm_open_picking(self, picking, name):
+        """RS-02 — Mở phiếu kho bằng ĐÚNG form của Đại Linh.
+
+        🔴 Thiếu `views` là Odoo rơi về `stock.view_picking_form` — form gốc,
+        kèm nguyên bộ nút native: "Trả hàng" (đi tắt qua luồng kiểm → trả NCC,
+        sinh phiếu loại lung tung), "Hoạt động chi tiết" (sửa lô/vị trí không
+        dấu vết), "In"/"In nhãn" (cần wkhtmltopdf mà dự án cố ý không dùng).
+        App Inventory gốc đã bị ẩn, nên 6 nút điều hướng của phân hệ là lối vào
+        native DUY NHẤT còn lại — bịt ở đây là bịt hết, không phải ẩn từng nút.
+        """
         return {
             "type": "ir.actions.act_window",
             "res_model": "stock.picking",
             "res_id": picking.id,
             "view_mode": "form",
+            "views": [(picking._dlm_form_view().id, "form")],
             "name": name,
         }
+
+    def _dlm_open_pickings(self, name, context=None):
+        """Mở tập phiếu trong `self` bằng cặp tree,form của Đại Linh.
+
+        Một phiếu thì đi thẳng vào form — danh sách một dòng là một cú bấm thừa.
+        """
+        if len(self) == 1:
+            action = self._dlm_open_picking(self, name)
+        else:
+            kind = self[:1].dlm_picking_kind
+            action = {
+                "type": "ir.actions.act_window",
+                "res_model": "stock.picking",
+                "name": name,
+                "view_mode": "tree,form",
+                "views": [
+                    (self.env.ref(_DLM_TREE_BY_KIND[kind]).id, "tree"),
+                    (self.env.ref(_DLM_FORM_BY_KIND[kind]).id, "form"),
+                ],
+            }
+        action["domain"] = [("id", "in", self.ids)]
+        if context:
+            action["context"] = context
+        return action
+
+    def _dlm_form_view(self):
+        """Form Đại Linh ứng với loại việc của phiếu này."""
+        self.ensure_one()
+        return self.env.ref(_DLM_FORM_BY_KIND[self.dlm_picking_kind])

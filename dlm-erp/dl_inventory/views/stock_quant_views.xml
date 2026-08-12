@@ -96,7 +96,10 @@
         <field name="name">Kiểm kê</field>
         <field name="res_model">stock.quant</field>
         <field name="view_mode">tree</field>
-        <field name="domain">[('location_id.usage', '=', 'internal')]</field>
+        <!-- RS-07 — bỏ 2 khu quá cảnh (Chờ kiểm, Chờ trả NCC): tồn ở đó đang
+             được chứng từ tham chiếu, đếm tay là xoá mất bằng chứng. -->
+        <field name="domain">[('location_id.usage', '=', 'internal'),
+                             ('location_id.dlm_no_inventory', '=', False)]</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_inventory_tree')}),

@@ -111,10 +111,10 @@
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft'"/>
+                            invisible="state != 'draft' or dlm_blocked"/>
                     <button name="button_validate" string="Xác nhận đã giao"
                             type="object" class="btn-primary"
-                            invisible="state not in ('waiting', 'confirmed', 'assigned')"/>
+                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
                     <button name="action_cancel" string="Huỷ phiếu"
                             type="object" class="btn-danger"
                             invisible="state in ('done', 'cancel')"/>
@@ -130,6 +130,27 @@
                          được đặt". Ẩn: cả hai cố định theo loại phiếu. -->
                     <field name="location_id" invisible="1"/>
                     <field name="location_dest_id" invisible="1"/>
+
+                    <!-- RS-11 — bán nhiều hơn số cân được: native chỉ để phiếu
+                         treo `confirmed` mà không nói vì sao. Dải nêu tồn thực. -->
+                    <field name="dlm_banner_level" invisible="1"/>
+                    <field name="dlm_blocked" invisible="1"/>
+                    <div class="alert alert-info" role="alert"
+                         invisible="dlm_banner_level != 'info'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="dlm_banner_level != 'success'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="dlm_banner_level != 'warning'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="dlm_banner_level != 'danger'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
 
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>

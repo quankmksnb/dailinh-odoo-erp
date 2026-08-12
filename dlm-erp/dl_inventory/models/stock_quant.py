@@ -35,10 +35,29 @@ class StockQuant(models.Model):
         áp kiểm kê của Thủ kho đều đi qua đây. Vai trò khác giữ nguyên luật
         native (admin/CEO có manager thì rẽ thẳng super).
         """
+        self._dlm_check_inventory_allowed()
         if (not self.user_has_groups("stock.group_stock_manager")
                 and self.user_has_groups("dl_base.dl_group_warehouse")):
             return super(StockQuant, self.with_user(SUPERUSER_ID))._apply_inventory()
         return super()._apply_inventory()
+
+    def _dlm_check_inventory_allowed(self):
+        """RS-07 — Khu quá cảnh không cho đếm tay, kể cả admin.
+
+        Domain của màn Kiểm kê đã ẩn hai khu này, nhưng ẩn khỏi danh sách không
+        phải là chặn: quant vẫn tới được qua màn khác hay RPC. Và đây đúng là
+        chỗ đáng chặn cứng — hàng ở khu Chờ trả NCC đang được một phiếu trả
+        (nháp) tham chiếu tới; đếm về 0 là phiếu đó trỏ vào hàng không tồn tại.
+        """
+        blocked = self.location_id.filtered("dlm_no_inventory")
+        if not blocked:
+            return True
+        raise UserError(_(
+            "Không kiểm kê tay được ở khu quá cảnh: %s.\n\n"
+            "Tồn ở đây đang gắn với chứng từ đang mở (phiếu kiểm, phiếu trả "
+            "NCC). Muốn đổi số thì xử lý bằng chính phiếu đó — đếm tay sẽ xoá "
+            "mất hàng mà chứng từ còn tham chiếu."
+        ) % ", ".join(blocked.mapped("display_name")))
 
     dlm_supplier_id = fields.Many2one(
         related="lot_id.dlm_supplier_id", string="Nhà cung cấp", readonly=True)

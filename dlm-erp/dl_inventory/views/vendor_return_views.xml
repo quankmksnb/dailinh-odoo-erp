@@ -57,8 +57,16 @@
         <field name="arch" type="xml">
             <form string="Trả hàng NCC" class="dl-vendor-return-form" create="0">
                 <header>
+                    <!-- RS-03 — "Chốt trả hàng" và "Không trả nữa" là QUYẾT ĐỊNH
+                         ĐỐI NGOẠI (đổi hàng / giảm công nợ / NCC tự lấy) ⇒ của
+                         Mua hàng. Thủ kho chỉ bấm "Xác nhận đã trả" — hành động
+                         VẬT LÝ lúc xe NCC tới lấy hàng. Kiểm soát chéo §8.1 giữ
+                         nguyên: thủ kho ghi lỗi ở bước kiểm nhưng không quyết
+                         định trả gì. `groups` ở đây chỉ là lớp ngoài — guard
+                         thật nằm ở server (xem `_dlm_check_return_decision`). -->
                     <button name="action_confirm" string="Chốt trả hàng"
                             type="object" class="btn-primary"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"
                             invisible="state != 'draft'"/>
                     <button name="button_validate" string="Xác nhận đã trả"
                             type="object" class="btn-primary"
@@ -68,6 +76,7 @@
                          tiếp bằng chuyển kho hoặc kiểm kê. -->
                     <button name="action_cancel" string="Không trả nữa"
                             type="object" class="btn-danger"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"
                             invisible="state in ('done', 'cancel')"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
@@ -102,10 +111,11 @@
                     <div class="dl-fields-row">
                         <div class="dl-field">
                             <label for="partner_id" string="Nhà cung cấp"/>
-                            <field name="partner_id" nolabel="1" required="1"
-                                   readonly="state in ('done', 'cancel')"
-                                   domain="[('partner_role', 'in', ['supplier', 'both'])]"
-                                   context="{'default_partner_role': 'supplier'}"/>
+                            <!-- RS-09 — NCC KHÔNG phải lựa chọn: nó là dữ kiện
+                                 suy từ phiếu nhận. Sửa tay là phá mắt xích
+                                 "hàng này của ai giao" mà cả K3–K5 dựng lên.
+                                 Trả cho NCC khác thì đó là phiếu khác. -->
+                            <field name="partner_id" nolabel="1" readonly="1"/>
                         </div>
                         <div class="dl-field">
                             <label for="dlm_origin_picking_id" string="Phiếu nhận gốc"/>

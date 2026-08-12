@@ -74,18 +74,22 @@
                          phá huỷ = danger (quy ước §11.1). -->
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft'"/>
+                            invisible="state != 'draft' or dlm_blocked"/>
                     <button name="button_validate" string="Xác nhận nhận hàng"
                             type="object" class="btn-primary"
-                            invisible="state not in ('waiting', 'confirmed', 'assigned')"/>
+                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
                     <button name="action_dlm_open_qc_picking" string="Mở phiếu kiểm"
                             type="object" class="btn-primary"
                             invisible="state != 'done'"/>
                     <button name="action_cancel" string="Huỷ phiếu"
                             type="object" class="btn-danger"
                             invisible="state in ('done', 'cancel')"/>
+                    <!-- RS-12 (§11.3) — nhãn của XƯỞNG, không phải của Odoo:
+                         "Hoàn tất" trên phiếu nhận khiến thủ kho tưởng xong cả
+                         việc kiểm, trong khi hàng mới chỉ vào khu Chờ kiểm. -->
                     <field name="state" widget="dl_stepper"
-                           statusbar_visible="draft,assigned,done"/>
+                           statusbar_visible="draft,assigned,done"
+                           options="{'labels': {'draft': 'Nháp', 'assigned': 'Chờ nhận', 'done': 'Đã nhận'}}"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -114,6 +118,7 @@
                         theo đúng những gì nhà cung cấp đó cung cấp.
                     </div>
                     <field name="dlm_banner_level" invisible="1"/>
+                    <field name="dlm_blocked" invisible="1"/>
                     <div class="alert alert-info" role="alert"
                          invisible="dlm_banner_level != 'info'">
                         <field name="dlm_banner_message" nolabel="1" readonly="1"/>
@@ -124,6 +129,10 @@
                     </div>
                     <div class="alert alert-warning" role="alert"
                          invisible="dlm_banner_level != 'warning'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="dlm_banner_level != 'danger'">
                         <field name="dlm_banner_message" nolabel="1" readonly="1"/>
                     </div>
 
@@ -298,8 +307,12 @@
                     <button name="action_dlm_pass_all" string="Đạt tất cả"
                             type="object" class="btn-secondary"
                             invisible="state in ('done', 'cancel')"/>
+                    <!-- RS-12 (§11.4) — "Đang chờ / Sẵn sàng / Hoàn tất" là
+                         ngôn ngữ Odoo. Thủ kho đọc theo việc: chờ kiểm → đang
+                         kiểm → đã cất vào kho. -->
                     <field name="state" widget="dl_stepper"
-                           statusbar_visible="confirmed,assigned,done"/>
+                           statusbar_visible="confirmed,assigned,done"
+                           options="{'labels': {'confirmed': 'Chờ kiểm', 'assigned': 'Đang kiểm', 'done': 'Đã cất'}}"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">

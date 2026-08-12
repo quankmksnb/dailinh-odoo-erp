@@ -38,10 +38,10 @@
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft'"/>
+                            invisible="state != 'draft' or dlm_blocked"/>
                     <button name="button_validate" string="Xác nhận chuyển kho"
                             type="object" class="btn-primary"
-                            invisible="state not in ('waiting', 'confirmed', 'assigned')"/>
+                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
                     <button name="action_cancel" string="Huỷ phiếu"
                             type="object" class="btn-danger"
                             invisible="state in ('done', 'cancel')"/>
@@ -58,6 +58,27 @@
                     <div class="alert alert-info" role="alert" invisible="location_id">
                         Chọn <b>Từ vị trí</b> (hoặc một tuyến hay dùng) trước —
                         danh sách mặt hàng sẽ lọc theo những gì đang có tồn ở đó.
+                    </div>
+
+                    <!-- RS-11 — dải nghiệp vụ của phiếu chuyển kho: nguồn trùng
+                         đích, dòng số lượng 0. Báo INLINE, không modal. -->
+                    <field name="dlm_banner_level" invisible="1"/>
+                    <field name="dlm_blocked" invisible="1"/>
+                    <div class="alert alert-info" role="alert"
+                         invisible="dlm_banner_level != 'info' or not location_id">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="dlm_banner_level != 'success'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="dlm_banner_level != 'warning'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="dlm_banner_level != 'danger'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
                     </div>
 
                     <div class="oe_title">
@@ -103,13 +124,12 @@
                         </div>
                         <div class="dl-field">
                             <label for="picking_type_id" string="Loại phiếu"/>
-                            <!-- Loại trừ KC như domain của action: chọn "Kiểm &amp;
-                                 cất hàng" ở đây sẽ đẻ ra phiếu biến mất khỏi
-                                 chính màn vừa tạo nó. -->
+                            <!-- RS-05 — cùng whitelist với domain của action:
+                                 chọn loại nào khác ở đây là đẻ ra phiếu biến
+                                 mất khỏi chính màn vừa tạo nó. -->
                             <field name="picking_type_id" nolabel="1"
                                    readonly="state != 'draft'"
-                                   domain="[('code', '=', 'internal'),
-                                            ('sequence_code', '!=', 'KC')]"/>
+                                   domain="[('sequence_code', '=', 'CK')]"/>
                         </div>
                     </div>
 
@@ -205,10 +225,13 @@
         <field name="name">Chuyển kho</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">tree,form</field>
-        <!-- Loại trừ "Kiểm &amp; cất hàng": nó cũng là internal nhưng có màn
-             riêng với nhãn cột hoàn toàn khác (NCC giao / Đạt / Loại). -->
-        <field name="domain">[('picking_type_id.code', '=', 'internal'),
-                             ('picking_type_id.sequence_code', '!=', 'KC')]</field>
+        <!-- RS-05 — WHITELIST đúng 'CK'. Nhóm `internal` còn "Kiểm &amp; cất
+             hàng" (KC, màn riêng, nhãn cột khác hẳn) và — quan trọng hơn — hai
+             loại của B2 đang active sẵn: Xuất vật tư sản xuất (XSX) và Nhập
+             thành phẩm (NTP). Lọc "trừ KC" nghĩa là ngày B2 chạy, phiếu sản
+             xuất đổ hết vào màn Chuyển kho của thủ kho. Chặn trước tốn 1 dòng,
+             gỡ sau phải gỡ giữa dữ liệu thật. -->
+        <field name="domain">[('picking_type_id.sequence_code', '=', 'CK')]</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_transfer_tree')}),

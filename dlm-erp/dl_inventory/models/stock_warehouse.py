@@ -25,7 +25,7 @@ thuộc thứ tự chặt chẽ (vị trí → loại hoạt động → tuyến
 lệnh gọi XML thì chỉ cần đảo dòng là hỏng mà không lỗi nào nổ.
 """
 
-from odoo import _, api, models
+from odoo import _, api, fields, models
 
 # Vị trí TỰ TẠO thêm (ngoài 2 vị trí Odoo đã có sẵn: Input và Stock).
 # (hậu tố xml_id, tên hiển thị, usage, khoá vị trí cha)
@@ -200,6 +200,16 @@ class StockWarehouse(models.Model):
         if to_stamp:
             self.env["ir.model.data"]._update_xmlids(to_stamp)
 
+        # RS-07 — Hai khu QUÁ CẢNH cấm kiểm kê tay. Cả hai đều là `internal`
+        # (đúng thiết kế §4.1, để giữ tiền tố DL/) nên màn Kiểm kê vốn hứng
+        # chúng: gõ "Tồn thực đếm = 0" ở khu Chờ trả NCC là 8 cây thép gỉ biến
+        # khỏi sổ trong khi phiếu trả nháp vẫn treo ở màn Mua hàng — mất sạch
+        # bằng chứng khiếu nại mà không lỗi nào nổ. Số ở hai khu này chỉ được
+        # đổi qua phiếu (nhận / kiểm / trả).
+        for key in ("nhan_qc", "nhan_tra"):
+            if locations.get(key):
+                locations[key].dlm_no_inventory = True
+
         # Vị trí đối tác & vị trí ẢO Sản xuất — Odoo tạo sẵn, KHÔNG tự dựng.
         # Sản xuất không có XML ID (Odoo lưu qua ir.property theo công ty) nên
         # phải tra theo usage.
@@ -304,6 +314,15 @@ class StockWarehouse(models.Model):
 
 class StockLocation(models.Model):
     _inherit = "stock.location"
+
+    # RS-07 — Khu quá cảnh: số chỉ đổi qua phiếu, không kiểm kê tay.
+    # Là FIELD chứ không phải danh sách XML ID viết cứng trong domain: domain
+    # của act_window được eval KHÔNG có `ref()`, và Admin còn phải mở/khoá được
+    # khu khác về sau mà không phải sửa code.
+    dlm_no_inventory = fields.Boolean(
+        string="Không kiểm kê tay", default=False,
+        help="Khu quá cảnh (Chờ kiểm, Chờ trả NCC): tồn chỉ đổi qua phiếu kho. "
+             "Kiểm kê tay ở đây sẽ xoá hàng mà chứng từ đang tham chiếu tới.")
 
     def _dlm_location(self, xml_id):
         """Tra vị trí kho theo XML ID, báo lỗi RÕ nếu chưa seed.

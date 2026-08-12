@@ -53,7 +53,9 @@ access_dl_stock_picking_type_ba,stock.picking.type BA,stock.model_stock_picking_
 access_dl_stock_picking_type_ceo,stock.picking.type CEO,stock.model_stock_picking_type,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_picking_type_sm,stock.picking.type SM,stock.model_stock_picking_type,dl_base.dl_group_sales_manager,1,0,0,0
 access_dl_stock_picking_type_acc,stock.picking.type Acc,stock.model_stock_picking_type,dl_base.dl_group_accountant,1,0,0,0
+access_dl_orderpoint_pur,stock.warehouse.orderpoint Purchasing,stock.model_stock_warehouse_orderpoint,dl_base.dl_group_purchasing,1,0,0,0
 access_dl_stock_warehouse_wh,stock.warehouse Warehouse,stock.model_stock_warehouse,dl_base.dl_group_warehouse,1,0,0,0
+access_dl_stock_warehouse_pur,stock.warehouse Purchasing,stock.model_stock_warehouse,dl_base.dl_group_purchasing,1,0,0,0
 access_dl_stock_warehouse_admin,stock.warehouse Admin,stock.model_stock_warehouse,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_warehouse_ceo,stock.warehouse CEO,stock.model_stock_warehouse,dl_base.dl_group_ceo,1,0,0,0
 access_dl_sale_order_wh,dl.sale.order Warehouse,dl_sale.model_dl_sale_order,dl_base.dl_group_warehouse,1,0,0,0

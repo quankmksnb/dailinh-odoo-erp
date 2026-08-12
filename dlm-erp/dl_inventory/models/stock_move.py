@@ -59,6 +59,31 @@ class StockMove(models.Model):
                 move.quantity + move.dlm_qty_rejected, move.product_uom_qty,
                 precision_rounding=rounding) > 0
 
+    # ── RS-06 — Gõ Loại thì tự hạ Đạt ────────────────────────────────────────
+    @api.onchange("dlm_qty_rejected")
+    def _onchange_dlm_qty_rejected(self):
+        """Bỏ phép cộng trừ khỏi đầu thủ kho.
+
+        Luồng thật: bấm "Đạt tất cả" (ca phổ biến nhất) ⇒ Đạt = 198. Rồi phát
+        hiện 2 cái lỗi, gõ Loại = 2 ⇒ QC-02 nổ dải đỏ, nút Xác nhận biến mất, và
+        thủ kho phải tự hiểu là còn phải quay lại hạ Đạt xuống 196.
+
+        Mô hình suy nghĩ của người dùng là "trong 198 cái nhận, 2 cái loại" —
+        chứ không phải "ghi Đạt 196 và Loại 2". Ở đây làm nốt phép trừ đó.
+        QC-02 GIỮ NGUYÊN làm lưới an toàn: nó vẫn bắt ca gõ Đạt lớn hơn số nhận,
+        và ca Loại một mình đã vượt số nhận (Đạt bị kẹp về 0).
+        """
+        for move in self:
+            if (move.picking_type_id.sequence_code != _DLM_QC_CODE
+                    or move.state in ("done", "cancel")):
+                continue
+            rounding = move.product_uom.rounding or 0.01
+            if float_compare(move.quantity + move.dlm_qty_rejected,
+                             move.product_uom_qty,
+                             precision_rounding=rounding) > 0:
+                move.quantity = max(
+                    move.product_uom_qty - move.dlm_qty_rejected, 0.0)
+
     # ── RS-01 — Một lần nhận hàng = một phiếu kiểm riêng ──────────────────────
     def _action_confirm(self, merge=True, merge_into=False):
         """Đóng dấu nhóm cung ứng cho dòng NHẬN trước khi push sinh dòng kiểm.

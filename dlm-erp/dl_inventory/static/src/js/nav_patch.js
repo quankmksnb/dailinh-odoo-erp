@@ -19,6 +19,15 @@ import { wireRailChildren } from "@dl_base/js/rail_children";
 // rail Mua hàng khi B3 dựng xong.
 const INVENTORY_CHILDREN = [
   {
+    // RS-10 — mục đầu tiên là VIỆC ĐANG CHỜ, không phải danh mục. Badge ở đây
+    // là thứ duy nhất trên rail trả lời "hôm nay còn bao nhiêu phiếu phải làm".
+    key: "picking_todo",
+    name: "Hàng đợi",
+    icon: "fa-tasks",
+    preferMenu: true,
+    menuXmlIds: ["dl_inventory.menu_dl_picking_todo"],
+  },
+  {
     key: "stock_quant",
     name: "Tồn kho",
     icon: "fa-cubes",
@@ -93,6 +102,16 @@ patch(DlmRail.prototype, {
     // vô hình. Rail chỉ gọi fetcher của mục user THẤY được (_refreshBadges lọc
     // theo visibleChildren), nên thủ kho không phát sinh truy vấn này.
     const orm = useService("orm");
+
+    // RS-10 — badge hàng đợi: TỔNG việc đang chờ thủ kho, khớp domain của
+    // action_dl_picking_todo. Đây là con số thủ kho nhìn đầu tiên mỗi sáng.
+    this.registerBadge("picking_todo", () =>
+      orm.searchCount("stock.picking", [
+        ["state", "=", "assigned"],
+        ["picking_type_id.sequence_code", "in", ["NH", "KC", "CK", "GH"]],
+      ]),
+    );
+
     this.registerBadge("vendor_return", () =>
       orm.searchCount("stock.picking", [
         ["picking_type_id.sequence_code", "=", "TR"],

@@ -37,10 +37,10 @@
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft'"/>
+                            invisible="state != 'draft' or dlm_blocked"/>
                     <button name="button_validate" string="Xác nhận đã giao"
                             type="object" class="btn-primary"
-                            invisible="state not in ('waiting', 'confirmed', 'assigned')"/>
+                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
                     <button name="action_assign" string="Kiểm tra tồn"
                             type="object" class="btn-secondary"
                             invisible="state not in ('waiting', 'confirmed')"/>
@@ -79,6 +79,7 @@
                         theo đúng những gì khách đã đặt trên đơn đó.
                     </div>
                     <field name="dlm_banner_level" invisible="1"/>
+                    <field name="dlm_blocked" invisible="1"/>
                     <div class="alert alert-info" role="alert"
                          invisible="dlm_banner_level != 'info'">
                         <field name="dlm_banner_message" nolabel="1" readonly="1"/>
@@ -89,6 +90,10 @@
                     </div>
                     <div class="alert alert-warning" role="alert"
                          invisible="dlm_banner_level != 'warning'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="dlm_banner_level != 'danger'">
                         <field name="dlm_banner_message" nolabel="1" readonly="1"/>
                     </div>
 
@@ -212,10 +217,14 @@
         <field name="name">Giao hàng</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">tree,form</field>
-        <!-- Loại trừ Trả hàng NCC: cũng là outgoing nhưng đi tới NCC, có màn và
-             chủ sở hữu riêng (Mua hàng). -->
-        <field name="domain">[('picking_type_id.code', '=', 'outgoing'),
-                             ('picking_type_id.sequence_code', '!=', 'TR')]</field>
+        <!-- RS-04 — WHITELIST đúng 'GH', không lọc bằng "trừ ra".
+             `outgoing` còn Trả hàng NCC (TR, chủ sở hữu là Mua hàng) và Bán phế
+             liệu (BPL). Danh sách "trừ ra" rò rỉ ngay lần thêm loại phiếu sau:
+             phiếu BPL đầu tiên sẽ hiện ở đây và mở bằng form Giao hàng — form
+             đó khoá bảng dòng tới khi chọn Đơn bán hàng, mà phế liệu không có
+             đơn nào ⇒ ngõ cụt. Màn nào của Đại Linh cũng neo vào đúng
+             `sequence_code` của nó. -->
+        <field name="domain">[('picking_type_id.sequence_code', '=', 'GH')]</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_delivery_tree')}),

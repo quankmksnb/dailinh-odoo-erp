@@ -183,13 +183,9 @@ class DlSaleOrder(models.Model):
         })
         picking.action_confirm()
         picking.action_assign()
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "stock.picking",
-            "res_id": picking.id,
-            "view_mode": "form",
-            "name": _("Phiếu giao %s") % picking.name,
-        }
+        # RS-02 — ép form Giao hàng của Đại Linh, không rơi về form gốc Odoo.
+        return picking._dlm_open_picking(
+            picking, _("Phiếu giao %s") % picking.name)
 
     def _dlm_check_delivery_allowed(self):
         self.ensure_one()
@@ -226,15 +222,10 @@ class DlSaleOrder(models.Model):
     def action_dlm_open_pickings(self):
         """Smart button → phiếu giao hàng của đơn."""
         self.ensure_one()
-        action = {
-            "type": "ir.actions.act_window",
-            "res_model": "stock.picking",
-            "name": _("Phiếu giao hàng của %s") % self.name,
-            "domain": [("dlm_sale_order_id", "=", self.id)],
-            "context": {"default_dlm_sale_order_id": self.id},
-        }
-        if len(self.dlm_picking_ids) == 1:
-            action.update(view_mode="form", res_id=self.dlm_picking_ids.id)
-        else:
-            action.update(view_mode="tree,form")
-        return action
+        pickings = self.dlm_picking_ids
+        if not pickings:
+            raise UserError(_("Đơn %s chưa có phiếu giao hàng nào.") % self.name)
+        # RS-02 — helper ép view Đại Linh cho cả nhánh 1 phiếu lẫn nhiều phiếu.
+        return pickings._dlm_open_pickings(
+            _("Phiếu giao hàng của %s") % self.name,
+            context={"default_dlm_sale_order_id": self.id})

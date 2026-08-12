@@ -15,6 +15,7 @@ nhập ĐẦU TIÊN".
 """
 
 from odoo import _, fields, models
+from odoo.exceptions import UserError
 
 
 class StockLot(models.Model):
@@ -33,10 +34,9 @@ class StockLot(models.Model):
         """Mở phiếu nhận đã sinh ra lô — chặng cuối của chuỗi truy vết
         (khách báo hỏng → đơn → BOM → lô vật tư → phiếu nhận → NCC)."""
         self.ensure_one()
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": "stock.picking",
-            "res_id": self.dlm_receipt_picking_id.id,
-            "view_mode": "form",
-            "name": _("Phiếu nhận %s") % self.dlm_receipt_picking_id.name,
-        }
+        receipt = self.dlm_receipt_picking_id
+        if not receipt:
+            raise UserError(_("Lô %s chưa gắn phiếu nhận nào.") % self.name)
+        # RS-02 — đi qua helper để ra form Đại Linh, không phải form gốc Odoo.
+        return receipt._dlm_open_picking(
+            receipt, _("Phiếu nhận %s") % receipt.name)
