@@ -9,7 +9,7 @@ của doanh nghiệp là ba ``stock.location`` con:
     DL (kho)
     ├── DL/NHAN          Khu nhập hàng                    ← khu 1
     │   ├── DL/NHAN/QC       Chờ kiểm hàng                  (= wh_input_stock_loc_id)
-    │   ├── DL/NHAN/KHO      Vật tư & hàng thương mại       (= lot_stock_id)
+    │   ├── DL/NHAN/KHO      Kho vật tư                     (= lot_stock_id)
     │   └── DL/NHAN/TRA      Chờ trả NCC
     ├── DL/XUONG         Kho nhà máy sản xuất             ← khu 2
     │   ├── DL/XUONG/BTP     Bán thành phẩm
@@ -189,8 +189,12 @@ class StockWarehouse(models.Model):
             to_stamp.append({
                 "xml_id": "dl_inventory.stock_location_nhan_qc",
                 "record": qc_location, "noupdate": True})
+        # "Kho vật tư" (đổi từ "Vật tư & hàng thương mại" ngày 2026-08-12): hàng
+        # thương mại đạt kiểm nay vào thẳng Kho thành phẩm ở bước [2] (§5.3), khu
+        # này chỉ còn chứa vật tư. Tên áp lại mỗi -u — migration 17.0.3.0.0 lo
+        # phần LOG tồn hàng TM cũ còn kẹt ở đây để thủ kho tự chuyển.
         self.lot_stock_id.write({
-            "name": "Vật tư & hàng thương mại",
+            "name": "Kho vật tư",
             "location_id": locations["nhan"].id})
         locations["nhan_kho"] = self.lot_stock_id
         to_stamp.append({

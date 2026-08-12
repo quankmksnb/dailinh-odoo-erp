@@ -176,7 +176,8 @@ class TestDeliveryLink(DlInventoryCase):
         """§11.5 — Preset phải đổi vị trí trên CẢ phiếu lẫn dòng hàng.
 
         Chỉ đổi trên phiếu thì hàng vẫn chạy theo vị trí cũ ghi ở dòng — phiếu
-        nói một đằng, tồn kho đi một nẻo.
+        nói một đằng, tồn kho đi một nẻo. (Preset "Gom phế liệu" thay cho preset
+        "Hàng TM sang Kho thành phẩm" đã bỏ — bước [2] Kiểm & cất làm thay, §5.3.)
         """
         picking = self.env["stock.picking"].create({
             "picking_type_id": self.warehouse.int_type_id.id,
@@ -191,8 +192,9 @@ class TestDeliveryLink(DlInventoryCase):
                 "location_dest_id": self.loc_xuong.id,
             })],
         })
-        picking.action_dlm_preset_to_fg()
+        picking.action_dlm_preset_gather_scrap()
 
-        self.assertEqual(picking.location_dest_id, self.loc_tp)
-        self.assertEqual(picking.move_ids.location_dest_id, self.loc_tp)
-        self.assertEqual(picking.move_ids.location_id, self.loc_kho)
+        self.assertEqual(picking.location_id, self.loc_xuong)
+        self.assertEqual(picking.location_dest_id, self.loc_xuong_pl)
+        self.assertEqual(picking.move_ids.location_id, self.loc_xuong)
+        self.assertEqual(picking.move_ids.location_dest_id, self.loc_xuong_pl)

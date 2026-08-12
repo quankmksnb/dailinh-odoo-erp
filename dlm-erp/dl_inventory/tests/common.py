@@ -18,6 +18,7 @@ class DlInventoryCase(TransactionCase):
         cls.loc_kho = cls.env.ref("dl_inventory.stock_location_nhan_kho")
         cls.loc_tra = cls.env.ref("dl_inventory.stock_location_nhan_tra")
         cls.loc_xuong = cls.env.ref("dl_inventory.stock_location_xuong")
+        cls.loc_xuong_pl = cls.env.ref("dl_inventory.stock_location_xuong_pl")
         cls.loc_tp = cls.env.ref("dl_inventory.stock_location_tp")
         cls.loc_vendors = cls.env.ref("stock.stock_location_suppliers")
 

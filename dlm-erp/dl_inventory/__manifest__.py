@@ -1,6 +1,6 @@
 {
     "name": "DL-Inventory",
-    "version": "17.0.2.8.0",
+    "version": "17.0.3.0.0",
     "summary": "Kho Đại Linh — 1 kho, 3 khu, nhận hàng 2 bước có kiểm hàng",
     "description": """
 Phân hệ Kho (Giai đoạn B1). Đặc tả: docs/Thiet_ke_phan_he_kho.md

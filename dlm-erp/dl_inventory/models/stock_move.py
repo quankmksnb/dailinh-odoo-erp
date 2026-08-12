@@ -37,6 +37,34 @@ class StockMove(models.Model):
     ], string="Lý do loại")
     dlm_reject_note = fields.Char(string="Ghi chú loại")
 
+    # ── Tồn ở nơi lấy, hiện ngay cạnh mặt hàng ───────────────────────────────
+    # Danh sách mặt hàng của phiếu chuyển kho KHÔNG còn ẩn hàng đã hết (xem
+    # stock_picking._compute_dlm_blocked_product_ids). Ẩn đi thì thủ kho
+    # tìm không thấy và tưởng hệ thống hỏng; đổi lại, đã cho chọn thì phải nói
+    # ra số tồn NGAY trên dòng — không thì họ chọn xong mới biết là chọn hụt.
+    # Neo vào `location_id` của chính dòng (không phải của phiếu): native
+    # `_onchange_locations` đã đẩy vị trí phiếu xuống mọi dòng, nên số này theo
+    # kịp khi đổi "Từ vị trí" mà không cần đi vòng qua parent.
+    dlm_src_available_qty = fields.Float(
+        string="Tồn ở nơi lấy", digits="Product Unit of Measure",
+        compute="_compute_dlm_src_available_qty",
+        help="Tồn thực của mặt hàng tại/dưới vị trí lấy hàng của dòng này. "
+             "0 = nơi đó đang hết — vẫn tạo phiếu được, nhưng phiếu sẽ treo "
+             "chờ hàng chứ không giữ chỗ được ngay.")
+
+    @api.depends("product_id", "location_id")
+    def _compute_dlm_src_available_qty(self):
+        """sudo(): chỉ đọc SỐ LƯỢNG tồn, không đụng giá (§8.3 doc kho)."""
+        Quant = self.env["stock.quant"].sudo()
+        for move in self:
+            if not move.product_id or not move.location_id:
+                move.dlm_src_available_qty = 0.0
+                continue
+            move.dlm_src_available_qty = sum(Quant.search([
+                ("location_id", "child_of", move.location_id.id),
+                ("product_id", "=", move.product_id.id),
+            ]).mapped("quantity"))
+
     # QC-02 — Đạt + Loại không được vượt số hàng đang nằm ở khu Chờ kiểm.
     # Là field (không phải @api.constrains) để view tô đỏ dòng NGAY khi gõ:
     # ràng buộc sửa-được-trên-form phải báo INLINE, không bắn modal.

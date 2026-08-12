@@ -32,7 +32,7 @@ class TestWarehouseLayout(DlInventoryCase):
         """§4.1 — Ba khu nằm dưới kho DL, vị trí con nằm đúng khu của nó."""
         expected = {
             self.loc_qc: "DL/Khu nhập hàng/Chờ kiểm hàng",
-            self.loc_kho: "DL/Khu nhập hàng/Vật tư & hàng thương mại",
+            self.loc_kho: "DL/Khu nhập hàng/Kho vật tư",
             self.loc_tra: "DL/Khu nhập hàng/Chờ trả NCC",
             self.loc_xuong: "DL/Kho nhà máy sản xuất",
             self.loc_tp: "DL/Kho thành phẩm",

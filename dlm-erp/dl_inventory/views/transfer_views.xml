@@ -50,14 +50,16 @@
                 </header>
                 <sheet>
                     <field name="company_id" invisible="1"/>
-                    <!-- SM-03: nuôi domain product_id — SP có tồn ở vị trí nguồn. -->
-                    <field name="dlm_source_available_product_ids" invisible="1"/>
+                    <!-- SM-03: nuôi domain product_id — loại hàng mà nơi lấy
+                         hoặc nơi nhận không được phép chứa (§4.2). -->
+                    <field name="dlm_blocked_product_ids" invisible="1"/>
 
-                    <!-- SM-03: chưa chọn nguồn thì không biết lọc theo tồn ở đâu.
+                    <!-- SM-03: chưa chọn nguồn thì cột "Tồn ở nơi lấy" không
+                         biết đọc tồn ở đâu, và dòng cũng chưa có vị trí nguồn.
                          Khoá bảng dòng (bên dưới) + dải giải thích — inline. -->
                     <div class="alert alert-info" role="alert" invisible="location_id">
                         Chọn <b>Từ vị trí</b> (hoặc một tuyến hay dùng) trước —
-                        danh sách mặt hàng sẽ lọc theo những gì đang có tồn ở đó.
+                        mỗi mặt hàng sẽ hiện luôn số tồn đang có ở đó.
                     </div>
 
                     <!-- RS-11 — dải nghiệp vụ của phiếu chuyển kho: nguồn trùng
@@ -92,30 +94,37 @@
                         <span class="dl-preset-label">Tuyến hay dùng:</span>
                         <button name="action_dlm_preset_to_workshop" type="object"
                                 class="btn btn-secondary btn-sm"
-                                title="Vật tư &amp; hàng thương mại → Kho nhà máy sản xuất">
+                                title="Kho vật tư → Kho nhà máy sản xuất">
                             Vật tư ra xưởng
                         </button>
-                        <button name="action_dlm_preset_to_fg" type="object"
+                        <button name="action_dlm_preset_gather_scrap" type="object"
                                 class="btn btn-secondary btn-sm"
-                                title="Vật tư &amp; hàng thương mại → Kho thành phẩm (bước bắt buộc trước khi giao hàng thương mại)">
-                            Hàng thương mại sang Kho thành phẩm
+                                title="Kho nhà máy sản xuất → Phế liệu chờ bán">
+                            Gom phế liệu
                         </button>
                     </div>
 
                     <div class="dl-fields-row">
                         <div class="dl-field">
                             <label for="location_id" string="Từ vị trí"/>
+                            <!-- Bịt khu quá cảnh: Chờ kiểm / Chờ trả NCC / Khu
+                                 nhập (cha) không được chọn tay — rút hàng khỏi
+                                 chúng là QC hình thức hoặc xoá bằng chứng đòi
+                                 NCC (§4.1.1). Cờ dlm_no_inventory dùng chung với
+                                 màn Kiểm kê. 8 vị trí nội bộ → còn 5. -->
                             <field name="location_id" nolabel="1" required="1"
                                    readonly="state in ('done', 'cancel')"
                                    options="{'no_create': True}"
-                                   domain="[('usage', '=', 'internal')]"/>
+                                   domain="[('usage', '=', 'internal'),
+                                            ('dlm_no_inventory', '=', False)]"/>
                         </div>
                         <div class="dl-field">
                             <label for="location_dest_id" string="Đến vị trí"/>
                             <field name="location_dest_id" nolabel="1" required="1"
                                    readonly="state in ('done', 'cancel')"
                                    options="{'no_create': True}"
-                                   domain="[('usage', '=', 'internal')]"/>
+                                   domain="[('usage', '=', 'internal'),
+                                            ('dlm_no_inventory', '=', False)]"/>
                         </div>
                         <div class="dl-field">
                             <label for="scheduled_date" string="Ngày chuyển"/>
@@ -136,18 +145,34 @@
                     <notebook>
                         <page string="Hàng chuyển" name="moves">
                             <!-- SM-03: khoá thêm dòng tới khi có vị trí nguồn —
-                                 domain product_id neo vào parent tồn ở nguồn. -->
+                                 dòng cần vị trí nguồn để đọc tồn. -->
                             <field name="move_ids"
                                    readonly="not location_id or state in ('done', 'cancel')"
                                    context="{'default_location_id': location_id,
                                              'default_location_dest_id': location_dest_id}">
                                 <tree editable="bottom">
-                                    <!-- SM-03: chỉ hiện mặt hàng đang có tồn ở vị
-                                         trí nguồn (tránh phiếu chuyển treo vì không
-                                         giữ chỗ được). -->
+                                    <!-- SM-03 (sửa 2026-08-12): hai loại điều kiện,
+                                         hai cách xử lý.
+                                         • Luật cố định "khu nào chứa hàng gì"
+                                           (§4.2) ⇒ LỌC bỏ, cả nơi lấy lẫn nơi
+                                           nhận. Không có nó thì tuyến "vật tư ra
+                                           xưởng" xổ ra cả sản phẩm gia công —
+                                           thứ chưa từng nằm ở khu nhập hàng.
+                                         • Hết hàng (nhất thời) ⇒ KHÔNG ẩn: ẩn đi
+                                           thì thủ kho tìm không thấy và tưởng hệ
+                                           thống hỏng. Vẫn hiện, kèm chữ "hết hàng
+                                           ở nơi lấy" do context dưới đây bật —
+                                           xem models/product_product.py. -->
                                     <field name="product_id" string="Mặt hàng"
                                            required="1"
-                                           domain="[('id', 'in', parent.dlm_source_available_product_ids)]"/>
+                                           domain="[('id', 'not in', parent.dlm_blocked_product_ids)]"
+                                           context="{'dlm_src_location_id': parent.location_id}"/>
+                                    <!-- Câu trả lời cho "hệ thống lỗi hay kho hết
+                                         hàng?" — đứng ngay cạnh mặt hàng, đỏ khi 0. -->
+                                    <field name="dlm_src_available_qty"
+                                           string="Tồn ở nơi lấy" readonly="1"
+                                           decoration-danger="dlm_src_available_qty &lt;= 0"
+                                           decoration-bf="dlm_src_available_qty &lt;= 0"/>
                                     <field name="product_uom_qty" string="Cần chuyển"/>
                                     <!-- Lúc NHÁP chưa giữ chỗ nên "Thực chuyển"
                                          luôn là 0 — hiện ra chỉ khiến thủ kho
