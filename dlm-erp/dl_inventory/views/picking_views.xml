@@ -26,7 +26,7 @@
                 <field name="partner_id" string="Đối tác"/>
                 <field name="scheduled_date" string="Ngày" widget="date"/>
                 <field name="origin" string="Nguồn" optional="hide"/>
-                <field name="dlm_qty_rejected_total" string="Số loại"
+                <field name="dlm_qty_rejected_total" widget="dl_qty" string="Số loại"
                        optional="show"/>
                 <!-- Chip kết quả kiểm: đọc được cả cột trạng thái phiếu lẫn chất
                      lượng hàng mà không phải mở từng phiếu. -->
@@ -193,8 +193,8 @@
                                            options="{'no_create': True}"
                                            domain="[('seller_ids.partner_id', '=', parent.partner_id),
                                                     ('product_kind', 'in', ('material', 'trading'))]"/>
-                                    <field name="product_uom_qty" string="Dự kiến"/>
-                                    <field name="quantity" string="Thực nhận"/>
+                                    <field name="product_uom_qty" widget="dl_qty" string="Dự kiến"/>
+                                    <field name="quantity" widget="dl_qty" string="Thực nhận"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom"/>
                                     <!-- Lô do hệ thống tự sinh lúc xác nhận nên
@@ -389,10 +389,10 @@
                                     <field name="lot_ids" string="Lô"
                                            widget="many2many_tags" readonly="1"
                                            optional="show"/>
-                                    <field name="product_uom_qty" string="NCC giao"
+                                    <field name="product_uom_qty" widget="dl_qty" string="NCC giao"
                                            readonly="1" sum="Tổng"/>
-                                    <field name="quantity" string="Đạt" sum="Tổng"/>
-                                    <field name="dlm_qty_rejected" string="Loại"
+                                    <field name="quantity" widget="dl_qty" string="Đạt" sum="Tổng"/>
+                                    <field name="dlm_qty_rejected" widget="dl_qty" string="Loại"
                                            sum="Tổng"/>
                                     <!-- QC-03/04 — required ĐỘNG, báo ngay trên
                                          dòng; không @api.constrains bắn modal. -->

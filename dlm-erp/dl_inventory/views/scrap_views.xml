@@ -36,11 +36,11 @@
                        readonly="id != False"/>
                 <field name="location_id" string="Vị trí" optional="hide"
                        readonly="id != False"/>
-                <field name="quantity" string="Tồn hệ thống" readonly="1"
+                <field name="quantity" widget="dl_qty" string="Tồn hệ thống" readonly="1"
                        sum="Tổng"/>
                 <field name="inventory_quantity" string="Cân thực tế"
                        widget="counted_quantity_widget"/>
-                <field name="inventory_diff_quantity" string="Chênh lệch"
+                <field name="inventory_diff_quantity" widget="dl_qty" string="Chênh lệch"
                        decoration-danger="inventory_diff_quantity &lt; 0"
                        decoration-success="inventory_diff_quantity &gt; 0"/>
                 <field name="product_uom_id" string="ĐVT" readonly="1"/>
@@ -53,7 +53,7 @@
                      chiếu tới nó ⇒ thiếu là view EDITABLE không nạp được. Màn
                      Tồn kho (K4) không cần vì nó edit="0". -->
                 <field name="company_id" column_invisible="1"/>
-                <field name="reserved_quantity" string="Đang giữ" optional="hide"/>
+                <field name="reserved_quantity" widget="dl_qty" string="Đang giữ" optional="hide"/>
             </tree>
         </field>
     </record>
@@ -198,9 +198,9 @@
                                            options="{'no_create': True}"
                                            domain="[('stock_quant_ids.location_id', 'child_of',
                                                      %(dl_inventory.stock_location_xuong_pl)d)]"/>
-                                    <field name="product_uom_qty" string="Số lượng"
+                                    <field name="product_uom_qty" widget="dl_qty" string="Số lượng"
                                            sum="Tổng"/>
-                                    <field name="quantity" string="Thực giao"/>
+                                    <field name="quantity" widget="dl_qty" string="Thực giao"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom"/>
                                     <field name="picked" column_invisible="1"/>

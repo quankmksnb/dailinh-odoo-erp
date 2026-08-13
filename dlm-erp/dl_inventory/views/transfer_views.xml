@@ -246,18 +246,18 @@
                                          là bắt buộc — nhãn "Tồn" cạnh một con số
                                          đã trừ chỗ giữ khiến thủ kho tưởng kho
                                          hụt hàng và đi kiểm kê nhầm. -->
-                                    <field name="dlm_src_available_qty"
+                                    <field name="dlm_src_available_qty" widget="dl_qty"
                                            string="Còn lấy được" readonly="1"
                                            decoration-danger="dlm_src_available_qty &lt;= 0"
                                            decoration-bf="dlm_src_available_qty &lt;= 0"/>
-                                    <field name="product_uom_qty" string="Cần chuyển"/>
+                                    <field name="product_uom_qty" widget="dl_qty" string="Cần chuyển"/>
                                     <!-- Lúc NHÁP chưa giữ chỗ nên "Thực chuyển"
                                          luôn là 0 — hiện ra chỉ khiến thủ kho
                                          tưởng phải tự điền. Nó chỉ có nghĩa từ
                                          khi giữ chỗ xong (Odoo tự điền số giữ
                                          được), và chỉ khi đó mới cần sửa tay để
                                          chuyển ít hơn số cần. -->
-                                    <field name="quantity" string="Thực chuyển"
+                                    <field name="quantity" widget="dl_qty" string="Thực chuyển"
                                            column_invisible="parent.state == 'draft'"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom"/>

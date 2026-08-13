@@ -172,8 +172,8 @@
                                     <field name="product_id" string="Mặt hàng"
                                            required="1"
                                            domain="[('id', 'in', parent.dlm_orderable_product_ids)]"/>
-                                    <field name="product_uom_qty" string="Cần giao"/>
-                                    <field name="quantity" string="Thực giao"/>
+                                    <field name="product_uom_qty" widget="dl_qty" string="Cần giao"/>
+                                    <field name="quantity" widget="dl_qty" string="Thực giao"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom"/>
                                     <!-- SM-05: lô của đúng SP + đang nằm ở nguồn. -->

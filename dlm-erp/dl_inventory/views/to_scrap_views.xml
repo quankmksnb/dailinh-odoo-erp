@@ -138,7 +138,7 @@
                                          về bằng số này. -->
                                     <field name="product_uom_qty"
                                            column_invisible="1"/>
-                                    <field name="quantity" string="Số lượng"
+                                    <field name="quantity" widget="dl_qty" string="Số lượng"
                                            readonly="not dlm_is_scrap_line"/>
                                     <field name="product_uom" string="ĐVT"
                                            readonly="1"

@@ -43,7 +43,7 @@
                        decoration-success="dlm_receipt_state == 'received'"
                        decoration-warning="dlm_receipt_state == 'waiting'"
                        decoration-info="dlm_receipt_state == 'ready'"/>
-                <field name="dlm_qty_total" string="Số lượng"/>
+                <field name="dlm_qty_total" widget="dl_qty" string="Số lượng"/>
                 <field name="state" string="Trạng thái" widget="badge"
                        decoration-success="state == 'done'"
                        decoration-info="state == 'assigned'"
@@ -225,12 +225,12 @@
                                     <field name="product_id" string="Mặt hàng"
                                            required="1"
                                            domain="[('id', 'in', parent.dlm_fg_product_ids)]"/>
-                                    <field name="product_uom_qty" string="Xưởng khai"/>
+                                    <field name="product_uom_qty" widget="dl_qty" string="Xưởng khai"/>
                                     <!-- 🔴 Cột này là toàn bộ lý do có bước thứ
                                          hai: xưởng khai 100, thủ kho đếm 98 thì
                                          sổ ghi 98. Chỉ Thủ kho sửa được (phiếu
                                          đã qua bàn giao). -->
-                                    <field name="quantity" string="Thủ kho nhận"
+                                    <field name="quantity" widget="dl_qty" string="Thủ kho nhận"
                                            column_invisible="parent.state == 'draft'"
                                            readonly="parent.dlm_receipt_state != 'waiting'"/>
                                     <field name="product_uom" string="ĐVT"
@@ -281,8 +281,8 @@
                                          hỏi rõ tới mức không trả lời sai được. -->
                                     <field name="dlm_move_kind" string="Xử lý"
                                            required="1"/>
-                                    <field name="product_uom_qty" string="Số lượng"/>
-                                    <field name="dlm_src_available_qty"
+                                    <field name="product_uom_qty" widget="dl_qty" string="Số lượng"/>
+                                    <field name="dlm_src_available_qty" widget="dl_qty"
                                            string="Đang ở xưởng" readonly="1"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom"/>

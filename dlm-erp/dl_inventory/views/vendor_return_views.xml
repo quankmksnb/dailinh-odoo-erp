@@ -33,7 +33,7 @@
                 <field name="name" string="Số phiếu"/>
                 <field name="partner_id" string="Nhà cung cấp"/>
                 <field name="dlm_origin_picking_id" string="Phiếu nhận gốc"/>
-                <field name="dlm_qty_total" string="Số lượng trả"/>
+                <field name="dlm_qty_total" widget="dl_qty" string="Số lượng trả"/>
                 <field name="dlm_reject_summary" string="Lý do"/>
                 <field name="scheduled_date" string="Ngày" widget="date"
                        optional="hide"/>
@@ -159,7 +159,7 @@
                                            readonly="1"/>
                                     <field name="lot_ids" string="Lô"
                                            widget="many2many_tags" readonly="1"/>
-                                    <field name="product_uom_qty" string="Số lượng trả"
+                                    <field name="product_uom_qty" widget="dl_qty" string="Số lượng trả"
                                            sum="Tổng"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom" readonly="1"/>

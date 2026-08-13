@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Base',
-    'version': '17.0.1.9.0',
+    'version': '17.0.1.10.0',
     'summary': 'App gốc — định nghĩa Groups (CEO/Admin/BA/Tech) và menu chính 5 module Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -52,6 +52,8 @@
             'dl_base/static/src/js/money_format.js',
             'dl_base/static/src/components/money/money_field.js',
             'dl_base/static/src/components/money/money_field.xml',
+            # Field widget dùng chung — số lượng (cắt đuôi số 0 thừa khi hiện).
+            'dl_base/static/src/components/qty/qty_field.js',
             # Component — Home dashboard (client action ir.actions.client)
             'dl_base/static/src/components/home/home.scss',
             'dl_base/static/src/components/home/home.xml',

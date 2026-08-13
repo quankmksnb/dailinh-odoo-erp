@@ -39,12 +39,12 @@
                 <field name="location_id" string="Vị trí"
                        domain="[('usage', '=', 'internal')]"
                        readonly="id != False" options="{'no_create': True}"/>
-                <field name="quantity" string="Tồn hệ thống" readonly="1"
+                <field name="quantity" widget="dl_qty" string="Tồn hệ thống" readonly="1"
                        sum="Tổng"/>
                 <field name="product_uom_id" string="ĐVT" readonly="1"/>
                 <field name="inventory_quantity" string="Tồn thực đếm"
                        widget="counted_quantity_widget"/>
-                <field name="inventory_diff_quantity" string="Chênh lệch"
+                <field name="inventory_diff_quantity" widget="dl_qty" string="Chênh lệch"
                        invisible="not inventory_quantity_set"
                        decoration-muted="inventory_diff_quantity == 0"
                        decoration-danger="inventory_diff_quantity &lt; 0"
@@ -151,7 +151,7 @@
                 <field name="dlm_supplier_id" string="Nhà cung cấp" optional="show"/>
                 <field name="dlm_receipt_date" string="Ngày nhập" optional="show"/>
                 <field name="location_id" string="Vị trí"/>
-                <field name="quantity" string="Tồn" sum="Tổng"/>
+                <field name="quantity" widget="dl_qty" string="Tồn" sum="Tổng"/>
                 <!-- 🔴 K14 — hai cột này là lá chắn cho ca "hai người cùng bán
                      một lô thép". Trước đó bảng chỉ hiện Tồn = 24 và người thứ
                      hai bán tiếp 24 cây đã hứa cho đơn khác. HIỆN MẶC ĐỊNH
@@ -159,7 +159,7 @@
                      `available_quantity` là field native (quantity − reserved),
                      compute non-stored ⇒ hiện được nhưng KHÔNG sort/filter được
                      — chấp nhận, đổi lại không đẻ field trùng nghĩa. -->
-                <field name="reserved_quantity" string="Đang giữ chỗ"
+                <field name="reserved_quantity" widget="dl_qty" string="Đang giữ chỗ"
                        optional="show"
                        decoration-warning="reserved_quantity &gt; 0"/>
                 <!-- Bấm để biết giữ CHO AI: cột trên trả lời BAO NHIÊU, câu hỏi
@@ -169,7 +169,7 @@
                         icon="fa-hand-paper-o" title="Xem phiếu đang giữ chỗ"
                         aria-label="Xem phiếu đang giữ chỗ"
                         invisible="reserved_quantity &lt;= 0"/>
-                <field name="available_quantity" string="Còn lấy được"
+                <field name="available_quantity" widget="dl_qty" string="Còn lấy được"
                        optional="show" decoration-bf="1"
                        decoration-danger="available_quantity &lt;= 0"/>
                 <field name="product_uom_id" string="ĐVT"/>
@@ -196,7 +196,7 @@
                 <field name="dlm_sale_order_id" string="Đơn bán hàng"
                        optional="show"/>
                 <field name="date" string="Ngày dự kiến"/>
-                <field name="quantity" string="Số giữ" sum="Tổng giữ"/>
+                <field name="quantity" widget="dl_qty" string="Số giữ" sum="Tổng giữ"/>
                 <field name="product_uom_id" string="ĐVT"/>
                 <field name="state" string="Trạng thái" widget="badge"
                        decoration-info="state == 'assigned'"
