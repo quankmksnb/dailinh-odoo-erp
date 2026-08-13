@@ -123,6 +123,29 @@ _DLM_NATIVE_PICKING_TYPES = [
 ]
 
 
+_DLM_NATIVE_LOCATIONS = [
+    ("stock.stock_location_locations", "Physical Locations", "Vị trí thực tế"),
+    ("stock.stock_location_locations_partner", "Partners", "Đối tác"),
+    ("stock.stock_location_locations_virtual", "Virtual Locations", "Vị trí ảo"),
+    ("stock.stock_location_suppliers", "Vendors", "Nhà cung cấp"),
+    ("stock.stock_location_customers", "Customers", "Khách hàng"),
+    ("stock.stock_location_inter_wh", "Inter-company transit",
+     "Trung chuyển liên công ty"),
+]
+
+# Ba vị trí ảo Odoo tạo THEO CÔNG TY nên KHÔNG có XML ID — phải tra bằng
+# usage (+ cờ scrap_location để tách hai vị trí cùng usage='inventory').
+# (usage, scrap_location, tên gốc, tên Việt)
+_DLM_NATIVE_VIRTUAL_LOCATIONS = [
+    ("production", False, "Production", "Sản xuất"),
+    ("inventory", False, "Inventory adjustment", "Điều chỉnh tồn kho"),
+    # CỐ Ý không đặt là "Phế liệu": Đại Linh đã có ô THẬT "Phế liệu chờ bán"
+    # (DL/KHOSX/PL) chứa phế liệu còn bán được. Vị trí ảo này là nơi hàng bị
+    # xoá sổ — hai chữ "phế liệu" trên cùng màn là mời chọn nhầm.
+    ("inventory", True, "Scrap", "Hàng huỷ bỏ"),
+]
+
+
 class StockWarehouse(models.Model):
     _inherit = "stock.warehouse"
 
@@ -160,6 +183,7 @@ class StockWarehouse(models.Model):
         if not warehouse:
             return False
         locations = warehouse._dlm_setup_locations()
+        self.env["stock.location"]._dlm_setup_native_location_names()
         warehouse._dlm_setup_picking_types(locations)
         warehouse._dlm_setup_reception_route(locations)
         warehouse._dlm_setup_lot_sequence()
@@ -301,8 +325,15 @@ class StockWarehouse(models.Model):
         # sổ đổi vì một quyết định của con người", không phải một cuộc luân
         # chuyển vật lý. Cũng không có XML ID (Odoo lưu qua ir.property) ⇒ tra
         # theo usage như vị trí Sản xuất.
+        # 🔴 `scrap_location=False` là BẮT BUỘC, không phải cho chắc: usage
+        # 'inventory' có ĐÚNG HAI vị trí — "Điều chỉnh tồn kho" và vị trí huỷ bỏ
+        # của Odoo (scrap_location=True). Thiếu điều kiện này thì `limit=1` chọn
+        # theo `_order = 'complete_name, id'`, tức phụ thuộc vào TÊN — đặt tên
+        # vị trí huỷ bỏ vần trước là phiếu Hoá phế liệu lặng lẽ đổi bản lề sang
+        # đó, không lỗi nào nổ.
         locations["inventory_adj"] = self.env["stock.location"].search([
             ("usage", "=", "inventory"),
+            ("scrap_location", "=", False),
             ("company_id", "in", (self.company_id.id, False)),
         ], limit=1)
         return locations
@@ -438,6 +469,33 @@ class StockLocation(models.Model):
              "khu QUÁ CẢNH (Chờ kiểm, Chờ trả NCC) — tồn ở đó đang gắn với "
              "chứng từ đang mở; và khu GOM NHÓM (Khu nhập hàng, Kho nhà máy "
              "sản xuất) — chọn khu cha là với tay được vào mọi ô con.")
+
+    @api.model
+    def _dlm_setup_native_location_names(self):
+        """Việt hoá tên các vị trí Odoo tạo sẵn (Vendors, Production...).
+
+        Idempotent và KHÔNG phá tên người dùng tự đặt: chỉ ghi khi tên hiện tại
+        còn đúng bản tiếng Anh gốc.
+
+        `complete_name` là compute stored `recursive=True` phụ thuộc `name` +
+        `location_id.complete_name` ⇒ đổi tên vị trí CHA là con tự tính lại,
+        không phải đụng tay.
+        """
+        for xml_id, source_name, name in _DLM_NATIVE_LOCATIONS:
+            location = self.env.ref(xml_id, raise_if_not_found=False)
+            if location and location.name == source_name:
+                location.sudo().write({"name": name})
+
+        for usage, is_scrap, source_name, name in _DLM_NATIVE_VIRTUAL_LOCATIONS:
+            locations = self.with_context(active_test=False).search([
+                ("usage", "=", usage),
+                ("scrap_location", "=", is_scrap),
+                ("name", "=", source_name),
+                ("company_id", "in", (self.env.company.id, False)),
+            ])
+            if locations:
+                locations.sudo().write({"name": name})
+        return True
 
     def _dlm_location(self, xml_id):
         """Tra vị trí kho theo XML ID, báo lỗi RÕ nếu chưa seed.

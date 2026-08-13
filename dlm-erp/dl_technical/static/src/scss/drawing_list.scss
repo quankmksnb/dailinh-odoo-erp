@@ -8,11 +8,14 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="drawing_code"] { width: 14% !important; }
-        th[data-name="name"] { width: 24% !important; }
-        th[data-name="product_id"] { width: 20% !important; }
-        th[data-name="version"] { width: 8% !important; }
-        th[data-name="status"] { width: 14% !important; }
+        // Cột "Hiện hành" (boolean_toggle) bị bỏ sót width ⇒ table-layout fixed
+        // bóp về ~0px, nút gạt dính vào cột Trạng thái. Tổng 8 cột = 100%.
+        th[data-name="drawing_code"] { width: 13% !important; }
+        th[data-name="name"] { width: 20% !important; }
+        th[data-name="product_id"] { width: 18% !important; }
+        th[data-name="version"] { width: 7% !important; }
+        th[data-name="is_current"] { width: 9% !important; }
+        th[data-name="status"] { width: 13% !important; }
         th[data-name="confirmed_date"] { width: 10% !important; }
         th[data-name="created_by"] { width: 10% !important; }
 

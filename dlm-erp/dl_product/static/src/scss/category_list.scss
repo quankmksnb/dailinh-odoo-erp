@@ -5,8 +5,11 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="display_name"] { width: 75% !important; }
-        th[data-name="product_count"] { width: 25% !important; }
+        // Cột "Nhánh" (badge) phải có width riêng — bỏ sót thì table-layout
+        // fixed bóp nó về ~0px và badge đè lên cột bên cạnh.
+        th[data-name="display_name"] { width: 60% !important; }
+        th[data-name="dl_branch"] { width: 22% !important; }
+        th[data-name="product_count"] { width: 18% !important; }
 
         td[name="display_name"] {
             overflow: hidden;

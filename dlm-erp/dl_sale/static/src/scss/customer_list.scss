@@ -4,7 +4,9 @@
     .o_list_table thead th[data-name="avatar_128"] {
         border-top-left-radius: $dl-radius;
     }
-    .o_list_table thead th[data-name="city"] {
+    // Cột cuối nay là "Nhóm KH" (category_id), không còn là "Tỉnh/TP" — bo góc
+    // phải ở giữa header sẽ hở một khấc nền trắng.
+    .o_list_table thead th[data-name="category_id"] {
         border-top-right-radius: $dl-radius;
     }
 
@@ -12,15 +14,18 @@
         table-layout: fixed !important;
         width: 100% !important;
 
+        // `dlm_customer_group` đã rời tree (thay bằng `dlm_status_label`), còn
+        // `category_id` là cột thật nhưng thiếu width ⇒ bị table-layout fixed
+        // bóp về ~0px. Tổng 9 cột đang hiện = 100%.
         th[data-name="avatar_128"] { width: 4% !important; }
         th[data-name="dlm_code"] { width: 9% !important; }
         th[data-name="name"] { width: 18% !important; }
         th[data-name="partner_type"] { width: 10% !important; }
-        th[data-name="dlm_customer_group"] { width: 11% !important; }
         th[data-name="dlm_status_label"] { width: 11% !important; }
-        th[data-name="phone"] { width: 12% !important; }
-        th[data-name="email"] { width: 14% !important; }
-        th[data-name="city"] { width: 11% !important; }
+        th[data-name="phone"] { width: 11% !important; }
+        th[data-name="email"] { width: 15% !important; }
+        th[data-name="city"] { width: 10% !important; }
+        th[data-name="category_id"] { width: 12% !important; }
 
         td[name="dlm_code"] {
             font-variant-numeric: tabular-nums;

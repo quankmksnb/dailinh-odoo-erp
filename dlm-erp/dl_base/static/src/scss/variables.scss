@@ -75,5 +75,11 @@ $dl-row-h:          30px;  // chiều cao dòng bảng ERP
 $dl-cell-y:        6px;   // padding dọc ô bảng
 $dl-header-h:      46px;  // chiều cao page header / topbar
 
+// Trần bề ngang của MỘT ô nhập trên form. Sheet của Odoo 17 rộng hết màn
+// (core không đặt max-width), còn cột field của .o_inner_group là
+// `minmax(0, 1fr)` ⇒ không có trần thì ô "VAT (%)" cũng dài 1400px trên màn
+// 1920. 400px đủ cho ~50 ký tự và vẫn khớp hàng 4–5 field của .dl-fields-row.
+$dl-field-max-w:   400px;
+
 // Nhãn phân khu (section label) — chữ nhỏ hoa, dùng ngăn nhóm trong list/hub.
 $dl-section-fg:    $dl-text-muted;

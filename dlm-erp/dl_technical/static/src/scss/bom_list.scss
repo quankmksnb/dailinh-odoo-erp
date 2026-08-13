@@ -8,18 +8,21 @@
         table-layout: fixed !important;
         width: 100% !important;
 
+        // Bảng width cũ còn khai `semi_product_id` và `version` — hai cột đã
+        // không còn trong tree (nay là `version_label`). Cột thật thiếu width
+        // bị table-layout fixed bóp về ~0px. Tổng 7 cột đang hiện = 100%.
         th[data-name="name"] { width: 14% !important; }
-        th[data-name="product_id"] { width: 16% !important; }
-        th[data-name="semi_product_id"] { width: 16% !important; }
-        th[data-name="category_id"] { width: 16% !important; }
-        th[data-name="version"] { width: 8% !important; }
-        th[data-name="product_qty"] { width: 8% !important; }
-        th[data-name="total_material_cost"] { width: 12% !important; }
+        th[data-name="category_id"] { width: 18% !important; }
+        th[data-name="product_id"] { width: 22% !important; }
+        th[data-name="version_label"] { width: 12% !important; }
+        th[data-name="product_qty"] { width: 10% !important; }
+        th[data-name="total_material_cost"] { width: 14% !important; }
         th[data-name="status"] { width: 10% !important; }
 
-        td[name="product_id"], td[name="semi_product_id"], td[name="category_id"] {
+        td[name="product_id"], td[name="category_id"] {
             overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
+        td[name="version_label"] { white-space: nowrap; }
     }
 }
 
