@@ -319,7 +319,7 @@
                              là mẫu số biến kích thước cắt thành số cây/số tấm. -->
                         <group
                             string="Một đơn vị mua lớn cỡ nào"
-                            invisible="(dlm_uom_group != 'unit' or dlm_calc_kind not in ('cut_length', 'sheet')) and (dlm_uom_group == 'weight' or not dlm_has_recovery)"
+                            invisible="dlm_uom_group != 'unit' or dlm_calc_kind not in ('cut_length', 'sheet')"
                         >
                             <div class="text-muted" colspan="2"
                                 invisible="dlm_uom_group != 'unit' or dlm_calc_kind not in ('cut_length', 'sheet')">
@@ -348,27 +348,21 @@
                                  hệ số quy đổi là 1. -->
                             <field
                                 name="dlm_mass_per_unit"
-                                invisible="dlm_uom_group == 'weight' or (dlm_calc_kind not in ('cut_length', 'sheet') and not dlm_has_recovery)"
+                                invisible="dlm_uom_group == 'weight' or dlm_calc_kind not in ('cut_length', 'sheet')"
                             />
                             <div
                                 class="text-muted"
                                 colspan="2"
-                                invisible="dlm_uom_group == 'weight' or (dlm_calc_kind not in ('cut_length', 'sheet') and not dlm_has_recovery)"
+                                invisible="dlm_uom_group == 'weight' or dlm_calc_kind not in ('cut_length', 'sheet')"
                             >
-                                Số cân thật trên chứng từ nhà cung cấp. Dùng để tính
-                                tiền phế liệu thu hồi, và để đối chiếu khi có nhà
-                                cung cấp báo giá theo kg. <b>Không vào giá vốn.</b>
+                                Số cân thật trên chứng từ nhà cung cấp. Dùng để
+                                đối chiếu khi có nhà cung cấp báo giá theo kg.
+                                <b>Không vào giá vốn.</b>
                             </div>
-                            <div
-                                class="alert alert-warning py-2 mb-0"
-                                role="status"
-                                colspan="2"
-                                invisible="not dlm_has_recovery or dlm_uom_group == 'weight' or dlm_mass_per_unit"
-                            >
-                                <i class="fa fa-exclamation-triangle me-1" title="Thiếu" />
-                                Đã bật thu hồi phế liệu mà chưa khai số kg ⇒ tiền
-                                phế liệu sẽ ra <b>0</b>.
-                            </div>
+                            <!-- 🔴 K16 — dải "đã bật thu hồi mà chưa khai kg" đã
+                                 gỡ cùng cách tính % thu hồi: không còn tiền phế
+                                 liệu nào để ra 0. -->
+
                         </group>
 
                         <!-- Vật tư mua theo KG: không có "một đơn vị" nào để mô tả
@@ -405,18 +399,23 @@
                         </group>
                     </group>
 
+                    <!-- 🔴 K16 (2026-08-13) — hai ô "Có thu hồi phế liệu" và "Tỷ
+                         lệ thu hồi (%)" ĐÃ GỠ khỏi màn: người dùng chốt bỏ cách
+                         tính % thu hồi, nên để chúng lại là hiện một con số
+                         không còn ảnh hưởng tới đồng nào — kiểu sai khó phát
+                         hiện nhất. Cột dữ liệu vẫn còn (xem
+                         dl_bom_line_mixin._dlm_recovery_kg).
+                         `dlm_scrap_product_id` thì Ở LẠI và nay LUÔN hiện: nó
+                         trả lời "vật tư này thải ra loại phế liệu nào" — câu
+                         hỏi vẫn sống, vì phiếu Nhập kho từ xưởng bắt khai đúng
+                         mặt hàng phế cân được. -->
                     <group
                         name="group_waste_info"
-                        string="Hao hụt &amp; thu hồi"
+                        string="Hao hụt &amp; phế liệu"
                         invisible="product_kind not in ('material', 'material_processed')"
                     >
                         <field name="dlm_waste_rate" />
-                        <field name="dlm_has_recovery" />
-                        <field name="dlm_recovery_rate"
-                            invisible="not dlm_has_recovery"
-                            required="dlm_has_recovery" />
                         <field name="dlm_scrap_product_id"
-                            invisible="not dlm_has_recovery"
                             options="{'no_create': True}" />
                     </group>
 

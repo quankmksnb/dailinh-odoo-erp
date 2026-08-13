@@ -7,7 +7,7 @@
          🔴 Phế liệu là TÀI SẢN, không phải hàng huỷ. Odoo có sẵn vị trí ảo
          "Virtual Locations/Scrap" nhưng đó là write-off — giá trị biến mất.
          Phế liệu Đại Linh bán lại được và đã tham gia tính giá, nên nó nằm ở
-         một vị trí nội bộ THẬT: DL/XUONG/PL.
+         một vị trí nội bộ THẬT: DL/KHOSX/PL.
 
          Cả hai màn đều mang `banner_route` — dải chú thích "không phải lợi
          nhuận tăng thêm" phải LUÔN hiện, không đóng được (§7.2).
@@ -186,7 +186,7 @@
                                              'default_location_dest_id': location_dest_id}">
                                 <tree editable="bottom">
                                     <!-- SM-06: chỉ bán được phế liệu ĐANG CÓ TỒN
-                                         ở khu DL/XUONG/PL — không mời chọn SP bất
+                                         ở khu DL/KHOSX/PL — không mời chọn SP bất
                                          kỳ (bán phế liệu đòi phải có tồn trước).
                                          Nội suy xmlid trong domain (arch xml) trả
                                          về id vị trí. Chỉ lọc theo location (không
@@ -232,45 +232,11 @@
         </field>
     </record>
 
-    <!-- ============================================================
-         Tab 2 — Đối chiếu thu hồi (§7.4)
-    ============================================================ -->
-    <record id="view_dl_scrap_recovery_tree" model="ir.ui.view">
-        <field name="name">dl.scrap.recovery.report.tree</field>
-        <field name="model">dl.scrap.recovery.report</field>
-        <field name="arch" type="xml">
-            <tree string="Đối chiếu thu hồi" class="dl-scrap-recovery-list"
-                  banner_route="/dl_inventory/scrap_banner"
-                  create="0" edit="0" delete="0"
-                  decoration-danger="diff_level == 'short'"
-                  decoration-warning="diff_level == 'over'">
-                <field name="period" string="Kỳ" widget="date"/>
-                <field name="qty_estimated" string="Dự toán (kg)"/>
-                <field name="qty_in" string="Thực nhập (kg)"/>
-                <field name="qty_diff" string="Chênh lệch (kg)"/>
-                <field name="qty_sold" string="Đã bán (kg)"/>
-                <field name="diff_level" string="Đánh giá" widget="badge"
-                       decoration-danger="diff_level == 'short'"
-                       decoration-warning="diff_level == 'over'"
-                       decoration-success="diff_level == 'match'"/>
-            </tree>
-        </field>
-    </record>
-
-    <record id="action_dl_scrap_recovery" model="ir.actions.act_window">
-        <field name="name">Đối chiếu thu hồi</field>
-        <field name="res_model">dl.scrap.recovery.report</field>
-        <field name="view_mode">tree</field>
-        <field name="view_ids" eval="[
-            (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_scrap_recovery_tree')}),
-        ]"/>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Chưa có kỳ nào để đối chiếu</p>
-            <p>Bảng này so <b>lượng phế liệu dự toán</b> khi báo giá với
-               <b>lượng cân được thực tế</b>. Cân ít hơn dự toán nghĩa là định
-               mức hao hụt đang đặt thấp so với thực tế sản xuất.</p>
-        </field>
-    </record>
+    <!-- 🔴 K16 — "Tab 2 — Đối chiếu thu hồi (§7.4)" ĐÃ GỠ toàn bộ (tree, action,
+         model `dl.scrap.recovery.report`). Nó so DỰ TOÁN phế liệu với số cân
+         được; bỏ cách tính % thu hồi thì vế dự toán không còn tồn tại, và một
+         bảng đối chiếu chỉ còn một vế là bảng nói dối.
+         Vòng phản hồi thay thế: "định mức BOM / đã cấp / cộng dồn" trên phiếu
+         cấp vật tư — đo bằng vật tư đếm từng cây thay vì phế liệu cân gộp. -->
 
 </odoo>

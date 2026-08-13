@@ -30,14 +30,19 @@ def migrate(cr, version):
     ])
     if not quants:
         return
+    # 🔴 SỬA CÂU LOG SAI (2026-08-13). Bản đầu bảo thủ kho "làm phiếu Chuyển kho
+    # sang Kho thành phẩm" — việc đó KHÔNG LÀM ĐƯỢC: tuyến Kho vật tư → Kho
+    # thành phẩm có giao loại hàng hợp lệ RỖNG (§4.2), nên dropdown mặt hàng
+    # chặn sạch. Hướng dẫn trong thông báo cũng là đặc tả, và cũng sai được như
+    # code — phải nói đúng người làm được việc.
     for quant in quants:
         _logger.warning(
-            "Rút gọn luồng: '%s' (%s) còn %s %s ở '%s' theo luồng cũ — làm phiếu "
-            "Chuyển kho sang Kho thành phẩm để giao được.",
+            "Rút gọn luồng: '%s' (%s) còn %s %s ở '%s' theo luồng cũ.",
             quant.product_id.display_name, quant.lot_id.name or "không lô",
             quant.quantity, quant.product_id.uom_id.name,
             quant.location_id.display_name)
     _logger.warning(
         "Rút gọn luồng: TỔNG %s dòng tồn hàng thương mại còn ở Kho vật tư — "
-        "CHƯA tự chuyển. Thủ kho cần làm phiếu Chuyển kho sang Kho thành phẩm.",
+        "CHƯA tự chuyển. Thủ kho KHÔNG tự làm phiếu Chuyển kho được (tuyến này "
+        "không cho hàng thương mại đi qua); báo Admin xử lý.",
         len(quants))

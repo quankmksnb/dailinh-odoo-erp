@@ -49,6 +49,16 @@ const INVENTORY_CHILDREN = [
     menuXmlIds: ["dl_inventory.menu_dl_picking_qc"],
   },
   {
+    // K13 — đầu ra của nhánh gia công. Đứng ngay sau Kiểm hàng vì nó là bước
+    // "hàng vào kho" thứ hai, song song với nhận hàng NCC: một đường hàng mua
+    // về, một đường hàng mình làm ra.
+    key: "fg_receipt",
+    name: "Nhập kho từ xưởng",
+    icon: "fa-industry",
+    preferMenu: true,
+    menuXmlIds: ["dl_inventory.menu_dl_picking_fg_receipt"],
+  },
+  {
     key: "transfer",
     name: "Chuyển kho",
     icon: "fa-exchange",
@@ -75,13 +85,6 @@ const INVENTORY_CHILDREN = [
     icon: "fa-recycle",
     preferMenu: true,
     menuXmlIds: ["dl_inventory.menu_dl_scrap"],
-  },
-  {
-    key: "scrap_recovery",
-    name: "Đối chiếu thu hồi",
-    icon: "fa-balance-scale",
-    preferMenu: true,
-    menuXmlIds: ["dl_inventory.menu_dl_scrap_recovery"],
   },
   {
     key: "stock_lot",

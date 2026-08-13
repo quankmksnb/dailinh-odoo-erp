@@ -198,41 +198,29 @@
     }
 }
 
-// ── K7 — Phế liệu & đối chiếu thu hồi ───────────────────────────────────────
-// Cột số nhiều hơn hẳn các màn khác (tồn / cân / chênh / đơn giá / thành tiền)
-// nên phải canh phải + tabular-nums đồng loạt, không thì bảng đọc như văn xuôi.
-.dl-scrap-list,
-.dl-scrap-recovery-list {
+// ── K7 — Phế liệu ───────────────────────────────────────────────────────────
+// Cột số nhiều hơn hẳn các màn khác (tồn / cân / đơn giá / thành tiền) nên phải
+// canh phải + tabular-nums đồng loạt, không thì bảng đọc như văn xuôi.
+// K16 — bỏ `.dl-scrap-recovery-list` cùng màn Đối chiếu thu hồi.
+.dl-scrap-list {
     .o_list_table {
         th[data-name="quantity"],
         th[data-name="inventory_quantity"],
         th[data-name="inventory_diff_quantity"],
         th[data-name="dlm_scrap_unit_price"],
-        th[data-name="dlm_scrap_value"],
-        th[data-name="qty_estimated"],
-        th[data-name="qty_in"],
-        th[data-name="qty_diff"],
-        th[data-name="qty_sold"] { text-align: right !important; }
+        th[data-name="dlm_scrap_value"] { text-align: right !important; }
 
         th[data-name="quantity"] > div,
         th[data-name="inventory_quantity"] > div,
         th[data-name="inventory_diff_quantity"] > div,
         th[data-name="dlm_scrap_unit_price"] > div,
-        th[data-name="dlm_scrap_value"] > div,
-        th[data-name="qty_estimated"] > div,
-        th[data-name="qty_in"] > div,
-        th[data-name="qty_diff"] > div,
-        th[data-name="qty_sold"] > div { justify-content: flex-end !important; }
+        th[data-name="dlm_scrap_value"] > div { justify-content: flex-end !important; }
 
         td[name="quantity"],
         td[name="inventory_quantity"],
         td[name="inventory_diff_quantity"],
         td[name="dlm_scrap_unit_price"],
-        td[name="dlm_scrap_value"],
-        td[name="qty_estimated"],
-        td[name="qty_in"],
-        td[name="qty_diff"],
-        td[name="qty_sold"] {
+        td[name="dlm_scrap_value"] {
             text-align: right !important;
             font-variant-numeric: tabular-nums;
         }
@@ -242,26 +230,6 @@
 .dl-scrap-list .o_list_table {
     thead th[data-name="product_id"] { border-top-left-radius: $dl-radius; }
     th[data-name="product_id"], td[name="product_id"] { padding-left: 24px !important; }
-}
-
-.dl-scrap-recovery-list .o_list_table {
-    table-layout: fixed !important;
-    width: 100% !important;
-
-    thead th[data-name="period"] { border-top-left-radius: $dl-radius; }
-    thead th[data-name="diff_level"] { border-top-right-radius: $dl-radius; }
-
-    th[data-name="period"] { width: 16% !important; }
-    th[data-name="qty_estimated"] { width: 16% !important; }
-    th[data-name="qty_in"] { width: 16% !important; }
-    th[data-name="qty_diff"] { width: 16% !important; }
-    th[data-name="qty_sold"] { width: 16% !important; }
-    th[data-name="diff_level"] { width: 20% !important; }
-
-    th[data-name="period"], td[name="period"] { padding-left: 24px !important; }
-    td[name="period"] { font-weight: 600; color: $dl-heading; white-space: nowrap; }
-    // Chênh lệch là con số kết luận của cả bảng — nhấn hơn bốn cột còn lại.
-    td[name="qty_diff"] { font-weight: 600; }
 }
 
 // ── K6 — Hàng nút "tuyến hay dùng" trên form Chuyển kho ─────────────────────

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""K2 — Bố cục kho: MỘT kho, ba khu, nhận hàng 2 bước.
+"""K2/K15 — Bố cục kho: MỘT kho, BỐN khu, nhận hàng 2 bước.
 
 Thiết kế: docs/Thiet_ke_phan_he_kho.md §3.1, §4, §5.
 
@@ -28,17 +28,57 @@ class TestWarehouseLayout(DlInventoryCase):
             "Phải đúng MỘT kho. Có kho thứ hai là sai thiết kế §3.1.")
         self.assertEqual(self.warehouse.code, "DL")
 
-    def test_cay_vi_tri_ba_khu(self):
-        """§4.1 — Ba khu nằm dưới kho DL, vị trí con nằm đúng khu của nó."""
+    def test_cay_vi_tri_bon_khu(self):
+        """§4.1 — Bốn khu dưới kho DL, vị trí con nằm đúng khu của nó.
+
+        🔴 K15 tách CHỖ CẤT khỏi CHỖ LÀM. Chuỗi hiển thị là thứ thủ kho đọc
+        trong dropdown, nên nó phải khẳng định được đúng cái phân biệt đó — chứ
+        không chỉ khẳng định cây có đủ số tầng.
+        """
         expected = {
             self.loc_qc: "DL/Khu nhập hàng/Chờ kiểm hàng",
-            self.loc_kho: "DL/Khu nhập hàng/Kho vật tư",
             self.loc_tra: "DL/Khu nhập hàng/Chờ trả NCC",
-            self.loc_xuong: "DL/Kho nhà máy sản xuất",
+            # Đường đi của ô này: DL/NHAN (K2) → DL/XUONG (K10) → DL/KHOSX (K15).
+            self.loc_kho: "DL/Kho nhà máy sản xuất/Kho nguyên vật liệu",
+            self.loc_xuong_pl: "DL/Kho nhà máy sản xuất/Phế liệu chờ bán",
+            self.loc_khosx: "DL/Kho nhà máy sản xuất",
+            self.loc_xuong: "DL/Xưởng sản xuất",
             self.loc_tp: "DL/Kho thành phẩm",
         }
         for location, complete_name in expected.items():
             self.assertEqual(location.complete_name, complete_name)
+
+    def test_xuong_la_o_la_khong_con_vai_tro_kep(self):
+        """🔴 K15 — Xưởng sản xuất KHÔNG được có con.
+
+        Đây là bất biến sinh ra cả thay đổi này. Khi Xưởng còn là khu cha, chọn
+        nó làm nguồn phiếu là với tay được vào Kho nguyên vật liệu qua `child_of`
+        — lỗ mà K11 phải vá bằng luật. Cho nó một ô con trở lại là mở lại lỗ đó,
+        và KHÔNG lỗi nào khác sẽ nổ.
+        """
+        con = self.env["stock.location"].with_context(
+            active_test=False).search([("location_id", "=", self.loc_xuong.id)])
+        self.assertFalse(
+            con, "Xưởng sản xuất mọc lại ô con: %s" % con.mapped("name"))
+        self.assertEqual(self.loc_xuong.location_id,
+                         self.warehouse.view_location_id,
+                         "Xưởng sản xuất phải nằm thẳng dưới kho DL.")
+
+    def test_khu_gom_nhom_cam_chon_tay(self):
+        """§4.1.1 + K15 — khu gom nhóm không được chọn tay trên phiếu.
+
+        Khu nhập hàng và Kho nhà máy sản xuất đều là container: chọn chúng làm
+        nguồn là rút được từ MỌI ô con. Xưởng sản xuất thì ngược lại — nó chứa
+        hàng thật, phải chọn được.
+        """
+        self.assertTrue(self.loc_khosx.dlm_no_inventory,
+                        "Kho nhà máy sản xuất là khu gom nhóm, phải cấm chọn tay.")
+        self.assertTrue(
+            self.env.ref("dl_inventory.stock_location_nhan").dlm_no_inventory)
+        self.assertFalse(self.loc_xuong.dlm_no_inventory,
+                         "Xưởng sản xuất chứa hàng thật — cấm chọn là chặn luôn "
+                         "cả tuyến bàn giao lẫn tuyến gom phế liệu.")
+        self.assertFalse(self.loc_kho.dlm_no_inventory)
 
     def test_khu_gom_nhom_khong_duoc_la_view(self):
         """🔴 §4.1 — Khu phải là 'internal', KHÔNG phải 'view'.
@@ -52,7 +92,10 @@ class TestWarehouseLayout(DlInventoryCase):
         self.assertTrue(nhan.complete_name.startswith("DL/"))
 
     def test_loai_hoat_dong_dung_nguon_dich(self):
-        """§5.1 — Tám loại hoạt động, mỗi loại nối đúng hai đầu của nó."""
+        """§5.1 — Chín loại hoạt động, mỗi loại nối đúng hai đầu của nó.
+
+        3 loại native (NH/GH/CK) + 6 loại tự tạo (KC/TR/BPL/HPL/XSX/NTP).
+        """
         cases = [
             ("dl_inventory.picking_type_qc", self.loc_qc, self.loc_kho),
             ("dl_inventory.picking_type_vendor_return",

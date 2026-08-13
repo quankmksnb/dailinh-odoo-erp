@@ -138,17 +138,69 @@
                     <button name="%(action_dl_stock_inventory)d" type="action"
                             string="Kiểm kê" class="btn-secondary"
                             display="always"/>
+                    <!-- K12 — lối vào thứ hai của phiếu [9] (§6.5): vật tư hỏng
+                         trong kho mà KHÔNG đòi được NCC. KHÔNG display="always"
+                         — nút này phải có dòng được chọn mới có nghĩa, hiện sẵn
+                         khi chưa chọn gì là mời bấm rồi ăn lỗi. -->
+                    <button name="action_dlm_to_scrap" type="object"
+                            string="Chuyển thành phế liệu"
+                            class="btn-secondary"/>
                 </header>
                 <field name="product_id" string="Hàng hoá"/>
                 <field name="lot_id" string="Lô" optional="show"/>
                 <field name="dlm_supplier_id" string="Nhà cung cấp" optional="show"/>
                 <field name="dlm_receipt_date" string="Ngày nhập" optional="show"/>
                 <field name="location_id" string="Vị trí"/>
-                <field name="quantity" string="Số lượng" sum="Tổng"/>
+                <field name="quantity" string="Tồn" sum="Tổng"/>
+                <!-- 🔴 K14 — hai cột này là lá chắn cho ca "hai người cùng bán
+                     một lô thép". Trước đó bảng chỉ hiện Tồn = 24 và người thứ
+                     hai bán tiếp 24 cây đã hứa cho đơn khác. HIỆN MẶC ĐỊNH
+                     (optional="show"): cột ẩn không bảo vệ được ai.
+                     `available_quantity` là field native (quantity − reserved),
+                     compute non-stored ⇒ hiện được nhưng KHÔNG sort/filter được
+                     — chấp nhận, đổi lại không đẻ field trùng nghĩa. -->
+                <field name="reserved_quantity" string="Đang giữ chỗ"
+                       optional="show"
+                       decoration-warning="reserved_quantity &gt; 0"/>
+                <!-- Bấm để biết giữ CHO AI: cột trên trả lời BAO NHIÊU, câu hỏi
+                     tiếp theo luôn là cho ai — không trả lời được thì cách đoán
+                     rẻ nhất là bán chồng. -->
+                <button name="action_dlm_open_reservations" type="object"
+                        icon="fa-hand-paper-o" title="Xem phiếu đang giữ chỗ"
+                        aria-label="Xem phiếu đang giữ chỗ"
+                        invisible="reserved_quantity &lt;= 0"/>
+                <field name="available_quantity" string="Còn lấy được"
+                       optional="show" decoration-bf="1"
+                       decoration-danger="available_quantity &lt;= 0"/>
                 <field name="product_uom_id" string="ĐVT"/>
-                <!-- Giữ hàng cho phiếu xuất: cho thủ kho biết phần nào đã "có
-                     chủ", tránh hứa giao trùng. Ẩn mặc định để bảng đỡ rối. -->
-                <field name="reserved_quantity" string="Đang giữ" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         K14 — "Ai đang giữ chỗ lô hàng này?"
+
+         Mở từ nút trên cột "Đang giữ chỗ" của màn Tồn kho. Chỉ-đọc thuần: đây
+         là màn TRA CỨU để đi thương lượng, không phải chỗ sửa chỗ giữ — nhả chỗ
+         giữ phải làm trên chính phiếu đó, mới có dấu vết ai nhả và vì sao.
+
+         🔴 KHÔNG có cột giá (§8.3). Cột "Đơn bán hàng" là số đơn, không phải tiền.
+    ============================================================ -->
+    <record id="view_dl_reservation_tree" model="ir.ui.view">
+        <field name="name">dl.reservation.tree</field>
+        <field name="model">stock.move.line</field>
+        <field name="arch" type="xml">
+            <tree string="Đang giữ chỗ" class="dl-reservation-list"
+                  create="0" edit="0" delete="0" default_order="date">
+                <field name="picking_id" string="Phiếu"/>
+                <field name="dlm_sale_order_id" string="Đơn bán hàng"
+                       optional="show"/>
+                <field name="date" string="Ngày dự kiến"/>
+                <field name="quantity" string="Số giữ" sum="Tổng giữ"/>
+                <field name="product_uom_id" string="ĐVT"/>
+                <field name="state" string="Trạng thái" widget="badge"
+                       decoration-info="state == 'assigned'"
+                       decoration-warning="state == 'partially_available'"/>
             </tree>
         </field>
     </record>

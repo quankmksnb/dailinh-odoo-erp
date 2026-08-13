@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K12 — M11 Chuyển thành phế liệu (phiếu [9] HPL)
+         docs/Thiet_ke_phan_he_kho.md §5.1, §6.4.1, §6.5, §11.14
+
+         Loại phiếu DUY NHẤT mà mặt hàng vào ≠ mặt hàng ra: 8 cây thép hộp rời
+         sổ, 47 kg phế liệu vào khu chờ bán. Hai nửa nằm trong MỘT chứng từ —
+         tách thành hai thao tác là kiểu "bước rời sẽ bị quên", và quên nửa sau
+         nghĩa là hàng biến mất khỏi sổ mà không thành gì cả.
+
+         KHÔNG có list riêng, KHÔNG lên rail: phiếu luôn vào từ ngữ cảnh (nút
+         trên phiếu trả đã huỷ, hoặc nút trên màn Tồn kho) nên người dùng không
+         bao giờ phải chọn hàng từ đầu.
+
+         🔴 Hai ô vị trí CHỈ-ĐỌC và phiếu KHÔNG tạo tay (create="0"). Đó là điều
+         kiện để `to_scrap` được phép đụng khu quá cảnh (Chờ trả NCC) mà không
+         phá lá chắn §4.1.1: lối ra là một cú bấm CÓ NGỮ CẢNH, không phải một
+         dropdown mở toang.
+    ============================================================ -->
+    <record id="view_dl_to_scrap_form" model="ir.ui.view">
+        <field name="name">dl.stock.picking.to.scrap.form</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <form string="Chuyển thành phế liệu" class="dl-to-scrap-form"
+                  create="0">
+                <header>
+                    <button name="button_validate" string="Xác nhận đổi"
+                            type="object" class="btn-primary"
+                            invisible="state in ('done', 'cancel') or dlm_blocked"/>
+                    <button name="action_cancel" string="Huỷ"
+                            type="object" class="btn-danger"
+                            invisible="state in ('done', 'cancel')"/>
+                    <field name="state" widget="dl_stepper"
+                           statusbar_visible="draft,assigned,done"/>
+                </header>
+                <sheet>
+                    <!-- Odoo 17: field dùng trong `invisible` PHẢI có mặt trong
+                         view. Khai TRƯỚC nút vì smart button đọc nó. -->
+                    <field name="dlm_origin_picking_id" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_dlm_open_source_receipt" type="object"
+                                class="oe_stat_button" icon="fa-undo"
+                                invisible="not dlm_origin_picking_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Phiếu trả</span>
+                                <span class="o_stat_text">nguồn</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <field name="company_id" invisible="1"/>
+                    <field name="dlm_blocked" invisible="1"/>
+                    <field name="dlm_banner_level" invisible="1"/>
+
+                    <!-- MỘT dải cho mọi trạng thái, do model quyết định (§11.1).
+                         Mức `warning` ở đây là cố ý: phiếu này không đảo ngược
+                         được, người dùng phải dừng lại một nhịp trước khi bấm. -->
+                    <div class="alert alert-info" role="alert"
+                         invisible="dlm_banner_level != 'info'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="dlm_banner_level != 'success'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="dlm_banner_level != 'warning'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="dlm_banner_level != 'danger'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1" nolabel="1"/></h1>
+                    </div>
+
+                    <div class="dl-field-row">
+                        <div class="dl-field">
+                            <label for="location_id" string="Hàng đang ở"/>
+                            <!-- Chỉ-đọc: suy từ ngữ cảnh, không phải lựa chọn. -->
+                            <field name="location_id" nolabel="1" readonly="1"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="location_dest_id" string="Phế liệu vào"/>
+                            <field name="location_dest_id" nolabel="1" readonly="1"/>
+                        </div>
+                    </div>
+
+                    <div class="dl-field-row">
+                        <div class="dl-field">
+                            <label for="dlm_scrap_reason" string="Lý do"/>
+                            <!-- required động, KHÔNG @api.constrains: ràng buộc
+                                 sửa-được-trên-form phải báo INLINE (quy ước dự
+                                 án — màn RFQ Sales đã gỡ 3 constrains vì lý do
+                                 này). -->
+                            <field name="dlm_scrap_reason" nolabel="1"
+                                   placeholder="VD: NCC giảm trừ công nợ, mình giữ hàng lại"
+                                   required="state not in ('done', 'cancel')"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                    </div>
+
+                    <notebook>
+                        <page string="Hàng bỏ &#8594; phế liệu thu về" name="moves">
+                            <!-- Một bảng, hai phần việc khác nhau — phân biệt
+                                 bằng CỘT "Vai trò" chứ không tách hai bảng: hai
+                                 bảng làm người đọc phải tự nối, mà phép đổi này
+                                 chỉ có nghĩa khi nhìn cả hai vế cùng lúc. -->
+                            <field name="move_ids" nolabel="1"
+                                   readonly="state in ('done', 'cancel')">
+                                <tree editable="bottom" create="0" delete="0">
+                                    <field name="company_id" column_invisible="1"/>
+                                    <field name="dlm_is_scrap_line"
+                                           column_invisible="1"/>
+                                    <field name="name" column_invisible="1"/>
+                                    <field name="location_id" column_invisible="1"/>
+                                    <field name="location_dest_id"
+                                           column_invisible="1"/>
+                                    <field name="dlm_scrap_role" string="Vai trò"
+                                           readonly="1"
+                                           decoration-danger="not dlm_is_scrap_line"
+                                           decoration-success="dlm_is_scrap_line"
+                                           decoration-bf="1"/>
+                                    <field name="product_id" string="Mặt hàng"
+                                           readonly="1"/>
+                                    <!-- Ô DUY NHẤT người dùng gõ: số kg cân được
+                                         của dòng phế liệu. Dòng hàng bỏ khoá
+                                         cứng — số đó là tồn thật đang có.
+                                         🔴 Là `quantity` (số THỰC làm được), KHÔNG
+                                         phải `product_uom_qty` (nhu cầu): sửa nhu
+                                         cầu thì dòng chi tiết vẫn giữ số cũ, và
+                                         kho nhận đúng số gợi ý chứ không phải số
+                                         trên cân. `button_validate` khoá nhu cầu
+                                         về bằng số này. -->
+                                    <field name="product_uom_qty"
+                                           column_invisible="1"/>
+                                    <field name="quantity" string="Số lượng"
+                                           readonly="not dlm_is_scrap_line"/>
+                                    <field name="product_uom" string="ĐVT"
+                                           readonly="1"
+                                           options="{'no_create': True}"/>
+                                    <field name="state" column_invisible="1"/>
+                                </tree>
+                            </field>
+                            <div class="text-muted mt-2">
+                                Số kg gợi ý tính theo quy đổi khối lượng của vật
+                                tư. <b>Cân thật luôn thắng</b> — sửa lại theo số
+                                trên cân, chênh lệch giữa hai số chính là dữ liệu
+                                của màn Đối chiếu thu hồi.
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+</odoo>

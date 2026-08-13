@@ -7,8 +7,17 @@ Phiếu giao KHÔNG tự sinh khi chốt đơn. Hàng gia công chưa tồn tạ
 phiếu giao sinh ra sẽ treo mãi ở trạng thái chờ, và hàng đợi của thủ kho đầy
 những việc chưa làm được. Để NÚT BẤM: ai đó phải quyết định "hàng đã sẵn sàng".
 
-Chỉ dòng **tồn kho được** mới lên phiếu giao. Dòng SP dùng chung (Hạng A,
-``consu``) không đi qua kho — nó ra thẳng từ xưởng, không có tồn để giữ chỗ.
+🔴 **K13 (2026-08-13) — ĐẢO quyết định của K6: dòng ``consu`` PHẢI lên phiếu
+giao.** Bản K6 loại chúng ra vì _"không có tồn nên chỉ tạo dòng vĩnh viễn không
+giữ chỗ được"_. Lý do đó **sai về kỹ thuật**: Odoo
+``_should_bypass_reservation()`` trả True cho SP không storable, nên dòng
+``consu`` nhảy thẳng sang ``assigned`` và validate bình thường — nó không bao
+giờ treo. Còn cái giá thì rất thật: đơn Hạng A — loại đơn phổ biến NHẤT của Đại
+Linh — không có chứng từ giao hàng nào, không có gì cho khách ký, và
+``dlm_delivery_state`` đứng yên "Chưa giao" kể cả khi hàng đã lên xe.
+
+Nay chỉ **dịch vụ** bị loại. Giữ chỗ và trừ tồn vẫn chỉ áp cho dòng storable —
+đó là việc của Odoo, không phải của luật ở đây.
 """
 
 from odoo import _, api, fields, models
@@ -45,13 +54,14 @@ class DlSaleOrder(models.Model):
         string="Có hàng cần giao qua kho",
         compute="_compute_dlm_delivery_state", store=True)
 
-    @api.depends("dlm_picking_ids")
+    @api.depends("dlm_picking_ids", "dlm_picking_ids.picking_type_id")
     def _compute_dlm_picking_count(self):
         for order in self:
-            order.dlm_picking_count = len(order.dlm_picking_ids)
+            order.dlm_picking_count = len(order._dlm_delivery_pickings())
 
     @api.depends("line_ids.qty", "line_ids.product_id",
                  "line_ids.product_id.detailed_type",
+                 "dlm_picking_ids.picking_type_id",
                  "dlm_picking_ids.state", "dlm_picking_ids.move_ids.state",
                  "dlm_picking_ids.move_ids.quantity")
     def _compute_dlm_delivery_state(self):
@@ -71,15 +81,16 @@ class DlSaleOrder(models.Model):
 
     # ── Số lượng: cần giao / đã giao / còn lại ───────────────────────────────
     def _dlm_deliverable_lines(self):
-        """Dòng đơn phải đi qua kho.
+        """Dòng đơn phải có mặt trên phiếu giao.
 
-        SP ``consu`` (dùng chung Hạng A) và dịch vụ bị loại: chúng không có tồn
-        nên đưa lên phiếu giao chỉ tạo dòng vĩnh viễn không giữ chỗ được.
+        🔴 K13 — ``consu`` (SP dùng chung Hạng A) VÀO, chỉ dịch vụ bị loại. Dịch
+        vụ không có gì để giao và không có gì để khách ký nhận; hàng Hạng A thì
+        có — nó chỉ không đi qua tồn kho, mà đó là chuyện khác hẳn.
         """
         self.ensure_one()
         return self.line_ids.filtered(
             lambda line: line.product_id
-            and line.product_id.detailed_type == "product"
+            and line.product_id.detailed_type in ("product", "consu")
             and line.qty > 0)
 
     def _dlm_needed_qty(self):
@@ -90,12 +101,26 @@ class DlSaleOrder(models.Model):
             needed[line.product_id] = needed.get(line.product_id, 0.0) + line.qty
         return needed
 
+    def _dlm_delivery_pickings(self):
+        """Phiếu GIAO HÀNG của đơn — KHÔNG phải mọi phiếu kho gắn vào đơn.
+
+        🔴 K13 mở ra ca này: phiếu [8] Nhập thành phẩm cũng ghi
+        ``dlm_sale_order_id`` (§11.13 — thủ kho phải biết lô hàng vừa làm xong là
+        của đơn nào). Đếm nó chung với phiếu giao thì nhập 10 cái bàn vào kho bị
+        tính là **đã giao 10 cái cho khách**: đơn tự nhảy sang "Đã giao đủ" khi
+        hàng còn nằm nguyên trong Kho thành phẩm. Lọc theo loại hoạt động, không
+        theo hướng phiếu (``outgoing`` còn có Trả NCC và Bán phế liệu).
+        """
+        self.ensure_one()
+        return self.dlm_picking_ids.filtered(
+            lambda p: p.picking_type_id.sequence_code == "GH")
+
     def _dlm_delivered_qty(self):
         """{product: số đã giao xong}. Chỉ đếm move ĐÃ hoàn tất — phiếu còn nháp
         hay đang chờ hàng chưa phải là hàng đã tới tay khách."""
         self.ensure_one()
         delivered = {}
-        for picking in self.dlm_picking_ids:
+        for picking in self._dlm_delivery_pickings():
             for move in picking.move_ids.filtered(lambda m: m.state == "done"):
                 delivered[move.product_id] = (
                     delivered.get(move.product_id, 0.0) + move.quantity)
@@ -109,7 +134,7 @@ class DlSaleOrder(models.Model):
         """
         self.ensure_one()
         planned = {}
-        open_pickings = self.dlm_picking_ids.filtered(
+        open_pickings = self._dlm_delivery_pickings().filtered(
             lambda p: p.state not in ("done", "cancel"))
         for picking in open_pickings:
             for move in picking.move_ids.filtered(
@@ -199,9 +224,9 @@ class DlSaleOrder(models.Model):
                 _("Đơn %s đã huỷ, không tạo phiếu giao được.") % self.name)
         if not self._dlm_deliverable_lines():
             raise UserError(_(
-                "Đơn %s không có mặt hàng nào đi qua kho. Sản phẩm dùng chung "
-                "(Hạng A) giao thẳng từ xưởng, không có tồn để giữ chỗ.")
-                % self.name)
+                "Đơn %s không có mặt hàng nào để giao — mọi dòng đều là dịch "
+                "vụ. Dịch vụ không có gì để khách ký nhận nên không lên phiếu "
+                "giao.") % self.name)
         if not self.env.su and not any(
                 self.env.user.has_group(role) for role in _DLM_DELIVERY_ROLES):
             raise UserError(_(
@@ -222,7 +247,7 @@ class DlSaleOrder(models.Model):
     def action_dlm_open_pickings(self):
         """Smart button → phiếu giao hàng của đơn."""
         self.ensure_one()
-        pickings = self.dlm_picking_ids
+        pickings = self._dlm_delivery_pickings()
         if not pickings:
             raise UserError(_("Đơn %s chưa có phiếu giao hàng nào.") % self.name)
         # RS-02 — helper ép view Đại Linh cho cả nhánh 1 phiếu lẫn nhiều phiếu.

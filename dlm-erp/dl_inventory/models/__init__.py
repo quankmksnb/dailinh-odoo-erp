@@ -6,4 +6,3 @@ from . import stock_lot
 from . import stock_quant
 from . import product_product
 from . import dl_sale_order
-from . import dl_scrap_recovery_report

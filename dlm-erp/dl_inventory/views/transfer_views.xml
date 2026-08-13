@@ -21,6 +21,15 @@
                 <field name="location_dest_id" string="Đến vị trí"/>
                 <field name="scheduled_date" string="Ngày" widget="date"/>
                 <field name="origin" string="Nguồn" optional="hide"/>
+                <!-- K15 — cột chữ ký. Không gộp vào cột Trạng thái: "assigned"
+                     nói phiếu đã giữ chỗ, còn cột này nói việc đang nằm ở tay
+                     AI (thủ kho hay bên Xưởng) — hai câu hỏi khác nhau. -->
+                <field name="dlm_receipt_state" string="Bàn giao" widget="badge"
+                       decoration-success="dlm_receipt_state == 'received'"
+                       decoration-warning="dlm_receipt_state == 'waiting'"
+                       decoration-info="dlm_receipt_state == 'ready'"
+                       invisible="dlm_receipt_state == 'none'"/>
+                <field name="dlm_received_uid" string="Người nhận" optional="show"/>
                 <field name="state" string="Trạng thái" widget="badge"
                        decoration-success="state == 'done'"
                        decoration-info="state == 'assigned'"
@@ -39,9 +48,23 @@
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
                             invisible="state != 'draft' or dlm_blocked"/>
+                    <!-- Tuyến thường: một nút chốt. Tuyến ra Xưởng thì nút này
+                         NHƯỜNG chỗ cho cặp bàn giao/ký nhận bên dưới — để cả
+                         hai cùng hiện là mời thủ kho đi đường tắt qua chữ ký
+                         (server vẫn chặn, nhưng bằng một lỗi khó hiểu). -->
                     <button name="button_validate" string="Xác nhận chuyển kho"
                             type="object" class="btn-primary"
-                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
+                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked or dlm_needs_receipt"/>
+                    <button name="action_dlm_handover" string="Bàn giao ra xưởng"
+                            type="object" class="btn-primary"
+                            invisible="dlm_receipt_state != 'ready' or state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
+                    <!-- groups= chỉ giấu khỏi mắt; chốt thật ở
+                         _dlm_check_receipt_signer (bài học RS-03). -->
+                    <button name="action_dlm_confirm_receipt"
+                            string="Xác nhận đã nhận"
+                            type="object" class="btn-primary"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+                            invisible="dlm_receipt_state != 'waiting'"/>
                     <button name="action_cancel" string="Huỷ phiếu"
                             type="object" class="btn-danger"
                             invisible="state in ('done', 'cancel')"/>
@@ -54,18 +77,22 @@
                          hoặc nơi nhận không được phép chứa (§4.2). -->
                     <field name="dlm_blocked_product_ids" invisible="1"/>
 
-                    <!-- SM-03: chưa chọn nguồn thì cột "Tồn ở nơi lấy" không
+                    <!-- SM-03: chưa chọn nguồn thì cột "Còn lấy được" không
                          biết đọc tồn ở đâu, và dòng cũng chưa có vị trí nguồn.
                          Khoá bảng dòng (bên dưới) + dải giải thích — inline. -->
                     <div class="alert alert-info" role="alert" invisible="location_id">
                         Chọn <b>Từ vị trí</b> (hoặc một tuyến hay dùng) trước —
-                        mỗi mặt hàng sẽ hiện luôn số tồn đang có ở đó.
+                        mỗi mặt hàng sẽ hiện luôn số <b>còn lấy được</b> ở đó
+                        (đã trừ phần phiếu khác đang giữ chỗ).
                     </div>
 
                     <!-- RS-11 — dải nghiệp vụ của phiếu chuyển kho: nguồn trùng
                          đích, dòng số lượng 0. Báo INLINE, không modal. -->
                     <field name="dlm_banner_level" invisible="1"/>
                     <field name="dlm_blocked" invisible="1"/>
+                    <!-- K15 — nuôi invisible của cặp nút bàn giao/ký nhận. -->
+                    <field name="dlm_needs_receipt" invisible="1"/>
+                    <field name="dlm_receipt_state" invisible="1"/>
                     <div class="alert alert-info" role="alert"
                          invisible="dlm_banner_level != 'info' or not location_id">
                         <field name="dlm_banner_message" nolabel="1" readonly="1"/>
@@ -87,20 +114,17 @@
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
 
-                    <!-- Hai tuyến chiếm >90% số lần chuyển kho: điền sẵn thay vì
-                         bắt thủ kho lần trong cây vị trí mỗi ngày. Là NÚT phụ
-                         (btn-secondary) chứ không chiếm chỗ CTA chính. -->
+                    <!-- Tuyến chiếm >90% số lần chuyển kho: điền sẵn thay vì bắt
+                         thủ kho lần trong cây vị trí mỗi ngày. Là NÚT phụ
+                         (btn-secondary) chứ không chiếm chỗ CTA chính.
+                         🔴 K16 — nút "Gom phế liệu" ĐÃ GỠ: phế liệu nay khai
+                         ngay trên phiếu Nhập kho từ xưởng, cùng mẻ sinh ra nó. -->
                     <div class="dl-preset-row" invisible="state != 'draft'">
                         <span class="dl-preset-label">Tuyến hay dùng:</span>
                         <button name="action_dlm_preset_to_workshop" type="object"
                                 class="btn btn-secondary btn-sm"
-                                title="Kho vật tư → Kho nhà máy sản xuất">
+                                title="Kho nguyên vật liệu → Xưởng sản xuất (cần chữ ký nhận hàng)">
                             Vật tư ra xưởng
-                        </button>
-                        <button name="action_dlm_preset_gather_scrap" type="object"
-                                class="btn btn-secondary btn-sm"
-                                title="Kho nhà máy sản xuất → Phế liệu chờ bán">
-                            Gom phế liệu
                         </button>
                     </div>
 
@@ -142,6 +166,54 @@
                         </div>
                     </div>
 
+                    <!-- ── K16 — Mối nối sang đơn hàng & định mức ────────────
+                         Gắn đơn là TÙY CHỌN (chuyển kho nội bộ thường không
+                         thuộc đơn nào), nhưng gắn rồi thì bảng đối chiếu định
+                         mức bên dưới hiện ra — và đó là chỗ duy nhất trong cả
+                         hệ thống trả lời được "đơn này đã ăn bao nhiêu vật tư
+                         so với BOM". -->
+                    <div class="dl-fields-row">
+                        <div class="dl-field">
+                            <label for="dlm_sale_order_id"
+                                   string="Cấp cho đơn hàng"/>
+                            <field name="dlm_sale_order_id" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"
+                                   options="{'no_create': True}"
+                                   placeholder="Để trống nếu không thuộc đơn nào"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="dlm_is_extra_issue"
+                                   string="Cấp bổ sung ngoài định mức"/>
+                            <field name="dlm_is_extra_issue" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                        <div class="dl-field"
+                             invisible="not dlm_is_extra_issue">
+                            <label for="dlm_extra_reason" string="Lý do"/>
+                            <field name="dlm_extra_reason" nolabel="1"
+                                   required="dlm_is_extra_issue"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                        <div class="dl-field"
+                             invisible="not dlm_is_extra_issue">
+                            <label for="dlm_extra_note" string="Diễn giải"/>
+                            <field name="dlm_extra_note" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"
+                                   placeholder="Cắt hỏng 1 mặt bàn, cần thêm 10 cây"/>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light border" role="alert"
+                         invisible="not dlm_bom_hint">
+                        <div class="fw-bold mb-1">Đối chiếu với định mức BOM</div>
+                        <field name="dlm_bom_hint" nolabel="1" readonly="1"/>
+                        <div class="text-muted small mt-1">
+                            Cộng dồn vượt định mức không phải lỗi — nhưng phải
+                            có lý do. Tick <b>Cấp bổ sung ngoài định mức</b> ở
+                            trên để ghi lại vì sao.
+                        </div>
+                    </div>
+
                     <notebook>
                         <page string="Hàng chuyển" name="moves">
                             <!-- SM-03: khoá thêm dòng tới khi có vị trí nguồn —
@@ -169,8 +241,13 @@
                                            context="{'dlm_src_location_id': parent.location_id}"/>
                                     <!-- Câu trả lời cho "hệ thống lỗi hay kho hết
                                          hàng?" — đứng ngay cạnh mặt hàng, đỏ khi 0. -->
+                                    <!-- K14: "Còn lấy được" chứ không phải "Tồn":
+                                         đã trừ phần phiếu khác giữ chỗ. Đổi nhãn
+                                         là bắt buộc — nhãn "Tồn" cạnh một con số
+                                         đã trừ chỗ giữ khiến thủ kho tưởng kho
+                                         hụt hàng và đi kiểm kê nhầm. -->
                                     <field name="dlm_src_available_qty"
-                                           string="Tồn ở nơi lấy" readonly="1"
+                                           string="Còn lấy được" readonly="1"
                                            decoration-danger="dlm_src_available_qty &lt;= 0"
                                            decoration-bf="dlm_src_available_qty &lt;= 0"/>
                                     <field name="product_uom_qty" string="Cần chuyển"/>
@@ -209,6 +286,26 @@
                             </field>
                         </page>
                     </notebook>
+
+                    <!-- K15 — Vết bàn giao. Hiện NGAY CẢ khi chưa ai ký (chỉ
+                         cần tuyến này cần chữ ký): hai ô trống là lời nhắc còn
+                         việc chưa xong, hiện muộn thì thủ kho không biết phiếu
+                         sẽ phải qua tay ai. Chỉ-đọc tuyệt đối — chữ ký chỉ do
+                         hai nút trên header đóng dấu, gõ tay được thì nó thôi
+                         là chữ ký. -->
+                    <group string="Bàn giao &amp; ký nhận"
+                           invisible="not dlm_needs_receipt">
+                        <group>
+                            <field name="dlm_handover_uid" readonly="1"
+                                   placeholder="Chưa bàn giao"/>
+                            <field name="dlm_handover_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="dlm_received_uid" readonly="1"
+                                   placeholder="Chưa ký nhận"/>
+                            <field name="dlm_received_date" readonly="1"/>
+                        </group>
+                    </group>
                 </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
@@ -237,6 +334,12 @@
                         domain="[('state', '=', 'done')]"/>
                 <filter name="draft" string="Nháp"
                         domain="[('state', '=', 'draft')]"/>
+                <separator/>
+                <!-- K15 — hàng đợi của bên Xưởng. K16 chuyển sang đọc thẳng
+                     `dlm_receipt_state` (nay là field LƯU TRỮ, search được) —
+                     một nguồn sự thật thay vì chép lại điều kiện chữ ký. -->
+                <filter name="cho_ky_nhan" string="Chờ xưởng xác nhận"
+                        domain="[('dlm_receipt_state', '=', 'waiting')]"/>
                 <separator/>
                 <filter name="cancelled" string="Đã huỷ"
                         domain="[('state', '=', 'cancel')]"/>
@@ -273,8 +376,10 @@
         <field name="context">{'restricted_picking_type_code': 'internal'}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Chưa có phiếu chuyển kho nào</p>
-            <p>Chuyển hàng giữa các khu: vật tư từ khu nhận <b>ra xưởng</b>, hoặc
-               hàng thương mại sang <b>kho thành phẩm</b> để sẵn sàng giao.</p>
+            <p>Chuyển hàng giữa các khu. Hai tuyến hay dùng: vật tư và bán thành
+               phẩm từ <b>Kho nguyên vật liệu ra Xưởng sản xuất</b> (phiếu này
+               cần bên Xưởng ký nhận mới hoàn tất), và đầu mẩu cắt từ
+               <b>Xưởng sản xuất về Phế liệu chờ bán</b>.</p>
         </field>
     </record>
 

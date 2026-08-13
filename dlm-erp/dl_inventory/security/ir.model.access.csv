@@ -2,7 +2,7 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_dl_stock_picking_wh,stock.picking Warehouse,stock.model_stock_picking,dl_base.dl_group_warehouse,1,1,1,0
 access_dl_stock_picking_admin,stock.picking Admin,stock.model_stock_picking,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_picking_pur,stock.picking Purchasing,stock.model_stock_picking,dl_base.dl_group_purchasing,1,1,1,0
-access_dl_stock_picking_tech,stock.picking Tech,stock.model_stock_picking,dl_base.dl_group_tech,1,0,0,0
+access_dl_stock_picking_tech,stock.picking Tech,stock.model_stock_picking,dl_base.dl_group_tech,1,1,1,0
 access_dl_stock_picking_ba,stock.picking BA,stock.model_stock_picking,dl_base.dl_group_ba,1,0,0,0
 access_dl_stock_picking_ceo,stock.picking CEO,stock.model_stock_picking,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_picking_sm,stock.picking SM,stock.model_stock_picking,dl_base.dl_group_sales_manager,1,0,0,0
@@ -10,7 +10,7 @@ access_dl_stock_picking_acc,stock.picking Acc,stock.model_stock_picking,dl_base.
 access_dl_stock_move_wh,stock.move Warehouse,stock.model_stock_move,dl_base.dl_group_warehouse,1,1,1,1
 access_dl_stock_move_admin,stock.move Admin,stock.model_stock_move,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_move_pur,stock.move Purchasing,stock.model_stock_move,dl_base.dl_group_purchasing,1,1,1,1
-access_dl_stock_move_tech,stock.move Tech,stock.model_stock_move,dl_base.dl_group_tech,1,0,0,0
+access_dl_stock_move_tech,stock.move Tech,stock.model_stock_move,dl_base.dl_group_tech,1,1,1,0
 access_dl_stock_move_ba,stock.move BA,stock.model_stock_move,dl_base.dl_group_ba,1,0,0,0
 access_dl_stock_move_ceo,stock.move CEO,stock.model_stock_move,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_move_sm,stock.move SM,stock.model_stock_move,dl_base.dl_group_sales_manager,1,0,0,0
@@ -18,7 +18,7 @@ access_dl_stock_move_acc,stock.move Acc,stock.model_stock_move,dl_base.dl_group_
 access_dl_stock_move_line_wh,stock.move.line Warehouse,stock.model_stock_move_line,dl_base.dl_group_warehouse,1,1,1,1
 access_dl_stock_move_line_admin,stock.move.line Admin,stock.model_stock_move_line,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_move_line_pur,stock.move.line Purchasing,stock.model_stock_move_line,dl_base.dl_group_purchasing,1,1,1,1
-access_dl_stock_move_line_tech,stock.move.line Tech,stock.model_stock_move_line,dl_base.dl_group_tech,1,0,0,0
+access_dl_stock_move_line_tech,stock.move.line Tech,stock.model_stock_move_line,dl_base.dl_group_tech,1,1,1,0
 access_dl_stock_move_line_ba,stock.move.line BA,stock.model_stock_move_line,dl_base.dl_group_ba,1,0,0,0
 access_dl_stock_move_line_ceo,stock.move.line CEO,stock.model_stock_move_line,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_move_line_sm,stock.move.line SM,stock.model_stock_move_line,dl_base.dl_group_sales_manager,1,0,0,0
@@ -54,14 +54,12 @@ access_dl_stock_picking_type_ceo,stock.picking.type CEO,stock.model_stock_pickin
 access_dl_stock_picking_type_sm,stock.picking.type SM,stock.model_stock_picking_type,dl_base.dl_group_sales_manager,1,0,0,0
 access_dl_stock_picking_type_acc,stock.picking.type Acc,stock.model_stock_picking_type,dl_base.dl_group_accountant,1,0,0,0
 access_dl_orderpoint_pur,stock.warehouse.orderpoint Purchasing,stock.model_stock_warehouse_orderpoint,dl_base.dl_group_purchasing,1,0,0,0
+access_dl_orderpoint_tech,stock.warehouse.orderpoint Tech,stock.model_stock_warehouse_orderpoint,dl_base.dl_group_tech,1,0,0,0
 access_dl_stock_warehouse_wh,stock.warehouse Warehouse,stock.model_stock_warehouse,dl_base.dl_group_warehouse,1,0,0,0
 access_dl_stock_warehouse_pur,stock.warehouse Purchasing,stock.model_stock_warehouse,dl_base.dl_group_purchasing,1,0,0,0
 access_dl_stock_warehouse_admin,stock.warehouse Admin,stock.model_stock_warehouse,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_warehouse_ceo,stock.warehouse CEO,stock.model_stock_warehouse,dl_base.dl_group_ceo,1,0,0,0
 access_dl_sale_order_wh,dl.sale.order Warehouse,dl_sale.model_dl_sale_order,dl_base.dl_group_warehouse,1,0,0,0
 access_dl_sale_order_line_wh,dl.sale.order.line Warehouse,dl_sale.model_dl_sale_order_line,dl_base.dl_group_warehouse,1,0,0,0
-access_dl_scrap_report_wh,dl.scrap.recovery.report Warehouse,model_dl_scrap_recovery_report,dl_base.dl_group_warehouse,1,0,0,0
-access_dl_scrap_report_admin,dl.scrap.recovery.report Admin,model_dl_scrap_recovery_report,dl_base.dl_group_admin,1,0,0,0
-access_dl_scrap_report_ceo,dl.scrap.recovery.report CEO,model_dl_scrap_recovery_report,dl_base.dl_group_ceo,1,0,0,0
-access_dl_scrap_report_acc,dl.scrap.recovery.report Acc,model_dl_scrap_recovery_report,dl_base.dl_group_accountant,1,0,0,0
-access_dl_scrap_report_tech,dl.scrap.recovery.report Tech,model_dl_scrap_recovery_report,dl_base.dl_group_tech,1,0,0,0
+access_dl_sale_order_tech,dl.sale.order Tech,dl_sale.model_dl_sale_order,dl_base.dl_group_tech,1,0,0,0
+access_dl_sale_order_line_tech,dl.sale.order.line Tech,dl_sale.model_dl_sale_order_line,dl_base.dl_group_tech,1,0,0,0

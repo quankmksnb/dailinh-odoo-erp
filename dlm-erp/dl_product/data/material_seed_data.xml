@@ -40,6 +40,10 @@
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
             <field name="dlm_calc_kind">bulk</field>
             <field name="list_price">8000</field>
+            <!-- 🔴 K12 — cờ nhận diện phế liệu. Khu Phế liệu chờ bán khoá đầu
+                 vào bằng đúng field này; không bật thì phiếu Hoá phế liệu không
+                 đưa được hàng vào đâu cả. -->
+            <field name="dlm_is_scrap" eval="True"/>
         </record>
 
         <!-- ============================================================

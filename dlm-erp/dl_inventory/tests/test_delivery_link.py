@@ -7,8 +7,8 @@ Ba bất biến đắt nhất nếu sai:
 
   1. Đơn CHƯA chốt không được sinh phiếu giao — phiếu giao giữ chỗ hàng cho một
      cam kết chưa tồn tại, hàng "biến mất" khỏi tồn khả dụng của đơn thật.
-  2. SP dùng chung (Hạng A, ``consu``) KHÔNG lên phiếu giao — nó không có tồn,
-     dòng sinh ra sẽ treo vĩnh viễn ở trạng thái chờ hàng.
+  2. SP dùng chung (Hạng A, ``consu``) PHẢI lên phiếu giao — 🔴 K13 đảo lại bất
+     biến của K6 (xem `test_sp_dung_chung_van_len_phieu_giao`).
   3. Đơn đã có phiếu giao KHÔNG đưa về nháp được — sửa lại đơn đã giao là làm
      lệch chứng từ kho với chứng từ bán.
 """
@@ -102,30 +102,76 @@ class TestDeliveryLink(DlInventoryCase):
             order.action_dlm_create_delivery()
         self.assertEqual(len(order.dlm_picking_ids), 1)
 
-    def test_sp_dung_chung_khong_len_phieu_giao(self):
-        """§3.5 + §9.1 — Dòng SP generic (consu) đi thẳng từ xưởng, không qua kho."""
-        categ = self.env["product.category"].create({"name": "Bàn thép (K6)"})
+    def _generic_product(self, suffix="K6"):
+        """SP dùng chung Hạng A — `detailed_type` thành `consu` vì có
+        `dl.bom.template` trỏ tới (§3.5)."""
+        categ = self.env["product.category"].create(
+            {"name": "Bàn thép (%s)" % suffix})
         generic = self.env["product.product"].create({
-            "name": "Bàn thép khung hộp (K6)",
+            "name": "Bàn thép khung hộp (%s)" % suffix,
             "categ_id": categ.id,
             "product_kind": "manufactured",
         })
         self.env["dl.bom.template"].create({
-            "name": "Mẫu bàn thép (K6)",
+            "name": "Mẫu bàn thép (%s)" % suffix,
             "product_category_id": categ.id,
             "generic_product_id": generic.id,
         })
         generic.invalidate_recordset(["detailed_type"])
         self.assertEqual(generic.detailed_type, "consu", "Bối cảnh §3.5.")
+        return generic
 
+    def test_sp_dung_chung_van_len_phieu_giao(self):
+        """🔴 K13 ĐẢO bất biến số 2 của K6 (§9.1).
+
+        K6 loại dòng `consu` ra với lý do "không có tồn nên sẽ treo vĩnh viễn".
+        Lý do đó SAI: `_should_bypass_reservation()` trả True cho SP không
+        storable ⇒ dòng nhảy thẳng sang `assigned`. Test này canh cả hai vế —
+        dòng LÊN được phiếu, VÀ phiếu không treo ở trạng thái chờ hàng.
+
+        Cái giá của bản cũ: đơn Hạng A (loại phổ biến nhất) không có chứng từ
+        giao nào để khách ký, và tình trạng giao đứng yên kể cả khi hàng đã lên xe.
+        """
+        generic = self._generic_product()
         order = self._make_order(product=generic, qty=3.0)
-        self.assertFalse(
+        self.assertTrue(
             order.dlm_has_deliverable,
-            "Đơn toàn SP dùng chung thì không có gì đi qua kho.")
+            "Đơn Hạng A phải có hàng để giao — đó là nghiệp vụ lõi.")
+
+        order.action_dlm_create_delivery()
+        picking = self._delivery_of(order)
+        self.assertEqual(picking.move_ids.product_id, generic)
+        self.assertEqual(picking.move_ids.product_uom_qty, 3.0)
+        self.assertEqual(
+            picking.state, "assigned",
+            "Dòng consu bỏ qua giữ chỗ ⇒ phiếu sẵn sàng ngay, không treo.")
+
+        picking.move_ids.quantity = 3.0
+        picking.move_ids.picked = True
+        picking.button_validate()
+        order.invalidate_recordset(["dlm_delivery_state"])
+        self.assertEqual(order.dlm_delivery_state, "done")
+
+    def test_don_toan_dich_vu_khong_tao_duoc_phieu_giao(self):
+        """Vế còn lại của K13: mở cho `consu` KHÔNG có nghĩa là mở cho tất cả.
+
+        Dịch vụ không có gì để giao và không có gì để khách ký nhận. Bỏ luôn cả
+        điều kiện này là đẻ ra phiếu giao rỗng nghĩa cho mọi đơn có dòng công
+        lắp đặt.
+        """
+        # detailed_type khai ngay trong create: dl_product chỉ ép `product` khi
+        # vals CHƯA nói gì (`_STORABLE_KINDS`), khai rồi thì nó tôn trọng.
+        service = self.env["product.product"].create({
+            "name": "Công lắp đặt tại chỗ (test)",
+            "product_kind": "trading",
+            "detailed_type": "service",
+        })
+
+        order = self._make_order(product=service, qty=1.0)
+        self.assertFalse(order.dlm_has_deliverable)
         with self.assertRaises(UserError) as caught:
             order.action_dlm_create_delivery()
-        self.assertIn("không có mặt hàng nào đi qua kho",
-                      str(caught.exception))
+        self.assertIn("dịch vụ", str(caught.exception))
 
     def test_giao_du_thi_don_chuyen_sang_da_giao_du(self):
         """Tiêu chí verify K6: giao xong ⇒ dlm_delivery_state = 'done'."""
@@ -176,8 +222,7 @@ class TestDeliveryLink(DlInventoryCase):
         """§11.5 — Preset phải đổi vị trí trên CẢ phiếu lẫn dòng hàng.
 
         Chỉ đổi trên phiếu thì hàng vẫn chạy theo vị trí cũ ghi ở dòng — phiếu
-        nói một đằng, tồn kho đi một nẻo. (Preset "Gom phế liệu" thay cho preset
-        "Hàng TM sang Kho thành phẩm" đã bỏ — bước [2] Kiểm & cất làm thay, §5.3.)
+        nói một đằng, tồn kho đi một nẻo.
         """
         picking = self.env["stock.picking"].create({
             "picking_type_id": self.warehouse.int_type_id.id,
@@ -192,9 +237,13 @@ class TestDeliveryLink(DlInventoryCase):
                 "location_dest_id": self.loc_xuong.id,
             })],
         })
-        picking.action_dlm_preset_gather_scrap()
+        # 🔴 K16 — preset "Gom phế liệu" ĐÃ GỠ (phế liệu nay khai trên phiếu mẻ,
+        # xem test_workshop_batch). Preset còn lại vẫn phải kéo dòng đi theo:
+        # dòng nhập trước khi bấm nút mà đứng yên thì phiếu nói một đằng, hàng
+        # chạy một nẻo — đó mới là bất biến test này canh.
+        picking.action_dlm_preset_to_workshop()
 
-        self.assertEqual(picking.location_id, self.loc_xuong)
-        self.assertEqual(picking.location_dest_id, self.loc_xuong_pl)
-        self.assertEqual(picking.move_ids.location_id, self.loc_xuong)
-        self.assertEqual(picking.move_ids.location_dest_id, self.loc_xuong_pl)
+        self.assertEqual(picking.location_id, self.loc_kho)
+        self.assertEqual(picking.location_dest_id, self.loc_xuong)
+        self.assertEqual(picking.move_ids.location_id, self.loc_kho)
+        self.assertEqual(picking.move_ids.location_dest_id, self.loc_xuong)

@@ -11,3 +11,8 @@ from . import test_inventory_adjustment
 from . import test_smart_domains
 from . import test_screen_boundaries
 from . import test_validation_rules
+from . import test_availability
+from . import test_to_scrap
+from . import test_workshop_handover
+from . import test_fg_receipt
+from . import test_workshop_batch

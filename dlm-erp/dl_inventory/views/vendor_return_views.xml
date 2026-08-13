@@ -9,9 +9,18 @@
          (đổi hàng? giảm trừ công nợ? NCC tự đến lấy?). Thủ kho ghi nhận ở bước
          kiểm, Mua hàng quyết định ở đây — đúng ranh giới kiểm soát chéo.
 
-         Phiếu KHÔNG tạo tay ở màn này: nó sinh ra từ kết quả kiểm hàng. Hàng
-         phát hiện lỗi SAU khi đã cất kho thì làm phiếu tay từ khu Vật tư & hàng
-         thương mại (§6.5) — ca hiếm, không dựng lối đi riêng ở B1.
+         Phiếu KHÔNG tạo tay ở màn này: nó sinh ra từ kết quả kiểm hàng — ba lớp
+         khoá (create="0" ở list + form + bảng dòng, cộng ir.rule RS-03) đều CỐ
+         Ý, chúng giữ bất biến "phiếu trả luôn truy được về một lần giao hàng cụ
+         thể của NCC".
+
+         🔴 SỬA MỘT ĐẶC TẢ SAI (§6.5, 2026-08-13): bản trước ghi hàng phát hiện
+         lỗi SAU khi đã cất kho thì "làm phiếu tay từ khu Vật tư" — KHÔNG làm
+         được, chính vì ba lớp khoá trên. Ở B1 ca đó xử lý ngoài hệ thống (gọi
+         NCC, ghi công nợ); nếu hàng ở lại kho thì dùng nút [Chuyển thành phế
+         liệu] trên màn Tồn kho (phiếu [9]). Mở đường tạo tay để lại cho B3
+         cùng rail Mua hàng — phần khó là neo phiếu tay vào một lần nhận cũ,
+         không phải cái nút.
     ============================================================ -->
 
     <record id="view_dl_vendor_return_tree" model="ir.ui.view">
@@ -72,12 +81,22 @@
                             type="object" class="btn-primary"
                             invisible="state not in ('waiting', 'confirmed', 'assigned')"/>
                     <!-- Huỷ = thoả thuận xong không trả nữa (NCC giảm trừ công
-                         nợ chẳng hạn). Hàng vẫn nằm ở khu Chờ trả NCC — xử lý
-                         tiếp bằng chuyển kho hoặc kiểm kê. -->
+                         nợ chẳng hạn). Hàng vẫn nằm ở khu Chờ trả NCC — lối ra
+                         DUY NHẤT còn lại là nút [Chuyển thành phế liệu] bên
+                         dưới (§6.4.1). -->
                     <button name="action_cancel" string="Không trả nữa"
                             type="object" class="btn-danger"
                             groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"
                             invisible="state in ('done', 'cancel')"/>
+                    <!-- 🔴 K12 — LỐI RA của ngõ cụt. Khu Chờ trả cấm kiểm kê tay
+                         VÀ cấm làm nguồn phiếu chuyển kho, nên trước bản này
+                         hàng huỷ trả nằm trong sổ vĩnh viễn. Nút chỉ hiện khi
+                         phiếu đã huỷ mà hàng CÒN kẹt — hoá phế liệu xong thì
+                         quant hết, nút tự tắt (không hoá hai lần cùng một lô). -->
+                    <button name="action_dlm_to_scrap"
+                            string="Chuyển thành phế liệu"
+                            type="object" class="btn-primary"
+                            invisible="state != 'cancel' or not dlm_has_stuck_stock"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
                 </header>
@@ -94,6 +113,9 @@
                     </div>
 
                     <field name="company_id" invisible="1"/>
+                    <!-- Odoo 17: field dùng trong `invisible` của nút PHẢI có
+                         mặt trong view, không thì nạp module chết ngay. -->
+                    <field name="dlm_has_stuck_stock" invisible="1"/>
                     <field name="dlm_banner_level" invisible="1"/>
                     <div class="alert alert-info" role="alert"
                          invisible="dlm_banner_level != 'info'">

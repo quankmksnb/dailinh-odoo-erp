@@ -17,10 +17,21 @@ dòng), view chỉ đổi nhãn thành "Đạt". Thêm một field alias chỉ �
 đẻ ra hai nguồn sự thật cho cùng một con số.
 """
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.tools.float_utils import float_compare
 
 from .stock_picking import _DLM_QC_CODE
+
+
+class StockMoveLine(models.Model):
+    _inherit = "stock.move.line"
+
+    # K14 — màn "Đang giữ chỗ" phải nói được hàng hứa cho ĐƠN nào, không chỉ cho
+    # phiếu nào: thủ kho biết số phiếu cũng chưa gọi được cho ai. Related không
+    # lưu — dữ liệu đã ở phiếu, nhân bản sang dòng chỉ tạo thêm chỗ lệch.
+    dlm_sale_order_id = fields.Many2one(
+        related="picking_id.dlm_sale_order_id", string="Đơn bán hàng",
+        readonly=True)
 
 
 class StockMove(models.Model):
@@ -45,25 +56,159 @@ class StockMove(models.Model):
     # Neo vào `location_id` của chính dòng (không phải của phiếu): native
     # `_onchange_locations` đã đẩy vị trí phiếu xuống mọi dòng, nên số này theo
     # kịp khi đổi "Từ vị trí" mà không cần đi vòng qua parent.
+    # 🔴 K14 — đọc số KHẢ DỤNG, KHÔNG phải tồn thực. Cột này nằm ngay cạnh dải
+    # cảnh báo thiếu hàng của phiếu; hai chỗ đọc hai công thức khác nhau thì dải
+    # báo "bị giữ hết" trong khi cột cạnh nó khoe "24" — người dùng tin cột, và
+    # cột đang sai. Cả hai nay gọi chung stock.quant._dlm_available_qty.
     dlm_src_available_qty = fields.Float(
-        string="Tồn ở nơi lấy", digits="Product Unit of Measure",
+        string="Còn lấy được", digits="Product Unit of Measure",
         compute="_compute_dlm_src_available_qty",
-        help="Tồn thực của mặt hàng tại/dưới vị trí lấy hàng của dòng này. "
-             "0 = nơi đó đang hết — vẫn tạo phiếu được, nhưng phiếu sẽ treo "
-             "chờ hàng chứ không giữ chỗ được ngay.")
+        help="Số lấy được NGAY tại/dưới vị trí lấy hàng của dòng này — đã trừ "
+             "phần phiếu khác đang giữ chỗ. 0 = không lấy được: hoặc nơi đó hết "
+             "hàng, hoặc hàng còn nhưng đã hứa cho phiếu khác. Vẫn tạo phiếu "
+             "được, nhưng phiếu sẽ treo chờ hàng chứ không giữ chỗ được ngay.")
 
-    @api.depends("product_id", "location_id")
+    # move_line_ids.quantity: chính dòng này vừa giữ chỗ thì số phải nhích lên
+    # lại, không thì dòng tự tố mình thiếu hàng ngay sau khi giữ chỗ thành công.
+    @api.depends("product_id", "location_id", "state", "move_line_ids.quantity")
     def _compute_dlm_src_available_qty(self):
-        """sudo(): chỉ đọc SỐ LƯỢNG tồn, không đụng giá (§8.3 doc kho)."""
-        Quant = self.env["stock.quant"].sudo()
+        Quant = self.env["stock.quant"]
         for move in self:
-            if not move.product_id or not move.location_id:
-                move.dlm_src_available_qty = 0.0
+            move.dlm_src_available_qty = Quant._dlm_available_qty(
+                move.product_id, move.location_id,
+                own_move_lines=move.move_line_ids)
+
+    # ── K12 — Vai trò dòng trên phiếu Hoá phế liệu ───────────────────────────
+    # Phiếu [9] có hai loại dòng ngược nhau trong cùng một bảng. Không có cột
+    # nói ra vai trò thì người dùng nhìn hai dòng cùng cỡ và không biết dòng nào
+    # là thứ mình đang bỏ đi, dòng nào là thứ thu về — mà đó là toàn bộ nội dung
+    # của phiếu này.
+    dlm_is_scrap_line = fields.Boolean(
+        string="Là dòng phế liệu thu về",
+        compute="_compute_dlm_scrap_role")
+    dlm_scrap_role = fields.Char(
+        string="Vai trò", compute="_compute_dlm_scrap_role")
+
+    @api.depends("product_id", "product_id.dlm_is_scrap")
+    def _compute_dlm_scrap_role(self):
+        for move in self:
+            la_phe = bool(move.product_id.dlm_is_scrap)
+            move.dlm_is_scrap_line = la_phe
+            move.dlm_scrap_role = (
+                _("Phế liệu thu về") if la_phe else _("Hàng bỏ"))
+
+    # ── K16 — Vai trò dòng trên phiếu [8] Nhập kho từ xưởng ──────────────────
+    # Phiếu [8] mô tả TRỌN một mẻ sản xuất, nên nó có ba loại dòng đi hai chiều
+    # ngược nhau trên cùng một chứng từ. Người dùng khai VAI TRÒ; vị trí nguồn
+    # và đích thì SUY RA — không có ô vị trí nào trên màn để chọn sai.
+    #
+    # 🔴 Vì sao "Vật tư đã dùng" đi vào vị trí ẢO Sản xuất chứ không phải "biến
+    # mất": thép rời sổ vì nó đã thành cái bàn, không phải vì ai đó xoá nó.
+    # Vị trí ảo giữ lại vết đó — truy ngược được "100 cây này đi đâu".
+    #
+    # 🔴 Vì sao "Xưởng nộp về" lấy nguồn ảo chứ không phải Xưởng: ở B1 chưa nổ
+    # BOM nên cái bàn CHƯA TỪNG tồn tại ở Xưởng trên sổ. Xuất bàn từ Xưởng là
+    # ghi tồn ÂM ở một chỗ đang có 0 — mà Odoo không chặn tồn âm nội bộ, nên nó
+    # hỏng im lặng. Đây là lý do nguồn không được là một ô để người dùng chọn.
+    dlm_move_kind = fields.Selection([
+        ("output", "Xưởng nộp về"),
+        ("consume", "Vật tư đã dùng"),
+        ("return", "Vật tư trả lại kho"),
+    ], string="Vai trò dòng", copy=True,
+        help="Quyết định vị trí lấy/nhận của dòng này. Chỉ dùng trên phiếu "
+             "Nhập kho từ xưởng.")
+
+    @api.model
+    def _dlm_route_for(self, move_kind, product):
+        """(nguồn, đích) suy từ vai trò dòng + mặt hàng. False nếu không khai.
+
+        Là `@api.model` chứ không phải phương thức của bản ghi vì `create` phải
+        biết vị trí TRƯỚC khi bản ghi tồn tại: `location_id` là required trên
+        stock.move, nên đóng dấu sau khi tạo thì đã nổ mất rồi.
+        """
+        if not move_kind:
+            return False
+        Location = self.env["stock.location"]
+        production = Location._dlm_virtual_location("production")
+        xuong = Location._dlm_location("dl_inventory.stock_location_xuong")
+        if move_kind == "consume":
+            return xuong, production
+        if move_kind == "return":
+            return xuong, Location._dlm_location(
+                "dl_inventory.stock_location_nhan_kho")
+        # "output" — đích theo MẶT HÀNG. Soi cờ phế liệu TRƯỚC `product_kind`:
+        # SCRAP-STEEL mang product_kind='material' y hệt thép thật (xem
+        # _DLM_LOCATION_RULES), nên hỏi theo loại hàng sẽ trả lời sai.
+        if product.dlm_is_scrap:
+            dest_xml_id = "dl_inventory.stock_location_xuong_pl"
+        elif product.product_kind == "material_processed":
+            dest_xml_id = "dl_inventory.stock_location_nhan_kho"
+        else:
+            dest_xml_id = "dl_inventory.stock_location_tp"
+        return production, Location._dlm_location(dest_xml_id)
+
+    def _dlm_workshop_route(self):
+        """(nguồn, đích) của chính dòng này. False = không phải dòng phiếu [8]."""
+        self.ensure_one()
+        return self._dlm_route_for(self.dlm_move_kind, self.product_id)
+
+    def _dlm_stamp_workshop_route(self):
+        """Đóng vị trí đúng theo vai trò dòng.
+
+        Chạy ở `create`/`write` chứ không chỉ ở onchange: onchange KHÔNG nổ với
+        import, RPC, hay bất kỳ đường ghi nào không đi qua form. Vị trí sai trên
+        phiếu này không phải lỗi hiển thị — nó là tồn âm hoặc hàng vào nhầm kho.
+        """
+        for move in self:
+            if move.state in ("done", "cancel"):
                 continue
-            move.dlm_src_available_qty = sum(Quant.search([
-                ("location_id", "child_of", move.location_id.id),
-                ("product_id", "=", move.product_id.id),
-            ]).mapped("quantity"))
+            route = move._dlm_workshop_route()
+            if not route:
+                continue
+            source, destination = route
+            vals = {}
+            if move.location_id != source:
+                vals["location_id"] = source.id
+            if move.location_dest_id != destination:
+                vals["location_dest_id"] = destination.id
+            if vals:
+                super(StockMove, move).write(vals)
+
+    @api.onchange("dlm_move_kind", "product_id")
+    def _onchange_dlm_move_kind(self):
+        """Bản UI của `_dlm_stamp_workshop_route` — để người dùng thấy ngay."""
+        for move in self:
+            if not move.dlm_move_kind or not move.product_id:
+                continue
+            route = move._dlm_workshop_route()
+            if route:
+                move.location_id, move.location_dest_id = route
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            # `name` là required trên stock.move nhưng KHÔNG có mặc định nào —
+            # nó chỉ được điền nhờ onchange của form. Dòng tạo qua RPC, import,
+            # hay test sẽ nổ "trường bắt buộc chưa được đặt" ở đúng chỗ khó đoán
+            # nhất (xem cùng bẫy đã gặp với location_id ở 4 form phiếu kho).
+            if not vals.get("dlm_move_kind"):
+                continue
+            product = self.env["product.product"].browse(vals.get("product_id"))
+            if not vals.get("name"):
+                vals["name"] = product.display_name or _("Dòng mẻ sản xuất")
+            route = self._dlm_route_for(vals["dlm_move_kind"], product)
+            if route:
+                vals["location_id"] = route[0].id
+                vals["location_dest_id"] = route[1].id
+        moves = super().create(vals_list)
+        moves._dlm_stamp_workshop_route()
+        return moves
+
+    def write(self, vals):
+        res = super().write(vals)
+        if {"dlm_move_kind", "product_id"} & set(vals):
+            self._dlm_stamp_workshop_route()
+        return res
 
     # QC-02 — Đạt + Loại không được vượt số hàng đang nằm ở khu Chờ kiểm.
     # Là field (không phải @api.constrains) để view tô đỏ dòng NGAY khi gõ:

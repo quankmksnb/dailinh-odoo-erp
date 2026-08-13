@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K16 — M10 "Nhập kho từ xưởng" (phiếu [8] NTP) — MỘT MẺ = MỘT CHỨNG TỪ
+         docs/Thiet_ke_phan_he_kho.md §5.1, §5.4, §9.1, §11.13
+
+         Câu hỏi màn này trả lời: "mẻ vừa xong làm ra cái gì, ăn hết bao nhiêu
+         vật tư, cân được bao nhiêu phế liệu — và của đơn nào".
+
+         🔴 K13 dựng màn này chỉ để CỘNG thành phẩm vào kho, và phải treo một
+         dải xin lỗi: "phiếu này không trừ vật tư". Hệ quả không nổ lỗi nào
+         nhưng sai thật — 100 cây thép đã thành 10 cái bàn vẫn nằm nguyên trên
+         sổ ở Xưởng. K16 đóng lỗ đó bằng bảng "Vật tư ra khỏi xưởng".
+
+         🔴 KHÔNG có ô vị trí nào cho người dùng chọn. Vị trí suy từ VAI TRÒ
+         dòng + MẶT HÀNG (stock_move._dlm_route_for). Lý do không phải tiện
+         dụng: hàng xưởng làm ra chưa từng tồn tại ở Xưởng trên sổ (B1 không nổ
+         BOM), nên chọn nhầm nguồn = Xưởng là ghi tồn ÂM ở một chỗ đang có 0 —
+         mà Odoo không chặn tồn âm nội bộ, nên nó hỏng im lặng.
+
+         Hai bước, hai người: Kỹ thuật khai & bàn giao → Thủ kho đếm thực tế,
+         sửa số nếu lệch, rồi ký nhận. Xưởng tự xác nhận được thì con số nhập
+         kho không còn ai đối chiếu.
+    ============================================================ -->
+
+    <record id="view_dl_fg_receipt_tree" model="ir.ui.view">
+        <field name="name">dl.stock.picking.fg.receipt.tree</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <tree string="Nhập kho từ xưởng" class="dl-fg-receipt-list"
+                  decoration-muted="state == 'cancel'">
+                <field name="name" string="Số phiếu"/>
+                <!-- Cột định danh là ĐƠN BÁN HÀNG: hàng gia công của Đại Linh
+                     luôn làm theo đơn, nên câu hỏi thường trực ở màn này là
+                     "đơn nào đã có hàng", không phải "phiếu nào". -->
+                <field name="dlm_sale_order_id" string="Đơn bán hàng"/>
+                <field name="scheduled_date" string="Ngày nhập" widget="date"/>
+                <!-- K16 — cột định danh thứ hai là TÌNH TRẠNG BÀN GIAO: câu hỏi
+                     thường trực của thủ kho ở màn này là "phiếu nào đang chờ
+                     tôi đếm", không phải "phiếu nào cất vào đâu". -->
+                <field name="dlm_receipt_state" string="Bàn giao" widget="badge"
+                       decoration-success="dlm_receipt_state == 'received'"
+                       decoration-warning="dlm_receipt_state == 'waiting'"
+                       decoration-info="dlm_receipt_state == 'ready'"/>
+                <field name="dlm_qty_total" string="Số lượng"/>
+                <field name="state" string="Trạng thái" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-info="state == 'assigned'"
+                       decoration-warning="state in ('confirmed', 'waiting')"
+                       decoration-muted="state in ('draft', 'cancel')"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_fg_receipt_form" model="ir.ui.view">
+        <field name="name">dl.stock.picking.fg.receipt.form</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <form string="Nhập kho từ xưởng" class="dl-fg-receipt-form">
+                <header>
+                    <button name="action_confirm" string="Xác nhận phiếu"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft' or dlm_blocked"/>
+                    <!-- 🔴 K16 — KHÔNG có nút button_validate ở đây. Phiếu này
+                         chỉ hoàn tất qua chữ ký của Thủ kho: xưởng tự xác nhận
+                         được thì con số nhập kho không ai đối chiếu, mà đó
+                         chính là việc màn này sinh ra để làm. -->
+                    <button name="action_dlm_handover"
+                            string="Bàn giao cho thủ kho"
+                            type="object" class="btn-primary"
+                            invisible="dlm_receipt_state != 'ready' or state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
+                    <!-- groups= chỉ giấu khỏi mắt; chốt thật ở
+                         _dlm_check_receipt_signer (bài học RS-03). -->
+                    <button name="action_dlm_confirm_receipt"
+                            string="Xác nhận đã nhận"
+                            type="object" class="btn-primary"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+                            invisible="dlm_receipt_state != 'waiting'"/>
+                    <button name="action_cancel" string="Huỷ phiếu"
+                            type="object" class="btn-danger"
+                            invisible="state in ('done', 'cancel')"/>
+                    <field name="state" widget="dl_stepper"
+                           statusbar_visible="draft,assigned,done"/>
+                </header>
+                <sheet>
+                    <!-- Odoo 17: field dùng trong `invisible` PHẢI có mặt trong
+                         view. Khai TRƯỚC nút vì smart button đọc nó. -->
+                    <field name="dlm_sale_order_id" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_dlm_open_sale_order" type="object"
+                                class="oe_stat_button" icon="fa-shopping-cart"
+                                invisible="not dlm_sale_order_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Đơn bán</span>
+                                <span class="o_stat_text">hàng</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <field name="company_id" invisible="1"/>
+                    <field name="location_id" invisible="1"/>
+                    <!-- 🔴 PHẢI có mặt dù không hiển thị. `stock.picking.state`
+                         là compute stored `@api.depends('move_ids.state', ...)`;
+                         form này chỉ dùng hai ô con `dlm_fg_move_ids` /
+                         `dlm_material_move_ids` nên nếu `move_ids` vắng mặt thì
+                         `_compute_state` KHÔNG BAO GIỜ chạy trên phiếu chưa lưu
+                         ⇒ `state` = False (không phải 'draft').
+                         Hậu quả đã vấp: nút "Xác nhận phiếu" (điều kiện
+                         `state != 'draft'`) biến mất, dải trạng thái không sáng
+                         bước nào, và cột "Thủ kho nhận" (ẩn khi `state ==
+                         'draft'`) lại hiện ra lúc đang nháp. -->
+                    <field name="move_ids" invisible="1"/>
+                    <!-- SM-03/K13: nuôi domain product_id của hai bảng dòng. -->
+                    <field name="dlm_fg_product_ids" invisible="1"/>
+                    <field name="dlm_workshop_material_ids" invisible="1"/>
+
+                    <!-- 🔴 K16 — DẢI CỐ ĐỊNH, luôn hiện, không đóng được. Bản
+                         K13 ở đây là một lời xin lỗi ("phiếu này không trừ vật
+                         tư"); nay nó là một lời HƯỚNG DẪN, vì thiết kế đã hết
+                         chỗ phải xin lỗi: vật tư trừ theo số người khai, không
+                         theo BOM. Vẫn giữ dải cố định vì câu "trừ theo số bạn
+                         khai" là thứ quyết định con số tồn kho có đúng không —
+                         nó phải đập vào mắt mỗi lần, không phải nằm trong help. -->
+                    <div class="alert alert-warning" role="alert">
+                        Phiếu này ghi nhận <b>trọn một mẻ</b>: hàng làm xong vào
+                        kho, vật tư đã dùng rời sổ, phế liệu cân được nhập khu
+                        Phế liệu. Vật tư trừ <b>theo số bạn khai</b> ở bảng dưới
+                        — <b>không</b> tự nổ theo định mức BOM.
+                    </div>
+
+                    <field name="dlm_banner_level" invisible="1"/>
+                    <field name="dlm_blocked" invisible="1"/>
+                    <div class="alert alert-info" role="alert"
+                         invisible="dlm_banner_level != 'info'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="dlm_banner_level != 'success'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="dlm_banner_level != 'warning'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="dlm_banner_level != 'danger'">
+                        <field name="dlm_banner_message" nolabel="1" readonly="1"/>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <div class="dl-fields-row">
+                        <div class="dl-field">
+                            <label for="dlm_sale_order_id" string="Đơn bán hàng"/>
+                            <!-- KHÔNG bắt buộc (§11.13): xưởng làm sẵn hàng tiêu
+                                 chuẩn để tồn kho thì không có đơn nào cả. Gắn
+                                 đơn thì danh sách mặt hàng tự thu hẹp theo đơn. -->
+                            <field name="dlm_sale_order_id" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"
+                                   options="{'no_create': True}"
+                                   placeholder="Để trống nếu làm sẵn để tồn kho"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="scheduled_date" string="Ngày nhập"/>
+                            <field name="scheduled_date" nolabel="1"
+                                   readonly="state in ('done', 'cancel')"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="dlm_receipt_state"
+                                   string="Tình trạng bàn giao"/>
+                            <!-- 🔴 K16 — ô "Cất vào" ĐÃ GỠ. Nơi cất nay suy từ
+                                 MẶT HÀNG của từng dòng (thành phẩm → Kho thành
+                                 phẩm, BTP → Kho nguyên vật liệu, phế liệu → khu
+                                 Phế liệu). Để lại một ô chung là nói dối ngay
+                                 khi phiếu có hai loại hàng — mà mẻ nào cũng có. -->
+                            <field name="dlm_receipt_state" nolabel="1"
+                                   widget="badge" readonly="1"
+                                   decoration-success="dlm_receipt_state == 'received'"
+                                   decoration-warning="dlm_receipt_state == 'waiting'"
+                                   decoration-info="dlm_receipt_state == 'ready'"/>
+                        </div>
+                    </div>
+
+                    <!-- Vết chữ ký: hiện ngay trên phiếu chứ không chôn trong
+                         chatter — "ai giao, ai nhận" là câu hỏi người ta mở
+                         phiếu cũ ra để tra, không phải để cuộn tìm. -->
+                    <div class="dl-fields-row"
+                         invisible="not dlm_handover_uid and not dlm_received_uid">
+                        <div class="dl-field">
+                            <label for="dlm_handover_uid"
+                                   string="Xưởng bàn giao"/>
+                            <field name="dlm_handover_uid" nolabel="1"
+                                   readonly="1"/>
+                            <field name="dlm_handover_date" nolabel="1"
+                                   readonly="1" invisible="not dlm_handover_uid"/>
+                        </div>
+                        <div class="dl-field">
+                            <label for="dlm_received_uid"
+                                   string="Thủ kho đã nhận"/>
+                            <field name="dlm_received_uid" nolabel="1"
+                                   readonly="1"/>
+                            <field name="dlm_received_date" nolabel="1"
+                                   readonly="1" invisible="not dlm_received_uid"/>
+                        </div>
+                    </div>
+
+                    <notebook>
+                        <page string="Mẻ hàng" name="batch">
+                            <separator string="Xưởng nộp về"/>
+                            <div class="text-muted small mb-2">
+                                Sản phẩm gia công vào <b>Kho thành phẩm</b> ·
+                                bán thành phẩm vào <b>Kho nguyên vật liệu</b> ·
+                                phế liệu cân được vào <b>Phế liệu chờ bán</b>.
+                                Nơi cất suy theo mặt hàng, không phải chọn tay.
+                            </div>
+                            <field name="dlm_fg_move_ids"
+                                   readonly="state in ('done', 'cancel')"
+                                   context="{'default_dlm_move_kind': 'output'}">
+                                <tree editable="bottom">
+                                    <!-- Chỉ thứ xưởng làm ra + phế liệu; gắn đơn
+                                         thì thu hẹp tiếp theo dòng đơn (§11.13). -->
+                                    <field name="product_id" string="Mặt hàng"
+                                           required="1"
+                                           domain="[('id', 'in', parent.dlm_fg_product_ids)]"/>
+                                    <field name="product_uom_qty" string="Xưởng khai"/>
+                                    <!-- 🔴 Cột này là toàn bộ lý do có bước thứ
+                                         hai: xưởng khai 100, thủ kho đếm 98 thì
+                                         sổ ghi 98. Chỉ Thủ kho sửa được (phiếu
+                                         đã qua bàn giao). -->
+                                    <field name="quantity" string="Thủ kho nhận"
+                                           column_invisible="parent.state == 'draft'"
+                                           readonly="parent.dlm_receipt_state != 'waiting'"/>
+                                    <field name="product_uom" string="ĐVT"
+                                           groups="uom.group_uom"/>
+                                    <!-- Lô CHỈ có nghĩa với BTP Hạng B (theo lô);
+                                         để trống thì `_dlm_autofill_lot_names`
+                                         sinh số LO/2026/xxxxx lúc xác nhận —
+                                         hàng mình làm ra thì lô cũng do mình đặt. -->
+                                    <field name="lot_ids" string="Số lô"
+                                           widget="many2many_tags" optional="show"
+                                           domain="[('product_id', '=', product_id)]"/>
+                                    <field name="location_dest_id" string="Cất vào"
+                                           readonly="1" optional="show"/>
+                                    <field name="picked" column_invisible="1"/>
+                                    <!-- name/location_id: trường bắt buộc của
+                                         stock.move điền gián tiếp; phải nằm trong
+                                         active fields của tree con mới được giữ
+                                         lại. Từ K16, `create` cũng tự điền chúng
+                                         theo `dlm_move_kind` — lá chắn cho đường
+                                         RPC/import không đi qua form. -->
+                                    <field name="name" column_invisible="1"/>
+                                    <field name="location_id" column_invisible="1"/>
+                                    <field name="dlm_move_kind" column_invisible="1"/>
+                                    <!-- company_id: domain của product_id trên
+                                         stock.move tham chiếu tới nó ⇒ thiếu là
+                                         view không nạp được. -->
+                                    <field name="company_id" column_invisible="1"/>
+                                    <field name="product_uom_category_id" column_invisible="1"/>
+                                    <field name="state" column_invisible="1"/>
+                                </tree>
+                            </field>
+
+                            <separator string="Vật tư ra khỏi xưởng"/>
+                            <div class="text-muted small mb-2">
+                                Chỉ liệt kê vật tư <b>đang có trên sổ ở Xưởng</b>
+                                — thứ chưa bàn giao ra xưởng thì chưa dùng hay
+                                trả được. Bỏ trống bảng này nếu mẻ chưa quyết
+                                toán vật tư; hàng vẫn nằm ở Xưởng.
+                            </div>
+                            <field name="dlm_material_move_ids"
+                                   readonly="state in ('done', 'cancel')"
+                                   context="{'default_dlm_move_kind': 'consume'}">
+                                <tree editable="bottom">
+                                    <field name="product_id" string="Vật tư"
+                                           required="1"
+                                           domain="[('id', 'in', parent.dlm_workshop_material_ids)]"/>
+                                    <!-- Ô lựa chọn DUY NHẤT của cả phiếu, và câu
+                                         hỏi rõ tới mức không trả lời sai được. -->
+                                    <field name="dlm_move_kind" string="Xử lý"
+                                           required="1"/>
+                                    <field name="product_uom_qty" string="Số lượng"/>
+                                    <field name="dlm_src_available_qty"
+                                           string="Đang ở xưởng" readonly="1"/>
+                                    <field name="product_uom" string="ĐVT"
+                                           groups="uom.group_uom"/>
+                                    <field name="location_dest_id" string="Đi vào"
+                                           readonly="1" optional="hide"/>
+                                    <field name="picked" column_invisible="1"/>
+                                    <field name="name" column_invisible="1"/>
+                                    <field name="location_id" column_invisible="1"/>
+                                    <field name="company_id" column_invisible="1"/>
+                                    <field name="product_uom_category_id" column_invisible="1"/>
+                                    <field name="state" column_invisible="1"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_fg_receipt_search" model="ir.ui.view">
+        <field name="name">dl.stock.picking.fg.receipt.search</field>
+        <field name="model">stock.picking</field>
+        <field name="arch" type="xml">
+            <search string="Nhập kho từ xưởng">
+                <field name="name" string="Số phiếu"/>
+                <field name="dlm_sale_order_id" string="Đơn bán hàng"/>
+                <field name="product_id" string="Mặt hàng"/>
+
+                <!-- K16 — hàng đợi của THỦ KHO đứng đầu: đây là việc duy nhất
+                     ở màn này có người đang chờ. -->
+                <filter name="to_receive" string="Chờ tôi đếm &amp; nhận"
+                        domain="[('dlm_receipt_state', '=', 'waiting')]"/>
+                <filter name="todo" string="Chờ nhập kho"
+                        domain="[('state', 'in', ('draft', 'waiting', 'confirmed', 'assigned'))]"/>
+                <filter name="done" string="Đã nhập kho"
+                        domain="[('state', '=', 'done')]"/>
+                <separator/>
+                <filter name="cancelled" string="Đã huỷ"
+                        domain="[('state', '=', 'cancel')]"/>
+
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_order" string="Đơn bán hàng"
+                            context="{'group_by': 'dlm_sale_order_id'}"/>
+                    <filter name="group_receipt" string="Tình trạng bàn giao"
+                            context="{'group_by': 'dlm_receipt_state'}"/>
+                    <filter name="group_state" string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_picking_fg_receipt" model="ir.actions.act_window">
+        <field name="name">Nhập kho từ xưởng</field>
+        <field name="res_model">stock.picking</field>
+        <field name="view_mode">tree,form</field>
+        <!-- RS-05 — WHITELIST đúng 'NTP'. Nhóm `internal` còn KC/CK/HPL và loại
+             XSX của B2; lọc bằng "trừ ra" là rò rỉ ngay lần thêm loại sau. -->
+        <field name="domain">[('picking_type_id.sequence_code', '=', 'NTP')]</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_fg_receipt_tree')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_fg_receipt_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_dl_fg_receipt_search"/>
+        <!-- default_picking_type_id BẮT BUỘC phải đặt: không có nó thì phiếu
+             tạo từ màn này nhận loại `internal` mặc định của Odoo (CK) và biến
+             mất khỏi chính màn vừa tạo nó — đúng cái bẫy RS-05 mô tả. -->
+        <field name="context" eval="{
+            'restricted_picking_type_code': 'internal',
+            'default_picking_type_id': ref('picking_type_mo_receipt'),
+        }"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có phiếu nào từ xưởng</p>
+            <p>Xưởng làm xong một mẻ thì khai ở đây: <b>hàng làm ra</b> (sản phẩm
+               gia công, bán thành phẩm, phế liệu cân được) và <b>vật tư đã dùng
+               hết</b>. Thủ kho đếm thực tế rồi ký nhận — hàng vào sổ theo số
+               <b>thủ kho đếm</b>, không theo số xưởng khai.</p>
+        </field>
+    </record>
+
+</odoo>

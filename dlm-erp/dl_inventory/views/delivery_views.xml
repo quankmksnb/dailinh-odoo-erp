@@ -122,10 +122,17 @@
                         </div>
                         <div class="dl-field">
                             <label for="location_id" string="Lấy hàng từ"/>
+                            <!-- 🔴 K11 CỬA THỨ BA (§4.1.1). Trước bản này domain
+                                 chỉ có usage='internal' ⇒ chọn được "Chờ kiểm
+                                 hàng" và GIAO THẲNG HÀNG CHƯA KIỂM CHO KHÁCH —
+                                 nặng hơn hẳn hai cửa Chuyển kho/Kiểm kê cộng
+                                 lại. Luật phải phát biểu theo VỊ TRÍ, không theo
+                                 MÀN: mọi ô chọn vị trí đều lọc cùng domain này. -->
                             <field name="location_id" nolabel="1"
                                    readonly="state in ('done', 'cancel')"
                                    options="{'no_create': True}"
-                                   domain="[('usage', '=', 'internal')]"/>
+                                   domain="[('usage', '=', 'internal'),
+                                            ('dlm_no_inventory', '=', False)]"/>
                         </div>
                     </div>
 

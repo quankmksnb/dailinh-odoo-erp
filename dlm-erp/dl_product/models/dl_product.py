@@ -699,8 +699,11 @@ class ProductProduct(models.Model):
         dl.bom.action_confirm (CỨNG).
 
         for_auto_calc=False cho dòng kỹ thuật đã GHI ĐÈ số lượng: dòng đó không
-        cần tự tính nữa nên mẫu số không còn bắt buộc — nhưng khối lượng mỗi
-        đơn vị thì vẫn cần, vì tiền phế liệu thu hồi luôn quy qua kg."""
+        cần tự tính nữa nên mẫu số không còn bắt buộc.
+
+        🔴 K16 — bỏ điều kiện "phải khai Khối lượng vì tiền thu hồi quy qua kg":
+        không còn tiền thu hồi nào để quy. Khối lượng mỗi đơn vị nay chỉ cần cho
+        hai kiểu tính cắt/tấm, và hai kiểu đó đã kiểm ở khối trên."""
         self.ensure_one()
         group, miss = self._dlm_uom_group(), []
         if for_auto_calc:
@@ -714,16 +717,11 @@ class ProductProduct(models.Model):
                     miss.append("kg/m²")
                 if group == "unit" and not (self.dlm_sheet_w and self.dlm_sheet_h):
                     miss.append("Khổ tấm")
-        # Vật tư mua theo kg: hao hụt đã là kg, không cần khai quy đổi.
-        if (self.dlm_has_recovery and not self.dlm_mass_per_unit
-                and group != "weight"):
-            miss.append("Khối lượng (cần cho thu hồi phế liệu)")
         return miss
 
     @api.depends("product_kind", "dlm_calc_kind", "uom_id",
                  "dlm_mass_per_meter", "dlm_mass_per_sqm", "dlm_stock_length",
-                 "dlm_sheet_w", "dlm_sheet_h",
-                 "dlm_has_recovery", "dlm_mass_per_unit")
+                 "dlm_sheet_w", "dlm_sheet_h", "dlm_mass_per_unit")
     def _compute_dlm_calc_missing_hint(self):
         for rec in self:
             if rec.product_kind not in ("material", "material_processed"):
@@ -741,14 +739,40 @@ class ProductProduct(models.Model):
         help="Tỷ lệ hao hụt của vật tư này. Hệ số phức tạp chọn theo từng dòng "
              "BOM sẽ nhân thêm vào tỷ lệ này khi tính giá.",
     )
-    dlm_has_recovery = fields.Boolean(string="Có thu hồi phế liệu")
+    # 🔴 NGƯNG SỬ DỤNG 2026-08-13 (K16) — người dùng chốt bỏ cách tính % thu hồi.
+    # Hai field GIỮ CỘT nhưng đã gỡ khỏi màn và khỏi mọi công thức: xoá cột là
+    # mất cấu hình 20 vật tư không lấy lại được, mà quyết định kinh doanh thì có
+    # thể đảo. Đừng cắm lại vào công thức nào — điểm nghẽn nằm ở
+    # `dl_bom_line_mixin._dlm_recovery_kg`, không phải ở đây.
+    dlm_has_recovery = fields.Boolean(string="Có thu hồi phế liệu (ngưng dùng)")
     dlm_recovery_rate = fields.Float(
-        string="Tỷ lệ thu hồi (%)", digits=(6, 2),
-        help="Tính trên LƯỢNG hao hụt (không tính trên lượng vật tư thuần).",
+        string="Tỷ lệ thu hồi (%) (ngưng dùng)", digits=(6, 2),
+        help="NGƯNG SỬ DỤNG từ 2026-08-13: phế liệu nay khai theo số CÂN THỰC "
+             "trên phiếu Nhập kho từ xưởng, không dự toán theo tỷ lệ nữa.",
     )
     dlm_scrap_product_id = fields.Many2one(
         "product.product", string="Sản phẩm phế liệu",
-        help="Đơn giá thu hồi lấy từ giá bán (list_price) của sản phẩm phế này.",
+        help="Vật tư này thải ra loại phế liệu nào — dùng khi khai số phế liệu "
+             "cân được trên phiếu Nhập kho từ xưởng.",
+    )
+    # 🔴 K12 — CỜ NHẬN DIỆN phế liệu. Đây là NGUỒN SỰ THẬT cho câu hỏi "mặt hàng
+    # này có phải phế liệu không"; khu Phế liệu (`DL/KHOSX/PL`) khoá đầu vào bằng
+    # đúng nó (Thiet_ke_phan_he_kho.md §4.2).
+    #
+    # Vì sao là CỜ chứ không suy ngược từ `dlm_scrap_product_id`:
+    #  1. Khớp cách người dùng mô tả — phế liệu là MẶT HÀNG RIÊNG bán theo kg,
+    #     không phải một trạng thái của thép.
+    #  2. `dlm_scrap_product_id` là ÁNH XẠ DỰ TOÁN (vật tư X hao hụt thì thu về
+    #     phế liệu Y). Suy tập phế liệu từ nó nghĩa là: gỡ liên kết của vật tư
+    #     cuối cùng ⇒ SCRAP-STEEL THÔI LÀ phế liệu và khu PL mở toang, không lỗi
+    #     nào nổ. Nhận diện phải là thuộc tính của CHÍNH mặt hàng đó.
+    #  3. Rẻ hơn hẳn việc thêm `product_kind = 'scrap'` — thứ đụng BOM,
+    #     supplierinfo, engine giá và mọi domain đang liệt kê `product_kind`.
+    dlm_is_scrap = fields.Boolean(
+        string="Là mặt hàng phế liệu", default=False, copy=False,
+        help="Bật cho các mặt hàng phế liệu bán theo cân (phế thép, phế nhôm…). "
+             "Chỉ những mặt hàng bật cờ này mới được đưa vào khu Phế liệu chờ "
+             "bán — thép nguyên cây lọt vào đó là bị bán ve chai.",
     )
     # Onchange tự điền mặc định theo nhóm (đọc dl.pricing.waste.rule) nằm ở
     # dl_technical — module đó mới phụ thuộc dl_config; dl_product KHÔNG được
@@ -760,14 +784,20 @@ class ProductProduct(models.Model):
         return self.dlm_scrap_product_id.list_price if self.dlm_scrap_product_id else 0.0
 
     def _dlm_is_scrap_product(self):
-        """SP này có đang được dùng làm SẢN PHẨM PHẾ LIỆU của vật tư nào không.
+        """SP này có phải mặt hàng phế liệu không (quyết định `tracking='none'`).
 
         Phế liệu tuy mang product_kind='material' nhưng KHÔNG theo lô: nó là vụn
         gom từ nhiều lô khác nhau trong cùng thùng chứa — bắt thủ kho nhập số lô
         mỗi lần cân là vô nghĩa và không truy vết được gì.
+
+        🔴 K12 — `dlm_is_scrap` là NGUỒN SỰ THẬT. Vế suy ngược giữ lại làm lưới
+        an toàn cho bản ghi chưa kịp bật cờ (dữ liệu cũ, SP người dùng tự tạo):
+        bỏ nó đi là đổi `tracking` của các SP đó một cách âm thầm. Không phải hai
+        nguồn sự thật — cờ luôn thắng, vế kia chỉ mở rộng chứ không phủ định.
         """
         self.ensure_one()
-        return bool(self.search_count([("dlm_scrap_product_id", "=", self.id)]))
+        return bool(self.dlm_is_scrap) or bool(
+            self.search_count([("dlm_scrap_product_id", "=", self.id)]))
 
     def set_dlm_waste(self, vals):
         """Cập nhật hao hụt vật tư từ màn Cấu hình (sửa inline). Guard quyền
@@ -779,8 +809,10 @@ class ProductProduct(models.Model):
                 or user.has_group("dl_base.dl_group_accountant")
                 or user.has_group("dl_base.dl_group_admin")):
             raise AccessError(_("Chỉ Kỹ thuật/Kế toán/Admin được sửa hao hụt vật tư."))
-        allowed = {"dlm_waste_rate", "dlm_has_recovery", "dlm_recovery_rate",
-                   "dlm_scrap_product_id"}
+        # K16 — bỏ `dlm_has_recovery`/`dlm_recovery_rate` khỏi whitelist: màn
+        # Cấu hình không gửi chúng nữa, và để lại là mở một đường ghi vào hai
+        # field đã ngưng dùng.
+        allowed = {"dlm_waste_rate", "dlm_scrap_product_id"}
         self.sudo().write({k: v for k, v in vals.items() if k in allowed})
         return True
 

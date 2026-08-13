@@ -300,7 +300,8 @@ class TestTransferShortage(DlInventoryCase):
         # nay bị chặn hẳn (xem TestFinishedGoodsWarehouseKinds) và dải đỏ đó sẽ
         # che mất thứ ca này muốn đo. Khu thay thế (đang có hàng) phải là khu
         # CHỌN-TAY-ĐƯỢC: Chờ kiểm/Chờ trả nay bị chặn hẳn khỏi phiếu chuyển (khu
-        # quá cảnh, §4.1.1). Phế liệu chờ bán là khu con của xưởng, chứa vật tư.
+        # quá cảnh, §4.1.1). Phế liệu chờ bán là ô cạnh Kho nguyên vật liệu dưới
+        # khu Kho nhà máy sản xuất (K15 — trước đó nó là khu con của Xưởng).
         self._stock(self.loc_xuong_pl, 10.0)
         picking = self._transfer(self.loc_kho, self.loc_xuong, qty=5.0)
         self.assertEqual(picking.dlm_banner_level, "warning",
@@ -317,7 +318,10 @@ class TestTransferShortage(DlInventoryCase):
         picking.action_confirm()
         picking.action_assign()
         picking.move_ids.picked = True
-        picking.button_validate()
+        # K15 — đích là Xưởng ⇒ phải qua hai chữ ký mới xong. Xem
+        # test_workshop_handover.py cho chính luồng này.
+        picking.action_dlm_handover()
+        picking.action_dlm_confirm_receipt()
 
         self.assertEqual(picking.state, "done")
         self.assertEqual(picking.dlm_banner_level, "success",
@@ -396,24 +400,30 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
         self.assertNotIn(self.manufactured, blocked,
                          "Hàng gia công hoàn chỉnh là thứ Kho thành phẩm chứa.")
 
-    def test_tuyen_vat_tu_ra_xuong_chi_con_vat_tu(self):
-        """🔴 Ca người dùng báo: "vật tư ra xưởng mà" — danh sách phải chỉ còn
-        VẬT TƯ, không kèm hàng thương mại, không kèm cả danh mục.
+    def test_tuyen_vat_tu_ra_xuong_chi_con_vat_tu_va_btp(self):
+        """🔴 Ca người dùng báo: "vật tư ra xưởng mà" — danh sách chỉ được có
+        thứ ĐƯA VÀO SẢN XUẤT, không kèm hàng thương mại, không kèm cả danh mục.
 
-        Rơi ra từ giao hai luật, không phải từ cái nút vừa bấm: khu nhập
-        {vật tư, thương mại} ∩ xưởng {vật tư, BTP, gia công} = {vật tư}.
+        Rơi ra từ giao hai luật, không phải từ cái nút vừa bấm:
+        Kho nguyên vật liệu {vật tư, BTP} ∩ Xưởng {vật tư, BTP, gia công}
+        = {vật tư, BTP}.
+
+        K15 — BTP nay ĐƯỢC (trước đây bị cấm). Nó nằm chung ô với vật tư từ khi
+        hai ô gộp lại, và người dùng chốt tuyến này chở "vật tư hoặc bán thành
+        phẩm đến xưởng để đội công nhân làm".
         """
         picking = self._transfer(self.loc_xuong)
         blocked = picking.dlm_blocked_product_ids
 
         self.assertNotIn(self.material, blocked,
                          "Tuyến vật tư ra xưởng mà lại cấm vật tư.")
+        self.assertNotIn(self.btp, blocked,
+                         "BTP nằm cùng ô với vật tư và cũng đưa vào sản xuất — "
+                         "cấm nó là chặn nửa tuyến bàn giao.")
         self.assertIn(self.trading, blocked,
                       "Hàng thương mại mua về để bán thẳng, không vào xưởng.")
         self.assertIn(self.manufactured, blocked,
-                      "Sản phẩm gia công chưa từng nằm ở khu nhập hàng.")
-        self.assertIn(self.btp, blocked,
-                      "Bán thành phẩm nằm ở DL/XUONG/BTP, không ở khu nhập.")
+                      "Sản phẩm gia công không nằm ở Kho nguyên vật liệu.")
 
     def test_hang_gia_cong_van_quay_lai_xuong_de_sua(self):
         """Siết xưởng không được chặn nhầm luồng SỬA HÀNG.
@@ -508,17 +518,20 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
     def test_dai_nhap_noi_ro_vi_sao_danh_sach_ngan_di(self):
         """Dropdown thiếu món mà không giải thích thì thành bí ẩn.
 
-        Nơi lấy (Kho vật tư: chỉ vật tư) giao nơi nhận (xưởng: vật tư + BTP +
-        gia công) ⇒ chỉ còn ĐÚNG vật tư. Dải phải nói ra con số cuối cùng đó,
-        không phải luật của riêng một đầu.
+        Nơi lấy (Kho nguyên vật liệu: vật tư + BTP) giao nơi nhận (Xưởng sản
+        xuất: vật tư + BTP + gia công) ⇒ còn ĐÚNG vật tư + BTP. Dải phải nói ra
+        kết quả GIAO đó, không phải luật của riêng một đầu — ghép hai luật lại
+        sẽ lòi ra "Gia công", thứ tuyến này không chuyển được.
         """
         self._stock(self.material, self.loc_kho, 10.0)
         picking = self._transfer(self.loc_xuong)
         self.assertEqual(picking.dlm_banner_level, "info")
         self.assertIn("chỉ chuyển được", picking.dlm_banner_message)
         self.assertIn("Vật tư", picking.dlm_banner_message)
-        self.assertNotIn("Bán thành phẩm", picking.dlm_banner_message,
-                         "Liệt kê cả loại hai đầu đều không chứa được.")
+        self.assertIn("Bán thành phẩm", picking.dlm_banner_message,
+                      "BTP nằm cùng ô với vật tư từ K15, phải có trong danh sách.")
+        self.assertNotIn("Gia công", picking.dlm_banner_message,
+                         "Liệt kê cả loại mà nơi LẤY không chứa được.")
 
 
 @tagged("post_install", "-at_install", "dl_inventory")
