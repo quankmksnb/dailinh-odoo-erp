@@ -270,24 +270,18 @@ export class DlPricingConfig extends Component {
                 "product.product",
                 [["product_kind", "in", ["material", "material_processed"]]],
                 ["display_name", "default_code", "categ_id", "dlm_waste_rate",
-                    "dlm_has_recovery", "dlm_recovery_rate", "dlm_scrap_product_id"],
+                    "dlm_scrap_product_id"],
                 { order: "default_code, id" }
             );
         } catch (e) {
             this.state.rows.materials = [];
         }
     }
-    async toggleRecovery(row, checked) {
-        row.dlm_has_recovery = checked;
-        if (!checked) { row.dlm_recovery_rate = 0; }
-        await this.saveMaterial(row);
-    }
+    // K16 — `toggleRecovery` đã gỡ cùng cách tính % thu hồi phế liệu.
     async saveMaterial(row) {
         try {
             await this.orm.call("product.product", "set_dlm_waste", [[row.id], {
                 dlm_waste_rate: Number(row.dlm_waste_rate) || 0,
-                dlm_has_recovery: !!row.dlm_has_recovery,
-                dlm_recovery_rate: row.dlm_has_recovery ? (Number(row.dlm_recovery_rate) || 0) : 0,
             }]);
             this.flash("Đã lưu hao hụt vật tư.");
         } catch (e) {
@@ -306,9 +300,6 @@ export class DlPricingConfig extends Component {
         return [...seen].map(([v, label]) => ({ v, label }))
             .sort((a, b) => a.label.localeCompare(b.label, "vi"));
     }
-    get wasteRecoveryCount() {
-        return this.state.rows.materials.filter((m) => m.dlm_has_recovery).length;
-    }
     get wasteMissingCount() {
         return this.state.rows.materials.filter((m) => !(Number(m.dlm_waste_rate) > 0)).length;
     }
@@ -317,7 +308,6 @@ export class DlPricingConfig extends Component {
         const q = f.q.trim().toLowerCase();
         return this.state.rows.materials.filter((m) => {
             if (f.categ && this.m2oId(m.categ_id) !== f.categ) { return false; }
-            if (f.mode === "recovery" && !m.dlm_has_recovery) { return false; }
             if (f.mode === "missing" && Number(m.dlm_waste_rate) > 0) { return false; }
             if (q) {
                 const hay = `${m.default_code || ""} ${m.display_name || ""}`.toLowerCase();

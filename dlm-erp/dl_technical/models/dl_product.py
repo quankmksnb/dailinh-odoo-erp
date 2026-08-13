@@ -211,8 +211,9 @@ class DlProductTechnical(models.Model):
         rule = self._dlm_category_waste_rule()
         if rule:
             self.dlm_waste_rate = rule.waste_rate
-            self.dlm_has_recovery = rule.has_recovery
-            self.dlm_recovery_rate = rule.recovery_rate
+            # K16 — không chép `has_recovery`/`recovery_rate` nữa (đã ngưng dùng,
+            # xem dl_bom_line_mixin._dlm_recovery_kg). `scrap_product_id` thì vẫn
+            # chép: "vật tư này thải ra loại phế nào" là câu hỏi còn sống.
             self.dlm_scrap_product_id = rule.scrap_product_id
 
     def _dlm_category_waste_rule(self):

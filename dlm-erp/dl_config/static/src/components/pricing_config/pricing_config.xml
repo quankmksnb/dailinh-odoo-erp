@@ -43,7 +43,7 @@
             <t t-if="!state.loading and state.tab === 'waste'">
                 <div class="dl-cfg-panel">
                     <div class="dl-cfg-panel-head">
-                        <span class="dl-cfg-panel-title">Hao hụt &amp; thu hồi theo vật tư</span>
+                        <span class="dl-cfg-panel-title">Hao hụt theo vật tư</span>
                         <span class="dl-pc-matcount">
                             <t t-esc="filteredMaterials.length"/> / <t t-esc="state.rows.materials.length"/> vật tư
                         </span>
@@ -73,11 +73,8 @@
                             <button type="button" class="dl-pc-chip"
                                     t-att-class="{ 'is-active': state.wasteFilter.mode === 'all' }"
                                     t-on-click="() => this.setWasteMode('all')">Tất cả</button>
-                            <button type="button" class="dl-pc-chip"
-                                    t-att-class="{ 'is-active': state.wasteFilter.mode === 'recovery' }"
-                                    t-on-click="() => this.setWasteMode('recovery')">
-                                Có thu hồi <span class="cnt" t-esc="'(' + wasteRecoveryCount + ')'"/>
-                            </button>
+                            <!-- K16 — chip "Có thu hồi" đã gỡ cùng cách tính %
+                                 thu hồi phế liệu. -->
                             <button type="button" class="dl-pc-chip warn"
                                     t-att-class="{ 'is-active': state.wasteFilter.mode === 'missing' }"
                                     t-on-click="() => this.setWasteMode('missing')">
@@ -91,12 +88,12 @@
                         <table class="dl-cfg-table">
                             <thead><tr>
                                 <th>Mã</th><th>Vật tư</th><th class="num">Hao hụt (%)</th>
-                                <th>Thu hồi</th><th class="num">Thu hồi (%)</th><th>Phế liệu</th>
+                                <th>Phế liệu thải ra</th>
                             </tr></thead>
                             <tbody>
                                 <t t-foreach="materialGroups" t-as="g" t-key="g.id">
                                     <tr class="dl-pc-group" t-on-click="() => this.toggleWasteGroup(g.id)">
-                                        <td colspan="6">
+                                        <td colspan="4">
                                             <i class="fa" t-att-class="state.wasteCollapsed[g.id] ? 'fa-caret-right' : 'fa-caret-down'"/>
                                             <b t-esc="g.name"/>
                                             <span class="cnt" t-esc="g.rows.length + ' vật tư'"/>
@@ -113,25 +110,21 @@
                                                            t-model.number="m.dlm_waste_rate"
                                                            t-on-change="() => this.saveMaterial(m)"/>
                                                 </td>
-                                                <td>
-                                                    <input type="checkbox" t-att-disabled="!canEdit('waste')"
-                                                           t-att-checked="m.dlm_has_recovery"
-                                                           t-on-change="(ev) => this.toggleRecovery(m, ev.target.checked)"/>
-                                                </td>
-                                                <td class="num">
-                                                    <input t-if="m.dlm_has_recovery" type="number" step="0.1" style="width:80px"
-                                                           t-att-disabled="!canEdit('waste')"
-                                                           t-model.number="m.dlm_recovery_rate"
-                                                           t-on-change="() => this.saveMaterial(m)"/>
-                                                </td>
-                                                <td t-esc="m.dlm_has_recovery ? m2oName(m.dlm_scrap_product_id) : ''"/>
+                                                <!-- 🔴 K16 — hai cột "Có thu hồi"
+                                                     và "Tỷ lệ thu hồi (%)" đã gỡ
+                                                     cùng cách tính % thu hồi. Cột
+                                                     phế liệu ở lại và LUÔN hiện:
+                                                     nó nói vật tư này thải ra loại
+                                                     phế nào, thứ phiếu Nhập kho từ
+                                                     xưởng cần để khai số cân được. -->
+                                                <td t-esc="m2oName(m.dlm_scrap_product_id)"/>
                                             </tr>
                                         </t>
                                     </t>
                                 </t>
-                                <tr t-if="!state.rows.materials.length"><td colspan="6" class="dl-cfg-empty">Chưa có vật tư nào.</td></tr>
+                                <tr t-if="!state.rows.materials.length"><td colspan="4" class="dl-cfg-empty">Chưa có vật tư nào.</td></tr>
                                 <tr t-elif="!filteredMaterials.length">
-                                    <td colspan="6" class="dl-cfg-empty">
+                                    <td colspan="4" class="dl-cfg-empty">
                                         Không có vật tư khớp bộ lọc.
                                         <button type="button" class="dl-cfg-mini" t-on-click="clearWasteFilter">
                                             <i class="fa fa-times"/> Xóa bộ lọc
@@ -595,11 +588,10 @@
                                 </select></label>
                             <label class="dl-cfg-f"><span class="k">Tỷ lệ hao hụt cơ sở (%)</span>
                                 <input type="number" step="0.1" t-model.number="state.form.waste_rate"/></label>
-                            <label class="dl-cfg-f"><span class="k">Thu hồi</span>
-                                <label class="dl-cfg-check"><input type="checkbox" t-model="state.form.has_recovery"/> <span>Có thu hồi phế liệu</span></label></label>
-                            <label class="dl-cfg-f" t-if="state.form.has_recovery"><span class="k">Tỷ lệ thu hồi (%)</span>
-                                <input type="number" step="0.1" t-model.number="state.form.recovery_rate"/></label>
-                            <label class="dl-cfg-f" t-if="state.form.has_recovery"><span class="k">Sản phẩm phế liệu</span>
+                            <!-- K16 — "Có thu hồi" + "Tỷ lệ thu hồi (%)" đã gỡ.
+                                 Sản phẩm phế liệu ở lại và luôn hiện: nó trả lời
+                                 "nhóm vật tư này thải ra loại phế nào". -->
+                            <label class="dl-cfg-f"><span class="k">Sản phẩm phế liệu</span>
                                 <select t-model.number="state.form.scrap_product_id">
                                     <option value="">— chọn —</option>
                                     <t t-foreach="state.options.products" t-as="p" t-key="p.id"><option t-att-value="p.id" t-esc="p.name"/></t>

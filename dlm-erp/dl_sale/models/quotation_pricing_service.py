@@ -617,24 +617,11 @@ class DlQuotationPricingService(models.AbstractModel):
             )
             specs.append(spec_base)
 
-            # Thu hồi phế liệu (§5.3) — chỉ vật tư thô, trừ vào chi phí vật tư.
-            if spec_base["component_type"] == "material":
-                recovery = bl._dlm_recovery_value()
-                if recovery:
-                    total_output_cost -= recovery
-                    net -= recovery
-                    scrap = material.dlm_scrap_product_id
-                    specs.append({
-                        "component_type": "recovery",
-                        "source_model": "product.product",
-                        "source_id": scrap.id if scrap else 0,
-                        "source_revision": 0,
-                        "material_id": scrap.id if scrap else material.id,
-                        "qty": (bl.effective_qty - bl.quantity)
-                        * material.dlm_recovery_rate / 100.0,
-                        "unit_price": material._dlm_scrap_unit_price(),
-                        "amount": -recovery,
-                    })
+            # 🔴 K16 (2026-08-13) — khối "Thu hồi phế liệu (§5.3)" ĐÃ GỠ. Người
+            # dùng chốt bỏ cách tính % thu hồi: giá vốn không còn được trừ tiền
+            # phế liệu dự kiến, và tiền bán phế liệu thật thành lãi ngoài.
+            # Cấu phần `recovery` vì thế không còn được sinh ra nữa — báo giá cũ
+            # giữ nguyên cấu phần đã lưu, chỉ báo giá tính MỚI mới khác.
             line_net[bl.id] = net
 
         material_unit = total_output_cost / bom.product_qty

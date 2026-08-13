@@ -59,14 +59,19 @@ class DlPricingWasteRule(models.Model):
         "Tỷ lệ hao hụt cơ sở (%)", required=True, digits=(6, 2), tracking=True,
         help="Tỷ lệ cộng thêm vào lượng vật tư thuần của BOM.",
     )
-    has_recovery = fields.Boolean("Có thu hồi", tracking=True)
+    # 🔴 NGƯNG SỬ DỤNG 2026-08-13 (K16) — bỏ cách tính % thu hồi phế liệu. Giữ
+    # cột (không xoá dữ liệu cấu hình), gỡ khỏi UI và khỏi mọi công thức.
+    has_recovery = fields.Boolean("Có thu hồi (ngưng dùng)", tracking=True)
     recovery_rate = fields.Float(
-        "Tỷ lệ khối lượng thu hồi (%)", digits=(6, 2), tracking=True,
-        help="Tính trên lượng hao hụt, không tính trên lượng vật tư thuần.",
+        "Tỷ lệ khối lượng thu hồi (%) (ngưng dùng)", digits=(6, 2),
+        tracking=True,
+        help="NGƯNG SỬ DỤNG từ 2026-08-13: phế liệu khai theo số cân thực trên "
+             "phiếu Nhập kho từ xưởng.",
     )
     scrap_product_id = fields.Many2one(
         "product.product", string="Sản phẩm phế liệu", ondelete="restrict",
-        help="Lấy đơn giá thu hồi từ sản phẩm phế liệu liên kết.",
+        help="Nhóm vật tư này thải ra loại phế liệu nào — điền sẵn cho vật tư "
+             "mới, dùng khi khai số phế liệu cân được.",
     )
     state = fields.Selection(
         TECH_STATE_SELECTION, string="Trạng thái", required=True,
@@ -95,16 +100,12 @@ class DlPricingWasteRule(models.Model):
             if rule.target_type == "product" and not rule.product_id:
                 raise ValidationError(_("Hãy chọn vật tư áp dụng cho quy tắc hao hụt."))
 
-    @api.constrains("waste_rate", "has_recovery", "recovery_rate")
+    @api.constrains("waste_rate")
     def _check_rates(self):
         for rule in self:
             if rule.waste_rate < 0 or rule.waste_rate > 100:
                 raise ValidationError(
                     _("Tỷ lệ hao hụt phải trong khoảng 0–100%%.")
-                )
-            if rule.has_recovery and not (0 < rule.recovery_rate <= 100):
-                raise ValidationError(
-                    _("Tỷ lệ thu hồi phải trong khoảng 0–100%% khi bật thu hồi.")
                 )
 
     @api.onchange("target_type")
@@ -114,8 +115,4 @@ class DlPricingWasteRule(models.Model):
         else:
             self.category_id = False
 
-    @api.onchange("has_recovery")
-    def _onchange_has_recovery(self):
-        if not self.has_recovery:
-            self.recovery_rate = 0.0
-            self.scrap_product_id = False
+    # K16 — `_onchange_has_recovery` đã gỡ cùng cách tính % thu hồi.

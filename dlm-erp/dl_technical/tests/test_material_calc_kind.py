@@ -151,11 +151,14 @@ class TestMaterialCalcKind(TransactionCase):
         self.assertAlmostEqual(nho.line_ids.quantity, 0.095, places=4)
 
     # ------------------------------------------------------------------
-    # T6 — 🔴 thu hồi phế liệu phải quy đổi số cây → kg
+    # T6 — 🔴 K16: thu hồi phế liệu KHÔNG còn trừ vào giá vốn
     # ------------------------------------------------------------------
-    def test_t6_recovery_converts_unit_to_kg(self):
-        """1 cây hao hụt × 8.5 kg/cây × 55% × 8.000đ/kg = 37.400đ
-        (bỏ bước quy đổi thì ra 4.400đ — sai gần 9 lần)."""
+    # Hai test cũ (T6/T6b) canh phép quy đổi cây → kg của tiền thu hồi. Người
+    # dùng chốt 2026-08-13 BỎ cách tính này, nên phép quy đổi đó không còn tồn
+    # tại. Test mới canh đúng bất biến MỚI, và canh ở chỗ đắt nhất: giá vốn.
+    def test_t6_khong_con_tru_tien_thu_hoi_vao_gia_von(self):
+        """Cấu hình thu hồi cũ còn nguyên trên vật tư vẫn KHÔNG được ảnh hưởng
+        một đồng nào — nếu không, hai đường tính giá lệch nhau âm thầm."""
         scrap = self.Product.create({
             "name": "Phế liệu thép (test)", "product_kind": "material",
             "uom_id": self.uom_kg.id, "uom_po_id": self.uom_kg.id,
@@ -165,31 +168,28 @@ class TestMaterialCalcKind(TransactionCase):
             "dlm_has_recovery": True, "dlm_recovery_rate": 55.0,
             "dlm_scrap_product_id": scrap.id,
         })
-        # quantity 10, hao hụt 10% ⇒ effective 11 ⇒ lượng hao hụt đúng 1 cây.
         line = self._line(self.hop_25x50, quantity=10.0, waste_rate=10.0,
                           is_override=True)
-        self.assertAlmostEqual(line._dlm_recovery_value(),
-                               8.5 * 0.55 * 8000, places=2)
 
-    def test_t6b_recovery_for_material_sold_by_kg(self):
-        """Vật tư mua theo kg: hao hụt ĐÃ là kg ⇒ hệ số quy đổi là 1, không đòi
-        khai khối lượng mỗi đơn vị (khai 0 sẽ biến tiền phế liệu thành 0)."""
-        scrap = self.Product.create({
-            "name": "Phế liệu thép (test kg)", "product_kind": "material",
-            "uom_id": self.uom_kg.id, "uom_po_id": self.uom_kg.id,
-            "list_price": 8000,
-        })
+        self.assertEqual(line._dlm_recovery_value(), 0.0)
+        self.assertEqual(line.recovery_value, 0.0)
+        self.assertAlmostEqual(
+            line.subtotal, line.effective_qty * line.price_snapshot, places=2,
+            msg="Thành tiền dòng BOM = số lượng × đơn giá, không trừ gì nữa.")
+
+    def test_t6b_khong_con_doi_khai_khoi_luong_cho_thu_hoi(self):
+        """Trước K16, bật thu hồi mà chưa khai khối lượng/đơn vị là "thiếu
+        field". Không còn tiền thu hồi thì điều kiện đó cũng hết lý do."""
         ton_kg = self.Product.create({
             "name": "Tôn CT3 (test bán theo kg)", "product_kind": "material",
             "uom_id": self.uom_kg.id, "uom_po_id": self.uom_kg.id,
             "dlm_calc_kind": "sheet", "dlm_mass_per_sqm": 15.7,
             "dlm_has_recovery": True, "dlm_recovery_rate": 60.0,
-            "dlm_scrap_product_id": scrap.id,
         })
         self.assertEqual(ton_kg._dlm_calc_missing_fields(), [])
-        line = self._line(ton_kg, quantity=100.0, waste_rate=5.0, is_override=True)
-        self.assertAlmostEqual(line._dlm_recovery_value(),
-                               5.0 * 0.60 * 8000, places=2)
+        line = self._line(ton_kg, quantity=100.0, waste_rate=5.0,
+                          is_override=True)
+        self.assertEqual(line._dlm_recovery_value(), 0.0)
 
     # ------------------------------------------------------------------
     # T7 — cổng CỨNG lúc xác nhận định mức
