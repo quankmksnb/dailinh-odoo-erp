@@ -5,7 +5,9 @@ export type RoleKey =
   | 'sales1'
   | 'sales2'
   | 'ky_thuat'
-  | 'ke_toan';
+  | 'ke_toan'
+  | 'thu_kho'
+  | 'mua_hang';
 
 export interface RoleAccount {
   key: RoleKey;
@@ -67,5 +69,19 @@ export const ROLES: Record<RoleKey, RoleAccount> = {
     login: 'ketoan@dlm.demo',
     password: PASSWORD,
     storageStatePath: 'tests/.auth/ke_toan.json',
+  },
+  thu_kho: {
+    key: 'thu_kho',
+    label: 'Thủ kho',
+    login: 'thukho@dlm.demo',
+    password: PASSWORD,
+    storageStatePath: 'tests/.auth/thu_kho.json',
+  },
+  mua_hang: {
+    key: 'mua_hang',
+    label: 'Mua hàng',
+    login: 'muahang@dlm.demo',
+    password: PASSWORD,
+    storageStatePath: 'tests/.auth/mua_hang.json',
   },
 };

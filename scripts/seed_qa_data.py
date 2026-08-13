@@ -114,6 +114,8 @@ def run(env):
     group_ba = ref("dl_base.dl_group_ba")
     group_tech = ref("dl_base.dl_group_tech")
     group_accountant = ref("dl_base.dl_group_accountant")
+    group_warehouse = ref("dl_base.dl_group_warehouse")
+    group_purchasing = ref("dl_base.dl_group_purchasing")
 
     USER_SPECS = [
         ("user_admin", "admin@dlm.demo", "QA Admin/IT", group_admin),
@@ -123,6 +125,9 @@ def run(env):
         ("user_sales2", "sales2@dlm.demo", "QA Sales 2", group_ba),
         ("user_kythuat", "kythuat@dlm.demo", "QA Ky thuat", group_tech),
         ("user_ketoan", "ketoan@dlm.demo", "QA Ke toan noi bo", group_accountant),
+        # Them 2026-08-12 cho L3 System Test phan Kho (dl_inventory, UC-074..082).
+        ("user_thukho", "thukho@dlm.demo", "QA Thu kho", group_warehouse),
+        ("user_muahang", "muahang@dlm.demo", "QA Mua hang", group_purchasing),
     ]
     users = {}
     for key, login, name, group in USER_SPECS:
@@ -743,7 +748,7 @@ def print_summary(env, data):
         return env[model].sudo().with_context(active_test=False).search_count(domain or [])
 
     counts = [
-        ("res.users (QA moi tao)", 7),
+        ("res.users (QA moi tao)", 9),
         ("res.partner (Khach hang, ke ca inactive)", len(data["customers"])),
         ("res.partner (Nha cung cap, ke ca inactive)", len(data["suppliers"])),
         ("product.product (moi tao trong script)", 7),

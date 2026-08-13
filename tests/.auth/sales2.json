@@ -15,17 +15,17 @@
       "value": "en_US",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1817993993.538089,
+      "expires": 1818071789.862339,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "session_id",
-      "value": "298844ccc7ee2a32e806f425eae21e7b54e6e89e",
+      "value": "fd4fb8a26c78e2f538ec3f0369989c54762c659c",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1787062794.53641,
+      "expires": 1787140590.567282,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
@@ -35,7 +35,7 @@
       "value": "1",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1817993994.841731,
+      "expires": 1818071790.917263,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -47,7 +47,7 @@
       "localStorage": [
         {
           "name": "presence.lastPresence",
-          "value": "1786457993566"
+          "value": "1786535789895"
         },
         {
           "name": "multi_tab.http_127.0.0.1_8069.lastPresenceByTab",
@@ -59,7 +59,7 @@
         },
         {
           "name": "multi_tab.http_127.0.0.1_8069.heartbeat",
-          "value": "1786457994828"
+          "value": "1786535790900"
         },
         {
           "name": "presence.focus",
