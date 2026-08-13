@@ -126,16 +126,23 @@ class DlSaleOrder(models.Model):
                     delivered.get(move.product_id, 0.0) + move.quantity)
         return delivered
 
-    def _dlm_planned_qty(self):
+    def _dlm_planned_qty(self, exclude_picking=None):
         """{product: số đang nằm trên phiếu chưa xong}.
 
         Trừ phần này khi tạo phiếu mới, nếu không bấm nút hai lần là ra hai phiếu
         giao cùng một lô hàng — kho sẽ giao gấp đôi mà không chứng từ nào cảnh báo.
+
+        ``exclude_picking`` — phiếu ĐANG được lập, để nó không tự trừ mình. Một
+        phiếu nháp đã Lưu vẫn nằm trong ``dlm_picking_ids`` của đơn: người dùng
+        đổi sang đơn khác rồi đổi ngược về đơn cũ sẽ thấy "đơn không còn hàng"
+        vì chính dòng hàng của phiếu này đang bị đếm là hàng của phiếu khác.
         """
         self.ensure_one()
         planned = {}
         open_pickings = self._dlm_delivery_pickings().filtered(
             lambda p: p.state not in ("done", "cancel"))
+        if exclude_picking:
+            open_pickings -= exclude_picking
         for picking in open_pickings:
             for move in picking.move_ids.filtered(
                     lambda m: m.state != "cancel"):
@@ -143,12 +150,12 @@ class DlSaleOrder(models.Model):
                     planned.get(move.product_id, 0.0) + move.product_uom_qty)
         return planned
 
-    def _dlm_remaining_qty(self):
+    def _dlm_remaining_qty(self, exclude_picking=None):
         """{product: số còn phải lên phiếu} = cần − đã giao − đang trên phiếu."""
         self.ensure_one()
         needed = self._dlm_needed_qty()
         delivered = self._dlm_delivered_qty()
-        planned = self._dlm_planned_qty()
+        planned = self._dlm_planned_qty(exclude_picking)
         remaining = {}
         for product, qty in needed.items():
             rest = qty - delivered.get(product, 0.0) - planned.get(product, 0.0)

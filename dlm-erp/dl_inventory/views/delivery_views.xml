@@ -63,6 +63,12 @@
                     </div>
 
                     <field name="company_id" invisible="1"/>
+                    <!-- SM-14: hai onchange "chọn khách → lọc đơn → điền hàng"
+                         chỉ chạy khi `dlm_picking_kind` = delivery, mà nó suy từ
+                         picking_type_id. Field không có mặt trong view thì client
+                         không gửi lên, loại việc thành "other" và onchange im
+                         lặng không làm gì. -->
+                    <field name="picking_type_id" invisible="1"/>
                     <!-- location_dest_id (vị trí khách) do picking_type suy ra; khai
                          để o2m move_ids truyền xuống làm vị trí đích cho mỗi dòng —
                          thiếu thì stock.move không có Destination Location, Lưu sẽ
@@ -72,11 +78,15 @@
                     <!-- SM-04: nuôi domain product_id — SP nằm trong đơn gắn phiếu. -->
                     <field name="dlm_orderable_product_ids" invisible="1"/>
                     <!-- SM-04: chưa gắn đơn thì không biết được phép giao gì.
-                         Khoá bảng dòng (bên dưới) + dải giải thích — inline. -->
+                         Khoá bảng dòng (bên dưới) + dải giải thích — inline.
+                         SM-14: thứ tự nhập nay là KHÁCH → ĐƠN (ô đơn lọc theo
+                         khách), nên câu này phải nói đúng thứ tự đó — bản trước
+                         mời chọn Đơn trước, mà chọn Đơn trước thì dropdown rỗng. -->
                     <div class="alert alert-info" role="alert"
                          invisible="dlm_sale_order_id">
-                        Chọn <b>Đơn bán hàng</b> trước — danh sách mặt hàng sẽ lọc
-                        theo đúng những gì khách đã đặt trên đơn đó.
+                        Chọn <b>Khách hàng</b> trước, rồi chọn <b>Đơn bán hàng</b> —
+                        danh sách đơn lọc theo đúng khách đó, và phần hàng
+                        <b>còn phải giao</b> của đơn sẽ tự lên bảng bên dưới.
                     </div>
                     <field name="dlm_banner_level" invisible="1"/>
                     <field name="dlm_blocked" invisible="1"/>
@@ -111,9 +121,21 @@
                         </div>
                         <div class="dl-field">
                             <label for="dlm_sale_order_id" string="Đơn bán hàng"/>
+                            <!-- 🔴 SM-14 — trước bản này ô không có domain nào:
+                                 dropdown xổ ra MỌI đơn của hệ thống, kể cả đơn
+                                 nháp, đơn đã huỷ và đơn của khách khác. Chọn
+                                 nhầm không có gì chặn, và tình trạng giao của
+                                 đơn bị chọn nhầm sẽ nói sai vĩnh viễn.
+                                 Ngưỡng trạng thái lấy đúng của
+                                 `_dlm_check_delivery_allowed` (dl_sale_order.py)
+                                 — cấm nháp/đã huỷ, không siết chặt hơn, để hai
+                                 cửa tạo phiếu không nhận nuôi hai luật khác nhau. -->
                             <field name="dlm_sale_order_id" nolabel="1"
                                    readonly="state in ('done', 'cancel')"
-                                   options="{'no_create': True}"/>
+                                   options="{'no_create': True}"
+                                   placeholder="Chọn khách hàng trước"
+                                   domain="[('partner_id', '=', partner_id),
+                                            ('state', 'not in', ('draft', 'cancelled'))]"/>
                         </div>
                         <div class="dl-field">
                             <label for="scheduled_date" string="Ngày giao"/>

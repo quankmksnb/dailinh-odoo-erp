@@ -700,6 +700,90 @@ class StockPicking(models.Model):
             picking.dlm_orderable_product_ids = (
                 picking.dlm_sale_order_id.line_ids.product_id)
 
+    # ── SM-14 — Cửa tạo phiếu giao THỦ CÔNG bám theo đơn ─────────────────────
+    # Phiếu giao có HAI cửa: nút [Tạo phiếu giao] trên đơn (đường chính) và nút
+    # New ở màn Kho (thủ kho tự lập khi khách đến lấy hàng đột xuất). Hai onchange
+    # dưới đây làm cửa thứ hai nói cùng một thứ tiếng với cửa thứ nhất.
+    #
+    # 🔴 Cả hai CHỈ chạy cho phiếu [5] Giao hàng: `dlm_sale_order_id` còn có mặt
+    # trên phiếu [3] cấp vật tư ("cấp cho đơn hàng") và phiếu [8] nhập kho từ
+    # xưởng — điền thành phẩm của đơn vào hai phiếu đó là sai hoàn toàn. Kiểm
+    # `dlm_picking_kind` (suy từ picking_type_id) nên form nào không khai
+    # `picking_type_id` thì rơi về "other" và onchange không làm gì — hỏng theo
+    # hướng KHÔNG LÀM GÌ, không phải hướng làm bậy.
+    @api.onchange("partner_id")
+    def _onchange_dlm_partner_resets_order(self):
+        """Đổi khách ⇒ bỏ đơn (và dòng hàng) của khách cũ.
+
+        Không bỏ thì phiếu ghi "giao cho khách B theo đơn của khách A", và
+        ``dlm_delivery_state`` của đơn A nhảy sang "đã giao" vì một chuyến hàng
+        khách A không hề nhận. Dòng hàng đi theo đơn vì chúng do đơn đó điền ra —
+        giữ lại là để một bảng hàng không còn ai chịu trách nhiệm.
+        """
+        for picking in self:
+            if picking.dlm_picking_kind != "delivery" or picking.state != "draft":
+                continue
+            order = picking.dlm_sale_order_id
+            if order and order.partner_id != picking.partner_id:
+                picking.dlm_sale_order_id = False
+                picking.move_ids = [(5, 0, 0)]
+
+    @api.onchange("dlm_sale_order_id")
+    def _onchange_dlm_sale_order_fills_moves(self):
+        """Chọn đơn ⇒ tự điền PHẦN CÒN LẠI của đơn vào bảng hàng giao.
+
+        🔴 Đọc ``_dlm_remaining_qty()`` (cần giao − đã giao − đang nằm trên phiếu
+        khác), KHÔNG đọc thẳng ``line_ids``. Đơn 10 cái bàn đã có một phiếu giao
+        10 cái đang chờ: điền theo ``line_ids`` là ra phiếu thứ hai cũng 10 cái,
+        kho giao gấp đôi và không chứng từ nào kêu — đúng cái bẫy mà nút trên đơn
+        đã tránh, cửa này không được mở lại.
+
+        Đổi đơn ⇒ XOÁ dòng cũ rồi điền lại theo đơn mới. Bảng dòng khoá tới khi
+        có đơn (`readonly="not dlm_sale_order_id"` ở view), nên mọi dòng đang có
+        đều do đơn TRƯỚC điền ra — giữ lại là phiếu ghi "giao theo đơn B" mà
+        bảng hàng vẫn là của đơn A. Phần sửa tay trên dòng của đơn cũ mất theo,
+        đúng như khi đổi khách ở onchange bên trên.
+
+        ``exclude_picking=self._origin`` — phiếu nháp ĐÃ LƯU vẫn nằm trong
+        ``dlm_picking_ids`` của đơn. Không loại nó ra thì đổi sang đơn khác rồi
+        đổi ngược về đơn cũ sẽ ra "đơn không còn hàng" vì chính dòng của phiếu
+        này đang bị đếm là hàng của phiếu khác — bảng trống, không gì báo.
+        """
+        self.ensure_one()
+        if self.dlm_picking_kind != "delivery" or self.state != "draft":
+            return
+        order = self.dlm_sale_order_id
+        if not order:
+            return
+
+        # Tính TRƯỚC khi xoá: phép trừ đọc dòng của phiếu từ DB, không phụ thuộc
+        # thứ tự dọn bảng trong bộ nhớ — để đúng/sai không treo vào cache Odoo.
+        remaining = order._dlm_remaining_qty(exclude_picking=self._origin)
+        if not remaining:
+            # Không phải lỗi — đơn đã lên phiếu đủ. Nhưng im lặng để bảng trống
+            # thì người dùng tưởng hệ thống hỏng và gõ tay lại từ đầu.
+            self.move_ids = [(5, 0, 0)]
+            return {"warning": {
+                "title": _("Đơn này không còn hàng để lên phiếu"),
+                "message": _(
+                    "Mọi mặt hàng của đơn %s đã giao xong hoặc đang nằm trên "
+                    "một phiếu giao khác. Kiểm lại các phiếu giao của đơn trước "
+                    "khi lập thêm phiếu mới.") % order.name,
+            }}
+
+        source = self.location_id
+        destination = self.location_dest_id
+        # Xoá + điền trong CÙNG một lệnh: gán move_ids hai lần liên tiếp trong
+        # onchange thì lần sau không chắc thấy được lần trước.
+        self.move_ids = [(5, 0, 0)] + [(0, 0, {
+            "name": product.display_name,
+            "product_id": product.id,
+            "product_uom": product.uom_id.id,
+            "product_uom_qty": qty,
+            "location_id": source.id,
+            "location_dest_id": destination.id,
+        }) for product, qty in remaining.items()]
+
     @api.depends("move_ids.dlm_qty_rejected")
     def _compute_dlm_qty_rejected_total(self):
         for picking in self:

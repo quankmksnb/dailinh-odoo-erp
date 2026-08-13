@@ -14,7 +14,7 @@ Ba bất biến đắt nhất nếu sai:
 """
 
 from odoo.exceptions import UserError
-from odoo.tests.common import tagged
+from odoo.tests.common import Form, tagged
 
 from .common import DlInventoryCase
 
@@ -217,6 +217,141 @@ class TestDeliveryLink(DlInventoryCase):
             "Phiếu giao phải xuất hiện trong danh sách chứng từ hạ nguồn.")
         with self.assertRaises(UserError):
             order._check_can_reset_draft()
+
+    # ── SM-14 — Cửa tạo phiếu giao thủ công (nút New ở màn Kho) ──────────────
+    def _delivery_form(self):
+        """Form Giao hàng của Đại Linh cho một phiếu MỚI.
+
+        picking_type qua context chứ không gán tay: ô đó cố ý `invisible` trên
+        form (thủ kho không chọn loại phiếu ở màn này), đúng như khi bấm New.
+        """
+        return Form(
+            self.env["stock.picking"].with_context(
+                default_picking_type_id=self.warehouse.out_type_id.id),
+            view="dl_inventory.view_dl_delivery_form")
+
+    def test_chon_don_tu_dien_hang_con_phai_giao(self):
+        """Chọn khách → chọn đơn ⇒ bảng hàng tự có đúng phần còn phải giao."""
+        order = self._make_order(qty=10.0)
+
+        picking_form = self._delivery_form()
+        picking_form.partner_id = self.customer
+        picking_form.dlm_sale_order_id = order
+        picking = picking_form.save()
+
+        self.assertEqual(len(picking.move_ids), 1)
+        self.assertEqual(picking.move_ids.product_id, self.goods)
+        self.assertEqual(picking.move_ids.product_uom_qty, 10.0)
+        self.assertEqual(
+            picking.move_ids.location_id, self.loc_tp,
+            "Dòng phải lấy vị trí nguồn của phiếu, không để trống.")
+
+    def test_khong_dien_lai_phan_da_nam_tren_phieu_khac(self):
+        """🔴 Bất biến đắt nhất của cửa thứ hai.
+
+        Đơn 10 cái đã có một phiếu giao 10 cái đang chờ. Nếu autofill đọc thẳng
+        `line_ids` của đơn thì phiếu thứ hai lại ra 10 cái nữa — kho giao gấp
+        đôi và không chứng từ nào cảnh báo. Phải đọc `_dlm_remaining_qty()`,
+        đúng phép tính mà nút [Tạo phiếu giao] trên đơn đang dùng.
+        """
+        order = self._make_order(qty=10.0)
+        order.action_dlm_create_delivery()
+
+        picking_form = self._delivery_form()
+        picking_form.partner_id = self.customer
+        picking_form.dlm_sale_order_id = order
+
+        self.assertEqual(
+            len(picking_form.move_ids), 0,
+            "Đơn đã lên phiếu đủ ⇒ không được điền thêm dòng nào.")
+
+    def test_doi_khach_thi_bo_don_va_dong_cua_khach_cu(self):
+        """Đổi khách ⇒ đơn + dòng của khách cũ phải rời khỏi phiếu.
+
+        Giữ lại là phiếu ghi "giao cho khách B theo đơn của khách A", và tình
+        trạng giao của đơn A nói sai về một chuyến hàng họ không hề nhận.
+        """
+        order = self._make_order(qty=10.0)
+        other = self.env["res.partner"].create({
+            "name": "Khách hàng khác (test)",
+            "partner_role": "customer",
+        })
+
+        picking_form = self._delivery_form()
+        picking_form.partner_id = self.customer
+        picking_form.dlm_sale_order_id = order
+        self.assertEqual(len(picking_form.move_ids), 1, "Bối cảnh: đã có dòng.")
+
+        picking_form.partner_id = other
+        self.assertFalse(picking_form.dlm_sale_order_id)
+        self.assertEqual(len(picking_form.move_ids), 0)
+
+    def test_doi_don_thi_bang_hang_lay_theo_don_moi(self):
+        """Một khách có nhiều đơn: đổi đơn ⇒ bảng hàng phải theo đơn ĐANG chọn.
+
+        Bản đầu chốt "chỉ điền khi bảng trống" để giữ dòng người dùng gõ tay —
+        nhưng bảng dòng khoá tới khi có đơn, nên không có dòng nào gõ được từ
+        đầu. Thứ duy nhất chốt đó giữ lại là dòng của ĐƠN TRƯỚC: phiếu ghi đơn B
+        mà bảng hàng vẫn là của đơn A.
+        """
+        order_a = self._make_order(qty=10.0)
+        order_b = self._make_order(qty=4.0)
+
+        picking_form = self._delivery_form()
+        picking_form.partner_id = self.customer
+        picking_form.dlm_sale_order_id = order_a
+        self.assertEqual(len(picking_form.move_ids), 1, "Bối cảnh: đơn A đã điền.")
+
+        picking_form.dlm_sale_order_id = order_b
+        picking = picking_form.save()
+
+        self.assertEqual(picking.dlm_sale_order_id, order_b)
+        self.assertEqual(len(picking.move_ids), 1)
+        self.assertEqual(
+            picking.move_ids.product_uom_qty, 4.0,
+            "Số lượng phải là của đơn B, không còn sót số của đơn A.")
+
+    def test_quay_lai_don_cu_tren_phieu_nhap_da_luu(self):
+        """🔴 Phiếu không được tự trừ mình.
+
+        Phiếu nháp ĐÃ LƯU vẫn nằm trong `dlm_picking_ids` của đơn. Đổi sang đơn
+        khác rồi đổi ngược về đơn cũ: nếu phép trừ "đang nằm trên phiếu khác"
+        đếm cả chính nó thì remaining = 0 ⇒ bảng trống + cảnh báo "đơn không còn
+        hàng", mất dòng mà không có gì báo là đã mất.
+        """
+        order_a = self._make_order(qty=10.0)
+        order_b = self._make_order(qty=4.0)
+
+        picking_form = self._delivery_form()
+        picking_form.partner_id = self.customer
+        picking_form.dlm_sale_order_id = order_a
+        picking = picking_form.save()
+        self.assertEqual(picking.state, "draft", "Bối cảnh: phiếu nháp đã lưu.")
+
+        reopened = Form(picking, view="dl_inventory.view_dl_delivery_form")
+        reopened.dlm_sale_order_id = order_b
+        reopened.dlm_sale_order_id = order_a
+        picking = reopened.save()
+
+        self.assertEqual(len(picking.move_ids), 1)
+        self.assertEqual(picking.move_ids.product_uom_qty, 10.0)
+
+    def test_phieu_cap_vat_tu_khong_bi_dien_hang_cua_don(self):
+        """Vế chặn của SM-14: `dlm_sale_order_id` còn nằm trên phiếu [3] chuyển
+        kho ("cấp cho đơn hàng"). Điền thành phẩm của đơn vào phiếu cấp vật tư
+        là đưa hàng đi sai tuyến ngay từ dòng đầu tiên."""
+        order = self._make_order(qty=10.0)
+        picking = self.env["stock.picking"].create({
+            "picking_type_id": self.warehouse.int_type_id.id,
+            "location_id": self.loc_kho.id,
+            "location_dest_id": self.loc_xuong.id,
+        })
+        picking.dlm_sale_order_id = order
+        picking._onchange_dlm_sale_order_fills_moves()
+
+        self.assertFalse(
+            picking.move_ids,
+            "Onchange chỉ được chạy cho phiếu Giao hàng.")
 
     def test_preset_chuyen_kho_dat_dung_hai_dau_tuyen(self):
         """§11.5 — Preset phải đổi vị trí trên CẢ phiếu lẫn dòng hàng.
