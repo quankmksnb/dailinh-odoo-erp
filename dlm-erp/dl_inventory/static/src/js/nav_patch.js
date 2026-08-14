@@ -10,13 +10,15 @@ import { wireRailChildren } from "@dl_base/js/rail_children";
 // mục con của nhóm Kho rồi gắn vào rail.
 
 // Xếp theo TẦN SUẤT dùng của thủ kho, không theo thứ tự luồng nghiệp vụ.
-// K7–K8 sẽ chèn thêm: Phế liệu. Kiểm kê CỐ Ý không lên rail — nó là nút trên
-// màn Tồn kho (§11.11).
+// Kiểm kê CỐ Ý không lên rail — nó là nút trên màn Tồn kho (§11.11).
 //
-// "Trả hàng NCC" có mặt ở đây dù §11.11 xếp nó về rail của Mua hàng: rail đó
-// thuộc B3, chưa tồn tại. Mỗi mục con đã được lọc theo RBAC của menu đích nên
-// thủ kho KHÔNG thấy mục này — chỉ Mua hàng / Admin / CEO thấy. Chuyển sang
-// rail Mua hàng khi B3 dựng xong.
+// 🔴 MẢNG NÀY LÀ NGUỒN DUY NHẤT của rail Kho — rail KHÔNG tự đọc cây menu.
+// Thêm `<menuitem>` vào menus.xml mà quên khai ở đây thì menu vẫn tồn tại, vẫn
+// vào được bằng URL, nhưng **không xuất hiện trên rail** và không có lỗi nào
+// nổ. Đã vấp thật với "Điều phối đơn hàng" (K16, 2026-08-14).
+//
+// ♻️ "Trả hàng NCC" ĐÃ RỜI khỏi đây (2026-08-14): rail Mua hàng nay tồn tại
+// (`dl_purchase/static/src/js/nav_patch.js`), đúng chỗ §11.11 xếp nó từ đầu.
 const INVENTORY_CHILDREN = [
   {
     // RS-10 — mục đầu tiên là VIỆC ĐANG CHỜ, không phải danh mục. Badge ở đây
@@ -26,6 +28,16 @@ const INVENTORY_CHILDREN = [
     icon: "fa-tasks",
     preferMenu: true,
     menuXmlIds: ["dl_inventory.menu_dl_picking_todo"],
+  },
+  {
+    // K16 — việc đầu ngày của thủ kho: đơn nào mới chốt, có làm được không.
+    // Đứng ngay sau Hàng đợi và TRƯỚC Tồn kho: xem tồn là tra cứu, còn đây là
+    // việc phải quyết.
+    key: "dispatch",
+    name: "Điều phối đơn hàng",
+    icon: "fa-sitemap",
+    preferMenu: true,
+    menuXmlIds: ["dl_inventory.menu_dl_dispatch_queue"],
   },
   {
     key: "stock_quant",
@@ -73,13 +85,6 @@ const INVENTORY_CHILDREN = [
     menuXmlIds: ["dl_inventory.menu_dl_picking_delivery"],
   },
   {
-    key: "vendor_return",
-    name: "Trả hàng NCC",
-    icon: "fa-reply",
-    preferMenu: true,
-    menuXmlIds: ["dl_inventory.menu_dl_picking_vendor_return"],
-  },
-  {
     key: "scrap",
     name: "Phế liệu",
     icon: "fa-recycle",
@@ -100,11 +105,19 @@ patch(DlmRail.prototype, {
     super.setup(...arguments);
     wireRailChildren(this.railItems, "inventory", INVENTORY_CHILDREN);
 
-    // Badge "Trả hàng NCC": phiếu trả sinh ra ở trạng thái NHÁP và nằm im cho
-    // tới khi Mua hàng thoả thuận xong với NCC — không đếm thì nó là việc tồn
-    // vô hình. Rail chỉ gọi fetcher của mục user THẤY được (_refreshBadges lọc
-    // theo visibleChildren), nên thủ kho không phát sinh truy vấn này.
+    // Rail chỉ gọi fetcher của mục user THẤY được (_refreshBadges lọc theo
+    // visibleChildren), nên vai trò không có mục đó không phát sinh truy vấn.
     const orm = useService("orm");
+
+    // K16 — badge Điều phối: số đơn đã chốt mà kho CHƯA nhận việc. Đây là con
+    // số trả lời "hôm nay có đơn mới nào không" — trước bản này thủ kho chỉ
+    // biết bằng cách chờ Sales gọi xuống.
+    this.registerBadge("dispatch", () =>
+      orm.searchCount("dl.sale.order", [
+        ["state", "=", "confirmed"],
+        ["dlm_dispatch_state", "=", "to_dispatch"],
+      ]),
+    );
 
     // RS-10 — badge hàng đợi: TỔNG việc đang chờ thủ kho, khớp domain của
     // action_dl_picking_todo. Đây là con số thủ kho nhìn đầu tiên mỗi sáng.
@@ -112,13 +125,6 @@ patch(DlmRail.prototype, {
       orm.searchCount("stock.picking", [
         ["state", "=", "assigned"],
         ["picking_type_id.sequence_code", "in", ["NH", "KC", "CK", "GH"]],
-      ]),
-    );
-
-    this.registerBadge("vendor_return", () =>
-      orm.searchCount("stock.picking", [
-        ["picking_type_id.sequence_code", "=", "TR"],
-        ["state", "=", "draft"],
       ]),
     );
 

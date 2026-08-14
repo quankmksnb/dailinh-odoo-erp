@@ -1,6 +1,6 @@
 {
     "name": "DL-Inventory",
-    "version": "17.0.7.8.1",
+    "version": "17.0.8.0.0",
     "summary": "Kho Đại Linh — 1 kho, 4 khu, nhận hàng 2 bước có kiểm hàng",
     "description": """
 Phân hệ Kho (Giai đoạn B1). Đặc tả: docs/Thiet_ke_phan_he_kho.md
@@ -110,6 +110,20 @@ Thêm ở K17 (bằng chứng hàng loại):
   • 🔴 Vẫn chưa có nút GỬI MAIL cho NCC — Mua hàng tải PDF rồi gửi bằng kênh của
     mình (Zalo/mail tay). Cần server mail cấu hình xong mới làm được.
 
+Thêm ở K15–K16 (kiểm tra kho & điều phối đơn hàng):
+  • Nổ BOM thành nhu cầu vật tư (dl.bom._dlm_explode_requirements): bù trừ BTP
+    theo tầng — có sẵn cụm hàn thì dùng, chỉ nổ BOM con cho ĐÚNG phần thiếu.
+    Trước đó BOM chỉ được dùng để tính TIỀN, chưa ai từng hỏi nó SỐ LƯỢNG.
+  • Màn "Điều phối đơn hàng" của Thủ kho: một nút, ba nhánh hàng (đặt riêng /
+    SKU gia công / thương mại), sinh phiếu giao cho phần lấy được ngay + MỘT
+    phiếu cấp vật tư cho cả đơn + đẩy phần thiếu sang Mua hàng.
+  • 🔴 KHÔNG tạo loại hoạt động thứ 10: phiếu Chuyển kho ra Xưởng đã có sẵn hai
+    chữ ký (K15) và bảng đối chiếu định mức (K16). Thêm loại mới là chép lại
+    bốn cơ chế để chúng lệch nhau về sau.
+  • Bảng đối chiếu định mức nay dùng CHUNG hàm nổ BOM: trước đó nó chỉ cộng một
+    tầng nên khi xưởng được cấp THÉP (vì hết BTP) thì bảng so thép với khung
+    bàn — hai mặt hàng khác nhau, cả hai dòng đều 0.
+
 KHÔNG dựng lại tầng "hub" (màn lưới thẻ trung chuyển): tầng đó đã bị gỡ khỏi cả
 hệ thống, điều hướng đi thẳng qua submenu rail.
 """,
@@ -139,6 +153,8 @@ hệ thống, điều hướng đi thẳng qua submenu rail.
         "views/stock_quant_views.xml",
         "views/stock_lot_views.xml",
         "views/scrap_views.xml",
+        # K16 — màn Điều phối (tree/form riêng cho Thủ kho, KHÔNG có cột tiền).
+        "views/dispatch_views.xml",
         # Kế thừa form dl.sale.order ⇒ nạp sau khi action phiếu giao đã có.
         "views/sale_order_views_ext.xml",
         # menus.xml nạp CUỐI: menuitem tham chiếu action khai ở các file trên.
