@@ -97,6 +97,16 @@
                             string="Chuyển thành phế liệu"
                             type="object" class="btn-primary"
                             invisible="state != 'cancel' or not dlm_has_stuck_stock"/>
+                    <!-- K17 — đường ra khỏi hệ thống cho bằng chứng: NCC không
+                         đăng nhập ERP, ảnh nằm trong Odoo thì lúc ngồi đàm phán
+                         vẫn là con số không. Nút CÓ Ở MỌI TRẠNG THÁI, kể cả đã
+                         xong/đã huỷ — tranh chấp thường nổ ra sau khi phiếu đã
+                         đóng, và bản in lại phải ra đúng nội dung cũ.
+                         KHÔNG khoá theo `groups`: thủ kho cũng cần in ra kẹp vào
+                         hàng lúc xe NCC tới lấy. -->
+                    <button name="action_dlm_print_reject_report"
+                            string="Biên bản gửi NCC" icon="fa-file-pdf-o"
+                            type="object" class="btn-secondary"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
                 </header>
@@ -157,8 +167,8 @@
                                 <tree editable="bottom" create="0">
                                     <field name="product_id" string="Mặt hàng"
                                            readonly="1"/>
-                                    <field name="lot_ids" string="Lô"
-                                           widget="many2many_tags" readonly="1"/>
+                                    <field name="dlm_return_lot_display"
+                                           string="Lô" readonly="1"/>
                                     <field name="product_uom_qty" widget="dl_qty" string="Số lượng trả"
                                            sum="Tổng"/>
                                     <field name="product_uom" string="ĐVT"
@@ -167,6 +177,21 @@
                                            readonly="1"/>
                                     <field name="dlm_reject_note" string="Ghi chú"
                                            readonly="1" optional="show"/>
+                                    <!-- K17 — thứ Mua hàng thật sự cầm đi đàm
+                                         phán. Chỉ-đọc: ảnh thuộc về lúc mở
+                                         hàng, không thuộc về lúc thương lượng.
+                                         CỐ Ý không có cột đếm ảnh như bên phiếu
+                                         kiểm: ở đây câu hỏi chỉ là "có ảnh
+                                         không" (nút hiện hay không), còn 2 hay 3
+                                         tấm thì mở ra khắc thấy — thêm một cột
+                                         số nữa là bảng tràn khung. -->
+                                    <field name="dlm_evidence_count"
+                                           column_invisible="1"/>
+                                    <button name="action_dlm_open_evidence"
+                                            type="object" icon="fa-camera"
+                                            string="Bằng chứng"
+                                            title="Xem ảnh hàng lỗi thủ kho chụp lúc mở hàng"
+                                            invisible="dlm_evidence_count == 0"/>
                                     <field name="picked" column_invisible="1"/>
                                     <!-- company_id: domain của product_id trên
                                          stock.move tham chiếu tới nó ⇒ thiếu là
