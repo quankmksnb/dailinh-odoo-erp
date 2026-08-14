@@ -500,57 +500,6 @@
         </field>
     </record>
 
-    <record id="view_dl_product_kanban" model="ir.ui.view">
-        <field name="name">dl.product.kanban</field>
-        <field name="model">product.product</field>
-        <field name="arch" type="xml">
-            <kanban
-                string="Sản phẩm"
-                class="dl-product-kanban"
-                js_class="dl_product_kanban"
-                sample="1"
-            >
-                <field name="id" />
-                <field name="name" />
-                <field name="default_code" />
-                <field name="categ_id" />
-                <field name="product_kind" />
-                <field name="uom_id" />
-                <field name="active" />
-                <field name="image_128" />
-                <templates>
-                    <t t-name="kanban-box">
-                        <div t-attf-class="oe_kanban_global_click dl-prod-card #{record.active.raw_value ? '' : 'dl-prod-card--off'}">
-                            <div class="dl-prod-img">
-                                <img t-if="record.image_128.raw_value"
-                                    t-att-src="kanban_image('product.product', 'image_128', record.id.raw_value)"
-                                    t-att-alt="record.name.value" />
-                                <span t-else="" class="dl-prod-img__placeholder">
-                                    <i class="fa fa-cube" title="Sản phẩm" />
-                                </span>
-                            </div>
-                            <div class="dl-prod-info">
-                                <span class="dl-prod-name" t-esc="record.name.value" />
-                                <div class="dl-prod-meta">
-                                    <span class="dl-prod-code" t-if="record.default_code.value"
-                                        t-esc="record.default_code.value" />
-                                    <span class="dl-prod-sep" t-if="record.default_code.value and record.categ_id.value">·</span>
-                                    <span t-if="record.categ_id.value" t-esc="record.categ_id.value" />
-                                </div>
-                                <div class="dl-prod-detail" t-if="record.uom_id.value">
-                                    <i class="fa fa-balance-scale" title="Đơn vị tính" />
-                                    <span t-esc="record.uom_id.value" />
-                                </div>
-                            </div>
-                            <span t-attf-class="dl-prod-badge dl-prod-badge--#{record.product_kind.raw_value}"
-                                t-esc="record.product_kind.value" />
-                        </div>
-                    </t>
-                </templates>
-            </kanban>
-        </field>
-    </record>
-
     <!-- View riêng cho KTV: Kế thừa form gốc (giữ nguyên tab tạo BOM cho dl_technical -->
     <record id="view_dl_product_tech_form" model="ir.ui.view">
         <field name="name">dl.product.tech.form</field>

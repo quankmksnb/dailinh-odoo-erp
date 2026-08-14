@@ -29,83 +29,6 @@
         </field>
     </record>
 
-    <record id="view_dl_customer_kanban" model="ir.ui.view">
-        <field name="name">dlm.customer.kanban</field>
-        <field name="model">res.partner</field>
-        <field name="arch" type="xml">
-            <kanban class="dl-cust-kanban" js_class="dl_customer_kanban" default_group_by="">
-                <field name="name" />
-                <field name="dlm_code" />
-                <field name="partner_type" />
-                <field name="partner_type_label" />
-                <field name="phone" />
-                <field name="mobile" />
-                <field name="email" />
-                <field name="city" />
-                <field name="active" />
-                <field name="dlm_has_photo" />
-                <field name="dlm_initial" />
-                <field name="dlm_avatar_bg" />
-                <field name="dlm_avatar_fg" />
-                <templates>
-                    <t t-name="kanban-box">
-                        <div class="oe_kanban_global_click dl-cust-card"
-                            t-attf-class="#{!record.active.raw_value ? 'dl-cust-card--off' : ''}">
-                            <div class="dl-cust-card__head">
-                                <div class="dl-cust-ava">
-                                    <img t-if="record.dlm_has_photo.raw_value"
-                                        t-att-src="kanban_image('res.partner', 'avatar_128', record.id.raw_value)"
-                                        t-att-alt="record.name.value" />
-                                    <span t-else="" class="dl-cust-ava__letter"
-                                        t-attf-style="background:#{record.dlm_avatar_bg.value};color:#{record.dlm_avatar_fg.value}"
-                                        t-esc="record.dlm_initial.value" />
-                                </div>
-                                <div class="dl-cust-card__id">
-                                    <span class="dl-cust-card__name" t-esc="record.name.value" />
-                                    <div class="dl-cust-card__tags">
-                                        <span class="dl-cust-code" t-if="record.dlm_code.value"
-                                            t-esc="record.dlm_code.value" />
-                                        <span
-                                            t-attf-class="dl-type-badge dl-type-badge--#{record.partner_type.raw_value}"
-                                            t-esc="record.partner_type_label.value" />
-                                    </div>
-                                </div>
-                                <t t-if="record.active.raw_value">
-                                    <span class="dl-cust-status dl-cust-status--active">
-                                        Đang hợp tác
-                                    </span>
-                                </t>
-                                <t t-else="">
-                                    <span class="dl-cust-status dl-cust-status--inactive">
-                                        Ngừng hợp tác
-                                    </span>
-                                </t>
-                            </div>
-                            <div class="dl-cust-card__body">
-                                <div class="dl-cust-row" t-if="record.phone.value">
-                                    <i class="fa fa-phone" title="Điện thoại" />
-                                    <span t-esc="record.phone.value" />
-                                </div>
-                                <div class="dl-cust-row" t-if="record.mobile.value">
-                                    <i class="fa fa-mobile" title="Di động" />
-                                    <span t-esc="record.mobile.value" />
-                                </div>
-                                <div class="dl-cust-row" t-if="record.email.value">
-                                    <i class="fa fa-envelope-o" title="Email" />
-                                    <span t-esc="record.email.value" />
-                                </div>
-                                <div class="dl-cust-row" t-if="record.city.value">
-                                    <i class="fa fa-map-marker" title="Địa chỉ" />
-                                    <span t-esc="record.city.value" />
-                                </div>
-                            </div>
-                        </div>
-                    </t>
-                </templates>
-            </kanban>
-        </field>
-    </record>
-
     <record id="view_dl_customer_form" model="ir.ui.view">
         <field name="name">dlm.customer.form</field>
         <field name="model">res.partner</field>
@@ -156,6 +79,14 @@
 
                     </div>
 
+                    <!-- Cảnh báo MỀM trùng tên khách hàng — không chặn lưu, chỉ
+                         nhắc kiểm tra lại (xem _compute_dlm_duplicate_name_warning). -->
+                    <div class="alert alert-warning" role="alert"
+                        invisible="not dlm_duplicate_name_warning">
+                        <i class="fa fa-exclamation-triangle me-1"/>
+                        <field name="dlm_duplicate_name_warning" class="oe_inline" />
+                    </div>
+
                     <!-- Gộp hồ sơ khi đối tác đã là NCC — chỉ hiện lúc tạo mới.
                          Rút gọn còn 1 dòng (review UX cust #f1); chi tiết đã nằm
                          trong placeholder ô chọn. -->
@@ -173,21 +104,39 @@
 
                     <group>
                         <group string="Thông tin liên hệ">
-                            <field name="phone" string="Điện thoại" readonly="not active" />
-                            <field name="mobile" string="Di động" readonly="not active" />
+                            <!-- Cá nhân bắt buộc Di động (không có MST nên số di
+                                 động là dữ liệu định danh duy nhất); DN/Đại lý
+                                 chỉ cần một trong ba kênh — luật đầy đủ nằm ở
+                                 _check_customer_contact_channel. -->
+                            <field name="phone" string="Điện thoại" readonly="not active"
+                                placeholder="Bắt buộc một trong: Điện thoại / Di động / Email" />
+                            <field name="mobile" string="Di động" readonly="not active"
+                                required="partner_type == 'individual'"
+                                placeholder="Bắt buộc với khách Cá nhân" />
                             <field name="email" widget="email" readonly="not active" />
                             <field name="vat" string="Mã số thuế"
                                 widget="dl_tax_code"
                                 readonly="not active"
-                                required="partner_type == 'company'"
-                                placeholder="Bắt buộc với Doanh nghiệp; Cá nhân có thể để trống" />
+                                required="partner_type in ['company', 'dealer']"
+                                placeholder="Bắt buộc với Doanh nghiệp và Đại lý; Cá nhân có thể để trống" />
                             <field name="dlm_allow_dup_tax" readonly="not active"
                                 invisible="not vat" />
+                            <field name="dlm_allow_dup_contact" readonly="not active"
+                                invisible="not phone and not mobile and not email" />
+                            <!-- Cửa thoát trùng phải để lại dấu vết: tích là
+                                 phải giải thích (_check_dup_override_reason). -->
+                            <field name="dlm_dup_override_reason" readonly="not active"
+                                invisible="not dlm_allow_dup_tax and not dlm_allow_dup_contact"
+                                placeholder="VD: Chi nhánh Hà Nội, dùng chung Mã số thuế và tổng đài với trụ sở." />
                         </group>
                         <group string="Địa chỉ">
+                            <!-- Địa chỉ in lên PDF báo giá / hợp đồng ⇒ bắt buộc
+                                 với khách có tư cách pháp nhân (DN, Đại lý). -->
                             <field name="street" string="Đường" readonly="not active"
+                                required="partner_type in ['company', 'dealer']"
                                 placeholder="Số nhà, tên đường..." />
                             <field name="city" string="Tỉnh / Thành phố" readonly="not active"
+                                required="partner_type in ['company', 'dealer']"
                                 placeholder="Tỉnh / Thành phố" />
                             <field name="country_id" string="Quốc gia" readonly="not active"
                                 placeholder="Quốc gia" />
@@ -203,10 +152,16 @@
                             <field name="child_ids"
                                 context="{'default_type': 'contact', 'default_partner_role': False, 'default_partner_type': False}"
                                 readonly="not active">
+                                <!-- Mỗi dòng bắt buộc Họ tên và ít nhất một kênh
+                                     liên lạc; luật đầy đủ ở _check_contact_name /
+                                     _check_contact_channel. Thêm cột Di động để
+                                     người nhập có đủ ba ô mà ràng buộc đang xét. -->
                                 <tree editable="bottom">
-                                    <field name="name" string="Họ tên" />
+                                    <field name="name" string="Họ tên" required="1" />
                                     <field name="function" string="Chức vụ" />
-                                    <field name="phone" string="Điện thoại" />
+                                    <field name="phone" string="Điện thoại"
+                                        placeholder="Bắt buộc một trong: ĐT / Di động / Email" />
+                                    <field name="mobile" string="Di động" />
                                     <field name="email" widget="email" />
                                 </tree>
                             </field>

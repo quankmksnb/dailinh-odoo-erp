@@ -59,6 +59,8 @@
             <field name="partner_role">customer</field>
             <field name="partner_type">individual</field>
             <field name="company_type">person</field>
+            <!-- Khách Cá nhân bắt buộc Di động (_check_customer_contact_channel). -->
+            <field name="mobile">0909 123 456</field>
             <field name="phone">0909 123 456</field>
             <field name="email">hoang.nx@gmail.com</field>
             <field name="street">7 Lê Văn Lương</field>
@@ -96,6 +98,9 @@
             <field name="vat">0305556677</field>
             <field name="phone">0251 3777 888</field>
             <field name="email">phuthinh.mech@gmail.com</field>
+            <!-- Vai trò 'both' ⇒ cũng là KH Doanh nghiệp ⇒ bắt buộc đủ địa chỉ
+                 (_check_customer_address). -->
+            <field name="street">210 Quốc lộ 51</field>
             <field name="city">Đồng Nai</field>
         </record>
 
