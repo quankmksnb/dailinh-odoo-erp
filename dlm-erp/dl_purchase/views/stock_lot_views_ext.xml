@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K20 — Lô mang giá mua của chính nó.
+         docs/Thiet_ke_mua_hang_va_vong_cung_ung.md §6.2
+
+         🔴 KHÔNG cần `groups=` ở view: ba field đã mang `groups=` ở TẦNG FIELD
+         (dl_purchase/models/stock_lot.py) nên ORM tự bỏ chúng khỏi arch với vai
+         trò không được xem — kể cả qua RPC/export. Gác thêm ở view chỉ tạo cảm
+         giác an toàn ở đúng chỗ đã an toàn, và che mất chỗ chưa an toàn.
+    ============================================================ -->
+
+    <record id="view_dl_stock_lot_tree_cost" model="ir.ui.view">
+        <field name="name">dl.stock.lot.tree.cost</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="dl_inventory.view_dl_stock_lot_tree"/>
+        <field name="arch" type="xml">
+            <field name="dlm_receipt_picking_id" position="after">
+                <field name="dlm_unit_cost" string="Giá mua đơn vị"
+                       widget="dl_money" width="140px"/>
+                <field name="dlm_purchase_order_id" string="Đơn mua"
+                       width="130px" optional="show"/>
+                <!-- Cờ ước tính hiện MẶC ĐỊNH: một con số sai mà trông chắc
+                     chắn thì tệ hơn một con số sai có dán nhãn. -->
+                <field name="dlm_cost_is_estimated" string="Giá ước tính"
+                       width="110px"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_dl_stock_lot_form_cost" model="ir.ui.view">
+        <field name="name">dl.stock.lot.form.cost</field>
+        <field name="model">stock.lot</field>
+        <field name="inherit_id" ref="dl_inventory.view_dl_stock_lot_form"/>
+        <field name="arch" type="xml">
+            <field name="dlm_receipt_picking_id" position="after">
+                <field name="dlm_unit_cost" widget="dl_money" readonly="1"/>
+                <field name="dlm_purchase_order_id" readonly="1"/>
+                <field name="dlm_cost_is_estimated" readonly="1"/>
+            </field>
+        </field>
+    </record>
+
+</odoo>

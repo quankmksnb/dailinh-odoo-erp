@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K19/K21 — M16/M17 Đơn mua hàng
+         docs/Thiet_ke_mua_hang_va_vong_cung_ung.md §5, §11.2
+
+         Mọi ô tiền đều mang `groups=` ở TẦNG FIELD (khai trên model), nên view
+         này không phải gác giá: ORM tự bỏ cột ra khỏi arch với vai trò không
+         được xem. Gác ở view mà quên tầng field là rò qua RPC/export.
+    ============================================================ -->
+
+    <record id="view_dl_purchase_order_tree" model="ir.ui.view">
+        <field name="name">dl.purchase.order.tree</field>
+        <field name="model">dl.purchase.order</field>
+        <field name="arch" type="xml">
+            <!-- Bề rộng khai TƯỜNG MINH — list dự án dùng table-layout:fixed,
+                 cột không khai bị bóp về ~0px và chữ đè nhau (lỗi im lặng). -->
+            <tree string="Đơn mua hàng" class="dl-purchase-list"
+                  decoration-muted="state == 'cancelled'">
+                <field name="name" string="Số đơn" width="130px"/>
+                <field name="partner_id" string="Nhà cung cấp" width="240px"/>
+                <field name="date_order" string="Ngày lập" width="110px"/>
+                <field name="date_expected" string="Hàng về dự kiến"
+                       width="130px"/>
+                <field name="amount_total" string="Tổng tiền"
+                       widget="dl_money" width="140px"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" string="Trạng thái" widget="badge"
+                       width="130px"
+                       decoration-muted="state in ('draft', 'cancelled')"
+                       decoration-info="state == 'sent'"
+                       decoration-warning="state == 'to_approve'"
+                       decoration-success="state == 'confirmed'"/>
+                <!-- Tách khỏi cột Trạng thái có chủ ý: "Đã chốt" nói việc mua
+                     xong, còn cột này nói HÀNG đã về chưa — hai câu hỏi khác
+                     nhau, gộp lại là mất một câu. -->
+                <field name="dlm_receipt_state" string="Nhận hàng"
+                       widget="badge" width="120px"
+                       decoration-success="dlm_receipt_state == 'done'"
+                       decoration-warning="dlm_receipt_state == 'partial'"
+                       decoration-muted="dlm_receipt_state == 'nothing'"
+                       invisible="state != 'confirmed'"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_purchase_order_form" model="ir.ui.view">
+        <field name="name">dl.purchase.order.form</field>
+        <field name="model">dl.purchase.order</field>
+        <field name="arch" type="xml">
+            <form string="Đơn mua hàng" class="dl-purchase-form">
+                <header>
+                    <!-- MỘT CTA primary cho mỗi trạng thái (§11.1).
+                         Nháp: gửi hỏi giá. Đã gửi: chốt HOẶC trình duyệt —
+                         hai nút này loại trừ nhau theo ngưỡng, không bao giờ
+                         cùng hiện; để cùng hiện là mời người dùng đi đường
+                         tránh ngưỡng. -->
+                    <button name="action_dlm_send" string="Gửi hỏi giá NCC"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_dlm_confirm" string="Chốt đơn"
+                            type="object" class="btn-primary"
+                            invisible="state not in ('draft', 'sent')
+                                       or dlm_needs_approval"/>
+                    <button name="action_dlm_submit_approval"
+                            string="Trình Giám đốc duyệt"
+                            type="object" class="btn-primary"
+                            invisible="state not in ('draft', 'sent')
+                                       or not dlm_needs_approval"/>
+                    <button name="action_dlm_print"
+                            string="In yêu cầu báo giá"
+                            type="object" class="btn-secondary"
+                            invisible="state not in ('draft', 'sent')"/>
+                    <button name="action_dlm_print" string="In đơn đặt hàng"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'confirmed'"/>
+                    <button name="action_dlm_reset_draft" string="Đưa về nháp"
+                            type="object" class="btn-link"
+                            invisible="state not in ('sent', 'cancelled')"/>
+                    <button name="action_dlm_cancel" string="Huỷ đơn"
+                            type="object" class="btn-danger"
+                            invisible="state in ('confirmed', 'cancelled')"
+                            confirm="Huỷ đơn mua này? Phiếu nhận chưa xác nhận sẽ bị huỷ theo."/>
+                    <field name="state" widget="dl_stepper"
+                           statusbar_visible="draft,sent,confirmed"/>
+                </header>
+                <sheet>
+                    <widget name="web_ribbon" title="Đã huỷ"
+                            bg_color="text-bg-danger"
+                            invisible="state != 'cancelled'"/>
+                    <field name="dlm_needs_approval" invisible="1"/>
+
+                    <div class="oe_button_box" name="dlm_purchase_box">
+                        <button name="action_dlm_open_pickings" type="object"
+                                class="oe_stat_button" icon="fa-inbox"
+                                invisible="dlm_picking_count == 0">
+                            <field name="dlm_picking_count" widget="statinfo"
+                                   string="Phiếu nhận"/>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <!-- MH-13 — dải cảnh báo lệch giá. Icon + chữ, không chỉ
+                         màu: người mù màu và bản in vẫn phải đọc ra. -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not dlm_price_warning">
+                        <i class="fa fa-line-chart me-1" role="img"
+                           aria-label="Cảnh báo giá"/>
+                        <field name="dlm_price_warning" nolabel="1"
+                               class="d-inline"/>
+                    </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="state != 'to_approve'">
+                        <i class="fa fa-hourglass-half me-1" role="img"
+                           aria-label="Chờ duyệt"/>
+                        Đơn đang chờ Giám đốc duyệt. Việc đã nằm trong hòm phê
+                        duyệt của Giám đốc — không cần gửi lại.
+                    </div>
+                    <div class="alert alert-secondary" role="alert"
+                         invisible="state != 'sent'">
+                        <i class="fa fa-paper-plane me-1" role="img"
+                           aria-label="Đã gửi"/>
+                        Đã gửi hỏi giá lúc <field name="date_sent" nolabel="1"
+                                                  class="d-inline"/>.
+                        Điền đơn giá NCC báo về rồi chốt đơn.
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="partner_id"
+                                   readonly="state not in ('draft', 'sent')"
+                                   options="{'no_create': True}"/>
+                            <field name="date_order"
+                                   readonly="state not in ('draft', 'sent')"/>
+                            <field name="date_expected"
+                                   readonly="state not in ('draft', 'sent')"/>
+                        </group>
+                        <group>
+                            <field name="dlm_receipt_state" widget="badge"
+                                   invisible="state != 'confirmed'"
+                                   decoration-success="dlm_receipt_state == 'done'"
+                                   decoration-warning="dlm_receipt_state == 'partial'"
+                                   decoration-muted="dlm_receipt_state == 'nothing'"/>
+                            <field name="dlm_threshold_hint" readonly="1"/>
+                            <field name="dlm_origin_order_ids"
+                                   widget="many2many_tags"
+                                   invisible="not dlm_origin_order_ids"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Hàng đặt mua" name="lines">
+                            <field name="line_ids"
+                                   readonly="state not in ('draft', 'sent')">
+                                <tree editable="bottom">
+                                    <field name="product_id" string="Mặt hàng"
+                                           width="300px"/>
+                                    <field name="uom_id" string="ĐVT"
+                                           width="90px"/>
+                                    <field name="qty" string="Số lượng"
+                                           widget="dl_qty" width="110px"/>
+                                    <field name="price_unit"
+                                           string="Đơn giá chốt"
+                                           widget="dl_money" width="140px"/>
+                                    <field name="price_list_unit"
+                                           string="Giá bảng NCC"
+                                           widget="dl_money" width="140px"
+                                           optional="show" readonly="1"/>
+                                    <field name="price_subtotal"
+                                           string="Thành tiền"
+                                           widget="dl_money" width="150px"/>
+                                    <field name="qty_received"
+                                           string="Đã nhận" widget="dl_qty"
+                                           width="100px" optional="hide"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="amount_total" widget="dl_money"/>
+                            </group>
+                        </page>
+                        <page string="Ghi chú gửi NCC" name="note">
+                            <field name="note" nolabel="1"
+                                   class="dl-textarea-lg"
+                                   placeholder="Yêu cầu về quy cách, thời gian giao, nơi giao..."/>
+                            <field name="cancel_reason" readonly="1"
+                                   invisible="not cancel_reason"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_dl_purchase_order_search" model="ir.ui.view">
+        <field name="name">dl.purchase.order.search</field>
+        <field name="model">dl.purchase.order</field>
+        <field name="arch" type="xml">
+            <search string="Đơn mua hàng">
+                <field name="name" string="Số đơn"/>
+                <field name="partner_id" string="Nhà cung cấp"/>
+                <!-- Segment mặc định là "Đang chạy": đơn đã nhận đủ và đơn huỷ
+                     là lịch sử, để chúng nằm chung làm loãng đúng thứ cần làm. -->
+                <filter name="dang_chay" string="Đang chạy"
+                        domain="['&amp;', ('state', '!=', 'cancelled'),
+                                 '|', ('state', '!=', 'confirmed'),
+                                      ('dlm_receipt_state', '!=', 'done')]"/>
+                <filter name="cho_bao_gia" string="Chờ NCC báo giá"
+                        domain="[('state', '=', 'sent')]"/>
+                <filter name="cho_duyet" string="Chờ duyệt"
+                        domain="[('state', '=', 'to_approve')]"/>
+                <filter name="cho_hang_ve" string="Chờ hàng về"
+                        domain="[('state', '=', 'confirmed'),
+                                 ('dlm_receipt_state', '!=', 'done')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_partner" string="Nhà cung cấp"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_state" string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_purchase_order" model="ir.actions.act_window">
+        <field name="name">Đơn mua hàng</field>
+        <field name="res_model">dl.purchase.order</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_dang_chay': 1}</field>
+        <field name="search_view_id" ref="view_dl_purchase_order_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Chưa có đơn mua nào đang chạy</p>
+            <p>Đơn mua nháp tự xuất hiện ở đây khi Thủ kho điều phối một đơn bán
+               mà kho thiếu hàng. Bạn cũng tạo tay được cho hàng mua chủ động.</p>
+        </field>
+    </record>
+
+</odoo>
