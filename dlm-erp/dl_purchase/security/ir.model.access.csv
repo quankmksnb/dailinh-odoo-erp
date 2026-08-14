@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_dl_purchase_order_buy,dl.purchase.order Mua hang,model_dl_purchase_order,dl_base.dl_group_purchasing,1,1,1,1
+access_dl_purchase_order_admin,dl.purchase.order Admin,model_dl_purchase_order,dl_base.dl_group_admin,1,1,1,1
+access_dl_purchase_order_ceo,dl.purchase.order CEO,model_dl_purchase_order,dl_base.dl_group_ceo,1,1,1,0
+access_dl_purchase_order_acc,dl.purchase.order Ke toan,model_dl_purchase_order,dl_base.dl_group_accountant,1,0,0,0
+access_dl_purchase_line_buy,dl.purchase.order.line Mua hang,model_dl_purchase_order_line,dl_base.dl_group_purchasing,1,1,1,1
+access_dl_purchase_line_admin,dl.purchase.order.line Admin,model_dl_purchase_order_line,dl_base.dl_group_admin,1,1,1,1
+access_dl_purchase_line_ceo,dl.purchase.order.line CEO,model_dl_purchase_order_line,dl_base.dl_group_ceo,1,1,1,0
+access_dl_purchase_line_acc,dl.purchase.order.line Ke toan,model_dl_purchase_order_line,dl_base.dl_group_accountant,1,0,0,0

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Số đơn mua. `noupdate` để nâng cấp module KHÔNG tua lại số đang chạy
+             — đơn PO/2026/00042 đã gửi cho NCC thì không được có bản thứ hai. -->
+        <record id="seq_dl_purchase_order" model="ir.sequence">
+            <field name="name">Đơn mua hàng Đại Linh</field>
+            <field name="code">dl.purchase.order</field>
+            <field name="prefix">PO/%(year)s/</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+    </data>
+</odoo>

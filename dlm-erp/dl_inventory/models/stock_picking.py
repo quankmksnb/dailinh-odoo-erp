@@ -2236,6 +2236,13 @@ class StockPicking(models.Model):
         sudo: Thủ kho không có quyền đọc `dl.bom` (định mức là tài sản của Kỹ
         thuật) nhưng vẫn phải thấy con số để biết mình đang cấp vượt. Chỉ đọc số
         lượng — không field tiền nào bị chạm.
+
+        🔴 **K15 — nay gọi ``_dlm_explode_requirements``** thay vì tự cộng một
+        tầng. Trước đó dòng BTP trên BOM chỉ ra chính BTP đó, nên khi xưởng được
+        cấp THÉP (vì kho hết BTP) thì bảng đối chiếu so thép với khung bàn: hai
+        mặt hàng khác nhau, cả hai dòng đều ra 0 và bảng vô nghĩa đúng lúc cần
+        nhất. Truyền ``location=None`` — đây là câu hỏi "ĐỊNH MỨC bao nhiêu",
+        không phải "lấy được bao nhiêu", nên KHÔNG bù trừ tồn BTP.
         """
         self.ensure_one()
         required = {}
@@ -2246,12 +2253,8 @@ class StockPicking(models.Model):
             bom = line.bom_id
             if not bom or not bom.product_qty:
                 continue
-            for bom_line in bom.line_ids:
-                material = bom_line.material_id
-                if not material:
-                    continue
-                required[material] = required.get(material, 0.0) + (
-                    bom_line.effective_qty / bom.product_qty * line.qty)
+            for material, qty in bom._dlm_explode_requirements(line.qty).items():
+                required[material] = required.get(material, 0.0) + qty
         return required
 
     def _dlm_issued_qty(self):

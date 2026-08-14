@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K22 — Rail Mua hàng. Cha là dl_base.menu_dl_purchase (container).
+         ⚠️ Menu LÁ bắt buộc có action: rail và Home lọc mục bằng
+         _hasActionableMenu — menu lá rỗng action BIẾN MẤT khỏi rail.
+
+         🔴 LỆCH DOC CÓ CHỦ Ý — KHÔNG dời "Bảng giá Vật tư" sang đây.
+         docs/Thiet_ke_mua_hang_va_vong_cung_ung.md §11.1 đề xuất dời cả nhóm
+         Bảng giá. Nhưng nhóm "Bảng giá" hiện gom Bảng giá Vật tư + Bảng giá SP
+         thương mại + Vật tư chờ định giá, và Kế toán/CEO/Trưởng KD cùng dùng
+         nhóm đó. Dời MỘT mục ra là xé một nhóm đang mạch lạc để phục vụ một vai
+         trò — Mua hàng vẫn thấy nguyên nhóm Bảng giá ở rail Sản phẩm & Vật tư.
+         "Trả hàng NCC" thì dời thật: chính dl_inventory/views/menus.xml đã ghi
+         "khi B3 có rail riêng thì chuyển mục này sang đó".
+    ============================================================ -->
+
+    <menuitem
+        id="menu_dl_purchase_order"
+        name="Đơn mua hàng"
+        action="action_dl_purchase_order"
+        parent="dl_base.menu_dl_purchase"
+        sequence="10"
+        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
+    <!-- Dời "Trả hàng NCC" từ rail Kho sang đây — trả nợ ghi ở K6 sai lệch (1).
+         Đổi `parent_id` bằng <record> chứ không khai lại <menuitem>: khai lại
+         với cùng XML ID vẫn ghi đè, nhưng dùng record nói rõ đây là DỜI CHỖ một
+         bản ghi đang có, không phải tạo mới. -->
+    <record id="dl_inventory.menu_dl_picking_vendor_return" model="ir.ui.menu">
+        <field name="parent_id" ref="dl_base.menu_dl_purchase"/>
+        <field name="sequence">20</field>
+    </record>
+
+</odoo>

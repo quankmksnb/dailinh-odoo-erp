@@ -311,6 +311,22 @@ class StockWarehouse(models.Model):
             if locations.get(key):
                 locations[key].dlm_no_inventory = True
 
+        # ── K20 — LẤY HÀNG THEO FIFO: CỐ Ý KHÔNG cấu hình gì ─────────────────
+        # Giá vốn thực tế (§6.4 doc Mua hàng) đúng được là nhờ Odoo lấy lô CŨ
+        # trước. Nhưng `stock.quant._get_removal_strategy` (stock_quant.py:651)
+        # đã trả 'fifo' làm MẶC ĐỊNH khi không ai khai gì — nên ghi
+        # `removal_strategy_id` ở đây không đổi hành vi một chút nào, chỉ tạo
+        # cảm giác đã bảo vệ.
+        #
+        # 🔴 Rủi ro THẬT nằm chỗ khác: `categ_id.removal_strategy_id` được kiểm
+        # TRƯỚC vị trí, nên đặt chiến lược ở nhóm sản phẩm sẽ ghi đè mọi thứ
+        # khai ở vị trí. Lá chắn vì thế là một TEST đo chiến lược hiệu lực
+        # (test_lot_cost.test_kho_vat_tu_lay_hang_theo_fifo), không phải một
+        # dòng cấu hình vô hiệu.
+        #
+        # ⚠️ FIFO ở đây là CHIẾN LƯỢC LẤY HÀNG của module `stock` lõi, KHÔNG
+        # phải định giá tồn kho. Cái bị cấm ở §3.8 là `stock_account`.
+
         # Vị trí đối tác & vị trí ẢO Sản xuất — Odoo tạo sẵn, KHÔNG tự dựng.
         # Sản xuất không có XML ID (Odoo lưu qua ir.property theo công ty) nên
         # phải tra theo usage.

@@ -27,6 +27,20 @@
         groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo"
     />
 
+    <!-- K16 — Điều phối đứng NGAY SAU Hàng đợi: đây là việc đầu ngày của thủ
+         kho (đơn nào mới chốt, có làm được không), trước cả việc nhận hàng.
+         🔴 CHỈ Thủ kho/Admin/CEO — người dùng chốt 2026-08-14 (U-4): một chủ
+         sở hữu cho bước này. Sales xem tình trạng bằng chip trên chính form
+         đơn của họ, không có lối vào thứ hai ở đây. -->
+    <menuitem
+        id="menu_dl_dispatch_queue"
+        name="Điều phối đơn hàng"
+        action="action_dl_dispatch_queue"
+        parent="dl_base.menu_dl_inventory"
+        sequence="7"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+    />
+
     <menuitem
         id="menu_dl_stock_quant"
         name="Tồn kho"

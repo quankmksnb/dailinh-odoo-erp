@@ -202,12 +202,15 @@ $dl-rail-bg:      $dl-nav-bg;
         // Badge số việc chờ (vd "Phê duyệt") — pill đỏ, đẩy sát mép phải.
         // Với mục có submenu, chevron mới là phần tử margin-left:auto nên badge
         // ngồi ngay trước chevron (canh phải tự nhiên).
+        // Bề rộng CỐ ĐỊNH, KHÔNG padding ngang: 1 chữ số, 2 chữ số và "99+" đều
+        // ra cùng một khổ nên cột badge trong rail nhìn đều nhau (padding ngang
+        // làm badge "22" phình rộng hơn badge "3").
         .dlm-rail-badge {
             margin-left: auto;
             flex-shrink: 0;
-            min-width: 18px;
+            min-width: 20px;
             height: 18px;
-            padding: 0 5px;
+            padding: 0;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -364,12 +367,18 @@ $dl-rail-bg:      $dl-nav-bg;
             top: 3px;
             right: 4px;
             margin: 0;
-            min-width: 16px;
+            min-width: 18px;
             height: 16px;
-            padding: 0 4px;
+            padding: 0;
             font-size: 10px;
             border: 1px solid $dl-rail-bg;
         }
+        // Mục có submenu mang `margin-right: 2px` để chừa chỗ cho chevron khi
+        // rail MỞ, và rule đó nặng ký hơn (`.dlm-rail-item.has-children ...`)
+        // nên đè luôn `margin: 0` ở trên. Thu gọn thì chevron đã ẩn, còn cái
+        // margin ấy vẫn đẩy badge tuyệt đối lệch trái 2px so với badge của mục
+        // lá ⇒ cột badge so le. Trả về 0 ở ĐÚNG độ ưu tiên đó.
+        .dlm-rail-item.has-children .dlm-rail-badge { margin: 0; }
 
         // Khối tài khoản thu gọn: chỉ còn avatar, canh giữa, ẩn tên.
         .dlm-rail-foot {
