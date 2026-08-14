@@ -203,7 +203,8 @@
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
             <search string="Tìm khách hàng">
-                <field name="name" string="Tên" filter_domain="[('name', 'ilike', self)]" />
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', '|', '|', '|', ('name', 'ilike', self), ('dlm_code', 'ilike', self), ('phone', 'ilike', self), ('email', 'ilike', self), ('vat', 'ilike', self), ('category_id', 'ilike', self)]"/>
                 <field name="dlm_code" string="Mã khách hàng" />
                 <field name="phone" />
                 <field name="email" />

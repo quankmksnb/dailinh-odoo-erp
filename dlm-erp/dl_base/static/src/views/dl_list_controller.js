@@ -31,6 +31,53 @@ export class DlListBaseController extends ListController {
         this._renderFilterDropdowns(root);
         this._renderChipbar(root);
         this._renderFooter(root);
+        this._wireSearchClear(root);
+    }
+
+    // ── Xoá trắng ô tìm kiếm ⇒ bỏ luôn điều kiện đang lọc ────────────────
+    // Vì sao phải tự làm: Odoo giữ điều kiện tìm trong FACET (viên chip trong
+    // thanh tìm kiếm), gõ chữ rồi Enter là chữ chuyển vào facet. Muốn bỏ lọc thì
+    // bấm dấu × trên facet — nhưng giao diện DL ẩn toàn bộ facet
+    // (global_cp.scss: `.o_searchview .o_searchview_facet { display: none }`)
+    // để nhường chỗ cho chipbar riêng. Hệ quả: người dùng xoá chữ trong ô mà
+    // danh sách vẫn lọc, không thấy gì để bấm, phải sang màn khác rồi quay lại.
+    //
+    // Chỉ gỡ facet loại "field" (do gõ chữ). KHÔNG đụng facet của filter/group_by
+    // — đó là các chip trạng thái và nhóm-theo mà người dùng chọn riêng.
+    _wireSearchClear(root) {
+        const input = root.querySelector(".o_searchview input.o_searchview_input");
+        if (!input || input.dataset.dlSearchClear) {
+            return;
+        }
+        input.dataset.dlSearchClear = "1";
+        const clearIfEmpty = () => {
+            if (input.value.trim()) {
+                return false;
+            }
+            const sm = this.env.searchModel;
+            const groups = new Set(
+                (sm.facets || [])
+                    .filter((f) => f.type === "field")
+                    .map((f) => f.groupId)
+            );
+            groups.forEach((groupId) => sm.deactivateGroup(groupId));
+            return groups.size > 0;
+        };
+        input.addEventListener("input", clearIfEmpty);
+        // Enter trên ô đã trống: người dùng xoá chữ rồi bấm Enter theo phản xạ.
+        input.addEventListener("keydown", (ev) => {
+            if (ev.key === "Enter" && clearIfEmpty()) {
+                ev.stopPropagation();
+                ev.preventDefault();
+            }
+        });
+        // Esc: lối thoát quen thuộc, cũng trả danh sách về đầy đủ.
+        input.addEventListener("keydown", (ev) => {
+            if (ev.key === "Escape") {
+                input.value = "";
+                clearIfEmpty();
+            }
+        });
     }
 
     get dlChips() {

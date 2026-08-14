@@ -239,7 +239,8 @@
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
             <search string="Nhận hàng nhà cung cấp">
-                <field name="name" string="Số phiếu"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', ('name', 'ilike', self), ('partner_id', 'ilike', self), ('origin', 'ilike', self)]"/>
                 <field name="partner_id" string="Nhà cung cấp"/>
                 <field name="origin" string="Số chứng từ của nhà cung cấp"/>
 
@@ -512,7 +513,8 @@
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
             <search string="Kiểm hàng">
-                <field name="name" string="Số phiếu"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', ('name', 'ilike', self), ('partner_id', 'ilike', self), ('origin', 'ilike', self)]"/>
                 <field name="partner_id" string="Nhà cung cấp"/>
                 <field name="origin" string="Từ phiếu"/>
 
@@ -590,7 +592,8 @@
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
             <search string="Hàng đợi phiếu">
-                <field name="name" string="Số phiếu"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', ('name', 'ilike', self), ('partner_id', 'ilike', self)]"/>
                 <field name="partner_id" string="Đối tác"/>
                 <!-- 4 chip theo loại việc — cùng nhóm nên chọn nhiều là OR. -->
                 <filter name="kind_receipt" string="Cần nhận"

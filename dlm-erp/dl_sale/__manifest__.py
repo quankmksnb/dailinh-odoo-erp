@@ -1,6 +1,6 @@
 {
     'name': 'DL-CRM & Báo giá',
-    'version': '17.0.1.39.2',
+    'version': '17.0.1.39.3',
     'summary': 'Quản lý Khách hàng, Nhà cung cấp, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',

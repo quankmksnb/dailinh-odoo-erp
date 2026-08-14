@@ -1,6 +1,6 @@
 {
     "name": "DL-Technical",
-    "version": "17.0.2.3.6",
+    "version": "17.0.2.3.8",
     "summary": "Quản lý BOM, Bản vẽ, Bán thành phẩm, công thức",
     "author": "Dai Linh",
     "category": "Hidden",

@@ -797,7 +797,14 @@
         <field name="model">dl.quotation.request</field>
         <field name="arch" type="xml">
             <search string="Tìm yêu cầu báo giá">
-                <field name="name"/>
+                <!-- Ô tìm MẶC ĐỊNH phải quét nhiều trường cùng lúc: giao diện
+                     DL ẩn nút mở dropdown chọn trường (global_cp.scss:
+                     .o_searchview_dropdown_toggler { display: none }) nên gõ chữ
+                     rồi Enter LUÔN dùng field đứng đầu. Nếu để `name` đứng đầu
+                     một mình thì gõ tên sản phẩm hay tên khách sẽ không bao giờ
+                     ra kết quả — người dùng tưởng không có dữ liệu. -->
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', '|', ('name', 'ilike', self), ('customer_id', 'ilike', self), ('line_ids.product_name', 'ilike', self), ('line_ids.resolved_product_id.name', 'ilike', self)]"/>
                 <field name="customer_id"/>
                 <!-- Tìm theo TÊN SẢN PHẨM trong dòng: khi cần lục lại một yêu
                      cầu cũ, cả Sales lẫn Kỹ thuật đều nhớ "cái khung kệ kho"

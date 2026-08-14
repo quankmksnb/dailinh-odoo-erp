@@ -462,7 +462,8 @@
         <field name="model">product.product</field>
         <field name="arch" type="xml">
             <search string="Tìm sản phẩm">
-                <field name="name" string="Tên" />
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', ('name', 'ilike', self), ('default_code', 'ilike', self), ('categ_id', 'ilike', self)]"/>
                 <field name="default_code" string="Mã sản phẩm" />
                 <field
                     name="categ_id"
