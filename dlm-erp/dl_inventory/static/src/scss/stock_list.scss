@@ -418,3 +418,110 @@
     td[name="dlm_qty_rejected"] { font-weight: 600; }
     tr:not(.o_selected_row) td[name="dlm_qty_rejected"]:not(:empty) { color: $dl-danger; }
 }
+
+// ── K16 — Bảng "Kiểm tra kho" trên form Điều phối đơn hàng ──────────────────
+// Đây là bảng HTML computed (dl_sale_order_dispatch._dlm_supply_table), KHÔNG
+// phải list Odoo — nên không có th[data-name] để bám, bề rộng khai bằng
+// nth-child. Hai bảng đứng chồng nhau và phải đọc được như MỘT khối.
+
+// ── Hai tab phải bắt đầu ở CÙNG một mép ─────────────────────────────────────
+// Odoo xử hai loại nội dung tab theo hai hướng NGƯỢC nhau (form_controller.scss):
+//   • list o2m đứng đầu tab  → margin ÂM `--notebook-margin-x`, tràn ra sát mép
+//     sheet — đó là tab "Hàng khách đặt";
+//   • field HTML đứng đầu tab → `.note-editing-area, .o_readonly` được pad NGANG
+//     2 × $o-horizontal-padding, vì Odoo coi nó là khung soạn thảo wysiwyg.
+// Nội dung ở đây không phải khung soạn thảo mà là một BẢNG, nên nó phải theo
+// luật của list. Để nguyên thì bấm qua lại hai tab là nội dung nhảy ngang ~60px
+// — chính chỗ lệch người dùng chỉ ra.
+.dl-dispatch-form .o_notebook > .tab-content > .tab-pane > .o_field_html:first-child {
+    margin-left: var(--notebook-margin-x);
+    margin-right: var(--notebook-margin-x);
+
+    // !important: luật padding của Odoo dày 7 lớp và nằm ở bundle lõi. Cùng lý
+    // do các luật width của list ở đầu file này phải dùng !important.
+    .o_readonly { padding: 0 !important; }
+}
+
+.dl-supply {
+    // 🔴 KHÔNG cap bề rộng. Bản trước cap 1040px để số khỏi dạt xa tên hàng,
+    // nhưng dải cảnh báo và nhóm field ngay trên đó vẫn trải hết sheet ⇒ bảng
+    // dừng giữa chừng thành một mép rách, và cả màn trông lệch hơn là trước khi
+    // sửa. Trên một trang, MÉP CHUNG thắng bề rộng lý tưởng của từng khối.
+    // Vấn đề "số xa tên" xử bằng cụm cột và kẻ dòng bên dưới, không phải bằng
+    // cách cắt ngắn bảng.
+    // Đầu cột không xuống dòng (xem dưới) ⇒ trên màn hẹp bảng có sàn bề ngang.
+    // Cho CHÍNH nó cuộn ngang, không thì cả trang lệch theo.
+    overflow-x: auto;
+
+    .dl-supply-table {
+        // Mọi cột đều được khai bề rộng dưới đây ⇒ fixed an toàn (bẫy "cột
+        // không khai bị bóp về ~0px" chỉ nổ khi khai sót).
+        table-layout: fixed;
+        width: 100%;
+        margin-bottom: 20px;
+        border-bottom: 1px solid $dl-border;
+
+        &:last-child { margin-bottom: 0; }
+
+        thead th {
+            background: $dl-table-head-bg;
+            color: $dl-text-2;
+            font-weight: 600;
+            white-space: nowrap;
+            border-bottom: 1px solid $dl-border;
+        }
+
+        // Lề ngang của ô BẰNG ĐÚNG lề ô của list Odoo ($o-horizontal-padding =
+        // 16px, ở đây dùng token repo cùng giá trị): bảng đã tràn ra cùng mép
+        // với tab "Hàng khách đặt" rồi, lề trong lệch nhau thì chữ vẫn so le khi
+        // bấm qua lại hai tab.
+        th, td {
+            padding: $dl-cell-y $dl-page-pad;
+            vertical-align: middle;
+        }
+
+        // Chữ số đều bề ngang: cột số chỉ so sánh được theo dọc khi hàng nghìn
+        // của dòng trên nằm đúng trên hàng nghìn của dòng dưới.
+        td.text-end { font-variant-numeric: tabular-nums; }
+
+        // Bảng trải hết sheet ⇒ tên hàng và con số của nó cách nhau cả gang
+        // tay. Kẻ dòng + tô khi rê chuột là hai thứ giữ mắt đi đúng hàng ngang;
+        // thiếu chúng thì bề rộng nào cũng đọc nhầm dòng.
+        tbody tr { border-top: 1px solid $dl-divider; }
+        tbody tr:hover td { background: $dl-active; }
+
+        // Cột đầu là TÊN — cho xuống dòng chứ không cắt: "Thép hộp chữ nhật
+        // 25×50×1.4mm" mà mất đuôi thì thủ kho lấy nhầm quy cách.
+        td:first-child {
+            font-weight: 500;
+            color: $dl-heading;
+            word-break: break-word;
+        }
+    }
+
+    // Bề rộng đặt theo HAI ràng buộc, không phải chia đều:
+    //   • ba cột số CUỐI của hai bảng trùng mép nhau (60% / 73% / 87%) — đọc
+    //     dọc xuống là so được "cần giao" với "cần";
+    //   • phần dôi ra khi bảng trải hết sheet dồn CẢ cho cột tên, để cụm số
+    //     đứng sát nhau ở bên phải thay vì rải đều khắp bề ngang. Chia đều 5
+    //     cột trên màn 1920 là mỗi con số cách nhau 300px — đúng cái làm màn
+    //     trông rỗng và lệch.
+    .dl-supply-goods {
+        th:nth-child(1) { width: 46%; }
+        th:nth-child(2) { width: 14%; }
+        th:nth-child(3) { width: 13%; }
+        th:nth-child(4) { width: 14%; }
+        th:nth-child(5) { width: 13%; }
+
+        // Cột "Nhánh" là nhãn phân loại, không phải dữ liệu để so — làm mờ để
+        // nó lùi ra sau tên hàng và cụm số.
+        td:nth-child(2) { color: $dl-text-2; }
+    }
+
+    .dl-supply-materials {
+        th:nth-child(1) { width: 60%; }
+        th:nth-child(2) { width: 13%; }
+        th:nth-child(3) { width: 14%; }
+        th:nth-child(4) { width: 13%; }
+    }
+}
