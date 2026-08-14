@@ -566,9 +566,28 @@ class DlQuotationRequest(models.Model):
                     "yêu cầu (%(requested)s).",
                     deadline=rec.deadline, requested=requested))
 
-    # "RFQ phải có ≥1 dòng" được validate INLINE ở client (view: required chéo
-    # trên trading_line_ids/manufactured_line_ids) → tô đỏ + toast như customer_id,
-    # KHÔNG dùng @api.constrains (modal). Xem [[rfq-sales-hard-constrains-ux-branch]].
+    @api.constrains("line_ids", "status")
+    def _check_has_lines(self):
+        """RFQ phải có ít nhất một dòng.
+
+        View đã có required chéo trên trading_line_ids/manufactured_line_ids để
+        tô đỏ ngay khi nhập, nhưng đó chỉ chặn người bấm trên giao diện: import
+        Excel, gọi RPC hay create() từ code vẫn đẻ ra RFQ rỗng — một yêu cầu báo
+        giá không có gì để báo giá, Kỹ thuật mở ra không hiểu phải làm gì.
+
+        Ghi chú cũ ở đây nói tránh @api.constrains vì nó bung modal. Lý do đó đã
+        hết hiệu lực từ khi lỗi nghiệp vụ chuyển hết sang toast
+        (dl_base/static/src/js/error_toast.js).
+
+        Miễn cho RFQ đã hủy: hủy là điểm dừng, không bắt bổ sung dòng ở đó."""
+        for rec in self:
+            if rec.status == "cancelled":
+                continue
+            if not rec.line_ids:
+                raise ValidationError(_(
+                    "Yêu cầu báo giá %s phải có ít nhất một dòng sản phẩm. "
+                    "Nếu khách đã rút lại yêu cầu thì bấm Hủy RFQ thay vì bỏ "
+                    "hết dòng.") % (rec.name or ""))
 
     def _recompute_status_from_lines(self):
         for rec in self:
@@ -1397,9 +1416,29 @@ class DlQuotationRequestLine(models.Model):
                     _("Vui lòng nhập Tên sản phẩm cho dòng Sản phẩm gia công.")
                 )
 
-    # "Kích thước bắt buộc" + "Đính kèm bắt buộc" cho dòng gia công được validate
-    # INLINE ở client (view: required trên dimension_note/attachment_ids trong
-    # form con) → tô đỏ ngay trong dialog, KHÔNG dùng @api.constrains (modal).
+    @api.constrains("product_type", "dimension_note", "attachment_ids")
+    def _check_manufactured_spec(self):
+        """Dòng gia công phải có Mô tả kích thước HOẶC Đính kèm.
+
+        Đây là dữ liệu tối thiểu để Kỹ thuật bắt đầu làm được việc: không có
+        kích thước cũng không có bản vẽ thì dòng đó chỉ là một cái tên, và Kỹ
+        thuật buộc phải trả lại ngay — mất một vòng qua lại.
+
+        Trước đây luật chỉ nằm ở form "Tạo RFQ" của Sales (required chéo giữa
+        dimension_note và attachment_ids), nên mọi đường ghi khác đều lọt, kể cả
+        form RFQ chung. Ghi chú cũ nói tránh @api.constrains vì bung modal — lý
+        do đó không còn sau khi lỗi nghiệp vụ chuyển sang toast.
+
+        Chỉ nghe ba field trên: dòng cũ thiếu dữ liệu vẫn sửa được các field
+        khác (vd Kỹ thuật ghi supplement_note) mà không bị chặn oan."""
+        for rec in self:
+            if rec.product_type != "manufactured":
+                continue
+            if not (rec.dimension_note or "").strip() and not rec.attachment_ids:
+                raise ValidationError(_(
+                    "Dòng gia công \"%s\" phải có Mô tả kích thước hoặc Đính "
+                    "kèm bản vẽ. Kỹ thuật không xử lý được dòng chỉ có mỗi tên."
+                ) % (rec.product_name or ""))
 
     @api.constrains("product_type", "product_name")
     def _check_unique_name_in_request(self):
