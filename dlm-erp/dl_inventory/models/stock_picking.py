@@ -1500,6 +1500,25 @@ class StockPicking(models.Model):
         self._dlm_autofill_lot_names()
         return super().button_validate()
 
+
+    def _check_warn_sms(self):
+        """Không bao giờ mở hộp thoại hỏi SMS.
+
+        KHÔNG gọi `super()`: `stock_sms` chỉ auto-install chứ không nằm trong
+        `depends`, nên trên một DB không có nó thì method gốc không tồn tại.
+        """
+        return self.browse()
+
+    def _send_confirmation_email(self):
+        """Không gửi SMS, kể cả khi cờ công ty bị bật lại trong Cài đặt.
+
+        `skip_sms` là cửa thoát native của chính `stock_sms` — dùng nó thay vì
+        chép lại phần gửi email, để phiếu vẫn gửi email xác nhận như thường.
+        """
+        return super(
+            StockPicking, self.with_context(skip_sms=True)
+        )._send_confirmation_email()
+
     def _action_done(self):
         """K4 — Đóng dấu nguồn gốc lô ngay khi phiếu nhập hoàn tất.
 
