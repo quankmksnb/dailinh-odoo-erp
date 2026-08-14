@@ -403,6 +403,22 @@
                                            required="dlm_reject_reason == 'other'"
                                            readonly="not dlm_reject_reason"
                                            placeholder="Bắt buộc khi lý do là Khác"/>
+                                    <!-- K17 — chỉ dòng THẬT SỰ có hàng loại mới
+                                         hiện ô ảnh: bày máy ảnh trên 20 dòng đạt
+                                         là mời bấm nhầm.
+                                         🔴 Nút PHẢI có `string`: cột nút trong
+                                         list của Odoo luôn render <th> RỖNG
+                                         (list_renderer.xml), nên icon trần đứng
+                                         dưới một tiêu đề trắng — không hover thì
+                                         không đoán được nó làm gì. `icon` +
+                                         `string` hiện được cùng lúc. -->
+                                    <field name="dlm_evidence_count" string="Ảnh"
+                                           invisible="dlm_qty_rejected &lt;= 0"/>
+                                    <button name="action_dlm_open_evidence"
+                                            type="object" icon="fa-camera"
+                                            string="Bằng chứng"
+                                            title="Chụp / xem ảnh hàng lỗi của dòng này"
+                                            invisible="dlm_qty_rejected &lt;= 0"/>
                                     <field name="product_uom" string="ĐVT"
                                            groups="uom.group_uom" readonly="1"/>
                                     <field name="dlm_qc_over" column_invisible="1"/>
@@ -423,6 +439,70 @@
                     <field name="activity_ids"/>
                     <field name="message_ids"/>
                 </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         K17 — Hộp ảnh bằng chứng của MỘT dòng hàng loại.
+
+         MỘT view dùng cho cả ba chặng ([2] kiểm, [3] trả NCC, [9] hoá phế
+         liệu): quyền ghi không do view quyết mà do `dlm_evidence_locked`
+         (compute theo loại phiếu + trạng thái) — nuôi ba bản view chỉ để đổi
+         readonly là ba chỗ để lệch nhau.
+    ================================================================ -->
+    <record id="view_dl_move_evidence_form" model="ir.ui.view">
+        <field name="name">dl.stock.move.evidence.form</field>
+        <field name="model">stock.move</field>
+        <field name="arch" type="xml">
+            <form string="Bằng chứng hàng loại">
+                <sheet>
+                    <!-- company_id / product_uom_category_id: domain của
+                         product_id + product_uom trên stock.move tham chiếu tới
+                         chúng ⇒ thiếu là view không nạp được. -->
+                    <field name="company_id" invisible="1"/>
+                    <field name="product_uom_category_id" invisible="1"/>
+                    <field name="dlm_evidence_locked" invisible="1"/>
+
+                    <div class="alert alert-info" role="alert"
+                         invisible="dlm_evidence_locked">
+                        Chụp <b>chỗ lỗi</b> và <b>nhãn lô</b> trong cùng khung
+                        hình — ảnh không thấy lô thì không chứng minh được nó là
+                        hàng của chuyến này. Xác nhận kiểm xong là
+                        <b>khoá lại</b>, không sửa được nữa.
+                    </div>
+                    <div class="alert alert-secondary" role="alert"
+                         invisible="not dlm_evidence_locked">
+                        Bằng chứng đã khoá — chỉ xem. Ảnh được chụp tại phiếu
+                        kiểm, lúc hàng còn ở khu Chờ kiểm.
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="product_id" string="Mặt hàng" readonly="1"/>
+                            <field name="dlm_reject_qty_shown" widget="dl_qty"
+                                   string="Số lượng lỗi" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="dlm_reject_reason" string="Lý do loại"
+                                   readonly="1"/>
+                            <field name="dlm_reject_note" string="Ghi chú"
+                                   readonly="1"/>
+                        </group>
+                    </group>
+
+                    <!-- ẢNH đứng TRƯỚC ô upload, và là thứ duy nhất còn lại khi
+                         đã khoá: người mở hộp này để NHÌN vết lỗi, không phải để
+                         quản lý danh sách file. -->
+                    <separator string="Ảnh bằng chứng"/>
+                    <field name="dlm_evidence_gallery" nolabel="1" readonly="1"/>
+
+                    <div invisible="dlm_evidence_locked" class="mt-3">
+                        <separator string="Thêm ảnh"/>
+                        <field name="dlm_evidence_ids" widget="many2many_binary"
+                               nolabel="1"/>
+                    </div>
+                </sheet>
             </form>
         </field>
     </record>

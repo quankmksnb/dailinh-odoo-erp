@@ -1,6 +1,6 @@
 {
     "name": "DL-Inventory",
-    "version": "17.0.7.2.0",
+    "version": "17.0.7.8.1",
     "summary": "Kho Đại Linh — 1 kho, 4 khu, nhận hàng 2 bước có kiểm hàng",
     "description": """
 Phân hệ Kho (Giai đoạn B1). Đặc tả: docs/Thiet_ke_phan_he_kho.md
@@ -89,6 +89,26 @@ Thêm ở K16 (một mẻ = một chứng từ; bỏ % thu hồi phế liệu):
     (phế liệu khai trên phiếu mẻ). 🔴 Giá vốn vật tư KHÔNG còn được trừ tiền
     phế liệu ⇒ giá chào khách cao lên; migration dl_technical 17.0.2.3.0 đưa
     `recovery_value` của BOM cũ về 0 để hai đường tính giá không lệch nhau.
+
+Thêm ở K17 (bằng chứng hàng loại):
+  • Ảnh chụp hàng lỗi đính theo TỪNG DÒNG bị loại trên phiếu kiểm (nút máy ảnh
+    chỉ hiện ở dòng có số Loại > 0), rồi tự có mặt ở phiếu Trả hàng NCC và phiếu
+    Hoá phế liệu. Trước đó tất cả những gì Mua hàng cầm đi đòi NCC là một
+    dropdown lý do — NCC chối là hết đường.
+  • Bằng chứng KHOÁ sau khi xác nhận kiểm, chặn ở tầng server chứ không chỉ
+    readonly trên view: ảnh thêm được sau khi biết NCC cãi gì thì không còn là
+    bằng chứng. Cần bổ sung muộn thì đính vào chatter, tách khỏi bản gốc.
+  • Thiếu ảnh chỉ CẢNH BÁO (dải vàng gọi đích danh mặt hàng), cố ý không chặn
+    xác nhận — chặn thì thủ kho ca đêm chụp bừa cho qua cổng.
+  • Biên bản hàng không đạt (PDF) trên phiếu Trả hàng NCC: gom lý do + số lượng
+    + SỐ LÔ + ảnh bằng chứng vào một tờ ký được, hai chỗ ký. Dựng thuần Python
+    bằng reportlab, dùng lại font tiếng Việt đã đăng ký ở dl_sale — KHÔNG
+    wkhtmltopdf. Bản in được lưu thành đính kèm + ghi chatter: ba tháng sau còn
+    trả lời được "hôm đó đưa NCC đúng cái gì".
+    🔴 CỐ Ý KHÔNG CÓ GIÁ — biên bản nói về HÀNG; in số tiền trước khi đàm phán
+    là tự chốt mức giảm trừ hộ NCC.
+  • 🔴 Vẫn chưa có nút GỬI MAIL cho NCC — Mua hàng tải PDF rồi gửi bằng kênh của
+    mình (Zalo/mail tay). Cần server mail cấu hình xong mới làm được.
 
 KHÔNG dựng lại tầng "hub" (màn lưới thẻ trung chuyển): tầng đó đã bị gỡ khỏi cả
 hệ thống, điều hướng đi thẳng qua submenu rail.

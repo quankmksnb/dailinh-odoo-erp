@@ -13,6 +13,8 @@ Phiếu [2] là màn quan trọng nhất của phân hệ: nó là chỗ duy nh�
 "NCC giao thiếu" với "NCC giao hàng kém" — xem ``stock_move.py``.
 """
 
+from markupsafe import Markup
+
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.osv import expression
@@ -1185,12 +1187,20 @@ class StockPicking(models.Model):
             ) % "".join("<li>%s</li>" % p for p in problems), True
 
         if self.dlm_qty_rejected_total > 0:
-            return "warning", _(
+            message = _(
                 "Xác nhận kiểm sẽ chuyển <b>%s</b> đơn vị hàng loại sang khu "
                 "<b>Chờ trả NCC</b> và tạo <b>phiếu trả hàng (nháp)</b> để Mua "
                 "hàng thoả thuận với %s. Phần đạt được cất vào kho."
             ) % (_dlm_fmt(self.dlm_qty_rejected_total),
-                 self.partner_id.display_name or _("nhà cung cấp")), False
+                 self.partner_id.display_name or _("nhà cung cấp"))
+            missing = self._dlm_evidence_missing_names()
+            if missing:
+                message += _(
+                    "<br/><br/>Chưa có <b>ảnh bằng chứng</b> cho:<ul>%s</ul>"
+                    "Chụp lúc hàng còn trên tay — xác nhận xong là <b>khoá "
+                    "lại</b>, không bổ sung được nữa."
+                ) % "".join("<li>%s</li>" % n for n in missing)
+            return "warning", message, False
 
         return "info", _(
             "Nhập số <b>Đạt</b> và số <b>Loại</b> cho từng dòng. Chưa kiểm hết "
@@ -1357,6 +1367,20 @@ class StockPicking(models.Model):
                 "nếu có hàng lỗi), hoặc bấm \"Đạt tất cả\"."))
         return problems
 
+    def _dlm_evidence_missing_names(self):
+        """Mặt hàng có hàng loại mà chưa đính ảnh bằng chứng nào.
+
+        🔴 CỐ Ý không nằm trong `_dlm_qc_problems`: chặn xác nhận vì thiếu ảnh
+        sẽ đẩy thủ kho ca đêm sang chụp bừa cho qua cổng — một trường bắt buộc
+        chứa rác còn tệ hơn một trường trống, vì nó tạo cảm giác đã có bằng
+        chứng. Cảnh báo trước, đo thực tế đã, muốn siết thì siết đúng hai lý do
+        cãi nhau được (hàng lỗi / sai quy cách) chứ không siết cả bốn.
+        """
+        self.ensure_one()
+        return sorted({
+            move.product_id.display_name for move in self.move_ids
+            if move.dlm_qty_rejected > 0 and not move.dlm_evidence_ids})
+
     def _dlm_lot_missing_names(self):
         """Tên các mặt hàng theo lô mà dòng đã nhập số nhưng chưa gán lô.
 
@@ -1475,6 +1499,25 @@ class StockPicking(models.Model):
                 "\"Xác nhận đã nhận\".") % picking.dlm_receiver_label))
         self._dlm_autofill_lot_names()
         return super().button_validate()
+
+
+    def _check_warn_sms(self):
+        """Không bao giờ mở hộp thoại hỏi SMS.
+
+        KHÔNG gọi `super()`: `stock_sms` chỉ auto-install chứ không nằm trong
+        `depends`, nên trên một DB không có nó thì method gốc không tồn tại.
+        """
+        return self.browse()
+
+    def _send_confirmation_email(self):
+        """Không gửi SMS, kể cả khi cờ công ty bị bật lại trong Cài đặt.
+
+        `skip_sms` là cửa thoát native của chính `stock_sms` — dùng nó thay vì
+        chép lại phần gửi email, để phiếu vẫn gửi email xác nhận như thường.
+        """
+        return super(
+            StockPicking, self.with_context(skip_sms=True)
+        )._send_confirmation_email()
 
     def _action_done(self):
         """K4 — Đóng dấu nguồn gốc lô ngay khi phiếu nhập hoàn tất.
@@ -1619,6 +1662,9 @@ class StockPicking(models.Model):
                 # tách chỉ chở hàng đi, mang theo lý do để phiếu trả đọc được.
                 "dlm_reject_reason": move.dlm_reject_reason,
                 "dlm_reject_note": move.dlm_reject_note,
+                # Ảnh dùng CHUNG bản ghi ir.attachment, không nhân bản file:
+                # ba chặng chứng từ trỏ về đúng một tấm ảnh trên đĩa.
+                "dlm_evidence_ids": [(6, 0, move.dlm_evidence_ids.ids)],
             })
             # Nhu cầu dòng gốc BỚT ĐI đúng phần loại — KHÔNG đặt bằng số đạt.
             # Đặt bằng số đạt thì phần CHƯA KIỂM (giao 100, kiểm 90 đạt + 8 loại
@@ -1742,6 +1788,9 @@ class StockPicking(models.Model):
                 "location_dest_id": return_type.default_location_dest_id.id,
                 "dlm_reject_reason": move.dlm_reject_reason,
                 "dlm_reject_note": move.dlm_reject_note,
+                # Đây là lý do bằng chứng tồn tại: Mua hàng đi đàm phán với NCC
+                # chỉ có một dropdown lý do thì không cãi được gì.
+                "dlm_evidence_ids": [(6, 0, move.dlm_evidence_ids.ids)],
             }) for move in rejected_moves],
         })
         # sudo: ghi chatter là DẤU VẾT, không phải nghiệp vụ. Người dùng chưa
@@ -1780,16 +1829,30 @@ class StockPicking(models.Model):
         for move in self.move_ids:
             if move.dlm_qty_rejected <= 0:
                 continue
-            rows.append(_("<li>%s — loại <b>%s</b> %s (%s)%s</li>") % (
+            note = (Markup(_(": %s")) % move.dlm_reject_note
+                    if move.dlm_reject_note else Markup(""))
+            # Ghi số ảnh vào chatter: dấu vết này là thứ còn lại sau khi phiếu bị
+            # lật đi lật lại — đọc nó phải biết ngay có bằng chứng hay không,
+            # không phải mở từng dòng ra đếm. Im lặng bị đọc thành "chắc có ảnh
+            # đâu đó", nên ca không có ảnh cũng phải nói thẳng.
+            anh = (Markup(_(" — kèm <b>%s</b> ảnh")) % move.dlm_evidence_count
+                   if move.dlm_evidence_count
+                   else Markup(_(" — <b>không có ảnh</b>")))
+            # 🔴 Markup, KHÔNG phải str: `message_post` escape body dạng chuỗi
+            # thường ⇒ chatter hiện ra chữ "&lt;li&gt;" thay vì gạch đầu dòng.
+            # Đổi lại, tên mặt hàng và ghi chú do người dùng gõ được escape đúng
+            # cách thay vì ghép thẳng vào HTML.
+            rows.append(Markup(_("<li>%s — loại <b>%s</b> %s (%s)%s%s</li>")) % (
                 move.product_id.display_name,
                 _dlm_fmt(move.dlm_qty_rejected),
                 move.product_uom.name,
                 reasons.get(move.dlm_reject_reason, _("chưa rõ")),
-                _(": %s") % move.dlm_reject_note if move.dlm_reject_note else ""))
+                note, anh))
         # sudo: xem lý do ở _dlm_create_vendor_return.
         if rows:
             self.sudo().message_post(
-                body=_("Kết quả kiểm:<ul>%s</ul>") % "".join(rows))
+                body=Markup(_("Kết quả kiểm:<ul>%s</ul>"))
+                % Markup("").join(rows))
         else:
             self.sudo().message_post(body=_("Kiểm đạt toàn bộ, đã cất vào kho."))
 
@@ -2059,6 +2122,17 @@ class StockPicking(models.Model):
         # hai số chính là dữ liệu của màn đối chiếu thu hồi (§7.4).
         goi_y = sum(q.quantity * q.product_id.dlm_mass_per_unit for q in quants)
 
+        # Bằng chứng kéo theo từ phiếu nguồn (chỉ có khi phiếu [9] sinh từ một
+        # phiếu trả NCC đã huỷ). Đây là lúc CẦN chứng từ nhất trong cả chuỗi:
+        # hàng rời sổ vĩnh viễn, và người ký duyệt ghi giảm không phải người đã
+        # cầm nó trên tay. Ghép theo MẶT HÀNG chứ không theo dòng — phiếu [9]
+        # dựng từ quant tồn kẹt nên không có mắt xích move → move nào để bám.
+        evidence_by_product = {}
+        for move in (origin_picking or self.browse()).move_ids:
+            if move.dlm_evidence_ids:
+                evidence_by_product.setdefault(
+                    move.product_id.id, set()).update(move.dlm_evidence_ids.ids)
+
         picking = self.env["stock.picking"].create({
             "picking_type_id": picking_type.id,
             "location_id": source.id,
@@ -2073,6 +2147,8 @@ class StockPicking(models.Model):
                 "product_uom_qty": q.quantity,
                 "location_id": q.location_id.id,
                 "location_dest_id": adj.id,
+                "dlm_evidence_ids": [(6, 0, sorted(
+                    evidence_by_product.get(q.product_id.id, ())))],
             }) for q in quants] + [(0, 0, {
                 "name": scrap_product.display_name,
                 "product_id": scrap_product.id,
