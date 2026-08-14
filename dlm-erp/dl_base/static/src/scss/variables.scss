@@ -54,6 +54,16 @@ $dl-badge-approved-fg:   #1b7a3d;
 $dl-badge-rejected-bg:   #fbeae7;
 $dl-badge-rejected-fg:   #c0392b;
 
+// Nhóm khách hàng tự động (mới / cũ / thân thiết). Bảng màu RIÊNG, cố ý tránh
+// xanh dương và cam của "Loại khách hàng" — hai cột đứng cạnh nhau trên danh
+// sách, trùng màu là không đọc được cột nào ra cột nào.
+$dl-group-new-bg:       #ede7fb;
+$dl-group-new-fg:       #5b3fa0;
+$dl-group-existing-bg:  #d9f2f4;
+$dl-group-existing-fg:  #0f6b73;
+$dl-group-loyal-bg:     #fdeaf3;
+$dl-group-loyal-fg:     #a3226e;
+
 $dl-type-individual-bg: #eef0f2;
 $dl-type-individual-fg: #5b6b7b;
 $dl-type-company-bg:    #e3f0fc;

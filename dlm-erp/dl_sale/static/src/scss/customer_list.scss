@@ -14,18 +14,24 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        // `dlm_customer_group` đã rời tree (thay bằng `dlm_status_label`), còn
-        // `category_id` là cột thật nhưng thiếu width ⇒ bị table-layout fixed
-        // bóp về ~0px. Tổng 9 cột đang hiện = 100%.
+        // table-layout: fixed ⇒ cột NÀO thiếu width sẽ bị bóp về ~0px và trông
+        // như bị ẩn. Phải khai đủ MỌI cột và tổng đúng 100%.
+        //
+        // Lưu ý `dlm_customer_group`: cột này KHÔNG nằm trong tree gốc mà do
+        // dl_sale chèn vào bằng kế thừa (views/customer_views_ext.xml), nên rất
+        // dễ bị bỏ sót khi đếm cột — trước đây comment ở đây còn ghi nhầm là nó
+        // "đã rời tree", và hậu quả là cột Nhóm KH mất hút, chỉ còn cái tooltip.
+        // Tổng 10 cột = 100%.
         th[data-name="avatar_128"] { width: 4% !important; }
         th[data-name="dlm_code"] { width: 9% !important; }
-        th[data-name="name"] { width: 18% !important; }
-        th[data-name="partner_type"] { width: 10% !important; }
-        th[data-name="dlm_status_label"] { width: 11% !important; }
-        th[data-name="phone"] { width: 11% !important; }
-        th[data-name="email"] { width: 15% !important; }
-        th[data-name="city"] { width: 10% !important; }
-        th[data-name="category_id"] { width: 12% !important; }
+        th[data-name="name"] { width: 17% !important; }
+        th[data-name="partner_type"] { width: 9% !important; }
+        th[data-name="dlm_customer_group"] { width: 11% !important; }
+        th[data-name="dlm_status_label"] { width: 10% !important; }
+        th[data-name="phone"] { width: 10% !important; }
+        th[data-name="email"] { width: 14% !important; }
+        th[data-name="city"] { width: 8% !important; }
+        th[data-name="category_id"] { width: 8% !important; }
 
         td[name="dlm_code"] {
             font-variant-numeric: tabular-nums;
@@ -84,26 +90,53 @@
 
     td[name="name"] { padding-left: 6px !important; }
 
-    // Badge colors: loại KH
-    .badge {
-        background-color: $dl-type-individual-bg !important;
-        color: $dl-type-individual-fg !important;
+    // ── Màu badge theo TỪNG cột ────────────────────────────────────────
+    // Bốn cột cùng render ra .badge nhưng nói bốn chuyện khác nhau. Trước đây
+    // tô chung một bảng màu theo decoration-* nên "Doanh nghiệp" (Loại) và
+    // "Khách mới" (Nhóm KH) ra y hệt màu xanh, đứng cạnh nhau không phân biệt
+    // nổi. Scope theo td[name] để mỗi cột có bảng màu riêng.
+    //
+    // Cột Nhãn (category_id) CỐ Ý không nằm trong danh sách này: nhãn mang màu
+    // do người dùng tự chọn trên từng nhãn (color_field), đè lên là mất sạch.
+    td[name="partner_type"] {
+        .badge {
+            background-color: $dl-type-individual-bg !important;
+            color: $dl-type-individual-fg !important;
+        }
+        .badge.text-bg-info {
+            background-color: $dl-type-company-bg !important;
+            color: $dl-type-company-fg !important;
+        }
+        .badge.text-bg-warning {
+            background-color: $dl-type-dealer-bg !important;
+            color: $dl-type-dealer-fg !important;
+        }
     }
-    .badge.text-bg-info {
-        background-color: $dl-type-company-bg !important;
-        color: $dl-type-company-fg !important;
+
+    td[name="dlm_customer_group"] {
+        .badge.text-bg-info {
+            background-color: $dl-group-new-bg !important;
+            color: $dl-group-new-fg !important;
+        }
+        .badge.text-bg-success {
+            background-color: $dl-group-existing-bg !important;
+            color: $dl-group-existing-fg !important;
+        }
+        .badge.text-bg-warning {
+            background-color: $dl-group-loyal-bg !important;
+            color: $dl-group-loyal-fg !important;
+        }
     }
-    .badge.text-bg-warning {
-        background-color: $dl-type-dealer-bg !important;
-        color: $dl-type-dealer-fg !important;
-    }
-    .badge.text-bg-success {
-        background-color: $dl-badge-approved-bg !important;
-        color: $dl-badge-approved-fg !important;
-    }
-    .badge.text-bg-danger {
-        background-color: $dl-badge-rejected-bg !important;
-        color: $dl-badge-rejected-fg !important;
+
+    td[name="dlm_status_label"] {
+        .badge.text-bg-success {
+            background-color: $dl-badge-approved-bg !important;
+            color: $dl-badge-approved-fg !important;
+        }
+        .badge.text-bg-danger {
+            background-color: $dl-badge-rejected-bg !important;
+            color: $dl-badge-rejected-fg !important;
+        }
     }
 }
 

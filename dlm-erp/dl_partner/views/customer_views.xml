@@ -127,7 +127,6 @@
                                  phải giải thích (_check_dup_override_reason). -->
                             <field name="dlm_dup_override_reason" readonly="not active"
                                 invisible="not dlm_allow_dup_tax and not dlm_allow_dup_contact"
-                                required="dlm_allow_dup_tax or dlm_allow_dup_contact"
                                 placeholder="VD: Chi nhánh Hà Nội, dùng chung MST và tổng đài với trụ sở." />
                         </group>
                         <group string="Địa chỉ">

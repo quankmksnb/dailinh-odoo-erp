@@ -377,6 +377,7 @@ class ResPartner(models.Model):
             if not self.env.su and (vals.get('dlm_allow_dup_tax')
                                     or vals.get('dlm_allow_dup_contact')):
                 self._dlm_check_dup_override_right()
+                self.browse()._dlm_check_dup_override_reason(vals)
             # Contact con (child_ids) cũng là res.partner nhưng KHÔNG phải KH DLM.
             # default 'customer'/'company' của action KH rò xuống vals con → gỡ ở
             # đây (đường tạo mới KH có child_ids). Ở đường sửa KH cũ + thêm contact,
@@ -483,6 +484,7 @@ class ResPartner(models.Model):
         if not self.env.su and (vals.get('dlm_allow_dup_tax')
                                 or vals.get('dlm_allow_dup_contact')):
             self._dlm_check_dup_override_right()
+            self._dlm_check_dup_override_reason(vals)
         if 'partner_role' in vals and not self.env.su:
             self._dlm_check_role_downgrade(vals['partner_role'])
         res = super().write(vals)
@@ -1040,15 +1042,31 @@ class ResPartner(models.Model):
                     raise ValidationError(rec._dlm_dup_contact_message(
                         _('Email'), rec.email, dup))
 
-    @api.constrains('dlm_allow_dup_tax', 'dlm_allow_dup_contact',
-                    'dlm_dup_override_reason')
-    def _check_dup_override_reason(self):
-        """Tích cho phép trùng thì phải nói rõ vì sao."""
-        for rec in self:
-            if not rec._dl_is_dlm_partner():
+    _DUP_OVERRIDE_FLAGS = ('dlm_allow_dup_tax', 'dlm_allow_dup_contact')
+
+    def _dlm_check_dup_override_reason(self, vals):
+        """Bật cờ cho phép trùng thì phải nói rõ vì sao.
+
+        Kiểm lúc GHI chứ không dùng @api.constrains, và chỉ xét lần ghi đang
+        BẬT cờ lên. Nếu để dạng constrains thì mọi bản ghi cũ đã bật cờ từ trước
+        (chưa có ô lý do) sẽ bị chặn ở MỌI lần lưu về sau — người dùng chỉ gắn
+        thêm một cái nhãn cũng không lưu nổi, và cách thoát duy nhất là bịa ra
+        một lý do. Quyết định cũ thì để yên, quyết định MỚI mới phải giải trình.
+
+        `self` rỗng khi gọi từ create — khi đó mọi cờ trong vals đều là bật mới."""
+        turning_on = [f for f in self._DUP_OVERRIDE_FLAGS if vals.get(f)]
+        if not turning_on:
+            return
+        reason = vals.get('dlm_dup_override_reason')
+        records = self or [None]
+        for rec in records:
+            newly_on = turning_on if rec is None else [
+                f for f in turning_on if not rec[f]]
+            if not newly_on:
                 continue
-            if (rec.dlm_allow_dup_tax or rec.dlm_allow_dup_contact) \
-                    and not (rec.dlm_dup_override_reason or '').strip():
+            current = reason if reason is not None else (
+                rec.dlm_dup_override_reason if rec is not None else None)
+            if not (current or '').strip():
                 raise ValidationError(_(
                     'Đã tích cho phép trùng dữ liệu thì bắt buộc ghi Lý do cho '
                     'phép trùng (vd: chi nhánh khác cùng MST, dùng chung tổng đài).'))

@@ -142,7 +142,6 @@
                                 invisible="not phone and not mobile and not email"/>
                             <field name="dlm_dup_override_reason"
                                 invisible="not dlm_allow_dup_tax and not dlm_allow_dup_contact"
-                                required="dlm_allow_dup_tax or dlm_allow_dup_contact"
                                 placeholder="VD: Chi nhánh miền Nam, dùng chung MST và tổng đài với trụ sở."/>
                         </group>
                         <group string="Địa chỉ">
