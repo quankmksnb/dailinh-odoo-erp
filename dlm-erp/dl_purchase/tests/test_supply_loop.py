@@ -21,6 +21,12 @@ class TestSupplyLoop(DlPurchaseCase):
             "name": "Bàn học sinh (vòng lặp)", "product_kind": "manufactured"})
         cls.hang_tm = cls.env["product.product"].create({
             "name": "Cầu trượt liên hoàn (vòng lặp)", "product_kind": "trading"})
+        cls.buyer = cls.env["res.users"].create({
+            "name": "Mua hàng (vòng lặp)", "login": "muahang_supply_test",
+            "email": "muahang.supply@test.local",
+            "groups_id": [(6, 0, [
+                cls.env.ref("dl_base.dl_group_purchasing").id])],
+        })
 
     def _mk_bom(self, product, material, qty):
         bom = self.env["dl.bom"].create({
@@ -66,6 +72,53 @@ class TestSupplyLoop(DlPurchaseCase):
         self.assertAlmostEqual(po.line_ids.qty, 20.0, places=2)
         self.assertAlmostEqual(po.line_ids.price_unit, 200000.0, places=2)
         self.assertIn(order, po.dlm_origin_order_ids)
+
+    def test_bom_nhieu_ncc_thi_tach_don_theo_tung_ncc(self):
+        """🔴 Một BOM thường gọi tên nhiều nhà cung cấp — mỗi NCC MỘT đơn.
+
+        Đỏ = trộn hàng của hai NCC vào một đơn: gửi đi thì NCC này đọc được mặt
+        hàng và giá của NCC kia, mà cũng không bên nào nhận trọn đơn được.
+
+        Cũng canh chiều ngược lại: hai vật tư CÙNG một NCC phải nằm CHUNG một
+        đơn, không phải mỗi vật tư một đơn.
+        """
+        ncc_b = self.env["res.partner"].create({
+            "name": "Phú Thịnh (vòng lặp)", "partner_role": "supplier",
+            "mobile": "0900000003"})
+        oc_vit = self.env["product.product"].create({
+            "name": "Ốc vít M6 (vòng lặp)", "product_kind": "material"})
+        ban_le = self.env["product.product"].create({
+            "name": "Bản lề lá 3 inch (vòng lặp)", "product_kind": "material"})
+        self._apply_price(self.thep, self.vendor, 200000.0)
+        self._apply_price(oc_vit, self.vendor, 1500.0)
+        self._apply_price(ban_le, ncc_b, 3900.0)
+
+        bom = self.env["dl.bom"].create({
+            "product_id": self.ban.id,
+            "bom_type": "template",
+            "line_ids": [(0, 0, {
+                "material_id": material.id, "quantity": qty,
+                "is_override": True,
+            }) for material, qty in (
+                (self.thep, 2.0), (oc_vit, 10.0), (ban_le, 4.0))],
+        })
+        bom.status = "confirmed"
+        order = self._mk_sale_order(self.ban, 5.0, "manufactured", bom)
+
+        order.action_dlm_dispatch()
+
+        orders = order.dlm_purchase_order_ids
+        self.assertEqual(len(orders), 2)
+        don_a = orders.filtered(lambda o: o.partner_id == self.vendor)
+        don_b = orders.filtered(lambda o: o.partner_id == ncc_b)
+        self.assertEqual(set(don_a.line_ids.mapped("product_id")),
+                         {self.thep, oc_vit})
+        self.assertEqual(don_b.line_ids.product_id, ban_le)
+        # Số lượng theo định mức × 5 cái, không lẫn giữa hai đơn.
+        self.assertAlmostEqual(
+            don_a.line_ids.filtered(lambda l: l.product_id == oc_vit).qty,
+            50.0, places=2)
+        self.assertAlmostEqual(don_b.line_ids.qty, 20.0, places=2)
 
     def test_hang_thuong_mai_thieu_cung_len_don_mua(self):
         """U-5 — gần một nửa doanh thu không có BOM.
@@ -149,3 +202,27 @@ class TestSupplyLoop(DlPurchaseCase):
             ("location_id", "=", self.loc_kho.id),
         ])
         self.assertAlmostEqual(sum(quants.mapped("quantity")), 20.0, places=2)
+
+    def test_mua_hang_doc_duoc_don_ban_gan_tren_don_mua(self):
+        """🔴 Ô "Đơn bán đang chờ" là câu trả lời cho "mua cái này cho ai".
+
+        Đỏ = Mua hàng mở chính đơn mà điều phối vừa giao cho họ thì ăn AccessError
+        'dl.sale.order' — nút bấm được, đơn mở không được.
+
+        Chạy bằng vai trò THẬT: `env.su` của TransactionCase bỏ qua ACL, nên test
+        chạy bằng admin sẽ xanh trong khi ngoài đời vẫn đỏ.
+        """
+        self._apply_price(self.thep, self.vendor, 200000.0)
+        bom = self._mk_bom(self.ban, self.thep, 2.0)
+        order = self._mk_sale_order(self.ban, 10.0, "manufactured", bom)
+        order.action_dlm_dispatch()
+        po = order.dlm_purchase_order_ids
+
+        # 🔴 Phải xoá cache trước: `display_name` đã được đọc lúc điều phối (bằng
+        # quyền admin) nên còn nằm trong cache của transaction — đọc lại chỉ lấy
+        # từ cache, KHÔNG chạm ACL, và test xanh trong khi ngoài đời vẫn đỏ.
+        self.env.invalidate_all()
+
+        # Đúng thứ client đọc cho `widget="many2many_tags"`: id rồi display_name.
+        tags = po.with_user(self.buyer).dlm_origin_order_ids
+        self.assertEqual(tags.mapped("display_name"), [order.name])

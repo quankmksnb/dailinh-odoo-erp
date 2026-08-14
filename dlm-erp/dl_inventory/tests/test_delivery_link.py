@@ -28,6 +28,7 @@ class TestDeliveryLink(DlInventoryCase):
         cls.customer = cls.env["res.partner"].create({
             "name": "Khách hàng (test)",
             "partner_role": "customer",
+            "mobile": "0900000013",
         })
         # Hàng thương mại: storable, KHÔNG theo lô (§3.4) — giao thẳng, không
         # phải khai lô ở mỗi bước, giữ test tập trung vào mối nối đơn ↔ phiếu.
@@ -275,6 +276,7 @@ class TestDeliveryLink(DlInventoryCase):
         other = self.env["res.partner"].create({
             "name": "Khách hàng khác (test)",
             "partner_role": "customer",
+            "mobile": "0900000014",
         })
 
         picking_form = self._delivery_form()

@@ -26,7 +26,8 @@ class TestSmartDomains(DlInventoryCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.customer = cls.env["res.partner"].create({
-            "name": "Khách hàng (test SM)", "partner_role": "customer"})
+            "name": "Khách hàng (test SM)", "partner_role": "customer",
+            "mobile": "0900000012"})
         # Hàng thương mại, KHÔNG theo lô — test nói về lọc mặt hàng, không phải lô.
         cls.prod_a = cls.env["product.product"].create({
             "name": "Bản lề A (test SM)", "product_kind": "trading"})

@@ -7,3 +7,4 @@ access_dl_purchase_line_buy,dl.purchase.order.line Mua hang,model_dl_purchase_or
 access_dl_purchase_line_admin,dl.purchase.order.line Admin,model_dl_purchase_order_line,dl_base.dl_group_admin,1,1,1,1
 access_dl_purchase_line_ceo,dl.purchase.order.line CEO,model_dl_purchase_order_line,dl_base.dl_group_ceo,1,1,1,0
 access_dl_purchase_line_acc,dl.purchase.order.line Ke toan,model_dl_purchase_order_line,dl_base.dl_group_accountant,1,0,0,0
+access_dl_sale_order_buy,dl.sale.order Mua hang,dl_sale.model_dl_sale_order,dl_base.dl_group_purchasing,1,0,0,0

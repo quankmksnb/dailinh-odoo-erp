@@ -20,10 +20,16 @@ class DlPurchaseCase(TransactionCase):
         cls.loc_xuong = cls.env.ref("dl_inventory.stock_location_xuong")
         cls.loc_tp = cls.env.ref("dl_inventory.stock_location_tp")
 
+        # `mobile` là BẮT BUỘC từ khi `dl_partner` thêm ràng buộc kênh liên lạc
+        # (`_check_partner_contact_channel`): `partner_type` mặc định là Cá
+        # nhân, mà nhánh đó đòi ĐÚNG số di động chứ không nhận điện thoại bàn.
+        # Thiếu nó thì cả bộ test chết ở setUpClass, không phải ở ca đang đo.
         cls.vendor = cls.env["res.partner"].create({
-            "name": "Thắng Hảo (mua hàng)", "partner_role": "supplier"})
+            "name": "Thắng Hảo (mua hàng)", "partner_role": "supplier",
+            "mobile": "0900000001"})
         cls.customer = cls.env["res.partner"].create({
-            "name": "Trường Đồng Sơn (mua hàng)", "partner_role": "customer"})
+            "name": "Trường Đồng Sơn (mua hàng)", "partner_role": "customer",
+            "mobile": "0900000002"})
 
         cls.thep = cls.env["product.product"].create({
             "name": "Thép hộp 30x60x1.4 (mua hàng)",

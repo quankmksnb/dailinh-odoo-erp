@@ -19,8 +19,12 @@ class TestDispatch(TransactionCase):
         cls.loc_kho = cls.env.ref("dl_inventory.stock_location_nhan_kho")
         cls.loc_tp = cls.env.ref("dl_inventory.stock_location_tp")
         cls.loc_xuong = cls.env.ref("dl_inventory.stock_location_xuong")
+        # `mobile`: partner mang `partner_role` phải có kênh liên lạc
+        # (`dl_partner._check_partner_contact_channel`), và loại mặc định là Cá
+        # nhân nên chỉ nhận ĐÚNG số di động.
         cls.customer = cls.env["res.partner"].create({
-            "name": "Trường Nam Thái (điều phối)", "partner_role": "customer"})
+            "name": "Trường Nam Thái (điều phối)", "partner_role": "customer",
+            "mobile": "0900000010"})
 
         cls.thep = cls._mk("material", "Thép hộp 30x60 (điều phối)")
         cls.hang_tm = cls._mk("trading", "Cầu trượt liên hoàn (điều phối)")
