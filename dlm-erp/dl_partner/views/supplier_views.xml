@@ -25,13 +25,17 @@
         <field name="arch" type="xml">
             <form string="NCC / Thầu phụ" class="dl-supplier-form" js_class="dl_supplier_form">
                 <header>
+                    <!-- Mua hàng là bộ phận sở hữu quan hệ NCC nên nắm quyền
+                         ngừng hợp tác; nhóm ở đây phải khớp với luật backend
+                         _dlm_check_archive_right, nếu lệch thì người thấy nút
+                         lại là người bị chặn khi bấm. -->
                     <button name="toggle_active" type="object" string="Vô hiệu hóa NCC"
                             class="btn-danger" invisible="not active or not id"
                             confirm="Vô hiệu hóa NCC này? Lịch sử giá cũ được giữ nguyên; NCC sẽ không xuất hiện khi cập nhật giá vật tư mới."
-                            groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/>
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin"/>
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
                             class="btn-secondary" invisible="active"
-                            groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/>
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin"/>
                 </header>
                 <sheet>
                     <field name="active" invisible="1"/>

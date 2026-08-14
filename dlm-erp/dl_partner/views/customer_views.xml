@@ -194,8 +194,8 @@
                             <field name="vat" string="Mã số thuế (MST)"
                                 widget="dl_tax_code"
                                 readonly="not active"
-                                required="partner_type == 'company'"
-                                placeholder="Bắt buộc với Doanh nghiệp; Cá nhân có thể để trống" />
+                                required="partner_type in ['company', 'dealer']"
+                                placeholder="Bắt buộc với Doanh nghiệp và Đại lý; Cá nhân có thể để trống" />
                             <field name="dlm_allow_dup_tax" readonly="not active"
                                 invisible="not vat" />
                             <field name="dlm_allow_dup_contact" readonly="not active"
@@ -230,10 +230,16 @@
                             <field name="child_ids"
                                 context="{'default_type': 'contact', 'default_partner_role': False, 'default_partner_type': False}"
                                 readonly="not active">
+                                <!-- Mỗi dòng bắt buộc Họ tên và ít nhất một kênh
+                                     liên lạc; luật đầy đủ ở _check_contact_name /
+                                     _check_contact_channel. Thêm cột Di động để
+                                     người nhập có đủ ba ô mà ràng buộc đang xét. -->
                                 <tree editable="bottom">
-                                    <field name="name" string="Họ tên" />
+                                    <field name="name" string="Họ tên" required="1" />
                                     <field name="function" string="Chức vụ" />
-                                    <field name="phone" string="Điện thoại" />
+                                    <field name="phone" string="Điện thoại"
+                                        placeholder="Bắt buộc một trong: ĐT / Di động / Email" />
+                                    <field name="mobile" string="Di động" />
                                     <field name="email" widget="email" />
                                 </tree>
                             </field>

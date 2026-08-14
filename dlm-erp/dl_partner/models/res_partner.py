@@ -337,25 +337,17 @@ class ResPartner(models.Model):
                for rec in self):
             self._dlm_normalize_vals(vals)
         if 'active' in vals and not vals['active'] and not self.env.su:
-            is_sales_manager = self.env.user.has_group('dl_base.dl_group_sales_manager')
-            is_accountant = self.env.user.has_group('dl_base.dl_group_accountant')
-            is_admin = self.env.user.has_group('dl_base.dl_group_admin')
             for rec in self:
-                if rec.partner_role not in _CUSTOMER_ROLES:
+                # Người liên hệ và partner do module khác của Odoo tạo không
+                # thuộc phạm vi luật này.
+                if not rec.partner_role or rec.parent_id:
                     continue
-                allowed = (
-                    is_admin
-                    or is_sales_manager
-                    or (rec.partner_role == 'both' and is_accountant)
-                )
-                if not allowed:
-                    raise AccessError(_(
-                        'Chỉ Trưởng phòng Kinh doanh, Kế toán (với đối tác cả '
-                        'hai vai trò) hoặc Admin mới được vô hiệu hóa khách hàng.'
-                    ))
-                # Quyền là một chuyện, còn việc dở dang là chuyện khác: ngừng
-                # hợp tác khi còn báo giá / đơn / phiếu đang chạy sẽ làm chứng
-                # từ đó mắc kẹt (đối tác biến khỏi mọi ô chọn).
+                rec._dlm_check_archive_right()
+                # Kiểm ĐIỀU KIỆN: áp cho MỌI đối tác DLM, cả NCC. Quyền là một
+                # chuyện, việc dở dang là chuyện khác — ngừng hợp tác khi còn
+                # báo giá / đơn / phiếu nhập đang chạy sẽ làm chứng từ đó mắc
+                # kẹt (đối tác biến khỏi mọi ô chọn). side=None để đối tác vai
+                # trò 'both' bị soi cả hai phía.
                 pending = rec._dlm_open_document_summary()
                 if pending:
                     raise ValidationError(_(
@@ -372,6 +364,41 @@ class ResPartner(models.Model):
         if 'pending_link_partner_id' in vals:
             self._process_pending_link()
         return res
+
+    def _dlm_check_archive_right(self):
+        """Ai được vô hiệu hóa (ngừng hợp tác với) đối tác này.
+
+        Chia theo bộ phận SỞ HỮU quan hệ với đối tác:
+          • Khách hàng  → Trưởng phòng Kinh doanh (Kế toán chỉ với đối tác vai
+            trò 'both' — luật có sẵn từ trước, giữ nguyên).
+          • Nhà cung cấp → Mua hàng, đúng bộ phận đang giữ giá mua và quan hệ
+            NCC (xem comment nhóm dl_group_purchasing ở dl_base/security/groups.xml).
+          • Admin/IT     → luôn được, như mọi luật quyền khác trong hệ thống.
+
+        Đối tác vai trò 'both': đủ quyền MỘT phía là được, không bắt phải có cả
+        hai. Giữ đúng tinh thần nới lỏng của luật cũ, vốn đã cho Kế toán vô hiệu
+        hóa đối tác 'both' dù họ không phải Trưởng phòng Kinh doanh."""
+        self.ensure_one()
+        user = self.env.user
+        if user.has_group('dl_base.dl_group_admin'):
+            return
+        role = self.partner_role
+        if role in _CUSTOMER_ROLES:
+            if user.has_group('dl_base.dl_group_sales_manager'):
+                return
+            if role == 'both' and user.has_group('dl_base.dl_group_accountant'):
+                return
+        if role in ('supplier', 'both'):
+            if user.has_group('dl_base.dl_group_purchasing'):
+                return
+        allowed_roles = {
+            'customer': _('Trưởng phòng Kinh doanh'),
+            'supplier': _('Mua hàng'),
+            'both': _('Trưởng phòng Kinh doanh, Kế toán hoặc Mua hàng'),
+        }.get(role, _('Admin'))
+        raise AccessError(_(
+            "Chỉ %s hoặc Admin mới được vô hiệu hóa đối tác '%s'."
+        ) % (allowed_roles, self.name or ''))
 
     def _dlm_check_role_downgrade(self, new_role):
         """Chặn bỏ bớt vai trò khi vai trò bị bỏ vẫn còn chứng từ tham chiếu.
@@ -638,12 +665,19 @@ class ResPartner(models.Model):
 
     @api.constrains('partner_role', 'partner_type', 'vat')
     def _check_company_tax_code(self):
-        """MST bắt buộc với khách doanh nghiệp (dùng trên PDF báo giá S09)."""
+        """MST bắt buộc với khách có tư cách pháp nhân — Doanh nghiệp và Đại lý.
+
+        Dùng trên PDF báo giá S09. Đại lý cũng là pháp nhân xuất hóa đơn nên
+        chịu cùng luật với Doanh nghiệp; chỉ khách Cá nhân được để trống MST
+        (nhập vào thì vẫn phải đúng định dạng — xem _check_tax_code_format)."""
         for rec in self:
-            if rec._dl_is_customer_record() and rec.partner_type == 'company' \
+            if rec._dl_is_customer_record() \
+                    and rec.partner_type in _LEGAL_ENTITY_TYPES \
                     and not (rec.vat and rec.vat.strip()):
+                label = dict(self._fields['partner_type'].selection).get(
+                    rec.partner_type, rec.partner_type)
                 raise ValidationError(_(
-                    'Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).'))
+                    'Khách hàng %s bắt buộc phải có Mã số thuế (MST).') % label)
 
     @api.constrains('partner_role', 'vat')
     def _check_tax_code_format(self):
@@ -686,7 +720,78 @@ class ResPartner(models.Model):
                     and not _EMAIL_RE.match(rec.email.strip()):
                 raise ValidationError(_("Email '%s' không hợp lệ.") % rec.email)
 
+    def _dl_is_customer_person_contact(self):
+        """NGƯỜI liên hệ của KH — loại trừ bản ghi con dạng ĐỊA CHỈ.
+
+        res.partner con còn được Odoo dùng làm địa chỉ giao hàng / xuất hóa đơn
+        (`type` = delivery / invoice / other). Những bản ghi đó không có tên
+        người và không cần SĐT, nên các ràng buộc 'bắt buộc họ tên', 'bắt buộc
+        kênh liên lạc' chỉ áp cho `type = 'contact'`.
+
+        Khác _dl_is_customer_contact (áp cho MỌI bản ghi con, dùng cho ràng
+        buộc định dạng — địa chỉ có nhập SĐT thì cũng phải đúng định dạng)."""
+        self.ensure_one()
+        return self._dl_is_customer_contact() and self.type == 'contact'
+
     # ── Người liên hệ của KH: cùng chuẩn định dạng SĐT/email như KH ─────
+    @api.constrains('parent_id', 'name')
+    def _check_contact_name(self):
+        """Người liên hệ bắt buộc có họ tên.
+
+        Cùng lý do như _check_customer_name: `res.partner.name` của Odoo native
+        không required, mà dòng người liên hệ lại nhập inline trong lưới nên rất
+        dễ để trống rồi lưu — sinh ra dòng trắng không xóa ai dám xóa."""
+        for rec in self:
+            if not rec._dl_is_customer_person_contact():
+                continue
+            name = (rec.name or '').strip()
+            if not name:
+                raise ValidationError(_(
+                    'Người liên hệ bắt buộc phải có Họ tên.'))
+            if len(name) < _MIN_NAME_LEN:
+                raise ValidationError(_(
+                    "Họ tên người liên hệ '%s' quá ngắn — cần ít nhất %s ký tự."
+                ) % (rec.name, _MIN_NAME_LEN))
+
+    @api.constrains('parent_id', 'phone', 'mobile', 'email')
+    def _check_contact_channel(self):
+        """Người liên hệ phải có ít nhất một kênh liên lạc.
+
+        Một người liên hệ không có cách nào liên lạc thì không phục vụ được mục
+        đích nào — chỉ làm rối danh sách khi Sales cần gọi cho khách."""
+        for rec in self:
+            if not rec._dl_is_customer_person_contact():
+                continue
+            if not any((value or '').strip()
+                       for value in (rec.phone, rec.mobile, rec.email)):
+                raise ValidationError(_(
+                    "Người liên hệ '%s' phải có ít nhất một kênh liên lạc: "
+                    'Điện thoại, Di động hoặc Email.'
+                ) % (rec.name or ''))
+
+    @api.constrains('parent_id', 'dlm_name_key')
+    def _check_contact_unique_name(self):
+        """Không cho hai người liên hệ trùng tên trong cùng một khách hàng.
+
+        So trên dlm_name_key (đã bỏ dấu, bỏ hoa thường, bỏ dấu câu) nên
+        'Nguyễn Văn A' và 'NGUYEN VAN A' bị coi là một. Khác với trùng tên ở
+        cấp khách hàng — chỗ đó chỉ cảnh báo mềm — ở đây chặn hẳn: trong cùng
+        một công ty thì hai người liên hệ trùng tên gần như chắc chắn là nhập
+        lặp, và Sales không có cách nào phân biệt khi chọn."""
+        for rec in self:
+            if not rec._dl_is_customer_person_contact() or not rec.dlm_name_key:
+                continue
+            dup = rec.with_context(active_test=False).search([
+                ('id', '!=', rec.id),
+                ('parent_id', '=', rec.parent_id.id),
+                ('dlm_name_key', '=', rec.dlm_name_key),
+            ], limit=1)
+            if dup:
+                raise ValidationError(_(
+                    "Khách hàng '%s' đã có người liên hệ tên '%s'. Mỗi người "
+                    'liên hệ chỉ được khai một lần.'
+                ) % (rec.parent_id.name or '', dup.name or ''))
+
     @api.constrains('parent_id', 'phone', 'mobile')
     def _check_contact_phone_format(self):
         """SĐT người liên hệ của KH (nếu nhập) phải đúng định dạng VN."""
