@@ -1,6 +1,6 @@
 {
     'name': 'DL-Partner — Khách hàng & NCC',
-    'version': '17.0.1.0.2',
+    'version': '17.0.1.2.0',
     'summary': 'Quản lý Khách hàng và Nhà cung cấp — kế thừa res.partner',
     'author': 'Dai Linh',
     'category': 'Hidden',

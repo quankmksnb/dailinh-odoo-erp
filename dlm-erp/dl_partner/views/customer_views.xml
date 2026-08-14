@@ -156,6 +156,14 @@
 
                     </div>
 
+                    <!-- Cảnh báo MỀM trùng tên khách hàng — không chặn lưu, chỉ
+                         nhắc kiểm tra lại (xem _compute_dlm_duplicate_name_warning). -->
+                    <div class="alert alert-warning" role="alert"
+                        invisible="not dlm_duplicate_name_warning">
+                        <i class="fa fa-exclamation-triangle me-1"/>
+                        <field name="dlm_duplicate_name_warning" class="oe_inline" />
+                    </div>
+
                     <!-- Gộp hồ sơ khi đối tác đã là NCC — chỉ hiện lúc tạo mới.
                          Rút gọn còn 1 dòng (review UX cust #f1); chi tiết đã nằm
                          trong placeholder ô chọn. -->
@@ -173,8 +181,15 @@
 
                     <group>
                         <group string="Thông tin liên hệ">
-                            <field name="phone" string="Điện thoại" readonly="not active" />
-                            <field name="mobile" string="Di động" readonly="not active" />
+                            <!-- Cá nhân bắt buộc Di động (không có MST nên số di
+                                 động là dữ liệu định danh duy nhất); DN/Đại lý
+                                 chỉ cần một trong ba kênh — luật đầy đủ nằm ở
+                                 _check_customer_contact_channel. -->
+                            <field name="phone" string="Điện thoại" readonly="not active"
+                                placeholder="Bắt buộc một trong: Điện thoại / Di động / Email" />
+                            <field name="mobile" string="Di động" readonly="not active"
+                                required="partner_type == 'individual'"
+                                placeholder="Bắt buộc với khách Cá nhân" />
                             <field name="email" widget="email" readonly="not active" />
                             <field name="vat" string="Mã số thuế (MST)"
                                 widget="dl_tax_code"
@@ -183,11 +198,23 @@
                                 placeholder="Bắt buộc với Doanh nghiệp; Cá nhân có thể để trống" />
                             <field name="dlm_allow_dup_tax" readonly="not active"
                                 invisible="not vat" />
+                            <field name="dlm_allow_dup_contact" readonly="not active"
+                                invisible="not phone and not mobile and not email" />
+                            <!-- Cửa thoát trùng phải để lại dấu vết: tích là
+                                 phải giải thích (_check_dup_override_reason). -->
+                            <field name="dlm_dup_override_reason" readonly="not active"
+                                invisible="not dlm_allow_dup_tax and not dlm_allow_dup_contact"
+                                required="dlm_allow_dup_tax or dlm_allow_dup_contact"
+                                placeholder="VD: Chi nhánh Hà Nội, dùng chung MST và tổng đài với trụ sở." />
                         </group>
                         <group string="Địa chỉ">
+                            <!-- Địa chỉ in lên PDF báo giá / hợp đồng ⇒ bắt buộc
+                                 với khách có tư cách pháp nhân (DN, Đại lý). -->
                             <field name="street" string="Đường" readonly="not active"
+                                required="partner_type in ['company', 'dealer']"
                                 placeholder="Số nhà, tên đường..." />
                             <field name="city" string="Tỉnh / TP" readonly="not active"
+                                required="partner_type in ['company', 'dealer']"
                                 placeholder="Tỉnh / Thành phố" />
                             <field name="country_id" string="Quốc gia" readonly="not active"
                                 placeholder="Quốc gia" />

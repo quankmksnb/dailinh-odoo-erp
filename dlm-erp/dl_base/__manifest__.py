@@ -1,6 +1,6 @@
 {
     'name': 'DLM-ERP Base',
-    'version': '17.0.1.10.0',
+    'version': '17.0.1.11.0',
     'summary': 'App gốc — định nghĩa Groups (CEO/Admin/BA/Tech) và menu chính 5 module Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -30,6 +30,9 @@
             # xoay ở giữa màn hình (override template web.LoadingIndicator).
             'dl_base/static/src/components/loading_indicator/loading_indicator.scss',
             'dl_base/static/src/components/loading_indicator/loading_indicator.xml',
+            # Lỗi nghiệp vụ → toast thay vì hộp thoại "Ôi!". Chỉ khai registry,
+            # không phụ thuộc file nào nên nạp sớm; áp cho TOÀN hệ thống.
+            'dl_base/static/src/js/error_toast.js',
             # State dùng chung sidebar (Home nav + Rail) — nạp trước component
             'dl_base/static/src/js/sidebar_state.js',
             # API gắn submenu vào rail cho module nghiệp vụ (thay vì mỗi module

@@ -1,4 +1,5 @@
 import re
+import unicodedata
 
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, AccessError
@@ -9,6 +10,62 @@ _EMAIL_RE = re.compile(r'^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$')
 # Đồng bộ với widget frontend dl_partner/static/src/fields/tax_code_field.js.
 _TAX_CODE_RE = re.compile(r'^\d{10}(-\d{3})?$')
 _CUSTOMER_ROLES = ('customer', 'both')
+
+# Độ dài tối thiểu của Tên khách hàng — chặn các giá trị rác kiểu 'a', '..'
+# lọt qua khi import hàng loạt.
+_MIN_NAME_LEN = 2
+# Loại khách hàng có tư cách pháp nhân: bắt buộc địa chỉ vì địa chỉ được in lên
+# báo giá / hợp đồng gửi ra ngoài.
+_LEGAL_ENTITY_TYPES = ('company', 'dealer')
+
+# ── Chuẩn hóa dữ liệu trước khi lưu ────────────────────────────────────────
+# Lý do tồn tại: các ràng buộc định dạng phía dưới chỉ BÓC dấu phân cách để
+# *kiểm tra*, còn giá trị lưu xuống DB vẫn là chuỗi thô người dùng gõ. Hệ quả:
+# '0912 345 678', '0912.345.678' và '+84912345678' nằm trong DB thành ba chuỗi
+# khác nhau ⇒ mọi phép chống trùng đều vô hiệu. Chuẩn hóa tại điểm ghi để DB
+# chỉ có đúng MỘT dạng biểu diễn cho mỗi giá trị.
+_PHONE_SEP_RE = re.compile(r'[\s.\-()]')
+_MULTI_SPACE_RE = re.compile(r'\s+')
+# Ký tự bỏ đi khi dựng "khóa tên" dùng để dò trùng: giữ lại chữ và số.
+_NAME_KEY_STRIP_RE = re.compile(r'[^a-z0-9]+')
+
+
+def _normalize_phone(value):
+    """'0912 345 678' / '0912.345.678' / '+84912345678' → '0912345678'.
+
+    Quy '+84' về '0' để hai cách viết cùng một số không thành hai bản ghi.
+    KHÔNG kiểm tính hợp lệ ở đây — đó là việc của _check_phone_format."""
+    if not value:
+        return value
+    cleaned = _PHONE_SEP_RE.sub('', value)
+    if cleaned.startswith('+84'):
+        cleaned = '0' + cleaned[3:]
+    return cleaned
+
+
+def _normalize_email(value):
+    return value.strip().lower() if value else value
+
+
+def _normalize_name(value):
+    """Bỏ khoảng trắng thừa hai đầu và gộp khoảng trắng lặp ở giữa."""
+    return _MULTI_SPACE_RE.sub(' ', value).strip() if value else value
+
+
+def _name_key(value):
+    """Khóa so khớp tên: bỏ dấu tiếng Việt, hạ chữ thường, bỏ mọi ký tự không
+    phải chữ/số. 'Công ty  TNHH  A.B.C' và 'CONG TY TNHH ABC' ra cùng một khóa.
+
+    Dùng để CẢNH BÁO trùng tên, không dùng để chặn — tên doanh nghiệp trùng
+    nhau là chuyện có thật."""
+    if not value:
+        return False
+    text = unicodedata.normalize('NFD', value)
+    text = ''.join(ch for ch in text if unicodedata.category(ch) != 'Mn')
+    # 'đ'/'Đ' không tách được bằng NFD nên xử riêng.
+    text = text.replace('đ', 'd').replace('Đ', 'D')
+    key = _NAME_KEY_STRIP_RE.sub('', text.lower())
+    return key or False
 
 
 class ResPartner(models.Model):
@@ -65,6 +122,37 @@ class ResPartner(models.Model):
         help='Tích khi đây là chi nhánh khác dùng chung MST — bỏ qua kiểm tra trùng (EX-05)',
     )
 
+    # Chống trùng kênh liên lạc — song song với dlm_allow_dup_tax. Cần cửa
+    # thoát vì có thật: nhóm công ty dùng chung tổng đài, hoặc hai chi nhánh
+    # cùng một hộp thư đặt hàng.
+    dlm_allow_dup_contact = fields.Boolean(
+        string='Cho phép trùng SĐT / Email',
+        default=False,
+        help='Tích khi khách này dùng chung tổng đài hoặc hộp thư với một khách '
+             'đã có — bỏ qua kiểm tra trùng SĐT/Email.',
+    )
+
+    # Cửa thoát trùng dữ liệu phải để lại dấu vết. Trước đây tích
+    # dlm_allow_dup_tax là bỏ qua toàn bộ kiểm tra trùng MST mà không ai phải
+    # giải thích gì — chính thông báo lỗi có câu "và ghi chú lý do" nhưng hệ
+    # thống không hề bắt buộc.
+    dlm_dup_override_reason = fields.Text(
+        string='Lý do cho phép trùng',
+        help='Bắt buộc khi tích cho phép trùng MST hoặc trùng SĐT/Email. '
+             'Ghi rõ vì sao đây không phải hồ sơ trùng lặp.',
+    )
+
+    # Khóa tên đã bỏ dấu — LƯU và đánh index để dò trùng bằng một phép so bằng
+    # trên index, thay vì quét ilike toàn bảng khách hàng.
+    dlm_name_key = fields.Char(
+        string='Khóa tên (dò trùng)',
+        compute='_compute_dlm_name_key', store=True, index=True, readonly=True,
+    )
+    dlm_duplicate_name_warning = fields.Char(
+        string='Cảnh báo trùng tên',
+        compute='_compute_dlm_duplicate_name_warning',
+    )
+
     partner_type_label = fields.Char(
         string='Loại',
         compute='_compute_partner_type_label',
@@ -113,6 +201,35 @@ class ResPartner(models.Model):
             rec.dlm_avatar_bg = bg
             rec.dlm_avatar_fg = fg
 
+    @api.depends('name')
+    def _compute_dlm_name_key(self):
+        for rec in self:
+            rec.dlm_name_key = _name_key(rec.name)
+
+    @api.depends('dlm_name_key', 'partner_role')
+    def _compute_dlm_duplicate_name_warning(self):
+        """Cảnh báo MỀM khi tên trùng một khách hàng đã có (bỏ dấu, bỏ hoa
+        thường, bỏ dấu câu). Không chặn: hai doanh nghiệp trùng tên là chuyện
+        có thật, và người nhập là người biết rõ nhất."""
+        for rec in self:
+            rec.dlm_duplicate_name_warning = False
+            if not rec.dlm_name_key or rec.parent_id \
+                    or rec.partner_role not in _CUSTOMER_ROLES:
+                continue
+            domain = [
+                ('partner_role', 'in', _CUSTOMER_ROLES),
+                ('parent_id', '=', False),
+                ('dlm_name_key', '=', rec.dlm_name_key),
+            ]
+            if isinstance(rec.id, int):
+                domain.append(('id', '!=', rec.id))
+            dup = rec.with_context(active_test=False).search(domain, limit=1)
+            if dup:
+                rec.dlm_duplicate_name_warning = _(
+                    "Đã có khách hàng tên gần giống: %s%s. Kiểm tra lại xem có "
+                    "phải cùng một khách không trước khi lưu."
+                ) % (dup.name, (' — %s' % dup.dlm_code) if dup.dlm_code else '')
+
     @api.depends('partner_type')
     def _compute_partner_type_label(self):
         mapping = dict(self._fields['partner_type'].selection)
@@ -127,11 +244,50 @@ class ResPartner(models.Model):
                       'street', 'street2', 'city', 'country_id', 'comment'):
                 self[f] = target[f]
 
+    # ── Chuẩn hóa tại điểm ghi ────────────────────────────────────────
+    # Hàm chuẩn hóa theo field. Để trong dict (không phải method) nên KHÔNG bị
+    # bind vào instance — gọi thẳng như hàm thường.
+    _DLM_NORMALIZERS = {
+        'name': _normalize_name,
+        'phone': _normalize_phone,
+        'mobile': _normalize_phone,
+        'email': _normalize_email,
+    }
+
+    def _dlm_normalize_vals(self, vals):
+        """Chuẩn hóa tại chỗ các field trong vals. Chỉ đụng vào field có mặt
+        trong vals và đang là chuỗi — không tự điền, không xóa dữ liệu."""
+        for fname, normalize in self._DLM_NORMALIZERS.items():
+            if isinstance(vals.get(fname), str):
+                vals[fname] = normalize(vals[fname])
+        return vals
+
+    @api.model
+    def _dlm_vals_in_customer_scope(self, vals):
+        """vals này đang tạo một KH DLM, hay một người liên hệ của KH DLM?
+
+        Chỉ chuẩn hóa trong phạm vi khách hàng — không tự ý viết lại dữ liệu
+        NCC hay các partner do module khác của Odoo tạo."""
+        if vals.get('partner_role') in _CUSTOMER_ROLES:
+            return True
+        parent_id = vals.get('parent_id')
+        if parent_id:
+            parent = self.browse(parent_id).sudo()
+            return parent.commercial_partner_id.partner_role in _CUSTOMER_ROLES
+        return False
+
     @api.model_create_multi
     def create(self, vals_list):
         to_create = []
         linked_records = self.browse()
         for vals in vals_list:
+            # Chuẩn hóa TRƯỚC mọi thứ: nhánh gộp hồ sơ bên dưới chép thẳng vals
+            # sang partner đích, phải chép giá trị đã chuẩn hóa.
+            if self._dlm_vals_in_customer_scope(vals):
+                self._dlm_normalize_vals(vals)
+            if not self.env.su and (vals.get('dlm_allow_dup_tax')
+                                    or vals.get('dlm_allow_dup_contact')):
+                self._dlm_check_dup_override_right()
             # Contact con (child_ids) cũng là res.partner nhưng KHÔNG phải KH DLM.
             # default 'customer'/'company' của action KH rò xuống vals con → gỡ ở
             # đây (đường tạo mới KH có child_ids). Ở đường sửa KH cũ + thêm contact,
@@ -173,6 +329,13 @@ class ResPartner(models.Model):
         return created + linked_records
 
     def write(self, vals):
+        # Chuẩn hóa nếu recordset có dính KH DLM hoặc người liên hệ của KH.
+        # Dùng any(): write áp CÙNG một vals cho cả recordset nên không thể
+        # chuẩn hóa riêng từng bản ghi; trong thực tế các đường ghi hỗn hợp
+        # KH + NCC là không có (mỗi màn chỉ thao tác một vai trò).
+        if any(rec._dl_is_customer_record() or rec._dl_is_customer_contact()
+               for rec in self):
+            self._dlm_normalize_vals(vals)
         if 'active' in vals and not vals['active'] and not self.env.su:
             is_sales_manager = self.env.user.has_group('dl_base.dl_group_sales_manager')
             is_accountant = self.env.user.has_group('dl_base.dl_group_accountant')
@@ -190,10 +353,192 @@ class ResPartner(models.Model):
                         'Chỉ Trưởng phòng Kinh doanh, Kế toán (với đối tác cả '
                         'hai vai trò) hoặc Admin mới được vô hiệu hóa khách hàng.'
                     ))
+                # Quyền là một chuyện, còn việc dở dang là chuyện khác: ngừng
+                # hợp tác khi còn báo giá / đơn / phiếu đang chạy sẽ làm chứng
+                # từ đó mắc kẹt (đối tác biến khỏi mọi ô chọn).
+                pending = rec._dlm_open_document_summary()
+                if pending:
+                    raise ValidationError(_(
+                        "Không ngừng hợp tác được với '%s' vì còn chứng từ đang "
+                        'xử lý: %s.\nHãy đóng (hoàn tất hoặc hủy) các chứng từ '
+                        'này trước.'
+                    ) % (rec.name or '', ', '.join(pending)))
+        if not self.env.su and (vals.get('dlm_allow_dup_tax')
+                                or vals.get('dlm_allow_dup_contact')):
+            self._dlm_check_dup_override_right()
+        if 'partner_role' in vals and not self.env.su:
+            self._dlm_check_role_downgrade(vals['partner_role'])
         res = super().write(vals)
         if 'pending_link_partner_id' in vals:
             self._process_pending_link()
         return res
+
+    def _dlm_check_role_downgrade(self, new_role):
+        """Chặn bỏ bớt vai trò khi vai trò bị bỏ vẫn còn chứng từ tham chiếu.
+
+        Đối tác 'both' hạ về 'customer' là BỎ vai trò NCC. Nếu vẫn còn bảng giá
+        NCC hay phiếu nhập trỏ tới, những chứng từ đó lập tức rơi khỏi domain
+        của mọi màn NCC — không xóa, không báo, chỉ là không ai thấy nữa."""
+        # Vai trò bị bỏ đi khi chuyển từ vai trò cũ sang vai trò mới.
+        dropped_by_transition = {
+            ('both', 'customer'): 'supplier',
+            ('both', 'supplier'): 'customer',
+            ('customer', 'supplier'): 'customer',
+            ('supplier', 'customer'): 'supplier',
+        }
+        labels = dict(self._fields['partner_role'].selection)
+        for rec in self:
+            dropped = dropped_by_transition.get((rec.partner_role, new_role))
+            if not dropped:
+                continue
+            refs = rec._dlm_reference_summary(side=dropped)
+            if refs:
+                raise ValidationError(_(
+                    "Không đổi vai trò của '%s' sang '%s' được: vai trò %s đang "
+                    'còn chứng từ tham chiếu (%s).\nCác chứng từ đó sẽ biến mất '
+                    'khỏi màn tương ứng nếu bỏ vai trò.'
+                ) % (
+                    rec.name or '',
+                    labels.get(new_role, new_role),
+                    labels.get(dropped, dropped),
+                    ', '.join(refs),
+                ))
+
+    def unlink(self):
+        """Không xóa đối tác đã phát sinh chứng từ — hướng sang Ngừng hợp tác.
+
+        `dl.quotation.partner_id` và nhiều tham chiếu khác KHÔNG khai
+        ondelete='restrict', nên xóa đối tác sẽ để lại chứng từ mồ côi trỏ vào
+        khoảng không. Chặn ở đây thay vì rải ondelete lên từng field: chỉ cần
+        một chỗ, và thông báo nói rõ vướng cái gì."""
+        for rec in self:
+            if not rec.partner_role or rec.parent_id:
+                continue
+            refs = rec._dlm_reference_summary()
+            if refs:
+                raise ValidationError(_(
+                    "Không xóa được '%s' vì đã phát sinh chứng từ: %s.\n"
+                    'Hãy dùng "Ngừng hợp tác" để ẩn đối tác này khỏi các danh '
+                    'sách chọn thay vì xóa — chứng từ cũ vẫn cần truy vết được.'
+                ) % (rec.name or '', ', '.join(refs)))
+        return super().unlink()
+
+    # ── Chứng từ đang tham chiếu tới đối tác ───────────────────────────
+    def _dlm_document_sources(self, side=None):
+        """Các model chứng từ có thể trỏ tới đối tác, kèm cách đếm.
+
+        Khai bảng TẠI ĐÂY thay vì để mỗi module nghiệp vụ tự _inherit
+        res.partner: mọi thứ liên quan tới đối tác nằm gọn trong dl_partner.
+
+        dl_partner đứng đầu đồ thị phụ thuộc nên KHÔNG depends dl_sale /
+        dl_technical / dl_inventory. Không sao: model chưa cài thì không có
+        trong registry và bị bỏ qua — kiểm bằng `not in self.env`, không import.
+
+        Khóa của mỗi dòng:
+            model / field  — model chứng từ và field trỏ tới đối tác.
+            side           — 'customer' hay 'supplier'; quyết định chứng từ này
+                             thuộc vai trò nào khi hạ vai trò đối tác.
+            label          — danh từ đếm được, ghép sau số lượng.
+            open_domain    — điều kiện "chưa đóng"; [] nghĩa là luôn tính là mở.
+            extra_domain   — điều kiện thu hẹp cố định (vd tách phiếu nhập/xuất).
+            active_test    — False để đếm cả bản ghi đã lưu trữ.
+        """
+        sources = [
+            {
+                'model': 'dl.quotation', 'field': 'partner_id',
+                'side': 'customer', 'label': 'báo giá',
+                'open_label': 'báo giá chưa đóng',
+                # Đóng = ordered / rejected / expired / superseded / cancelled.
+                'open_domain': [('state', 'in', (
+                    'draft', 'approved', 'sent', 'revision_requested',
+                    'accepted'))],
+            },
+            {
+                'model': 'dl.sale.order', 'field': 'partner_id',
+                'side': 'customer', 'label': 'đơn bán hàng',
+                'open_label': 'đơn bán hàng chưa hoàn tất',
+                'open_domain': [('state', 'in', ('draft', 'confirmed'))],
+            },
+            {
+                'model': 'dl.quotation.request', 'field': 'customer_id',
+                'side': 'customer', 'label': 'yêu cầu báo giá (RFQ)',
+                'open_label': 'RFQ đang xử lý',
+                # Đóng = quoted (đã chuyển sang báo giá) / cancelled.
+                'open_domain': [('status', 'in', (
+                    'new', 'processing', 'returned', 'supplemented',
+                    'confirmed'))],
+            },
+            {
+                'model': 'product.supplierinfo', 'field': 'partner_id',
+                'side': 'supplier', 'label': 'dòng bảng giá NCC',
+                # Chỉ bảng giá ĐANG ÁP DỤNG mới cản: đó là giá đang được dùng
+                # để tính báo giá và BOM. Nháp / Đã duyệt chưa áp dụng thì không.
+                'open_label': 'bảng giá NCC đang áp dụng',
+                'open_domain': [('is_applied', '=', True)],
+                # Bảng giá đã lưu trữ vẫn là tham chiếu thật — xóa NCC đi thì nó
+                # mồ côi y như bảng giá đang hoạt động.
+                'active_test': False,
+            },
+            # Phiếu kho tách hai chiều theo `code` native của loại hoạt động,
+            # KHÔNG theo sequence_code riêng của Đại Linh: code chỉ có 3 giá trị
+            # và không đổi khi bố cục kho thêm loại hoạt động mới.
+            {
+                'model': 'stock.picking', 'field': 'partner_id',
+                'side': 'customer', 'label': 'phiếu giao hàng',
+                'open_label': 'phiếu giao hàng chưa hoàn tất',
+                'extra_domain': [('picking_type_id.code', '=', 'outgoing')],
+                'open_domain': [('state', 'not in', ('done', 'cancel'))],
+            },
+            {
+                'model': 'stock.picking', 'field': 'partner_id',
+                'side': 'supplier', 'label': 'phiếu nhập / trả NCC',
+                'open_label': 'phiếu nhập / trả NCC chưa hoàn tất',
+                'extra_domain': [('picking_type_id.code', '=', 'incoming')],
+                'open_domain': [('state', 'not in', ('done', 'cancel'))],
+            },
+        ]
+        for src in sources:
+            if side and src['side'] != side:
+                continue
+            if src['model'] not in self.env:
+                continue
+            # sudo: người bấm xóa / đổi vai trò có thể không có quyền đọc chứng
+            # từ (Kỹ thuật không đọc được báo giá, Sales không đọc được phiếu
+            # kho) — nhưng vẫn phải bị chặn đúng.
+            model = self.env[src['model']].sudo()
+            if src.get('active_test') is False:
+                model = model.with_context(active_test=False)
+            yield src, model
+
+    def _dlm_count_documents(self, side, only_open):
+        self.ensure_one()
+        summary = []
+        for src, model in self._dlm_document_sources(side):
+            domain = [(src['field'], '=', self.id)]
+            domain += src.get('extra_domain', [])
+            if only_open:
+                domain += src.get('open_domain', [])
+            count = model.search_count(domain)
+            if count:
+                label = src['open_label'] if only_open else src['label']
+                summary.append('%s %s' % (count, label))
+        return summary
+
+    def _dlm_reference_summary(self, side=None):
+        """MỌI chứng từ đang trỏ tới đối tác này, kể cả đã đóng.
+
+        :param side: 'customer' chỉ đếm chứng từ phía khách hàng, 'supplier'
+            chỉ đếm phía nhà cung cấp, None đếm cả hai.
+        :return: list mô tả ngắn, vd ['3 báo giá', '1 đơn bán hàng'].
+        """
+        return self._dlm_count_documents(side, only_open=False)
+
+    def _dlm_open_document_summary(self, side=None):
+        """Chứng từ CHƯA đóng — đang chờ xử lý tiếp.
+
+        Khác _dlm_reference_summary ở chỗ chỉ tính việc còn dang dở: dùng cho
+        Ngừng hợp tác (chứng từ cũ đã đóng thì ngừng hợp tác là hợp lệ)."""
+        return self._dlm_count_documents(side, only_open=True)
 
     # ── Constraints ───────────────────────────────────────────────────
     def _dl_is_customer_record(self):
@@ -221,6 +566,75 @@ class ResPartner(models.Model):
         for rec in self:
             if rec._dl_is_customer_record() and not rec.partner_type:
                 raise ValidationError('Khách hàng DLM phải có Loại khách hàng.')
+
+    @api.constrains('partner_role', 'name')
+    def _check_customer_name(self):
+        """Tên khách hàng bắt buộc ở tầng MODEL, không chỉ ở form.
+
+        `res.partner.name` của Odoo native KHÔNG khai required — form KH có
+        required="1" nhưng import Excel, gọi RPC hay create() từ code vẫn tạo
+        được khách hàng tên rỗng / toàn khoảng trắng. Chặn ở đây để mọi đường
+        ghi cùng đi qua một luật."""
+        for rec in self:
+            if not rec._dl_is_customer_record():
+                continue
+            name = (rec.name or '').strip()
+            if not name:
+                raise ValidationError(_(
+                    'Khách hàng bắt buộc phải có Tên khách hàng.'))
+            if len(name) < _MIN_NAME_LEN:
+                raise ValidationError(_(
+                    "Tên khách hàng '%s' quá ngắn — cần ít nhất %s ký tự."
+                ) % (rec.name, _MIN_NAME_LEN))
+
+    @api.constrains('partner_role', 'partner_type', 'phone', 'mobile', 'email')
+    def _check_customer_contact_channel(self):
+        """Khách hàng phải có ít nhất một kênh liên lạc.
+
+        Riêng khách Cá nhân bắt buộc Di động: khách lẻ không có MST nên số di
+        động là dữ liệu duy nhất định danh được họ (và cũng là căn cứ chống
+        trùng hồ sơ). Doanh nghiệp / Đại lý thì linh hoạt hơn — điện thoại bàn
+        hoặc email đều nhận."""
+        for rec in self:
+            if not rec._dl_is_customer_record():
+                continue
+            if rec.partner_type == 'individual':
+                if not (rec.mobile and rec.mobile.strip()):
+                    raise ValidationError(_(
+                        'Khách hàng Cá nhân bắt buộc phải có số Di động.'))
+                continue
+            has_channel = any(
+                (value or '').strip()
+                for value in (rec.phone, rec.mobile, rec.email)
+            )
+            if not has_channel:
+                raise ValidationError(_(
+                    'Khách hàng phải có ít nhất một kênh liên lạc: Điện thoại, '
+                    'Di động hoặc Email.'))
+
+    @api.constrains('partner_role', 'partner_type', 'street', 'city')
+    def _check_customer_address(self):
+        """Khách Doanh nghiệp / Đại lý bắt buộc có địa chỉ (đường + tỉnh/TP).
+
+        Địa chỉ được in lên PDF báo giá và hợp đồng. Trước đây chỉ có cảnh báo
+        mềm lúc gửi báo giá (dl.quotation.customer_data_warning) — phát hiện quá
+        muộn, khi Sales đã dựng xong báo giá. Chặn ngay từ màn khách hàng."""
+        for rec in self:
+            if not rec._dl_is_customer_record():
+                continue
+            if rec.partner_type not in _LEGAL_ENTITY_TYPES:
+                continue
+            missing = []
+            if not (rec.street or '').strip():
+                missing.append(_('Đường'))
+            if not (rec.city or '').strip():
+                missing.append(_('Tỉnh / TP'))
+            if missing:
+                label = dict(self._fields['partner_type'].selection).get(
+                    rec.partner_type, rec.partner_type)
+                raise ValidationError(_(
+                    'Khách hàng %s bắt buộc phải có địa chỉ. Còn thiếu: %s.'
+                ) % (label, ', '.join(missing)))
 
     @api.constrains('partner_role', 'partner_type', 'vat')
     def _check_company_tax_code(self):
@@ -318,6 +732,81 @@ class ResPartner(models.Model):
                     "'Cho phép trùng MST (chi nhánh khác)' và ghi chú lý do."
                     % (rec.vat, dup.name, ref)
                 )
+
+    @api.constrains('partner_role', 'phone', 'mobile', 'email',
+                    'dlm_allow_dup_contact')
+    def _check_unique_contact_channel(self):
+        """Chặn hai hồ sơ khách hàng dùng chung SĐT hoặc Email.
+
+        Bổ khuyết cho _check_unique_tax_code: khách Cá nhân không có MST nên
+        trước đây nhập trùng thoải mái. Hồ sơ trùng làm hỏng luôn phân loại
+        khách (dlm_customer_group ở dl_sale) vì doanh số bị chia đôi giữa hai
+        bản ghi nên không bao giờ lên nổi 'Khách thân thiết'.
+
+        So sánh trên giá trị ĐÃ chuẩn hóa (_dlm_normalize_vals chạy ở create/
+        write), nếu không thì '0912 345 678' và '0912345678' lọt lưới."""
+        for rec in self:
+            if not rec._dl_is_customer_record() or rec.dlm_allow_dup_contact:
+                continue
+            # SĐT: một số có thể nằm ở ô Điện thoại của người này và ô Di động
+            # của người kia — vẫn là trùng, nên dò chéo cả hai ô.
+            phones = {p for p in (rec.phone, rec.mobile) if p}
+            for phone in phones:
+                dup = rec.with_context(active_test=False).search([
+                    ('id', '!=', rec.id),
+                    ('partner_role', 'in', _CUSTOMER_ROLES),
+                    ('parent_id', '=', False),
+                    '|', ('phone', '=', phone), ('mobile', '=', phone),
+                ], limit=1)
+                if dup:
+                    raise ValidationError(rec._dlm_dup_contact_message(
+                        _('Số điện thoại'), phone, dup))
+            if rec.email:
+                dup = rec.with_context(active_test=False).search([
+                    ('id', '!=', rec.id),
+                    ('partner_role', 'in', _CUSTOMER_ROLES),
+                    ('parent_id', '=', False),
+                    ('email', '=', rec.email),
+                ], limit=1)
+                if dup:
+                    raise ValidationError(rec._dlm_dup_contact_message(
+                        _('Email'), rec.email, dup))
+
+    @api.constrains('dlm_allow_dup_tax', 'dlm_allow_dup_contact',
+                    'dlm_dup_override_reason')
+    def _check_dup_override_reason(self):
+        """Tích cho phép trùng thì phải nói rõ vì sao."""
+        for rec in self:
+            if not rec._dl_is_customer_record():
+                continue
+            if (rec.dlm_allow_dup_tax or rec.dlm_allow_dup_contact) \
+                    and not (rec.dlm_dup_override_reason or '').strip():
+                raise ValidationError(_(
+                    'Đã tích cho phép trùng dữ liệu thì bắt buộc ghi Lý do cho '
+                    'phép trùng (vd: chi nhánh khác cùng MST, dùng chung tổng đài).'))
+
+    @api.model
+    def _dlm_check_dup_override_right(self):
+        """Chỉ Trưởng phòng Kinh doanh / Admin được mở cửa thoát trùng.
+
+        Cùng cấp quyền với việc vô hiệu hóa khách hàng: đều là quyết định làm
+        sai lệch chất lượng dữ liệu danh mục, không để nhân viên nhập liệu tự
+        quyết khi gặp thông báo chặn."""
+        user = self.env.user
+        if not (user.has_group('dl_base.dl_group_admin')
+                or user.has_group('dl_base.dl_group_sales_manager')):
+            raise AccessError(_(
+                'Chỉ Trưởng phòng Kinh doanh hoặc Admin mới được cho phép trùng '
+                'MST / SĐT / Email. Hãy báo quản lý nếu đây thật sự không phải '
+                'hồ sơ trùng.'))
+
+    def _dlm_dup_contact_message(self, label, value, dup):
+        ref = (' — %s' % dup.dlm_code) if dup.dlm_code else ''
+        return _(
+            "%s '%s' đã được dùng bởi khách hàng khác (%s%s).\n"
+            "Nếu đây đúng là hai khách dùng chung tổng đài / hộp thư, hãy tích "
+            "'Cho phép trùng SĐT / Email'."
+        ) % (label, value, dup.name, ref)
 
     @api.model
     def name_search(self, name='', args=None, operator='ilike', limit=100):
