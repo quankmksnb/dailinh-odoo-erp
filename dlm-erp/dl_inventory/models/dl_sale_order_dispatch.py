@@ -347,38 +347,46 @@ class DlSaleOrderDispatch(models.Model):
             rows = []
             for row in check["goods"]:
                 if row["made_to_order"]:
-                    # DP-10 — không ghi "0", ghi lý do.
-                    san_sang = _("không tính — hàng đặt riêng")
+                    # DP-10 — không ghi "0", ghi lý do. Để chữ MỜ: nó nằm giữa
+                    # một cột toàn số, cùng sắc độ là mắt đọc nhầm thành số.
+                    san_sang = "<span class='text-muted'>%s</span>" % _(
+                        "hàng đặt riêng")
                 else:
                     san_sang = _dlm_num(row["ready"])
-                rows.append(
-                    "<tr><td>%s</td><td>%s</td><td class='text-end'>%s</td>"
-                    "<td class='text-end'>%s</td><td class='text-end'>%s</td>"
-                    "</tr>" % (
-                        row["product"].display_name, row["kind"],
-                        _dlm_num(row["need"]), san_sang,
-                        _dlm_num(row["to_make"])))
-            blocks.append(_dlm_table(
-                [_("Mặt hàng"), _("Nhánh"), _("Cần giao"), _("Giao được ngay"),
-                 _("Phải làm/mua")], rows))
+                rows.append(("", [
+                    row["product"].display_name, row["kind"],
+                    _dlm_num(row["need"]), san_sang,
+                    _dlm_num(row["to_make"])]))
+            blocks.append(_dlm_table([
+                (_("Mặt hàng"), ""),
+                (_("Nhánh"), ""),
+                (_("Cần giao"), "text-end"),
+                (_("Giao được ngay"), "text-end"),
+                (_("Phải làm/mua"), "text-end"),
+            ], rows, "dl-supply-goods"))
         if check["materials"]:
             rows = []
             for row in check["materials"]:
                 thieu = row["missing"]
                 # Không chỉ tô màu: dòng thiếu phải NÓI ra bằng chữ — bảng in ra
                 # giấy hoặc người mù màu vẫn phải phân biệt được.
-                danh_gia = (_("thiếu %s") % _dlm_num(thieu) if thieu > 0
-                            else _("đủ"))
-                rows.append(
-                    "<tr class='%s'><td>%s</td><td class='text-end'>%s</td>"
-                    "<td class='text-end'>%s</td><td>%s</td></tr>" % (
-                        "table-warning" if thieu > 0 else "",
-                        row["product"].display_name, _dlm_num(row["need"]),
-                        _dlm_num(row["available"]), danh_gia))
-            blocks.append(_dlm_table(
-                [_("Vật tư / hàng phải mua"), _("Cần"), _("Còn lấy được"),
-                 _("Đánh giá")], rows))
-        return "".join(blocks)
+                # Dòng đã tô nền vàng rồi ⇒ KHÔNG chồng thêm một badge vàng
+                # nữa: hai lớp cùng màu thì lớp nào cũng hết nghĩa. Chữ đậm
+                # tương phản là đủ để mắt bắt được, và vẫn đọc ra chữ.
+                danh_gia = (
+                    "<span class='fw-semibold text-danger'>%s</span>" % (
+                        _("thiếu %s") % _dlm_num(thieu)) if thieu > 0
+                    else "<span class='text-muted'>%s</span>" % _("đủ"))
+                rows.append(("table-warning" if thieu > 0 else "", [
+                    row["product"].display_name, _dlm_num(row["need"]),
+                    _dlm_num(row["available"]), danh_gia]))
+            blocks.append(_dlm_table([
+                (_("Vật tư / hàng phải mua"), ""),
+                (_("Cần"), "text-end"),
+                (_("Còn lấy được"), "text-end"),
+                (_("Đánh giá"), "text-end"),
+            ], rows, "dl-supply-materials"))
+        return "<div class='dl-supply'>%s</div>" % "".join(blocks)
 
     # ------------------------------------------------------------------
     # Bước 2 — ĐIỀU PHỐI: một nút, N chứng từ, cùng một transaction
@@ -558,9 +566,25 @@ def _dlm_num(value):
     return text.replace(".", ",") if text else "0"
 
 
-def _dlm_table(headers, rows):
+def _dlm_table(columns, rows, css):
+    """``columns`` = [(nhãn, lớp căn lề)]; ``rows`` = [(lớp dòng, [ô])].
+
+    🔴 Ô và ĐẦU CỘT dùng CHUNG một lớp căn lề — trước bản này đầu cột luôn căn
+    trái trong khi ô số căn phải, nên đọc một cột là mắt phải nhảy qua lại giữa
+    hai mép của chính nó. Ràng hai thứ vào một chỗ khai thì không lệch lại được.
+
+    Bề rộng cột khai ở SCSS (``.dl-supply-*``, cùng khuôn mọi bảng khác của
+    module) — cố ý để BA CỘT SỐ CUỐI của hai bảng trùng mép nhau, đọc dọc là so
+    được "cần giao" với "cần" mà không phải căn lại từng bảng.
+    """
+    head = "".join(
+        "<th class='%s'>%s</th>" % (align, label) for label, align in columns)
+    body = "".join(
+        "<tr class='%s'>%s</tr>" % (row_css, "".join(
+            "<td class='%s'>%s</td>" % (columns[index][1], cell)
+            for index, cell in enumerate(cells)))
+        for row_css, cells in rows)
     return (
-        "<table class='table table-sm mb-2'><thead><tr>%s</tr></thead>"
-        "<tbody>%s</tbody></table>" % (
-            "".join("<th>%s</th>" % head for head in headers),
-            "".join(rows)))
+        "<table class='table table-sm dl-supply-table %s'>"
+        "<thead><tr>%s</tr></thead><tbody>%s</tbody></table>" % (
+            css, head, body))
