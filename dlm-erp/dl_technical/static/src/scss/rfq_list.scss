@@ -19,6 +19,10 @@
         th[data-name="deadline"] { width: 11% !important; }
         th[data-name="status"] { width: 15% !important; }
         th[data-name="tech_progress_short"] { width: 15% !important; }
+        // Cột tùy chọn (optional="hide"): mặc định không hiện nên tổng
+        // width vẫn đúng, nhưng NGƯỜI DÙNG BẬT LÊN là phải có width, không thì
+        // table-layout:fixed bóp nó về ~0px và cột vừa bật lại vô hình.
+        th[data-name="received_by"] { width: 10% !important; }
 
         // Cột nút "Lịch sử" (th.o_list_button, không có data-name) — phải cấp
         // width riêng, nếu không table-layout fixed bóp về 0px (ẩn nút).

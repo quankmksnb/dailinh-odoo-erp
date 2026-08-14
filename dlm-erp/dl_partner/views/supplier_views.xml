@@ -85,17 +85,19 @@
                             <div class="dl-sup-code" invisible="not dlm_supplier_code">Mã NCC: <field
                                     name="dlm_supplier_code" class="oe_inline"/>
                             </div>
-                            <!-- Có nhãn hẳn hoi: cụm radio không nhãn khiến người
-                                 dùng không biết đang chọn cái gì, mà nhãn gốc của
-                                 field lại là "Loại khách hàng" — sai ngữ cảnh trên
-                                 màn NCC.
-                                 Dùng <span> chứ KHÔNG dùng <label for="...">: thẻ
-                                 label tự kéo `help` của field vào và đẻ ra dấu "?"
-                                 tooltip cạnh chữ, trông như lỗi hiển thị. -->
-                            <span class="o_form_label d-block mt-2">Loại NCC</span>
-                            <field name="partner_type" widget="radio"
-                                   options="{'horizontal': true}" nolabel="1"
-                                   class="dl-cust-type-seg"/>
+                            <!-- Nhãn + cụm radio bọc chung một khối để hai dòng
+                                 thẳng lề nhau.
+                                 KHÔNG dùng <label for="..."> (tự kéo `help` của
+                                 field vào, đẻ ra dấu "?") và KHÔNG dùng class
+                                 o_form_label (chính class đó bị .dl-cust-type-seg
+                                 biến thành nút pill, nên nhãn lệch hẳn khỏi cụm
+                                 nút bên dưới). Dùng class riêng cho sạch. -->
+                            <div class="dl-cust-type-block">
+                                <span class="dl-cust-type-label">Loại NCC</span>
+                                <field name="partner_type" widget="radio"
+                                       options="{'horizontal': true}" nolabel="1"
+                                       class="dl-cust-type-seg"/>
+                            </div>
                         </div>
 
                     </div>
