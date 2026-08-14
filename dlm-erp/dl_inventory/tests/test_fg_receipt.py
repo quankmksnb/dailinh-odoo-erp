@@ -25,6 +25,7 @@ class TestFgReceipt(DlInventoryCase):
         super().setUpClass()
         cls.customer = cls.env["res.partner"].create({
             "name": "Khách hàng (K13)", "partner_role": "customer",
+            "mobile": "0900000011",
         })
         cls.fg_type = cls.env.ref("dl_inventory.picking_type_mo_receipt")
         cls.loc_production = cls.fg_type.default_location_src_id

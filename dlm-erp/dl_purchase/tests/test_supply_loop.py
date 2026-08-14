@@ -83,7 +83,8 @@ class TestSupplyLoop(DlPurchaseCase):
         đơn, không phải mỗi vật tư một đơn.
         """
         ncc_b = self.env["res.partner"].create({
-            "name": "Phú Thịnh (vòng lặp)", "partner_role": "supplier"})
+            "name": "Phú Thịnh (vòng lặp)", "partner_role": "supplier",
+            "mobile": "0900000003"})
         oc_vit = self.env["product.product"].create({
             "name": "Ốc vít M6 (vòng lặp)", "product_kind": "material"})
         ban_le = self.env["product.product"].create({
