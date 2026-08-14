@@ -78,6 +78,11 @@ class DlPurchaseOrderDocument(models.Model):
             Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle)
 
         self.ensure_one()
+        # 🔴 Mượn tên font của `dl_sale` thì phải mượn cả bước ĐĂNG KÝ nó — hai
+        # thứ đó không tách rời được. Thiếu dòng này, tờ giấy chỉ in được trên
+        # tiến trình đã lỡ in báo giá trước đó; tiến trình vừa khởi động thì
+        # reportlab nổ ngay ở Paragraph đầu tiên (`ps2tt` không tra ra họ font).
+        self.env["dl.quotation"]._register_pdf_font()
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer, pagesize=A4,

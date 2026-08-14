@@ -147,3 +147,32 @@ class TestPurchaseOrder(DlPurchaseCase):
 
         self.assertEqual(order.dlm_receipt_state, "partial")
         self.assertAlmostEqual(order.line_ids.qty_received, 60.0, places=2)
+
+    def test_in_giay_gui_ncc_tu_dang_ky_font(self):
+        """🔴 Tờ giấy phải tự đăng ký font, không sống nhờ việc ai đó đã in báo
+        giá trước trong cùng tiến trình.
+
+        Đỏ = tiến trình vừa khởi động, Mua hàng bấm [In yêu cầu báo giá] là ăn
+        ValueError của reportlab ("Can't map determine family/bold/italic for
+        dlsans-bold") — lỗi hệ thống trần, không phải câu tiếng Việt nào.
+        """
+        from reportlab.lib import fonts
+        from reportlab.pdfbase import pdfmetrics
+
+        from odoo.addons.dl_sale.models.quotation_document import (
+            _PDF_FONT, _PDF_FONT_BOLD)
+
+        # Đăng ký font của reportlab là trạng thái TOÀN TIẾN TRÌNH, mà test khác
+        # (báo giá, biên bản hàng loại) có thể đã đăng ký hộ. Gỡ ra để dựng lại
+        # đúng tiến trình sạch — không có bước này thì test xanh giả tuỳ thứ tự
+        # chạy. Phải gỡ ở CẢ HAI bảng: `_fonts` là thứ hàm đăng ký kiểm để bỏ
+        # qua, `_ps2tt_map` mới là bảng mà `<para>` tra cứu.
+        for name in (_PDF_FONT, _PDF_FONT_BOLD):
+            pdfmetrics._fonts.pop(name, None)
+            fonts._ps2tt_map.pop(name.lower(), None)
+        self.addCleanup(self.env["dl.quotation"]._register_pdf_font)
+
+        order = self._mk_po([(self.thep, 20.0, 200000.0)])
+        pdf = order._dlm_build_pdf(is_order=False)
+
+        self.assertTrue(pdf.startswith(b"%PDF"))
