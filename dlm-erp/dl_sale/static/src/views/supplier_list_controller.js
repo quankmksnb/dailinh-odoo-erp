@@ -11,39 +11,29 @@
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
+import { avatarInitial, avatarColor } from "@dl_base/js/avatar_letter";
 import { useService } from "@web/core/utils/hooks";
 import { onWillStart } from "@odoo/owl";
-
-const AVA_PALETTE = [
-    { bg: "#dbe7ff", fg: "#1e4fa3" },
-    { bg: "#e3f6e8", fg: "#1b7a3d" },
-    { bg: "#fff1cc", fg: "#8a5a00" },
-    { bg: "#ece0fb", fg: "#5b3fa0" },
-    { bg: "#d9f2f4", fg: "#0f6b73" },
-    { bg: "#fde2e4", fg: "#b23a48" },
-];
-function avaColor(name) {
-    let h = 0;
-    for (let i = 0; i < name.length; i++) {
-        h = (h * 31 + name.charCodeAt(i)) >>> 0;
-    }
-    return AVA_PALETTE[h % AVA_PALETTE.length];
-}
 
 export class DlSupplierListController extends DlListBaseController {
     setup() {
         super.setup();
         this.userService = useService("user");
-        // Trưởng KD chỉ được XEM danh sách NCC (S04) — ẩn nút Thêm/Xoá.
-        // Bảo mật thật do ir.rule; đây chỉ khớp UI. Kế toán/Admin vẫn full CRUD.
+        // Chỉ Admin và Mua hàng được sửa dữ liệu NCC — khớp ir.model.access:
+        // dl_group_purchasing 1,1,1,0 và dl_group_admin 1,1,1,1; CEO, Trưởng KD
+        // và Kế toán đều chỉ có perm_read.
+        //
+        // Trước đây điều kiện là `isSM && !isAdmin && !isAcc`, tức mặc định coi
+        // mọi vai trò khác là toàn quyền — CEO vào menu NCC (menu_dl_sale_supplier
+        // có nhóm CEO) thấy nút Thêm/Xoá rồi bấm là ăn lỗi quyền. Đảo lại thành
+        // danh sách CHO PHÉP để không sót vai trò nào.
         this._dlReadonly = false;
         onWillStart(async () => {
-            const [isSM, isAdmin, isAcc] = await Promise.all([
-                this.userService.hasGroup("dl_base.dl_group_sales_manager"),
+            const [isAdmin, isPurchasing] = await Promise.all([
                 this.userService.hasGroup("dl_base.dl_group_admin"),
-                this.userService.hasGroup("dl_base.dl_group_accountant"),
+                this.userService.hasGroup("dl_base.dl_group_purchasing"),
             ]);
-            this._dlReadonly = isSM && !isAdmin && !isAcc;
+            this._dlReadonly = !(isAdmin || isPurchasing);
             if (this._dlReadonly) {
                 const aa = this.activeActions || (this.archInfo && this.archInfo.activeActions);
                 if (aa) {
@@ -109,8 +99,8 @@ export class DlSupplierListController extends DlListBaseController {
                 ava.className = "dl-letter-ava";
                 cell.appendChild(ava);
             }
-            const c = avaColor(name);
-            ava.textContent = name ? name[0].toUpperCase() : "?";
+            const c = avatarColor(name);
+            ava.textContent = avatarInitial(name);
             ava.style.background = c.bg;
             ava.style.color = c.fg;
         }

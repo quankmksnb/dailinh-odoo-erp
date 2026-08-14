@@ -17,6 +17,10 @@
         th[data-name="risk_summary"] { width: 12% !important; }
         th[data-name="requester_id"] { width: 8% !important; }
         th[data-name="state"] { width: 8% !important; }
+        // Cột tùy chọn (optional="hide"): mặc định không hiện nên tổng
+        // width vẫn đúng, nhưng NGƯỜI DÙNG BẬT LÊN là phải có width, không thì
+        // table-layout:fixed bóp nó về ~0px và cột vừa bật lại vô hình.
+        th[data-name="activity_ids"] { width: 5% !important; }
 
         th[data-name="create_date"], td[name="create_date"] { padding-left: 24px !important; }
         th[data-name="state"], td[name="state"] { padding-right: 20px !important; }

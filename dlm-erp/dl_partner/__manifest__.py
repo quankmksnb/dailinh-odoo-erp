@@ -1,10 +1,14 @@
 {
     'name': 'DL-Partner — Khách hàng & Nhà cung cấp',
-    'version': '17.0.1.0.2',
+    'version': '17.0.1.13.0',
     'summary': 'Quản lý Khách hàng và Nhà cung cấp — kế thừa res.partner',
     'author': 'Dai Linh',
     'category': 'Hidden',
-    'depends': ['dl_base', 'mail'],
+    # product: để form NCC nhúng được tab "Bảng giá cung cấp" (product.supplierinfo).
+    # Giữ MỌI thứ liên quan tới đối tác trong dl_partner thay vì để dl_product
+    # _inherit ngược lại res.partner — đổi lại dl_partner phải phụ thuộc product.
+    # Không tạo vòng: dl_product depends dl_partner, còn product là module lõi.
+    'depends': ['dl_base', 'mail', 'product'],
     'data': [
         'security/ir.model.access.csv',
         'security/ir_rule.xml',

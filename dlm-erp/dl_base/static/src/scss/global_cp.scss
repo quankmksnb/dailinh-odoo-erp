@@ -6,8 +6,7 @@
 // ============================================================================
 
 .o_action_manager:has([class*="dl-"][class*="-list"]),
-.o_action_manager:has([class*="dl-"][class*="-form"]),
-.o_action_manager:has([class*="dl-"][class*="-kanban"]) {
+.o_action_manager:has([class*="dl-"][class*="-form"]) {
     font-family: $dl-font;
 
     // Ẩn nút "Mới" (New) mặc định của Odoo trên form view — các form DL
@@ -222,7 +221,7 @@
     }
 }
 
-// ── Ẩn nút "New" trên MỌI form dl (list/kanban vẫn giữ nút Thêm) ───────────
+// ── Ẩn nút "New" trên MỌI form dl (list vẫn giữ nút Thêm) ─────────────────
 // Tạo bản ghi đi từ list; nút New của Odoo trên form chỉ để tạo nối tiếp, gây
 // nhiễu. Trước đây quy tắc này là danh sách class viết tay trong
 // dl_sale/control_panel.scss (kèm cả class của dl_product/dl_technical/dl_base
@@ -246,11 +245,8 @@
 
 // ── Nút tạo mới: label cụ thể theo từng trang ──────────────────────────────
 // Base: ẩn text gốc Odoo, style chung cho tất cả nút create
-.o_action_manager:has([class*="dl-"][class*="-list"]),
-.o_action_manager:has([class*="dl-"][class*="-kanban"]) {
-    .dl-create-cluster .o_list_button_add,
-    .o_control_panel .o_kanban_button_new,
-    .o_control_panel .o-kanban-button-new {
+.o_action_manager:has([class*="dl-"][class*="-list"]) {
+    .dl-create-cluster .o_list_button_add {
         border-radius: $dl-radius-sm !important;
         font-weight: 500;
         font-size: 0 !important;
@@ -264,19 +260,15 @@
 
 @mixin dl-create-label($view-class, $label) {
     .o_action_manager:has(.#{$view-class}) {
-        .dl-create-cluster .o_list_button_add::after,
-        .o_control_panel .o_kanban_button_new::after,
-        .o_control_panel .o-kanban-button-new::after {
+        .dl-create-cluster .o_list_button_add::after {
             content: $label;
         }
     }
 }
 
 @include dl-create-label("dl-customer-list", "+ Thêm khách hàng");
-@include dl-create-label("dl-cust-kanban", "+ Thêm khách hàng");
 @include dl-create-label("dl-supplier-list", "+ Thêm nhà cung cấp");
 @include dl-create-label("dl-product-list", "+ Thêm sản phẩm");
-@include dl-create-label("dl-product-kanban", "+ Thêm sản phẩm");
 // Màn "Sản phẩm" của Sales: chỉ tạo SP thương mại → nhãn nút nói rõ. Include SAU
 // dl-product-list để đè nhãn (class list có cả 2, mixin sau thắng theo thứ tự).
 @include dl-create-label("dl-product-list-ba", "+ Thêm sản phẩm thương mại");

@@ -18,6 +18,11 @@
         th[data-name="validity_label"] { width: 18% !important; }
         th[data-name="amount_total"] { width: 15% !important; }
         th[data-name="state"] { width: 10% !important; }
+        // Cột tùy chọn (optional="hide"): mặc định không hiện nên tổng
+        // width vẫn đúng, nhưng NGƯỜI DÙNG BẬT LÊN là phải có width, không thì
+        // table-layout:fixed bóp nó về ~0px và cột vừa bật lại vô hình.
+        th[data-name="revision"] { width: 7% !important; }
+        th[data-name="approval_state"] { width: 12% !important; }
 
         th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
         th[data-name="state"], td[name="state"] { padding-right: 20px !important; }
