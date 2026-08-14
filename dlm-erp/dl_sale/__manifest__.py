@@ -1,6 +1,6 @@
 {
     'name': 'DL-CRM & Báo giá',
-    'version': '17.0.1.31.0',
+    'version': '17.0.1.35.0',
     'summary': 'Quản lý Khách hàng, NCC, RFQ và Báo giá — Phase 1',
     'author': 'Dai Linh',
     'category': 'Hidden',
@@ -37,7 +37,6 @@
             'dl_sale/static/src/scss/quote_approval_list.scss',
             'dl_sale/static/src/scss/quote_approval_form.scss',
             'dl_sale/static/src/scss/customer_list.scss',
-            'dl_sale/static/src/scss/customer_kanban.scss',
             'dl_sale/static/src/scss/customer_form.scss',
             'dl_sale/static/src/scss/supplier_list.scss',
             'dl_sale/static/src/scss/supplier_form.scss',
@@ -49,7 +48,6 @@
             'dl_sale/static/src/views/customer_list_controller.js',
             'dl_sale/static/src/views/supplier_list_controller.js',
             'dl_sale/static/src/views/saleorder_list_controller.js',
-            'dl_sale/static/src/views/customer_kanban_controller.js',
             # Views — form
             'dl_sale/static/src/views/quotation_form_controller.js',
             'dl_sale/static/src/views/customer_form_controller.js',

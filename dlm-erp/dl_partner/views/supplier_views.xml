@@ -5,18 +5,44 @@
         <field name="name">dlm.supplier.tree</field>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
+            <!-- Sắp xếp mặc định theo Mã NCC tăng dần. Mã có padding 4 chữ số
+                 (NCC-0001) nên so sánh chuỗi cho ra đúng thứ tự số tới NCC-9999.
+                 NCC chưa được cấp mã có giá trị NULL nên Postgres xếp xuống
+                 cuối — đúng ý: hồ sơ cũ chưa chuẩn hóa nằm dưới. -->
             <tree string="NCC / Thầu phụ" class="dl-supplier-list" js_class="dl_supplier_list"
+                  default_order="dlm_supplier_code asc"
                   decoration-muted="active == False">
                 <field name="avatar_128" widget="image" class="dl-supplier-avatar"
                        options="{'preview_image': 'avatar_128'}" nolabel="1"/>
+                <field name="dlm_supplier_code" string="Mã NCC"/>
                 <field name="name" string="Tên NCC / Thầu phụ"/>
+                <!-- Action mở với active_test=False nên NCC đã ngừng hợp tác nằm
+                     LẪN trong danh sách; decoration-muted chỉ làm chữ xám nhạt,
+                     rất dễ lướt qua. Badge trạng thái là dấu hiệu đọc được ngay,
+                     giống danh sách Khách hàng. Đổi chỗ cho cột MST — MST không
+                     phải thông tin cần liếc hằng ngày, vẫn xem được trong form
+                     và vẫn tìm được qua ô tìm kiếm. -->
+                <field name="dlm_status_label" string="Trạng thái" widget="badge"
+                       decoration-success="active"
+                       decoration-danger="not active"/>
                 <field name="phone" string="Điện thoại"/>
                 <field name="email"/>
-                <field name="vat" string="MST"/>
                 <field name="city" string="Tỉnh/TP"/>
-                <field name="active" invisible="1"/>
+                <!-- column_invisible chứ không phải invisible: trong list view,
+                     invisible="1" ẩn theo từng ô mà vẫn chừa lại một cột trống.
+                     Giống danh sách Khách hàng. -->
+                <field name="active" column_invisible="1"/>
             </tree>
         </field>
+    </record>
+
+    <!-- Sequence mã NCC (NCC-0001) — song song seq_dlm_customer ở customer_views.xml -->
+    <record id="seq_dlm_supplier" model="ir.sequence">
+        <field name="name">DLM Nhà cung cấp</field>
+        <field name="code">dlm.supplier</field>
+        <field name="prefix">NCC-</field>
+        <field name="padding">4</field>
+        <field name="company_id" eval="False"/>
     </record>
 
     <record id="view_dl_supplier_form" model="ir.ui.view">
@@ -52,6 +78,21 @@
                             <h1>
                                 <field name="name" string="Tên NCC / Thầu phụ" placeholder="Tên NCC / Thầu phụ..." required="1"/>
                             </h1>
+                            <!-- dl-sup-code chứ KHÔNG phải dl-cust-code: style của
+                                 dl-cust-code nằm trong .dl-customer-form nên form
+                                 NCC không nhận được. supplier_form.scss đã có sẵn
+                                 .dl-sup-code dành đúng cho chỗ này. -->
+                            <div class="dl-sup-code" invisible="not dlm_supplier_code">Mã NCC: <field
+                                    name="dlm_supplier_code" class="oe_inline"/>
+                            </div>
+                            <!-- Có nhãn hẳn hoi: cụm radio không nhãn khiến người
+                                 dùng không biết đang chọn cái gì, mà nhãn gốc của
+                                 field lại là "Loại khách hàng" — sai ngữ cảnh trên
+                                 màn NCC.
+                                 Dùng <span> chứ KHÔNG dùng <label for="...">: thẻ
+                                 label tự kéo `help` của field vào và đẻ ra dấu "?"
+                                 tooltip cạnh chữ, trông như lỗi hiển thị. -->
+                            <span class="o_form_label d-block mt-2">Loại NCC</span>
                             <field name="partner_type" widget="radio"
                                    options="{'horizontal': true}" nolabel="1"
                                    class="dl-cust-type-seg"/>
@@ -115,6 +156,28 @@
                     <field name="partner_role" invisible="1"/>
 
                     <notebook>
+                        <!-- Chỉ-đọc: bảng giá NCC có vòng đời riêng (Nháp → Đã
+                             duyệt → Đang áp dụng) do màn Bảng giá Vật tư quản
+                             lý; sửa tắt từ đây sẽ đi vòng qua các nút duyệt.
+                             Cột hiển thị chỉ dùng field LÕI của product.supplierinfo —
+                             approval_state / is_applied do dl_product khai, mà
+                             dl_partner nạp trước nên không tham chiếu được. -->
+                        <page string="Bảng giá cung cấp" name="supplier_pricing">
+                            <field name="dlm_supplierinfo_ids" nolabel="1" readonly="1">
+                                <tree create="false" delete="false" editable="false">
+                                    <field name="product_id" string="Vật tư / Sản phẩm"/>
+                                    <field name="min_qty" string="SL tối thiểu"/>
+                                    <field name="price" string="Đơn giá"/>
+                                    <field name="currency_id" string="Tiền tệ"
+                                           optional="hide"/>
+                                    <field name="date_start" string="Hiệu lực từ"/>
+                                    <field name="date_end" string="Đến"/>
+                                    <field name="delay" string="Thời gian giao (ngày)"
+                                           optional="hide"/>
+                                </tree>
+                            </field>
+                        </page>
+
                         <page string="Ghi chú nội bộ" name="notes">
                             <field name="comment" placeholder="Ghi chú về NCC này (ưu tiên, lưu ý đặc biệt)..."/>
                         </page>
@@ -153,12 +216,18 @@
         <field name="arch" type="xml">
             <search string="Tìm NCC / Thầu phụ">
                 <field name="name" string="Tên"/>
+                <field name="dlm_supplier_code" string="Mã NCC"/>
                 <field name="phone"/>
                 <field name="email"/>
                 <field name="vat" string="MST"/>
                 <separator/>
                 <filter string="Đang hợp tác" name="active" domain="[('active', '=', True)]"/>
                 <filter string="Ngừng hợp tác" name="inactive" domain="[('active', '=', False)]"/>
+                <separator/>
+                <filter string="Cá nhân" name="filter_individual"
+                        domain="[('partner_type', '=', 'individual')]"/>
+                <filter string="Doanh nghiệp" name="filter_company"
+                        domain="[('partner_type', '=', 'company')]"/>
                 <separator/>
                 <filter string="Hôm nay" name="date_today"
                         domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
@@ -168,6 +237,10 @@
                         domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today() + relativedelta(days=-30), datetime.time(0,0,0)))]"/>
                 <group expand="0" string="Nhóm theo">
                     <filter string="Tỉnh/TP" name="group_city" context="{'group_by': 'city'}"/>
+                    <filter string="Loại NCC" name="group_type"
+                            context="{'group_by': 'partner_type'}"/>
+                    <filter string="Trạng thái" name="group_active"
+                            context="{'group_by': 'active'}"/>
                 </group>
             </search>
         </field>

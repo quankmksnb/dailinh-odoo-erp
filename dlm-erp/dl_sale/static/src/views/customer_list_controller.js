@@ -3,6 +3,7 @@
 import { registry } from "@web/core/registry";
 import { listView } from "@web/views/list/list_view";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
+import { avatarInitial, avatarColor } from "@dl_base/js/avatar_letter";
 
 const CHIPS = [
     { key: "all",        label: "Tất cả",       filter: null,                ctype: null },
@@ -12,23 +13,6 @@ const CHIPS = [
 ];
 const FILTER_NAMES = CHIPS.filter((c) => c.filter).map((c) => c.filter);
 
-const AVA_PALETTE = [
-    { bg: "#fde2e4", fg: "#b23a48" },
-    { bg: "#dbe7ff", fg: "#1e4fa3" },
-    { bg: "#e3f6e8", fg: "#1b7a3d" },
-    { bg: "#fff1cc", fg: "#8a5a00" },
-    { bg: "#ece0fb", fg: "#5b3fa0" },
-    { bg: "#ffe1f0", fg: "#a3226e" },
-    { bg: "#d9f2f4", fg: "#0f6b73" },
-];
-// Hash tên → màu ổn định (cùng tên luôn ra cùng màu)
-function avaColor(name) {
-    let h = 0;
-    for (let i = 0; i < name.length; i++) {
-        h = (h * 31 + name.charCodeAt(i)) >>> 0;
-    }
-    return AVA_PALETTE[h % AVA_PALETTE.length];
-}
 
 export class DlCustomerListController extends DlListBaseController {
     get dlChips() {
@@ -160,8 +144,8 @@ export class DlCustomerListController extends DlListBaseController {
                 ava.className = "dl-letter-ava";
                 cell.appendChild(ava);
             }
-            const c = avaColor(name);
-            ava.textContent = name ? name[0].toUpperCase() : "?";
+            const c = avatarColor(name);
+            ava.textContent = avatarInitial(name);
             ava.style.background = c.bg;
             ava.style.color = c.fg;
         });

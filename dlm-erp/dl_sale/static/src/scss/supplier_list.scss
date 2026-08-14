@@ -9,14 +9,20 @@
         table-layout: fixed !important;
         width: 100% !important;
 
+        // table-layout: fixed + tổng width = 100% ⇒ cột NÀO thiếu rule width sẽ
+        // bị ép về gần 0 và trông như bị ẩn. Thêm cột mới vào tree thì phải khai
+        // width ở đây và chia lại cho đủ 100%.
         th[data-name="avatar_128"] { width: 4% !important; }
-        th[data-name="name"] { width: 30% !important; }
-        th[data-name="vat"] { width: 18% !important; }
-        th[data-name="phone"] { width: 15% !important; }
-        th[data-name="email"] { width: 14% !important; }
+        th[data-name="dlm_supplier_code"] { width: 9% !important; }
+        th[data-name="name"] { width: 26% !important; }
+        th[data-name="dlm_status_label"] { width: 11% !important; }
+        th[data-name="phone"] { width: 13% !important; }
+        th[data-name="email"] { width: 18% !important; }
         th[data-name="city"] { width: 19% !important; }
 
-        td[name="name"], td[name="vat"], td[name="city"] {
+        td[name="dlm_supplier_code"] { white-space: nowrap; }
+
+        td[name="name"], td[name="city"] {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -48,8 +54,20 @@
     }
     td[name="name"] { padding-left: 6px !important; }
 
+    // Badge mặc định (trung tính) — áp cho MỌI badge, nên phải khai riêng hai
+    // biến thể có màu bên dưới, nếu không badge Trạng thái cũng bị ép về xám.
     .badge {
         background-color: $dl-type-individual-bg !important;
         color: $dl-type-individual-fg !important;
+    }
+    // Trạng thái: xanh "Đang hợp tác" / đỏ "Ngừng hợp tác" — cùng bộ biến với
+    // danh sách Khách hàng để hai màn đọc giống nhau.
+    .badge.text-bg-success {
+        background-color: $dl-badge-approved-bg !important;
+        color: $dl-badge-approved-fg !important;
+    }
+    .badge.text-bg-danger {
+        background-color: $dl-badge-rejected-bg !important;
+        color: $dl-badge-rejected-fg !important;
     }
 }

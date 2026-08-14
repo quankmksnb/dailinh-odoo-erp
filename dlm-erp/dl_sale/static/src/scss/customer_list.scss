@@ -111,8 +111,6 @@
 // Phần chung CP (breadcrumb, btn, save/cancel) ở dl_base/global_cp.scss.
 // Đây chỉ chứa: search bar layout, chipbar, create button, list footer.
 .o_action_manager:has(.dl-customer-list),
-.o_action_manager:has(.dl-cust-kanban),
-.o_action_manager:has(.dl-product-kanban),
 .o_action_manager:has(.dl-supplier-list),
 .o_action_manager:has(.dl-product-list),
 .o_action_manager:has(.dl-category-list),
@@ -253,7 +251,6 @@
 
                 i { font-size: 0; }
                 &.o_list::after { content: "List"; font-size: 13px; }
-                &.o_kanban::after { content: "Kanban"; font-size: 13px; }
 
                 &.active {
                     background: $dl-active !important;

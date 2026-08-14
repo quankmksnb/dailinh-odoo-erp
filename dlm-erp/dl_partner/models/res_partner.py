@@ -69,6 +69,41 @@ def _normalize_name(value):
     return _MULTI_SPACE_RE.sub(' ', value).strip() if value else value
 
 
+# Tiền tố pháp nhân bỏ qua khi lấy chữ cái avatar. Gần như MỌI pháp nhân Việt
+# Nam mở đầu bằng "Công ty", nên lấy thẳng ký tự đầu cho ra cả danh sách avatar
+# chữ 'C' giống hệt nhau — mất sạch tác dụng phân biệt dòng. Xếp dài trước ngắn
+# để "Công ty Cổ phần" được cắt trọn thay vì dừng ở "Cổ".
+# Bản JS song song: dl_base/static/src/js/avatar_letter.js — sửa thì sửa cả hai.
+_NAME_PREFIXES = (
+    'công ty cổ phần', 'công ty tnhh mtv', 'công ty tnhh', 'công ty cp',
+    'công ty', 'tổng công ty', 'doanh nghiệp tư nhân', 'hộ kinh doanh',
+    'cửa hàng', 'cty tnhh', 'cty cp', 'cty', 'tnhh mtv', 'tnhh', 'cp',
+    'dntn', 'hkd', 'xưởng', 'nhà máy', 'tập đoàn', 'chi nhánh',
+)
+_PREFIX_TRIM_RE = re.compile(r'^[\s.,\-–—]+')
+
+
+def _significant_name(value):
+    """Phần tên còn lại sau khi bỏ hết tiền tố pháp nhân ở đầu.
+
+    'Công ty TNHH Việt Hưng' → 'Việt Hưng'. Lặp vì tên có thể chồng nhiều tầng
+    tiền tố. Không cắt khi phần còn lại rỗng — tên chỉ gồm mỗi tiền tố thì thà
+    giữ nguyên còn hơn trả về chuỗi trống."""
+    rest = (value or '').strip()
+    changed = True
+    while changed and rest:
+        changed = False
+        lower = rest.lower()
+        for prefix in _NAME_PREFIXES:
+            if lower.startswith(prefix):
+                after = _PREFIX_TRIM_RE.sub('', rest[len(prefix):])
+                if after:
+                    rest = after
+                    changed = True
+                break
+    return rest or (value or '').strip()
+
+
 def _name_key(value):
     """Khóa so khớp tên: bỏ dấu tiếng Việt, hạ chữ thường, bỏ mọi ký tự không
     phải chữ/số. 'Công ty  TNHH  A.B.C' và 'CONG TY TNHH ABC' ra cùng một khóa.
@@ -118,6 +153,30 @@ class ResPartner(models.Model):
         copy=False,
         index=True,
         help='Mã khách hàng tự sinh, duy nhất (VD: KH-0001)',
+    )
+
+    # ── Mã NCC tự sinh NCC-0001 ───────────────────────────────────────
+    # Field RIÊNG chứ không dùng chung dlm_code: đối tác vai trò 'Khách hàng &
+    # NCC' tham gia hai quan hệ nên có hai mã, và mỗi màn hiện đúng mã của mình.
+    # Gộp một field sẽ khiến màn NCC hiển thị 'KH-0008' cho đối tác từng được
+    # tạo ở màn khách hàng.
+    dlm_supplier_code = fields.Char(
+        string='Mã NCC',
+        readonly=True,
+        copy=False,
+        index=True,
+        help='Mã nhà cung cấp tự sinh, duy nhất (VD: NCC-0001)',
+    )
+
+    # Bảng giá NCC cung cấp — cho form NCC trả lời được câu hỏi thường trực của
+    # Mua hàng: "đơn vị này cung cấp gì, giá bao nhiêu". Trước đây phải sang màn
+    # Bảng giá Vật tư rồi tự lọc theo tên.
+    dlm_supplierinfo_ids = fields.One2many(
+        'product.supplierinfo', 'partner_id',
+        string='Bảng giá cung cấp', readonly=True,
+    )
+    dlm_supplierinfo_count = fields.Integer(
+        string='Số dòng bảng giá', compute='_compute_dlm_supplierinfo_count',
     )
 
     # ── A1: Loại khách hàng ────────────────────────────────────────────
@@ -195,6 +254,14 @@ class ResPartner(models.Model):
         ('#d9f2f4', '#0f6b73'),
     ]
 
+    @api.depends('dlm_supplierinfo_ids')
+    def _compute_dlm_supplierinfo_count(self):
+        # sudo: Mua hàng đọc được bảng giá, nhưng CEO/Trưởng KD mở form NCC ở
+        # chế độ xem cũng cần thấy con số thay vì lỗi quyền.
+        for rec in self:
+            rec.dlm_supplierinfo_count = self.env['product.supplierinfo'].sudo(
+            ).search_count([('partner_id', '=', rec.id)])
+
     @api.depends('active')
     def _compute_dlm_status_label(self):
         for rec in self:
@@ -209,7 +276,8 @@ class ResPartner(models.Model):
     def _compute_dlm_avatar_letter(self):
         palette = self._DLM_AVA_PALETTE
         for rec in self:
-            name = (rec.name or '').strip()
+            # Bỏ tiền tố pháp nhân trước khi lấy chữ cái — xem _significant_name.
+            name = _significant_name(rec.name)
             rec.dlm_initial = name[0].upper() if name else '?'
             h = 0
             for ch in name:
@@ -246,10 +314,11 @@ class ResPartner(models.Model):
                 domain.append(('id', '!=', rec.id))
             dup = rec.with_context(active_test=False).search(domain, limit=1)
             if dup:
+                code = dup._dlm_display_code()
                 rec.dlm_duplicate_name_warning = _(
-                    "Đã có khách hàng tên gần giống: %s%s. Kiểm tra lại xem có "
-                    "phải cùng một khách không trước khi lưu."
-                ) % (dup.name, (' — %s' % dup.dlm_code) if dup.dlm_code else '')
+                    "Đã có đối tác tên gần giống: %s%s. Kiểm tra lại xem có "
+                    "phải cùng một đơn vị không trước khi lưu."
+                ) % (dup.name, (' — %s' % code) if code else '')
 
     @api.depends('partner_type')
     def _compute_partner_type_label(self):
@@ -343,12 +412,46 @@ class ResPartner(models.Model):
                     fix['partner_role'] = False
                 if rec.dlm_code:
                     fix['dlm_code'] = False
+                if rec.dlm_supplier_code:
+                    fix['dlm_supplier_code'] = False
                 if fix:
                     rec.write(fix)
                 continue
-            if rec.partner_role in _CUSTOMER_ROLES and not rec.dlm_code:
-                rec.dlm_code = self.env['ir.sequence'].next_by_code('dlm.customer') or '/'
+        created._dlm_assign_codes()
         return created + linked_records
+
+    # ── Mã đối tác tự sinh ────────────────────────────────────────────
+    # Mỗi vai trò một dãy mã riêng; đối tác 'both' nhận cả hai.
+    _DLM_CODE_SEQUENCES = (
+        ('dlm_code', _CUSTOMER_ROLES, 'dlm.customer'),
+        ('dlm_supplier_code', ('supplier', 'both'), 'dlm.supplier'),
+    )
+
+    def _dlm_assign_codes(self):
+        """Cấp mã còn thiếu cho các đối tác trong recordset.
+
+        Gọi cả ở create lẫn write nên tự vá được hai trường hợp mà cấp mã lúc
+        tạo không phủ: đối tác đổi vai trò về sau (NCC được gộp thành 'Khách
+        hàng & NCC' thì cần thêm mã KH), và bản ghi cũ có từ trước khi dãy mã
+        tương ứng ra đời — lần lưu kế tiếp là có mã, không cần script vá dữ liệu.
+
+        Ghi đè lên write() sẽ gọi lại chính hàm này, nhưng vòng thứ hai thấy mã
+        đã có nên dừng — không đệ quy vô hạn."""
+        sequences = self.env['ir.sequence'].sudo()
+        for rec in self:
+            if rec.parent_id or not rec.partner_role:
+                continue
+            for fname, roles, seq_code in self._DLM_CODE_SEQUENCES:
+                if rec.partner_role in roles and not rec[fname]:
+                    rec[fname] = sequences.next_by_code(seq_code) or '/'
+
+    def _dlm_display_code(self):
+        """Mã để nhắc tới đối tác này trong thông báo — ưu tiên mã đúng vai trò
+        của bản ghi, để lỗi trên màn NCC không hiện mã KH."""
+        self.ensure_one()
+        if self.partner_role == 'supplier':
+            return self.dlm_supplier_code or ''
+        return self.dlm_code or self.dlm_supplier_code or ''
 
     def write(self, vals):
         # Chuẩn hóa nếu recordset có dính KH DLM hoặc người liên hệ của KH.
@@ -383,6 +486,7 @@ class ResPartner(models.Model):
         if 'partner_role' in vals and not self.env.su:
             self._dlm_check_role_downgrade(vals['partner_role'])
         res = super().write(vals)
+        self._dlm_assign_codes()
         if 'pending_link_partner_id' in vals:
             self._process_pending_link()
         return res
@@ -888,7 +992,8 @@ class ResPartner(models.Model):
                 ('vat', '=', rec.vat),
             ], limit=1)
             if dup:
-                ref = (' — ' + dup.dlm_code) if dup.dlm_code else ''
+                code = dup._dlm_display_code()
+                ref = (' — ' + code) if code else ''
                 raise ValidationError(
                     "MST '%s' đã tồn tại trong hệ thống (KH: %s%s).\n"
                     'Nếu đây là chi nhánh khác dùng chung MST, hãy tích '
@@ -965,7 +1070,8 @@ class ResPartner(models.Model):
                 'không phải hồ sơ trùng.'))
 
     def _dlm_dup_contact_message(self, label, value, dup):
-        ref = (' — %s' % dup.dlm_code) if dup.dlm_code else ''
+        code = dup._dlm_display_code()
+        ref = (' — %s' % code) if code else ''
         return _(
             "%s '%s' đã được dùng bởi khách hàng khác (%s%s).\n"
             "Nếu đây đúng là hai khách dùng chung tổng đài / hộp thư, hãy tích "

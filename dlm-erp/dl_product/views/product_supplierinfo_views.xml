@@ -179,8 +179,8 @@
         <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
     </record>
 
-    <!-- Màn chuyên cho giá mua vật tư: đi thẳng vào từng dòng giá thay vì
-         Kanban vật tư, để người dùng so sánh NCC/giá/hiệu lực ngay trên list. -->
+    <!-- Màn chuyên cho giá mua vật tư: đi thẳng vào từng dòng giá thay vì danh
+         sách vật tư, để người dùng so sánh NCC/giá/hiệu lực ngay trên list. -->
     <record id="view_dl_supplierinfo_material_tree" model="ir.ui.view">
         <field name="name">dl.product.supplierinfo.material.tree</field>
         <field name="model">product.supplierinfo</field>
