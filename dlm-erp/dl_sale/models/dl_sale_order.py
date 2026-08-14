@@ -276,7 +276,7 @@ class DlSaleOrderLine(models.Model):
     order_id = fields.Many2one('dl.sale.order', string='Đơn bán hàng',
                                ondelete='cascade', required=True)
     name = fields.Char(string='Mô tả', required=True)
-    qty = fields.Float(string='SL', default=1.0)
+    qty = fields.Float(string='Số lượng', default=1.0)
     price_unit = fields.Float(string='Đơn giá', digits='Product Price')
     price_subtotal = fields.Float(string='Thành tiền', compute='_compute_subtotal',
                                   store=True, digits='Product Price')

@@ -5,15 +5,15 @@
         <field name="name">dlm.supplier.tree</field>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
-            <tree string="NCC / Thầu phụ" class="dl-supplier-list" js_class="dl_supplier_list"
+            <tree string="Nhà cung cấp / Thầu phụ" class="dl-supplier-list" js_class="dl_supplier_list"
                   decoration-muted="active == False">
                 <field name="avatar_128" widget="image" class="dl-supplier-avatar"
                        options="{'preview_image': 'avatar_128'}" nolabel="1"/>
-                <field name="name" string="Tên NCC / Thầu phụ"/>
+                <field name="name" string="Tên nhà cung cấp / Thầu phụ"/>
                 <field name="phone" string="Điện thoại"/>
                 <field name="email"/>
-                <field name="vat" string="MST"/>
-                <field name="city" string="Tỉnh/TP"/>
+                <field name="vat" string="Mã số thuế"/>
+                <field name="city" string="Tỉnh/Thành phố"/>
                 <field name="active" invisible="1"/>
             </tree>
         </field>
@@ -23,11 +23,11 @@
         <field name="name">dlm.supplier.form</field>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
-            <form string="NCC / Thầu phụ" class="dl-supplier-form" js_class="dl_supplier_form">
+            <form string="Nhà cung cấp / Thầu phụ" class="dl-supplier-form" js_class="dl_supplier_form">
                 <header>
-                    <button name="toggle_active" type="object" string="Vô hiệu hóa NCC"
+                    <button name="toggle_active" type="object" string="Vô hiệu hóa nhà cung cấp"
                             class="btn-danger" invisible="not active or not id"
-                            confirm="Vô hiệu hóa NCC này? Lịch sử giá cũ được giữ nguyên; NCC sẽ không xuất hiện khi cập nhật giá vật tư mới."
+                            confirm="Vô hiệu hóa nhà cung cấp này? Lịch sử giá cũ được giữ nguyên; nhà cung cấp sẽ không xuất hiện khi cập nhật giá vật tư mới."
                             groups="dl_base.dl_group_accountant,dl_base.dl_group_admin"/>
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
                             class="btn-secondary" invisible="active"
@@ -44,9 +44,9 @@
                                class="oe_avatar dl-cust-form-avatar"
                                options="{'preview_image': 'image_128'}"/>
                         <div class="dl-cust-head-main">
-                            <label for="name" string="Tên NCC / Thầu phụ"/>
+                            <label for="name" string="Tên nhà cung cấp / Thầu phụ"/>
                             <h1>
-                                <field name="name" string="Tên NCC / Thầu phụ" placeholder="Tên NCC / Thầu phụ..." required="1"/>
+                                <field name="name" string="Tên nhà cung cấp / Thầu phụ" placeholder="Tên nhà cung cấp / Thầu phụ..." required="1"/>
                             </h1>
                             <field name="partner_type" widget="radio"
                                    options="{'horizontal': true}" nolabel="1"
@@ -60,7 +60,7 @@
                     <div class="alert alert-info dl-cust-mergebox" role="status"
                          invisible="id">
                         <div class="fw-bold mb-2">
-                            <i class="fa fa-link me-1"/>Đã là Khách hàng? Chọn tên bên dưới để gộp thành một hồ sơ chung — để trống nếu là NCC mới.
+                            <i class="fa fa-link me-1"/>Đã là Khách hàng? Chọn tên bên dưới để gộp thành một hồ sơ chung — để trống nếu là nhà cung cấp mới.
                         </div>
                         <field name="pending_link_partner_id"
                             nolabel="1"
@@ -75,14 +75,14 @@
                             <field name="mobile" string="Di động"/>
                             <field name="email"/>
                             <field name="website" string="Trang web"/>
-                            <field name="vat" string="Mã số thuế (MST)"
+                            <field name="vat" string="Mã số thuế"
                                 widget="dl_tax_code"
                                 placeholder="VD: 0123456789 hoặc 0123456789-001"/>
                         </group>
                         <group string="Địa chỉ">
                             <field name="street" string="Đường" placeholder="Số nhà, tên đường..."/>
                             <field name="street2" string="Phường/Xã" placeholder="Phường/Xã..."/>
-                            <field name="city" string="Tỉnh / TP" placeholder="Tỉnh / Thành phố"/>
+                            <field name="city" string="Tỉnh / Thành phố" placeholder="Tỉnh / Thành phố"/>
                             <field name="country_id" string="Quốc gia" placeholder="Quốc gia"/>
                         </group>
                     </group>
@@ -91,7 +91,7 @@
 
                     <notebook>
                         <page string="Ghi chú nội bộ" name="notes">
-                            <field name="comment" placeholder="Ghi chú về NCC này (ưu tiên, lưu ý đặc biệt)..."/>
+                            <field name="comment" placeholder="Ghi chú về nhà cung cấp này (ưu tiên, lưu ý đặc biệt)..."/>
                         </page>
 
                         <page string="Thông tin hệ thống" name="audit">
@@ -124,11 +124,11 @@
         <field name="name">dlm.supplier.search</field>
         <field name="model">res.partner</field>
         <field name="arch" type="xml">
-            <search string="Tìm NCC / Thầu phụ">
+            <search string="Tìm nhà cung cấp / Thầu phụ">
                 <field name="name" string="Tên"/>
                 <field name="phone"/>
                 <field name="email"/>
-                <field name="vat" string="MST"/>
+                <field name="vat" string="Mã số thuế"/>
                 <separator/>
                 <filter string="Đang hợp tác" name="active" domain="[('active', '=', True)]"/>
                 <filter string="Ngừng hợp tác" name="inactive" domain="[('active', '=', False)]"/>
@@ -140,14 +140,14 @@
                 <filter string="30 ngày qua" name="date_30days"
                         domain="[('create_date', '&gt;=', datetime.datetime.combine(context_today() + relativedelta(days=-30), datetime.time(0,0,0)))]"/>
                 <group expand="0" string="Nhóm theo">
-                    <filter string="Tỉnh/TP" name="group_city" context="{'group_by': 'city'}"/>
+                    <filter string="Tỉnh/Thành phố" name="group_city" context="{'group_by': 'city'}"/>
                 </group>
             </search>
         </field>
     </record>
 
     <record id="action_dl_supplier" model="ir.actions.act_window">
-        <field name="name">NCC / Thầu phụ</field>
+        <field name="name">Nhà cung cấp / Thầu phụ</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
@@ -161,14 +161,14 @@
         <field name="search_view_id" ref="view_dl_supplier_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm nhà cung cấp đầu tiên!</p>
-            <p>Quản lý NCC và thầu phụ cung cấp vật tư / dịch vụ cho Đại Linh.</p>
+            <p>Quản lý nhà cung cấp và thầu phụ cung cấp vật tư / dịch vụ cho Đại Linh.</p>
         </field>
     </record>
 
     <!-- Action form-only cho mũi tên mở NCC (get_formview_action). Có id nên URL
          giữ được view khi F5/deep-link. Không gắn menu, chỉ dùng qua điều hướng. -->
     <record id="action_dl_supplier_form" model="ir.actions.act_window">
-        <field name="name">NCC / Thầu phụ</field>
+        <field name="name">Nhà cung cấp / Thầu phụ</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">form</field>
         <field name="view_id" ref="view_dl_supplier_form"/>
@@ -179,7 +179,7 @@
     <!-- Action chỉ-đọc cho Trưởng phòng KD (S04: "Xem danh sách" NCC).
          context create/edit/delete=False => UX chỉ đọc; bảo mật thật do ir.rule đảm nhiệm. -->
     <record id="action_dl_supplier_readonly" model="ir.actions.act_window">
-        <field name="name">NCC / Thầu phụ</field>
+        <field name="name">Nhà cung cấp / Thầu phụ</field>
         <field name="res_model">res.partner</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>

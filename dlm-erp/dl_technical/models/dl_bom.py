@@ -169,7 +169,7 @@ class DlBom(models.Model):
     # Ước tính THAM KHẢO tổng chi phí công đoạn BIẾN ĐỔI/đơn vị (gated — Kỹ thuật
     # không thấy). Không phải giá chốt (giá chốt tính khi tạo báo giá, pha B2).
     total_operation_cost_est = fields.Float(
-        string="Ước tính chi phí công đoạn/đv",
+        string="Ước tính chi phí công đoạn/đơn vị",
         compute="_compute_total_operation_cost_est",
         digits="Product Price",
         groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,"
@@ -506,7 +506,7 @@ class DlBom(models.Model):
         Activity = self.env["mail.activity"].sudo()
         for material in missing:
             material.sudo().message_post(body=_(
-                "Kỹ thuật (định mức %s) cần Mua hàng cập nhật giá NCC (đã duyệt "
+                "Kỹ thuật (định mức %s) cần Mua hàng cập nhật giá nhà cung cấp (đã duyệt "
                 "&amp; đang áp dụng) cho vật tư này.") % self.display_name)
             for user in users:
                 if Activity.search_count([
@@ -517,7 +517,7 @@ class DlBom(models.Model):
                     continue
                 material.sudo().activity_schedule(
                     "mail.mail_activity_data_todo",
-                    summary=_("Cập nhật giá NCC — %s") % material.display_name,
+                    summary=_("Cập nhật giá nhà cung cấp — %s") % material.display_name,
                     note=_("Yêu cầu từ Kỹ thuật khi lập định mức %s.")
                     % self.display_name,
                     user_id=user.id)

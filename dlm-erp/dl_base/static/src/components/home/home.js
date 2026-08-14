@@ -26,7 +26,7 @@ const MODULE_CARDS = [
     },
     {
         key: "supplier",
-        name: "NCC / Thầu phụ",
+        name: "Nhà cung cấp / Thầu phụ",
         description: "Nhà cung cấp & thầu phụ",
         icon: "fa-truck",
         color: "#2a8c82",
@@ -83,7 +83,7 @@ const MODULE_CARDS = [
     {
         key: "pricing",
         name: "Bảng giá",
-        description: "Bảng giá SP Thương mại / Vật tư",
+        description: "Bảng giá sản phẩm thương mại / Vật tư",
         icon: "fa-money",
         color: "#c49052",
         menuXmlIds: ["dl_product.menu_dl_pricing_root"],

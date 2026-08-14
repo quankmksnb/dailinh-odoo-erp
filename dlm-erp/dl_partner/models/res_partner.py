@@ -25,21 +25,21 @@ class ResPartner(models.Model):
     # ── Phân loại DLM ─────────────────────────────────────────────────
     partner_role = fields.Selection([
         ('customer', 'Khách hàng'),
-        ('supplier', 'NCC / Thầu phụ'),
-        ('both', 'Khách hàng & NCC'),
+        ('supplier', 'Nhà cung cấp / Thầu phụ'),
+        ('both', 'Khách hàng & Nhà cung cấp'),
     ], string='Vai trò')
 
     pending_link_partner_id = fields.Many2one(
         'res.partner',
-        string='Liên kết với (gộp thành Khách hàng & NCC)',
+        string='Liên kết với (gộp thành Khách hàng & Nhà cung cấp)',
         copy=False,
         store=True,
-        help='Gõ tên để tìm Khách hàng ↔ NCC',
+        help='Gõ tên để tìm Khách hàng ↔ Nhà cung cấp',
     )
 
     # ── S03: Mã khách hàng tự sinh KH-0001 ────────────────────────────
     dlm_code = fields.Char(
-        string='Mã KH',
+        string='Mã khách hàng',
         readonly=True,
         copy=False,
         index=True,
@@ -60,9 +60,9 @@ class ResPartner(models.Model):
 
     # MST dùng field native `vat` của res.partner — không tự chế field riêng.
     dlm_allow_dup_tax = fields.Boolean(
-        string='Cho phép trùng MST (chi nhánh khác)',
+        string='Cho phép trùng mã số thuế (chi nhánh khác)',
         default=False,
-        help='Tích khi đây là chi nhánh khác dùng chung MST — bỏ qua kiểm tra trùng (EX-05)',
+        help='Tích khi đây là chi nhánh khác dùng chung mã số thuế — bỏ qua kiểm tra trùng (EX-05)',
     )
 
     partner_type_label = fields.Char(
@@ -150,7 +150,7 @@ class ResPartner(models.Model):
                     write_vals['partner_type'] = 'company'
                 target.write(write_vals)
                 target.message_post(body=_(
-                    "Chuyển thành 'Khách hàng & NCC' — hợp nhất từ dữ liệu tạo mới."))
+                    "Chuyển thành 'Khách hàng & Nhà cung cấp' — hợp nhất từ dữ liệu tạo mới."))
                 linked_records |= target
             else:
                 to_create.append(vals)
@@ -229,7 +229,7 @@ class ResPartner(models.Model):
             if rec._dl_is_customer_record() and rec.partner_type == 'company' \
                     and not (rec.vat and rec.vat.strip()):
                 raise ValidationError(_(
-                    'Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).'))
+                    'Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế.'))
 
     @api.constrains('partner_role', 'vat')
     def _check_tax_code_format(self):
@@ -244,7 +244,7 @@ class ResPartner(models.Model):
                 continue
             if not _TAX_CODE_RE.match(vat):
                 raise ValidationError(_(
-                    "Mã số thuế '%s' không hợp lệ. MST chỉ gồm chữ số và dấu "
+                    "Mã số thuế '%s' không hợp lệ. Mã số thuế chỉ gồm chữ số và dấu "
                     "'-', theo định dạng 10 chữ số (VD: 0123456789) hoặc 10 chữ "
                     'số-3 chữ số cho chi nhánh (VD: 0123456789-001).'
                 ) % rec.vat)
@@ -313,9 +313,10 @@ class ResPartner(models.Model):
             if dup:
                 ref = (' — ' + dup.dlm_code) if dup.dlm_code else ''
                 raise ValidationError(
-                    "MST '%s' đã tồn tại trong hệ thống (KH: %s%s).\n"
-                    'Nếu đây là chi nhánh khác dùng chung MST, hãy tích '
-                    "'Cho phép trùng MST (chi nhánh khác)' và ghi chú lý do."
+                    "Mã số thuế '%s' đã tồn tại trong hệ thống (khách hàng: "
+                    "%s%s).\n"
+                    'Nếu đây là chi nhánh khác dùng chung mã số thuế, hãy tích '
+                    "'Cho phép trùng mã số thuế (chi nhánh khác)' và ghi chú lý do."
                     % (rec.vat, dup.name, ref)
                 )
 
@@ -365,7 +366,7 @@ class ResPartner(models.Model):
                     vals['partner_type'] = 'company'
                 target.write(vals)
                 target.message_post(body=_(
-                    "Được gộp vai trò 'Khách hàng & NCC' — liên kết từ '%s' (bởi %s)"
+                    "Được gộp vai trò 'Khách hàng & Nhà cung cấp' — liên kết từ '%s' (bởi %s)"
                 ) % (rec.name, self.env.user.name))
             rec.message_post(body=_(
                 "Đã liên kết với đối tác trùng tên: %s → partner_role đã chuyển 'both'."

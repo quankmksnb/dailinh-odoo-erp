@@ -105,7 +105,7 @@ class DlQuotationDocument(models.Model):
         if addr:
             info.append("Địa chỉ: " + addr)
         if company.vat:
-            info.append("MST: " + company.vat)
+            info.append("Mã số thuế: " + company.vat)
         contact = " | ".join(filter(None, [
             ("ĐT: " + company.phone) if company.phone else "",
             ("Email: " + company.email) if company.email else "",
@@ -136,7 +136,7 @@ class DlQuotationDocument(models.Model):
         lp.add_run("Kính gửi: ").bold = True
         lp.add_run(partner.name or "")
         for text in filter(None, [
-            ("MST: " + partner.vat) if partner.vat else "",
+            ("Mã số thuế: " + partner.vat) if partner.vat else "",
             ("Địa chỉ: " + ", ".join(filter(None, [partner.street, partner.city])))
             if partner.street else "",
             ("Điện thoại: " + partner.phone) if partner.phone else "",
@@ -157,7 +157,8 @@ class DlQuotationDocument(models.Model):
             "các hạng mục sau:")
 
         # --- Bảng dòng ---
-        headers = ["STT", "Nội dung / Hạng mục", "SL", "Đơn giá", "Thành tiền"]
+        headers = ["Số thứ tự", "Nội dung / Hạng mục", "Số lượng",
+                   "Đơn giá", "Thành tiền"]
         table = doc.add_table(rows=1, cols=len(headers))
         table.style = "Table Grid"
         table.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -315,7 +316,7 @@ class DlQuotationDocument(models.Model):
         addr = ", ".join(filter(None, [company.street, company.city]))
         for text in filter(None, [
             ("Địa chỉ: " + addr) if addr else "",
-            ("MST: " + company.vat) if company.vat else "",
+            ("Mã số thuế: " + company.vat) if company.vat else "",
             " | ".join(filter(None, [
                 ("ĐT: " + company.phone) if company.phone else "",
                 ("Email: " + company.email) if company.email else ""])),
@@ -332,7 +333,7 @@ class DlQuotationDocument(models.Model):
         # --- Khách hàng + meta (2 cột) ---
         cust = [Paragraph("<b>Kính gửi:</b> %s" % (partner.name or ""), base)]
         for text in filter(None, [
-            ("MST: " + partner.vat) if partner.vat else "",
+            ("Mã số thuế: " + partner.vat) if partner.vat else "",
             ("Địa chỉ: " + ", ".join(filter(None, [partner.street, partner.city])))
             if partner.street else "",
             ("Điện thoại: " + partner.phone) if partner.phone else "",
@@ -359,9 +360,9 @@ class DlQuotationDocument(models.Model):
         story.append(Spacer(1, 2 * mm))
 
         # --- Bảng dòng ---
-        data = [[Paragraph("STT", ParagraphStyle("h", parent=bold, alignment=TA_CENTER, textColor=colors.white)),
+        data = [[Paragraph("Số thứ tự", ParagraphStyle("h", parent=bold, alignment=TA_CENTER, textColor=colors.white)),
                  Paragraph("Nội dung / Hạng mục", ParagraphStyle("h2", parent=bold, textColor=colors.white)),
-                 Paragraph("SL", ParagraphStyle("h3", parent=bold, alignment=TA_CENTER, textColor=colors.white)),
+                 Paragraph("Số lượng", ParagraphStyle("h3", parent=bold, alignment=TA_CENTER, textColor=colors.white)),
                  Paragraph("Đơn giá", ParagraphStyle("h4", parent=bold, alignment=TA_RIGHT, textColor=colors.white)),
                  Paragraph("Thành tiền", ParagraphStyle("h5", parent=bold, alignment=TA_RIGHT, textColor=colors.white))]]
         for ln in ctx["lines"]:
@@ -373,7 +374,7 @@ class DlQuotationDocument(models.Model):
                 Paragraph(ln["subtotal"], right),
             ])
         line_tbl = Table(
-            data, colWidths=[12 * mm, 78 * mm, 18 * mm, 31 * mm, 31 * mm],
+            data, colWidths=[18 * mm, 70 * mm, 21 * mm, 31 * mm, 31 * mm],
             repeatRows=1)
         line_tbl.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#34495e")),

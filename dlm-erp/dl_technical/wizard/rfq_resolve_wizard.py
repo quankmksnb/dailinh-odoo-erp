@@ -139,7 +139,7 @@ class DlRfqResolveWizard(models.TransientModel):
 
     product_id = fields.Many2one(
         "product.product",
-        string="Product",
+        string="Sản phẩm",
         # CHỈ sản phẩm gia công — bán thành phẩm là cấu phần bên trong định mức,
         # không phải thứ khách đặt, nên không được lọt vào "SP đã từng gia công".
         domain=[("product_kind", "=", "manufactured")],
@@ -162,7 +162,7 @@ class DlRfqResolveWizard(models.TransientModel):
     # product_id (giống pattern bom_ids→selected_bom_id).
     allowed_product_ids = fields.Many2many(
         "product.product", compute="_compute_allowed_product_ids",
-        string="SP hợp lệ")
+        string="Sản phẩm hợp lệ")
 
     @api.depends("request_category_id", "search_outside_category", "rfq_line_id")
     def _compute_allowed_product_ids(self):
@@ -213,7 +213,7 @@ class DlRfqResolveWizard(models.TransientModel):
         string="Số ứng viên gợi ý", compute="_compute_suggestions")
     # Đánh dấu SP hiện tại do hệ thống TỰ CHỌN (đường A, điểm ≥60) — để hiện
     # nhãn "gợi ý tự chọn" ở khối ⑴ đã thu gọn, nhắc KTV vẫn đang xem thứ máy đoán.
-    auto_selected = fields.Boolean(string="SP do hệ thống tự chọn")
+    auto_selected = fields.Boolean(string="Sản phẩm do hệ thống tự chọn")
 
     def _suggestion_candidates(self, limit=3):
         """Ứng viên gợi ý cho dòng RFQ đang xử lý (dùng lại matcher ở model
@@ -261,9 +261,9 @@ class DlRfqResolveWizard(models.TransientModel):
     name_dup_message = fields.Char(
         string="Cảnh báo trùng tên", compute="_compute_name_dup")
     name_dup_exact_id = fields.Many2one(
-        "product.product", string="SP trùng hệt", compute="_compute_name_dup")
+        "product.product", string="Sản phẩm trùng hệt", compute="_compute_name_dup")
     name_dup_similar_ids = fields.Many2many(
-        "product.product", string="SP gần giống", compute="_compute_name_dup")
+        "product.product", string="Sản phẩm gần giống", compute="_compute_name_dup")
     confirm_similar_name = fields.Boolean(
         string="Xác nhận đây thực sự là sản phẩm khác")
 
@@ -300,7 +300,7 @@ class DlRfqResolveWizard(models.TransientModel):
                     "khác, tick xác nhận bên dưới rồi bấm Tạo sản phẩm.") % names
 
     bom_ids = fields.Many2many(
-        "dl.bom", compute="_compute_bom_ids", string="BOM Version")
+        "dl.bom", compute="_compute_bom_ids", string="Phiên bản BOM")
     # Lựa chọn BOM do KTV chỉ định (nếu có). Lưu riêng khỏi selected_bom_id để
     # selected_bom_id là field TÍNH (không lưu) — tính lại mỗi lần nạp form nên
     # tự bắt được BOM vừa được Xác nhận khi KTV mở BOM ra duyệt rồi quay lại
@@ -366,7 +366,7 @@ class DlRfqResolveWizard(models.TransientModel):
         "dl.bom.template", string="Mẫu tham số",
         compute="_compute_parametric_template")
     has_parametric_template = fields.Boolean(
-        string="Nhóm SP có mẫu tham số", compute="_compute_parametric_template")
+        string="Nhóm sản phẩm có mẫu tham số", compute="_compute_parametric_template")
     show_param_panel = fields.Boolean(string="Đang mở panel tham số")
     param_line_ids = fields.One2many(
         "dl.rfq.resolve.param", "wizard_id", string="Tham số")
@@ -408,9 +408,9 @@ class DlRfqResolveWizard(models.TransientModel):
     # ── EX-13 / RES-022: vật tư trong định mức chưa có giá NCC đã duyệt ──────
     # Chỉ lộ TÊN + SỐ LƯỢNG vật tư thiếu giá — KTV KHÔNG thấy con số giá (§15.4).
     pricing_block_count = fields.Integer(
-        string="Số vật tư thiếu giá NCC", compute="_compute_pricing_block")
+        string="Số vật tư thiếu giá nhà cung cấp", compute="_compute_pricing_block")
     pricing_block_names = fields.Char(
-        string="Vật tư thiếu giá NCC", compute="_compute_pricing_block")
+        string="Vật tư thiếu giá nhà cung cấp", compute="_compute_pricing_block")
 
     @api.depends("selected_bom_id", "selected_bom_id.line_ids",
                  "selected_bom_id.line_ids.material_id",
@@ -756,7 +756,7 @@ class DlRfqResolveWizard(models.TransientModel):
         for material in missing:
             material.sudo().message_post(body=_(
                 "Kỹ thuật (RFQ %(rfq)s — dòng %(line)s) cần Mua hàng cập nhật "
-                "giá NCC (đã duyệt &amp; đang áp dụng) cho vật tư này.",
+                "giá nhà cung cấp (đã duyệt &amp; đang áp dụng) cho vật tư này.",
                 rfq=request.name, line=line_name))
             for user in users:
                 already_open = Activity.search_count([
@@ -769,14 +769,14 @@ class DlRfqResolveWizard(models.TransientModel):
                     continue
                 material.sudo().activity_schedule(
                     "mail.mail_activity_data_todo",
-                    summary=_("Cập nhật giá NCC — %s") % material.display_name,
+                    summary=_("Cập nhật giá nhà cung cấp — %s") % material.display_name,
                     note=_("Yêu cầu từ Kỹ thuật khi xử lý RFQ %(rfq)s "
                            "(dòng %(line)s).", rfq=request.name, line=line_name),
                     user_id=user.id,
                 )
         # Ghi vết trên RFQ để Sales/Kỹ thuật thấy đã báo Mua hàng (họ đọc RFQ được).
         request.sudo().message_post(body=_(
-            "Kỹ thuật đã báo Mua hàng cập nhật giá NCC cho vật tư của dòng "
+            "Kỹ thuật đã báo Mua hàng cập nhật giá nhà cung cấp cho vật tư của dòng "
             "<b>%(line)s</b>: %(names)s.",
             line=line_name, names=", ".join(missing.mapped("display_name"))))
         return self._action_reload()
@@ -1113,7 +1113,7 @@ class DlRfqResolveWizard(models.TransientModel):
                     and bom.is_rfq_provisional and bom.status != "draft"):
                 bom.write({"is_rfq_provisional": False})
                 bom.message_post(body=_(
-                    "Định mức BTP tạm đã được chính thức hóa khi hoàn tất "
+                    "Định mức bán thành phẩm tạm đã được chính thức hóa khi hoàn tất "
                     "dòng RFQ %s.") % line.display_name)
 
     def _do_confirm(self):

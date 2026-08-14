@@ -15,7 +15,7 @@ export class DlSupplierinfoFormController extends FormController {
 
     displayName() {
         if (this.model.root.isNew) {
-            return _t("Thêm bảng giá NCC");
+            return _t("Thêm bảng giá nhà cung cấp");
         }
         return this.model.root.data.display_name?.split("\n")[0] || "";
     }

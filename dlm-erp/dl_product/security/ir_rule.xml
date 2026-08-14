@@ -4,7 +4,7 @@
         <!-- Kế toán nay chỉ-đọc product.product (ACL write=0) — rule này giữ lại
              cho tương thích DB cũ, không còn tác dụng ghi. -->
         <record id="rule_product_accountant_trading_write_only" model="ir.rule">
-            <field name="name">Kế toán: chỉ sửa bảng giá SP thương mại / Vật tư</field>
+            <field name="name">Kế toán: chỉ sửa bảng giá sản phẩm thương mại / Vật tư</field>
             <field name="model_id" ref="product.model_product_product" />
             <field name="groups" eval="[(4, ref('dl_base.dl_group_accountant'))]" />
             <field name="domain_force">[('product_kind', 'in', ('trading', 'material'))]</field>
@@ -19,7 +19,7 @@
              Field nhạy cảm (giá vốn/giá bán/vòng đời/loại SP) vẫn khóa cứng ở
              write() guard. perm_read=0 ⇒ vẫn đọc mọi SP để tham chiếu. -->
         <record id="rule_product_purchasing_cost_write_only" model="ir.rule">
-            <field name="name">Mua hàng: chỉ sửa giá SP thương mại / Vật tư</field>
+            <field name="name">Mua hàng: chỉ sửa giá sản phẩm thương mại / Vật tư</field>
             <field name="model_id" ref="product.model_product_product" />
             <field name="groups" eval="[(4, ref('dl_base.dl_group_purchasing'))]" />
             <field name="domain_force">[('product_kind', 'in', ('trading', 'material'))]</field>
@@ -34,7 +34,7 @@
              ghi vào template. Giới hạn trading/material qua biến thể (product_kind
              ở product.product). Thiếu rule/ACL này ⇒ AccessError product.template. -->
         <record id="rule_product_tmpl_purchasing_write_only" model="ir.rule">
-            <field name="name">Mua hàng: chỉ sửa template SP thương mại / Vật tư</field>
+            <field name="name">Mua hàng: chỉ sửa template sản phẩm thương mại / Vật tư</field>
             <field name="model_id" ref="product.model_product_template" />
             <field name="groups" eval="[(4, ref('dl_base.dl_group_purchasing'))]" />
             <field name="domain_force">[('product_variant_ids.product_kind', 'in', ('trading', 'material'))]</field>

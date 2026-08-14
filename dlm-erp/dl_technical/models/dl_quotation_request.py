@@ -514,12 +514,12 @@ class DlQuotationRequest(models.Model):
     resolved_product_ids = fields.Many2many(
         "product.product",
         compute="_compute_resolved_refs",
-        string="Product Reference",
+        string="Sản phẩm tham chiếu",
     )
     resolved_bom_ids = fields.Many2many(
         "dl.bom",
         compute="_compute_resolved_refs",
-        string="BOM Reference",
+        string="BOM tham chiếu",
     )
 
     @api.depends("line_ids.resolved_product_id", "line_ids.resolved_bom_id")
@@ -855,7 +855,7 @@ class DlQuotationRequestLine(models.Model):
     # Domain của resolved_product_id ở form Kỹ thuật (view) trỏ vào field này.
     resolvable_product_ids = fields.Many2many(
         "product.product", compute="_compute_resolvable_product_ids",
-        string="SP hợp lệ để chọn")
+        string="Sản phẩm hợp lệ để chọn")
 
     @api.depends("product_category_id")
     def _compute_resolvable_product_ids(self):
@@ -880,7 +880,7 @@ class DlQuotationRequestLine(models.Model):
     # nên KHÔNG lọc theo SP (tránh danh sách rỗng "No records").
     selectable_category_ids = fields.Many2many(
         "product.category", compute="_compute_selectable_category_ids",
-        string="Nhóm SP chọn được")
+        string="Nhóm sản phẩm chọn được")
 
     # ĐỪNG BỎ @api.depends("product_type"). Danh sách này KHÔNG phụ thuộc field nào
     # của dòng, nhưng compute chỉ khai depends_context thì Odoo không đưa field vào
@@ -902,7 +902,7 @@ class DlQuotationRequestLine(models.Model):
     # công đang active). Domain của reference_product_id ở view trỏ vào field này.
     reference_product_ids = fields.Many2many(
         "product.product", compute="_compute_reference_product_ids",
-        string="SP tham khảo hợp lệ")
+        string="Sản phẩm tham khảo hợp lệ")
 
     @api.depends("product_category_id")
     def _compute_reference_product_ids(self):
@@ -1304,10 +1304,10 @@ class DlQuotationRequestLine(models.Model):
     # trên dòng để Sales chủ động hối Mua hàng, thay vì đâm tường ở khâu sau.
     # compute_sudo để đọc supplierinfo; chỉ lộ cờ + TÊN vật tư, không lộ giá.
     pricing_blocked = fields.Boolean(
-        string="Thiếu giá NCC", compute="_compute_pricing_blocked",
+        string="Thiếu giá nhà cung cấp", compute="_compute_pricing_blocked",
         compute_sudo=True)
     pricing_block_summary = fields.Char(
-        string="Vật tư thiếu giá NCC", compute="_compute_pricing_blocked",
+        string="Vật tư thiếu giá nhà cung cấp", compute="_compute_pricing_blocked",
         compute_sudo=True)
 
     @api.depends("resolved_bom_id",
@@ -1496,7 +1496,7 @@ class DlQuotationRequestLine(models.Model):
         sales_gated = _SALES_ONLY_LINE_FIELDS & vals.keys()
         if not self.env.su and sales_gated and not _user_is_sales(self.env):
             raise AccessError(_(
-                'Thông tin yêu cầu (tên / nhóm SP / số lượng / mô tả / đính kèm) '
+                'Thông tin yêu cầu (tên / nhóm sản phẩm / số lượng / mô tả / đính kèm) '
                 'do Sales quản lý — Kỹ thuật không được chỉnh sửa.'))
 
         # Sales sửa nội dung yêu cầu → chốt lại trạng thái theo dòng (tính TRƯỚC

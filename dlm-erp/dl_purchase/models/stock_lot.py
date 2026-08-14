@@ -22,7 +22,7 @@ class StockLot(models.Model):
     dlm_unit_cost = fields.Float(
         string="Giá mua đơn vị", digits="Product Price", copy=False,
         groups=_DLM_BUY_PRICE_GROUPS,
-        help="Đồng trên ĐVT của mặt hàng, đóng lúc nhận hàng. Bất biến: lô đã "
+        help="Đồng trên đơn vị tính của mặt hàng, đóng lúc nhận hàng. Bất biến: lô đã "
              "nhập rồi thì giá của nó không đổi nữa.")
     dlm_purchase_order_id = fields.Many2one(
         "dl.purchase.order", string="Đơn mua nguồn", readonly=True, copy=False,

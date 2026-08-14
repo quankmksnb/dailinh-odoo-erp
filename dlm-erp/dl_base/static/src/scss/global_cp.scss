@@ -274,12 +274,12 @@
 
 @include dl-create-label("dl-customer-list", "+ Thêm khách hàng");
 @include dl-create-label("dl-cust-kanban", "+ Thêm khách hàng");
-@include dl-create-label("dl-supplier-list", "+ Thêm NCC");
+@include dl-create-label("dl-supplier-list", "+ Thêm nhà cung cấp");
 @include dl-create-label("dl-product-list", "+ Thêm sản phẩm");
 @include dl-create-label("dl-product-kanban", "+ Thêm sản phẩm");
 // Màn "Sản phẩm" của Sales: chỉ tạo SP thương mại → nhãn nút nói rõ. Include SAU
 // dl-product-list để đè nhãn (class list có cả 2, mixin sau thắng theo thứ tự).
-@include dl-create-label("dl-product-list-ba", "+ Thêm SP thương mại");
+@include dl-create-label("dl-product-list-ba", "+ Thêm sản phẩm thương mại");
 @include dl-create-label("dl-category-list", "+ Thêm danh mục");
 @include dl-create-label("dl-material-list", "+ Thêm vật tư");
 @include dl-create-label("dl-material-price-list", "+ Thêm bảng giá");
@@ -288,7 +288,7 @@
 @include dl-create-label("dl-rfq-list", "+ Tạo RFQ");
 @include dl-create-label("dl-drawing-list", "+ Thêm bản vẽ");
 @include dl-create-label("dl-saleorder-list", "+ Thêm đơn bán");
-@include dl-create-label("dl-supplierinfo-list", "+ Thêm bảng giá NCC");
+@include dl-create-label("dl-supplierinfo-list", "+ Thêm bảng giá nhà cung cấp");
 @include dl-create-label("dl-quotation-list", "+ Tạo báo giá");
 @include dl-create-label("dl-meastype-list", "+ Thêm loại đo lường");
 @include dl-create-label("dl-measshape-list", "+ Thêm hình dạng");

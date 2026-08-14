@@ -24,7 +24,7 @@
                 <field name="product_id"/>
                 <field name="version_label" string="Phiên bản / Lần sinh"/>
                 <field name="product_qty" string="Số lượng thành phẩm"/>
-                <field name="total_material_cost" string="Chi phí VT"
+                <field name="total_material_cost" string="Chi phí vật tư"
                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
                 <field name="status" widget="badge"
                        decoration-info="status == 'draft'"
@@ -98,7 +98,7 @@
                                 invisible="dlm_used_in_parent_count == 0"
                                 groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo">
                             <field name="dlm_used_in_parent_count" widget="statinfo"
-                                   string="Định mức dùng BTP này"/>
+                                   string="Định mức dùng bán thành phẩm này"/>
                         </button>
                     </div>
                     <field name="is_rfq_provisional" invisible="1"/>
@@ -234,12 +234,12 @@
                                     <field name="piece_count"/>
                                     <field name="computed_quantity" string="Định mức"/>
                                     <field name="quantity"/>
-                                    <field name="uom_id" string="ĐVT"/>
+                                    <field name="uom_id" string="Đơn vị tính"/>
                                     <field name="complexity_id" optional="hide"/>
                                     <field name="waste_rate" string="Hao hụt (%)"/>
-                                    <field name="effective_qty" string="SL thực"/>
+                                    <field name="effective_qty" string="Số lượng thực"/>
                                     <button name="action_open_btp_bom" type="object"
-                                            string="Mở định mức BTP"
+                                            string="Mở định mức bán thành phẩm"
                                             icon="fa-external-link" class="btn-link"
                                             invisible="not dlm_material_is_btp"/>
                                 </tree>
@@ -488,7 +488,7 @@
 
     <!-- Actions -->
     <record id="action_dl_bom" model="ir.actions.act_window">
-        <field name="name">BOM sản phẩm / BTP</field>
+        <field name="name">BOM sản phẩm / Bán thành phẩm</field>
         <field name="res_model">dl.bom</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>

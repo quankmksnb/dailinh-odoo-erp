@@ -6,7 +6,7 @@ import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
 export class DlSupplierinfoListController extends DlListBaseController {
     get dlCountNoun() {
-        return "bảng giá NCC";
+        return "bảng giá nhà cung cấp";
     }
 
     get dlFilterDropdowns() {

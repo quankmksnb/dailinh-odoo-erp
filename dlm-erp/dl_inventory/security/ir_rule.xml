@@ -13,7 +13,7 @@
              seed đặt và không đổi khi người dùng sửa tên hiển thị.
         ============================================================ -->
         <record id="rule_picking_purchasing_vendor_return" model="ir.rule">
-            <field name="name">Mua hàng: chỉ thao tác phiếu Trả hàng NCC</field>
+            <field name="name">Mua hàng: chỉ thao tác phiếu Trả hàng nhà cung cấp</field>
             <field name="model_id" ref="stock.model_stock_picking" />
             <field name="groups" eval="[(4, ref('dl_base.dl_group_purchasing'))]" />
             <field name="domain_force">[('picking_type_id.sequence_code', '=', 'TR')]</field>
@@ -64,7 +64,7 @@
              "write để validate" với "write để chốt".
         ============================================================ -->
         <record id="rule_picking_warehouse_no_return_create" model="ir.rule">
-            <field name="name">Thủ kho: không tạo phiếu Trả hàng NCC</field>
+            <field name="name">Thủ kho: không tạo phiếu Trả hàng nhà cung cấp</field>
             <field name="model_id" ref="stock.model_stock_picking" />
             <field name="groups" eval="[(4, ref('dl_base.dl_group_warehouse'))]" />
             <field name="domain_force">[('picking_type_id.sequence_code', '!=', 'TR')]</field>

@@ -23,7 +23,7 @@
                     decoration-success="dl_branch == 'finished'"
                     decoration-info="dl_branch == 'material'"
                     decoration-warning="dl_branch == 'other'" />
-                <field name="product_count" string="Số SP" />
+                <field name="product_count" string="Số sản phẩm" />
             </tree>
         </field>
     </record>

@@ -51,7 +51,7 @@ class DlBomLineMixin(models.AbstractModel):
     material_calc_kind = fields.Selection(
         related="material_id.dlm_calc_kind", string="Kiểu tính", readonly=True)
     material_uom_name = fields.Char(
-        related="material_id.uom_id.name", string="ĐVT", readonly=True)
+        related="material_id.uom_id.name", string="Đơn vị tính", readonly=True)
 
     # ── Kích thước cắt (mm) ──────────────────────────────────────────────
     # Chỉ còn 2 ô: mặt cắt (cạnh/đường kính/độ dày) nay là quy cách của VẬT TƯ,

@@ -98,7 +98,7 @@
                                  án — màn RFQ Sales đã gỡ 3 constrains vì lý do
                                  này). -->
                             <field name="dlm_scrap_reason" nolabel="1"
-                                   placeholder="VD: NCC giảm trừ công nợ, mình giữ hàng lại"
+                                   placeholder="VD: Nhà cung cấp giảm trừ công nợ, mình giữ hàng lại"
                                    required="state not in ('done', 'cancel')"
                                    readonly="state in ('done', 'cancel')"/>
                         </div>
@@ -140,7 +140,7 @@
                                            column_invisible="1"/>
                                     <field name="quantity" widget="dl_qty" string="Số lượng"
                                            readonly="not dlm_is_scrap_line"/>
-                                    <field name="product_uom" string="ĐVT"
+                                    <field name="product_uom" string="Đơn vị tính"
                                            readonly="1"
                                            options="{'no_create': True}"/>
                                     <!-- K17 — bằng chứng kéo theo từ phiếu trả

@@ -55,7 +55,7 @@ class StockQuant(models.Model):
         raise UserError(_(
             "Không kiểm kê tay được ở khu quá cảnh: %s.\n\n"
             "Tồn ở đây đang gắn với chứng từ đang mở (phiếu kiểm, phiếu trả "
-            "NCC). Muốn đổi số thì xử lý bằng chính phiếu đó — đếm tay sẽ xoá "
+            "nhà cung cấp). Muốn đổi số thì xử lý bằng chính phiếu đó — đếm tay sẽ xoá "
             "mất hàng mà chứng từ còn tham chiếu."
         ) % ", ".join(blocked.mapped("display_name")))
 
@@ -177,7 +177,7 @@ class StockQuant(models.Model):
             raise UserError(_(
                 "Không hoá phế liệu thẳng từ khu quá cảnh (%s) được.\n\n"
                 "Hàng ở đó đang gắn với một phiếu đang mở. Mở đúng phiếu trả "
-                "NCC rồi bấm <Chuyển thành phế liệu> trên đó — làm vậy mới giữ "
+                "nhà cung cấp rồi bấm <Chuyển thành phế liệu> trên đó — làm vậy mới giữ "
                 "được dấu vết lô hàng này đi từ đâu ra."
             ) % ", ".join(cam.mapped("display_name")))
         picking = self.env["stock.picking"]._dlm_build_to_scrap(quants)

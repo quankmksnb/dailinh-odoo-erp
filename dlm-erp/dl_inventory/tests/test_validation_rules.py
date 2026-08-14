@@ -7,7 +7,7 @@ Nguyên tắc đã chốt (memory `rfq-sales-hard-constrains-ux-branch`): ràng 
 **sửa-được-trên-form** phải báo INLINE — dải đỏ + ẩn nút, không bắn modal. Guard
 server chỉ là lưới cuối cho đường RPC.
 
-Ca đắt nhất trong file này là RS-07: kiểm kê ở khu Chờ trả NCC xoá đúng số hàng
+Ca đắt nhất trong file này là RS-07: kiểm kê ở khu Chờ trả nhà cung cấp xoá đúng số hàng
 mà phiếu trả (nháp) đang tham chiếu — mất bằng chứng khiếu nại NCC, không lỗi
 nào nổ.
 """
@@ -81,7 +81,7 @@ class TestTransitZoneInventory(DlInventoryCase):
         self.assertTrue(self.loc_qc.dlm_no_inventory,
                         "Khu Chờ kiểm phải bị cấm kiểm kê tay.")
         self.assertTrue(self.loc_tra.dlm_no_inventory,
-                        "Khu Chờ trả NCC phải bị cấm kiểm kê tay.")
+                        "Khu Chờ trả nhà cung cấp phải bị cấm kiểm kê tay.")
 
     def test_kho_vat_tu_van_kiem_ke_duoc(self):
         """Cấm đúng 2 khu quá cảnh, không cấm lan sang kho thật."""
@@ -102,7 +102,7 @@ class TestTransitZoneInventory(DlInventoryCase):
             ("location_id", "=", self.loc_tra.id),
             ("product_id", "=", self.material.id),
         ], limit=1)
-        self.assertTrue(quant, "Hàng loại phải đang nằm ở khu Chờ trả NCC.")
+        self.assertTrue(quant, "Hàng loại phải đang nằm ở khu Chờ trả nhà cung cấp.")
         quant.inventory_quantity = 0.0
         with self.assertRaises(UserError):
             quant._apply_inventory()

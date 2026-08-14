@@ -111,7 +111,8 @@ class DlPurchaseOrderDocument(models.Model):
                 % self.date_expected.strftime("%d/%m/%Y"), thuong))
         story.append(Spacer(1, 10))
 
-        header = [_("STT"), _("Mặt hàng"), _("ĐVT"), _("Số lượng"),
+        header = [_("Số thứ tự"), _("Mặt hàng"), _("Đơn vị tính"),
+                  _("Số lượng"),
                   _("Đơn giá"), _("Thành tiền")]
         rows = [header]
         for index, line in enumerate(self.line_ids, start=1):
@@ -128,7 +129,7 @@ class DlPurchaseOrderDocument(models.Model):
                          _money(self.amount_total)])
 
         table = Table(rows, colWidths=[
-            12 * mm, 70 * mm, 18 * mm, 22 * mm, 26 * mm, 26 * mm])
+            18 * mm, 60 * mm, 24 * mm, 22 * mm, 25 * mm, 25 * mm])
         style = [
             ("FONTNAME", (0, 0), (-1, -1), _PDF_FONT),
             ("FONTNAME", (0, 0), (-1, 0), _PDF_FONT_BOLD),

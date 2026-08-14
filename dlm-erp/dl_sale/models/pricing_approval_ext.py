@@ -46,7 +46,7 @@ class DlPricingApprovalRequest(models.Model):
     q_discount_above_max = fields.Boolean(
         related="quotation_id.discount_above_max")
     q_partner_group = fields.Selection(related="quotation_id.partner_group",
-                                       string="Nhóm khách")
+                                       string="Nhóm khách hàng")
 
     # --- Nhóm chi phí nội bộ: giữ đúng hàng rào groups như trên báo giá ---
     q_total_cost = fields.Float(related="quotation_id.total_cost",
@@ -109,7 +109,7 @@ class DlPricingApprovalRequest(models.Model):
             q = req.quotation_id.sudo()
             parts = []
             if q and q.discount_above_max:
-                parts.append(_('Vượt trần CK'))
+                parts.append(_('Vượt trần chiết khấu'))
             if q and q.below_floor:
                 parts.append(_('Dưới giá sàn'))
             req.risk_summary = ' · '.join(parts)

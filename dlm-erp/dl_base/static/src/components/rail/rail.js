@@ -35,7 +35,7 @@ const RAIL_ITEMS = [
   },
   {
     key: "supplier",
-    name: "NCC / Thầu phụ",
+    name: "Nhà cung cấp / Thầu phụ",
     icon: "fa-truck",
     actionXmlId: "dl_partner.action_dl_supplier",
     menuXmlIds: [

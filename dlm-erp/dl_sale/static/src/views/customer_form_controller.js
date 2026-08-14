@@ -180,12 +180,12 @@ export class DlCustomerFormController extends FormController {
         // MST bắt buộc với khách Doanh nghiệp.
         const tax = (d.vat || "").trim();
         if (d.partner_type === "company" && !tax) {
-            return _t("Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế (MST).");
+            return _t("Khách hàng Doanh nghiệp bắt buộc phải có Mã số thuế.");
         }
 
         // MST nếu đã nhập phải đúng định dạng (10 số hoặc 10 số-3 số cho chi nhánh).
         if (tax && !TAX_CODE_RE.test(tax)) {
-            return `Mã số thuế '${tax}' không đúng định dạng. MST gồm 10 chữ số (VD: 0123456789) hoặc 10 số-3 số cho chi nhánh (VD: 0123456789-001).`;
+            return `Mã số thuế '${tax}' không đúng định dạng. Mã số thuế gồm 10 chữ số (VD: 0123456789) hoặc 10 số-3 số cho chi nhánh (VD: 0123456789-001).`;
         }
 
         // Điện thoại / Di động theo định dạng VN
@@ -236,7 +236,7 @@ export class DlCustomerFormController extends FormController {
             );
             if (dup.length) {
                 const ref = dup[0].dlm_code ? " — " + dup[0].dlm_code : "";
-                return `MST '${tax}' đã tồn tại trong hệ thống (KH: ${dup[0].name}${ref}). Nếu đây là chi nhánh khác dùng chung MST, hãy tích 'Cho phép trùng MST (chi nhánh khác)' và ghi chú lý do.`;
+                return `Mã số thuế '${tax}' đã tồn tại trong hệ thống (khách hàng: ${dup[0].name}${ref}). Nếu đây là chi nhánh khác dùng chung mã số thuế, hãy tích 'Cho phép trùng mã số thuế (chi nhánh khác)' và ghi chú lý do.`;
             }
         }
 

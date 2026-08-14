@@ -73,7 +73,7 @@ class TestAccessWarehouse(DlInventoryCase):
     # ── Kiểm soát chéo với Mua hàng ──────────────────────────────────────────
     def test_mua_hang_chi_sua_duoc_phieu_tra_ncc(self):
         """§8.5 — Mua hàng có quyền ghi phiếu kho, nhưng ir.rule bó lại đúng
-        phiếu Trả hàng NCC.
+        phiếu Trả hàng nhà cung cấp.
 
         Không có rule này thì Mua hàng sửa được MỌI phiếu kho, kể cả phiếu giao
         hàng khách — trong khi việc của họ chỉ là đàm phán trả hàng với NCC.

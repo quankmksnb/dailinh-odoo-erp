@@ -17,18 +17,22 @@
         // Chia theo ĐỘ DÀI NỘI DUNG THẬT, không chia đều: hai cột định danh
         // ("Hàng hoá" hiện kèm mã — `[VT-TH-25X50] Thép hộp…` 43 ký tự; "Vị trí"
         // hiện đường dẫn đầy đủ `DL/Kho nhà máy sản xuất/Kho nguyên vật liệu`
-        // 43 ký tự) cần ~300px mỗi cột, trong khi Lô/Ngày/ĐVT chỉ cần ~60–105px.
-        // Cấp đều cho nhóm hẹp là bỏ đói đúng hai cột người ta đọc để nhận diện
-        // dòng hàng. Tổng nhu cầu thật ~89% ⇒ phần dư dồn cho hai cột đó.
-        th[data-name="product_id"] { width: 25% !important; }
+        // 43 ký tự) cần ~300px mỗi cột, trong khi Lô/Ngày/Đơn vị tính chỉ cần
+        // ~60–105px. Cấp đều cho nhóm hẹp là bỏ đói đúng hai cột người ta đọc
+        // để nhận diện dòng hàng. Tổng nhu cầu thật ~89% ⇒ phần dư dồn cho hai
+        // cột đó.
+        // ⚠️ Cột đơn vị nới 4% → 8% từ 2026-08-14: nhãn viết đầy đủ
+        // ("Đơn vị tính" thay "ĐVT") không lọt 4% ≈ 55px, bị bẻ ba dòng. Phần
+        // bù lấy từ ba cột rộng nhất, tổng vẫn đúng 100%.
+        th[data-name="product_id"] { width: 23% !important; }
         th[data-name="lot_id"] { width: 7% !important; }
-        th[data-name="dlm_supplier_id"] { width: 15% !important; }
+        th[data-name="dlm_supplier_id"] { width: 14% !important; }
         th[data-name="dlm_receipt_date"] { width: 6% !important; }
-        th[data-name="location_id"] { width: 20% !important; }
+        th[data-name="location_id"] { width: 19% !important; }
         th[data-name="quantity"] { width: 6% !important; }
         th[data-name="reserved_quantity"] { width: 7% !important; }
         th[data-name="available_quantity"] { width: 7% !important; }
-        th[data-name="product_uom_id"] { width: 4% !important; }
+        th[data-name="product_uom_id"] { width: 8% !important; }
 
         // Cột nút "Xem phiếu đang giữ chỗ" — không có data-name nên phải cấp
         // width riêng, cùng bẫy đã ghi ở dl-rfq-list. 3% ≈ 49px, vừa đủ vùng

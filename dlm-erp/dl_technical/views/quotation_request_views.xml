@@ -304,7 +304,7 @@
                                          để KTV triage được ngay trên bảng (phân loại dòng
                                          thiếu thông tin mà không phải mở từng dòng). -->
                                     <field name="product_name" required="1"/>
-                                    <field name="quantity" string="SL"/>
+                                    <field name="quantity" string="Số lượng"/>
                                     <field name="dimension_note" optional="show"/>
                                     <field name="preview_image" widget="image"
                                            options="{'size': [40, 40]}" string="Ảnh" optional="show"/>
@@ -367,9 +367,9 @@
                                     <!-- Cột phụ — ẩn mặc định, bật qua menu cột -->
                                     <field name="product_type" optional="hide"/>
                                     <field name="product_category_id" optional="hide"/>
-                                    <field name="reference_product_id" string="SP tham khảo"
+                                    <field name="reference_product_id" string="Sản phẩm tham khảo"
                                            optional="hide"/>
-                                    <field name="resolved_product_id" string="SP đã xác định"
+                                    <field name="resolved_product_id" string="Sản phẩm đã xác định"
                                            readonly="1" optional="hide"/>
                                     <field name="resolved_bom_id" string="BOM đã xác định"
                                            readonly="1" optional="hide"/>
@@ -379,7 +379,7 @@
                                            invisible="not is_infeasible"
                                            readonly="1" optional="hide"/>
                                     <!-- EX-13: cột tín hiệu cho Sales — vật tư thiếu giá NCC. -->
-                                    <field name="pricing_block_summary" string="Thiếu giá NCC"
+                                    <field name="pricing_block_summary" string="Thiếu giá nhà cung cấp"
                                            readonly="1" optional="hide"/>
                                 </tree>
                                 <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
@@ -480,8 +480,8 @@
                                                      trên dòng (trước khi bấm Tạo báo giá). -->
                                                 <div colspan="2" class="alert alert-warning py-2" role="status"
                                                      invisible="not pricing_blocked">
-                                                    <i class="fa fa-money me-1" title="Thiếu giá NCC"/>
-                                                    <b>Vật tư chưa có giá NCC đã duyệt:</b>
+                                                    <i class="fa fa-money me-1" title="Thiếu giá nhà cung cấp"/>
+                                                    <b>Vật tư chưa có giá nhà cung cấp đã duyệt:</b>
                                                     <field name="pricing_block_summary" nolabel="1"
                                                            readonly="1" class="d-inline"/>.
                                                     Chưa tạo được báo giá cho tới khi Mua hàng cập nhật giá.

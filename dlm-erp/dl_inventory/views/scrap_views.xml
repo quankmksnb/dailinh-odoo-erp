@@ -43,7 +43,7 @@
                 <field name="inventory_diff_quantity" widget="dl_qty" string="Chênh lệch"
                        decoration-danger="inventory_diff_quantity &lt; 0"
                        decoration-success="inventory_diff_quantity &gt; 0"/>
-                <field name="product_uom_id" string="ĐVT" readonly="1"/>
+                <field name="product_uom_id" string="Đơn vị tính" readonly="1"/>
                 <field name="dlm_scrap_unit_price" string="Đơn giá"
                        widget="dl_money"/>
                 <field name="dlm_scrap_value" string="Thành tiền"
@@ -201,7 +201,7 @@
                                     <field name="product_uom_qty" widget="dl_qty" string="Số lượng"
                                            sum="Tổng"/>
                                     <field name="quantity" widget="dl_qty" string="Thực giao"/>
-                                    <field name="product_uom" string="ĐVT"
+                                    <field name="product_uom" string="Đơn vị tính"
                                            groups="uom.group_uom"/>
                                     <field name="picked" column_invisible="1"/>
                                     <!-- name/location_id/dest: trường bắt buộc của

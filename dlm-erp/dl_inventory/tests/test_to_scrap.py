@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""K11 + K12 — Bịt ba cửa khu quá cảnh, và mở lối ra cho hàng kẹt ở Chờ trả NCC.
+"""K11 + K12 — Bịt ba cửa khu quá cảnh, và mở lối ra cho hàng kẹt ở Chờ trả nhà cung cấp.
 
 Thiết kế: docs/Thiet_ke_phan_he_kho.md §4.1.1, §4.2, §6.4.1, §11.14.
 

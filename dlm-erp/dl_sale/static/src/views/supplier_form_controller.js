@@ -169,7 +169,7 @@ export class DlSupplierFormController extends FormController {
     _dlValidateSupplier(record) {
         const tax = (record.data.vat || "").trim();
         if (tax && !TAX_CODE_RE.test(tax)) {
-            return `Mã số thuế '${tax}' không đúng định dạng. MST gồm 10 chữ số (VD: 0123456789) hoặc 10 số-3 số cho chi nhánh (VD: 0123456789-001).`;
+            return `Mã số thuế '${tax}' không đúng định dạng. Mã số thuế gồm 10 chữ số (VD: 0123456789) hoặc 10 số-3 số cho chi nhánh (VD: 0123456789-001).`;
         }
         return null;
     }
