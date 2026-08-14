@@ -4,7 +4,11 @@ import unicodedata
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, AccessError
 
-_PHONE_RE = re.compile(r'^(0|\+84)[0-9]{9,10}$')
+# SĐT Việt Nam: số di động / cố định bắt đầu bằng 0 hoặc +84, HOẶC tổng đài
+# 1800/1900 (4–6 chữ số sau đầu số). Nhánh tổng đài là bắt buộc kể từ khi mở
+# validate cho màn NCC: doanh nghiệp lớn thường chỉ công bố hotline (Hòa Phát
+# 1800 1755), chặn nó là ép người dùng nhập số sai để lách.
+_PHONE_RE = re.compile(r'^(?:(?:0|\+84)\d{9,10}|(?:1800|1900)\d{4,6})$')
 _EMAIL_RE = re.compile(r'^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$')
 # MST: 10 chữ số, hoặc 10 chữ số-3 chữ số (mã chi nhánh). Chỉ số và dấu '-'.
 # Đồng bộ với widget frontend dl_partner/static/src/fields/tax_code_field.js.
@@ -17,6 +21,19 @@ _MIN_NAME_LEN = 2
 # Loại khách hàng có tư cách pháp nhân: bắt buộc địa chỉ vì địa chỉ được in lên
 # báo giá / hợp đồng gửi ra ngoài.
 _LEGAL_ENTITY_TYPES = ('company', 'dealer')
+
+# Field mà luồng "gộp hồ sơ" (pending_link_partner_id) quản lý. Onchange chép
+# giá trị của đối tác đích vào form để người dùng soát rồi sửa, và khi lưu thì
+# ghi ĐÚNG bấy nhiêu field đó ngược lại.
+#
+# Phải dùng CHUNG một danh sách cho cả hai chiều. Trước đây onchange chép 11
+# field còn lúc lưu thì ghi MỌI field có trong vals — nên `partner_type` (không
+# nằm trong danh sách chép, vẫn mang giá trị mặc định của form đang mở) bị đẩy
+# đè lên đối tác đích. Gộp từ màn NCC làm khách Doanh nghiệp tụt xuống Cá nhân.
+_MERGE_FIELDS = (
+    'name', 'phone', 'mobile', 'email', 'website', 'vat',
+    'street', 'street2', 'city', 'country_id', 'comment',
+)
 
 # ── Chuẩn hóa dữ liệu trước khi lưu ────────────────────────────────────────
 # Lý do tồn tại: các ràng buộc định dạng phía dưới chỉ BÓC dấu phân cách để
@@ -213,11 +230,15 @@ class ResPartner(models.Model):
         có thật, và người nhập là người biết rõ nhất."""
         for rec in self:
             rec.dlm_duplicate_name_warning = False
-            if not rec.dlm_name_key or rec.parent_id \
-                    or rec.partner_role not in _CUSTOMER_ROLES:
+            if not rec.dlm_name_key or rec.parent_id or not rec.partner_role:
                 continue
+            # Chỉ soi trong CÙNG vai trò: một pháp nhân vừa bán vừa mua là
+            # chuyện bình thường, cảnh báo chéo hai màn chỉ gây nhiễu. Trùng
+            # MST giữa hai vai trò đã có ràng buộc riêng bắt gộp hồ sơ.
+            same_role = _CUSTOMER_ROLES \
+                if rec.partner_role in _CUSTOMER_ROLES else ('supplier', 'both')
             domain = [
-                ('partner_role', 'in', _CUSTOMER_ROLES),
+                ('partner_role', 'in', same_role),
                 ('parent_id', '=', False),
                 ('dlm_name_key', '=', rec.dlm_name_key),
             ]
@@ -240,8 +261,7 @@ class ResPartner(models.Model):
     def _onchange_pending_link_partner(self):
         if self.pending_link_partner_id:
             target = self.pending_link_partner_id.sudo()
-            for f in ('name', 'phone', 'mobile', 'email', 'website', 'vat',
-                      'street', 'street2', 'city', 'country_id', 'comment'):
+            for f in _MERGE_FIELDS:
                 self[f] = target[f]
 
     # ── Chuẩn hóa tại điểm ghi ────────────────────────────────────────
@@ -268,7 +288,7 @@ class ResPartner(models.Model):
 
         Chỉ chuẩn hóa trong phạm vi khách hàng — không tự ý viết lại dữ liệu
         NCC hay các partner do module khác của Odoo tạo."""
-        if vals.get('partner_role') in _CUSTOMER_ROLES:
+        if vals.get('partner_role'):
             return True
         parent_id = vals.get('parent_id')
         if parent_id:
@@ -299,10 +319,12 @@ class ResPartner(models.Model):
             target_id = vals.pop('pending_link_partner_id', False)
             if target_id:
                 target = self.browse(target_id).sudo()
-                write_vals = {k: v for k, v in vals.items() if k in target._fields}
+                # CHỈ ghi các field thuộc luồng gộp — xem chú thích _MERGE_FIELDS.
+                write_vals = {k: v for k, v in vals.items() if k in _MERGE_FIELDS}
                 write_vals['partner_role'] = 'both'
-                if target.partner_role == 'supplier' and not target.partner_type \
-                        and not write_vals.get('partner_type'):
+                # partner_type KHÔNG nằm trong _MERGE_FIELDS nên không bao giờ bị
+                # đè; chỉ điền khi đối tác đích còn trống (NCC cũ chưa phân loại).
+                if not target.partner_type:
                     write_vals['partner_type'] = 'company'
                 target.write(write_vals)
                 target.message_post(body=_(
@@ -333,7 +355,7 @@ class ResPartner(models.Model):
         # Dùng any(): write áp CÙNG một vals cho cả recordset nên không thể
         # chuẩn hóa riêng từng bản ghi; trong thực tế các đường ghi hỗn hợp
         # KH + NCC là không có (mỗi màn chỉ thao tác một vai trò).
-        if any(rec._dl_is_customer_record() or rec._dl_is_customer_contact()
+        if any(rec._dl_is_dlm_partner() or rec._dl_is_customer_contact()
                for rec in self):
             self._dlm_normalize_vals(vals)
         if 'active' in vals and not vals['active'] and not self.env.su:
@@ -578,6 +600,33 @@ class ResPartner(models.Model):
         self.ensure_one()
         return self.partner_role in _CUSTOMER_ROLES and not self.parent_id
 
+    def _dl_is_dlm_partner(self):
+        """Bản ghi này có phải một ĐỐI TÁC DLM cấp cao (khách hàng HOẶC NCC)?
+
+        Dùng cho các ràng buộc KHÔNG phụ thuộc vai trò — tên, định dạng SĐT /
+        email / MST, chống trùng. Sai định dạng hay trùng MST thì phía NCC cũng
+        hỏng y như phía khách hàng, thậm chí nặng hơn vì MST NCC dùng để đối
+        chiếu hóa đơn đầu vào.
+
+        Loại trừ người liên hệ (parent_id) và partner không mang vai trò DLM
+        (res.users, res.company đều kế thừa res.partner với partner_role rỗng)."""
+        self.ensure_one()
+        return bool(self.partner_role) and not self.parent_id
+
+    def _dl_is_supplier_record(self):
+        self.ensure_one()
+        return self.partner_role in ('supplier', 'both') and not self.parent_id
+
+    def _dl_partner_kind_label(self):
+        """'Khách hàng' / 'Nhà cung cấp' / 'Đối tác' — để thông báo lỗi gọi đúng
+        tên thứ người dùng đang nhìn trên màn hình."""
+        self.ensure_one()
+        if self.partner_role == 'customer':
+            return _('Khách hàng')
+        if self.partner_role == 'supplier':
+            return _('Nhà cung cấp')
+        return _('Đối tác')
+
     def _dl_is_customer_contact(self):
         """Bản ghi này có phải NGƯỜI LIÊN HỆ của một KH DLM không?
 
@@ -595,40 +644,43 @@ class ResPartner(models.Model):
                 raise ValidationError('Khách hàng DLM phải có Loại khách hàng.')
 
     @api.constrains('partner_role', 'name')
-    def _check_customer_name(self):
-        """Tên khách hàng bắt buộc ở tầng MODEL, không chỉ ở form.
+    def _check_partner_name(self):
+        """Tên đối tác bắt buộc ở tầng MODEL, không chỉ ở form. Áp cho cả khách
+        hàng lẫn NCC.
 
-        `res.partner.name` của Odoo native KHÔNG khai required — form KH có
+        `res.partner.name` của Odoo native KHÔNG khai required — form có
         required="1" nhưng import Excel, gọi RPC hay create() từ code vẫn tạo
-        được khách hàng tên rỗng / toàn khoảng trắng. Chặn ở đây để mọi đường
-        ghi cùng đi qua một luật."""
+        được đối tác tên rỗng / toàn khoảng trắng. Chặn ở đây để mọi đường ghi
+        cùng đi qua một luật."""
         for rec in self:
-            if not rec._dl_is_customer_record():
+            if not rec._dl_is_dlm_partner():
                 continue
+            kind = rec._dl_partner_kind_label()
             name = (rec.name or '').strip()
             if not name:
-                raise ValidationError(_(
-                    'Khách hàng bắt buộc phải có Tên khách hàng.'))
+                raise ValidationError(_('%s bắt buộc phải có Tên.') % kind)
             if len(name) < _MIN_NAME_LEN:
                 raise ValidationError(_(
-                    "Tên khách hàng '%s' quá ngắn — cần ít nhất %s ký tự."
+                    "Tên '%s' quá ngắn — cần ít nhất %s ký tự."
                 ) % (rec.name, _MIN_NAME_LEN))
 
     @api.constrains('partner_role', 'partner_type', 'phone', 'mobile', 'email')
-    def _check_customer_contact_channel(self):
-        """Khách hàng phải có ít nhất một kênh liên lạc.
+    def _check_partner_contact_channel(self):
+        """Đối tác phải có ít nhất một kênh liên lạc. Áp cho cả khách hàng lẫn
+        NCC — một NCC không gọi được thì không đặt hàng được.
 
-        Riêng khách Cá nhân bắt buộc Di động: khách lẻ không có MST nên số di
+        Riêng đối tác Cá nhân bắt buộc Di động: cá nhân không có MST nên số di
         động là dữ liệu duy nhất định danh được họ (và cũng là căn cứ chống
         trùng hồ sơ). Doanh nghiệp / Đại lý thì linh hoạt hơn — điện thoại bàn
         hoặc email đều nhận."""
         for rec in self:
-            if not rec._dl_is_customer_record():
+            if not rec._dl_is_dlm_partner():
                 continue
             if rec.partner_type == 'individual':
                 if not (rec.mobile and rec.mobile.strip()):
                     raise ValidationError(_(
-                        'Khách hàng Cá nhân bắt buộc phải có số Di động.'))
+                        '%s loại Cá nhân bắt buộc phải có số Di động.'
+                    ) % rec._dl_partner_kind_label())
                 continue
             has_channel = any(
                 (value or '').strip()
@@ -636,8 +688,8 @@ class ResPartner(models.Model):
             )
             if not has_channel:
                 raise ValidationError(_(
-                    'Khách hàng phải có ít nhất một kênh liên lạc: Điện thoại, '
-                    'Di động hoặc Email.'))
+                    '%s phải có ít nhất một kênh liên lạc: Điện thoại, '
+                    'Di động hoặc Email.') % rec._dl_partner_kind_label())
 
     @api.constrains('partner_role', 'partner_type', 'street', 'city')
     def _check_customer_address(self):
@@ -685,7 +737,7 @@ class ResPartner(models.Model):
         Áp cho cả Doanh nghiệp lẫn Cá nhân — Cá nhân KHÔNG bắt buộc nhập, nhưng
         nếu đã nhập thì vẫn phải đúng định dạng."""
         for rec in self:
-            if not rec._dl_is_customer_record():
+            if not rec._dl_is_dlm_partner():
                 continue
             vat = (rec.vat or '').strip()
             if not vat:
@@ -701,7 +753,7 @@ class ResPartner(models.Model):
     def _check_phone_format(self):
         """Validate SĐT Việt Nam (TDS A1): ^(0|+84)[0-9]{9,10}$."""
         for rec in self:
-            if not rec._dl_is_customer_record():
+            if not rec._dl_is_dlm_partner():
                 continue
             for label, value in (('Điện thoại', rec.phone), ('Di động', rec.mobile)):
                 if not value:
@@ -710,13 +762,14 @@ class ResPartner(models.Model):
                 if not _PHONE_RE.match(cleaned):
                     raise ValidationError(_(
                         "%s '%s' không hợp lệ. Số điện thoại Việt Nam phải bắt "
-                        'đầu bằng 0 hoặc +84 và gồm 10–11 chữ số.'
+                        'đầu bằng 0 hoặc +84 và gồm 10–11 chữ số, hoặc là tổng '
+                        'đài 1800/1900.'
                     ) % (label, value))
 
     @api.constrains('partner_role', 'email')
     def _check_email_format(self):
         for rec in self:
-            if rec._dl_is_customer_record() and rec.email \
+            if rec._dl_is_dlm_partner() and rec.email \
                     and not _EMAIL_RE.match(rec.email.strip()):
                 raise ValidationError(_("Email '%s' không hợp lệ.") % rec.email)
 
@@ -805,7 +858,8 @@ class ResPartner(models.Model):
                 if not _PHONE_RE.match(cleaned):
                     raise ValidationError(_(
                         "Người liên hệ '%s': %s '%s' không hợp lệ. Số điện thoại "
-                        'Việt Nam phải bắt đầu bằng 0 hoặc +84 và gồm 10–11 chữ số.'
+                        'Việt Nam phải bắt đầu bằng 0 hoặc +84 và gồm 10–11 chữ '
+                        'số, hoặc là tổng đài 1800/1900.'
                     ) % (rec.name or '', label, value))
 
     @api.constrains('parent_id', 'email')
@@ -822,11 +876,15 @@ class ResPartner(models.Model):
     def _check_unique_tax_code(self):
         """EX-05: chặn tạo KH trùng MST; cho phép ghi đè nếu là chi nhánh khác."""
         for rec in self:
-            if not rec._dl_is_customer_record() or not rec.vat or rec.dlm_allow_dup_tax:
+            if not rec._dl_is_dlm_partner() or not rec.vat or rec.dlm_allow_dup_tax:
                 continue
+            # Tìm trên MỌI đối tác DLM, không riêng cùng vai trò: một MST chỉ
+            # thuộc về một pháp nhân, nên khách hàng và NCC trùng MST nghĩa là
+            # cùng một đơn vị và phải gộp thành vai trò 'Khách hàng & NCC'.
             dup = self.with_context(active_test=False).search([
                 ('id', '!=', rec.id),
-                ('partner_role', 'in', _CUSTOMER_ROLES),
+                ('partner_role', '!=', False),
+                ('parent_id', '=', False),
                 ('vat', '=', rec.vat),
             ], limit=1)
             if dup:
@@ -851,7 +909,7 @@ class ResPartner(models.Model):
         So sánh trên giá trị ĐÃ chuẩn hóa (_dlm_normalize_vals chạy ở create/
         write), nếu không thì '0912 345 678' và '0912345678' lọt lưới."""
         for rec in self:
-            if not rec._dl_is_customer_record() or rec.dlm_allow_dup_contact:
+            if not rec._dl_is_dlm_partner() or rec.dlm_allow_dup_contact:
                 continue
             # SĐT: một số có thể nằm ở ô Điện thoại của người này và ô Di động
             # của người kia — vẫn là trùng, nên dò chéo cả hai ô.
@@ -882,7 +940,7 @@ class ResPartner(models.Model):
     def _check_dup_override_reason(self):
         """Tích cho phép trùng thì phải nói rõ vì sao."""
         for rec in self:
-            if not rec._dl_is_customer_record():
+            if not rec._dl_is_dlm_partner():
                 continue
             if (rec.dlm_allow_dup_tax or rec.dlm_allow_dup_contact) \
                     and not (rec.dlm_dup_override_reason or '').strip():
@@ -899,11 +957,12 @@ class ResPartner(models.Model):
         quyết khi gặp thông báo chặn."""
         user = self.env.user
         if not (user.has_group('dl_base.dl_group_admin')
-                or user.has_group('dl_base.dl_group_sales_manager')):
+                or user.has_group('dl_base.dl_group_sales_manager')
+                or user.has_group('dl_base.dl_group_purchasing')):
             raise AccessError(_(
-                'Chỉ Trưởng phòng Kinh doanh hoặc Admin mới được cho phép trùng '
-                'MST / SĐT / Email. Hãy báo quản lý nếu đây thật sự không phải '
-                'hồ sơ trùng.'))
+                'Chỉ Trưởng phòng Kinh doanh, Mua hàng hoặc Admin mới được cho '
+                'phép trùng MST / SĐT / Email. Hãy báo quản lý nếu đây thật sự '
+                'không phải hồ sơ trùng.'))
 
     def _dlm_dup_contact_message(self, label, value, dup):
         ref = (' — %s' % dup.dlm_code) if dup.dlm_code else ''

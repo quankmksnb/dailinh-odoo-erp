@@ -59,6 +59,14 @@
 
                     </div>
 
+                    <!-- Cảnh báo MỀM trùng tên NCC — không chặn lưu, chỉ nhắc
+                         kiểm tra lại (_compute_dlm_duplicate_name_warning). -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not dlm_duplicate_name_warning">
+                        <i class="fa fa-exclamation-triangle me-1"/>
+                        <field name="dlm_duplicate_name_warning" class="oe_inline"/>
+                    </div>
+
                     <!-- Gộp hồ sơ khi đối tác đã là Khách hàng — chỉ hiện lúc tạo
                          mới. Rút gọn còn 1 dòng (review UX supplier #f3). -->
                     <div class="alert alert-info dl-cust-mergebox" role="status"
@@ -82,6 +90,19 @@
                             <field name="vat" string="Mã số thuế (MST)"
                                 widget="dl_tax_code"
                                 placeholder="VD: 0123456789 hoặc 0123456789-001"/>
+                            <!-- Cửa thoát chống trùng — bắt buộc có mặt trên màn
+                                 này, nếu không Mua hàng gặp NCC dùng chung tổng
+                                 đài / chung MST với chi nhánh sẽ bị chặn cứng mà
+                                 không có cách nào gỡ. -->
+                            <field name="dlm_allow_dup_tax"
+                                string="Cho phép trùng MST (chi nhánh khác)"
+                                invisible="not vat"/>
+                            <field name="dlm_allow_dup_contact"
+                                invisible="not phone and not mobile and not email"/>
+                            <field name="dlm_dup_override_reason"
+                                invisible="not dlm_allow_dup_tax and not dlm_allow_dup_contact"
+                                required="dlm_allow_dup_tax or dlm_allow_dup_contact"
+                                placeholder="VD: Chi nhánh miền Nam, dùng chung MST và tổng đài với trụ sở."/>
                         </group>
                         <group string="Địa chỉ">
                             <field name="street" string="Đường" placeholder="Số nhà, tên đường..."/>
@@ -113,9 +134,11 @@
                     </notebook>
                 </sheet>
                 <!-- Log/chatter cho quản lý (CEO, Trưởng KD, Admin) và đội quản
-                     lý nhà cung cấp (Kế toán nội bộ). -->
+                     lý nhà cung cấp. Mua hàng LÀ bộ phận sở hữu màn này nên
+                     phải đọc được lịch sử thay đổi của chính đối tác họ quản lý;
+                     thiếu nhóm này là sót từ trước. -->
                 <div class="oe_chatter"
-                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_accountant">
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_purchasing">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
                     <field name="message_ids"/>
@@ -156,7 +179,11 @@
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
         <field name="domain">[('partner_role', 'in', ['supplier', 'both'])]</field>
-        <field name="context">{'default_partner_role': 'supplier', 'active_test': False}</field>
+        <!-- default_partner_type=company: NCC/thầu phụ phần lớn là pháp nhân.
+             Không đặt thì field rơi về mặc định 'individual' của model, và luật
+             "Cá nhân bắt buộc có Di động" (_check_partner_contact_channel) sẽ
+             chặn mọi NCC doanh nghiệp chỉ có số bàn. Khớp với action Khách hàng. -->
+        <field name="context">{'default_partner_role': 'supplier', 'default_partner_type': 'company', 'active_test': False}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_supplier_tree')}),
