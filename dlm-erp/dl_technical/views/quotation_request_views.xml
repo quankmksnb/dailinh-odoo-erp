@@ -156,11 +156,17 @@
                             string="Đánh dấu đã tạo báo giá" class="oe_highlight"
                             invisible="status != 'confirmed' or all_infeasible"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
-                    <!-- Hủy: chỉ Sale/Trưởng KD/CEO/Admin — Kỹ thuật KHÔNG có quyền -->
+                    <!-- Hủy: chỉ Sale/Trưởng KD/Admin — Kỹ thuật KHÔNG có quyền.
+                         CEO cũng KHÔNG: quyền của CEO trên dl.quotation.request là
+                         1,0,0,0 (chỉ đọc) trong ir.model.access.csv, mà action_cancel
+                         ghi status = cancelled. Để CEO trong nhóm này là cho thấy
+                         một cái nút bấm vào chỉ ra lỗi quyền. CEO không phải người
+                         vận hành RFQ — muốn CEO hủy được thì phải mở perm_write,
+                         đó là quyết định phân quyền khác. -->
                     <button name="action_cancel" type="object"
                             string="Hủy RFQ"
                             invisible="status in ('quoted', 'cancelled')"
-                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn hủy RFQ này?"/>
                     <field name="status" widget="dl_stepper"
                            statusbar_visible="new,processing,confirmed,quoted"
