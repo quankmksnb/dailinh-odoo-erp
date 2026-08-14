@@ -41,6 +41,8 @@ class TestRfqSuggestion(TransactionCase):
             "product_type": "manufactured",
             "product_name": "Sản phẩm bất kỳ",
             "quantity": 1.0,
+            # _check_manufactured_spec đòi mô tả kích thước hoặc đính kèm.
+            "dimension_note": "1000x500",
         }
         vals.update(line_vals)
         request = self.env["dl.quotation.request"].create({

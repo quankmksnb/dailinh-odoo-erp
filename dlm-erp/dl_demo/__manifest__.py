@@ -1,6 +1,6 @@
 {
     "name": "DL-Demo",
-    "version": "17.0.1.0.0",
+    "version": "17.0.1.0.1",
     "summary": "Dữ liệu demo/test liên kết chuẩn giữa các màn (RFQ→BOM→Báo giá→Đơn)",
     "description": """
 Module CHỈ DÀNH CHO DEV/DEMO — nạp một bộ dữ liệu giao dịch phủ mọi trạng thái,

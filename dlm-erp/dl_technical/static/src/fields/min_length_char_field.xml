@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Bám sát template web.CharField, chỉ thêm cờ is-invalid + dòng nhắc.
+         Dùng is-invalid/invalid-feedback của Bootstrap (Odoo đã nạp sẵn) nên
+         không phải đẻ thêm file SCSS chỉ để tô một cái viền đỏ. -->
+    <t t-name="dl_technical.DlMinLengthCharField">
+        <t t-if="props.readonly">
+            <span t-esc="formattedValue"/>
+        </t>
+        <t t-else="">
+            <input
+                class="o_input"
+                t-att-class="{'is-invalid': ui.tooShort}"
+                t-att-id="props.id"
+                type="text"
+                t-att-autocomplete="props.autocomplete or 'off'"
+                t-att-maxlength="maxLength > 0 and maxLength"
+                t-att-placeholder="props.placeholder"
+                t-ref="input"
+                t-on-input="onInput"
+            />
+            <div class="invalid-feedback" t-if="ui.tooShort" t-esc="message"/>
+        </t>
+    </t>
+
+</templates>
