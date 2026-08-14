@@ -143,6 +143,18 @@
                                     <field name="product_uom" string="ĐVT"
                                            readonly="1"
                                            options="{'no_create': True}"/>
+                                    <!-- K17 — bằng chứng kéo theo từ phiếu trả
+                                         nguồn. Đây là chứng từ GHI GIẢM tài sản:
+                                         người ký duyệt không phải người đã cầm
+                                         hàng trên tay, nên phải xem được vì sao
+                                         nó hỏng ngay tại đây. -->
+                                    <field name="dlm_evidence_count"
+                                           column_invisible="1"/>
+                                    <button name="action_dlm_open_evidence"
+                                            type="object" icon="fa-camera"
+                                            string="Bằng chứng"
+                                            title="Xem ảnh hàng lỗi thủ kho chụp lúc mở hàng"
+                                            invisible="dlm_evidence_count == 0"/>
                                     <field name="state" column_invisible="1"/>
                                 </tree>
                             </field>

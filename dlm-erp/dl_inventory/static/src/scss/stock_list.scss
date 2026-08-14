@@ -282,6 +282,79 @@
     }
 }
 
+// ── K17 — Bảng hàng trả trên form Trả hàng NCC ──────────────────────────────
+// Không đặt `table-layout: fixed` (khác các màn LIST ở trên): bảng này có cột
+// ĐVT chỉ hiện với người có group_uom và một cột NÚT không mang `data-name` —
+// fixed mà sót width một trong hai là bóp cột đó về ~0px, đúng lỗi im lặng đã
+// vấp 7 lần trong repo. Ở đây chỉ ra GỢI Ý bề rộng: trình duyệt vẫn tự co giãn,
+// nhưng thôi dồn gần nửa bảng cho cột Mặt hàng rồi bỏ trống phần còn lại.
+.dl-vendor-return-form {
+    .o_field_x2many_list .o_list_table {
+        th[data-name="product_id"] { width: 32%; }
+        th[data-name="dlm_return_lot_display"] { width: 16%; }
+        th[data-name="product_uom_qty"] { width: 12%; }
+        th[data-name="dlm_reject_reason"] { width: 16%; }
+        th[data-name="dlm_reject_note"] { width: 18%; }
+
+        th[data-name="product_uom_qty"] > div { justify-content: flex-end !important; }
+        td[name="product_uom_qty"] {
+            text-align: right !important;
+            font-variant-numeric: tabular-nums;
+        }
+
+        // Tên vật tư dài ("Thép hộp vuông 25×25×1.5mm") không được đẩy bảng
+        // rộng ra: cắt bằng ellipsis, rê chuột vẫn đọc đủ.
+        td[name="product_id"], td[name="dlm_reject_note"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+}
+
+// ── K17 — Lưới ảnh bằng chứng trong hộp xem của một dòng ────────────────────
+// Thumbnail đủ to để NHÌN RA vết gỉ mà không phải mở ảnh gốc — đó là toàn bộ lý
+// do màn này tồn tại. `object-fit: cover` giữ khung đều nhau: ảnh điện thoại lẫn
+// ngang lẫn dọc, để tự do thì lưới răng cưa và mắt phải căn lại từng tấm.
+.dl-evi-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    .dl-evi-item {
+        display: flex;
+        flex-direction: column;
+        width: 260px;
+    }
+
+    .dl-evi-item img {
+        width: 260px;
+        height: 195px;
+        object-fit: cover;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        background: #f4f4f4;
+    }
+
+    // Tên file dưới ảnh: hai tấm chụp cùng một vết lỗi ở hai góc thì chỉ có tên
+    // mới phân biệt được đâu là đâu khi trao đổi với NCC.
+    .dl-evi-name {
+        margin-top: 4px;
+        font-size: 11px;
+        color: $dl-text-muted;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dl-evi-file {
+        align-self: center;
+        padding: 6px 10px;
+        border: 1px dashed $dl-border;
+        border-radius: $dl-radius;
+    }
+}
+
 // ── K5 — Bảng kiểm hàng trên form Kiểm & cất ────────────────────────────────
 // Ba cột số NCC giao / Đạt / Loại phải đọc được theo cột dọc: cùng bề rộng,
 // cùng canh phải, cùng chữ số đều bề ngang (tabular-nums). Lệch một trong ba
@@ -299,6 +372,15 @@
         td[name="product_uom_qty"],
         td[name="quantity"],
         td[name="dlm_qty_rejected"] {
+            text-align: right !important;
+            font-variant-numeric: tabular-nums;
+        }
+
+        // K17 — cột đếm ảnh phải HẸP: nó chỉ đứng cạnh để trả lời "có bằng
+        // chứng chưa", rộng ra là ăn chỗ của ba cột số vốn phải đọc theo dọc.
+        th[data-name="dlm_evidence_count"] { width: 5% !important; }
+        th[data-name="dlm_evidence_count"] > div { justify-content: flex-end !important; }
+        td[name="dlm_evidence_count"] {
             text-align: right !important;
             font-variant-numeric: tabular-nums;
         }
