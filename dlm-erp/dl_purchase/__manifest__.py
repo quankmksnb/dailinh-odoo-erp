@@ -1,6 +1,6 @@
 {
     "name": "DL-Purchase",
-    "version": "17.0.1.0.0",
+    "version": "17.0.1.0.1",
     "summary": "Mua hàng Đại Linh — đơn mua, hỏi giá, chốt giá theo lô, giá vốn FIFO",
     "description": """
 Phân hệ Mua hàng (giai đoạn B1.5). Đặc tả:

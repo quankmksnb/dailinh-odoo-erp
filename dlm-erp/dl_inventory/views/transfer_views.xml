@@ -321,7 +321,8 @@
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
             <search string="Chuyển kho nội bộ">
-                <field name="name" string="Số phiếu"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', '|', ('name', 'ilike', self), ('location_id', 'ilike', self), ('location_dest_id', 'ilike', self), ('product_id', 'ilike', self)]"/>
                 <field name="location_id" string="Từ vị trí"/>
                 <field name="location_dest_id" string="Đến vị trí"/>
                 <field name="product_id" string="Mặt hàng"/>

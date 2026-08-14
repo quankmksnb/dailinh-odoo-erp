@@ -1,6 +1,6 @@
 {
     "name": "DL-Product",
-    "version": "17.0.3.8.0",
+    "version": "17.0.3.8.1",
     "summary": "Sản phẩm hợp nhất (product.product), bảng giá nhà cung cấp, đo lường - theo Data Model TDS 4",
     "author": "Dai Linh",
     "category": "Hidden",

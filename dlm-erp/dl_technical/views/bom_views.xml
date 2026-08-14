@@ -462,7 +462,8 @@
         <field name="model">dl.bom</field>
         <field name="arch" type="xml">
             <search string="Tìm BOM">
-                <field name="name"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', ('name', 'ilike', self), ('product_id', 'ilike', self), ('category_id', 'ilike', self)]"/>
                 <field name="product_id"/>
                 <field name="category_id"/>
                 <separator/>

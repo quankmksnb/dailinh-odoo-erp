@@ -1,6 +1,6 @@
 {
     'name': 'DL-Partner — Khách hàng & Nhà cung cấp',
-    'version': '17.0.1.13.0',
+    'version': '17.0.1.13.1',
     'summary': 'Quản lý Khách hàng và Nhà cung cấp — kế thừa res.partner',
     'author': 'Dai Linh',
     'category': 'Hidden',
