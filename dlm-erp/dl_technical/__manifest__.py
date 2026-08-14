@@ -1,6 +1,6 @@
 {
     "name": "DL-Technical",
-    "version": "17.0.2.3.3",
+    "version": "17.0.2.3.6",
     "summary": "Quản lý BOM, Bản vẽ, Bán thành phẩm, công thức",
     "author": "Dai Linh",
     "category": "Hidden",
@@ -39,6 +39,9 @@
             "dl_technical/static/src/scss/drawing_form.scss",
             "dl_technical/static/src/views/bom_list_controller.js",
             "dl_technical/static/src/views/bom_form_controller.js",
+            # Ô chữ có độ dài tối thiểu, báo ngay khi gõ (Tên sản phẩm RFQ).
+            "dl_technical/static/src/fields/min_length_char_field.js",
+            "dl_technical/static/src/fields/min_length_char_field.xml",
             "dl_technical/static/src/views/drawing_preview_field.js",
             "dl_technical/static/src/views/drawing_preview_field.xml",
             "dl_technical/static/src/views/drawing_preview_field.scss",

@@ -18,6 +18,14 @@ _SALES_ONLY_LINE_FIELDS = {
 # ...cũng như thông tin thương mại ở header (khách hàng, ngày nhận, hạn yêu cầu).
 _SALES_ONLY_HEADER_FIELDS = {'customer_id', 'requested_date', 'deadline'}
 
+# Chuẩn hóa văn bản do người dùng gõ: gộp khoảng trắng lặp, cắt hai đầu.
+# Cùng cách làm với dl_partner/models/res_partner.py.
+_MULTI_SPACE_RE = re.compile(r'\s+')
+# Độ dài tối thiểu của Tên sản phẩm gia công. Chỉ chặn được tên một ký tự kiểu
+# 'a' — không phải bộ lọc rác đầy đủ ('..' vẫn qua), mục đích là bắt cái sai rõ
+# ràng nhất khi nhập vội. Khớp _MIN_NAME_LEN của màn Khách hàng cho cùng chuẩn.
+_MIN_PRODUCT_NAME_LEN = 2
+
 # ── Bộ dò khớp SP "đã từng gia công" (§3.6, Đợt 2) ──────────────────────────
 # Điểm số theo bảng §3.6 (LỚP 2 — sản phẩm/instance cụ thể). LỚP 1 (họ có
 # template tham số) thuộc Đợt 4 nên CHƯA tính ở đây: khi bộ sinh instance +
@@ -1504,14 +1512,51 @@ class DlQuotationRequestLine(models.Model):
             if orphan:
                 orphan.sudo().write({"res_model": rec._name, "res_id": rec.id})
 
+    @api.model
+    def _dlm_normalize_line_vals(self, vals):
+        """Gộp khoảng trắng thừa trong Tên sản phẩm và Mô tả kích thước.
+
+        Lý do phải chuẩn hóa tại điểm ghi chứ không chỉ khi so sánh:
+        _check_unique_name_in_request có strip().lower() nên vẫn BẮT được trùng,
+        nhưng giá trị lưu xuống DB là chuỗi thô người dùng gõ. Hệ quả là "Bàn
+        thao tác" và "Bàn  thao tác " nằm trong DB thành hai chuỗi khác nhau —
+        tìm kiếm, gom nhóm và bộ dò khớp sản phẩm đã từng gia công (§3.6) đều
+        chạy trên giá trị lưu nên đều lệch. Cùng cách làm với res.partner."""
+        for fname in ("product_name", "dimension_note"):
+            value = vals.get(fname)
+            if isinstance(value, str):
+                vals[fname] = _MULTI_SPACE_RE.sub(" ", value).strip()
+        return vals
+
+    @api.constrains("product_type", "product_name")
+    def _check_product_name_length(self):
+        """Tên sản phẩm gia công phải đủ dài để còn gọi được là một cái tên.
+
+        Chặn tên một ký tự lọt qua khi nhập vội hay import hàng loạt — dòng như
+        vậy Kỹ thuật mở ra không biết khách muốn gì, mà nó vẫn chiếm một chỗ
+        trong RFQ và trong báo giá về sau."""
+        for rec in self:
+            if rec.product_type != "manufactured":
+                continue
+            name = (rec.product_name or "").strip()
+            # Rỗng đã có _check_product_type_required lo, ở đây chỉ xét độ dài.
+            if name and len(name) < _MIN_PRODUCT_NAME_LEN:
+                raise ValidationError(_(
+                    "Tên sản phẩm \"%(name)s\" quá ngắn — cần ít nhất "
+                    "%(n)s ký tự.", name=rec.product_name,
+                    n=_MIN_PRODUCT_NAME_LEN))
+
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            self._dlm_normalize_line_vals(vals)
         records = super().create(vals_list)
         records.mapped("quotation_request_id")._recompute_status_from_lines()
         records._stamp_attachments()
         return records
 
     def write(self, vals):
+        self._dlm_normalize_line_vals(vals)
         gated = _TECH_ONLY_LINE_FIELDS & vals.keys()
         if not self.env.su and gated:
             user = self.env.user
