@@ -13,12 +13,12 @@
         // bị ép về gần 0 và trông như bị ẩn. Thêm cột mới vào tree thì phải khai
         // width ở đây và chia lại cho đủ 100%.
         th[data-name="avatar_128"] { width: 4% !important; }
-        th[data-name="dlm_supplier_code"] { width: 9% !important; }
-        th[data-name="name"] { width: 26% !important; }
+        th[data-name="dlm_supplier_code"] { width: 14% !important; }
+        th[data-name="name"] { width: 24% !important; }
         th[data-name="dlm_status_label"] { width: 11% !important; }
         th[data-name="phone"] { width: 13% !important; }
-        th[data-name="email"] { width: 18% !important; }
-        th[data-name="city"] { width: 19% !important; }
+        th[data-name="email"] { width: 16% !important; }
+        th[data-name="city"] { width: 18% !important; }
 
         td[name="dlm_supplier_code"] { white-space: nowrap; }
 

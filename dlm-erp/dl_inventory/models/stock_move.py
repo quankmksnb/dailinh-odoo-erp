@@ -77,7 +77,7 @@ class StockMove(models.Model):
 
     dlm_qty_rejected = fields.Float(
         string="Số loại", digits="Product Unit of Measure", default=0.0,
-        help="Số lượng KHÔNG đạt khi kiểm — sẽ chuyển sang khu Chờ trả NCC.")
+        help="Số lượng KHÔNG đạt khi kiểm — sẽ chuyển sang khu Chờ trả nhà cung cấp.")
     dlm_reject_reason = fields.Selection([
         ("defect", "Hàng lỗi / hư hỏng"),
         ("wrong_spec", "Sai quy cách"),

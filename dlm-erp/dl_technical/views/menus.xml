@@ -11,7 +11,7 @@
               sequence="10"/>
 
     <menuitem id="menu_bom_quotation"
-              name="BOM sản phẩm / BTP"
+              name="BOM sản phẩm / Bán thành phẩm"
               parent="menu_bom_parent"
               action="action_dl_bom"
               sequence="10"/>

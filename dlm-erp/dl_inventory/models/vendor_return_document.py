@@ -140,7 +140,7 @@ class StockPickingRejectReport(models.Model):
         addr = ", ".join(filter(None, [company.street, company.city]))
         for text in filter(None, [
             ("Địa chỉ: " + addr) if addr else "",
-            ("MST: " + company.vat) if company.vat else "",
+            ("Mã số thuế: " + company.vat) if company.vat else "",
             " | ".join(filter(None, [
                 ("ĐT: " + company.phone) if company.phone else "",
                 ("Email: " + company.email) if company.email else ""])),
@@ -154,7 +154,7 @@ class StockPickingRejectReport(models.Model):
         # --- Hai bên + chứng từ gốc ---
         ben = [Paragraph("<b>Kính gửi:</b> %s" % (partner.name or ""), base)]
         for text in filter(None, [
-            ("MST: " + partner.vat) if partner.vat else "",
+            ("Mã số thuế: " + partner.vat) if partner.vat else "",
             ("Địa chỉ: " + ", ".join(filter(None, [
                 partner.street, partner.city]))) if partner.street else "",
             ("Điện thoại: " + partner.phone) if partner.phone else "",
@@ -180,8 +180,8 @@ class StockPickingRejectReport(models.Model):
         story.append(Spacer(1, 2 * mm))
 
         # --- Bảng hàng không đạt (KHÔNG có cột giá — xem docstring) ---
-        data = [[th("STT"), th("Mặt hàng", TA_CENTER), th("Số lô"),
-                 th("SL"), th("ĐVT"), th("Lý do"), th("Ghi chú", TA_CENTER)]]
+        data = [[th("Số thứ tự"), th("Mặt hàng", TA_CENTER), th("Số lô"),
+                 th("Số lượng"), th("Đơn vị tính"), th("Lý do"), th("Ghi chú", TA_CENTER)]]
         for row in rows:
             data.append([
                 Paragraph(str(row["stt"]), center),
@@ -192,17 +192,21 @@ class StockPickingRejectReport(models.Model):
                 Paragraph(row["reason"], base),
                 Paragraph(row["note"], small),
             ])
+        # Tổng PHẢI = 174mm (A4 210 trừ hai lề 18mm) — vượt là bảng tràn lề.
+        # Bốn cột giữa rộng hơn bản đầu vì nhãn viết đầy đủ ("Số thứ tự",
+        # "Đơn vị tính") dài hơn hẳn chữ viết tắt cũ; phần bù lấy từ Mặt hàng /
+        # Lý do / Ghi chú vốn đã tự xuống dòng.
         table = Table(data, repeatRows=1, colWidths=[
-            10 * mm, 46 * mm, 27 * mm, 13 * mm, 14 * mm, 30 * mm, 34 * mm])
+            14 * mm, 40 * mm, 24 * mm, 17 * mm, 20 * mm, 29 * mm, 30 * mm])
         table.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#34495e")),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#b0b0b0")),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("TOPPADDING", (0, 0), (-1, -1), 4),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            # Đệm mặc định của reportlab là 6pt mỗi bên — riêng cột STT (10mm)
-            # thì 12pt đệm còn rộng hơn cả chữ, nên "STT" bị bẻ thành "ST/T" và
-            # "Đơn vị" xuống dòng giữa từ.
+            # Đệm mặc định của reportlab là 6pt mỗi bên — với cột hẹp nhất
+            # ("Số thứ tự", 14mm) thì 12pt đệm còn rộng hơn cả chữ, nên nhãn bị
+            # bẻ giữa từ.
             ("LEFTPADDING", (0, 0), (-1, -1), 3),
             ("RIGHTPADDING", (0, 0), (-1, -1), 3),
         ]))
@@ -326,7 +330,7 @@ class StockPickingRejectReport(models.Model):
         self.ensure_one()
         if self.picking_type_id.sequence_code != _DLM_RETURN_CODE:
             raise UserError(_(
-                "Biên bản hàng không đạt chỉ lập từ phiếu Trả hàng NCC."))
+                "Biên bản hàng không đạt chỉ lập từ phiếu Trả hàng nhà cung cấp."))
         if not self.move_ids:
             raise UserError(_("Phiếu chưa có dòng hàng nào để lập biên bản."))
 

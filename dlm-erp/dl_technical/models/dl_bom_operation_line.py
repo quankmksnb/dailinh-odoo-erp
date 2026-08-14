@@ -82,7 +82,7 @@ class DlBomOperationLine(models.Model):
     # công thức tính.
     is_outsourced = fields.Boolean(string="Thuê ngoài")
     partner_id = fields.Many2one(
-        "res.partner", string="NCC gia công",
+        "res.partner", string="Nhà cung cấp gia công",
         domain=[("partner_role", "in", ("supplier", "both"))])
 
     note = fields.Char("Ghi chú")
@@ -92,7 +92,7 @@ class DlBomOperationLine(models.Model):
     # chốt tính tại thời điểm tạo báo giá theo pricing_date, pha B2). Ẩn với
     # Kỹ thuật. Chỉ phần BIẾN ĐỔI/đơn vị — setup/lô không quy về đơn vị được.
     estimated_unit_cost = fields.Float(
-        string="Ước tính biến đổi/đv (tham khảo)", digits="Product Price",
+        string="Ước tính biến đổi/đơn vị (tham khảo)", digits="Product Price",
         compute="_compute_estimate", groups=_COST_GROUPS)
 
     # ------------------------------------------------------------------
@@ -156,5 +156,5 @@ class DlBomOperationLine(models.Model):
         for line in self:
             if line.partner_id and not line.is_outsourced:
                 raise ValidationError(_(
-                    "Đã chọn NCC gia công cho công đoạn '%s' thì phải đánh dấu "
+                    "Đã chọn nhà cung cấp gia công cho công đoạn '%s' thì phải đánh dấu "
                     "'Thuê ngoài'.") % line.operation_id.display_name)

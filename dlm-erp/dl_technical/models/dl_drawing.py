@@ -107,7 +107,7 @@ class DlDrawing(models.Model):
         for rec in self:
             if rec.product_id and rec.product_id.product_kind not in DRAWING_ELIGIBLE_KINDS:
                 raise ValidationError(_(
-                    "Sản phẩm “%s” không phải SP gia công / bán thành phẩm — "
+                    "Sản phẩm “%s” không phải sản phẩm gia công / bán thành phẩm — "
                     "không gắn bản vẽ kỹ thuật cho loại này."
                 ) % rec.product_id.display_name)
 

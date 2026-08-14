@@ -23,15 +23,15 @@
         // "đã rời tree", và hậu quả là cột Nhóm KH mất hút, chỉ còn cái tooltip.
         // Tổng 10 cột = 100%.
         th[data-name="avatar_128"] { width: 4% !important; }
-        th[data-name="dlm_code"] { width: 9% !important; }
-        th[data-name="name"] { width: 17% !important; }
+        th[data-name="dlm_code"] { width: 13% !important; }
+        th[data-name="name"] { width: 16% !important; }
         th[data-name="partner_type"] { width: 9% !important; }
         th[data-name="dlm_customer_group"] { width: 11% !important; }
         th[data-name="dlm_status_label"] { width: 10% !important; }
         th[data-name="phone"] { width: 10% !important; }
-        th[data-name="email"] { width: 14% !important; }
+        th[data-name="email"] { width: 12% !important; }
         th[data-name="city"] { width: 8% !important; }
-        th[data-name="category_id"] { width: 8% !important; }
+        th[data-name="category_id"] { width: 7% !important; }
 
         td[name="dlm_code"] {
             font-variant-numeric: tabular-nums;

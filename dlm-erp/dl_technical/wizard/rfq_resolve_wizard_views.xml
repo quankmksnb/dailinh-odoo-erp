@@ -312,9 +312,9 @@
                                      không lộ giá). Không chặn Hoàn tất — chỉ báo trước. -->
                                 <div class="alert alert-warning py-2 mt-2" role="status"
                                      invisible="pricing_block_count == 0">
-                                    <i class="fa fa-money me-1" title="Thiếu giá NCC"/>
+                                    <i class="fa fa-money me-1" title="Thiếu giá nhà cung cấp"/>
                                     <strong><field name="pricing_block_count" readonly="1" nolabel="1"
-                                            class="dl-rfq-inline-field"/> vật tư chưa có giá NCC đã duyệt</strong>:
+                                            class="dl-rfq-inline-field"/> vật tư chưa có giá nhà cung cấp đã duyệt</strong>:
                                     <field name="pricing_block_names" readonly="1" nolabel="1"
                                            class="dl-rfq-inline-field"/>.
                                     Sales sẽ chưa tạo được báo giá cho tới khi Mua hàng cập nhật giá.
@@ -328,7 +328,7 @@
                                         <field name="dim_length" string="Dài đoạn (mm)"/>
                                         <field name="piece_count"/>
                                         <field name="quantity"/>
-                                        <field name="uom_id" string="ĐVT"/>
+                                        <field name="uom_id" string="Đơn vị tính"/>
                                         <field name="waste_rate"/>
                                         <field name="effective_qty"/>
                                     </tree>
@@ -409,7 +409,7 @@
                                     <tree>
                                         <field name="name"/>
                                         <field name="bom_type" widget="badge"/>
-                                        <field name="version" string="Bản #"/>
+                                        <field name="version" string="Phiên bản"/>
                                         <!-- Định mức của SP dùng chung chỉ khác nhau ở CỠ —
                                              thiếu cột này thì bảng chỉ là "Bản #2 / Bản #3",
                                              không có cách nào biết bản nào là cỡ nào. -->

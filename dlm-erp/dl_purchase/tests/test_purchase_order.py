@@ -89,7 +89,7 @@ class TestPurchaseOrder(DlPurchaseCase):
         with self.assertRaises(UserError) as err:
             order.action_dlm_cancel()
 
-        self.assertIn("Trả hàng NCC", err.exception.args[0])
+        self.assertIn("Trả hàng nhà cung cấp", err.exception.args[0])
 
     def test_huy_don_chua_nhan_thi_huy_luon_phieu(self):
         """MH-11 — phiếu mồ côi nằm trong hàng đợi thủ kho là việc chết."""

@@ -9,8 +9,8 @@
                   decoration-danger="validity_state == 'overdue'"
                   decoration-warning="validity_state == 'soon'">
                 <field name="validity_state" column_invisible="1"/>
-                <field name="name" string="Số BG"/>
-                <field name="revision" string="PB" optional="hide"/>
+                <field name="name" string="Số báo giá"/>
+                <field name="revision" string="Phiên bản" optional="hide"/>
                 <field name="partner_id" string="Khách hàng"/>
                 <field name="create_uid" string="Phụ trách" optional="show"/>
                 <field name="date_order" string="Ngày"/>
@@ -285,7 +285,7 @@
                                                nolabel="1" readonly="1" class="dl-cost-val2"/>
                                     </div>
                                     <div class="dl-cost-cell">
-                                        <span class="dl-cost-lbl">Doanh thu (sau CK, trước VAT)</span>
+                                        <span class="dl-cost-lbl">Doanh thu (sau chiết khấu, trước VAT)</span>
                                         <field name="amount_before_vat" widget="dl_money"
                                                nolabel="1" readonly="1" class="dl-cost-val2"/>
                                     </div>
@@ -295,7 +295,7 @@
                                                nolabel="1" readonly="1" class="dl-cost-val"/>
                                     </div>
                                     <div class="dl-cost-cell">
-                                        <span class="dl-cost-lbl">Markup niêm yết → thực thu (sau CK)</span>
+                                        <span class="dl-cost-lbl">Markup niêm yết → thực thu (sau chiết khấu)</span>
                                         <span class="dl-cost-val2">
                                             <field name="list_markup" nolabel="1" readonly="1" class="oe_inline"/>% →
                                             <field name="effective_markup" nolabel="1" readonly="1" class="oe_inline"/>%
@@ -341,9 +341,9 @@
                                 </div>
                                 <div class="dl-cost-box">
                                     <div class="dl-cost-box-title">Chiết khấu &amp; phê duyệt</div>
-                                    <div class="dl-cost-line"><span>Nhóm khách</span>
+                                    <div class="dl-cost-line"><span>Nhóm khách hàng</span>
                                         <field name="partner_group" nolabel="1" readonly="1"/></div>
-                                    <div class="dl-cost-line"><span>CK mặc định / tối đa</span>
+                                    <div class="dl-cost-line"><span>Chiết khấu mặc định / tối đa</span>
                                         <span><field name="discount_default_rate" nolabel="1" readonly="1" class="oe_inline"/>% / <field name="discount_max_rate" nolabel="1" readonly="1" class="oe_inline"/>%</span></div>
                                     <div class="dl-cost-line"><span>Trạng thái duyệt</span>
                                         <field name="approval_state" widget="badge" nolabel="1" readonly="1"
@@ -402,7 +402,7 @@
         <field name="model">dl.quotation</field>
         <field name="arch" type="xml">
             <search string="Tìm kiếm báo giá">
-                <field name="name" string="Số BG"/>
+                <field name="name" string="Số báo giá"/>
                 <field name="partner_id" string="Khách hàng"/>
                 <!-- Bộ lọc gộp: mặc định (search_default_open trên action) list
                      chỉ mở ra pipeline đang sống. "Đã đóng" gom các kết cục

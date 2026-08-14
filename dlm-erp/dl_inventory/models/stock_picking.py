@@ -212,12 +212,12 @@ class StockPicking(models.Model):
     # ── K5 — Liên kết chứng từ ───────────────────────────────────────────────
     dlm_origin_picking_id = fields.Many2one(
         "stock.picking", string="Phiếu nhận gốc", index=True, copy=False,
-        help="Phiếu nhận hàng đã sinh ra phiếu trả NCC này.")
+        help="Phiếu nhận hàng đã sinh ra phiếu trả nhà cung cấp này.")
     # Đếm (không phải o2m ngược): phiếu trả neo vào phiếu NHẬN, nên o2m ngược sẽ
     # rỗng khi đang đứng ở phiếu KIỂM — đúng chỗ vừa bấm ra phiếu trả. Một hàm
     # tra chung cho cả hai chặng thay vì hai field nói cùng một chuyện.
     dlm_return_count = fields.Integer(
-        string="Số phiếu trả NCC", compute="_compute_dlm_return_count")
+        string="Số phiếu trả nhà cung cấp", compute="_compute_dlm_return_count")
 
     # ── K6 — Liên kết phiếu giao ↔ đơn bán hàng ──────────────────────────────
     # ⚠️ Chính field này KÍCH HOẠT khoá reset-nháp của đơn: _reset_draft_blockers
@@ -266,7 +266,7 @@ class StockPicking(models.Model):
         ("qc", "Kiểm hàng"),
         ("transfer", "Chuyển kho"),
         ("delivery", "Giao hàng"),
-        ("vendor_return", "Trả hàng NCC"),
+        ("vendor_return", "Trả hàng nhà cung cấp"),
         ("scrap_sale", "Bán phế liệu"),
         ("to_scrap", "Hoá phế liệu"),
         ("fg_receipt", "Nhập kho từ xưởng"),
@@ -408,7 +408,7 @@ class StockPicking(models.Model):
     # hơi — và đó đúng là lúc người ta cần giải thích.
     dlm_scrap_reason = fields.Char(
         string="Lý do hoá phế liệu", copy=False,
-        help="Vì sao lô hàng này thành phế liệu: NCC giảm trừ công nợ và mình "
+        help="Vì sao lô hàng này thành phế liệu: Nhà cung cấp giảm trừ công nợ và mình "
              "giữ hàng lại, thép để lâu bị gỉ, cắt hỏng…")
     # Nuôi nút [Chuyển thành phế liệu] trên phiếu trả đã huỷ. Non-store: nó đọc
     # TỒN THẬT, mà tồn đổi theo mọi phiếu khác — lưu lại là để một con số cũ
@@ -900,7 +900,7 @@ class StockPicking(models.Model):
             if cam:
                 problems.append(_(
                     "Không được chọn khu quá cảnh (%s) trên phiếu này — số ở đó "
-                    "chỉ đổi qua phiếu Nhận hàng / Kiểm & cất / Trả NCC. "
+                    "chỉ đổi qua phiếu Nhận hàng / Kiểm & cất / Trả nhà cung cấp. "
                     "Chọn khu chứa hàng thật.")
                     % ", ".join(cam.mapped("display_name")))
         rong = [
@@ -1174,7 +1174,7 @@ class StockPicking(models.Model):
                 returns = ", ".join(self._dlm_vendor_returns().mapped("name"))
                 return "warning", _(
                     "Đã cất hàng đạt vào kho. <b>%s</b> đơn vị hàng loại đang ở "
-                    "khu <b>Chờ trả NCC</b>%s — Mua hàng xử lý tiếp với nhà "
+                    "khu <b>Chờ trả nhà cung cấp</b>%s — Mua hàng xử lý tiếp với nhà "
                     "cung cấp."
                 ) % (_dlm_fmt(self.dlm_qty_rejected_total),
                      _(" (phiếu %s)") % returns if returns else ""), False
@@ -1189,7 +1189,7 @@ class StockPicking(models.Model):
         if self.dlm_qty_rejected_total > 0:
             message = _(
                 "Xác nhận kiểm sẽ chuyển <b>%s</b> đơn vị hàng loại sang khu "
-                "<b>Chờ trả NCC</b> và tạo <b>phiếu trả hàng (nháp)</b> để Mua "
+                "<b>Chờ trả nhà cung cấp</b> và tạo <b>phiếu trả hàng (nháp)</b> để Mua "
                 "hàng thoả thuận với %s. Phần đạt được cất vào kho."
             ) % (_dlm_fmt(self.dlm_qty_rejected_total),
                  self.partner_id.display_name or _("nhà cung cấp"))
@@ -1224,7 +1224,7 @@ class StockPicking(models.Model):
         # ở mọi bước trước khi xong để còn kịp báo Mua hàng chốt giá.
         unpriced = self._dlm_receipt_unpriced_names()
         price_block = _(
-            "<b>Chưa có bảng giá đang áp dụng</b> từ NCC này cho:<ul>%s</ul>"
+            "<b>Chưa có bảng giá đang áp dụng</b> từ nhà cung cấp này cho:<ul>%s</ul>"
             "Giá vốn có thể chưa cập nhật — báo <b>Mua hàng</b> chốt giá. "
             "Vẫn nhận hàng bình thường."
         ) % "".join("<li>%s</li>" % n for n in unpriced) if unpriced else ""
@@ -1245,7 +1245,7 @@ class StockPicking(models.Model):
                     move.product_uom.name))
         if short:
             message = _(
-                "NCC giao thiếu so với dự kiến:<ul>%s</ul>Xác nhận sẽ tạo "
+                "Nhà cung cấp giao thiếu so với dự kiến:<ul>%s</ul>Xác nhận sẽ tạo "
                 "<b>phiếu chờ giao tiếp</b> cho phần còn thiếu — không phải "
                 "hàng lỗi, đừng ghi vào mục Loại ở bước kiểm."
             ) % "".join("<li>%s</li>" % s for s in short)
@@ -1319,13 +1319,13 @@ class StockPicking(models.Model):
         """Dải cho phiếu [3] Trả hàng NCC — chủ sở hữu là Mua hàng."""
         if self.state == "done":
             return "success", _(
-                "Đã trả hàng cho nhà cung cấp và trừ khỏi khu Chờ trả NCC."), False
+                "Đã trả hàng cho nhà cung cấp và trừ khỏi khu Chờ trả nhà cung cấp."), False
         if self.state == "draft":
             return "info", _(
                 "Phiếu này do bước <b>kiểm hàng</b> sinh ra và cố ý để "
                 "<b>nháp</b>: thoả thuận với %s trước (đổi hàng, giảm trừ công "
-                "nợ, hay NCC tự đến lấy), rồi mới xác nhận. Xác nhận sẽ trừ hàng "
-                "khỏi khu <b>Chờ trả NCC</b>."
+                "nợ, hay nhà cung cấp tự đến lấy), rồi mới xác nhận. Xác nhận sẽ trừ hàng "
+                "khỏi khu <b>Chờ trả nhà cung cấp</b>."
             ) % (self.partner_id.display_name or _("nhà cung cấp")), False
         return "info", _(
             "Đã chốt trả hàng. Xác nhận phiếu khi hàng thực sự rời kho."), False
@@ -1398,7 +1398,7 @@ class StockPicking(models.Model):
 
     # ── RS-03 — Quyết định trả hàng là của Mua hàng, không của Thủ kho ───────
     def action_confirm(self):
-        self._dlm_check_return_decision(_("chốt phiếu trả hàng NCC"))
+        self._dlm_check_return_decision(_("chốt phiếu trả hàng nhà cung cấp"))
         # RS-11 — lưới chặn cuối. Đường chính vẫn là dải đỏ INLINE + nút Xác
         # nhận tự ẩn; cái này chỉ bắt đường RPC / smart button không qua form.
         for picking in self:
@@ -1409,7 +1409,7 @@ class StockPicking(models.Model):
         return super().action_confirm()
 
     def action_cancel(self):
-        self._dlm_check_return_decision(_("huỷ phiếu trả hàng NCC"))
+        self._dlm_check_return_decision(_("huỷ phiếu trả hàng nhà cung cấp"))
         return super().action_cancel()
 
     def _dlm_check_return_decision(self, viec):
@@ -1428,7 +1428,7 @@ class StockPicking(models.Model):
         raise UserError(_(
             "Bạn không có quyền %s. Trả hàng cho nhà cung cấp là quyết định của "
             "bộ phận Mua hàng — họ còn phải thoả thuận đổi hàng hay giảm trừ "
-            "công nợ. Thủ kho chỉ bấm \"Xác nhận đã trả\" khi xe NCC tới lấy "
+            "công nợ. Thủ kho chỉ bấm \"Xác nhận đã trả\" khi xe nhà cung cấp tới lấy "
             "hàng.") % viec)
 
     # ── K5 — Mỗi phiếu nhận sinh ĐÚNG MỘT phiếu kiểm ─────────────────────────
@@ -1799,7 +1799,7 @@ class StockPicking(models.Model):
         # trong hồ sơ thủ kho. sudo() đặt env.su ⇒ Odoo bỏ qua kiểm tra đó.
         picking.sudo().message_post(body=_(
             "Sinh tự động từ kết quả kiểm phiếu %s. Phiếu để <b>nháp</b>: Mua "
-            "hàng thoả thuận với NCC rồi mới xác nhận trả."
+            "hàng thoả thuận với nhà cung cấp rồi mới xác nhận trả."
         ) % self.name)
         self._dlm_notify_purchasing(picking)
         return picking
@@ -1810,7 +1810,7 @@ class StockPicking(models.Model):
             "dl_base.dl_group_purchasing", raise_if_not_found=False)
         if not group:
             return
-        summary = _("Xử lý trả hàng NCC — %s") % return_picking.name
+        summary = _("Xử lý trả hàng nhà cung cấp — %s") % return_picking.name
         for user in group.users:
             return_picking.sudo().activity_schedule(
                 "mail.mail_activity_data_todo",
@@ -1909,9 +1909,9 @@ class StockPicking(models.Model):
         self.ensure_one()
         returns = self._dlm_vendor_returns()
         if not returns:
-            raise UserError(_("Chặng nhận hàng này chưa có phiếu trả NCC nào."))
-        name = (_("Phiếu trả NCC %s") % returns.name if len(returns) == 1
-                else _("Phiếu trả NCC của %s") % self.name)
+            raise UserError(_("Chặng nhận hàng này chưa có phiếu trả nhà cung cấp nào."))
+        name = (_("Phiếu trả nhà cung cấp %s") % returns.name if len(returns) == 1
+                else _("Phiếu trả nhà cung cấp của %s") % self.name)
         return returns._dlm_open_pickings(name)
 
     def action_dlm_open_sale_order(self):

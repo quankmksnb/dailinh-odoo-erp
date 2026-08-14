@@ -47,7 +47,7 @@ class DlPricingWasteRule(models.Model):
         string="Áp dụng cho", required=True, default="category", tracking=True,
     )
     category_id = fields.Many2one(
-        "product.category", string="Category", ondelete="restrict", tracking=True,
+        "product.category", string="Nhóm sản phẩm", ondelete="restrict", tracking=True,
     )
     product_id = fields.Many2one(
         "product.product", string="Vật tư", ondelete="restrict", tracking=True,

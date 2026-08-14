@@ -134,21 +134,21 @@ class ResPartner(models.Model):
     # ── Phân loại DLM ─────────────────────────────────────────────────
     partner_role = fields.Selection([
         ('customer', 'Khách hàng'),
-        ('supplier', 'NCC / Thầu phụ'),
-        ('both', 'Khách hàng & NCC'),
+        ('supplier', 'Nhà cung cấp / Thầu phụ'),
+        ('both', 'Khách hàng & Nhà cung cấp'),
     ], string='Vai trò')
 
     pending_link_partner_id = fields.Many2one(
         'res.partner',
-        string='Liên kết với (gộp thành Khách hàng & NCC)',
+        string='Liên kết với (gộp thành Khách hàng & Nhà cung cấp)',
         copy=False,
         store=True,
-        help='Gõ tên để tìm Khách hàng ↔ NCC',
+        help='Gõ tên để tìm Khách hàng ↔ Nhà cung cấp',
     )
 
     # ── S03: Mã khách hàng tự sinh KH-0001 ────────────────────────────
     dlm_code = fields.Char(
-        string='Mã KH',
+        string='Mã khách hàng',
         readonly=True,
         copy=False,
         index=True,
@@ -161,7 +161,7 @@ class ResPartner(models.Model):
     # Gộp một field sẽ khiến màn NCC hiển thị 'KH-0008' cho đối tác từng được
     # tạo ở màn khách hàng.
     dlm_supplier_code = fields.Char(
-        string='Mã NCC',
+        string='Mã nhà cung cấp',
         readonly=True,
         copy=False,
         index=True,
@@ -193,16 +193,16 @@ class ResPartner(models.Model):
 
     # MST dùng field native `vat` của res.partner — không tự chế field riêng.
     dlm_allow_dup_tax = fields.Boolean(
-        string='Cho phép trùng MST (chi nhánh khác)',
+        string='Cho phép trùng mã số thuế (chi nhánh khác)',
         default=False,
-        help='Tích khi đây là chi nhánh khác dùng chung MST — bỏ qua kiểm tra trùng (EX-05)',
+        help='Tích khi đây là chi nhánh khác dùng chung mã số thuế — bỏ qua kiểm tra trùng (EX-05)',
     )
 
     # Chống trùng kênh liên lạc — song song với dlm_allow_dup_tax. Cần cửa
     # thoát vì có thật: nhóm công ty dùng chung tổng đài, hoặc hai chi nhánh
     # cùng một hộp thư đặt hàng.
     dlm_allow_dup_contact = fields.Boolean(
-        string='Cho phép trùng SĐT / Email',
+        string='Cho phép trùng Số điện thoại / Email',
         default=False,
         help='Tích khi khách này dùng chung tổng đài hoặc hộp thư với một khách '
              'đã có — bỏ qua kiểm tra trùng SĐT/Email.',
@@ -214,7 +214,8 @@ class ResPartner(models.Model):
     # thống không hề bắt buộc.
     dlm_dup_override_reason = fields.Text(
         string='Lý do cho phép trùng',
-        help='Bắt buộc khi tích cho phép trùng MST hoặc trùng SĐT/Email. '
+        help='Bắt buộc khi tích cho phép trùng Mã số thuế hoặc trùng Số '
+             'điện thoại/Email. '
              'Ghi rõ vì sao đây không phải hồ sơ trùng lặp.',
     )
 
@@ -398,7 +399,7 @@ class ResPartner(models.Model):
                     write_vals['partner_type'] = 'company'
                 target.write(write_vals)
                 target.message_post(body=_(
-                    "Chuyển thành 'Khách hàng & NCC' — hợp nhất từ dữ liệu tạo mới."))
+                    "Chuyển thành 'Khách hàng & Nhà cung cấp' — hợp nhất từ dữ liệu tạo mới."))
                 linked_records |= target
             else:
                 to_create.append(vals)
@@ -625,10 +626,10 @@ class ResPartner(models.Model):
             },
             {
                 'model': 'product.supplierinfo', 'field': 'partner_id',
-                'side': 'supplier', 'label': 'dòng bảng giá NCC',
+                'side': 'supplier', 'label': 'dòng bảng giá nhà cung cấp',
                 # Chỉ bảng giá ĐANG ÁP DỤNG mới cản: đó là giá đang được dùng
                 # để tính báo giá và BOM. Nháp / Đã duyệt chưa áp dụng thì không.
-                'open_label': 'bảng giá NCC đang áp dụng',
+                'open_label': 'bảng giá nhà cung cấp đang áp dụng',
                 'open_domain': [('is_applied', '=', True)],
                 # Bảng giá đã lưu trữ vẫn là tham chiếu thật — xóa NCC đi thì nó
                 # mồ côi y như bảng giá đang hoạt động.
@@ -646,8 +647,8 @@ class ResPartner(models.Model):
             },
             {
                 'model': 'stock.picking', 'field': 'partner_id',
-                'side': 'supplier', 'label': 'phiếu nhập / trả NCC',
-                'open_label': 'phiếu nhập / trả NCC chưa hoàn tất',
+                'side': 'supplier', 'label': 'phiếu nhập / trả nhà cung cấp',
+                'open_label': 'phiếu nhập / trả nhà cung cấp chưa hoàn tất',
                 'extra_domain': [('picking_type_id.code', '=', 'incoming')],
                 'open_domain': [('state', 'not in', ('done', 'cancel'))],
             },
@@ -835,7 +836,7 @@ class ResPartner(models.Model):
                 label = dict(self._fields['partner_type'].selection).get(
                     rec.partner_type, rec.partner_type)
                 raise ValidationError(_(
-                    'Khách hàng %s bắt buộc phải có Mã số thuế (MST).') % label)
+                    'Khách hàng %s bắt buộc phải có Mã số thuế.') % label)
 
     @api.constrains('partner_role', 'vat')
     def _check_tax_code_format(self):
@@ -850,7 +851,7 @@ class ResPartner(models.Model):
                 continue
             if not _TAX_CODE_RE.match(vat):
                 raise ValidationError(_(
-                    "Mã số thuế '%s' không hợp lệ. MST chỉ gồm chữ số và dấu "
+                    "Mã số thuế '%s' không hợp lệ. Mã số thuế chỉ gồm chữ số và dấu "
                     "'-', theo định dạng 10 chữ số (VD: 0123456789) hoặc 10 chữ "
                     'số-3 chữ số cho chi nhánh (VD: 0123456789-001).'
                 ) % rec.vat)
@@ -997,9 +998,10 @@ class ResPartner(models.Model):
                 code = dup._dlm_display_code()
                 ref = (' — ' + code) if code else ''
                 raise ValidationError(
-                    "MST '%s' đã tồn tại trong hệ thống (KH: %s%s).\n"
-                    'Nếu đây là chi nhánh khác dùng chung MST, hãy tích '
-                    "'Cho phép trùng MST (chi nhánh khác)' và ghi chú lý do."
+                    "Mã số thuế '%s' đã tồn tại trong hệ thống (khách hàng: "
+                    "%s%s).\n"
+                    'Nếu đây là chi nhánh khác dùng chung mã số thuế, hãy tích '
+                    "'Cho phép trùng mã số thuế (chi nhánh khác)' và ghi chú lý do."
                     % (rec.vat, dup.name, ref)
                 )
 
@@ -1069,7 +1071,8 @@ class ResPartner(models.Model):
             if not (current or '').strip():
                 raise ValidationError(_(
                     'Đã tích cho phép trùng dữ liệu thì bắt buộc ghi Lý do cho '
-                    'phép trùng (vd: chi nhánh khác cùng MST, dùng chung tổng đài).'))
+                    'phép trùng (vd: chi nhánh khác cùng Mã số thuế, dùng '
+                    'chung tổng đài).'))
 
     @api.model
     def _dlm_check_dup_override_right(self):
@@ -1084,7 +1087,8 @@ class ResPartner(models.Model):
                 or user.has_group('dl_base.dl_group_purchasing')):
             raise AccessError(_(
                 'Chỉ Trưởng phòng Kinh doanh, Mua hàng hoặc Admin mới được cho '
-                'phép trùng MST / SĐT / Email. Hãy báo quản lý nếu đây thật sự '
+                'phép trùng Mã số thuế / Số điện thoại / Email. Hãy báo quản '
+                'lý nếu đây thật sự '
                 'không phải hồ sơ trùng.'))
 
     def _dlm_dup_contact_message(self, label, value, dup):
@@ -1142,7 +1146,7 @@ class ResPartner(models.Model):
                     vals['partner_type'] = 'company'
                 target.write(vals)
                 target.message_post(body=_(
-                    "Được gộp vai trò 'Khách hàng & NCC' — liên kết từ '%s' (bởi %s)"
+                    "Được gộp vai trò 'Khách hàng & Nhà cung cấp' — liên kết từ '%s' (bởi %s)"
                 ) % (rec.name, self.env.user.name))
             rec.message_post(body=_(
                 "Đã liên kết với đối tác trùng tên: %s → partner_role đã chuyển 'both'."

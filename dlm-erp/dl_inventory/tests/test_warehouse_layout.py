@@ -37,7 +37,7 @@ class TestWarehouseLayout(DlInventoryCase):
         """
         expected = {
             self.loc_qc: "DL/Khu nhập hàng/Chờ kiểm hàng",
-            self.loc_tra: "DL/Khu nhập hàng/Chờ trả NCC",
+            self.loc_tra: "DL/Khu nhập hàng/Chờ trả nhà cung cấp",
             # Đường đi của ô này: DL/NHAN (K2) → DL/XUONG (K10) → DL/KHOSX (K15).
             self.loc_kho: "DL/Kho nhà máy sản xuất/Kho nguyên vật liệu",
             self.loc_xuong_pl: "DL/Kho nhà máy sản xuất/Phế liệu chờ bán",

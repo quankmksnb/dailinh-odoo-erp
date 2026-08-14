@@ -56,7 +56,7 @@
                          hai nút này loại trừ nhau theo ngưỡng, không bao giờ
                          cùng hiện; để cùng hiện là mời người dùng đi đường
                          tránh ngưỡng. -->
-                    <button name="action_dlm_send" string="Gửi hỏi giá NCC"
+                    <button name="action_dlm_send" string="Gửi hỏi giá nhà cung cấp"
                             type="object" class="btn-primary"
                             invisible="state != 'draft'"/>
                     <button name="action_dlm_confirm" string="Chốt đơn"
@@ -126,7 +126,7 @@
                            aria-label="Đã gửi"/>
                         Đã gửi hỏi giá lúc <field name="date_sent" nolabel="1"
                                                   class="d-inline"/>.
-                        Điền đơn giá NCC báo về rồi chốt đơn.
+                        Điền đơn giá nhà cung cấp báo về rồi chốt đơn.
                     </div>
 
                     <group>
@@ -159,7 +159,7 @@
                                 <tree editable="bottom">
                                     <field name="product_id" string="Mặt hàng"
                                            width="300px"/>
-                                    <field name="uom_id" string="ĐVT"
+                                    <field name="uom_id" string="Đơn vị tính"
                                            width="90px"/>
                                     <field name="qty" string="Số lượng"
                                            widget="dl_qty" width="110px"/>
@@ -167,7 +167,7 @@
                                            string="Đơn giá chốt"
                                            widget="dl_money" width="140px"/>
                                     <field name="price_list_unit"
-                                           string="Giá bảng NCC"
+                                           string="Giá bảng nhà cung cấp"
                                            widget="dl_money" width="140px"
                                            optional="show" readonly="1"/>
                                     <field name="price_subtotal"
@@ -182,7 +182,7 @@
                                 <field name="amount_total" widget="dl_money"/>
                             </group>
                         </page>
-                        <page string="Ghi chú gửi NCC" name="note">
+                        <page string="Ghi chú gửi nhà cung cấp" name="note">
                             <field name="note" nolabel="1"
                                    class="dl-textarea-lg"
                                    placeholder="Yêu cầu về quy cách, thời gian giao, nơi giao..."/>
@@ -213,7 +213,7 @@
                         domain="['&amp;', ('state', '!=', 'cancelled'),
                                  '|', ('state', '!=', 'confirmed'),
                                       ('dlm_receipt_state', '!=', 'done')]"/>
-                <filter name="cho_bao_gia" string="Chờ NCC báo giá"
+                <filter name="cho_bao_gia" string="Chờ nhà cung cấp báo giá"
                         domain="[('state', '=', 'sent')]"/>
                 <filter name="cho_duyet" string="Chờ duyệt"
                         domain="[('state', '=', 'to_approve')]"/>

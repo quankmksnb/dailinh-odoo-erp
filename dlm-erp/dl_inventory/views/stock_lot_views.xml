@@ -18,7 +18,7 @@
                 <field name="dlm_receipt_date" string="Ngày nhập"/>
                 <field name="dlm_receipt_picking_id" string="Phiếu nhận" optional="show"/>
                 <field name="product_qty" widget="dl_qty" string="Tồn hiện tại"/>
-                <field name="ref" string="Số của NCC" optional="hide"/>
+                <field name="ref" string="Số của nhà cung cấp" optional="hide"/>
             </tree>
         </field>
     </record>
@@ -52,8 +52,8 @@
                             <field name="dlm_receipt_picking_id"/>
                             <!-- Số lô do Đại Linh tự sinh; số in trên chứng từ
                                  NCC (nếu có) ghi vào đây để đối chiếu khi khiếu nại. -->
-                            <field name="ref" string="Số lô của NCC"
-                                   placeholder="Ghi số in trên chứng từ NCC (nếu có)"/>
+                            <field name="ref" string="Số lô của nhà cung cấp"
+                                   placeholder="Ghi số in trên chứng từ nhà cung cấp (nếu có)"/>
                         </group>
                         <group string="Hiện trạng">
                             <field name="product_qty" widget="dl_qty" string="Tồn hiện tại"/>
@@ -67,7 +67,7 @@
                                 <tree create="0" edit="0" delete="0">
                                     <field name="location_id" string="Vị trí"/>
                                     <field name="quantity" widget="dl_qty" string="Số lượng" sum="Tổng"/>
-                                    <field name="product_uom_id" string="ĐVT"/>
+                                    <field name="product_uom_id" string="Đơn vị tính"/>
                                     <field name="reserved_quantity" widget="dl_qty" string="Đang giữ"/>
                                 </tree>
                             </field>
@@ -90,7 +90,7 @@
                 <field name="name" string="Số lô"/>
                 <field name="product_id" string="Hàng hoá"/>
                 <field name="dlm_supplier_id" string="Nhà cung cấp"/>
-                <field name="ref" string="Số của NCC"/>
+                <field name="ref" string="Số của nhà cung cấp"/>
 
                 <filter name="con_ton" string="Còn tồn"
                         domain="[('product_qty', '>', 0)]"/>
@@ -124,7 +124,7 @@
         <field name="search_view_id" ref="view_dl_stock_lot_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Chưa có lô hàng nào</p>
-            <p>Lô sinh ra tự động khi <b>nhận hàng NCC</b> — mỗi lần nhận vật tư
+            <p>Lô sinh ra tự động khi <b>nhận hàng nhà cung cấp</b> — mỗi lần nhận vật tư
                là một lô mới, đánh số <b>LO/năm/số thứ tự</b>.</p>
         </field>
     </record>

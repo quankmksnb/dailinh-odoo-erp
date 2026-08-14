@@ -41,7 +41,7 @@
                        readonly="id != False" options="{'no_create': True}"/>
                 <field name="quantity" widget="dl_qty" string="Tồn hệ thống" readonly="1"
                        sum="Tổng"/>
-                <field name="product_uom_id" string="ĐVT" readonly="1"/>
+                <field name="product_uom_id" string="Đơn vị tính" readonly="1"/>
                 <field name="inventory_quantity" string="Tồn thực đếm"
                        widget="counted_quantity_widget"/>
                 <field name="inventory_diff_quantity" widget="dl_qty" string="Chênh lệch"
@@ -172,7 +172,7 @@
                 <field name="available_quantity" widget="dl_qty" string="Còn lấy được"
                        optional="show" decoration-bf="1"
                        decoration-danger="available_quantity &lt;= 0"/>
-                <field name="product_uom_id" string="ĐVT"/>
+                <field name="product_uom_id" string="Đơn vị tính"/>
             </tree>
         </field>
     </record>
@@ -197,7 +197,7 @@
                        optional="show"/>
                 <field name="date" string="Ngày dự kiến"/>
                 <field name="quantity" widget="dl_qty" string="Số giữ" sum="Tổng giữ"/>
-                <field name="product_uom_id" string="ĐVT"/>
+                <field name="product_uom_id" string="Đơn vị tính"/>
                 <field name="state" string="Trạng thái" widget="badge"
                        decoration-info="state == 'assigned'"
                        decoration-warning="state == 'partially_available'"/>
@@ -265,7 +265,7 @@
         <field name="context">{'search_default_internal': 1, 'search_default_group_location': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Kho đang trống</p>
-            <p>Tồn kho sinh ra từ phiếu <b>Nhận hàng NCC</b>. Nhận hàng xong và
+            <p>Tồn kho sinh ra từ phiếu <b>Nhận hàng nhà cung cấp</b>. Nhận hàng xong và
                kiểm hàng đạt là hàng xuất hiện ở đây.</p>
         </field>
     </record>

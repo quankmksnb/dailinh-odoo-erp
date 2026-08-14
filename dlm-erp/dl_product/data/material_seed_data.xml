@@ -20,16 +20,19 @@
 
          ⚠️ Khối lượng mỗi cây (dlm_mass_per_unit) là số THỰC TẾ cân được,
          thấp hơn số tính từ kích thước danh nghĩa 10–30% (§2.3). Nó CHỈ
-         dùng để quy lượng hao hụt sang kg khi tính tiền phế liệu thu hồi,
-         không tham gia tính giá vốn.
+         dùng để đối chiếu khi nhà cung cấp báo giá theo kg, không tham gia
+         tính giá vốn.
 
          noupdate="1": seed một lần khi cài/-u, sau đó cho phép sửa tự do
          (config linh động) mà lần -u sau KHÔNG ghi đè giá trị đã chỉnh.
     ============================================================ -->
     <data noupdate="1">
 
-        <!-- Sản phẩm phế liệu: đơn giá thu hồi lấy từ list_price của nó.
-             Recovery của vật tư bên dưới trỏ về đây. Bán theo kg. -->
+        <!-- Sản phẩm phế liệu: mặt hàng phế mà thép thải ra, bán theo kg.
+             `dlm_scrap_product_id` của vật tư bên dưới trỏ về đây — dùng để
+             khai số CÂN THỰC trên phiếu Nhập kho từ xưởng (K16 đã bỏ cách
+             dự toán theo % thu hồi, nên list_price ở đây không còn được
+             trừ vào giá vốn vật tư nữa). -->
         <record id="seed_scrap_steel" model="product.product">
             <field name="name">Phế liệu thép (thu hồi)</field>
             <field name="default_code">SCRAP-STEEL</field>
@@ -61,8 +64,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">1.35</field>
             <field name="dlm_waste_rate">4.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_th_20" model="product.product">
@@ -77,8 +78,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">2.55</field>
             <field name="dlm_waste_rate">4.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_th_20x40" model="product.product">
@@ -93,8 +92,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">4.9</field>
             <field name="dlm_waste_rate">4.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_th_25" model="product.product">
@@ -109,8 +106,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">4.05</field>
             <field name="dlm_waste_rate">4.5</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <!-- Ca kiểm chứng T1 của thiết kế: hộp CHỮ NHẬT b ≠ a. -->
@@ -126,8 +121,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">8.5</field>
             <field name="dlm_waste_rate">4.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_th_30" model="product.product">
@@ -142,8 +135,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">5.8</field>
             <field name="dlm_waste_rate">4.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <!-- 10.16 kg/cây là số CÂN THẬT từ chứng từ Hiệp Việt Hưng
@@ -160,8 +151,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">10.16</field>
             <field name="dlm_waste_rate">3.5</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_th_40" model="product.product">
@@ -176,8 +165,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">11.6</field>
             <field name="dlm_waste_rate">4.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_th_50" model="product.product">
@@ -192,8 +179,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">16.2</field>
             <field name="dlm_waste_rate">4.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_th_100x50" model="product.product">
@@ -208,8 +193,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">30.5</field>
             <field name="dlm_waste_rate">3.5</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
 
@@ -228,8 +211,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">7.7</field>
             <field name="dlm_waste_rate">4.5</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_to_49" model="product.product">
@@ -244,8 +225,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">12.5</field>
             <field name="dlm_waste_rate">4.5</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_to_76" model="product.product">
@@ -260,8 +239,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">19.7</field>
             <field name="dlm_waste_rate">4.5</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_to_90" model="product.product">
@@ -276,8 +253,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">29.1</field>
             <field name="dlm_waste_rate">4.5</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_to_114" model="product.product">
@@ -292,8 +267,6 @@
             <field name="dlm_stock_length">6</field>
             <field name="dlm_mass_per_unit">58.0</field>
             <field name="dlm_waste_rate">4.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">55.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
 
@@ -314,8 +287,6 @@
             <field name="dlm_sheet_h">2.5</field>
             <field name="dlm_mass_per_unit">49.06</field>
             <field name="dlm_waste_rate">7.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">65.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_tt_ct3_5" model="product.product">
@@ -331,8 +302,6 @@
             <field name="dlm_sheet_h">6</field>
             <field name="dlm_mass_per_unit">353.25</field>
             <field name="dlm_waste_rate">5.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">65.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <record id="seed_mat_tt_ss400_10" model="product.product">
@@ -348,8 +317,6 @@
             <field name="dlm_sheet_h">6</field>
             <field name="dlm_mass_per_unit">706.5</field>
             <field name="dlm_waste_rate">4.0</field>
-            <field name="dlm_has_recovery">1</field>
-            <field name="dlm_recovery_rate">60.0</field>
             <field name="dlm_scrap_product_id" ref="seed_scrap_steel" />
         </record>
         <!-- Lưới cũng là "tấm", chỉ khác đơn vị mua: khổ = một CUỘN trải ra. -->
@@ -365,7 +332,6 @@
             <field name="dlm_sheet_w">1</field>
             <field name="dlm_sheet_h">20</field>
             <field name="dlm_waste_rate">6.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
 
         <!-- ============================================================
@@ -381,7 +347,6 @@
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
             <field name="dlm_calc_kind">bulk</field>
             <field name="dlm_waste_rate">12.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
         <record id="seed_mat_son_lot" model="product.product">
             <field name="name">Sơn lót chống gỉ (1 thành phần)</field>
@@ -393,7 +358,6 @@
             <field name="uom_po_id" ref="uom.product_uom_litre" />
             <field name="dlm_calc_kind">bulk</field>
             <field name="dlm_waste_rate">10.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
 
         <!-- ============================================================
@@ -409,7 +373,6 @@
             <field name="uom_po_id" ref="uom.product_uom_kgm" />
             <field name="dlm_calc_kind">bulk</field>
             <field name="dlm_waste_rate">5.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
         <record id="seed_mat_dacat_180" model="product.product">
             <field name="name">Đá cắt kim loại Ø180</field>
@@ -421,7 +384,6 @@
             <field name="uom_po_id" ref="uom.product_uom_unit" />
             <field name="dlm_calc_kind">count</field>
             <field name="dlm_waste_rate">0.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
         <record id="seed_mat_banle" model="product.product">
             <field name="name">Bản lề lá 3 inch</field>
@@ -433,7 +395,6 @@
             <field name="uom_po_id" ref="uom.product_uom_unit" />
             <field name="dlm_calc_kind">count</field>
             <field name="dlm_waste_rate">0.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
         <record id="seed_mat_taynam" model="product.product">
             <field name="name">Tay nắm cửa inox</field>
@@ -445,7 +406,6 @@
             <field name="uom_po_id" ref="uom.product_uom_unit" />
             <field name="dlm_calc_kind">count</field>
             <field name="dlm_waste_rate">0.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
         <record id="seed_mat_ocvit_m8" model="product.product">
             <field name="name">Bu lông lục giác M8×40 (kèm ê cu)</field>
@@ -457,7 +417,6 @@
             <field name="uom_po_id" ref="uom.product_uom_unit" />
             <field name="dlm_calc_kind">count</field>
             <field name="dlm_waste_rate">1.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
         <!-- Vít/đinh rút bán theo TÚI (sổ mua hàng thật: "Vít cá | túi | 60.000đ") -->
         <record id="seed_mat_vit_ca" model="product.product">
@@ -470,7 +429,6 @@
             <field name="uom_po_id" ref="dlm_uom_tui" />
             <field name="dlm_calc_kind">count</field>
             <field name="dlm_waste_rate">2.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
         <record id="seed_mat_dinh_rut" model="product.product">
             <field name="name">Đinh rút nhôm 4×10 (túi 1000 con)</field>
@@ -482,7 +440,6 @@
             <field name="uom_po_id" ref="dlm_uom_tui" />
             <field name="dlm_calc_kind">count</field>
             <field name="dlm_waste_rate">2.0</field>
-            <field name="dlm_has_recovery">0</field>
         </record>
 
     </data>

@@ -56,10 +56,10 @@ class DlPurchaseOrder(models.Model):
         tracking=True)
     date_sent = fields.Datetime(
         string="Đã gửi hỏi giá lúc", readonly=True, copy=False,
-        help="Mốc để trả lời \"gửi ba ngày rồi NCC chưa báo giá\".")
+        help="Mốc để trả lời \"gửi ba ngày rồi nhà cung cấp chưa báo giá\".")
     date_expected = fields.Date(
         string="Ngày hàng về dự kiến", tracking=True,
-        help="NCC cam kết. Thiếu ô này thì màn điều phối không tính được "
+        help="Nhà cung cấp cam kết. Thiếu ô này thì màn điều phối không tính được "
              "\"đang về\" và đơn bán sẽ bị mua chồng.")
     state = fields.Selection([
         ("draft", "Nháp"),
@@ -70,7 +70,7 @@ class DlPurchaseOrder(models.Model):
     ], string="Trạng thái", default="draft", tracking=True, copy=False)
     line_ids = fields.One2many(
         "dl.purchase.order.line", "order_id", string="Chi tiết", copy=True)
-    note = fields.Text(string="Ghi chú cho NCC")
+    note = fields.Text(string="Ghi chú cho nhà cung cấp")
     cancel_reason = fields.Text(string="Lý do huỷ", readonly=True, copy=False)
     company_id = fields.Many2one(
         "res.company", string="Công ty", readonly=True,
@@ -101,7 +101,7 @@ class DlPurchaseOrder(models.Model):
         ("done", "Đã nhận đủ"),
     ], string="Tình trạng nhận", compute="_compute_dlm_receipt", store=True,
         default="nothing",
-        help="Suy từ phiếu nhận, KHÔNG phải một ô tick: NCC giao ba lần thì có "
+        help="Suy từ phiếu nhận, KHÔNG phải một ô tick: nhà cung cấp giao ba lần thì có "
              "ba phiếu, và sự thật nằm ở đó.")
 
     dlm_needs_approval = fields.Boolean(
@@ -229,7 +229,7 @@ class DlPurchaseOrder(models.Model):
                         "sign": "+" if gap > 0 else "",
                         "pct": round(gap * 100)})
             order.dlm_price_warning = _(
-                "Giá chốt lệch bảng giá NCC: %s. Bảng giá đang nuôi giá chào "
+                "Giá chốt lệch bảng giá nhà cung cấp: %s. Bảng giá đang nuôi giá chào "
                 "khách — cân nhắc cập nhật."
             ) % ", ".join(lech) if lech else False
 
@@ -348,7 +348,7 @@ class DlPurchaseOrder(models.Model):
             raise UserError(_(
                 "Không huỷ được đơn %(name)s: đã có phiếu nhận hoàn tất "
                 "(%(pickings)s). Hàng đã vào kho — muốn trả lại thì đi đường "
-                "phiếu Trả hàng NCC."
+                "phiếu Trả hàng nhà cung cấp."
             ) % {"name": self.name,
                  "pickings": ", ".join(done.mapped("name"))})
         open_pickings = self.dlm_picking_ids.filtered(
@@ -387,7 +387,7 @@ class DlPurchaseOrder(models.Model):
         self.ensure_one()
         if not self.line_ids:
             raise UserError(_(
-                "Đơn %s chưa có dòng nào — không gửi NCC một tờ giấy trắng.")
+                "Đơn %s chưa có dòng nào — không gửi nhà cung cấp một tờ giấy trắng.")
                 % self.name)
         zero = self.line_ids.filtered(lambda l: l.qty <= 0)
         if zero:
@@ -494,13 +494,13 @@ class DlPurchaseOrderLine(models.Model):
     # đ/kg cho thép khai theo Cây thì quy đổi MỘT LẦN lúc nhập giá, không phải
     # đổi ĐVT của dòng.
     uom_id = fields.Many2one(
-        "uom.uom", string="ĐVT", related="product_id.uom_id", readonly=True)
+        "uom.uom", string="Đơn vị tính", related="product_id.uom_id", readonly=True)
     price_unit = fields.Float(
         string="Đơn giá chốt", digits="Product Price",
         groups=_DLM_BUY_PRICE_GROUPS,
-        help="Giá của CHUYẾN HÀNG NÀY. Không tự ghi ngược vào Bảng giá NCC.")
+        help="Giá của CHUYẾN HÀNG NÀY. Không tự ghi ngược vào Bảng giá nhà cung cấp.")
     price_list_unit = fields.Float(
-        string="Giá bảng NCC", digits="Product Price", readonly=True,
+        string="Giá bảng nhà cung cấp", digits="Product Price", readonly=True,
         groups=_DLM_BUY_PRICE_GROUPS,
         help="Giá đang áp dụng lúc lập đơn — để so lệch, không dùng để tính tiền.")
     price_subtotal = fields.Float(

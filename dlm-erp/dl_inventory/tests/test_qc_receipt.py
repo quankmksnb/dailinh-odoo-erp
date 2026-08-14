@@ -109,7 +109,7 @@ class TestQcReceipt(DlInventoryCase):
                          "Không được dừng ở Kho vật tư — khu đó chỉ chứa vật tư.")
 
     def test_hang_thuong_mai_dat_va_loai_tach_ba_nga(self):
-        """Ngả 3 và ngả 2 cùng một phiếu: TM Đạt → TP, TM Loại → Chờ trả NCC."""
+        """Ngả 3 và ngả 2 cùng một phiếu: TM Đạt → TP, TM Loại → Chờ trả nhà cung cấp."""
         trading = self.env["product.product"].create({
             "name": "Ổ khoá nhập (test)", "product_kind": "trading"})
         receipt = self._receive(
@@ -188,7 +188,7 @@ class TestQcReceipt(DlInventoryCase):
             ("product_id", "=", self.material.id),
         ])
         self.assertEqual(quant_tra.lot_id, lot,
-                         "Hàng ở khu Chờ trả NCC phải giữ đúng lô đã nhận.")
+                         "Hàng ở khu Chờ trả nhà cung cấp phải giữ đúng lô đã nhận.")
 
     # ── RS-01 — Nhóm cung ứng tách phiếu kiểm theo từng NCC ──────────────────
     def test_hai_ncc_ra_hai_phieu_kiem_rieng(self):
@@ -447,7 +447,7 @@ class TestQcReceipt(DlInventoryCase):
 
         self.assertFalse(qc.dlm_blocked)
         self.assertEqual(qc.dlm_banner_level, "warning")
-        self.assertIn("Chờ trả NCC", qc.dlm_banner_message)
+        self.assertIn("Chờ trả nhà cung cấp", qc.dlm_banner_message)
 
     # ── Quyền & giao diện ────────────────────────────────────────────────────
     def test_man_kiem_hang_khong_lo_gia(self):
@@ -496,7 +496,7 @@ class TestQcReceipt(DlInventoryCase):
             self.assertEqual('create="0"' not in arch, can_create, message)
 
     def test_man_nhan_hang_dien_san_loai_phieu(self):
-        """Bấm Tạo là loại phiếu đã sẵn "Nhận hàng NCC", không phải tự chọn."""
+        """Bấm Tạo là loại phiếu đã sẵn "Nhận hàng nhà cung cấp", không phải tự chọn."""
         action = self.env.ref("dl_inventory.action_dl_picking_receipt")
         self.assertIn("restricted_picking_type_code", action.context)
 

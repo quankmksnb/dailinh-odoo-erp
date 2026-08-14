@@ -33,7 +33,7 @@ class DlPurchaseCase(TransactionCase):
     # ------------------------------------------------------------------
     @classmethod
     def _apply_price(cls, product, partner, price):
-        """Bảng giá NCC ĐÃ DUYỆT & ĐANG ÁP DỤNG."""
+        """Bảng giá nhà cung cấp ĐÃ DUYỆT & ĐANG ÁP DỤNG."""
         return cls.env["product.supplierinfo"].create({
             "partner_id": partner.id,
             "product_tmpl_id": product.product_tmpl_id.id,

@@ -6,7 +6,7 @@
              res.partner — partner_role=NULL). Dùng 'in' sẽ loại NULL và gây
              Forbidden khi Odoo đọc res.users lúc đăng nhập. -->
         <record id="rule_partner_sales_manager_no_supplier" model="ir.rule">
-            <field name="name">Trưởng phòng KD: không CRUD NCC thuần (chỉ xem)</field>
+            <field name="name">Trưởng phòng Kinh doanh: không CRUD nhà cung cấp thuần (chỉ xem)</field>
             <field name="model_id" ref="base.model_res_partner" />
             <field name="groups" eval="[(4, ref('dl_base.dl_group_sales_manager'))]" />
             <field name="domain_force">

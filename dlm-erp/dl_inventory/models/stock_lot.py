@@ -23,7 +23,7 @@ class StockLot(models.Model):
 
     dlm_supplier_id = fields.Many2one(
         "res.partner", string="Nhà cung cấp", readonly=True, index=True,
-        help="NCC giao lô này, lấy từ phiếu nhận hàng đầu tiên dùng lô.")
+        help="Nhà cung cấp giao lô này, lấy từ phiếu nhận hàng đầu tiên dùng lô.")
     dlm_receipt_date = fields.Date(
         string="Ngày nhập", readonly=True, index=True)
     dlm_receipt_picking_id = fields.Many2one(

@@ -233,7 +233,7 @@
                                     <field name="quantity" widget="dl_qty" string="Thủ kho nhận"
                                            column_invisible="parent.state == 'draft'"
                                            readonly="parent.dlm_receipt_state != 'waiting'"/>
-                                    <field name="product_uom" string="ĐVT"
+                                    <field name="product_uom" string="Đơn vị tính"
                                            groups="uom.group_uom"/>
                                     <!-- Lô CHỈ có nghĩa với BTP Hạng B (theo lô);
                                          để trống thì `_dlm_autofill_lot_names`
@@ -284,7 +284,7 @@
                                     <field name="product_uom_qty" widget="dl_qty" string="Số lượng"/>
                                     <field name="dlm_src_available_qty" widget="dl_qty"
                                            string="Đang ở xưởng" readonly="1"/>
-                                    <field name="product_uom" string="ĐVT"
+                                    <field name="product_uom" string="Đơn vị tính"
                                            groups="uom.group_uom"/>
                                     <field name="location_dest_id" string="Đi vào"
                                            readonly="1" optional="hide"/>

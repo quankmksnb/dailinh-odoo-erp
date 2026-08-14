@@ -20,7 +20,7 @@
 
         <!-- Bảng giá NCC (product.supplierinfo — PROD-03) -->
         <record id="feat_supplierinfo" model="dl.rbac.feature">
-            <field name="name">Bảng giá NCC</field>
+            <field name="name">Bảng giá nhà cung cấp</field>
             <field name="code">supplierinfo</field>
             <field name="model_id" ref="product.model_product_supplierinfo" />
             <field name="category">sales</field>

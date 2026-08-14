@@ -68,7 +68,7 @@
         <field name="name">dl.stock.picking.receipt.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Nhận hàng NCC" class="dl-receipt-form">
+            <form string="Nhận hàng nhà cung cấp" class="dl-receipt-form">
                 <header>
                     <!-- 1 CTA btn-primary cho mỗi trạng thái; phụ = secondary;
                          phá huỷ = danger (quy ước §11.1). -->
@@ -97,7 +97,7 @@
                                 class="oe_stat_button" icon="fa-reply"
                                 invisible="dlm_return_count == 0">
                             <field name="dlm_return_count" widget="statinfo"
-                                   string="Phiếu trả NCC"/>
+                                   string="Phiếu trả nhà cung cấp"/>
                         </button>
                     </div>
 
@@ -166,7 +166,7 @@
                         <div class="dl-field">
                             <!-- Số chứng từ của NCC: mắt xích đối chiếu khi khiếu
                                  nại — hoá đơn/phiếu giao của họ ghi số này. -->
-                            <label for="origin" string="Số chứng từ của NCC"/>
+                            <label for="origin" string="Số chứng từ của nhà cung cấp"/>
                             <field name="origin" nolabel="1"
                                    placeholder="VD: HD-2026-8841"
                                    readonly="state in ('done', 'cancel')"/>
@@ -195,7 +195,7 @@
                                                     ('product_kind', 'in', ('material', 'trading'))]"/>
                                     <field name="product_uom_qty" widget="dl_qty" string="Dự kiến"/>
                                     <field name="quantity" widget="dl_qty" string="Thực nhận"/>
-                                    <field name="product_uom" string="ĐVT"
+                                    <field name="product_uom" string="Đơn vị tính"
                                            groups="uom.group_uom"/>
                                     <!-- Lô do hệ thống tự sinh lúc xác nhận nên
                                          cột này trống tới khi phiếu xong — đúng
@@ -238,10 +238,10 @@
         <field name="name">dl.stock.picking.receipt.search</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <search string="Nhận hàng NCC">
+            <search string="Nhận hàng nhà cung cấp">
                 <field name="name" string="Số phiếu"/>
                 <field name="partner_id" string="Nhà cung cấp"/>
-                <field name="origin" string="Số chứng từ của NCC"/>
+                <field name="origin" string="Số chứng từ của nhà cung cấp"/>
 
                 <!-- Segment: 3 chip cùng một nhóm (chọn nhiều = OR, KHÔNG
                      separator giữa chúng) — tiền lệ filter trạng thái Báo giá. -->
@@ -268,7 +268,7 @@
     </record>
 
     <record id="action_dl_picking_receipt" model="ir.actions.act_window">
-        <field name="name">Nhận hàng NCC</field>
+        <field name="name">Nhận hàng nhà cung cấp</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('picking_type_id.code', '=', 'incoming')]</field>
@@ -281,7 +281,7 @@
         <field name="context">{'restricted_picking_type_code': 'incoming'}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Chưa có phiếu nhận hàng nào</p>
-            <p>Mỗi lần NCC giao hàng, tạo một phiếu nhận. Hàng vào khu
+            <p>Mỗi lần nhà cung cấp giao hàng, tạo một phiếu nhận. Hàng vào khu
                <b>Chờ kiểm hàng</b> trước, kiểm đạt mới cất vào kho.</p>
         </field>
     </record>
@@ -327,7 +327,7 @@
                                 class="oe_stat_button" icon="fa-reply"
                                 invisible="dlm_return_count == 0">
                             <field name="dlm_return_count" widget="statinfo"
-                                   string="Phiếu trả NCC"/>
+                                   string="Phiếu trả nhà cung cấp"/>
                         </button>
                     </div>
 
@@ -389,7 +389,7 @@
                                     <field name="lot_ids" string="Lô"
                                            widget="many2many_tags" readonly="1"
                                            optional="show"/>
-                                    <field name="product_uom_qty" widget="dl_qty" string="NCC giao"
+                                    <field name="product_uom_qty" widget="dl_qty" string="Nhà cung cấp giao"
                                            readonly="1" sum="Tổng"/>
                                     <field name="quantity" widget="dl_qty" string="Đạt" sum="Tổng"/>
                                     <field name="dlm_qty_rejected" widget="dl_qty" string="Loại"
@@ -419,7 +419,7 @@
                                             string="Bằng chứng"
                                             title="Chụp / xem ảnh hàng lỗi của dòng này"
                                             invisible="dlm_qty_rejected &lt;= 0"/>
-                                    <field name="product_uom" string="ĐVT"
+                                    <field name="product_uom" string="Đơn vị tính"
                                            groups="uom.group_uom" readonly="1"/>
                                     <field name="dlm_qc_over" column_invisible="1"/>
                                     <field name="picked" column_invisible="1"/>
@@ -550,7 +550,7 @@
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Không có phiếu nào chờ kiểm</p>
             <p>Phiếu kiểm sinh ra <b>tự động</b> sau khi xác nhận một phiếu
-               <b>Nhận hàng NCC</b> — không tạo tay ở đây.</p>
+               <b>Nhận hàng nhà cung cấp</b> — không tạo tay ở đây.</p>
         </field>
     </record>
 

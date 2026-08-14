@@ -20,7 +20,7 @@ const PURCHASE_CHILDREN = [
   },
   {
     key: "vendor_return",
-    name: "Trả hàng NCC",
+    name: "Trả hàng nhà cung cấp",
     icon: "fa-reply",
     preferMenu: true,
     menuXmlIds: ["dl_inventory.menu_dl_picking_vendor_return"],

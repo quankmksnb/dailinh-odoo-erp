@@ -317,7 +317,7 @@
                     </p>
                     <table class="dl-cfg-table">
                         <thead><tr>
-                            <th>Nhóm khách</th><th class="num">Mặc định (%)</th><th class="num">Tối đa (%)</th>
+                            <th>Nhóm khách hàng</th><th class="num">Mặc định (%)</th><th class="num">Tối đa (%)</th>
                             <th>Hiệu lực từ</th><th>Trạng thái</th><th class="actw"></th>
                         </tr></thead>
                         <tbody>
@@ -576,7 +576,7 @@
                                 <select t-model="state.form.target_type">
                                     <t t-foreach="opt.wasteTarget" t-as="o" t-key="o.v"><option t-att-value="o.v" t-esc="o.label"/></t>
                                 </select></label>
-                            <label class="dl-cfg-f" t-if="state.form.target_type === 'category'"><span class="k">Category</span>
+                            <label class="dl-cfg-f" t-if="state.form.target_type === 'category'"><span class="k">Nhóm sản phẩm</span>
                                 <select t-model.number="state.form.category_id">
                                     <option value="">— chọn —</option>
                                     <t t-foreach="state.options.categories" t-as="c" t-key="c.id"><option t-att-value="c.id" t-esc="c.name"/></t>

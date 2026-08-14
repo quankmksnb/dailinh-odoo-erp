@@ -59,7 +59,7 @@ const PRICING_CHILDREN = [
   },
   {
     key: "trading_price",
-    name: "Bảng giá SP thương mại",
+    name: "Bảng giá sản phẩm thương mại",
     icon: "fa-tags",
     preferMenu: true,
     // 1 màn product-centric duy nhất; action tự lọc quyền theo vai trò

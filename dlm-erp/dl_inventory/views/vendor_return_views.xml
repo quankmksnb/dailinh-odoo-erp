@@ -27,7 +27,7 @@
         <field name="name">dl.stock.picking.vendor.return.tree</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <tree string="Trả hàng NCC" class="dl-vendor-return-list"
+            <tree string="Trả hàng nhà cung cấp" class="dl-vendor-return-list"
                   decoration-muted="state == 'cancel'"
                   decoration-bf="state == 'draft'">
                 <field name="name" string="Số phiếu"/>
@@ -64,7 +64,7 @@
         <field name="name">dl.stock.picking.vendor.return.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Trả hàng NCC" class="dl-vendor-return-form" create="0">
+            <form string="Trả hàng nhà cung cấp" class="dl-vendor-return-form" create="0">
                 <header>
                     <!-- RS-03 — "Chốt trả hàng" và "Không trả nữa" là QUYẾT ĐỊNH
                          ĐỐI NGOẠI (đổi hàng / giảm công nợ / NCC tự lấy) ⇒ của
@@ -105,7 +105,7 @@
                          KHÔNG khoá theo `groups`: thủ kho cũng cần in ra kẹp vào
                          hàng lúc xe NCC tới lấy. -->
                     <button name="action_dlm_print_reject_report"
-                            string="Biên bản gửi NCC" icon="fa-file-pdf-o"
+                            string="Biên bản gửi nhà cung cấp" icon="fa-file-pdf-o"
                             type="object" class="btn-secondary"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
@@ -171,7 +171,7 @@
                                            string="Lô" readonly="1"/>
                                     <field name="product_uom_qty" widget="dl_qty" string="Số lượng trả"
                                            sum="Tổng"/>
-                                    <field name="product_uom" string="ĐVT"
+                                    <field name="product_uom" string="Đơn vị tính"
                                            groups="uom.group_uom" readonly="1"/>
                                     <field name="dlm_reject_reason" string="Lý do"
                                            readonly="1"/>
@@ -217,7 +217,7 @@
         <field name="name">dl.stock.picking.vendor.return.search</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <search string="Trả hàng NCC">
+            <search string="Trả hàng nhà cung cấp">
                 <field name="name" string="Số phiếu"/>
                 <field name="partner_id" string="Nhà cung cấp"/>
                 <field name="dlm_origin_picking_id" string="Phiếu nhận gốc"/>
@@ -245,7 +245,7 @@
     </record>
 
     <record id="action_dl_picking_vendor_return" model="ir.actions.act_window">
-        <field name="name">Trả hàng NCC</field>
+        <field name="name">Trả hàng nhà cung cấp</field>
         <field name="res_model">stock.picking</field>
         <field name="view_mode">tree,form</field>
         <field name="domain">[('picking_type_id.sequence_code', '=', 'TR')]</field>

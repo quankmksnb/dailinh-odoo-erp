@@ -64,7 +64,7 @@ from odoo import _, api, fields, models
 # `xuong_pl`.
 _DLM_NEW_LOCATIONS = [
     ("nhan", "Khu nhập hàng", "internal", "wh_view"),
-    ("nhan_tra", "Chờ trả NCC", "internal", "nhan"),
+    ("nhan_tra", "Chờ trả nhà cung cấp", "internal", "nhan"),
     ("khosx", "Kho nhà máy sản xuất", "internal", "wh_view"),
     ("xuong_pl", "Phế liệu chờ bán", "internal", "khosx"),
     # Ô LÁ — không còn con nào từ K15. Tên cũ ("Kho nhà máy sản xuất") nay thuộc
@@ -84,7 +84,7 @@ _DLM_NEW_LOCATIONS = [
 _DLM_NEW_PICKING_TYPES = [
     ("picking_type_qc", "Kiểm & cất hàng", "internal", "KC",
      "nhan_qc", "nhan_kho", 12),
-    ("picking_type_vendor_return", "Trả hàng NCC", "outgoing", "TR",
+    ("picking_type_vendor_return", "Trả hàng nhà cung cấp", "outgoing", "TR",
      "nhan_tra", "suppliers", 14),
     ("picking_type_scrap_sale", "Bán phế liệu", "outgoing", "BPL",
      "xuong_pl", "customers", 60),
@@ -117,7 +117,7 @@ _DLM_NEW_PICKING_TYPES = [
 # Ba loại hoạt động Odoo tạo sẵn — chỉ Việt hoá tên + gắn mã seq.
 # (tên field trên warehouse, tên hiển thị, mã seq)
 _DLM_NATIVE_PICKING_TYPES = [
-    ("in_type_id", "Nhận hàng NCC", "NH"),
+    ("in_type_id", "Nhận hàng nhà cung cấp", "NH"),
     ("out_type_id", "Giao hàng khách", "GH"),
     ("int_type_id", "Chuyển kho nội bộ", "CK"),
 ]
@@ -482,7 +482,7 @@ class StockLocation(models.Model):
     dlm_no_inventory = fields.Boolean(
         string="Không kiểm kê tay", default=False,
         help="Ô không được chọn tay trên phiếu và không được đếm tay. Hai loại: "
-             "khu QUÁ CẢNH (Chờ kiểm, Chờ trả NCC) — tồn ở đó đang gắn với "
+             "khu QUÁ CẢNH (Chờ kiểm, Chờ trả nhà cung cấp) — tồn ở đó đang gắn với "
              "chứng từ đang mở; và khu GOM NHÓM (Khu nhập hàng, Kho nhà máy "
              "sản xuất) — chọn khu cha là với tay được vào mọi ô con.")
 

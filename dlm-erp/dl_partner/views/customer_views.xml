@@ -11,7 +11,7 @@
                 <field name="avatar_128" widget="image" class="dl-customer-avatar"
                     options="{'preview_image': 'avatar_128'}" nolabel="1" />
                 <field name="dlm_has_photo" column_invisible="1" />
-                <field name="dlm_code" string="Mã KH" />
+                <field name="dlm_code" string="Mã khách hàng" />
                 <field name="name" string="Tên khách hàng" />
                 <field name="partner_type" string="Loại" widget="badge"
                     decoration-info="partner_type == 'company'"
@@ -21,7 +21,7 @@
                     decoration-danger="not active" />
                 <field name="phone" string="Điện thoại" />
                 <field name="email" widget="email" />
-                <field name="city" string="Tỉnh/TP" />
+                <field name="city" string="Tỉnh/Thành phố" />
                 <field name="category_id" string="Nhãn" widget="many2many_tags"
                     options="{'color_field': 'color'}" optional="show" />
                 <field name="active" column_invisible="1" />
@@ -35,9 +35,9 @@
         <field name="arch" type="xml">
             <form string="Khách hàng" class="dl-customer-form" js_class="dl_customer_form">
                 <header>
-                    <button name="toggle_active" type="object" string="Vô hiệu hóa KH"
+                    <button name="toggle_active" type="object" string="Vô hiệu hóa khách hàng"
                         class="btn-danger" invisible="not active or not id"
-                        confirm="Vô hiệu hóa khách hàng này? Dữ liệu cũ được giữ nguyên; KH sẽ không xuất hiện khi tạo báo giá/RFQ mới."
+                        confirm="Vô hiệu hóa khách hàng này? Dữ liệu cũ được giữ nguyên; khách hàng sẽ không xuất hiện khi tạo báo giá/RFQ mới."
                         groups="dl_base.dl_group_sales_manager,dl_base.dl_group_admin" />
                     <button name="toggle_active" type="object" string="Kích hoạt lại"
                         class="btn-secondary" invisible="active"
@@ -63,7 +63,7 @@
                                     required="1"
                                     readonly="not active" />
                             </h1>
-                            <div class="dl-cust-code" invisible="not dlm_code">Mã KH: <field
+                            <div class="dl-cust-code" invisible="not dlm_code">Mã khách hàng: <field
                                     name="dlm_code" class="oe_inline" />
                             </div>
                             <field name="partner_type" widget="radio"
@@ -114,7 +114,7 @@
                                 required="partner_type == 'individual'"
                                 placeholder="Bắt buộc với khách Cá nhân" />
                             <field name="email" widget="email" readonly="not active" />
-                            <field name="vat" string="Mã số thuế (MST)"
+                            <field name="vat" string="Mã số thuế"
                                 widget="dl_tax_code"
                                 readonly="not active"
                                 required="partner_type in ['company', 'dealer']"
@@ -127,7 +127,7 @@
                                  phải giải thích (_check_dup_override_reason). -->
                             <field name="dlm_dup_override_reason" readonly="not active"
                                 invisible="not dlm_allow_dup_tax and not dlm_allow_dup_contact"
-                                placeholder="VD: Chi nhánh Hà Nội, dùng chung MST và tổng đài với trụ sở." />
+                                placeholder="VD: Chi nhánh Hà Nội, dùng chung Mã số thuế và tổng đài với trụ sở." />
                         </group>
                         <group string="Địa chỉ">
                             <!-- Địa chỉ in lên PDF báo giá / hợp đồng ⇒ bắt buộc
@@ -135,7 +135,7 @@
                             <field name="street" string="Đường" readonly="not active"
                                 required="partner_type in ['company', 'dealer']"
                                 placeholder="Số nhà, tên đường..." />
-                            <field name="city" string="Tỉnh / TP" readonly="not active"
+                            <field name="city" string="Tỉnh / Thành phố" readonly="not active"
                                 required="partner_type in ['company', 'dealer']"
                                 placeholder="Tỉnh / Thành phố" />
                             <field name="country_id" string="Quốc gia" readonly="not active"
@@ -204,10 +204,10 @@
         <field name="arch" type="xml">
             <search string="Tìm khách hàng">
                 <field name="name" string="Tên" filter_domain="[('name', 'ilike', self)]" />
-                <field name="dlm_code" string="Mã KH" />
+                <field name="dlm_code" string="Mã khách hàng" />
                 <field name="phone" />
                 <field name="email" />
-                <field name="vat" string="MST" />
+                <field name="vat" string="Mã số thuế" />
                 <field name="category_id" string="Nhãn" />
                 <separator />
                 <filter string="Cá nhân" name="filter_individual"
@@ -229,7 +229,7 @@
                 <group expand="0" string="Nhóm theo">
                     <filter string="Loại khách hàng" name="group_type"
                         context="{'group_by': 'partner_type'}" />
-                    <filter string="Tỉnh/TP" name="group_city"
+                    <filter string="Tỉnh/Thành phố" name="group_city"
                         context="{'group_by': 'city'}" />
                     <filter string="Nhãn" name="group_category"
                         context="{'group_by': 'category_id'}" />

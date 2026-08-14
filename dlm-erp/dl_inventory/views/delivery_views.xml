@@ -174,7 +174,7 @@
                                            domain="[('id', 'in', parent.dlm_orderable_product_ids)]"/>
                                     <field name="product_uom_qty" widget="dl_qty" string="Cần giao"/>
                                     <field name="quantity" widget="dl_qty" string="Thực giao"/>
-                                    <field name="product_uom" string="ĐVT"
+                                    <field name="product_uom" string="Đơn vị tính"
                                            groups="uom.group_uom"/>
                                     <!-- SM-05: lô của đúng SP + đang nằm ở nguồn. -->
                                     <field name="lot_ids" string="Số lô"

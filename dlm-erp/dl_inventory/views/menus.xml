@@ -111,7 +111,7 @@
          hàng loại ở bước kiểm, quyết định trả là việc đối ngoại của Mua hàng. -->
     <menuitem
         id="menu_dl_picking_vendor_return"
-        name="Trả hàng NCC"
+        name="Trả hàng nhà cung cấp"
         action="action_dl_picking_vendor_return"
         parent="dl_base.menu_dl_inventory"
         sequence="60"

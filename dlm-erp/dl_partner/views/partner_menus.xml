@@ -14,7 +14,7 @@
     <!-- NCC full-CRUD: Admin / CEO / Mua hàng (chủ sở hữu NCC) -->
     <menuitem
         id="menu_dl_sale_supplier"
-        name="NCC / Thầu phụ"
+        name="Nhà cung cấp / Thầu phụ"
         parent="dl_base.menu_dl_sale"
         sequence="20"
         action="action_dl_supplier"
@@ -24,7 +24,7 @@
     <!-- NCC chỉ-đọc: Trưởng KD + Kế toán (Kế toán đã chuyển sang chỉ xem NCC) -->
     <menuitem
         id="menu_dl_sale_supplier_readonly"
-        name="NCC / Thầu phụ"
+        name="Nhà cung cấp / Thầu phụ"
         parent="dl_base.menu_dl_sale"
         sequence="21"
         action="action_dl_supplier_readonly"
