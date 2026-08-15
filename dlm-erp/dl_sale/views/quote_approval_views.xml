@@ -23,12 +23,11 @@
                         type="object" class="btn-secondary"
                         invisible="not quotation_id"/>
             </xpath>
-            <!-- Tóm tắt quyết định LÊN ĐẦU, cạnh nút Duyệt/Từ chối (review UX
-                 aform #f2/#f4): người duyệt thấy ngay giá trị, lãi gộp, mức bào
-                 mòn markup và cờ rủi ro dạng chip (thay true/false). Dùng ĐÚNG
-                 khuôn .dl-cost-summary của trang "Phân tích giá thành" — cùng số,
-                 cùng cách đọc. Lý do từ chối (#f1) nhập trong dialog khi bấm
-                 Từ chối, không để thường trực. -->
+            <!-- Bảng tóm tắt để duyệt, đặt lên đầu cạnh nút Duyệt/Từ chối:
+                 người duyệt thấy ngay giá trị, lãi gộp, mức bào mòn markup và
+                 chip rủi ro. Dùng đúng khuôn .dl-cost-summary của trang Phân
+                 tích giá thành cho cùng cách đọc. Lý do từ chối nhập trong
+                 dialog lúc bấm Từ chối, không để sẵn trên form. -->
             <xpath expr="//div[hasclass('oe_title')]" position="after">
                 <div class="dl-cost-summary" invisible="not quotation_id">
                     <div class="dl-cost-head">
@@ -195,9 +194,8 @@
                 <field name="q_amount_total" string="Tổng thanh toán"
                        widget="dl_money" options="{'currency_field': 'q_currency_id'}"/>
                 <field name="approval_level" string="Cấp duyệt"/>
-                <!-- Lý do vượt ngưỡng ngay trên dòng thay vì phải mở từng bản ghi
-                     (review UX inbox #f2). Gated theo _COST_GROUPS vì gộp cả
-                     "Dưới giá sàn". -->
+                <!-- Cột lý do vượt ngưỡng ngay trên dòng, khỏi mở từng bản ghi.
+                     Gắn groups vì có gộp cả "Dưới giá sàn" (số giá vốn). -->
                 <field name="risk_summary" string="Rủi ro"
                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                 <field name="requester_id" string="Người gửi" widget="many2one_avatar_user"/>

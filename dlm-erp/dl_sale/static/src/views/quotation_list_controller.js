@@ -1,16 +1,15 @@
 /** @odoo-module **/
 // ============================================================
-//  DL Quotation List — kế thừa DlListBaseController (khung chung).
-//  Đăng ký view js_class="dl_quotation_list" (dùng ở quotation_views.xml).
-//  Phần RIÊNG của báo giá: chip lọc theo TRẠNG THÁI có số đếm. Bấm chip =
-//  bật/tắt filter sẵn trong search view nên đồng bộ hoàn toàn với bộ lọc
-//  gốc của Odoo.
+//  Danh sách Báo giá — thanh chip lọc theo trạng thái + ô tổng giá trị.
+//  Gắn vào tree bằng js_class="dl_quotation_list" (khai ở quotation_views.xml),
+//  dựng trên khung chung DlListBaseController. Bấm chip chỉ là bật/tắt các
+//  <filter> có sẵn trong search view nên khớp hoàn toàn với bộ lọc gốc Odoo.
 //
-//  QUAN TRỌNG — single-select phải quản TẤT CẢ filter trạng thái (kể cả
-//  composite open/closed/history + filter mặc định 'open' trên action), vì
-//  mọi filter state nằm CHUNG một nhóm OR trong search view. Nếu chỉ tắt
-//  vài filter, composite 'open' vẫn active ⇒ 'open OR draft' ⇒ chip không
-//  lọc được (bug cũ chỉ quản 4 filter draft/sent/approved/rejected).
+//  🔴 Chip là chọn-một, mà mọi filter trạng thái nằm chung một nhóm OR trong
+//  search view. Nên khi bấm một chip phải tắt HẾT các filter trạng thái đang
+//  bật (kể cả các chip gộp open/closed/history và filter mặc định 'open' của
+//  action) rồi mới bật đúng một cái. Chỉ tắt vài cái thì 'open' còn sống,
+//  thành 'open OR draft', chip không lọc được.
 // ============================================================
 
 import { registry } from "@web/core/registry";
@@ -19,12 +18,11 @@ import { useEffect } from "@odoo/owl";
 import { formatMonetary } from "@web/views/fields/formatters";
 import { DlListBaseController } from "@dl_base/views/dl_list_controller";
 
-// Tab phân đoạn (review UX list #f1): CHỈ 3 nhóm gộp + "Tất cả" làm thanh
-// điều hướng chính, thay cho 10 chip phẳng khó quét. Trạng thái chi tiết dời
-// vào dropdown "Trạng thái chi tiết" (dlFilterDropdowns) — chọn chi tiết thì
-// bỏ segment (loại trừ nhau) vì mọi filter state nằm chung một nhóm OR.
-// "open" = pipeline đang sống (= filter mặc định của action); "closed" = các
-// kết cục đóng; "history" = superseded (bản cũ bị thay thế).
+// Thanh chip chính: gộp 10 trạng thái thành 3 nhóm + "Tất cả" cho dễ quét.
+// Trạng thái lẻ dời vào dropdown "Trạng thái chi tiết" bên dưới.
+//   open    = báo giá đang sống (trùng filter mặc định của action)
+//   closed  = đã đóng (từ chối/hết hạn/huỷ)
+//   history = bản cũ đã bị thay bản mới
 const CHIPS = [
     { key: "all", label: "Tất cả" },
     { key: "open", label: "Đang xử lý" },
@@ -46,9 +44,9 @@ const DETAIL_FILTERS = [
     { name: "superseded", label: "Đã thay bản mới" },
 ];
 
-// Toàn bộ filter trạng thái mà chip cần quản để single-select sạch — gồm cả
-// composite (open/closed/history) lẫn từng trạng thái. Bấm 1 chip: tắt hết
-// những cái đang active trong tập này rồi bật đúng 1.
+// Tất cả filter trạng thái mà chip phải quản để chọn-một cho sạch — cả chip
+// gộp lẫn từng trạng thái lẻ. Bấm 1 chip: tắt hết cái đang bật trong danh
+// sách này rồi bật đúng 1.
 const MANAGED_FILTERS = [
     "open", "closed", "history",
     "draft", "approved", "sent", "revision_requested",
@@ -59,9 +57,8 @@ const MANAGED_FILTERS = [
 export class DlQuotationListController extends DlListBaseController {
     setup() {
         super.setup();
-        // Tổng giá trị pipeline theo bộ lọc hiện tại (review UX list #f4). Đếm
-        // qua readGroup trên ĐÚNG domain đang xem (không chỉ trang hiện tại) —
-        // recompute mỗi khi domain đổi (chip/dropdown/search).
+        // Ô "Tổng giá trị" ở chân danh sách — cộng trên ĐÚNG bộ lọc đang xem
+        // (không phải chỉ trang hiện tại), tính lại mỗi khi đổi chip/lọc/tìm.
         useEffect(
             () => {
                 this._refreshPipelineTotal();
@@ -109,8 +106,8 @@ export class DlQuotationListController extends DlListBaseController {
             }
         }
         amt.textContent = this.dlAmountText || "";
-        // Màn có chipbar nên base ẩn số đếm; nhưng footer vẫn phải hiện để show
-        // ô "Tổng giá trị" — bật lại tường minh.
+        // Khung chung ẩn chân danh sách khi có chipbar; nhưng ở đây vẫn cần
+        // chân để hiện ô "Tổng giá trị" — bật lại.
         footer.style.display = "";
     }
 
@@ -143,7 +140,7 @@ export class DlQuotationListController extends DlListBaseController {
             total += n;
         }
         counts.all = total;
-        // Số đếm cho các chip gộp (đồng bộ đúng domain composite ở search view).
+        // Số đếm cho 3 chip gộp — cộng đúng theo cách search view gộp.
         const sum = (...keys) => keys.reduce((s, k) => s + (counts[k] || 0), 0);
         counts.open = sum(
             "draft", "approved", "sent", "revision_requested", "accepted", "ordered"
@@ -153,16 +150,15 @@ export class DlQuotationListController extends DlListBaseController {
         this.dlCounts = counts;
     }
 
-    // Tất cả filter trạng thái trong search view (composite + từng state).
+    // Lấy các <filter> trạng thái trong search view (cả chip gộp lẫn lẻ).
     _stateFilters() {
         return this.env.searchModel.getSearchItems(
             (i) => i.type === "filter" && MANAGED_FILTERS.includes(i.name)
         );
     }
 
-    // Chip đang active = segment đang bật. Không filter nào → "Tất cả". Nếu đang
-    // bật một trạng thái CHI TIẾT (từ dropdown) thì KHÔNG segment nào sáng ("") —
-    // dropdown phản ánh lựa chọn đó. Mặc định action bật 'open' ⇒ "Đang xử lý".
+    // Chip nào đang sáng. Không lọc gì → "Tất cả". Đang bật một trạng thái lẻ
+    // từ dropdown → không chip nào sáng (""). Mặc định action bật 'open'.
     _activeChip() {
         const chipKeys = new Set(CHIPS.map((c) => c.key));
         const active = this._stateFilters().find((i) => i.isActive);
@@ -172,7 +168,7 @@ export class DlQuotationListController extends DlListBaseController {
         return chipKeys.has(active.name) ? active.name : "";
     }
 
-    // Single-select: tắt MỌI filter trạng thái đang active rồi bật đúng 1.
+    // Bấm chip: tắt mọi filter trạng thái đang bật rồi bật đúng 1.
     _selectChip(key) {
         const sm = this.env.searchModel;
         const items = this._stateFilters();
@@ -189,9 +185,9 @@ export class DlQuotationListController extends DlListBaseController {
         }
     }
 
-    // Dropdown "Trạng thái chi tiết" LOẠI TRỪ với segment: chọn chi tiết thì bỏ
-    // hết segment (open/closed/history) đang bật rồi bật đúng trạng thái đó — nếu
-    // không 'open OR draft' vẫn = open (mọi filter state chung nhóm OR).
+    // Dropdown "Trạng thái chi tiết" loại trừ với chip gộp: chọn một trạng
+    // thái lẻ thì tắt hết chip đang bật rồi bật đúng nó — nếu không 'open OR
+    // draft' vẫn ra open (mọi filter chung nhóm OR).
     _onFilterDropdownChange(dd, value) {
         const sm = this.env.searchModel;
         for (const it of this._stateFilters()) {

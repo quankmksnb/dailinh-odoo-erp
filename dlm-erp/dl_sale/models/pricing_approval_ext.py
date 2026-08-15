@@ -5,22 +5,22 @@ from .dl_quotation import _COST_GROUPS
 
 
 class DlPricingApprovalRequest(models.Model):
-    """Bridge dl_sale (cùng pattern §17.7): nhúng chi tiết báo giá vào form
-    Yêu cầu phê duyệt để người duyệt (Trưởng KD/Giám đốc) thấy ngay báo giá
-    cấu thành từ gì — dòng, giá thành, markup, giá sàn, chiết khấu, cấu phần
-    snapshot — không phải tự lục nhiều màn. Model gốc (dl_config) không biết
-    dl.quotation nên phần này phải nằm ở dl_sale.
-    """
+    """Nhồi toàn bộ số liệu báo giá vào form màn Phê duyệt báo giá.
+
+    Người duyệt (Trưởng KD/Giám đốc) nhìn một màn là thấy đủ: dòng hàng, giá
+    thành, markup, giá sàn, chiết khấu, cấu phần — khỏi phải mở ngược sang báo
+    giá. Model yêu cầu duyệt gốc nằm ở dl_config, không biết tới dl.quotation,
+    nên phần nối này phải đặt ở dl_sale."""
 
     _inherit = "dl.pricing.approval.request"
 
-    # store=True: res_model/res_id bất biến sau khi tạo nên lưu an toàn; đồng
-    # thời làm field searchable — ORM cần thế để resolve các related q_* dưới.
+    # store=True vì res_model/res_id không đổi sau khi tạo nên lưu an toàn, và
+    # ORM cần field này searchable để nối được đám related q_* bên dưới.
     quotation_id = fields.Many2one(
         "dl.quotation", string="Báo giá", compute="_compute_quotation_id",
         store=True, ondelete="set null")
 
-    # --- Related readonly: bức tranh tiền của báo giá cho người duyệt ---
+    # --- Chiếu số của báo giá sang màn duyệt (chỉ đọc) ---
     q_partner_id = fields.Many2one(related="quotation_id.partner_id",
                                    string="Khách hàng")
     q_currency_id = fields.Many2one(related="quotation_id.currency_id")
@@ -48,7 +48,8 @@ class DlPricingApprovalRequest(models.Model):
     q_partner_group = fields.Selection(related="quotation_id.partner_group",
                                        string="Nhóm khách hàng")
 
-    # --- Nhóm chi phí nội bộ: giữ đúng hàng rào groups như trên báo giá ---
+    # --- Nhóm giá vốn: giữ nguyên hàng rào groups như trên báo giá, không để
+    #     lộ giá vốn cho người không được xem ---
     q_total_cost = fields.Float(related="quotation_id.total_cost",
                                 groups=_COST_GROUPS)
     q_target_markup = fields.Float(related="quotation_id.target_markup",
@@ -59,10 +60,9 @@ class DlPricingApprovalRequest(models.Model):
                                   groups=_COST_GROUPS)
     q_below_floor = fields.Boolean(related="quotation_id.below_floor",
                                    groups=_COST_GROUPS)
-    # Cùng bộ số của trang "Phân tích giá thành" (form Báo giá): lãi gộp, cơ
-    # cấu 3 lớp chi phí, markup niêm yết/tại giá sàn và bản diễn giải "công
-    # thức" theo từng sản phẩm. Người duyệt cần đọc giá cấu thành từ đâu ngay
-    # tại màn quyết định, không phải mở lại báo giá đầy đủ.
+    # Đúng bộ số của trang Phân tích giá thành bên form Báo giá: lãi gộp, cơ
+    # cấu 3 lớp chi phí, markup niêm yết/tại giá sàn, và bảng công thức theo
+    # từng sản phẩm — để người duyệt đọc giá cấu thành từ đâu ngay tại chỗ.
     q_gross_profit = fields.Float(related="quotation_id.gross_profit",
                                   groups=_COST_GROUPS)
     q_list_markup = fields.Float(related="quotation_id.list_markup",
@@ -75,20 +75,21 @@ class DlPricingApprovalRequest(models.Model):
         related="quotation_id.cost_operation_total", groups=_COST_GROUPS)
     q_cost_adjustment_total = fields.Float(
         related="quotation_id.cost_adjustment_total", groups=_COST_GROUPS)
-    # sanitize=False khớp field nguồn: nội dung do server dựng (Markup), không
-    # phải người dùng nhập — sanitize sẽ cắt mất cấu trúc <details>/<summary>.
+    # sanitize=False y như field nguồn: HTML do server tự dựng, không phải
+    # người dùng nhập; bật sanitize sẽ cắt mất cấu trúc <details>/<summary>.
     q_cost_breakdown_html = fields.Html(
         related="quotation_id.cost_breakdown_html", sanitize=False,
         groups=_COST_GROUPS)
 
-    # --- SLA: tuổi chờ duyệt cho hòm phê duyệt (review UX inbox #f1) ---
-    # Người duyệt cần biết yêu cầu đã chờ bao lâu để ưu tiên; sắp theo "tuổi"
-    # tương đương sắp theo cột "Ngày gửi" (create_date) sẵn có.
+    # Cột "Chờ (ngày)" trên danh sách Phê duyệt báo giá — để người duyệt biết
+    # yêu cầu nào để lâu mà ưu tiên. Sắp theo cột này tương đương sắp theo ngày
+    # gửi.
     waiting_days = fields.Integer(
         string='Chờ (ngày)', compute='_compute_waiting_days')
 
     @api.depends('create_date', 'state', 'resolved_at')
     def _compute_waiting_days(self):
+        """Số ngày đang chờ; đã xử lý xong thì về 0."""
         now = fields.Datetime.now()
         for req in self:
             if req.state == 'pending' and req.create_date:
@@ -96,15 +97,16 @@ class DlPricingApprovalRequest(models.Model):
             else:
                 req.waiting_days = 0
 
-    # --- Tóm tắt rủi ro dạng chip cho dòng danh sách (review UX inbox #f2) ---
-    # Thay "Cấp duyệt" trơ bằng lý do cụ thể (vượt trần chiết khấu / dưới giá
-    # sàn). Đọc qua sudo vì below_floor gated _COST_GROUPS — nhãn gộp này chỉ
-    # hiện ở cột có groups=_COST_GROUPS trong tree nên không lộ ngoài phạm vi.
+    # Cột "Rủi ro" trên danh sách Phê duyệt — nói thẳng vì sao phải duyệt
+    # (vượt trần chiết khấu / dưới giá sàn) thay cho "Cấp duyệt" chung chung.
+    # Đọc qua sudo vì below_floor bị chắn theo _COST_GROUPS; cột này cũng gắn
+    # groups=_COST_GROUPS nên không lộ ra ngoài phạm vi được xem giá vốn.
     risk_summary = fields.Char(
         string='Rủi ro', compute='_compute_risk_summary')
 
     @api.depends('quotation_id.below_floor', 'quotation_id.discount_above_max')
     def _compute_risk_summary(self):
+        """Ghép nhãn rủi ro: vượt trần chiết khấu và/hoặc dưới giá sàn."""
         for req in self:
             q = req.quotation_id.sudo()
             parts = []
@@ -114,16 +116,17 @@ class DlPricingApprovalRequest(models.Model):
                 parts.append(_('Dưới giá sàn'))
             req.risk_summary = ' · '.join(parts)
 
-    # --- Cờ "trong ngưỡng an toàn" KHÔNG gated để badge success hiện cho mọi
-    # người duyệt. Gộp cả "dưới giá sàn" (gated _COST_GROUPS) qua sudo nên
-    # badge phản ánh đúng, nhưng chỉ lộ ra dạng boolean an toàn/không — không
-    # để lộ con số giá sàn ra ngoài phạm vi. Tránh tham chiếu q_below_floor
-    # trực tiếp trong modifier của element không gated (gây lỗi validate view).
+    # Cờ "trong ngưỡng an toàn" để hiện badge xanh cho MỌI người duyệt, nên
+    # KHÔNG gắn groups. Nó gộp cả "dưới giá sàn" (vốn bị chắn) qua sudo, nhưng
+    # chỉ phơi ra dạng đúng/sai — không lộ con số giá sàn. Phải có field riêng
+    # thế này vì nếu view không-gated tham chiếu thẳng q_below_floor thì Odoo
+    # báo lỗi kiểm tra view.
     q_in_safe_range = fields.Boolean(
         string='Trong ngưỡng an toàn', compute='_compute_q_in_safe_range')
 
     @api.depends('quotation_id.below_floor', 'quotation_id.discount_above_max')
     def _compute_q_in_safe_range(self):
+        """An toàn = không vượt trần chiết khấu và không dưới giá sàn."""
         for req in self:
             q = req.quotation_id.sudo()
             req.q_in_safe_range = bool(q) and not q.discount_above_max \
@@ -139,6 +142,7 @@ class DlPricingApprovalRequest(models.Model):
             )
 
     def action_open_quotation(self):
+        """Nút mở báo giá gắn với yêu cầu duyệt này."""
         self.ensure_one()
         if not self.quotation_id:
             raise UserError(_("Yêu cầu này không gắn với báo giá nào."))

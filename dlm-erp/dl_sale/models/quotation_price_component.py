@@ -1,7 +1,7 @@
 from odoo import fields, models
 
-# Nhóm được xem cấu phần giá thành (giống BOM: chỉ Kế toán/Trưởng KD/CEO/Admin).
-# Sales (BA) chỉ cần thấy giá bán ở dòng báo giá, không cần chi tiết chi phí.
+# Ai được xem số tiền của từng cấu phần giá: Kế toán/Trưởng KD/CEO/Admin.
+# Sales chỉ thấy giá bán, không thấy giá vốn cấu thành.
 _COST_GROUPS = (
     "dl_base.dl_group_ceo,"
     "dl_base.dl_group_admin,"
@@ -11,14 +11,13 @@ _COST_GROUPS = (
 
 
 class DlQuotationPriceComponent(models.Model):
-    """Snapshot BẤT BIẾN từng cấu phần giá của một dòng báo giá (Decision A2).
+    """Ảnh chụp BẤT BIẾN từng cấu phần giá của một dòng báo giá — dữ liệu nuôi
+    bảng công thức ở trang Phân tích giá thành.
 
-    Khi tạo báo giá, dịch vụ tính giá copy các giá trị vô hướng (qty, đơn giá,
-    thành tiền) và metadata nguồn (model/id/revision) vào đây. Sau đó thay đổi
-    supplierinfo.price, is_applied, BOM.total_material_cost hay list_price
-    KHÔNG được làm đổi số của báo giá đã tạo — mọi field ở đây là dữ liệu tĩnh,
-    không compute động theo rule sống.
-    """
+    Lúc tạo báo giá, engine chép sang đây các con số (số lượng, đơn giá, thành
+    tiền) và nguồn gốc (model/id/version). Sau này giá NCC hay giá bán có đổi
+    thì báo giá cũ vẫn giữ nguyên số — mọi field ở đây là dữ liệu tĩnh, không
+    tính động theo rule sống."""
 
     _name = "dl.quotation.price.component"
     _description = "Cấu phần giá báo giá (snapshot)"
@@ -55,9 +54,9 @@ class DlQuotationPriceComponent(models.Model):
         required=True,
     )
 
-    # Truy vết nguồn — dùng model/id/revision thay vì reference field để không
-    # ràng buộc cứng vào bản ghi nguồn (bản ghi nguồn có thể đổi, snapshot thì
-    # không). Ví dụ: product.supplierinfo / dl.bom / product.product.
+    # Nguồn gốc cấu phần — lưu model/id/version rời thay vì reference, để không
+    # bị ràng cứng vào bản ghi nguồn (nguồn có thể đổi, ảnh chụp thì không).
+    # Ví dụ: product.supplierinfo / dl.bom / product.product.
     source_model = fields.Char(string="Model nguồn")
     source_id = fields.Integer(string="ID nguồn")
     source_revision = fields.Integer(string="Revision nguồn")
@@ -78,5 +77,5 @@ class DlQuotationPriceComponent(models.Model):
     no_discount = fields.Boolean(
         string="Không chịu chiết khấu",
         default=False,
-        help="Khoản không nằm trong cơ sở chịu chiết khấu (dành cho P1).",
+        help="Khoản không bị trừ chiết khấu (để dành cho phase sau).",
     )

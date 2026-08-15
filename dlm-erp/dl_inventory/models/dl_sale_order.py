@@ -1,31 +1,11 @@
 # -*- coding: utf-8 -*-
-"""K6 — Mối nối đơn bán hàng ↔ phiếu giao hàng.
-
-Thiết kế: ``docs/Thiet_ke_phan_he_kho.md`` §9.1, §11.6.
-
-Phiếu giao KHÔNG tự sinh khi chốt đơn. Hàng gia công chưa tồn tại lúc chốt đơn —
-phiếu giao sinh ra sẽ treo mãi ở trạng thái chờ, và hàng đợi của thủ kho đầy
-những việc chưa làm được. Để NÚT BẤM: ai đó phải quyết định "hàng đã sẵn sàng".
-
-🔴 **K13 (2026-08-13) — ĐẢO quyết định của K6: dòng ``consu`` PHẢI lên phiếu
-giao.** Bản K6 loại chúng ra vì _"không có tồn nên chỉ tạo dòng vĩnh viễn không
-giữ chỗ được"_. Lý do đó **sai về kỹ thuật**: Odoo
-``_should_bypass_reservation()`` trả True cho SP không storable, nên dòng
-``consu`` nhảy thẳng sang ``assigned`` và validate bình thường — nó không bao
-giờ treo. Còn cái giá thì rất thật: đơn Hạng A — loại đơn phổ biến NHẤT của Đại
-Linh — không có chứng từ giao hàng nào, không có gì cho khách ký, và
-``dlm_delivery_state`` đứng yên "Chưa giao" kể cả khi hàng đã lên xe.
-
-Nay chỉ **dịch vụ** bị loại. Giữ chỗ và trừ tồn vẫn chỉ áp cho dòng storable —
-đó là việc của Odoo, không phải của luật ở đây.
-"""
+"""Mối nối đơn bán hàng ↔ phiếu giao hàng (phiếu giao bấm nút mới sinh, không tự sinh khi chốt đơn)."""
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.float_utils import float_compare, float_is_zero
 
-# Vai trò được phép yêu cầu giao hàng. Thủ kho là người giao; Sales/Trưởng KD là
-# người biết khách đã sẵn sàng nhận. Cả hai đều bấm được nút này.
+# Vai trò được phép bấm Tạo phiếu giao: Thủ kho + Sales/Trưởng KD/CEO/Admin.
 _DLM_DELIVERY_ROLES = (
     "dl_base.dl_group_warehouse",
     "dl_base.dl_group_ba",
@@ -48,8 +28,7 @@ class DlSaleOrder(models.Model):
         ("done", "Đã giao đủ"),
     ], string="Tình trạng giao hàng", compute="_compute_dlm_delivery_state",
         store=True, default="nothing")
-    # Không có dòng nào cần giao qua kho (đơn toàn SP dùng chung Hạng A) — nút
-    # Tạo phiếu giao phải ẩn hẳn thay vì để người dùng bấm rồi ăn lỗi.
+    # Có dòng nào cần giao qua kho không — để ẩn/hiện nút Tạo phiếu giao.
     dlm_has_deliverable = fields.Boolean(
         string="Có hàng cần giao qua kho",
         compute="_compute_dlm_delivery_state", store=True)
@@ -81,12 +60,7 @@ class DlSaleOrder(models.Model):
 
     # ── Số lượng: cần giao / đã giao / còn lại ───────────────────────────────
     def _dlm_deliverable_lines(self):
-        """Dòng đơn phải có mặt trên phiếu giao.
-
-        🔴 K13 — ``consu`` (SP dùng chung Hạng A) VÀO, chỉ dịch vụ bị loại. Dịch
-        vụ không có gì để giao và không có gì để khách ký nhận; hàng Hạng A thì
-        có — nó chỉ không đi qua tồn kho, mà đó là chuyện khác hẳn.
-        """
+        """Dòng đơn phải lên phiếu giao (gồm cả `consu` Hạng A, chỉ loại dịch vụ)."""
         self.ensure_one()
         return self.line_ids.filtered(
             lambda line: line.product_id
@@ -102,22 +76,13 @@ class DlSaleOrder(models.Model):
         return needed
 
     def _dlm_delivery_pickings(self):
-        """Phiếu GIAO HÀNG của đơn — KHÔNG phải mọi phiếu kho gắn vào đơn.
-
-        🔴 K13 mở ra ca này: phiếu [8] Nhập thành phẩm cũng ghi
-        ``dlm_sale_order_id`` (§11.13 — thủ kho phải biết lô hàng vừa làm xong là
-        của đơn nào). Đếm nó chung với phiếu giao thì nhập 10 cái bàn vào kho bị
-        tính là **đã giao 10 cái cho khách**: đơn tự nhảy sang "Đã giao đủ" khi
-        hàng còn nằm nguyên trong Kho thành phẩm. Lọc theo loại hoạt động, không
-        theo hướng phiếu (``outgoing`` còn có Trả NCC và Bán phế liệu).
-        """
+        """Chỉ phiếu Giao hàng (loại "GH") của đơn — loại phiếu Nhập thành phẩm/Trả NCC/Bán phế liệu."""
         self.ensure_one()
         return self.dlm_picking_ids.filtered(
             lambda p: p.picking_type_id.sequence_code == "GH")
 
     def _dlm_delivered_qty(self):
-        """{product: số đã giao xong}. Chỉ đếm move ĐÃ hoàn tất — phiếu còn nháp
-        hay đang chờ hàng chưa phải là hàng đã tới tay khách."""
+        """{product: số đã giao xong} — chỉ đếm move đã hoàn tất (done)."""
         self.ensure_one()
         delivered = {}
         for picking in self._dlm_delivery_pickings():
@@ -127,16 +92,7 @@ class DlSaleOrder(models.Model):
         return delivered
 
     def _dlm_planned_qty(self, exclude_picking=None):
-        """{product: số đang nằm trên phiếu chưa xong}.
-
-        Trừ phần này khi tạo phiếu mới, nếu không bấm nút hai lần là ra hai phiếu
-        giao cùng một lô hàng — kho sẽ giao gấp đôi mà không chứng từ nào cảnh báo.
-
-        ``exclude_picking`` — phiếu ĐANG được lập, để nó không tự trừ mình. Một
-        phiếu nháp đã Lưu vẫn nằm trong ``dlm_picking_ids`` của đơn: người dùng
-        đổi sang đơn khác rồi đổi ngược về đơn cũ sẽ thấy "đơn không còn hàng"
-        vì chính dòng hàng của phiếu này đang bị đếm là hàng của phiếu khác.
-        """
+        """{product: số đang nằm trên phiếu chưa xong} — trừ khi tạo phiếu mới để không giao gấp đôi (`exclude_picking` = phiếu đang lập, không tự trừ mình)."""
         self.ensure_one()
         planned = {}
         open_pickings = self._dlm_delivery_pickings().filtered(
@@ -176,14 +132,7 @@ class DlSaleOrder(models.Model):
 
     # ── Hành động ────────────────────────────────────────────────────────────
     def action_dlm_create_delivery(self):
-        """Tạo phiếu giao hàng cho phần chưa có phiếu.
-
-        sudo khi ghi: Sales biết khách đã sẵn sàng nhận nhưng theo ma trận quyền
-        (§8.4) họ chỉ ĐỌC phiếu kho — quyền tạo/sửa thuộc Thủ kho. Yêu cầu giao
-        hàng không phải là thao tác kho, nên mở cho cả hai bên bằng cách kiểm vai
-        trò tường minh ở đây rồi ghi bằng sudo, thay vì nới ACL cho Sales sửa
-        được MỌI phiếu kho (kể cả phiếu nhận — mất kiểm soát chéo).
-        """
+        """Màn Đơn bán hàng: tạo phiếu giao cho phần chưa có phiếu (ghi bằng sudo sau khi kiểm vai trò)."""
         self.ensure_one()
         self._dlm_check_delivery_allowed()
 
@@ -215,7 +164,6 @@ class DlSaleOrder(models.Model):
         })
         picking.action_confirm()
         picking.action_assign()
-        # RS-02 — ép form Giao hàng của Đại Linh, không rơi về form gốc Odoo.
         return picking._dlm_open_picking(
             picking, _("Phiếu giao %s") % picking.name)
 
@@ -257,7 +205,6 @@ class DlSaleOrder(models.Model):
         pickings = self._dlm_delivery_pickings()
         if not pickings:
             raise UserError(_("Đơn %s chưa có phiếu giao hàng nào.") % self.name)
-        # RS-02 — helper ép view Đại Linh cho cả nhánh 1 phiếu lẫn nhiều phiếu.
         return pickings._dlm_open_pickings(
             _("Phiếu giao hàng của %s") % self.name,
             context={"default_dlm_sale_order_id": self.id})

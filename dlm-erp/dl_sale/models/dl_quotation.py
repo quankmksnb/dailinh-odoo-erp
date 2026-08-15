@@ -4,9 +4,9 @@ from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import format_date
 
-# Nhóm được xem cấu phần giá thành trên dòng báo giá (giống BOM): Kế toán,
-# Trưởng KD, CEO, Admin. Sales (BA) chỉ thấy giá bán/chiết khấu, không thấy chi
-# phí gốc.
+# Ai được nhìn thấy giá vốn trên form Báo giá: Kế toán, Trưởng KD, CEO, Admin.
+# Sales (BA) mở cùng form nhưng chỉ thấy giá bán/chiết khấu — mọi field gắn
+# groups=_COST_GROUPS sẽ biến mất khỏi màn của họ.
 _COST_GROUPS = (
     "dl_base.dl_group_ceo,"
     "dl_base.dl_group_admin,"
@@ -28,13 +28,14 @@ class DlQuotation(models.Model):
                                  tracking=True)
     date_order = fields.Date(string='Ngày báo giá', required=True,
                              default=fields.Date.context_today, tracking=True)
-    # Luồng: nháp → duyệt nội bộ → gửi khách → khách đồng ý → lên đơn bán hàng.
-    # Tách "duyệt nội bộ" (approved) khỏi "khách đồng ý" (accepted): approved là
-    # quyết định bên trong công ty (vượt ngưỡng…), accepted là khách chốt mua.
-    # Nhánh phản hồi của khách (đặc tả luồng "Sale gửi báo giá"): khách xin sửa
-    # (revision_requested → lập phiên bản mới), từ chối (rejected, bắt lý do),
-    # quá hạn không phản hồi (expired), hoặc bị thay bằng phiên bản mới
-    # (superseded — giữ lại để truy vết, không xóa).
+    # Trạng thái vẽ ra thanh stepper trên đầu form Báo giá, và quyết định nút
+    # nào hiện ở header.
+    #   Đường chính:  nháp → duyệt nội bộ → gửi khách → khách đồng ý → lên đơn.
+    #   approved = công ty duyệt (vượt ngưỡng), accepted = khách chốt mua —
+    #   hai việc khác nhau nên tách 2 trạng thái.
+    #   Nhánh sau khi gửi: khách xin sửa (revision_requested), từ chối
+    #   (rejected, bắt nhập lý do), hết hạn không phản hồi (expired), hoặc bị
+    #   thay bằng bản mới (superseded — giữ lại để tra cứu, không xoá).
     state = fields.Selection([
         ('draft', 'Nháp'),
         ('approved', 'Đã duyệt nội bộ'),
@@ -49,9 +50,10 @@ class DlQuotation(models.Model):
     ], string='Trạng thái', default='draft', tracking=True)
     note = fields.Text(string='Ghi chú')
 
-    # --- Điều khoản thương mại đưa vào bản gửi khách (RV-09) ---
-    # Văn bản mô tả, KHÔNG ảnh hưởng giá/định tuyến phê duyệt nên để sửa tự do
-    # tới khi lên đơn; render vào PDF/Word (quotation_document._document_context).
+    # --- Điều khoản in vào file gửi khách ---
+    # Nhập ở tab "Điều khoản & Ghi chú" trên form Báo giá, in ra PDF/Word khi
+    # bấm "Xuất / Gửi báo giá". Chỉ là văn bản mô tả — không ảnh hưởng tiền hay
+    # luồng phê duyệt nên cho sửa tự do tới khi lên đơn.
     payment_terms = fields.Text(
         string='Điều khoản thanh toán',
         help='Vd: Tạm ứng 50% khi ký hợp đồng, 50% khi giao hàng.')
@@ -62,20 +64,24 @@ class DlQuotation(models.Model):
         string='Bảo hành',
         help='Điều kiện và thời gian bảo hành.')
 
-    # Cảnh báo MỀM (không chặn) khi khách thiếu dữ liệu thương mại tối thiểu để
-    # phát hành báo giá cho doanh nghiệp — hiển thị trên form và ghi chatter khi
-    # gửi (RV-09). Không dùng constrains để không chặn luồng.
+    # Dải cảnh báo vàng trên form Báo giá khi khách còn thiếu MST/địa chỉ.
+    # Chỉ NHẮC, không chặn: cố ý dùng field tính thay vì @api.constrains để
+    # Sales vẫn gửi được. Nội dung này cũng được ghi vào chatter lúc bấm Gửi.
     customer_data_warning = fields.Char(
         string='Cảnh báo dữ liệu khách',
         compute='_compute_customer_data_warning')
 
-    # --- Hạn hiệu lực với khách (đặc tả "Trường hợp 5 — khách không phản hồi") ---
+    # --- Hạn hiệu lực với khách ---
+    # Quá hạn mà khách im lặng: cron _cron_expire_quotations tự đẩy sang
+    # "Hết hiệu lực", hoặc Sales bấm tay nút "Hết hiệu lực" trên form.
     validity_date = fields.Date(
         string='Hạn hiệu lực', tracking=True, copy=False,
         help='Ngày báo giá hết hiệu lực với khách. Quá hạn mà khách chưa chốt '
              'sẽ được chuyển sang Hết hiệu lực (thủ công hoặc tự động).')
 
-    # --- Lý do từ chối (bắt buộc chọn — "Trường hợp 4") ---
+    # --- Lý do từ chối ---
+    # Chỉ ghi được qua wizard "Từ chối báo giá" (bắt buộc chọn lý do), không
+    # sửa tay trên form.
     reject_reason = fields.Selection([
         ('price_high', 'Giá cao'),
         ('lead_time', 'Thời gian giao hàng lâu'),
@@ -88,7 +94,10 @@ class DlQuotation(models.Model):
     reject_reason_note = fields.Text(
         string='Chi tiết từ chối', readonly=True, copy=False)
 
-    # --- Khách yêu cầu điều chỉnh (phân loại để hướng dẫn bước tiếp theo) ---
+    # --- Khách yêu cầu điều chỉnh ---
+    # Ghi qua wizard "Khách yêu cầu điều chỉnh". Loại điều chỉnh quyết định dải
+    # hướng dẫn hiện trên form: sửa giá thì Sales tự làm, đổi vật liệu thì phải
+    # chuyển ngược về Kỹ thuật.
     revision_request_type = fields.Selection([
         ('commercial', 'Giá / chiết khấu'),
         ('technical', 'Vật liệu / kích thước / thiết kế'),
@@ -97,9 +106,10 @@ class DlQuotation(models.Model):
     revision_request_note = fields.Text(
         string='Nội dung khách yêu cầu', readonly=True, copy=False)
 
-    # --- Phiên bản báo giá (đặc tả "Quản lý phiên bản": Q-001 v1, v2…) ---
-    # Không sửa đè bản cũ khi khách xin điều chỉnh — lập bản mới, giữ liên kết
-    # về bản trước để truy vết phương án kỹ thuật/giá tại từng thời điểm.
+    # --- Phiên bản báo giá (Q-001 → Q-001-R2 → …) ---
+    # Khách xin sửa thì KHÔNG ghi đè bản cũ: nút "Lập phiên bản mới" copy sang
+    # bản mới và trỏ ngược về bản trước, để sau này còn tra được đã chào khách
+    # giá nào vào lúc nào. Hai smart button trên form đi theo liên kết này.
     revision = fields.Integer(
         string='Phiên bản', default=1, readonly=True, copy=False)
     origin_quotation_id = fields.Many2one(
@@ -118,8 +128,8 @@ class DlQuotation(models.Model):
 
     @api.depends('partner_id', 'partner_id.vat', 'partner_id.street')
     def _compute_customer_data_warning(self):
-        """RV-09 — liệt kê dữ liệu thương mại tối thiểu còn thiếu của khách (MST,
-        địa chỉ). Cảnh báo mềm để Sales bổ sung trước khi phát hành cho DN."""
+        """Ghép câu cảnh báo "khách còn thiếu MST/địa chỉ" cho dải vàng trên
+        form Báo giá. Rỗng = đủ dữ liệu, dải tự ẩn."""
         for rec in self:
             missing = []
             partner = rec.partner_id
@@ -130,14 +140,14 @@ class DlQuotation(models.Model):
             rec.customer_data_warning = (_(
                 "Khách hàng thiếu %s — nên bổ sung trước khi gửi báo giá cho "
                 "doanh nghiệp.") % ", ".join(missing)) if missing else False
-    # copy=True: "Lập phiên bản mới" (action_create_revision → copy) phải mang
-    # theo toàn bộ dòng chi tiết sang bản mới (Odoo mặc định KHÔNG copy o2m).
+    # copy=True vì nút "Lập phiên bản mới" dùng copy() — Odoo mặc định KHÔNG
+    # copy one2many, bỏ dòng này thì bản mới ra rỗng trơn.
     line_ids = fields.One2many('dl.quotation.line', 'quotation_id',
                                string='Chi tiết', copy=True)
     currency_id = fields.Many2one('res.currency', string='Tiền tệ',
                                   default=lambda self: self.env.company.currency_id)
 
-    # --- Truy vết & ngữ cảnh tính giá (đặc tả §17.2) ---
+    # --- RFQ nguồn & ngày khoá giá ---
     quotation_request_id = fields.Many2one(
         'dl.quotation.request', string='Yêu cầu báo giá (RFQ)',
         ondelete='restrict', index=True, copy=False, readonly=True,
@@ -149,7 +159,8 @@ class DlQuotation(models.Model):
         string='Ngày tính giá', readonly=True,
         help='Ngày khóa logic tính giá — chọn đúng rule/bảng giá hiệu lực.')
 
-    # --- Các lớp tiền (đặc tả §7.3) ---
+    # --- Các lớp tiền hiện ở khối tổng cuối form Báo giá ---
+    # Xếp chồng: cộng tiền hàng → trừ chiết khấu → cộng VAT → tổng thanh toán.
     discount_pct = fields.Float(string='Chiết khấu (%)', digits=(5, 2), tracking=True)
     vat_pct = fields.Float(string='VAT (%)', digits=(5, 2), tracking=True)
     amount_untaxed = fields.Float(
@@ -168,10 +179,9 @@ class DlQuotation(models.Model):
         string='Tổng thanh toán', compute='_compute_amount', store=True,
         digits='Product Price')
 
-    # --- Tín hiệu cận hạn cho danh sách (review UX list #f3) ---
-    # Báo giá đang sống (Đã duyệt / Đã gửi / Yêu cầu điều chỉnh) mà Hạn hiệu lực
-    # sắp tới hoặc đã qua → tô màu dòng để Sales ưu tiên xử lý trước khi cron tự
-    # đánh dấu Hết hiệu lực. Không tính cho trạng thái đã đóng.
+    # Tô màu dòng trên DANH SÁCH Báo giá: báo giá còn sống mà sắp/đã quá hạn
+    # thì đổi màu để Sales xử lý trước khi cron tự đánh dấu Hết hiệu lực.
+    # Báo giá đã đóng luôn để 'ok' — không cần giục nữa.
     validity_state = fields.Selection([
         ('ok', 'Còn hạn'),
         ('soon', 'Sắp hết hạn'),
@@ -190,9 +200,9 @@ class DlQuotation(models.Model):
                     vs = 'soon'
             rec.validity_state = vs
 
-    # Hạn hiệu lực kèm đếm ngược ngay trong ô (review UX list #f5) — tách khỏi
-    # cột "Ngày" (cùng định dạng, khó phân biệt). Không sortable (computed
-    # non-stored) nên không có bẫy sắp xếp theo chuỗi.
+    # Cột "Hạn hiệu lực" trên danh sách: in kèm đếm ngược ("còn 3 ngày") để
+    # không bị nhầm với cột Ngày báo giá (cùng định dạng ngày). Non-stored nên
+    # cột này không bấm sắp xếp được — cố ý, tránh sắp theo chuỗi ra kết quả sai.
     validity_label = fields.Char(
         string='Hạn hiệu lực', compute='_compute_validity_label')
 
@@ -278,7 +288,9 @@ class DlQuotation(models.Model):
         related='partner_id.dlm_customer_group', string='Nhóm khách hàng',
         readonly=True)
 
-    # --- Định tuyến phê duyệt (đặc tả §8) ---
+    # --- Định tuyến phê duyệt ---
+    # Server tự tính (xem _reevaluate_approval), người dùng không nhập. Kết quả
+    # đẩy ra 2 nơi: dải cảnh báo trên form Báo giá và màn Phê duyệt báo giá.
     approval_required = fields.Boolean(string='Cần phê duyệt', readonly=True)
     approval_state = fields.Selection([
         ('not_required', 'Không cần duyệt'),
@@ -290,12 +302,12 @@ class DlQuotation(models.Model):
     approval_reasons = fields.Text(string='Lý do phải duyệt', readonly=True)
     approval_request_id = fields.Many2one(
         'dl.pricing.approval.request', string='Yêu cầu phê duyệt', readonly=True)
-    # Quyền duyệt của user hiện tại trên yêu cầu đang treo — server tính
-    # (_check_can_resolve), UI dựa vào để hiện nút Phê duyệt/Từ chối nhanh.
-    # related_sudo=False BẮT BUỘC: can_resolve phụ thuộc ngữ cảnh user
-    # (depends_context uid) — tính bằng sudo sẽ ghi cache dưới khóa su=True
-    # trong khi request web đọc bằng su=False ⇒ "Compute method failed to
-    # assign". Mọi vai trò đều có quyền đọc request nên không cần sudo.
+    # Người đang mở form có được duyệt yêu cầu đang treo không — quyết định 2
+    # nút "Phê duyệt / Từ chối" ngay trên form Báo giá có hiện hay không.
+    # ⚠️ related_sudo=False là BẮT BUỘC: can_resolve tính theo user hiện tại,
+    # đọc bằng sudo sẽ ghi cache dưới khoá su=True trong khi request web đọc
+    # bằng su=False ⇒ lỗi "Compute method failed to assign". Vai trò nào cũng
+    # đọc được yêu cầu duyệt nên bỏ sudo không mất quyền gì.
     approval_can_resolve = fields.Boolean(
         string='Được duyệt yêu cầu này',
         related='approval_request_id.can_resolve', related_sudo=False)
@@ -304,12 +316,10 @@ class DlQuotation(models.Model):
     discount_above_default = fields.Boolean(string='Chiết khấu > mặc định', readonly=True)
     discount_above_max = fields.Boolean(string='Chiết khấu > tối đa', readonly=True)
 
-    # --- Dải trạng thái ngữ cảnh (gộp >10 alert cũ thành MỘT thông báo) ---
-    # Trước đây form khai báo ~10 dải alert xếp chồng theo trạng thái; ở vài
-    # trạng thái 2–3 dải cùng hiện, đẩy nội dung báo giá xuống sâu (review UX
-    # #f2). Gom về một field tính toán: mỗi bản ghi chỉ có ĐÚNG một thông báo
-    # (mức + nội dung), ưu tiên từ khẩn cấp → thông tin. View chỉ còn một dải
-    # duy nhất ngay dưới stepper.
+    # --- Dải thông báo ngay dưới stepper trên form Báo giá ---
+    # Mỗi báo giá chỉ hiện ĐÚNG MỘT dải: server chọn sẵn mức màu + nội dung,
+    # view chỉ việc in ra. Trước đây view tự xếp ~10 dải alert theo trạng thái,
+    # có lúc 2–3 dải chồng nhau đẩy nội dung báo giá xuống dưới màn hình.
     status_banner_level = fields.Selection([
         ('info', 'Thông tin'),
         ('success', 'Thành công'),
@@ -325,6 +335,9 @@ class DlQuotation(models.Model):
                  'approval_reasons', 'reject_reason', 'reject_reason_note',
                  'revision_request_type', 'revision_request_note', 'line_ids')
     def _compute_status_banner(self):
+        """Chọn dải thông báo cho form Báo giá — xét từ nặng tới nhẹ (bị từ
+        chối → chờ duyệt → hết hạn → khách xin sửa → …), gặp cái nào trước thì
+        lấy cái đó và dừng."""
         reject_labels = dict(self._fields['reject_reason'].selection)
         for rec in self:
             level, msg = False, ''
@@ -390,11 +403,9 @@ class DlQuotation(models.Model):
             rec.status_banner_level = level
             rec.status_banner_message = msg or False
 
-    # --- Gợi ý chiết khấu (gộp 3 alert tab "Chi tiết" thành helper cạnh ô nhập) ---
-    # Trước đây tab Chi tiết có 3 dải alert (khoảng cho phép / cao hơn mặc định /
-    # vượt trần) xếp trên ô nhập Chiết khấu, đẩy ô nhập xuống (review UX #f3).
-    # Gom thành MỘT helper ngắn ngay dưới ô Chiết khấu: luôn nêu khoảng cho phép
-    # theo nhóm khách + phản ánh trạng thái hợp lệ hiện tại bằng màu.
+    # --- Dòng gợi ý nhỏ ngay dưới ô "Chiết khấu" (tab Chi tiết) ---
+    # Luôn nói rõ nhóm khách này được giảm tối đa bao nhiêu, và đổi màu theo
+    # con số Sales vừa gõ. Thay cho 3 dải alert cũ xếp phía trên ô nhập.
     discount_hint_level = fields.Selection([
         ('info', 'Trong khoảng'),
         ('secondary', 'Trên mặc định'),
@@ -407,9 +418,10 @@ class DlQuotation(models.Model):
     @api.depends('state', 'partner_group', 'discount_default_rate',
                  'discount_max_rate', 'discount_above_default', 'discount_above_max')
     def _compute_discount_hint(self):
+        """Câu gợi ý + màu cho ô Chiết khấu trên form Báo giá."""
         for rec in self:
-            # Chỉ hướng dẫn khi còn sửa được (Nháp) và biết nhóm khách để suy ra
-            # khoảng cho phép; các trạng thái sau đã khóa chiết khấu.
+            # Qua Nháp là ô chiết khấu đã khoá, gợi ý không còn tác dụng gì.
+            # Chưa biết nhóm khách thì cũng không suy ra được khoảng cho phép.
             if rec.state != 'draft' or not rec.partner_group:
                 rec.discount_hint_level = False
                 rec.discount_hint_message = False
@@ -439,12 +451,14 @@ class DlQuotation(models.Model):
             rec.discount_hint_level = level
             rec.discount_hint_message = msg
 
-    # Link ngược tới đơn bán hàng đã tạo (chiều sở hữu ở dl.sale.order.quotation_id).
-    # Search-based để không nhân đôi nguồn sự thật.
+    # Nuôi smart button "Đơn bán hàng" ở góc phải form Báo giá. Tìm bằng search
+    # thay vì lưu sẵn: chiều sở hữu liên kết nằm ở dl.sale.order.quotation_id,
+    # lưu thêm một bản ở đây là có 2 nguồn sự thật lệch nhau.
     sale_order_id = fields.Many2one(
         'dl.sale.order', string='Đơn bán hàng', compute='_compute_sale_order_id')
 
     def _compute_sale_order_id(self):
+        """Tìm đơn bán hàng (chưa huỷ) sinh ra từ báo giá này."""
         Order = self.env['dl.sale.order'].sudo()
         for rec in self:
             rec.sale_order_id = Order.search([
@@ -452,19 +466,18 @@ class DlQuotation(models.Model):
                 ('state', '!=', 'cancelled'),
             ], limit=1)
 
-    # Trạng thái "đã đóng" — không còn là báo giá đang hiệu lực của RFQ, nên
-    # KHÔNG tính vào ràng buộc "mỗi RFQ chỉ 1 báo giá đang hiệu lực". Nhờ đó khi
-    # lập phiên bản mới, bản cũ (superseded/rejected/expired/cancelled) nhường
-    # chỗ cho bản mới mà không phải drop constraint.
+    # Các trạng thái coi như "đã đóng sổ": không còn là báo giá đang hiệu lực
+    # của RFQ nên KHÔNG bị ràng buộc trùng bên dưới tính đến. Nhờ vậy lập phiên
+    # bản mới không phải xoá bản cũ đi.
     _CLOSED_STATES = ('cancelled', 'superseded', 'expired', 'rejected')
 
     def init(self):
-        """Partial unique index (Decision C7 + review #1): mỗi RFQ chỉ có tối đa
-        MỘT báo giá đang hiệu lực. Các bản đã đóng (_CLOSED_STATES) được loại ra
-        để versioning (lập bản mới, giữ bản cũ) không vi phạm. Odoo helper không
-        hỗ trợ đồng thời UNIQUE + WHERE nên dùng SQL trực tiếp (tên bảng là hằng
-        an toàn). DROP trước để định nghĩa index cũ (chỉ loại 'cancelled') được
-        thay bằng định nghĩa mới khi -u."""
+        """Dựng khoá chống trùng ở tầng DB: mỗi RFQ chỉ được có tối đa MỘT báo
+        giá đang sống. Chặn ở đây (không chỉ ở Python) để hai người bấm "Tạo
+        báo giá" cùng lúc không ra 2 bản.
+
+        Phải viết SQL tay vì helper của Odoo không làm được UNIQUE kèm WHERE.
+        DROP trước để bản index cũ (chỉ loại 'cancelled') được thay khi -u."""
         self._cr.execute("DROP INDEX IF EXISTS dl_quotation_reqid_active_uniq")
         self._cr.execute(
             """
@@ -477,6 +490,7 @@ class DlQuotation(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        """Cấp số báo giá tự động — ô "Số báo giá" trên form là readonly."""
         for vals in vals_list:
             if vals.get('name', 'New') == 'New':
                 vals['name'] = self.env['ir.sequence'].next_by_code('dl.quotation') or 'New'
@@ -486,10 +500,13 @@ class DlQuotation(models.Model):
                  'line_ids.floor_price', 'line_ids.qty',
                  'discount_pct', 'vat_pct')
     def _compute_amount(self):
+        """Khối tổng tiền cuối form Báo giá + 3 số nội bộ (giá thành, giá sàn,
+        markup thực) cho trang Phân tích giá thành. Chạy lại mỗi khi dòng hoặc
+        chiết khấu/VAT đổi."""
         for rec in self:
             untaxed = sum(rec.line_ids.mapped('price_subtotal'))
-            # Toàn bộ dòng đều chịu chiết khấu (no_discount dành cho khoản phụ
-            # phí ở phase sau).
+            # Hiện mọi dòng đều chịu chiết khấu; cờ no_discount trên cấu phần
+            # là để dành cho khoản phụ phí ở phase sau, chưa dùng tới.
             discount = untaxed * (rec.discount_pct or 0.0) / 100.0
             before_vat = untaxed - discount
             vat = before_vat * (rec.vat_pct or 0.0) / 100.0
@@ -513,6 +530,7 @@ class DlQuotation(models.Model):
                  'amount_untaxed', 'amount_before_vat', 'total_cost',
                  'floor_amount')
     def _compute_cost_breakdown(self):
+        """3 hộp cơ cấu chi phí + hàng lãi/lỗ ở trang Phân tích giá thành."""
         for rec in self:
             rec.cost_material_total = sum(
                 line.material_cost * line.qty for line in rec.line_ids)
@@ -527,9 +545,10 @@ class DlQuotation(models.Model):
             rec.floor_markup = (
                 (rec.floor_amount - cost) / cost * 100.0 if cost else 0.0)
 
-    # --- Diễn giải giá thành dạng "công thức" (đọc theo từng sản phẩm) --------
-    # Phân lớp cấu phần dòng vào 3 nhóm của công thức (bỏ markup/trading_base:
-    # markup ở chân, trading_base xử lý ở nhánh dòng thương mại).
+    # --- Bảng "công thức" giá thành ở trang Phân tích giá thành --------------
+    # Xếp cấu phần giá của dòng vào 3 nhóm hiển thị. Không có markup và
+    # trading_base ở đây: markup in riêng ở chân bảng, trading_base thuộc nhánh
+    # dòng thương mại.
     _RECIPE_CATEGORY = {
         'material': 'material', 'processed_material': 'material',
         'recovery': 'material', 'operation': 'operation',
@@ -542,13 +561,15 @@ class DlQuotation(models.Model):
                  'line_ids.price_subtotal', 'line_ids.price_unit',
                  'line_ids.line_type', 'line_ids.name')
     def _compute_cost_breakdown_html(self):
+        """Dựng sẵn HTML bảng giá thành cho trang Phân tích giá thành (form Báo
+        giá) và cho màn Phê duyệt báo giá — hai nơi dùng chung một bảng."""
         for rec in self:
             if not rec.line_ids:
                 rec.cost_breakdown_html = False
                 continue
-            # Nhiều sản phẩm: gấp mỗi dòng thành 1 hàng tóm tắt (bấm để bung
-            # công thức), kèm hàng tiêu đề để đọc như bảng so sánh margin.
-            # Chỉ 1 sản phẩm: bung sẵn cho khỏi phải bấm.
+            # Nhiều sản phẩm: mỗi dòng gấp lại thành 1 hàng tóm tắt, bấm mới
+            # bung công thức — đọc như bảng so sánh lãi giữa các sản phẩm.
+            # Chỉ 1 sản phẩm thì bung sẵn, đỡ bắt người dùng bấm thêm.
             single = len(rec.line_ids) == 1
             blocks = [rec._cost_recipe_line_html(line, single)
                       for line in rec.line_ids]
@@ -623,6 +644,8 @@ class DlQuotation(models.Model):
             comp.component_type, comp.component_type)
 
     def _cost_recipe_cat_html(self, title, comps, subtotal_unit, order_qty, with_qty):
+        """Một khối nhóm (Vật tư / Công đoạn / Chi phí chung) trong bảng công
+        thức: liệt kê từng cấu phần rồi cộng lại cho 1 sản phẩm."""
         if not comps:
             return Markup('')
         rows = []
@@ -650,10 +673,13 @@ class DlQuotation(models.Model):
                 title.lower(), self._fmt_money(subtotal_unit))
 
     def _cost_recipe_line_html(self, line, single=False):
+        """Khối công thức của MỘT dòng báo giá: hàng tóm tắt gấp/mở + 3 nhóm
+        chi phí + chân bảng đi từ giá thành 1 sp ra giá bán cả dòng."""
         qty = line.qty or 0.0
         open_attr = Markup(' open') if single else Markup('')
 
-        # Dòng thương mại: không qua cost engine — chỉ có đơn giá bán.
+        # Hàng thương mại mua về bán lại, không qua engine tính giá thành nên
+        # chỉ có đơn giá bán để in.
         if line.line_type == 'trading':
             summary = self._cost_recipe_summary_html(
                 line, unit_txt='—',
@@ -714,26 +740,30 @@ class DlQuotation(models.Model):
             '<div class="dl-recipe-body">%s%s</div></details>') % (
                 open_attr, summary, cats, foot)
 
-    # Field ảnh hưởng giá — đổi giá trị là phải đánh giá lại phê duyệt (mục 7).
+    # Sửa mấy field này là tiền đổi ⇒ phải xét lại xem báo giá còn cần duyệt
+    # hay không.
     _REEVAL_TRIGGER_FIELDS = {'discount_pct', 'line_ids', 'partner_id'}
 
     def write(self, vals):
-        # Khóa re-eval ở cấp dòng: sửa dòng qua form đi qua write header (lệnh
-        # one2many) nên chỉ đánh giá lại MỘT lần ở đây.
+        """Sau khi lưu form Báo giá, tự xét lại điều kiện phê duyệt nếu người
+        dùng vừa đụng vào chiết khấu / dòng hàng / khách hàng."""
+        # Sửa dòng trên form thực chất đi qua write của header (lệnh one2many),
+        # nên cắm cờ để dl.quotation.line.write không xét lại lần nữa — chỉ
+        # chạy đúng một lần ở đây.
         res = super(DlQuotation, self.with_context(dl_skip_line_reeval=True)).write(vals)
         if self._REEVAL_TRIGGER_FIELDS & set(vals):
             for rec in self:
-                # Trạng thái cuối (ordered/cancelled/rejected) không đánh giá
-                # lại — báo giá đã chốt hoặc đã đóng.
+                # Báo giá đã lên đơn / đã đóng thì thôi, không xét lại nữa.
                 if rec.state in ('draft', 'approved', 'sent'):
                     rec._reevaluate_approval()
         return res
 
     def _reevaluate_approval(self):
-        """Đánh giá lại phê duyệt khi dữ liệu giá thay đổi (mục 7). Nếu phát
-        sinh điều kiện duyệt mà báo giá đã qua bước duyệt nội bộ/gửi khách
-        (chỉ xảy ra khi ghi thẳng qua RPC — UI đã khóa field ngoài Nháp) thì
-        kéo về Nháp để đi lại luồng."""
+        """Xét lại điều kiện phê duyệt sau khi tiền đổi.
+
+        Nếu phát sinh điều kiện phải duyệt mà báo giá đã trót ở "Đã duyệt nội
+        bộ"/"Đã gửi khách" thì kéo về Nháp cho đi lại luồng. Tình huống này chỉ
+        xảy ra khi ghi thẳng qua RPC — trên form các field đó đã khoá ngoài Nháp."""
         self.ensure_one()
         evaluation = self.env['dl.quotation.pricing.service'].reevaluate_quotation(self)
         if evaluation['required'] and self.state in ('approved', 'sent'):
@@ -743,8 +773,8 @@ class DlQuotation(models.Model):
                 "báo giá quay về Nháp."))
 
     def _check_internal_approver(self):
-        # Ngoài 3 vai trò cố định, chấp nhận op-group "Duyệt báo giá" — công
-        # tắc mà màn Phân quyền tick cho vai trò khác (dl.rbac.operation).
+        """Ai được bấm nút "Duyệt nội bộ". Ngoài 3 vai trò cố định còn chấp
+        nhận công tắc "Duyệt báo giá" mà Admin tick ở màn Phân quyền."""
         user = self.env.user
         if not self.env.su and not (
             user.has_group('dl_base.dl_group_ceo')
@@ -757,8 +787,11 @@ class DlQuotation(models.Model):
                 "'Duyệt báo giá' được duyệt nội bộ báo giá."))
 
     def action_approve(self):
-        """Duyệt nội bộ — sẵn sàng gửi khách. Kiểm quyền server-side (nút chỉ
-        ẩn ở UI) và không cho vượt mặt luồng phê duyệt theo ma trận (§8)."""
+        """Nút "Duyệt nội bộ" trên header form Báo giá (chỉ hiện ở Nháp) —
+        chuyển sang Đã duyệt nội bộ để gửi khách được.
+
+        Kiểm quyền lại ở server vì ẩn nút chỉ là ẩn ở UI, và chặn đường tắt
+        vượt mặt yêu cầu phê duyệt đang treo."""
         self._check_internal_approver()
         for rec in self:
             if rec.state != 'draft':
@@ -771,20 +804,19 @@ class DlQuotation(models.Model):
                 raise UserError(_(
                     "Yêu cầu phê duyệt đã bị từ chối — cần chỉnh sửa báo giá "
                     "để đánh giá lại trước khi duyệt."))
-        # sudo: Trưởng KD được duyệt nội bộ nhưng ACL model chỉ cho đọc —
-        # quyền đã kiểm ở trên.
+        # sudo vì Trưởng KD được duyệt nhưng ACL model chỉ cho họ đọc báo giá —
+        # quyền thật đã kiểm ở _check_internal_approver phía trên.
         self.sudo().write({'state': 'approved'})
 
     def action_send(self):
-        """Gửi báo giá cho khách hàng.
+        """Nút "Gửi khách hàng" trên header form Báo giá.
 
-        "Duyệt nội bộ" và "duyệt theo ma trận" là CÙNG một cổng kiểm soát (quyết
-        định gộp bước 2026-07-24). Vì vậy:
-          - Không cần duyệt (dưới ngưỡng): Sales gửi THẲNG từ Nháp, không bắt ai
-            duyệt thủ công.
-          - Cần duyệt (vượt ngưỡng): phải qua ma trận phê duyệt → báo giá tự
-            chuyển 'Đã duyệt nội bộ' rồi mới gửi được.
-        Đặt hạn hiệu lực mặc định nếu Sales chưa nhập."""
+        Duyệt nội bộ và duyệt theo ngưỡng là CÙNG một cổng, không bắt duyệt hai
+        lần:
+          - Dưới ngưỡng: Sales gửi thẳng từ Nháp.
+          - Vượt ngưỡng: người duyệt xử lý yêu cầu → báo giá tự sang "Đã duyệt
+            nội bộ" → lúc đó mới gửi được.
+        Chưa nhập hạn hiệu lực thì tự điền mặc định."""
         for rec in self:
             if rec.approval_state == 'pending':
                 raise UserError(_(
@@ -795,7 +827,7 @@ class DlQuotation(models.Model):
                     "Yêu cầu phê duyệt đã bị từ chối — cần chỉnh sửa báo giá "
                     "trước khi gửi khách."))
             if rec.state == 'draft':
-                # Chỉ cho gửi thẳng khi thực sự không cần duyệt.
+                # Từ Nháp chỉ được gửi thẳng khi thực sự không cần duyệt.
                 if rec.approval_required or rec.approval_state != 'not_required':
                     raise UserError(_(
                         "Báo giá cần được phê duyệt trước khi gửi khách."))
@@ -806,10 +838,10 @@ class DlQuotation(models.Model):
             if not rec.validity_date:
                 rec.validity_date = rec._default_validity_date()
         self.write({'state': 'sent'})
-        # Đính bản PDF vào chatter làm bằng chứng "bản đã gửi" (RV-02 / SALE-07).
-        # Bản dựng bằng reportlab (thuần Python) — không phụ thuộc wkhtmltopdf.
+        # Kẹp bản PDF vào chatter làm bằng chứng "đã chào khách giá này" — sau
+        # này khách thắc mắc thì mở đúng bản đã gửi ra đối chiếu.
         for rec in self:
-            # RV-09 — cảnh báo mềm (không chặn) khi khách thiếu MST/địa chỉ.
+            # Nhắc (không chặn) nếu hồ sơ khách còn thiếu MST/địa chỉ.
             if rec.customer_data_warning:
                 rec.message_post(body=_(
                     "Lưu ý khi phát hành: %s") % rec.customer_data_warning)
@@ -826,10 +858,11 @@ class DlQuotation(models.Model):
 
     @api.constrains('date_order', 'validity_date')
     def _check_validity_after_order(self):
-        """Hạn hiệu lực không được TRƯỚC ngày báo giá — một báo giá "hết hạn
-        trước cả khi phát hành" là vô nghĩa. Kiểm tương đối theo ngày báo giá
-        (KHÔNG so với hôm nay) để không phá bản ghi đã Hết hiệu lực: khi ấy
-        validity_date nằm ở quá khứ là đúng bản chất."""
+        """Chặn nhập Hạn hiệu lực trước Ngày báo giá trên form — báo giá hết
+        hạn trước cả khi phát hành là vô nghĩa.
+
+        So với NGÀY BÁO GIÁ chứ không so với hôm nay: báo giá đã hết hiệu lực
+        thì hạn nằm ở quá khứ là đúng, so với hôm nay sẽ không mở nổi bản ghi cũ."""
         for rec in self:
             if rec.validity_date and rec.date_order \
                     and rec.validity_date < rec.date_order:
@@ -839,34 +872,35 @@ class DlQuotation(models.Model):
                         'hh': rec.validity_date, 'nbg': rec.date_order})
 
     # ------------------------------------------------------------------
-    # Hook được dl.pricing.approval.request gọi lại khi duyệt/từ chối (§8) —
-    # báo giá là "target record" của yêu cầu.
+    # Hai hàm dưới do màn Phê duyệt báo giá gọi ngược về khi người duyệt bấm
+    # Phê duyệt / Từ chối trên yêu cầu duyệt.
     # ------------------------------------------------------------------
     def _on_approval_approved(self, request):
+        """Người duyệt đã đồng ý ⇒ mở khoá báo giá cho Sales gửi khách."""
         self.ensure_one()
-        # sudo: người duyệt (vd Trưởng KD) chỉ có quyền đọc trên báo giá —
-        # quyền duyệt đã được _check_can_resolve của yêu cầu kiểm trước đó.
+        # sudo vì người duyệt (vd Trưởng KD) chỉ có quyền đọc báo giá; quyền
+        # duyệt đã được yêu cầu duyệt kiểm trước khi gọi vào đây.
         vals = {'approval_state': 'approved'}
-        # Gộp bước (quyết định 2026-07-24): người duyệt ma trận đã xác nhận thì
-        # báo giá TỰ chuyển "Đã duyệt nội bộ" — không bắt duyệt 2 lần. Chỉ áp
-        # dụng khi còn Nháp; trạng thái khác giữ nguyên.
+        # Duyệt xong là báo giá TỰ sang "Đã duyệt nội bộ", không bắt Sales đi
+        # xin duyệt lần hai. Chỉ áp khi còn Nháp, trạng thái khác giữ nguyên.
         if self.state == 'draft':
             vals['state'] = 'approved'
         self.sudo().write(vals)
         if vals.get('state'):
-            # sudo: _mail_post_access mặc định đòi quyền write mà người duyệt
-            # (TrKD) chỉ có read trên báo giá; uid giữ nguyên nên tác giả vẫn
-            # hiển thị đúng là người duyệt.
+            # sudo vì đăng chatter mặc định đòi quyền write, mà người duyệt chỉ
+            # có read. Vẫn giữ uid nên chatter hiển thị đúng tên người duyệt.
             self.sudo().message_post(body=_(
                 "Yêu cầu phê duyệt đã được %s chấp thuận — báo giá tự chuyển "
                 "sang Đã duyệt nội bộ, sẵn sàng gửi khách."
             ) % (request.resolved_by_id.name or _("người duyệt")))
 
     def _on_approval_rejected(self, request):
+        """Người duyệt từ chối ⇒ báo giá kẹt lại, Sales phải sửa rồi xin lại."""
         self.ensure_one()
         self.sudo().write({'approval_state': 'rejected'})
 
     def action_open_approval_request(self):
+        """Smart button mở yêu cầu phê duyệt gắn với báo giá này."""
         self.ensure_one()
         if not self.approval_request_id:
             raise UserError(_("Báo giá này không có yêu cầu phê duyệt."))
@@ -879,8 +913,8 @@ class DlQuotation(models.Model):
         }
 
     def action_approval_approve(self):
-        """Duyệt nhanh yêu cầu phê duyệt ngay trên form báo giá — quyền do
-        _check_can_resolve của yêu cầu kiểm (nút chỉ ẩn/hiện ở UI)."""
+        """Nút "Phê duyệt" hiện ngay trên form Báo giá cho người có quyền duyệt
+        — đỡ phải sang màn Phê duyệt báo giá. Quyền do chính yêu cầu duyệt kiểm."""
         self.ensure_one()
         req = self.approval_request_id
         if not req or req.state != 'pending':
@@ -888,7 +922,8 @@ class DlQuotation(models.Model):
         req.action_approve()
 
     def action_approval_open_reject(self):
-        """Mở yêu cầu duyệt dạng dialog để nhập lý do rồi Từ chối."""
+        """Nút "Từ chối" trên form Báo giá — mở yêu cầu duyệt dạng dialog để
+        người duyệt nhập lý do."""
         self.ensure_one()
         req = self.approval_request_id
         if not req or req.state != 'pending':
@@ -903,7 +938,8 @@ class DlQuotation(models.Model):
         }
 
     def action_customer_accept(self):
-        """Khách hàng đồng ý — sẵn sàng chuyển thành đơn bán hàng."""
+        """Nút "Khách đồng ý" — Sales bấm khi khách chốt mua; mở ra nút Tạo đơn
+        bán hàng."""
         for rec in self:
             if rec.state != 'sent':
                 raise UserError(_(
@@ -911,10 +947,10 @@ class DlQuotation(models.Model):
         self.write({'state': 'accepted'})
 
     def action_customer_withdraw(self):
-        """RV-08 — Khách đã đồng ý nhưng đổi ý / xin chỉnh TRƯỚC khi lên đơn:
-        đưa báo giá về 'Đã gửi khách' để mở lại các nhánh phản hồi (đồng ý lại /
-        yêu cầu điều chỉnh / từ chối) thay vì phải lùi trạng thái thủ công qua
-        RPC. Không áp dụng khi đã lên đơn — 'ordered' là trạng thái cuối."""
+        """Nút "Khách rút đồng ý" — khách đổi ý trước khi lên đơn.
+
+        Kéo báo giá về "Đã gửi khách" để mở lại đủ 3 nhánh (đồng ý lại / xin
+        điều chỉnh / từ chối). Đã lên đơn rồi thì không rút được nữa."""
         for rec in self:
             if rec.state != 'accepted':
                 raise UserError(_(
@@ -925,9 +961,8 @@ class DlQuotation(models.Model):
                 "Khách rút lại đồng ý — báo giá quay về Đã gửi khách để xử lý tiếp."))
 
     def action_open_revision_wizard(self):
-        """Khách yêu cầu điều chỉnh — mở ô nhập LOẠI điều chỉnh (giá/chiết khấu,
-        vật liệu-kỹ thuật, giao hàng-điều khoản) + nội dung, để hệ thống hướng
-        dẫn đúng bước tiếp theo thay vì bắt người dùng tự đoán."""
+        """Nút "Khách yêu cầu điều chỉnh" — mở dialog chọn loại điều chỉnh +
+        nội dung. Loại chọn ở đây quyết định dải hướng dẫn hiện sau đó trên form."""
         self.ensure_one()
         if self.state != 'sent':
             raise UserError(_(
@@ -942,7 +977,8 @@ class DlQuotation(models.Model):
         }
 
     def _apply_revision_request(self, adjust_type, note):
-        """Wizard gọi vào: ghi nhận yêu cầu điều chỉnh của khách + phân loại."""
+        """Dialog "Khách yêu cầu điều chỉnh" bấm Xác nhận thì gọi vào đây: ghi
+        nhận yêu cầu + đổi trạng thái + đăng chatter."""
         self.ensure_one()
         if self.state != 'sent':
             raise UserError(_(
@@ -961,9 +997,11 @@ class DlQuotation(models.Model):
         self.message_post(body=body)
 
     def action_send_back_to_tech(self):
-        """Khách đòi đổi vật liệu/kỹ thuật ⇒ cần Kỹ thuật sửa BOM. Khép báo giá
-        hiện tại (superseded) và mở lại RFQ nguồn về 'Đang xử lý' để Kỹ thuật
-        điều chỉnh BOM; sau đó Sales tạo lại báo giá."""
+        """Nút "Chuyển Kỹ thuật sửa BOM" — dùng khi khách đòi đổi vật liệu/kích
+        thước, việc Sales không tự sửa được.
+
+        Khép báo giá hiện tại lại và đẩy RFQ nguồn về "Đang xử lý" cho Kỹ
+        thuật; sửa BOM xong Sales tạo báo giá mới. Màn hình nhảy sang RFQ."""
         self.ensure_one()
         rfq = self.quotation_request_id
         if not rfq:
@@ -987,12 +1025,13 @@ class DlQuotation(models.Model):
         }
 
     # ------------------------------------------------------------------
-    # Từ chối — bắt buộc chọn lý do (mở wizard). action_reject giữ lại làm điểm
-    # áp dụng chung (wizard gọi vào), không đặt trạng thái trực tiếp từ nút.
+    # Từ chối báo giá. Nút không đổi trạng thái ngay mà mở dialog bắt nhập lý
+    # do — mất đơn thì phải biết vì sao.
     # ------------------------------------------------------------------
     _REJECTABLE_STATES = ('draft', 'approved', 'sent', 'revision_requested')
 
     def action_open_reject_wizard(self):
+        """Nút "Từ chối" trên form Báo giá — mở dialog chọn lý do."""
         self.ensure_one()
         if self.state not in self._REJECTABLE_STATES:
             raise UserError(_(
@@ -1008,8 +1047,10 @@ class DlQuotation(models.Model):
         }
 
     def _apply_reject(self, reason, note):
-        """Ghi nhận từ chối kèm lý do (wizard gọi). Hủy yêu cầu phê duyệt còn
-        treo để không tồn đọng trong hàng chờ người duyệt."""
+        """Dialog "Từ chối báo giá" gọi vào: ghi lý do + đóng báo giá.
+
+        Đồng thời huỷ yêu cầu phê duyệt còn treo, nếu không nó nằm mãi trong
+        hàng chờ của màn Phê duyệt báo giá dù báo giá đã chết."""
         reason_label = dict(
             self._fields['reject_reason'].selection).get(reason, reason)
         for rec in self:
@@ -1032,11 +1073,12 @@ class DlQuotation(models.Model):
             rec.message_post(body=body)
 
     # ------------------------------------------------------------------
-    # Hết hiệu lực — thủ công + cron tự động khi quá hạn (Trường hợp 5).
+    # Hết hiệu lực: Sales bấm tay, hoặc cron tự chạy khi quá hạn.
     # ------------------------------------------------------------------
     _EXPIRABLE_STATES = ('approved', 'sent', 'revision_requested')
 
     def action_expire(self):
+        """Nút "Hết hiệu lực" — đóng báo giá khách không phản hồi."""
         for rec in self:
             if rec.state not in self._EXPIRABLE_STATES:
                 raise UserError(_(
@@ -1047,8 +1089,9 @@ class DlQuotation(models.Model):
             rec.message_post(body=_("Báo giá đã hết hiệu lực."))
 
     def action_reopen(self):
-        """Gia hạn báo giá đã hết hiệu lực — cần đặt lại Hạn hiệu lực ở tương
-        lai trước khi mở lại (đưa về Đã gửi khách)."""
+        """Nút "Gia hạn" trên báo giá đã hết hiệu lực — đưa lại về Đã gửi
+        khách. Bắt Sales sửa Hạn hiệu lực sang tương lai trước, không thì gia
+        hạn xong cron lại đóng ngay."""
         self.ensure_one()
         if self.state != 'expired':
             raise UserError(_("Chỉ gia hạn báo giá đang Hết hiệu lực."))
@@ -1062,7 +1105,8 @@ class DlQuotation(models.Model):
 
     @api.model
     def _cron_expire_quotations(self):
-        """Cron: báo giá Đã gửi khách mà quá Hạn hiệu lực → Hết hiệu lực."""
+        """Cron chạy nền hằng ngày: báo giá đã gửi khách mà quá hạn thì tự
+        chuyển sang Hết hiệu lực (không cần ai bấm)."""
         today = fields.Date.context_today(self)
         stale = self.search([
             ('state', '=', 'sent'),
@@ -1076,14 +1120,14 @@ class DlQuotation(models.Model):
         return True
 
     # ------------------------------------------------------------------
-    # Lập phiên bản mới (Q-001 → Q-001-R2). Giữ bản cũ để truy vết; bản cũ đang
-    # "sống" (đã gửi / yêu cầu điều chỉnh) chuyển 'superseded' để nhường chỗ
-    # ràng buộc 1-báo-giá-hiệu-lực-mỗi-RFQ. Bản đã đóng (rejected/expired) giữ
-    # nguyên lý do, chỉ liên kết bản mới về nó.
+    # Lập phiên bản mới: Q-001 → Q-001-R2, bản cũ vẫn nằm đó để tra cứu.
     # ------------------------------------------------------------------
     _REVISABLE_STATES = ('sent', 'revision_requested', 'rejected', 'expired')
 
     def action_create_revision(self):
+        """Nút "Sửa & gửi lại" — copy báo giá sang bản mới ở Nháp rồi mở luôn
+        bản mới đó. Bản cũ còn sống thì đánh dấu "đã thay bản mới"; bản đã đóng
+        (từ chối/hết hạn) giữ nguyên lý do, chỉ nối liên kết."""
         self.ensure_one()
         if self.state not in self._REVISABLE_STATES:
             raise UserError(_(
@@ -1091,16 +1135,16 @@ class DlQuotation(models.Model):
                 "Từ chối / Hết hiệu lực."))
         base_name = (self.name or '').split('-R')[0]
         new_rev = (self.revision or 1) + 1
-        # Nhường chỗ TRƯỚC khi copy: bản mới (Nháp) và bản cũ không được cùng
-        # "sống" trên một RFQ (partial-unique index). PHẢI flush lệnh UPDATE
-        # (→superseded) xuống DB trước khi INSERT bản mới, nếu không partial
-        # index vẫn thấy bản cũ "đang hiệu lực" ⇒ báo trùng khóa.
+        # Phải đóng bản cũ TRƯỚC khi copy, vì một RFQ chỉ được có 1 báo giá
+        # sống (khoá chống trùng ở init).
+        # ⚠️ flush_recordset là bắt buộc: không đẩy lệnh UPDATE xuống DB ngay
+        # thì lúc INSERT bản mới, khoá chống trùng vẫn thấy bản cũ đang sống ⇒
+        # nổ lỗi trùng khoá.
         if self.state in ('sent', 'revision_requested'):
             self.write({'state': 'superseded'})
             self.flush_recordset(['state'])
-        # sudo: copy phải ĐỌC các field giá vốn trên dòng (base_price/…, gated
-        # _COST_GROUPS) để nhân bản — Sales không có quyền đọc chúng. Giống
-        # pricing service dùng sudo khi ghi field chi phí.
+        # sudo vì copy phải ĐỌC được các field giá vốn trên dòng để nhân bản,
+        # mà Sales lại không có quyền đọc chúng.
         new = self.sudo().copy({
             'name': '%s-R%s' % (base_name, new_rev),
             'revision': new_rev,
@@ -1133,6 +1177,7 @@ class DlQuotation(models.Model):
         }
 
     def action_open_origin(self):
+        """Smart button "Bản báo giá trước" — nhảy về phiên bản liền trước."""
         self.ensure_one()
         if not self.origin_quotation_id:
             raise UserError(_("Báo giá này không có bản trước."))
@@ -1145,6 +1190,8 @@ class DlQuotation(models.Model):
         }
 
     def action_open_revisions(self):
+        """Smart button "Bản lập lại sau" — mở danh sách các phiên bản sinh ra
+        từ báo giá này."""
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
@@ -1156,6 +1203,7 @@ class DlQuotation(models.Model):
         }
 
     def action_reset_draft(self):
+        """Nút "Về nháp" — mở khoá báo giá để sửa lại."""
         for rec in self:
             if rec.state not in (
                     'approved', 'sent', 'revision_requested',
@@ -1166,8 +1214,8 @@ class DlQuotation(models.Model):
         self.write({'state': 'draft'})
 
     def action_create_sale_order(self):
-        """Chuyển báo giá đã được khách đồng ý thành Đơn bán hàng.
-        Snapshot dòng + số tiền sang đơn, khóa báo giá ở trạng thái 'ordered'."""
+        """Nút "Tạo đơn bán hàng" (chỉ hiện khi khách đã đồng ý) — chép dòng +
+        số tiền sang đơn mới, khoá báo giá lại rồi mở form đơn vừa tạo."""
         self.ensure_one()
         if self.state != 'accepted':
             raise UserError(_(
@@ -1177,8 +1225,8 @@ class DlQuotation(models.Model):
             ('state', '!=', 'cancelled'),
         ], limit=1)
         if existing:
-            # Đơn đã tồn tại (vd tạo từ phiên trước rồi báo giá bị reset):
-            # vẫn phải khóa báo giá ở 'ordered' cho nhất quán.
+            # Đơn đã có sẵn (bấm 2 lần, hoặc báo giá từng bị đưa về nháp) —
+            # không tạo thêm đơn thứ hai, chỉ khoá lại báo giá cho khớp.
             order = existing
             self.state = 'ordered'
         else:
@@ -1197,7 +1245,8 @@ class DlQuotation(models.Model):
                     'price_unit': line.price_unit,
                     'product_id': line.product_id.id,
                     'bom_id': line.bom_id.id,
-                    # Dấu vết BOM: copy scalar từ dòng báo giá sang dòng đơn (§5.3).
+                    # Chép dấu vết BOM sang đơn để sau này tra được đơn này
+                    # làm theo bản vẽ/định mức nào.
                     'bom_version': line.bom_version,
                     'bom_approved_by': line.bom_approved_by.id,
                     'bom_confirmed_date': line.bom_confirmed_date,
@@ -1216,6 +1265,7 @@ class DlQuotation(models.Model):
         }
 
     def action_open_sale_order(self):
+        """Smart button "Đơn bán hàng" — mở đơn đã tạo từ báo giá này."""
         self.ensure_one()
         if not self.sale_order_id:
             raise UserError(_("Báo giá này chưa có đơn bán hàng."))
@@ -1239,14 +1289,14 @@ class DlQuotationLine(models.Model):
     price_subtotal = fields.Float(string='Thành tiền', compute='_compute_subtotal',
                                   store=True, digits='Product Price')
 
-    # --- Truy vết & phân loại (đặc tả §17.2) ---
+    # --- Nguồn gốc dòng: từ dòng RFQ nào, sản phẩm/BOM nào ---
     rfq_line_id = fields.Many2one('dl.quotation.request.line', string='Dòng RFQ',
                                   ondelete='set null', readonly=True)
     product_id = fields.Many2one('product.product', string='Sản phẩm', readonly=True)
     bom_id = fields.Many2one('dl.bom', string='BOM', readonly=True)
-    # Dấu vết BOM tại thời điểm tạo báo giá (thiết kế BOM truy xuất §5.2) — lưu
-    # để audit/truy xuất, KHÔNG hiển thị trên form. Không related sống về
-    # bom_id.version (BOM có thể lên phiên bản mới sau này).
+    # Ảnh chụp BOM tại lúc tạo báo giá — KHÔNG hiện trên form, chỉ để tra cứu
+    # sau này. Cố ý copy giá trị chứ không related sống về bom_id.version: BOM
+    # lên phiên bản mới thì báo giá cũ vẫn phải nhớ đúng bản đã dùng.
     bom_version = fields.Integer(string='Phiên bản BOM', readonly=True, copy=False)
     bom_approved_by = fields.Many2one(
         'res.users', string='Người duyệt BOM', readonly=True, copy=False)
@@ -1257,17 +1307,17 @@ class DlQuotationLine(models.Model):
         ('manufactured', 'Gia công'),
     ], string='Loại dòng', default='trading', readonly=True)
 
-    # --- Phân tích chi phí nội bộ (ẩn với Sales) ---
+    # --- Giá vốn nội bộ: hiện ở trang Phân tích giá thành, ẩn với Sales ---
     base_price = fields.Float(string='Giá nền', digits='Product Price',
                               readonly=True, groups=_COST_GROUPS)
     material_cost = fields.Float(string='Chi phí vật tư/đv', digits='Product Price',
                                  readonly=True, groups=_COST_GROUPS)
-    # Chi phí công đoạn/đơn vị = biến đổi (cắt/hàn/sơn) + phí setup/lô phân bổ
-    # (RV-01/B2). total_cost = material_cost + operation_cost + adjustment_cost.
+    # Tiền công cắt/hàn/sơn cho 1 sản phẩm + phần phí setup lô chia đều.
+    # Cộng cả 3 dòng chi phí ra total_cost.
     operation_cost = fields.Float(string='Chi phí công đoạn/đv', digits='Product Price',
                                   readonly=True, groups=_COST_GROUPS)
-    # Chi phí chung/điều chỉnh/đơn vị (Lớp D — RV-01): overhead, đóng gói, giao
-    # gấp, đơn nhỏ, dự phòng... cộng lên giá thành trực tiếp (V3 §6).
+    # Các khoản cộng thêm ngoài vật tư và công: overhead, đóng gói, phụ phí
+    # giao gấp, phụ phí đơn nhỏ, dự phòng.
     adjustment_cost = fields.Float(string='Chi phí chung/điều chỉnh/đv',
                                    digits='Product Price',
                                    readonly=True, groups=_COST_GROUPS)
@@ -1284,12 +1334,13 @@ class DlQuotationLine(models.Model):
         for line in self:
             line.price_subtotal = line.qty * line.price_unit
 
-    # Field ảnh hưởng giá trên dòng — sửa/xóa thẳng dòng (RPC, không qua write
-    # header) cũng phải đánh giá lại phê duyệt. Khi sửa qua form, header đã
-    # re-eval và đặt cờ dl_skip_line_reeval để không chạy trùng.
+    # Sửa/xoá dòng thẳng qua RPC (không đi qua form) cũng phải xét lại điều
+    # kiện phê duyệt. Sửa trên form thì header đã xét rồi và cắm cờ
+    # dl_skip_line_reeval để khỏi chạy hai lần.
     _LINE_REEVAL_FIELDS = {'price_unit', 'qty'}
 
     def write(self, vals):
+        """Đổi đơn giá/số lượng của dòng ⇒ xét lại điều kiện phê duyệt."""
         res = super().write(vals)
         if (self._LINE_REEVAL_FIELDS & set(vals)
                 and not self.env.context.get('dl_skip_line_reeval')):
@@ -1299,6 +1350,7 @@ class DlQuotationLine(models.Model):
         return res
 
     def unlink(self):
+        """Xoá bớt dòng làm tổng tiền giảm ⇒ cũng xét lại điều kiện phê duyệt."""
         quotations = self.mapped('quotation_id')
         res = super().unlink()
         if not self.env.context.get('dl_skip_line_reeval'):

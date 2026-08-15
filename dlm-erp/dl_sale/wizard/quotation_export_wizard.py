@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-"""RV-02 — Wizard xuất / gửi báo giá: chọn định dạng Word hoặc PDF, rồi Tải về
-hoặc Gửi email. File do model chính dựng thuần Python (python-docx / reportlab),
-không cần wkhtmltopdf. Khi gửi email: mở trình soạn thư đã đính sẵn file để
-người dùng ĐỌC LẠI rồi mới bấm Gửi (không tự động gửi ra ngoài)."""
+"""Dialog "Xuất / Gửi báo giá": chọn Word hay PDF rồi Tải về hoặc Gửi email.
+
+File do model chính dựng (python-docx / reportlab). Gửi email KHÔNG tự bắn ra
+ngoài — chỉ mở sẵn trình soạn thư đã đính file để người dùng đọc lại rồi tự
+bấm Gửi."""
 
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
@@ -43,8 +44,7 @@ class DlQuotationExportWizard(models.TransientModel):
 
         attachment = quotation._create_quotation_attachment(self.doc_format)
 
-        # Render tiêu đề/nội dung từ mẫu thư (KHÔNG kèm report_template_ids nên
-        # không đụng wkhtmltopdf). File đính kèm dùng bản vừa dựng ở trên.
+        # Lấy tiêu đề/nội dung thư từ mẫu; file đính kèm là bản vừa dựng ở trên.
         template = self.env.ref(
             "dl_sale.mail_template_dl_quotation", raise_if_not_found=False)
         subject = body = ""

@@ -6,9 +6,10 @@ from odoo.exceptions import UserError
 from odoo.tools import float_is_zero, float_round
 
 # ---------------------------------------------------------------------------
-# Mã lỗi nghiệp vụ (đặc tả §12 / §17.6). Giữ mã trong thông báo để hỗ trợ và
-# đội test đối chiếu nhanh với tài liệu. Để plain string (không bọc _() ở cấp
-# module — _() phải chạy trong ngữ cảnh có cursor).
+# Các câu báo lỗi bung ra hộp thoại đỏ khi Sales bấm "Tạo báo giá" trên RFQ —
+# mỗi câu chỉ đúng một nguyên nhân để người dùng biết phải đi sửa ở đâu.
+# Giữ mã QTE-xxx ở đầu câu cho dễ tra cứu khi hỗ trợ người dùng.
+# Không bọc _() ở đây: _() phải chạy khi đã có cursor, cấp module thì chưa có.
 # ---------------------------------------------------------------------------
 QTE_001 = "QTE-001: Chỉ RFQ đã xử lý xong (Đã xác nhận) mới được tạo báo giá."
 QTE_002 = "QTE-002: Sản phẩm gia công '%s' chưa có BOM đã xác nhận/khóa."
@@ -33,15 +34,19 @@ QTE_INFEASIBLE = (
 
 
 class DlQuotationPricingService(models.AbstractModel):
-    """Dịch vụ tính giá & tạo báo giá từ RFQ (đặc tả §17.4/§17.5).
+    """Bộ máy tính tiền đứng sau nút "Tạo báo giá" của màn RFQ.
 
-    Tách khỏi model action để kiểm thử độc lập và tái sử dụng khi tính lại báo
-    giá ở phase sau. Giá thành sản phẩm gia công = chi phí vật tư BOM (đệ quy
-    BTP) **+ chi phí công đoạn** (biến đổi/đơn vị + setup/lô, tra đơn giá công
-    đoạn active tại ngày tính giá — RV-01/B2) **+ chi phí chung/điều chỉnh**
-    (Lớp D — overhead/đóng gói/giao gấp/đơn nhỏ/dự phòng, 6 cách tính, tuần tự
-    trên giá thành lũy kế — V3 §6), rồi markup/giá sàn/làm tròn; chiết khấu &
-    VAT header nhập tay.
+    Không có màn hình riêng — Sales bấm một nút trên RFQ, toàn bộ file này chạy
+    và đẻ ra bản báo giá nháp với đầy đủ số.
+
+    Cách ra giá một sản phẩm gia công:
+        tiền vật tư theo BOM (BOM lồng BOM thì đệ quy xuống bán thành phẩm)
+      + tiền công đoạn  (cắt/hàn/sơn theo đơn vị, cộng phí setup chia theo lô)
+      + chi phí chung   (overhead, đóng gói, giao gấp, đơn nhỏ, dự phòng)
+      = giá thành → nhân markup ra giá chào, đồng thời tính giá sàn rồi làm tròn.
+    Chiết khấu và VAT ở đầu báo giá thì Sales tự nhập, không tính ở đây.
+
+    Tách riêng khỏi model để test được độc lập, không cần dựng cả form.
     """
 
     _name = "dl.quotation.pricing.service"
@@ -51,9 +56,11 @@ class DlQuotationPricingService(models.AbstractModel):
     # Điều phối chính
     # ------------------------------------------------------------------
     def create_from_rfq(self, rfq):
-        """Tạo đúng một báo giá draft từ một RFQ đã confirmed, trong một
-        transaction. Bất kỳ lỗi nào cũng rollback: không để RFQ 'quoted' mà
-        thiếu báo giá."""
+        """Cửa vào chính: từ 1 RFQ đã xác nhận đẻ ra 1 báo giá nháp.
+
+        Chạy trọn trong một transaction — hỏng ở bất kỳ bước nào là rollback
+        sạch, tránh cảnh RFQ đã đánh dấu "đã báo giá" mà báo giá thì không có.
+        Trả về action mở luôn báo giá vừa tạo kèm toast hướng dẫn bước sau."""
         rfq.ensure_one()
         context = self._build_context(rfq)
         self._validate_rfq(rfq, context)
@@ -63,10 +70,11 @@ class DlQuotationPricingService(models.AbstractModel):
         excluded = rfq.line_ids.filtered(lambda l: l.is_infeasible)
         quotable = rfq.line_ids - excluded
 
-        # Lớp D — pre-pass: tính GIÁ TRỊ ĐƠN (theo chi phí trực tiếp) làm cơ sở
-        # cho điều kiện "Đơn hàng nhỏ", và cache chi phí trực tiếp từng dòng gia
-        # công để KHÔNG duyệt BOM hai lần. Dùng chi phí trực tiếp (không phải giá
-        # bán) để tránh vòng lặp giá↔điều chỉnh.
+        # Chạy trước một lượt để biết đơn này to hay nhỏ — khoản phụ phí "Đơn
+        # hàng nhỏ" cần con số đó mới quyết được có áp hay không.
+        # Đo bằng chi phí trực tiếp chứ không bằng giá bán: lấy giá bán thì
+        # phụ phí lại làm đổi giá bán, thành vòng lặp.
+        # Tiện thể cache luôn chi phí từng dòng để khỏi duyệt BOM hai lần.
         direct_cache = {}
         order_value = 0.0
         for rfq_line in quotable:
@@ -81,26 +89,26 @@ class DlQuotationPricingService(models.AbstractModel):
         context["order_value"] = order_value
         context["direct_cache"] = direct_cache
 
-        # sudo cho phần ghi dữ liệu: người bấm là Sales (BA) có thể không có
-        # quyền write các field chi phí (groups=) hay model price.component —
-        # nhưng quyền TẠO báo giá đã được kiểm ở action_create_quotation.
+        # sudo vì người bấm nút là Sales, không có quyền ghi các field giá vốn.
+        # Quyền được tạo báo giá hay không đã kiểm ở action_create_quotation.
         Quotation = self.env["dl.quotation"].sudo()
 
-        # Chống trùng ở cấp DB (Decision C7): partial unique index bắt lỗi race
-        # condition. Bọc savepoint + flush để IntegrityError bung ra ngay đây và
-        # dịch thành lỗi thân thiện, thay vì vỡ ở lần commit ngoài cùng.
+        # Hai người bấm "Tạo báo giá" cùng lúc thì khoá chống trùng ở DB sẽ nổ.
+        # Bọc savepoint + flush để lỗi đó bung ra ĐÚNG chỗ này và dịch thành
+        # câu tiếng Việt dễ hiểu, thay vì vỡ ở tận lần commit cuối request.
         try:
             with self.env.cr.savepoint():
                 quotation = Quotation.create(self._prepare_header_vals(rfq, context))
                 for rfq_line in quotable:
                     self._create_quotation_line(quotation, rfq_line, context)
-                # Chốt cấu hình thương mại + đánh giá phê duyệt (§7–§8).
+                # Điền chiết khấu/VAT rồi xét xem báo giá có phải xin duyệt không.
                 self._apply_commercial_and_approval(quotation, context)
                 quotation.flush_recordset()
         except IntegrityError:
             raise UserError(QTE_008)
 
-        # Đánh dấu rule đã dùng trong snapshot để không cho sửa (mixin bảo vệ).
+        # Đóng dấu "đã dùng để báo giá" lên rule — từ giờ màn Cấu hình báo giá
+        # không cho sửa rule này nữa, sửa được thì số báo giá cũ sẽ sai.
         for rule in (context.get("profit_rule"), context.get("discount_rule")):
             if rule and not rule.used_in_snapshot:
                 rule.sudo().write({"used_in_snapshot": True})
@@ -121,10 +129,9 @@ class DlQuotationPricingService(models.AbstractModel):
             "type": "ir.actions.act_window",
             "name": _("Báo giá"),
             "res_model": "dl.quotation",
-            # Khai báo tường minh 'views' (không chỉ 'view_mode'): action này
-            # được nhét vào params.next của display_notification nên KHÔNG đi qua
-            # clean_action ở server — client sẽ gọi doAction thẳng, và
-            # _preprocessAction làm action.views.map() → vỡ nếu thiếu 'views'.
+            # ⚠️ Phải khai 'views' chứ không chỉ 'view_mode': action này nằm
+            # trong toast nên không đi qua bước chuẩn hoá ở server, client gọi
+            # thẳng và sẽ vỡ khi thiếu 'views'.
             "views": [(False, "form")],
             "view_mode": "form",
             "res_id": quotation.id,
@@ -155,12 +162,15 @@ class DlQuotationPricingService(models.AbstractModel):
         }
 
     # ------------------------------------------------------------------
-    # Ngữ cảnh & kiểm tra
+    # Gom dữ liệu đầu vào & kiểm tra trước khi tính
     # ------------------------------------------------------------------
     def _build_context(self, rfq):
-        """Chốt company/currency/pricing_date và tải các cấu hình đang hiệu lực
-        đúng công ty/ngày (§17.5): lợi nhuận (markup/giá sàn), chiết khấu theo
-        nhóm khách, VAT & làm tròn. Các số này được snapshot vào báo giá."""
+        """Nạp một lần toàn bộ cấu hình sẽ dùng để tính, rồi chuyền tay qua các
+        hàm bên dưới.
+
+        Chốt ngày tính giá ngay từ đây và mọi rule đều tra theo ngày đó — báo
+        giá hôm nay không được đổi số vì mai có người sửa bảng giá. Các con số
+        này cũng được chép vào báo giá để sau còn giải trình."""
         company = self.env.company
         date = fields.Date.context_today(rfq)
         partner = rfq.customer_id
@@ -169,9 +179,9 @@ class DlQuotationPricingService(models.AbstractModel):
         discount_rule = self._active_discount_rule(company, date, partner)
         config = self.env["dl.pricing.config"].sudo().search([], limit=1)
 
-        # Lớp D: các khoản chi phí chung/điều chỉnh đang áp dụng + số ngày giao
-        # (để điều kiện "Giao gấp"). delivery_days lấy từ hạn RFQ; None nếu RFQ
-        # không đặt hạn ⇒ khoản Giao gấp không áp dụng.
+        # Các khoản phụ phí đang bật + số ngày còn lại tới hạn giao (để biết có
+        # tính phụ phí "Giao gấp" không). RFQ không đặt hạn ⇒ None ⇒ bỏ qua
+        # khoản giao gấp.
         adjustment_rules = self.env[
             "dl.pricing.cost.adjustment.rule"].sudo()._get_active_rules(company, date)
         delivery_days = None
@@ -185,17 +195,19 @@ class DlQuotationPricingService(models.AbstractModel):
             "partner": partner,
             "profit_rule": profit_rule,
             "discount_rule": discount_rule,
-            # discount_pct tự điền theo nhóm khách; vat/rounding từ cấu hình S02.
+            # Chiết khấu tự điền theo nhóm khách; VAT và mức làm tròn lấy từ
+            # màn Cấu hình báo giá.
             "discount_pct": discount_rule.default_rate if discount_rule else 0.0,
             "vat_pct": config.vat_pct if config else 0.0,
             "rounding_to": config.rounding_to if config else 0,
             "adjustment_rules": adjustment_rules,
             "delivery_days": delivery_days,
-            # order_value + direct_cache do create_from_rfq điền ở pre-pass.
+            # order_value + direct_cache do create_from_rfq điền ở lượt chạy trước.
         }
 
     def _active_rule_domain(self, company, date):
-        """Domain lấy quy tắc đang áp dụng, đúng công ty và còn hiệu lực tại ngày."""
+        """Điều kiện chung để lọc rule: đã bật, đúng công ty, còn hiệu lực tại
+        ngày tính giá."""
         return [
             ("state", "=", "active"),
             ("company_id", "=", company.id),
@@ -204,19 +216,21 @@ class DlQuotationPricingService(models.AbstractModel):
         ]
 
     def _active_profit_rule(self, company, date):
+        """Rule lợi nhuận đang áp dụng — cho markup mục tiêu và markup tối
+        thiểu (giá sàn). Không có rule nào thì không tính giá được (QTE-005)."""
         return self.env["dl.pricing.profit.rule"].sudo().search(
             self._active_rule_domain(company, date),
             order="valid_from desc, revision desc", limit=1)
 
     def _active_discount_rule(self, company, date, partner):
-        # RV-05 / QTE-006: báo giá KHÔNG được âm thầm thoát khỏi trần chiết khấu.
-        # Trước đây trả rỗng ⇒ above_default/above_max luôn False ⇒ Sales nhập
-        # chiết khấu bao nhiêu cũng không phát sinh duyệt. Hai lỗ hổng cần bịt:
-        #   (1) khách chưa được phân nhóm (dlm_customer_group rỗng) → coi như
-        #       "Khách mới" (nhóm an toàn nhất theo thiết kế §7.3);
-        #   (2) nhóm của khách CHƯA có bảng chiết khấu đang áp dụng → lấy rule an
-        #       toàn nhất (trần max_rate thấp nhất) trong các rule active làm dự
-        #       phòng, thay vì thả nổi trần.
+        """Bảng chiết khấu áp cho khách này — quyết định mức mặc định và trần.
+
+        🔴 Không bao giờ được trả về rỗng khi hệ thống có rule: rỗng thì cờ
+        "vượt trần" luôn False, Sales gõ chiết khấu bao nhiêu cũng không phát
+        sinh phê duyệt. Nên có 2 lớp đỡ:
+          1. khách chưa phân nhóm → coi là "Khách mới" (nhóm chặt nhất);
+          2. nhóm đó chưa có bảng chiết khấu → lấy tạm bảng có trần THẤP NHẤT
+             trong số đang hiệu lực, thà chặt còn hơn thả nổi."""
         group = partner.dlm_customer_group or "new"
         Discount = self.env["dl.pricing.discount.rule"].sudo()
         base_domain = self._active_rule_domain(company, date)
@@ -225,28 +239,29 @@ class DlQuotationPricingService(models.AbstractModel):
             order="valid_from desc, revision desc", limit=1)
         if rule:
             return rule
-        # Không có rule cho nhóm này — dự phòng bằng rule trần thấp nhất còn hiệu
-        # lực. Không có rule nào ⇒ DN chưa thiết lập chính sách chiết khấu (mặc
-        # định 0%, không áp trần) — đó là quyết định cấu hình toàn cục.
+        # Nhóm này chưa có bảng riêng → dùng tạm bảng chặt nhất. Nếu cả hệ
+        # thống chưa có bảng nào thì đúng là công ty chưa đặt chính sách chiết
+        # khấu — lúc đó mặc định 0% và không có trần, đó là chủ ý.
         return Discount.search(
             base_domain, order="max_rate asc, valid_from desc, revision desc", limit=1)
 
     @staticmethod
     def _round_price(value, rounding_to):
-        """Làm tròn giá bán mục tiêu tới bội số ``rounding_to`` (đ), ROUND_HALF_UP
-        (§7.4). rounding_to = 0 ⇒ không làm tròn."""
+        """Làm tròn giá chào lên bội số cấu hình (vd bội số 1.000đ) cho số đẹp
+        khi gửi khách. Cấu hình = 0 thì để nguyên."""
         if not rounding_to or rounding_to <= 0:
             return value
         return float_round(value, precision_rounding=float(rounding_to),
                            rounding_method="HALF-UP")
 
     def _validate_rfq(self, rfq, context):
+        """Soát RFQ trước khi tính: đủ điều kiện thì mới chạy, thiếu gì thì báo
+        lỗi nêu đích danh chỗ phải sửa."""
         if rfq.status != "confirmed":
             raise UserError(QTE_001)
 
-        # Chặn tạo trùng chỉ khi RFQ còn báo giá ĐANG HIỆU LỰC. Báo giá đã đóng
-        # (từ chối / hết hiệu lực / đã thay bản mới / đã hủy) không chặn — cho
-        # phép báo giá lại từ RFQ (vd đổi vật liệu → BOM mới → báo giá mới).
+        # Chỉ chặn khi RFQ còn báo giá ĐANG SỐNG. Báo giá đã đóng thì cho báo
+        # lại từ đầu — ví dụ khách chê vật liệu, Kỹ thuật sửa BOM, báo giá mới.
         closed = list(self.env["dl.quotation"]._CLOSED_STATES)
         existing = self.env["dl.quotation"].sudo().search(
             [
@@ -261,9 +276,9 @@ class DlQuotationPricingService(models.AbstractModel):
         if not rfq.line_ids:
             raise UserError(_("RFQ chưa có dòng sản phẩm nào để báo giá."))
 
-        # Dòng "Không khả thi" được TỰ LOẠI khỏi báo giá (không chặn cả RFQ):
-        # báo giá đúng các dòng làm được, các dòng không khả thi vẫn nằm trên RFQ
-        # làm bằng chứng "không nhận". Chỉ chặn khi KHÔNG còn dòng nào để báo giá.
+        # Dòng Kỹ thuật đánh "Không khả thi" thì tự bỏ ra khỏi báo giá chứ
+        # không chặn cả RFQ — báo giá phần làm được, phần không nhận vẫn nằm
+        # trên RFQ làm bằng chứng. Chỉ chặn khi không còn dòng nào để báo.
         quotable = rfq.line_ids.filtered(lambda l: not l.is_infeasible)
         if not quotable:
             raise UserError(QTE_INFEASIBLE)
@@ -272,6 +287,8 @@ class DlQuotationPricingService(models.AbstractModel):
             self._validate_line(line, context)
 
     def _validate_line(self, rfq_line, context):
+        """Soát một dòng RFQ: hàng thương mại phải có giá bán, hàng gia công
+        phải có BOM đã xác nhận/khoá."""
         if rfq_line.quantity <= 0:
             raise UserError(_("Số lượng dòng '%s' phải lớn hơn 0.")
                             % (rfq_line.product_name or rfq_line.display_name))
@@ -293,9 +310,10 @@ class DlQuotationPricingService(models.AbstractModel):
                 raise UserError(QTE_004 % bom.display_name)
 
     # ------------------------------------------------------------------
-    # Chuẩn bị header & line
+    # Dựng phần đầu báo giá & từng dòng
     # ------------------------------------------------------------------
     def _prepare_header_vals(self, rfq, context):
+        """Phần đầu báo giá: khách, RFQ nguồn, ngày, chiết khấu/VAT mặc định."""
         return {
             "partner_id": rfq.customer_id.id,
             "quotation_request_id": rfq.id,
@@ -309,6 +327,8 @@ class DlQuotationPricingService(models.AbstractModel):
         }
 
     def _create_quotation_line(self, quotation, rfq_line, context):
+        """Đẻ một dòng báo giá + các cấu phần giá của nó (dữ liệu nuôi bảng
+        công thức ở trang Phân tích giá thành)."""
         if rfq_line.product_type == "trading":
             vals, comp_specs = self._price_trading(rfq_line, context)
         else:
@@ -328,12 +348,14 @@ class DlQuotationPricingService(models.AbstractModel):
         return line
 
     # ------------------------------------------------------------------
-    # Tính giá dòng thương mại (Decision B4)
+    # Hàng thương mại (mua về bán lại)
     # ------------------------------------------------------------------
     def _price_trading(self, rfq_line, context):
+        """Hàng mua về bán lại: lấy thẳng giá bán trên hồ sơ sản phẩm, không
+        qua giá thành/markup/giá sàn."""
         product = rfq_line.resolved_product_id
         qty = rfq_line.quantity
-        base_price = product.list_price  # snapshot list_price tại thời điểm tạo
+        base_price = product.list_price  # chụp lại giá bán tại thời điểm này
 
         vals = {
             "name": product.display_name,
@@ -341,7 +363,7 @@ class DlQuotationPricingService(models.AbstractModel):
             "product_id": product.id,
             "base_price": base_price,
             "price_unit": base_price,
-            "total_cost": 0.0,      # hàng thương mại không đi qua cost engine
+            "total_cost": 0.0,      # không tính giá thành cho hàng bán lại
             "material_cost": 0.0,
             "floor_price": 0.0,
         }
@@ -358,18 +380,21 @@ class DlQuotationPricingService(models.AbstractModel):
         return vals, comp_specs
 
     # ------------------------------------------------------------------
-    # Chi phí TRỰC TIẾP/đơn vị (vật tư + công đoạn) — tách riêng để pre-pass
-    # tính giá trị đơn (điều kiện Lớp D) mà không lặp lại phần này ở main pass.
+    # Chi phí trực tiếp (vật tư + công) cho 1 sản phẩm
     # ------------------------------------------------------------------
     def _manufactured_direct_cost(self, rfq_line, context):
+        """Vật tư + tiền công cho MỘT sản phẩm, chưa cộng phụ phí và chưa có lãi.
+
+        Tách riêng vì lượt chạy đầu (đo đơn to/nhỏ) cần đúng con số này, và kết
+        quả được cache lại để lượt tính chính khỏi duyệt BOM lần nữa."""
         bom = rfq_line.resolved_bom_id
         qty = rfq_line.quantity
-        # (A) chi phí vật tư + (B) chi phí công đoạn BIẾN ĐỔI cho MỘT đơn vị đầu
-        # ra. Đệ quy BTP: công đoạn của bán thành phẩm tự vào giá vốn của nó.
+        # Vật tư + tiền công tính theo đơn vị. BOM lồng BOM thì đệ quy xuống,
+        # tiền công của bán thành phẩm tự nằm trong giá vốn của nó.
         material_unit, op_var_unit, unit_specs = self._bom_unit_cost(
             bom, context, visited=frozenset())
-        # (C) chi phí công đoạn theo LÔ (phí setup + per_batch) của BOM top-level,
-        # cộng một lần cho cả dòng rồi phân bổ đều trên số lượng (Decision B3).
+        # Phí tính theo LÔ (setup máy…): trả một lần cho cả mẻ nên cộng một lần
+        # rồi chia đều cho số lượng đặt — đặt càng nhiều càng rẻ trên đầu sp.
         batch_total, batch_specs = self._bom_batch_cost(bom, context)
         op_setup_unit = batch_total / qty if qty else 0.0
         return {
@@ -382,11 +407,16 @@ class DlQuotationPricingService(models.AbstractModel):
         }
 
     # ------------------------------------------------------------------
-    # Tính giá dòng gia công (Decision A2 + §5.2 chia product_qty)
+    # Hàng gia công: từ chi phí ra giá chào
     # ------------------------------------------------------------------
     def _price_manufactured(self, rfq_line, context):
-        # Lấy chi phí trực tiếp từ cache pre-pass (khỏi duyệt BOM lại); dự phòng
-        # tính thẳng nếu gọi ngoài luồng create_from_rfq (test đơn vị).
+        """Ra giá cho một dòng gia công: chi phí trực tiếp → cộng phụ phí →
+        giá thành → nhân markup ra giá chào + tính giá sàn.
+
+        Đồng thời sinh các cấu phần giá để trang Phân tích giá thành giải trình
+        được từng đồng."""
+        # Lấy lại chi phí đã tính ở lượt chạy đầu; gọi lẻ ngoài luồng (unit
+        # test) thì không có cache nên tính thẳng.
         dc = context.get("direct_cache", {}).get(rfq_line.id)
         if dc is None:
             dc = self._manufactured_direct_cost(rfq_line, context)
@@ -401,15 +431,14 @@ class DlQuotationPricingService(models.AbstractModel):
         if not profit_rule:
             raise UserError(QTE_005)
 
-        # (D) Lớp chi phí chung/điều chỉnh: overhead/đóng gói/giao gấp/đơn nhỏ/
-        # dự phòng cộng tuần tự trên giá thành trực tiếp (V3 §6).
+        # Cộng các khoản phụ phí (overhead, đóng gói, giao gấp, đơn nhỏ, dự
+        # phòng) lên chi phí trực tiếp.
         direct_cost = material_unit + operation_cost
         adjustment_cost, adj_specs = self._apply_cost_adjustments(
             direct_cost, context, qty)
 
-        # F/G/H (§6.1): giá thành = trực tiếp + điều chỉnh; giá mục tiêu = giá
-        # thành × (1 + markup); giá sàn = ×(1 + min_markup); làm tròn giá bán
-        # trước chiết khấu.
+        # Ra 3 con số cuối: giá thành, giá chào (đã cộng lãi mục tiêu, làm
+        # tròn) và giá sàn (lãi tối thiểu — bán dưới mức này phải xin duyệt).
         total_cost = direct_cost + adjustment_cost
         target_markup = profit_rule.target_markup
         min_markup = profit_rule.min_markup
@@ -422,8 +451,8 @@ class DlQuotationPricingService(models.AbstractModel):
             "line_type": "manufactured",
             "product_id": rfq_line.resolved_product_id.id,
             "bom_id": bom.id,
-            # Dấu vết BOM tại thời điểm tạo báo giá (§5.2) — stamp scalar, không
-            # related sống về bom.version.
+            # Chụp lại BOM đang dùng: chép giá trị, không trỏ sống về
+            # bom.version — BOM lên bản mới thì báo giá cũ vẫn nhớ đúng bản.
             "bom_version": bom.version,
             "bom_approved_by": bom.approved_by.id,
             "bom_confirmed_date": bom.approved_date,
@@ -438,8 +467,8 @@ class DlQuotationPricingService(models.AbstractModel):
 
         comp_specs = []
         for spec in unit_specs:
-            # unit_specs tính cho MỘT đơn vị đầu ra (vật tư + công đoạn biến đổi)
-            # — nhân số lượng RFQ để ra cấu phần theo cả dòng.
+            # Các cấu phần trên đang tính cho 1 sản phẩm — nhân số lượng đặt để
+            # ra con số của cả dòng.
             comp_specs.append({
                 "component_type": spec["component_type"],
                 "source_model": spec["source_model"],
@@ -451,13 +480,13 @@ class DlQuotationPricingService(models.AbstractModel):
                 "rate": spec.get("rate", 0.0),
                 "amount": spec["amount"] * qty,
             })
-        # Cấu phần công đoạn theo LÔ: amount đã là tổng cho cả dòng (không nhân
-        # qty); đơn giá hiển thị = phân bổ/đơn vị để giải trình.
+        # Phí theo lô đã là tổng cho cả dòng rồi nên KHÔNG nhân qty nữa; cột
+        # đơn giá chỉ để hiển thị phần chia trên đầu sản phẩm.
         for spec in batch_specs:
             spec["qty"] = qty
             spec["unit_price"] = spec["amount"] / qty if qty else 0.0
             comp_specs.append(spec)
-        # Cấu phần điều chỉnh (Lớp D): amount/đơn vị → nhân qty ra cả dòng.
+        # Phụ phí đang tính trên đầu sản phẩm → nhân qty ra cả dòng.
         for spec in adj_specs:
             comp_specs.append({
                 "component_type": "adjustment",
@@ -471,30 +500,31 @@ class DlQuotationPricingService(models.AbstractModel):
                 "amount": spec["amount"] * qty,
                 "no_discount": spec["no_discount"],
             })
-        # Cấu phần markup: giải trình phần lợi nhuận cộng thêm trên giá thành.
+        # Dòng cuối bảng công thức: phần lãi cộng thêm trên giá thành.
         comp_specs.append({
             "component_type": "markup",
             "source_model": "dl.pricing.profit.rule",
             "source_id": profit_rule.id,
             "source_revision": profit_rule.revision,
             "qty": qty,
-            "unit_price": total_cost,          # cơ sở/đơn vị
+            "unit_price": total_cost,          # nền để tính lãi, trên 1 sp
             "rate": target_markup,
             "amount": (price_unit - total_cost) * qty,
         })
         return vals, comp_specs
 
     def _apply_cost_adjustments(self, direct_unit, context, qty):
-        """Lớp D — chi phí chung/điều chỉnh cộng lên giá thành trực tiếp (V3 §6).
+        """Cộng các khoản phụ phí (overhead, đóng gói, giao gấp, đơn nhỏ, dự
+        phòng) lên chi phí trực tiếp của 1 sản phẩm.
 
-        Trả ``(adjustment_unit, specs)``: tổng khoản điều chỉnh/đơn vị và các
-        cấu phần snapshot (amount/đơn vị). ``_get_active_rules`` đã sắp nhóm CỘNG
-        trước, nhóm NHÂN (% giá thành / hệ số) sau ⇒ tổng = (trực tiếp + Σ cộng)
-        × Π nhân, KHÔNG phụ thuộc thứ tự khai báo (review §4.2). % giá thành và
-        hệ số nhân vẫn cộng dồn trên ``running`` (giá thành lũy kế) — vì đứng
-        sau nên nhân trên nền đã gồm đủ các khoản cộng. Đánh dấu rule đã dùng để
-        mixin bảo vệ không cho sửa (đối xứng công đoạn).
-        """
+        Trả về (tổng phụ phí trên 1 sp, danh sách cấu phần để in ra bảng công
+        thức).
+
+        Thứ tự cộng đã được sắp sẵn: các khoản tiền cố định vào trước, các
+        khoản tính theo % / hệ số vào sau. Nhờ vậy khoản % luôn nhân trên nền
+        đã đủ, và kết quả KHÔNG đổi theo thứ tự khai báo rule trong màn cấu hình.
+
+        Rule nào đã dùng thì đóng dấu lại — màn cấu hình sẽ khoá không cho sửa."""
         rules = context.get("adjustment_rules")
         if not rules:
             return 0.0, []
@@ -520,7 +550,7 @@ class DlQuotationPricingService(models.AbstractModel):
                 "source_model": "dl.pricing.cost.adjustment.rule",
                 "source_id": rule.id,
                 "source_revision": rule.revision,
-                # % / hệ số: tỷ lệ ở cột 'rate', bỏ trống đơn giá (không phải tiền).
+                # Khoản theo %/hệ số: ghi tỷ lệ ở cột 'rate', bỏ trống đơn giá.
                 "unit_price": 0.0 if is_rate else amount,
                 "rate": rule.value if is_rate else 0.0,
                 "amount": amount,
@@ -529,41 +559,29 @@ class DlQuotationPricingService(models.AbstractModel):
         return adj_total, specs
 
     def _resolve_child_bom(self, material):
-        """BOM dùng làm GIÁ VỐN CHUẨN của một bán thành phẩm.
+        """Chọn BOM nào làm giá vốn chuẩn cho một bán thành phẩm.
 
-        Trước đây chỉ lấy ``version desc`` bất kể loại BOM ⇒ một BOM **báo giá**
-        (sinh khi xử lý RFQ cho một đơn cụ thể) có số version cao hơn sẽ THẮNG
-        BOM chuẩn của chính bán thành phẩm đó — nghĩa là định mức riêng của đơn
-        A âm thầm trở thành giá vốn cho đơn B. Sai lệch chỉ hiện ra ở tiền nên
-        rất khó phát hiện.
+        🔴 Không được lấy "version cao nhất": một BOM báo giá sinh riêng cho
+        đơn A có thể có version cao hơn BOM chuẩn, lấy nhầm thì định mức của đơn
+        A âm thầm thành giá vốn cho đơn B. Sai kiểu này chỉ lệch ở tiền, rất khó
+        thấy. Ưu tiên đúng là: BOM chuẩn hiện hành → BOM chuẩn mới nhất → cuối
+        cùng mới đành lấy BOM báo giá (khi bán thành phẩm chưa từng có BOM chuẩn).
 
-        Thứ tự đúng (thiết kế §17.2):
-          1. BOM chuẩn (``template``) đang là phiên bản hiện hành;
-          2. BOM chuẩn mới nhất còn hiệu lực;
-          3. chỉ khi bán thành phẩm CHƯA TỪNG có BOM chuẩn mới đành dùng BOM
-             báo giá mới nhất (trường hợp dữ liệu chưa hoàn chỉnh).
-        """
-        # LK-02 — NGUỒN DUY NHẤT chọn BOM chuẩn nằm ở dl.bom._standard_child_bom;
-        # cả snapshot dòng BOM (dl.bom.line) lẫn engine này gọi cùng một hàm nên
-        # hai đường tính giá vốn BTP luôn ra cùng số (§3.3-B). sudo giữ ở đây.
+        Việc chọn dồn về một hàm duy nhất ở dl.bom để engine này và ảnh chụp
+        dòng BOM luôn ra cùng một con số giá vốn."""
         return self.env["dl.bom"].sudo()._standard_child_bom(material)
 
     def _bom_unit_cost(self, bom, context, visited):
-        """Chi phí (vật tư + công đoạn biến đổi) cho MỘT đơn vị đầu ra của ``bom``.
+        """Vật tư + tiền công (phần theo đơn vị) cho MỘT sản phẩm của BOM này.
 
-        Trả về ``(material_unit, op_var_unit, specs)``:
-          * ``material_unit`` — chi phí vật tư/đơn vị (đệ quy BTP, chia
-            product_qty của BOM con §5.2; gồm hao hụt + thu hồi phế liệu);
-          * ``op_var_unit`` — chi phí công đoạn BIẾN ĐỔI/đơn vị của chính BOM
-            này (không gồm setup/per_batch — phần theo LÔ do ``_bom_batch_cost``
-            xử lý ở BOM top-level, §3.3);
-          * ``specs`` — cấu phần snapshot đã quy về một đơn vị (material /
-            processed_material / recovery / operation).
+        Trả về (tiền vật tư/sp, tiền công biến đổi/sp, danh sách cấu phần).
+        Phần phí theo LÔ (setup) không tính ở đây mà ở _bom_batch_cost cho BOM
+        ngoài cùng.
 
-        Với bán thành phẩm, giá vốn = ``material + op biến đổi`` của BOM con nên
-        chi phí cắt/hàn/sơn của BTP tự vào giá vốn của nó (§3.2). Phát hiện vòng
-        lặp BOM (QTE-004).
-        """
+        BOM lồng BOM: gặp một bán thành phẩm thì gọi đệ quy xuống, giá vốn bán
+        thành phẩm = vật tư + tiền công của chính nó, nên tiền công cắt/hàn/sơn
+        của bán thành phẩm tự nằm trong đó. ``visited`` chặn BOM lồng vòng
+        (A cần B, B cần A) — gặp là báo lỗi QTE-004."""
         if bom.id in visited:
             raise UserError(QTE_004 % bom.display_name)
         visited = visited | {bom.id}
@@ -580,12 +598,13 @@ class DlQuotationPricingService(models.AbstractModel):
                 raise UserError(QTE_004 % bom.display_name)
 
             if material.product_kind == "material_processed":
+                # Dòng này là bán thành phẩm ⇒ đệ quy xuống BOM của nó.
                 child = self._resolve_child_bom(material)
                 if not child:
                     raise UserError(QTE_004 % material.display_name)
                 child_mat, child_op, _child_specs = self._bom_unit_cost(
                     child, context, visited)
-                # Giá vốn BTP đã gồm công đoạn của chính nó.
+                # Giá vốn bán thành phẩm = vật tư + tiền công của chính nó.
                 unit_price = child_mat + child_op
                 spec_base = {
                     "component_type": "processed_material",
@@ -594,6 +613,7 @@ class DlQuotationPricingService(models.AbstractModel):
                     "source_revision": child.version,
                 }
             else:
+                # Vật tư thô mua ngoài ⇒ lấy giá NCC đã duyệt, đang áp dụng.
                 seller = self._active_material_seller(material, context)
                 if not seller or seller.price <= 0:
                     raise UserError(QTE_003 % material.display_name)
@@ -606,7 +626,7 @@ class DlQuotationPricingService(models.AbstractModel):
                     "source_revision": 0,
                 }
 
-            amount = bl.effective_qty * unit_price  # cho product_qty đầu ra
+            amount = bl.effective_qty * unit_price  # cho cả mẻ product_qty
             net = amount
             total_output_cost += amount
             spec_base.update(
@@ -617,11 +637,10 @@ class DlQuotationPricingService(models.AbstractModel):
             )
             specs.append(spec_base)
 
-            # 🔴 K16 (2026-08-13) — khối "Thu hồi phế liệu (§5.3)" ĐÃ GỠ. Người
-            # dùng chốt bỏ cách tính % thu hồi: giá vốn không còn được trừ tiền
-            # phế liệu dự kiến, và tiền bán phế liệu thật thành lãi ngoài.
-            # Cấu phần `recovery` vì thế không còn được sinh ra nữa — báo giá cũ
-            # giữ nguyên cấu phần đã lưu, chỉ báo giá tính MỚI mới khác.
+            # 🔴 Không còn trừ tiền thu hồi phế liệu vào giá vốn nữa — công ty
+            # chốt bỏ cách tính đó, tiền bán phế liệu thật để thành lãi ngoài.
+            # Vì vậy engine không sinh cấu phần 'recovery'; báo giá cũ đã lưu
+            # thì vẫn giữ nguyên, chỉ báo giá tính MỚI mới khác.
             line_net[bl.id] = net
 
         material_unit = total_output_cost / bom.product_qty
@@ -630,21 +649,19 @@ class DlQuotationPricingService(models.AbstractModel):
             spec["qty"] /= bom.product_qty
             spec["amount"] /= bom.product_qty
 
-        # Công đoạn BIẾN ĐỔI/đơn vị của chính BOM này (bảng §3.1). Cấu phần
-        # 'operation' đã tính theo một đơn vị (không cần chia product_qty).
+        # Tiền công (phần theo đơn vị) của chính BOM này — đã tính sẵn cho 1
+        # sản phẩm nên không chia product_qty nữa.
         op_var_unit, op_specs = self._bom_operation_variable_cost(
             bom, context, material_unit, line_net)
         specs.extend(op_specs)
         return material_unit, op_var_unit, specs
 
     def _bom_operation_variable_cost(self, bom, context, material_unit, line_net):
-        """Chi phí công đoạn BIẾN ĐỔI cho MỘT đơn vị đầu ra của ``bom`` (không
-        gồm setup/per_batch). Tra đơn giá công đoạn đang áp dụng tại ngày tính
-        giá (đối xứng cách tra giá NCC cho vật tư) và sinh cấu phần 'operation'.
+        """Tiền công cắt/hàn/sơn cho MỘT sản phẩm (chưa gồm phí setup theo lô).
 
-        ``line_net`` = {bl.id: chi phí thuần cho product_qty} dùng làm cơ sở khi
-        phương pháp % vật liệu chỉ tính trên vài dòng vật tư đã chọn (§5.5).
-        """
+        Mỗi công đoạn tra đơn giá đang áp dụng tại ngày tính giá, y như cách
+        tra giá NCC cho vật tư. Có công đoạn tính theo % giá vật liệu — khi đó
+        ``line_net`` cho biết tiền vật liệu để lấy làm gốc %."""
         company = context["company"]
         date = context["pricing_date"]
         qty_out = bom.product_qty or 1.0
@@ -659,8 +676,8 @@ class DlQuotationPricingService(models.AbstractModel):
             if rule.method in ("per_kg", "per_meter", "per_sqm") and op.base_qty <= 0:
                 raise UserError(QTE_010 % op.operation_id.display_name)
 
-            # Cơ sở cho % vật liệu: 'selected' = tổng thuần các dòng đã chọn (quy
-            # về một đơn vị); ngược lại (kể cả 'selected' rỗng) = toàn bộ vật tư.
+            # Gốc để tính % vật liệu: nếu công đoạn chỉ ăn theo vài dòng vật tư
+            # đã chọn thì cộng riêng mấy dòng đó, còn lại lấy toàn bộ vật tư.
             if op.material_scope == "selected" and op.material_line_ids:
                 base = sum(line_net.get(bl.id, 0.0)
                            for bl in op.material_line_ids) / qty_out
@@ -668,11 +685,12 @@ class DlQuotationPricingService(models.AbstractModel):
                 base = material_unit
 
             amount = rule.variable_unit_amount(op.base_qty, base)
-            # Đánh dấu rule đã dùng trong snapshot (mixin bảo vệ không cho sửa).
+            # Đóng dấu rule đã dùng — màn cấu hình sẽ khoá không cho sửa.
             if not rule.used_in_snapshot:
                 rule.write({"used_in_snapshot": True})
             if not amount:
-                # per_batch: phần biến đổi = 0 (toàn bộ ở chi phí lô); bỏ qua.
+                # Công đoạn tính trọn gói theo lô: phần theo đơn vị = 0, để
+                # _bom_batch_cost lo, ở đây bỏ qua.
                 continue
             op_unit += amount
             is_percent = rule.method == "percent_material"
@@ -684,7 +702,7 @@ class DlQuotationPricingService(models.AbstractModel):
                 "source_revision": rule.revision,
                 "material_id": False,
                 "qty": op.base_qty if per_qty_method else 1.0,
-                # % vật liệu: tỷ lệ ở cột 'rate', bỏ trống đơn giá (không phải tiền).
+                # Công đoạn tính theo %: ghi tỷ lệ ở 'rate', bỏ trống đơn giá.
                 "unit_price": 0.0 if is_percent else rule.price_rate,
                 "rate": rule.price_rate if is_percent else 0.0,
                 "amount": amount,
@@ -692,11 +710,11 @@ class DlQuotationPricingService(models.AbstractModel):
         return op_unit, specs
 
     def _bom_batch_cost(self, bom, context):
-        """Chi phí công đoạn theo LÔ của BOM top-level: phí setup (mọi phương
-        pháp) + đơn giá ``per_batch``. Cộng MỘT lần cho cả dòng rồi engine chia
-        số lượng (Decision B3). Chỉ áp ở BOM top-level (§3.3 — BTP lồng nhau chỉ
-        hỗ trợ công đoạn theo đơn vị). Sinh cấu phần 'operation_setup'.
-        """
+        """Phí trả một lần cho cả mẻ: phí setup máy + công đoạn tính trọn gói
+        theo lô. Cộng một lần rồi engine chia đều cho số lượng đặt.
+
+        Chỉ tính ở BOM ngoài cùng — BOM lồng bên trong chỉ hỗ trợ tiền công
+        theo đơn vị."""
         company = context["company"]
         date = context["pricing_date"]
         Rule = self.env["dl.pricing.operation.rule"].sudo()
@@ -721,7 +739,7 @@ class DlQuotationPricingService(models.AbstractModel):
                 "source_revision": rule.revision,
                 "material_id": False,
                 "rate": 0.0,
-                # amount = tổng cho cả lô; đơn giá/đơn vị điền ở _price_manufactured.
+                # amount là tổng cả lô; phần chia trên đầu sp điền ở _price_manufactured.
                 "amount": batch,
             })
         return batch_total, specs
@@ -737,27 +755,32 @@ class DlQuotationPricingService(models.AbstractModel):
         )[:1]
 
     def _check_measure_compatibility(self, bom_line, material, seller, context):
-        """Decision C8: P0 chưa quy đổi UoM/tiền tệ — nếu không tương thích thì
-        chặn cứng (QTE-007) thay vì nhân trực tiếp gây sai số âm thầm."""
-        # Đơn vị mua khác đơn vị tính vật tư ⇒ giá NCC không cùng đơn vị định mức.
+        """Chặn cứng khi đơn vị/tiền tệ không khớp nhau.
+
+        Hệ thống chưa tự quy đổi đơn vị mua ↔ đơn vị định mức, hay ngoại tệ ↔
+        tiền công ty. Thà báo lỗi QTE-007 bắt sửa dữ liệu còn hơn cứ nhân bừa
+        rồi ra số sai mà không ai biết."""
+        # Đơn vị mua khác đơn vị tính ⇒ giá NCC không cùng đơn vị với định mức.
         if material.uom_id and material.uom_po_id and material.uom_id != material.uom_po_id:
             raise UserError(QTE_007 % material.display_name)
         if seller and seller.currency_id and seller.currency_id != context["currency"]:
             raise UserError(QTE_007 % material.display_name)
 
     # ------------------------------------------------------------------
-    # Chiết khấu/VAT header + đánh giá phê duyệt (§7–§8)
+    # Chiết khấu/VAT ở đầu báo giá + xét có phải xin duyệt không
     # ------------------------------------------------------------------
     def _apply_commercial_and_approval(self, quotation, context):
+        """Điền nốt phần thương mại ở đầu báo giá rồi chấm xem báo giá có phải
+        đi xin phê duyệt không."""
         profit = context.get("profit_rule")
 
-        # Snapshot markup mục tiêu đã dùng (phục vụ giải trình + đánh giá lại);
-        # snapshot chiết khấu do reevaluate_quotation ghi.
+        # Lưu lại markup mục tiêu đã dùng để sau còn giải trình; chiết khấu do
+        # reevaluate_quotation lưu.
         quotation.write({
             "target_markup": profit.target_markup if profit else 0.0,
         })
 
-        # Cấu phần header chiết khấu/VAT (giải trình từng lớp tiền).
+        # Ghi cấu phần chiết khấu/VAT để bảng công thức có đủ các lớp tiền.
         Component = self.env["dl.quotation.price.component"].sudo()
         if quotation.discount_pct:
             Component.create({
@@ -780,23 +803,22 @@ class DlQuotationPricingService(models.AbstractModel):
         )
 
     def reevaluate_quotation(self, quotation, reason=None):
-        """Đánh giá (lại) điều kiện phê duyệt cho một báo giá (§8, mục 7).
+        """Chấm xem báo giá có phải xin phê duyệt không, và ở cấp nào.
 
-        Dùng chung cho lúc TẠO báo giá và khi báo giá THAY ĐỔI dữ liệu ảnh hưởng
-        giá (chiết khấu, dòng, khách hàng): hủy kết quả duyệt cũ (pending lẫn
-        approved) rồi đánh giá lại theo đúng logic lúc tạo — rule chiết khấu
-        hiệu lực tại ngày tính giá, ma trận giá trị, cờ giá sàn.
+        Gọi cả lúc tạo báo giá lẫn mỗi lần tiền đổi (Sales sửa chiết khấu/dòng/
+        khách). Nếu đang có yêu cầu duyệt cũ thì huỷ đi rồi chấm lại từ đầu theo
+        3 tín hiệu: giá trị đơn to hay nhỏ, chiết khấu vượt trần không, có bán
+        dưới giá sàn không.
 
-        sudo vì người sửa (Sales) không có quyền trên các field chi phí
-        (groups=) và model yêu cầu phê duyệt.
-        """
+        sudo vì người sửa (Sales) không có quyền đọc field giá vốn hay ghi yêu
+        cầu phê duyệt."""
         quotation.ensure_one()
         quotation = quotation.sudo()
         company = quotation.company_id or self.env.company
         date = quotation.pricing_date or fields.Date.context_today(quotation)
         discount = self._active_discount_rule(company, date, quotation.partner_id)
 
-        # Cờ định tuyến phê duyệt.
+        # 3 tín hiệu quyết định có/không cần duyệt.
         eps = 1e-6
         below = self._below_floor(quotation)
         above_default = bool(discount) and quotation.discount_pct > discount.default_rate + eps
@@ -811,8 +833,8 @@ class DlQuotationPricingService(models.AbstractModel):
             below_floor=below,
         )
 
-        # Kết quả duyệt cũ hết giá trị khi dữ liệu giá đã đổi (mục 7) — hủy và
-        # giữ lịch sử, không ghi đè.
+        # Tiền đã đổi thì yêu cầu duyệt cũ không còn đúng nữa — huỷ nó đi
+        # (vẫn giữ lịch sử) rồi mở yêu cầu mới nếu cần.
         old_request = quotation.approval_request_id
         if old_request and old_request.state in ("pending", "approved"):
             old_request.action_cancel_on_change()
@@ -843,8 +865,10 @@ class DlQuotationPricingService(models.AbstractModel):
         return evaluation
 
     def _below_floor(self, quotation):
-        """Decision B5: phân bổ chiết khấu header về từng dòng gia công theo tỷ
-        lệ thành tiền, so giá đơn vị sau chiết khấu với giá sàn của dòng."""
+        """Có dòng nào bị bán dưới giá sàn sau khi trừ chiết khấu không.
+
+        Chiết khấu nhập ở đầu báo giá được rải xuống từng dòng theo tỷ lệ thành
+        tiền, rồi so giá bán còn lại của từng dòng với giá sàn của dòng đó."""
         untaxed = quotation.amount_untaxed
         disc_amount = quotation.discount_amount
         for line in quotation.line_ids:
@@ -859,15 +883,16 @@ class DlQuotationPricingService(models.AbstractModel):
 
 
 class DlQuotationRequest(models.Model):
-    """Bridge trong dl_sale (Decision §17.7): dl_sale depends dl_technical và
-    kế thừa dl.quotation.request để thêm action tạo báo giá + link ngược. Model
-    gốc RFQ (dl_technical) KHÔNG import ngược dl.quotation → tránh vòng phụ thuộc.
-    """
+    """Gắn thêm nút "Tạo báo giá" và link ngược cho RFQ.
+
+    RFQ gốc định nghĩa ở dl_technical, không được biết tới dl.quotation (nếu
+    không sẽ thành phụ thuộc vòng). Nên phần nối RFQ ↔ báo giá đặt ở đây, module
+    dl_sale — module đứng sau, thấy được cả hai."""
 
     _inherit = "dl.quotation.request"
 
-    # Link ngược để mở nhanh báo giá đã tạo. Không lưu (search-based) — chiều
-    # sở hữu link nằm ở dl.quotation.quotation_request_id (Decision review #2).
+    # Nuôi nút mở nhanh báo giá đã tạo. Tìm bằng search chứ không lưu — chiều
+    # sở hữu liên kết nằm ở dl.quotation.quotation_request_id.
     quotation_id = fields.Many2one(
         "dl.quotation",
         string="Báo giá",
@@ -897,14 +922,15 @@ class DlQuotationRequest(models.Model):
             )
 
     def _attempt_create_quotation(self):
-        """Tạo báo giá theo yêu cầu của Sales; trả về ``False`` khi lỗi nghiệp vụ."""
+        """Thử tạo báo giá; lỗi thì ghi lại lý do lên RFQ và trả về False chứ
+        không ném ra ngoài (để nút còn hiện toast hướng dẫn)."""
         result = False
         for rec in self:
             if rec.status != "confirmed" or rec.quotation_id:
                 continue
             try:
-                # Bao toàn bộ dịch vụ bằng savepoint để cả các cập nhật snapshot
-                # sau khi tạo quote cũng được rollback nếu phát sinh UserError.
+                # Bọc savepoint để nếu hỏng giữa chừng thì mọi thay đổi (kể cả
+                # dấu "đã dùng" trên rule) đều được rollback sạch.
                 with self.env.cr.savepoint():
                     result = self.env[
                         "dl.quotation.pricing.service"
@@ -926,14 +952,14 @@ class DlQuotationRequest(models.Model):
                 "auto_quote_error": False,
                 "auto_quote_failed_at": False,
             })
-            # quotation_id là field compute dựa trên search, không có dependency
-            # trực tiếp. Làm mới cache để form/nút mở báo giá thấy liên kết ngay
-            # trong cùng transaction vừa tạo.
+            # quotation_id tính bằng search, không tự làm mới. Ép tính lại để
+            # nút "Mở báo giá" thấy ngay báo giá vừa tạo trong cùng phiên.
             rec.invalidate_recordset(["quotation_id"])
         return result
 
     def action_create_quotation(self):
-        """Nút 'Tạo báo giá' trên RFQ đã confirmed (§17.5)."""
+        """Nút "Tạo báo giá" trên form RFQ đã xác nhận — kiểm quyền rồi gọi
+        engine. Chỉ Sales / Trưởng KD / Admin được bấm."""
         self.ensure_one()
         user = self.env.user
         if not self.env.su and not (
@@ -958,6 +984,7 @@ class DlQuotationRequest(models.Model):
         }
 
     def action_open_quotation(self):
+        """Nút "Mở báo giá" trên RFQ — nhảy sang báo giá đã tạo từ RFQ này."""
         self.ensure_one()
         if not self.quotation_id:
             raise UserError(_("RFQ này chưa có báo giá."))
@@ -970,10 +997,11 @@ class DlQuotationRequest(models.Model):
         }
 
     def action_reopen_for_revision(self, note=None):
-        """Mở lại RFQ đã 'Đã tạo báo giá' về 'Đang xử lý' để Kỹ thuật điều chỉnh
-        BOM khi khách yêu cầu đổi vật liệu/kỹ thuật (gọi từ báo giá). sudo để
-        Sales kích hoạt được — đây là chuyển tiếp luồng, không phải sửa nội dung
-        yêu cầu."""
+        """Kéo RFQ đã báo giá quay về "Đang xử lý" cho Kỹ thuật sửa BOM.
+
+        Do nút "Chuyển Kỹ thuật sửa BOM" bên form Báo giá gọi sang khi khách
+        đòi đổi vật liệu. sudo vì đây là chuyển tiếp luồng, Sales được phép kích
+        hoạt dù không có quyền sửa RFQ."""
         for rec in self:
             if rec.status != "quoted":
                 raise UserError(_(

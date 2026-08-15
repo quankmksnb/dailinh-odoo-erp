@@ -1,19 +1,5 @@
 # -*- coding: utf-8 -*-
-"""K21 — Đơn mua vượt ngưỡng dùng chung HÒM DUYỆT của Giám đốc.
-
-`dl.pricing.approval.request` vốn đã generic: nó lưu ``res_model``/``res_id`` và
-gọi ngược ``_on_approval_approved`` / ``_on_approval_rejected`` trên bản ghi đích
-(``dl_config/models/pricing_approval.py:390,441``). Cả `dl.quotation`,
-`dl.pricing.commercial` và `dl.pricing.approval.matrix` đã đi đường này.
-
-⇒ Chỉ cần thêm một giá trị vào selection. Dựng hòm duyệt thứ hai là bắt Giám đốc
-nhớ có hai chỗ phải xem — và chỗ thứ hai sẽ là chỗ bị quên.
-
-🔴 CỐ Ý **không** dùng lại `dl.pricing.approval.matrix`: ma trận đó là thang
-nhiều bậc theo GIÁ TRỊ ĐƠN BÁN với hai cấp Trưởng KD/Giám đốc. Mua hàng cần MỘT
-ngưỡng và MỘT người duyệt. Nhét vào cùng một bảng là hai nghiệp vụ khác nhau
-tranh một hàng cấu hình.
-"""
+"""Thêm loại yêu cầu "đơn mua vượt ngưỡng" vào hòm duyệt chung của Giám đốc."""
 
 from odoo import fields, models
 

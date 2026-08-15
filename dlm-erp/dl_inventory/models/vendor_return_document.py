@@ -1,28 +1,5 @@
 # -*- coding: utf-8 -*-
-"""K17 — Biên bản hàng không đạt: đường ra khỏi hệ thống cho bằng chứng.
-
-Thiết kế: docs/Thiet_ke_phan_he_kho.md §6.4.
-
-Vì sao phải có file: nhà cung cấp KHÔNG đăng nhập ERP của Đại Linh. Ảnh chụp
-hàng lỗi có nằm ngay ngắn trên phiếu trả bao nhiêu thì lúc ngồi với NCC vẫn là
-con số không, nếu Mua hàng phải mở từng tấm, tải về, rồi ghép tay vào Zalo. Biên
-bản này gom lý do + số lượng + LÔ + ảnh vào một tờ ký được.
-
-Ba quyết định đã chốt, ghi lại để người sau không "sửa cho đầy đủ":
-
-  KHÔNG CÓ GIÁ. Đây là biên bản về HÀNG, không phải yêu cầu bồi thường. Số tiền
-  giảm trừ là kết quả của cuộc đàm phán, đưa lên tờ giấy trước khi đàm phán là
-  tự chốt giá hộ NCC. Giá mua cũng là dữ liệu Đại Linh không có lý do gì phải
-  in ra rồi đưa cho chính người bán.
-
-  LÔ LẤY TỪ TỒN THẬT. `move.lot_ids` của phiếu trả còn trống lúc nháp (chưa giữ
-  chỗ), mà nháp mới đúng là lúc cần in. Đọc thẳng lô của hàng đang nằm ở khu Chờ
-  trả NCC — đó là chính số hàng biên bản đang nói tới.
-
-  THUẦN PYTHON, KHÔNG wkhtmltopdf (quy ước dự án — xem dl_sale/models/
-  quotation_document.py). Font và cách đăng ký dùng LẠI của dl_sale thay vì chép
-  sang: đây đúng kiểu hằng số trùng bản mà repo đã trả giá vài lần.
-"""
+"""Biên bản hàng không đạt (PDF): gom lý do + số lượng + lô + ảnh vào tờ ký gửi NCC (thuần Python, không in giá)."""
 
 import base64
 import io
@@ -31,8 +8,7 @@ from odoo import _, models
 from odoo.exceptions import UserError
 from odoo.tools.misc import format_datetime
 
-# Dùng lại font đã đăng ký cho reportlab ở dl_sale (dl_inventory phụ thuộc
-# dl_sale từ K6). Chép sang đây là đẻ ra bản thứ hai để lệch.
+# Dùng lại font đã đăng ký cho reportlab ở dl_sale (tránh bản trùng để lệch).
 from odoo.addons.dl_sale.models.quotation_document import (
     _PDF_FONT, _PDF_FONT_BOLD)
 
@@ -42,9 +18,7 @@ from .stock_picking import _DLM_RETURN_CODE
 _ANH_W_MM = 82.0
 _ANH_H_MM = 62.0
 
-# Ai được GỬI biên bản cho NCC — hẹp hơn ai được IN nó (xem
-# action_dlm_email_reject_report). CEO/Admin có mặt để không ai bị kẹt khi Mua
-# hàng nghỉ, đúng khuôn _DLM_DISPATCH_ROLES.
+# Ai được GỬI biên bản cho NCC (hẹp hơn ai được IN); CEO/Admin dự phòng khi Mua hàng nghỉ.
 _DLM_SEND_ROLES = (
     "dl_base.dl_group_purchasing",
     "dl_base.dl_group_admin",
@@ -59,12 +33,7 @@ class StockPickingRejectReport(models.Model):
     # Ngữ cảnh dữ liệu — một nguồn sự thật cho cả bảng lẫn phần ảnh.
     # ------------------------------------------------------------------
     def _dlm_reject_report_rows(self):
-        """Mỗi dòng hàng trả = một mục của biên bản.
-
-        Trả về dict thuần (không phải recordset) để phần dựng PDF không phải
-        biết gì về model — và để test kiểm được rằng KHÔNG có khoá giá nào lọt
-        vào đây.
-        """
+        """Mỗi dòng hàng trả = một mục biên bản (dict thuần, không lọt khoá giá)."""
         self.ensure_one()
         reasons = dict(
             self.env["stock.move"]._fields["dlm_reject_reason"].selection)
@@ -86,13 +55,7 @@ class StockPickingRejectReport(models.Model):
         return rows
 
     def _dlm_reject_report_lots(self, move):
-        """Số lô của hàng trên dòng — ưu tiên lô đã giữ chỗ, sau đó lô đang nằm
-        ở khu Chờ trả NCC.
-
-        Lô là mắt xích mạnh nhất của cả biên bản: "lô LO/2026/00761 của quý
-        công ty có 8 cây gỉ" tra ngược được tới đúng chuyến giao, còn "8 cây
-        thép gỉ" thì không.
-        """
+        """Số lô của dòng — ưu tiên lô đã giữ chỗ, sau đó lô đang nằm ở khu Chờ trả NCC."""
         self.ensure_one()
         if move.lot_ids:
             return move.lot_ids.mapped("name")
@@ -201,10 +164,7 @@ class StockPickingRejectReport(models.Model):
                 Paragraph(row["reason"], base),
                 Paragraph(row["note"], small),
             ])
-        # Tổng PHẢI = 174mm (A4 210 trừ hai lề 18mm) — vượt là bảng tràn lề.
-        # Bốn cột giữa rộng hơn bản đầu vì nhãn viết đầy đủ ("Số thứ tự",
-        # "Đơn vị tính") dài hơn hẳn chữ viết tắt cũ; phần bù lấy từ Mặt hàng /
-        # Lý do / Ghi chú vốn đã tự xuống dòng.
+        # Tổng cột PHẢI = 174mm (A4 210 − 2 lề 18mm), vượt là bảng tràn lề.
         table = Table(data, repeatRows=1, colWidths=[
             14 * mm, 40 * mm, 24 * mm, 17 * mm, 20 * mm, 29 * mm, 30 * mm])
         table.setStyle(TableStyle([
@@ -213,9 +173,7 @@ class StockPickingRejectReport(models.Model):
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("TOPPADDING", (0, 0), (-1, -1), 4),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-            # Đệm mặc định của reportlab là 6pt mỗi bên — với cột hẹp nhất
-            # ("Số thứ tự", 14mm) thì 12pt đệm còn rộng hơn cả chữ, nên nhãn bị
-            # bẻ giữa từ.
+            # Cột hẹp nhất (14mm) cần đệm nhỏ để nhãn không bị bẻ giữa từ.
             ("LEFTPADDING", (0, 0), (-1, -1), 3),
             ("RIGHTPADDING", (0, 0), (-1, -1), 3),
         ]))
@@ -225,9 +183,7 @@ class StockPickingRejectReport(models.Model):
         story += self._dlm_reject_report_evidence(rows, base, bold, small)
 
         # --- Chữ ký ---
-        # KeepTogether: không có nó thì hai ô ký trôi sang một trang trắng của
-        # riêng chúng — tờ biên bản mà trang cuối chỉ có chỗ ký thì nhìn như in
-        # lỗi, và người ta ngại đưa cho đối tác.
+        # KeepTogether: giữ hai ô ký không trôi sang một trang trắng riêng.
         ket = [Spacer(1, 10 * mm), Paragraph(
             "Biên bản được lập thành 02 bản, mỗi bên giữ 01 bản có giá trị "
             "như nhau.", base), Spacer(1, 6 * mm)]
@@ -253,13 +209,7 @@ class StockPickingRejectReport(models.Model):
         return buf.getvalue()
 
     def _dlm_reject_report_evidence(self, rows, base, bold, small):
-        """Phần ảnh — thứ khiến tờ giấy này khác một cái email kể lể.
-
-        Lưới 2 cột theo từng mặt hàng, `KeepTogether` để tiêu đề mặt hàng không
-        bị tách khỏi ảnh của nó khi sang trang. Ảnh hỏng thì BỎ QUA tấm đó chứ
-        không cho nổ cả biên bản: mất một tấm còn in được, mất cả tờ thì Mua
-        hàng ra gặp NCC tay không.
-        """
+        """Phần ảnh bằng chứng: lưới 2 cột theo mặt hàng; ảnh hỏng thì bỏ qua, không cho nổ cả biên bản."""
         from reportlab.lib.units import mm
         from reportlab.lib.utils import ImageReader
         from reportlab.platypus import (
@@ -303,8 +253,7 @@ class StockPickingRejectReport(models.Model):
             khoi.append(tbl)
             story.append(KeepTogether(khoi))
 
-        # File không phải ảnh (PDF chứng thư, video…) chỉ nêu TÊN: nhúng được
-        # thì cũng không xem được trên giấy, nhưng phải nói ra là có tồn tại.
+        # File không phải ảnh chỉ nêu tên (không xem được trên giấy nhưng phải biết là có).
         khac = [name for row in rows for name in row["files"].mapped("name")]
         if khac:
             story.append(Spacer(1, 3 * mm))
@@ -331,16 +280,10 @@ class StockPickingRejectReport(models.Model):
     # Nút trên form: dựng file, lưu dấu vết, tải về
     # ------------------------------------------------------------------
     def action_dlm_print_reject_report(self):
-        """Tạo biên bản, đính vào phiếu + chatter, rồi tải về.
-
-        Lưu lại chứ không dựng-rồi-quên: bản đưa cho NCC là chứng từ đối ngoại,
-        ba tháng sau phải trả lời được "hôm đó mình đưa họ đúng cái gì".
-        """
+        """Nút In (màn phiếu Trả NCC): tạo biên bản, đính vào phiếu + chatter, rồi tải về."""
         self.ensure_one()
         attachment = self._dlm_create_reject_report_attachment()
-        # sudo: message_post nổ UserError khi người dùng chưa khai email — cùng
-        # lý do đã ghi ở _dlm_create_vendor_return. Dấu vết không được phép làm
-        # hỏng việc in.
+        # sudo: message_post nổ nếu user chưa khai email — dấu vết không được làm hỏng việc in.
         self.sudo().message_post(
             body=_("Đã lập biên bản hàng không đạt để gửi nhà cung cấp."),
             attachment_ids=[attachment.id])
@@ -351,21 +294,7 @@ class StockPickingRejectReport(models.Model):
         }
 
     def action_dlm_email_reject_report(self):
-        """Mở trình soạn thư đã đính sẵn biên bản, gửi thẳng nhà cung cấp.
-
-        🔴 Nút IN cố ý KHÔNG khoá theo vai trò (thủ kho cần in kẹp vào hàng lúc
-        xe NCC tới lấy), nhưng nút GỬI thì có: thư này mở đầu một cuộc đàm phán
-        giảm trừ, và quan hệ với NCC là của Mua hàng. Thủ kho nhận hàng theo đơn
-        nhưng không nói chuyện với NCC — cùng lằn kiểm soát chéo mà
-        ``dl.purchase.order._dlm_check_buyer`` đang giữ.
-
-        Lá chắn nằm ở ĐÂY chứ không chỉ ở ``groups=`` của view: view chỉ giấu
-        nút, còn RPC/import/test vẫn gọi thẳng được.
-
-        Dùng trình soạn thư (không gửi thẳng): người nhận là NCC, và Mua hàng có
-        quyền GHI ``stock.picking`` (ACL 1,1,1,0) nên composer không bị chặn.
-        Cùng khuôn ``dl.purchase.order.action_dlm_email``.
-        """
+        """Nút Gửi: mở trình soạn thư đã đính biên bản, gửi NCC — chỉ Mua hàng/CEO/Admin (chặn ở tầng server)."""
         self.ensure_one()
         if not self.env.su and not any(
                 self.env.user.has_group(role) for role in _DLM_SEND_ROLES):
@@ -414,11 +343,7 @@ class StockPickingRejectReport(models.Model):
         }
 
     def _dlm_create_reject_report_attachment(self):
-        """Dựng biên bản rồi đính vào phiếu.
-
-        Lưu lại chứ không dựng-rồi-quên: bản đưa cho NCC là chứng từ đối ngoại,
-        ba tháng sau phải trả lời được "hôm đó mình đưa họ đúng cái gì".
-        """
+        """Dựng biên bản PDF rồi đính vào phiếu (lưu lại làm chứng từ đối ngoại)."""
         self.ensure_one()
         if self.picking_type_id.sequence_code != _DLM_RETURN_CODE:
             raise UserError(_(

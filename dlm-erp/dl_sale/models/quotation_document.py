@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-"""RV-02 — Dựng file báo giá gửi khách: Word (.docx) và PDF, THUẦN PYTHON.
+"""Dựng file báo giá gửi khách (Word .docx và PDF) bằng thuần Python.
 
-Không dùng wkhtmltopdf: Word dựng bằng ``python-docx``, PDF dựng bằng
-``reportlab`` (platypus). Cả hai đều chỉ hiện GIÁ BÁN cho khách — tuyệt đối
-không in cấu phần giá thành (giá vốn vật tư/công đoạn/giá sàn/markup).
+Nút "Xuất / Gửi báo giá" trên form Báo giá chạy vào đây. Word dựng bằng
+python-docx, PDF bằng reportlab — KHÔNG cần wkhtmltopdf.
 
-Tách khỏi ``dl_quotation.py`` để phần logic dựng file (phụ thuộc thư viện
-ngoài) gọn một chỗ; import thư viện nằm TRONG hàm để việc thiếu thư viện chỉ
-báo lỗi khi thực sự xuất file, không chặn nạp module.
-"""
+🔴 Cả hai file chỉ in GIÁ BÁN cho khách. Tuyệt đối không in giá vốn (vật tư/
+công đoạn/giá sàn/markup) — đó là số nội bộ.
+
+Tách khỏi dl_quotation.py cho gọn, và import thư viện đặt TRONG hàm để máy nào
+thiếu thư viện thì chỉ lỗi lúc bấm xuất file, không chặn nạp cả module."""
 
 import base64
 import io
@@ -26,10 +26,11 @@ class DlQuotationDocument(models.Model):
     _inherit = "dl.quotation"
 
     # ------------------------------------------------------------------
-    # Ngữ cảnh dữ liệu dùng chung cho cả Word lẫn PDF (một nguồn sự thật để
-    # hai định dạng không lệch nội dung).
+    # Gom sẵn dữ liệu để Word và PDF in ra giống hệt nhau (một nguồn duy nhất).
     # ------------------------------------------------------------------
     def _document_context(self):
+        """Trả về dict dữ liệu đã format sẵn (dòng hàng, tiền, điều khoản) cho
+        cả hai hàm dựng Word/PDF dùng chung."""
         self.ensure_one()
         company = self.company_id or self.env.company
         partner = self.partner_id
@@ -54,7 +55,7 @@ class DlQuotationDocument(models.Model):
         except Exception:  # noqa: BLE001 — không chặn xuất file nếu đọc chữ lỗi
             amount_words = ""
 
-        # RV-09 — điều khoản thương mại (chỉ hiện mục có nhập) đưa vào bản khách.
+        # Điều khoản gửi khách — chỉ đưa vào file những mục có nhập.
         terms = [(label, text) for label, text in (
             (_("Thanh toán"), self.payment_terms),
             (_("Giao hàng"), self.delivery_terms),
@@ -75,6 +76,7 @@ class DlQuotationDocument(models.Model):
     # WORD (.docx) — python-docx
     # ==================================================================
     def _build_docx(self):
+        """Dựng file Word báo giá, trả về bytes."""
         self.ensure_one()
         try:
             from docx import Document
@@ -204,7 +206,7 @@ class DlQuotationDocument(models.Model):
             wr = wp.add_run("Bằng chữ: %s" % ctx["amount_words"])
             wr.italic = True
 
-        # --- Điều khoản gửi khách (RV-09) ---
+        # --- Điều khoản gửi khách ---
         if ctx["terms"]:
             tp = doc.add_paragraph()
             tp.add_run("ĐIỀU KHOẢN:").bold = True
@@ -279,6 +281,7 @@ class DlQuotationDocument(models.Model):
             _PDF_FONT, normal=_PDF_FONT, bold=_PDF_FONT_BOLD)
 
     def _build_pdf(self):
+        """Dựng file PDF báo giá, trả về bytes."""
         self.ensure_one()
         try:
             from reportlab.lib.pagesizes import A4
@@ -412,7 +415,7 @@ class DlQuotationDocument(models.Model):
             story.append(Paragraph(
                 "<i>Bằng chữ: %s</i>" % ctx["amount_words"], base))
 
-        # --- Điều khoản gửi khách (RV-09) ---
+        # --- Điều khoản gửi khách ---
         if ctx["terms"]:
             story.append(Spacer(1, 3 * mm))
             story.append(Paragraph("<b>ĐIỀU KHOẢN:</b>", base))
@@ -477,10 +480,9 @@ class DlQuotationDocument(models.Model):
         })
 
     def _post_quotation_document_to_chatter(self, doc_format="pdf"):
-        """Đăng file báo giá vào chatter làm bằng chứng "bản đã gửi".
-
-        Bọc try/except: lỗi dựng file (thiếu thư viện/font…) KHÔNG được chặn
-        việc chuyển trạng thái — bằng chứng là phụ trợ, không phải điều kiện."""
+        """Kẹp file báo giá vào chatter làm bằng chứng "đã gửi khách". Gọi tự
+        động lúc bấm Gửi khách. Bọc try/except vì đây chỉ là bằng chứng phụ —
+        thiếu thư viện/font làm hỏng file cũng KHÔNG được chặn việc gửi."""
         self.ensure_one()
         try:
             content, _mime = self._generate_quotation_document(doc_format)
@@ -492,9 +494,10 @@ class DlQuotationDocument(models.Model):
         )
 
     # ------------------------------------------------------------------
-    # Nút "Xuất / Gửi báo giá" → mở wizard chọn định dạng (Word/PDF).
+    # Nút "Xuất / Gửi báo giá" trên form → mở dialog chọn Word/PDF.
     # ------------------------------------------------------------------
     def action_open_export_wizard(self):
+        """Mở dialog chọn định dạng file rồi tải về / gửi email."""
         self.ensure_one()
         if not self.line_ids:
             raise UserError(_("Báo giá chưa có dòng nào để xuất."))
