@@ -1,0 +1,11 @@
+UC-090 | Trang chủ điều hướng & badge phê duyệt | Full | Full | Full | Full | Full | Full | Full
+UC-091 | Ghi nhận nhận hàng NCC (bước 1/2) | No | No | No | No | No | Full | Restricted
+UC-091A | Kiểm tra chất lượng hàng nhận & cất hàng (QC) | No | No | No | No | No | Full | No
+UC-091B | Xử lý phiếu trả hàng NCC (khi QC phát hiện hàng lỗi) | No | No | No | No | No | Restricted | Full
+UC-092 | Ghi nhận xuất kho (chưa triển khai — kế hoạch K6-K8) | No | No | No | No | No | Full | No
+UC-093 | Xem tồn kho hiện tại (cảnh báo tồn tối thiểu: xem JOB-04, chưa triển khai) | Full | Full | Full | Restricted | No | Full | Restricted
+UC-094 | Kiểm kê kho (chưa triển khai — hiện dựa vào chế độ điều chỉnh tồn kho gốc của Odoo) | No | No | No | No | No | Full | No
+UC-095 | Kiểm tra khả dụng vật tư theo BOM (chưa triển khai — backlog Phase 3, ATP) | No | No | No | Restricted | No | No | No
+UC-096 | Nhập kho thành phẩm theo BOM (chưa triển khai — chỉ mới seed sẵn loại phiếu, chưa có logic/màn hình) | No | No | No | No | No | Full | No
+UC-097 | Tính nhu cầu vật tư cho phiếu nhập kho theo BOM (chưa triển khai) | No | No | No | No | No | No | No
+UC-099 | Đăng xuất hệ thống | Full | Full | Full | Full | Full | Full | Full

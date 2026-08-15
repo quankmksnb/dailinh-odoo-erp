@@ -1,0 +1,10 @@
+FT-ID | Feature | Priority | Description | UC-ID | BF-ID | SOURCE
+FT-75 | Thiết lập layout kho | Must | Hệ thống dựng sẵn 1 kho, 3 khu vực (Nhận hàng/Xưởng/Thành phẩm) và các loại phiếu kho khi cài đặt module, không có màn hình cấu hình riêng cho người dùng | — |  | Tự phát triển
+FT-76 | Nhận hàng NCC 2 bước | Must | Ghi nhận hàng về từ nhà cung cấp vào khu vực chờ kiểm; xác nhận phiếu tự sinh phiếu Kiểm & cất hàng kế tiếp | UC-091 |  | Tự phát triển (trên nền stock của Odoo)
+FT-77 | Kiểm tra chất lượng hàng nhận (QC) | Must | Nhập số lượng đạt/loại cho từng dòng hàng khi cất kho; bắt buộc lý do khi có hàng loại; chặn xác nhận nếu số liệu không hợp lệ hoặc thiếu lô | UC-091A |  | Tự phát triển
+FT-78 | Tự động tách và tạo phiếu trả hàng NCC | Must | Khi có hàng bị loại ở bước kiểm, hệ thống tự tách phần hàng lỗi và tạo phiếu trả nhà cung cấp ở trạng thái nháp, giao cho bộ phận Mua hàng xử lý | UC-091B |  | Tự phát triển
+FT-79 | Tự động cấp số lô | Should | Với vật tư/bán thành phẩm theo dõi theo lô, hệ thống tự sinh số lô theo mẫu khi nhận hàng nếu người dùng chưa nhập; vẫn cho phép sửa | UC-091, UC-091A |  | Tự phát triển (trên nền lô của Odoo)
+FT-80 | Truy vết lô hàng | Should | Mỗi lô lưu lại nhà cung cấp, ngày nhận và phiếu nhập gốc; xem lại được từ màn Lô hàng | UC-091 |  | Tự phát triển
+FT-81 | Xem tồn kho hiện tại | Must | Danh sách tồn kho theo sản phẩm/lô/vị trí/nhà cung cấp, chỉ xem, không hiển thị giá vốn | UC-093 |  | Tự phát triển (trên nền tồn kho của Odoo)
+FT-83 | Ghi nhận xuất kho | Must | Chưa triển khai — dự kiến K6-K8 (giao hàng khách, xuất huỷ, xuất sản xuất thủ công) | UC-092 |  | —
+FT-84 | Kiểm kê kho | Should | Chưa triển khai — hiện dựa vào chế độ điều chỉnh tồn kho gốc của Odoo, không có màn hình riêng của DLM-ERP | UC-094 |  | —

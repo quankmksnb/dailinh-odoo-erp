@@ -1,0 +1,12 @@
+0	2	Version | v2.0
+1	4	Actor | Description | Sign-in Required | Notes
+2	9	UC-ID | Use Case | System Administrator | CEO | Sales Manager | Sales Staff | Technician | Internal 
+3	2	Type | Meaning
+4	3	Module | Purpose | Primary Actor(s)
+5	7	FT-ID | Feature | Priority | Description | UC-ID | BF-ID | SOURCE
+6	7	FT-ID | Feature | Priority | Description | UC-ID | BF-ID | SOURCE
+7	7	FT-ID | Feature | Priority | Description | UC-ID | BF-ID | SOURCE
+8	7	FT-ID | Feature | Priority | Description | UC-ID | BF-ID | SOURCE
+9	6	SCR-ID | Screen Name | Module | Description | FT-ID | UC-ID
+10	4	API-ID | API Name | Calling Path | Description
+11	6	JOB-ID | Name | Group | Description | FT-ID | UC-ID

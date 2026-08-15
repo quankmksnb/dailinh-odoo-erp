@@ -1,0 +1,345 @@
+[Normal] Product Requirements Document
+[Normal] Development of a Mini ERP System for Business Operations Management at Dai Linh Investment and Production Co., Ltd
+[Normal] DLM-ERP – Report 3.0
+TABLE:
+Version || v2.0
+Date || 27/06/2026
+END TABLE
+[Heading 1] 3. User Requirements
+[Heading 2] 3.1 Actor Definitions
+TABLE:
+Actor || Description || Sign-in Required || Notes
+System Administrator || Người quản trị hệ thống, chịu trách nhiệm tạo tài khoản, phân quyền, cấu hình hệ thống và cấu hình các rule phê duyệt báo giá. || Yes || Tài khoản được khởi tạo nội bộ, không tự đăng ký. Không chịu trách nhiệm nội dung nghiệp vụ như BOM, giá vật tư hoặc báo giá.
+CEO || Giám đốc doanh nghiệp: xem dashboard, theo dõi báo giá rủi ro, phê duyệt/từ chối các báo giá thuộc diện cần duyệt và phê duyệt các cấu hình thương mại (chính sách lợi nhuận, chiết khấu). || Yes || CEO không phê duyệt BOM kỹ thuật. CEO chỉ phê duyệt dựa trên chi phí, margin, chiết khấu và rule bị vi phạm.
+Sales Manager || Cấp phê duyệt thứ nhất (Cấp 1) cho báo giá chạm ngưỡng rủi ro trung bình theo ma trận phê duyệt; có thể là người duyệt dự phòng khi CEO vắng; xác nhận đơn bán hàng và theo dõi lệnh sản xuất. || Yes || Chỉ phê duyệt trong hạn mức được cấu hình; báo giá vượt hạn mức được escalate lên CEO. Không chỉnh sửa BOM hay giá vật tư.
+Sales Staff || Tiếp nhận yêu cầu khách hàng, tra cứu sản phẩm/BOM/báo giá cũ, tạo RFQ và báo giá, gửi báo giá cho khách sau khi đạt điều kiện nội bộ, cập nhật phản hồi khách hàng, tạo đơn bán hàng và phát lệnh sản xuất. || Yes || Không xem được giá thành, giá sàn và cấu phần chi phí gốc (che ở tầng field-level — xem §3.2 và GB-04). | Sales Staff không được chỉnh sửa BOM, định mức vật tư, giá vật tư hoặc rule phê duyệt.
+Technician || Tạo/chỉnh sửa sản phẩm kỹ thuật, bản vẽ, BOM, dòng BOM, vật tư dạng nháp; xử lý dòng RFQ qua wizard; xác nhận BOM trước khi BOM được dùng để lập báo giá; kiểm tra định mức của lệnh sản xuất. || Yes || Xác nhận BOM kỹ thuật nhưng không phê duyệt báo giá. Không xem được giá bán cuối, giá thành và margin.
+Internal Accountant || Quản lý hồ sơ nhà cung cấp và bảng giá vật tư (cập nhật, gửi duyệt, đánh dấu "đang áp dụng"); kiểm tra vật tư chưa có giá; kiêm nhiệm quản lý kho: lập phiếu nhập/xuất, kiểm kê và theo dõi tồn kho. || Yes || Không tạo và không phê duyệt báo giá. Không truy cập hồ sơ Khách hàng thuần (chỉ đối tác có vai trò "both").
+Purchasing Staff || Tiếp nhận nhu cầu mua vật tư, lập và theo dõi đề nghị mua, lựa chọn nhà cung cấp, gửi yêu cầu đặt hàng, theo dõi tình trạng giao hàng và ghi nhận giá nhập thực tế của vật tư, sản phẩm nhập kho để cập nhật thông tin phục vụ các lần mua tiếp theo. || Yes || Chỉ được quản lý các nghiệp vụ mua hàng và thông tin giá nhập. Không phê duyệt báo giá bán cho khách hàng, không chỉnh sửa BOM hoặc định mức vật tư và không có quyền thay đổi giá bán, margin hay các quy tắc phê duyệt.
+END TABLE
+[Heading 2] 3.2 Permission Matrix
+TABLE:
+UC-ID || Use Case || System Administrator || CEO || Sales Manager || Sales Staff || Technician || Internal Accountant || Purchasing Staff
+UC-001 || Đăng nhập hệ thống || Full || Full || Full || Full || Full || Full || Full
+UC-002 || Truy cập Trang chủ DLM-ERP || Full || Full || Full || Full || Full || Full || Full
+UC-003 || Xem ma trận phân quyền của vai trò || Full || No || No || No || No || No || No
+UC-004 || Quản lý vai trò || Full || No || No || No || No || No || No
+UC-005 || Cấu hình quyền của vai trò || Full || No || No || No || No || No || No
+UC-006 || Xem danh sách người dùng || Full || No || No || No || No || No || No
+UC-007 || Tạo tài khoản người dùng || Full || No || No || No || No || No || No
+UC-008 || Quản lý vai trò & trạng thái tài khoản || Full || No || No || No || No || No || No
+UC-009 || Chỉ định người duyệt thay (Backup Approver) || Full || No || No || No || No || No || No
+UC-010 || Cấu hình tham số cơ cấu giá & hao hụt mặc định || No || Full || No || No || No || No || No
+UC-011 || Cấu hình cấp duyệt || No || Full || No || No || No || No || No
+UC-012 || Cấu hình SLA & Escalation || No || Full || No || No || No || No || No
+UC-013 || Tra cứu nhật ký thay đổi cấu hình || Full || Full || Restricted || No || No || No || No
+UC-014 || Quản lý Đơn vị tính & Thông tin công ty || No || Full || No || No || No || No || No
+UC-015 || Mở màn Cấu hình Báo giá || Full || Full || Full || Restricted || Full || Restricted || No
+UC-016 || Tạo / sửa quy tắc kỹ thuật (hao hụt, công đoạn, chi phí chung) || No || No || No || No || Full || No || No
+UC-017 || Quản lý danh mục dùng chung (công đoạn, mức phức tạp) || No || No || No || No || Full || No || No
+UC-018 || Áp dụng / Ngừng áp dụng quy tắc kỹ thuật || No || No || No || No || Full || No || No
+UC-019 || Tạo bản sửa đổi quy tắc || No || No || No || No || Full || No || No
+UC-020 || Tạo chính sách lợi nhuận và giá sàn || No || Full || No || No || No || No || No
+UC-021 || Tạo chính sách chiết khấu theo nhóm khách hàng || No || No || Full || No || No || No || No
+UC-022 || Gửi duyệt cấu hình thương mại || No || Full || Full || No || No || No || No
+UC-023 || Đề xuất ngưỡng phê duyệt báo giá theo giá trị || No || No || Full || No || No || No || No
+UC-024 || Áp dụng ngưỡng phê duyệt báo giá theo giá trị || No || Full || No || No || No || No || No
+UC-025 || Cấu hình người duyệt theo loại yêu cầu || No || Full || No || No || No || No || No
+UC-026 || Xử lý yêu cầu thay đổi cấu hình || No || Full || No || No || No || No || No
+UC-027 || Xem các yêu cầu phê duyệt || Restricted || Full || Full || Restricted || No || No || No
+UC-028 || Quản lý hồ sơ khách hàng || No || No || No || Full || No || No || No
+UC-029 || Gộp hồ sơ Khách hàng và Nhà cung cấp || No || No || No || Full || No || Full || No
+UC-030 || Vô hiệu hoá, Kích hoạt lại khách hàng || Full || No || Full || No || No || Restricted || No
+UC-031 || Tra cứu, lọc & nhóm danh sách khách hàng || Full || Full || Full || Full || No || No || No
+UC-032 || Quản lý nhãn đối tác || No || No || Full || No || No || No || No
+UC-033 || Quản lý hồ sơ nhà cung cấp || Full || Full || No || No || No || Restricted || Full
+UC-034 || Xem danh sách NCC ở chế độ chỉ đọc || No || No || Full || No || No || Restricted || No
+UC-035 || Xem thống kê & cảnh báo trên hồ sơ khách hàng || No || No || No || Full || No || No || No
+UC-036 || Phân loại nhóm khách hàng tự động || — || — || — || — || — || — || —
+UC-037 || Cấu hình ngưỡng khách thân thiết || Full || Full || No || No || No || No || No
+UC-038 || Quản lý nhóm sản phẩm || No || No || No || No || Full || No || No
+UC-039 || Tạo sản phẩm gia công || No || No || No || No || Full || No || No
+UC-040 || Tạo sản phẩm thương mại || No || No || No || Full || No || No || No
+UC-041 || Nhập giá bán sản phẩm thương mại || No || No || No || No || No || Full || No
+UC-042 || Tạo vật tư || No || No || No || No || Full || No || No
+UC-043 || Tạo bán thành phẩm || No || No || No || No || Full || No || No
+UC-044 || Thiết lập hao hụt cơ sở và phế liệu thu hồi || No || No || No || No || Full || No || No
+UC-045 || Chuyển vòng đời sản phẩm || No || No || No || No || Full || No || No
+UC-045A || Chặn kích hoạt tay sản phẩm tạm từ RFQ || — || — || — || — || — || — || —
+UC-046 || Chuẩn hoá & nâng cấp sản phẩm khi đơn chốt || — || — || — || — || — || — || —
+UC-047 || Tự động ngừng sản phẩm nháp chưa sử dụng || — || — || — || — || — || — || —
+UC-048 || Rà soát bản sản phẩm nháp chưa sử dụng || No || No || No || No || Full || No || No
+UC-049 || Tạo bảng giá nhà cung cấp cho vật tư || No || No || No || No || No || Full || No
+UC-050 || Quản lý vòng đời bảng giá nhà cung cấp || No || No || No || No || No || Full || No
+UC-051 || Cấu hình hệ thống đo lường || Full || No || No || No || No || No || No
+UC-052 || Tra cứu danh mục sản phẩm, vật tư || No || Full || Full || No || No || No || No
+UC-053 || Tạo bản vẽ kỹ thuật || No || No || No || No || Full || No || No
+UC-054 || Chuyển trạng thái bản vẽ kỹ thuật || No || No || No || No || Full || No || No
+UC-055 || Tải lên và xem bản vẽ từ màn BOM || No || No || No || No || Full || No || No
+UC-056 || Tạo BOM cho sản phẩm || No || No || No || No || Full || No || No
+UC-057 || Thêm dòng vật tư vào BOM || No || No || No || No || Full || No || No
+UC-057A || Thêm bán thành phẩm vào định mức || No || No || No || No || Full || No || No
+UC-058 || Tính định mức vật tư từ kích thước hình học || — || — || — || — || — || — || —
+UC-059 || Ghi đè số lượng định mức || No || No || No || No || Full || No || No
+UC-060 || Chuyển trạng thái BOM || No || No || No || No || Full || No || No
+UC-060A || Tự động chuyển phiên bản hiện hành || — || — || — || — || — || — || —
+UC-061 || Tạo phiên bản BOM mới || No || No || No || No || Full || No || No
+UC-062 || Tạo BOM từ BOM mẫu || No || No || No || No || Full || No || No
+UC-063 || Quản lý BOM mẫu || No || No || No || No || Full || No || No
+UC-063A || Khai tham số & ánh xạ kích thước cho BOM mẫu || No || No || No || No || Full || No || No
+UC-064 || Tạo yêu cầu báo giá (RFQ) || No || No || No || Full || No || No || No
+UC-065 || Hệ thống tự động ghi nhận tiếp nhận RFQ || — || — || — || — || — || — || —
+UC-066 || Mở màn xử lý dòng RFQ || No || No || No || No || Full || No || No
+UC-067 || Chọn sản phẩm có sẵn cho dòng RFQ || No || No || No || No || Full || No || No
+UC-068 || Tạo sản phẩm mới từ màn xử lý RFQ || No || No || No || No || Full || No || No
+UC-069 || Tạo BOM mới từ màn xử lý RFQ || No || No || No || No || Full || No || No
+UC-069A || Sinh định mức từ BOM mẫu tham số || No || No || No || No || Full || No || No
+UC-070 || Sửa BOM đã chọn qua phiên bản mới || No || No || No || No || Full || No || No
+UC-071 || Hoàn tất dòng RFQ (xác nhận kết quả xử lý kỹ thuật) || No || No || No || No || Full || No || No
+UC-072 || Đánh dấu dòng RFQ không khả thi || No || No || No || No || Full || No || No
+UC-073 || Trả lại RFQ để bổ sung || No || No || No || No || Full || No || No
+UC-074 || Gửi lại RFQ sau bổ sung || No || No || No || Full || No || No || No
+UC-075 || Xem lịch sử xử lý RFQ || No || No || No || Full || No || No || No
+UC-076 || Hủy RFQ || No || No || No || Full || No || No || No
+UC-077 || Mở hub CRM & Báo giá || No || No || No || Full || No || No || No
+UC-078 || Tạo báo giá từ RFQ || No || No || No || Full || No || No || No
+UC-079 || Điều chỉnh dòng báo giá || No || No || No || Full || No || No || No
+UC-080 || Điều chỉnh chiết khấu và VAT của báo giá || No || No || No || Full || No || No || No
+UC-081 || Tái đánh giá và định tuyến yêu cầu phê duyệt báo giá || — || — || — || — || — || — || —
+UC-082 || Xem phân tích giá thành & cấu phần giá || No || Full || Full || No || No || Full || No
+UC-083 || Xử lý hòm Phê duyệt báo giá || No || Full || Restricted || No || No || No || No
+UC-084 || Ra quyết định trên yêu cầu duyệt báo giá || No || Full || Restricted || No || No || No || No
+UC-085 || Duyệt nội bộ báo giá || — || — || — || — || — || — || —
+UC-086 || Gửi báo giá cho khách hàng || No || No || No || Full || No || No || No
+UC-087 || Cập nhật kết quả báo giá || No || No || No || Full || No || No || No
+UC-087A || Khách hàng yêu cầu điều chỉnh báo giá || No || No || No || Full || No || No || No
+UC-088 || Tạo đơn bán hàng từ báo giá || No || No || No || Full || No || No || No
+UC-089 || Quản lý vòng đời đơn bán hàng || No || No || No || Full || No || No || No
+UC-090 || Trang chủ điều hướng & badge phê duyệt || Full || Full || Full || Full || Full || Full || Full
+UC-091 || Ghi nhận nhập kho || No || No || No || No || No || Full || Full
+UC-092 || Ghi nhận xuất kho || No || No || No || No || No || Full || No
+UC-093 || Xem tồn kho hiện tại và cảnh báo tồn tối thiểu || Full || Full || Full || Restricted || No || Full || Restricted
+UC-094 || Kiểm kê kho || No || No || No || No || No || Full || No
+UC-095 || Kiểm tra khả dụng vật tư theo BOM || No || No || No || Restricted || No || No || No
+UC-096 || Nhập kho thành phẩm theo BOM || No || No || No || No || No || Full || No
+UC-097 || Tính nhu cầu vật tư cho phiếu nhập kho theo BOM || No || No || No || No || No || No || No
+UC-098 || Duyệt chứng từ kho || Full || Full || Full || No || No || No || No
+UC-099 || Đăng xuất hệ thống || Full || Full || Full || Full || Full || Full || Full
+UC-100 || Quên mật khẩu và đặt lại mật khẩu || Full || Full || Full || Full || Full || Full || Full
+UC-101 || Đổi mật khẩu || Full || Full || Full || Full || Full || Full || Full
+UC-102 || Cảnh báo cấu hình tham số giá bất hợp lý || — || — || — || — || — || — || —
+UC-103 || Kiểm tra trùng mã số thuế khi tạo hoặc sửa khách hàng || — || — || — || — || — || — || —
+UC-104 || Quản lý người liên hệ của đối tác || Full || Restricted || Restricted || Restricted || No || Restricted || Restricted
+UC-105 || Theo dõi trạng thái và tiến độ xử lý RFQ || Full || Full || Full || Full || Full || No || No
+UC-106 || Cảnh báo quá hạn xử lý RFQ || — || — || — || — || — || — || —
+UC-107 || Nhập điều khoản thương mại của báo giá || Full || Restricted || Full || Full || No || No || No
+UC-108 || Cảnh báo thiếu thông tin khách hàng khi gửi báo giá || — || — || — || — || — || — || —
+UC-109 || Quản lý hạn hiệu lực báo giá || Full || Restricted || Full || Full || No || No || No
+UC-110 || Giám sát và nhắc việc quá hạn phê duyệt báo giá || Full || Full || Restricted || Restricted || Restricted || Restricted || No
+UC-111 || Cảnh báo trùng tên khi tạo sản phẩm || — || — || — || — || — || — || —
+UC-112 || Cảnh báo và theo dõi vật tư chưa có giá nhà cung cấp || Full || Restricted || Restricted || No || Restricted || Restricted || Full
+UC-113 || Tự động cập nhật giá vốn sản phẩm theo bảng giá nhà cung cấp || — || — || — || — || — || — || —
+UC-114 || Phát lệnh sản xuất || Full || No || No || No || Full || No || No
+UC-115 || Theo dõi trạng thái lệnh sản xuất || Full || Restricted || No || No || Full || No || No
+UC-116 || Lập kế hoạch sản xuất theo hạn giao hàng || Full || No || No || No || Full || No || No
+UC-117 || Tổng quan sản xuất cho quản lý || Full || Full || Restricted || No || Restricted || No || No
+UC-118 || Bảng tổng quan báo cáo quản trị || Full || Full || Full || No || No || No || No
+END TABLE
+[Heading 2] 3.3 Use Case Diagrams (Chưa vẽ lại Diagrams)
+[Heading 3] a. Diagram 1 - Authentication & Navigation
+[Normal] Figure 2 : Diagram 1 - Authentication & Navigation
+[Heading 3] b. Diagram 2 - Administration
+[Normal] Phân quyền & Vai trò
+[Normal] Figure 3 : Diagram 2 - Administration (Authorization & Roles)
+[Normal] Quản lý người dùng & Cấu hình
+[Normal] Figure 4 : Diagram 2 - Administration (User Management & Configuration)
+[Heading 3] c. Diagram 3 - Customer & RFQ
+[Normal] Khách hàng
+[Normal] Figure 5 : Diagram 3 - Customer & RFQ (Customer)
+[Normal] RFQ : Tạo, Hủy và Lịch sử
+[Normal] Figure 6 : Diagram 3 - Customer & RFQ (create, cancel and history of RFQ)
+[Normal] RFQ : Workspace xử lý kỹ thuật
+[Normal] Figure 7 : Diagram 3 - Customer & RFQ (Workspace handle RFQ)
+[Heading 3] d. Diagram 4 - Product Engineering
+[Normal] Sản phẩm : Danh mục và vòng đời
+[Normal] Figure 8 : Diagram 4 - Product Engineering (Product)
+[Normal] Bản vẽ kỹ thuật
+[Normal] Figure 9 : Diagram 4 - Product Engineering (Technical Drawings)
+[Normal] BOM
+[Normal] Figure 10 : Diagram 4 - Product Engineering (BOM)
+[Heading 3] e. Diagram 5 - Material Management
+[Normal] Figure 11 : Diagram 5 - Material Management
+[Heading 3] f. Diagram 6 - Quotation Management
+[Normal] Figure 12 : Diagram 6 - Quotation Management
+[Heading 3] g. Diagram 7 - Pricing Rules & Approval Management
+[Normal] Tham số và quy tắc kỹ thuật
+[Normal] Figure 13 : Diagram 7 - Pricing Rules & Approval Management (Technical parameters and rules)
+[Normal] Cấu hình thương mại và phê duyệt
+[Normal] Figure 14 : Diagram 7 - Pricing Rules & Approval Management (Commercial configuration and approval)
+[Heading 3] h. Diagram 8 - Home Navigation & Approval Badge
+[Normal] Figure 15 : Diagram 8 - Home Navigation & Approval Badge
+[Heading 3] i. Diagram 9 - Inventory & Production (Planned)
+[Heading 2] 3.4 Use Case Index
+[Normal] Chú thích Type
+TABLE:
+Type || Meaning
+UI || Người dùng thực hiện use case trực tiếp qua giao diện hệ thống.
+UI / System-assisted || Người dùng thực hiện qua giao diện, đồng thời hệ thống tự động hỗ trợ tính toán, tìm kiếm, xác thực hoặc kiểm tra quy tắc.
+UI / Report || Người dùng xem dashboard, biểu đồ, báo cáo hoặc nhật ký tổng hợp.
+System || Hành vi tự động của hệ thống (compute, constraint, cron, engine tính giá, engine định tuyến phê duyệt); không do người dùng khởi tạo trực tiếp qua giao diện.
+Planned || Use case nằm trong IP-03 / IP-04 nhưng chưa được triển khai
+END TABLE
+[Heading 1] 4. Functional Requirements
+[Heading 2] 4.1 Modules & Features
+[Heading 3] a. Module List
+TABLE:
+Module || Purpose || Primary Actor(s)
+Quản trị hệ thống & Phân quyền (AUTH) || Đăng nhập, phân quyền theo vai trò, quản lý tài khoản và vai trò, cấu hình chung (đơn vị đo, tham số tính giá, ngưỡng duyệt) || 
+Quản lý Đối tác (BPM) || Quản lý hồ sơ khách hàng, nhà cung cấp gồm thông tin liên hệ, mã số thuế và phân loại nhóm khách hàng. Khi một đối tác vừa mua vừa bán, hệ thống cho gộp làm một hồ sơ để dùng chung dữ liệu || BA/Sales, Mua hàng
+Bán hàng (SALE) || Tiếp nhận yêu cầu báo giá của khách, tự tính giá và lập báo giá, phê duyệt khi vượt ngưỡng, rồi chuyển thành đơn bán hàng khi khách đồng ý || 
+ ||  || Kỹ thuật, BA/Sales
+Kỹ thuật (TECH) || Lập định mức vật tư cho từng sản phẩm với lượng tự tính theo kích thước, quản lý công đoạn, phiên bản và bản vẽ kỹ thuật || Kỹ thuật
+Kho & Mua hàng (INV) || Nhập xuất và theo dõi tồn kho vật tư, hàng hóa, đồng thời quản lý giá mua từ nhà cung cấp và đề xuất mua bổ sung khi thiếu hàng || Kế toán nội bộ, Mua hàng
+Sản xuất (MFG) || Từ đơn bán hàng đã chốt, phát lệnh sản xuất theo định mức, tính nhu cầu vật tư và đối chiếu tồn kho, đồng thời lập kế hoạch theo hạn giao hàng || Kỹ thuật, CEO
+Báo cáo & Dashboard (RPT) || Tổng hợp số liệu và bảng theo dõi cho quản lý theo từng mảng: kinh doanh, kho, sản xuất || 
+END TABLE
+[Heading 3] b. Module: Quản trị hệ thống & Phân quyền (AUTH)
+TABLE:
+FT-ID || Feature || Priority || Description || UC-ID || BF-ID || SOURCE
+FT-01 || Đăng nhập || Must ||  || UC-001 ||  || Odoo có sẵn
+FT-02 || Đăng xuất || Must ||  || UC-099 ||  || Odoo có sẵn
+FT-03 || Quên mật khẩu || Must || Khi quên mật khẩu, người dùng nhận email kèm liên kết để tự đặt lại || UC-100 ||  || Odoo có sẵn
+FT-04 || Đổi mật khẩu || Should || Người dùng tự đổi mật khẩu của mình sau khi đăng nhập || UC-101 ||  || Odoo có sẵn
+FT-05 || Phân quyền theo vai trò || Must || Mỗi người dùng chỉ truy cập được các chức năng thuộc vai trò của mình || UC-003, UC-004, UC-005, UC-008 || BF-06 || Tự phát triển (trên nền phân quyền của Odoo)
+FT-06 || Điều hướng vai trò sau đăng nhập || Must || Sau khi đăng nhập, hệ thống đưa người dùng vào thẳng màn phù hợp với vai trò || UC-090 || BF-07 || Tự phát triển
+FT-07 || Thanh điều hướng || Must || Thanh menu điều hướng giúp di chuyển qua lại giữa các phần của hệ thống || UC-002 || BF-07 || Tự phát triển
+FT-08 ||  || Must || Tạo tài khoản, gán vai trò, đặt lại mật khẩu và khóa hoặc mở lại tài khoản người dùng || UC-006, UC-007, UC-008 || BF-06 || 
+FT-09 || Thiết lập quyền cho vai trò || Must || Quy định mỗi vai trò được truy cập và thao tác những chức năng nào || UC-003, UC-004, UC-005 || BF-06 || Tự phát triển (trên nền nhóm quyền của Odoo)
+FT-10 || Quản lý đơn vị đo || Should || Khai báo và quản lý các đơn vị đo dùng chung như kg, mét, cái || UC-014 || BF-06 || Tự phát triển (trên nền đơn vị đo của Odoo)
+FT-11 || Thiết lập tham số tính giá || Should || Thiết lập các tham số để tính giá gồm tỷ lệ lãi mục tiêu, chiết khấu tối đa, thuế VAT mặc định và mức làm tròn. VAT và mức làm tròn là tham số chung; lợi nhuận mục tiêu và chiết khấu theo nhóm khách hàng được cấu hình ở màn riêng và phải qua phê duyệt trước khi áp dụng || UC-010, UC-020, UC-021 || BF-06 || Tự phát triển
+FT-12 || Thiết lập chi phí chung và phụ phí || Should || Khai báo các khoản chi phí chung và phụ phí như đóng gói, vận chuyển, giao gấp, đơn hàng nhỏ, độ phức tạp, dự phòng, cùng cách tính để cộng vào giá thành. || UC-016 || BF-06 || Tự phát triển
+FT-13 ||  || Could || Tỷ lệ hao hụt và thu hồi phế liệu mặc định được thiết lập theo nhóm vật tư hoặc theo từng vật tư cụ thể (ưu tiên vật tư cụ thể khi trùng), tự điền khi lập định mức || UC-010 || BF-06 || Tự phát triển
+FT-14 ||  || Could || Thiết lập mức doanh số để khách hàng tự được xếp vào nhóm Thân thiết || UC-037 || BF-06 || Tự phát triển
+FT-15 ||  || Should || Người quản trị đặt các mốc giá trị và cấp duyệt tương ứng, mỗi lần thay đổi được lưu thành phiên bản để tra lại khi cần || UC-011, UC-023, UC-024 || BF-06 || Tự phát triển
+FT-16 || Chỉ định người duyệt || Should || Chỉ định người duyệt cho từng cấp và người duyệt dự phòng khi người chính vắng mặt || UC-009, UC-025 || BF-04, BF-06 || Tự phát triển
+FT-17 ||  || Could || Hệ thống cảnh báo khi các tham số tính giá được đặt bất hợp lý || UC-102 || BF-06 || Tự phát triển
+FT-18 || Nhật ký thay đổi cấu hình || Could || Hệ thống ghi lại ai đã thay đổi cấu hình nào và vào lúc nào để tra cứu khi cần || UC-013 || BF-06 || Tự phát triển
+FT-92 || Bảo vệ vai trò hệ thống || Should || Vai trò được cài đặt sẵn theo module không thể xóa, chỉ vai trò do người quản trị tự tạo mới xóa được || — || BF-06 || Tự phát triển
+END TABLE
+[Heading 3] c. Module: Quản lý Đối tác (BPM)
+[Heading 3] d. Module: Bán hàng (Sale)
+[Heading 3] e. Module: Sản phẩm & Vật tư (PROD)
+TABLE:
+FT-ID || Feature || Priority || Description || UC-ID || BF-ID || SOURCE
+FT-55 ||  || Must ||  || UC-039, UC-040, UC-042, UC-043, UC-052 || BF-02 || Tự phát triển (trên nền sản phẩm Odoo)
+FT-56 ||  || Should || Sắp xếp sản phẩm và vật tư vào các nhóm để dễ tìm kiếm và quản lý || UC-038 || BF-02 || Tự phát triển (trên nền nhóm sản phẩm của Odoo)
+FT-57 || Quản lý trạng thái sản phẩm || Must || Mỗi sản phẩm  được đánh dấu đang ở giai đoạn Nháp, Đã duyệt hay Ngừng sử dụng, để biết mặt hàng nào đang được phép dùng || UC-045 || BF-02 || Tự phát triển
+FT-58 ||  || Should || Cho phép bán một mặt hàng thương mại chỉ khi đã có đủ giá mua và giá bán hợp lệ. Nếu còn thiếu điều kiện nào, hệ thống báo rõ cho người dùng bổ sung || UC-045 || BF-02 || Tự phát triển
+FT-59 || Cảnh báo trùng tên sản phẩm || Should || Khi tên sản phẩm mới trùng hoặc gần giống một sản phẩm đã có, hệ thống báo cho người dùng biết để tránh tạo trùng || UC-111 || BF-02 || Tự phát triển
+FT-60 || Khai báo hao hụt và thu hồi phế liệu || Must || Người dùng khai báo tỷ lệ hao hụt khi gia công và phần phế liệu thu hồi được của từng vật tư, dùng cho việc tính giá || UC-044 || BF-02 || Tự phát triển
+FT-61 || Định giá bán cho sản phẩm || Should || BA/Sales đặt giá bán cho sản phẩm thương mại và xem được mức lợi nhuận so với giá vốn || UC-041 || BF-02 || Tự phát triển (trên nền giá bán của Odoo)
+FT-62 || Hình dạng và cách đo vật tư || Could || Cách đo và hình dạng vật tư (tấm, thanh, ống…) làm cơ sở để định mức tự tính lượng vật tư theo kích thước || UC-051 || BF-02 || Tự phát triển
+FT-92 || Tự động ngừng sản phẩm nháp chưa sử dụng || Could || Sản phẩm hoặc bán thành phẩm ở trạng thái Nháp không được dùng trong đơn hàng sau một thời gian sẽ tự động chuyển sang Ngừng sử dụng || UC-047 || BF-02 || Tự phát triển
+END TABLE
+[Heading 3] f. Module: Kỹ thuật (TECH)
+TABLE:
+FT-ID || Feature || Priority || Description || UC-ID || BF-ID || SOURCE
+FT-63 ||  || Must || Liệt kê các vật tư cần dùng và số lượng để làm ra một sản phẩm || UC-056, UC-057 || BF-02 || Tự phát triển
+FT-64 ||  || Must ||  || UC-058 || BF-02 || Tự phát triển
+FT-65 || Tính hao hụt và độ phức tạp || Should || Tính thêm phần hao hụt khi cắt gọt và độ phức tạp của từng vật tư để ra lượng thực tế cần dùng || UC-016, UC-044, UC-058 || BF-02, BF-06 || Tự phát triển
+FT-66 || Khai báo công đoạn gia công || Should || Khai báo các công đoạn như cắt, hàn, sơn cùng chi phí tương ứng để đưa vào giá thành || UC-017 || BF-06 || Tự phát triển
+FT-67 || BOM nhiều cấp || Should || BOM của một sản phẩm có thể chứa bán thành phẩm, hệ thống sẽ tự cộng gộp vật tư từ định mức của các bán thành phẩm đó || UC-057A || BF-02 || Tự phát triển
+FT-68 || Quản lý phiên bản BOM || Must || Mỗi định mức có thể lưu nhiều phiên bản và hệ thống đánh dấu rõ phiên bản nào đang được dùng || UC-061, UC-060A || BF-02 || Tự phát triển
+FT-69 || Quản lý trạng thái BOM || Must || Theo dõi định mức đang ở Nháp, Đã xác nhận hay Đã khóa để biết định mức nào được dùng để báo giá || UC-060 || BF-02 || Tự phát triển
+FT-70 ||  || Should || Khi định mức có vật tư chưa được định giá, hệ thống cảnh báo và nhắc Mua hàng cập nhật || UC-112 || BF-02, BF-08 || Tự phát triển
+FT-71 ||  || Should || Hệ thống tính sẵn tiền vật tư và tiền công đoạn của định mức để người dùng tham khảo giá thành || UC-082 || BF-03 || Tự phát triển
+FT-72 || Tạo BOM từ mẫu || Could || Tạo nhanh một định mức mới từ mẫu có sẵn; nếu sản phẩm chỉ khác nhau về kích thước, hệ thống tự lập định mức theo số đo nhập vào || UC-062, UC-063, UC-063A || BF-02 || Tự phát triển
+FT-73 || Tạo bán thành phẩm từ BOM || Could || Hệ thống cho phép tạo mới một bán thành phẩm ngay khi đang lập định mức và đưa thẳng vào định mức đó || UC-057A || BF-02 || Tự phát triển
+FT-74 || Quản lý bán vẽ kỹ thuật || Should ||  || UC-053, UC-054, UC-055 || BF-02 || Tự phát triển (trên nền tệp đính kèm của Odoo)
+END TABLE
+[Heading 3] g. Module: Kho & Mua hàng (INV)
+[Heading 3] h. Module: Sản xuất (MFG)
+[Heading 3] i. Module: Báo cáo & Dashboard (RPT)
+[Heading 3] j. Won't-Have (This Version)
+[Normal] Lập kế hoạch và tối ưu sản xuất bằng AI / thuật toán dự báo nhu cầu
+[Normal] Thanh toán trực tuyến (Online Payment Gateway)
+[Normal] Gửi báo giá tự động qua Zalo/Email (thực hiện ngoài hệ thống)
+[Normal] Tích hợp trực tiếp với phần mềm kế toán MISA/FAST
+[Normal] Giám sát tiến độ và chất lượng sản xuất theo từng công đoạn tại xưởng (IP-05)
+[Normal] Quản lý công nợ khách hàng và nhà cung cấp (IP-06)
+[Normal] Chấm công và tính lương nội bộ (IP-07)
+[Normal] Cổng thông tin khách hàng (Customer Portal) và ứng dụng di động gốc
+[Heading 2] 4.2 Screen Inventory
+[Heading 3] a. Screen Flow
+[Heading 3] b. Screen List
+TABLE:
+SCR-ID || Screen Name || Module || Description || FT-ID || UC-ID
+SCR-01 || Sign In || AUTH || Đăng nhập vào hệ thống bằng email và mật khẩu || FT-01 || UC-001
+SCR-02 || Reset Password || AUTH || Đặt lại mật khẩu mới qua liên kết gửi về email khi người dùng quên || FT-03 || UC-100
+SCR-03 || Change Password || AUTH || Cho người dùng đang đăng nhập tự đổi mật khẩu || FT-04 || UC-101
+SCR-04 || User Management || AUTH || Tạo tài khoản, gán vai trò, đặt lại mật khẩu và khóa hoặc mở lại tài khoản || FT-08 || UC-006, UC-007, UC-008
+SCR-05 || User Detail || AUTH ||  || FT-08 || UC-006, UC-007, UC-008
+SCR-06 || Role Permissions || AUTH || Quy định mỗi vai trò được dùng những chức năng nào || FT-09 || UC-003, UC-004, UC-005
+SCR-07 || Units of Measure || AUTH || Khai báo và quản lý các đơn vị đo dùng chung || FT-10 || UC-014
+SCR-08 || Quotation Configuration || AUTH ||  || FT-11, FT-12, FT-13, FT-14, FT-15, FT-16, FT-17 || UC-009, UC-010, UC-011, UC-016, UC-020, UC-021, UC-023, UC-024, UC-025, UC-037, UC-102
+SCR-09 || Customer List || BPM || Danh sách khách hàng, có tìm kiếm và lọc theo loại, nhóm và trạng thái || FT-19, FT-21 || UC-028, UC-030, UC-103
+SCR-10 || Customer Detail || BPM ||  || FT-19, FT-20, FT-22, FT-23, FT-24, FT-26 || UC-028, UC-033, UC-034, UC-035, UC-036, UC-064, UC-103, UC-104
+SCR-11 || Supplier List || BPM || Danh sách nhà cung cấp, có tìm kiếm và lọc || FT-25 || UC-029
+SCR-12 || Supplier Detail || BPM || Xem và chỉnh sửa thông tin nhà cung cấp || FT-25, FT-26 || UC-029, UC-064
+SCR-13 || Create Quotation Request || SALE ||  || FT-27 || UC-065, UC-066
+SCR-14 || Quotation Request Management || SALE || Danh sách toàn bộ yêu cầu báo giá, có tìm kiếm và lọc theo trạng thái, tiến độ || FT-33 || UC-106
+SCR-15 || Requests to Process || SALE || Danh sách các yêu cầu đang chờ kỹ thuật tiếp nhận và xử lý || FT-28, FT-33 || UC-067, UC-068, UC-069, UC-069A, UC-070, UC-071, UC-072, UC-106
+SCR-16 || Quotation Request Detail || SALE || Xem và xử lý yêu cầu: nhận xử lý, xử lý từng sản phẩm, bổ sung, theo dõi trạng thái và hủy || FT-28, FT-29, FT-31, FT-32, FT-33, FT-34, FT-36 || UC-067, UC-068, UC-069, UC-069A, UC-070, UC-071, UC-072, UC-073, UC-075, UC-105, UC-106
+SCR-17 || Process Product || SALE || Gắn một mặt hàng khách cần với sản phẩm và định mức, hoặc tạo mới || FT-29 || UC-073
+SCR-18 || Return Request || SALE || Nhập lý do khi kỹ thuật trả yêu cầu về cho nhân viên kinh doanh bổ sung || FT-30 || UC-074
+SCR-19 || Request History || SALE || Xem lại toàn bộ quy trình của một yêu cầu || FT-35 || UC-076
+SCR-20 || Quotation List || SALE || Danh sách báo giá, có tìm kiếm và lọc theo trạng thái, khách hàng || FT-37 || UC-073
+SCR-21 || Quotation Detail || SALE || Xem và xử lý báo giá: giá từng dòng, cách tính, chiết khấu, thuế, điều khoản, duyệt nội bộ và gửi khách || FT-38, FT-39, FT-40, FT-41, FT-42, FT-43, FT-44, FT-46, FT-48 || UC-074, UC-080, UC-083, UC-084, UC-086, UC-087A, UC-088, UC-107, UC-108
+SCR-22 || Export and Send Quotation || SALE || Chọn định dạng Word/PDF và gửi báo giá cho khách qua email || FT-45 || UC-087, UC-087A
+SCR-23 || Create Quotation Revision || SALE || Tạo bản báo giá mới khi khách yêu cầu chỉnh sửa || FT-47 || UC-109
+SCR-24 || Sales Order List || SALE || Danh sách đơn bán hàng, có tìm kiếm và lọc theo trạng thái || FT-50 || UC-081
+SCR-25 || Sales Order Detail || SALE || Xem và cập nhật đơn bán hàng: các dòng hàng và trạng thái || FT-49, FT-50 || UC-081, UC-089
+SCR-26 || Approval List || SALE || Danh sách các yêu cầu phê duyệt báo giá đang chờ hoặc đã xử lý || FT-52, FT-54 || UC-027, UC-084, UC-110
+SCR-27 || Approval Request Detail || SALE ||  || FT-51, FT-53, FT-54 || UC-027, UC-081, UC-083, UC-110
+SCR-28 || Reject Approval || SALE || Nhập lý do khi từ chối một yêu cầu phê duyệt || FT-53 || UC-081
+SCR-29 || Product List || PROD ||  || FT-56, FT-58 || UC-038, UC-045
+SCR-30 || Product Detail || PROD || Xem và chỉnh sửa sản phẩm: loại, nhóm, giá bán, trạng thái và điều kiện kích hoạt || FT-56, FT-58, FT-59, FT-60, FT-62 || UC-038, UC-044, UC-045, UC-051, UC-111
+SCR-31 || Material List || PROD ||  || FT-56, FT-58 || UC-038, UC-045
+SCR-32 || Material Detail || PROD || Xem và chỉnh sửa vật tư: nhóm, đơn vị, tỷ lệ hao hụt và thu hồi phế liệu || FT-56, FT-58, FT-61 || UC-038, UC-041, UC-045
+SCR-33 || Product Categories || PROD || Quản lý các nhóm dùng để phân loại sản phẩm và vật tư || FT-57 || UC-045
+SCR-34 || Bill of Materials List || TECH || Danh sách định mức của sản phẩm và bán thành phẩm, kèm phiên bản và trạng thái || FT-64, FT-69, FT-70 || UC-058, UC-060, UC-112
+SCR-35 || Bill of Materials Detail || TECH || Tạo và chỉnh sửa định mức: vật tư, kích thước, hao hụt, công đoạn và giá vốn ước tính || FT-64, FT-65, FT-66, FT-67, FT-68, FT-71, FT-72 || UC-016, UC-017, UC-044, UC-057A, UC-058, UC-060A, UC-061, UC-062, UC-063, UC-063A, UC-082
+SCR-36 || BOM Template List || TECH || Danh sách các định mức mẫu dùng để tạo nhanh định mức mới || FT-72 || UC-062, UC-063, UC-063A
+SCR-37 || BOM Template Detail || TECH || Tạo và chỉnh sửa định mức mẫu, kể cả mẫu theo kích thước || FT-72 || UC-062, UC-063, UC-063A
+SCR-38 || Technical Drawing List || TECH || Danh sách bản vẽ kỹ thuật của sản phẩm, kèm phiên bản || FT-74 || UC-053, UC-054, UC-055
+SCR-39 || Technical Drawing Detail || TECH || Xem, tải lên và xác nhận bản vẽ kỹ thuật || FT-74 || UC-053, UC-054, UC-055
+SCR-40 || Create BOM from Template || TECH || Chọn mẫu và nhập số đo để tạo nhanh định mức mới || FT-72 || UC-062, UC-063, UC-063A
+SCR-41 || Add Semi-finished Product to BOM || TECH || Tạo nhanh một bán thành phẩm mới ngay khi đang lập định mức || FT-73 || UC-057A
+SCR-42 || Material Supplier Price List || INV ||  || FT-76, FT-77, FT-78 || UC-050, UC-112, UC-113
+SCR-43 || Trading Product Price List || INV ||  || FT-76, FT-77, FT-62 || UC-050, UC-051, UC-113
+SCR-44 || Materials Awaiting Pricing || INV || Danh sách vật tư chưa có giá nhà cung cấp để bộ phận Mua hàng cập nhật || FT-79 || UC-091
+SCR-45 || Goods Receipt || INV || Ghi nhận phiếu nhập kho || FT-80 || UC-092
+SCR-46 || Goods Issue || INV || Ghi nhận phiếu xuất kho || FT-81 || UC-093
+SCR-47 || Stock on Hand || INV ||  || FT-82, FT-84 || UC-094, UC-095
+SCR-48 || Stock Count and Adjustment || INV || Đối chiếu và điều chỉnh số lượng trong kho || FT-83 || UC-093
+SCR-49 || Manufacturing Order List || MFG || Tạo và quản lý các lệnh sản xuất || FT-85 || UC-114
+SCR-50 || Manufacturing Order Detail || MFG || Xem chi tiết lệnh sản xuất: nhu cầu vật tư, đối chiếu tồn kho và trạng thái || FT-86, FT-87, FT-88 || UC-095, UC-097, UC-115
+SCR-51 || Production Planning || MFG || Sắp xếp các lệnh sản xuất theo hạn giao hàng || FT-89 || UC-116
+SCR-52 || Production Overview || MFG ||  || FT-90 || UC-117
+SCR-53 || Management Dashboard || RPT || Tổng hợp số liệu về báo giá, đơn hàng, sản xuất và tồn kho cho CEO || FT-91 || UC-118
+END TABLE
+[Heading 2] 4.3 External API Inventory
+[Normal] Hệ thống có một điểm tích hợp API ngoài là việc gửi thư điện tử. Khi gửi báo giá cho khách hoặc gửi liên kết đặt lại mật khẩu, hệ thống chuyển thư qua máy chủ thư đi cấu hình trong hệ thống, và máy chủ này gửi tới hộp thư của người nhận.
+TABLE:
+API-ID || API Name || Calling Path || Description
+API-01 || Gửi thư qua máy chủ thư đi || Từ màn Xuất và gửi báo giá (SCR-22), nút Gửi email cho khách; và từ luồng đặt lại mật khẩu (SCR-02) || Hệ thống dùng mẫu thư của Odoo soạn email kèm file báo giá, hoặc thư chứa liên kết đặt lại mật khẩu, rồi chuyển tới máy chủ thư đi để gửi đến người nhận
+END TABLE
+[Heading 2] 4.4 Background Job Inventory
+TABLE:
+JOB-ID || Name || Group || Description || FT-ID || UC-ID
+JOB-01 || Tự động hết hiệu lực báo giá quá hạn || Bán hàng, chạy hằng ngày || Mỗi ngày hệ thống rà các báo giá đã quá hạn hiệu lực mà khách chưa chốt, rồi tự chuyển những báo giá đó sang trạng thái hết hiệu lực. || FT-47 || UC-109
+JOB-02 || Dọn dữ liệu tạm từ yêu cầu báo giá || Kỹ thuật, chạy hằng ngày || Mỗi ngày hệ thống xóa các sản phẩm và định mức tạm được tạo trong lúc xử lý yêu cầu báo giá, khi yêu cầu đó đã bị bỏ dở, để tránh tồn dữ liệu thừa. || FT-28 || UC-068, UC-069
+JOB-03 || Dọn sản phẩm gia công nháp không dùng ||  || Mỗi ngày hệ thống đánh dấu ngừng sử dụng cho các sản phẩm gia công còn ở trạng thái nháp mà không còn gắn với yêu cầu hay định mức nào, để danh mục gọn gàng. || FT-57 || UC-045
+JOB-04 ||  || Kho, chạy hằng ngày || Dự kiến mỗi ngày hệ thống rà các mặt hàng có số lượng tồn xuống dưới mức tối thiểu, rồi nhắc người phụ trách để bổ sung kịp thời. Tác vụ này chưa được lập trình. || FT-83 || UC-093
+JOB-05 ||  || Sản xuất, chạy hằng ngày || Dự kiến mỗi ngày hệ thống rà các lệnh sản xuất sắp đến hoặc đã quá hạn giao, rồi nhắc người phụ trách để ưu tiên xử lý. Tác vụ này chưa được lập trình. || FT-89 || UC-116
+END TABLE

@@ -1,18 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Dòng công đoạn của một định mức (BOM) — RV-01/RV-04.
-
-Thiết kế: ``docs/Thiet_ke_chi_phi_cong_doan_bom_operation.md`` §2.1.
-
-Một dòng = một công đoạn (cắt/hàn/sơn/thuê ngoài) mà sản phẩm phải đi qua khi
-gia công. Kỹ thuật CHỈ chọn công đoạn + nhập MỘT con số cơ sở khi phương pháp
-tính cần (kg/mét/m²). Đơn giá, tỷ lệ, phí setup do CẤU HÌNH quyết định
-(``dl.pricing.operation.rule`` — màn Kế toán giá thành); Kỹ thuật không nhập và
-(đối xứng giá vật tư) KHÔNG nhìn thấy.
-
-Pha B1 (file này): chỉ KHAI BÁO dữ liệu + ước tính THAM KHẢO cho nhóm giá. Việc
-nối công đoạn vào giá thành báo giá (setup/lô, snapshot, mã lỗi QTE-010/011) làm
-ở pha B2 trong ``dl_sale/models/quotation_pricing_service.py``.
-"""
+# Dòng công đoạn (cắt/hàn/sơn/thuê ngoài) trên tab "Công đoạn" của form BOM — Kỹ thuật chỉ chọn
+# công đoạn + nhập định mức, đơn giá thật do Kế toán cấu hình riêng (dl.pricing.operation.rule).
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
@@ -95,20 +83,17 @@ class DlBomOperationLine(models.Model):
         string="Ước tính biến đổi/đơn vị (tham khảo)", digits="Product Price",
         compute="_compute_estimate", groups=_COST_GROUPS)
 
-    # ------------------------------------------------------------------
-    # Tra rule đơn giá đang hiệu lực (HÔM NAY) cho ước tính tham khảo
-    # ------------------------------------------------------------------
+    # Tìm đơn giá công đoạn đang hiệu lực hôm nay (dùng cho ô ước tính tham khảo trên form BOM).
     def _get_active_rule(self):
         self.ensure_one()
         if not self.operation_id:
             return self.env["dl.pricing.operation.rule"].browse()
-        # dl.bom không có company_id → dùng công ty hiện tại (đối xứng engine
-        # dùng self.env.company). date = hôm nay cho ước tính tham khảo.
         company = self.env.company
         date = fields.Date.context_today(self)
         return self.env["dl.pricing.operation.rule"].sudo()._get_active(
             self.operation_id, company, date)
 
+    # Tự điền lại ô "Cách tính"/"Đã có đơn giá" khi đổi công đoạn trên dòng.
     @api.depends("operation_id")
     def _compute_active_rule(self):
         for line in self:
@@ -118,6 +103,7 @@ class DlBomOperationLine(models.Model):
             line.needs_base_qty = bool(
                 rule and rule.method in ("per_kg", "per_meter", "per_sqm"))
 
+    # Tính lại ô "Ước tính biến đổi/đơn vị" (chỉ Kế toán/CEO/Admin thấy) mỗi khi định mức/BOM đổi.
     @api.depends("operation_id", "base_qty", "material_scope",
                  "material_line_ids", "bom_id.total_material_cost",
                  "bom_id.product_qty")
@@ -130,11 +116,8 @@ class DlBomOperationLine(models.Model):
             line.estimated_unit_cost = rule.variable_unit_amount(
                 line.base_qty, line._material_unit_base())
 
+    # Chi phí vật tư/đơn vị dùng làm cơ sở khi công đoạn tính theo % vật liệu.
     def _material_unit_base(self):
-        """Chi phí vật tư/đơn vị làm cơ sở cho phương pháp % vật liệu.
-
-        'selected' → tổng subtotal các dòng vật tư đã chọn; 'all' → tổng cả BOM.
-        Chia product_qty để quy về MỘT đơn vị đầu ra (đối xứng engine)."""
         self.ensure_one()
         bom = self.bom_id
         qty_out = bom.product_qty or 1.0
@@ -144,6 +127,7 @@ class DlBomOperationLine(models.Model):
             base = bom.total_material_cost
         return base / qty_out
 
+    # Validate lúc lưu dòng công đoạn: định mức cơ sở không được âm.
     @api.constrains("base_qty")
     def _check_base_qty(self):
         for line in self:
@@ -151,6 +135,7 @@ class DlBomOperationLine(models.Model):
                 raise ValidationError(
                     _("Định mức cơ sở công đoạn không được âm."))
 
+    # Validate lúc lưu dòng công đoạn: đã chọn NCC gia công thì bắt buộc tick "Thuê ngoài".
     @api.constrains("is_outsourced", "partner_id")
     def _check_outsource_partner(self):
         for line in self:

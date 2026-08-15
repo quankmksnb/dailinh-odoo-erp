@@ -2,14 +2,7 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 
-# Các ô của một dòng vật tư mà tham số sản phẩm có thể ánh xạ vào.
-# Trùng tên field trên dl.bom.line.mixin + "quantity" (số lượng cố định theo
-# tham số, vd số nan = tham số N).
-#
-# Mặt cắt (độ dày / cạnh / đường kính) ĐÃ RỜI sang quy cách của VẬT TƯ nên
-# không còn là đích ánh xạ — xem thiết kế §15.1. Chi tiết cần nhiều đoạn cắt
-# (vd "khung bao = 2×(D+R)") nay diễn đạt bằng 2 DÒNG, mỗi dòng một chiều —
-# vừa đúng bản chất, vừa ra cut list thật cho xưởng (§15.2).
+# Danh sách ô kích thước/số lượng trên 1 dòng vật tư mẫu mà tham số có thể ánh xạ vào.
 _TARGET_FIELDS = [
     ("dim_length", "Chiều dài đoạn (mm)"),
     ("dim_width", "Chiều rộng (mm)"),
@@ -19,13 +12,8 @@ _TARGET_FIELDS = [
 
 
 class DlBomTemplateParam(models.Model):
-    """Tham số CẤP SẢN PHẨM của một BOM mẫu (Đợt 4 — thiết kế §7.4a).
-
-    Khác hẳn kích thước cấp DÒNG VẬT TƯ (dl.bom.line.mixin.dim_*): đây là các
-    đại lượng của cả sản phẩm (Dài/Rộng/Cao của cái bàn), KTV nhập MỘT LẦN khi
-    xử lý một đơn; hệ thống suy kích thước từng thanh vật tư từ chúng qua ánh xạ
-    tuyến tính (dl.bom.template.line.param.map), rồi để công thức hình dạng có
-    sẵn tính định mức. `code` là mã tham chiếu (D/R/C), KHÔNG phải biểu thức."""
+    # Tham số cấp sản phẩm (VD Dài/Rộng/Cao) của 1 BOM mẫu — KTV nhập 1 lần khi xử lý RFQ,
+    # dùng để tự suy kích thước từng dòng vật tư qua bảng ánh xạ tuyến tính bên dưới.
 
     _name = "dl.bom.template.param"
     _description = "Tham số BOM mẫu"
@@ -62,6 +50,7 @@ class DlBomTemplateParam(models.Model):
          "Mã tham số đã tồn tại trong BOM mẫu này."),
     ]
 
+    # Validate lúc lưu tham số trên form BOM mẫu: chặn tối thiểu > tối đa.
     @api.constrains("value_min", "value_max")
     def _check_domain(self):
         for rec in self:
@@ -72,13 +61,7 @@ class DlBomTemplateParam(models.Model):
 
 
 class DlBomTemplateLineParamMap(models.Model):
-    """Ánh xạ tuyến tính TỪ một tham số sản phẩm VÀO một ô kích thước của dòng
-    vật tư mẫu (thiết kế §7.4b): `giá trị = factor × tham số + offset`.
-
-    KHÔNG dùng biểu thức tự do (tôn trọng V3 nguyên tắc 5). Phần phi tuyến
-    (diện tích/chu vi/khối lượng) do công thức hình dạng (measurement_shape) đã
-    có sẵn lo — ánh xạ chỉ cần phép nhân/cộng. Một dòng có thể có nhiều ánh xạ
-    (vd mặt bàn: dim_length ← D và dim_width ← R)."""
+    # Công thức ánh xạ 1 tham số sản phẩm vào 1 ô của dòng vật tư mẫu: giá trị = factor × tham số + offset.
 
     _name = "dl.bom.template.line.param.map"
     _description = "Ánh xạ tham số → dòng vật tư mẫu"
@@ -101,6 +84,7 @@ class DlBomTemplateLineParamMap(models.Model):
     factor = fields.Float(string="Hệ số nhân", default=1.0)
     offset = fields.Float(string="Cộng thêm", default=0.0)
 
+    # Validate lúc lưu ánh xạ: tham số chọn phải thuộc đúng BOM mẫu của dòng vật tư.
     @api.constrains("param_id", "template_line_id")
     def _check_same_template(self):
         for rec in self:

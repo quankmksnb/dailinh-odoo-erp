@@ -1,0 +1,8 @@
+UC-010 | Cấu hình tham số cơ cấu giá & hao hụt mặc định | No | Full | No | No | No | No | No
+UC-012 | Cấu hình SLA & Escalation | No | Full | No | No | No | No | No
+UC-013 | Tra cứu nhật ký thay đổi cấu hình | Full | Full | Restricted | No | No | No | No
+UC-016 | Tạo / sửa quy tắc kỹ thuật (hao hụt, công đoạn, chi phí chung) | No | No | No | No | Full | No | No
+UC-017 | Quản lý danh mục dùng chung (công đoạn, mức phức tạp) | No | No | No | No | Full | No | No
+UC-018 | Áp dụng / Ngừng áp dụng quy tắc kỹ thuật | No | No | No | No | Full | No | No
+UC-038 | Quản lý nhóm sản phẩm | No | No | No | No | Full | No | No
+UC-041 | Nhập giá bán sản phẩm thương mại | No | No | No | No | No | Full | No

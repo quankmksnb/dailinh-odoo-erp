@@ -4,14 +4,8 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+# Kiểm tra 1 bản ghi có đang bị bản ghi khác trỏ tới không — dùng trước khi tự động dọn dữ liệu tạm (RFQ/BOM provisional).
 def has_stored_many2one_reference(record, ignored=None):
-    """Fail-safe check for persisted business references to ``record``.
-
-    Transient models are deliberately ignored: the RFQ workspace itself keeps
-    temporary Many2one values and must not prevent cleanup after it is closed.
-    Any lookup error is treated as "referenced" so cleanup never guesses that a
-    master record is safe to delete.
-    """
     record.ensure_one()
     ignored = set(ignored or ())
     field_records = record.env["ir.model.fields"].sudo().search([

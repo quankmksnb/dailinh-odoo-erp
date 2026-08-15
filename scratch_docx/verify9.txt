@@ -1,0 +1,30 @@
+UC-ID | Name | Type | Primary Actor | Description | BF-ID | Relationship
+UC-001 | Đăng nhập hệ thống | UI | Quản trị hệ thống | Người dùng đăng nhập bằng email và mật khẩu đã được Admin cấp. |  | 
+UC-002 | Truy cập Trang chủ DLM-ERP | UI | Quản trị hệ thống | Thanh điều hướng giúp di chuyển giữa các phần của hệ thống sau khi đăng nhập. | BF-07 | 
+UC-003 | Xem ma trận phân quyền của vai trò | UI / Report | Quản trị hệ thống | Admin xem ma trận quyền của từng vai trò trên toàn bộ chức năng hệ thống. | BF-06 | Liên quan UC-005
+UC-004 | Quản lý vai trò | UI | Quản trị hệ thống | Admin tạo, đổi tên hoặc xoá vai trò tự tạo (vai trò cài sẵn theo module không xoá được). | BF-06 | Liên quan UC-092 (FT-92 bảo vệ vai trò hệ thống)
+UC-005 | Cấu hình quyền của vai trò | UI | Quản trị hệ thống | Admin bật/tắt quyền Xem-Thêm-Sửa-Xóa và các thao tác đặc biệt cho từng vai trò, ghi thẳng vào hệ quyền thật. | BF-06 | Liên quan UC-003, UC-004
+UC-006 | Xem danh sách người dùng | UI / Report | Quản trị hệ thống | Admin xem danh sách người dùng, tìm kiếm và lọc theo vai trò/trạng thái. | BF-06 | Tiền đề của UC-007, UC-008
+UC-007 | Tạo tài khoản người dùng | UI | Quản trị hệ thống | Admin tạo tài khoản người dùng mới, hệ thống tự gửi email mời đặt mật khẩu. | BF-06 | 
+UC-008 | Quản lý vai trò & trạng thái tài khoản | UI | Quản trị hệ thống | Admin gán vai trò, đặt lại mật khẩu hoặc khoá/mở lại một tài khoản người dùng. | BF-06 | 
+UC-009 | Chỉ định người duyệt thay (Backup Approver) | UI | Quản trị hệ thống | Admin chỉ định người duyệt dự phòng (Backup Approver) cho một người dùng khi người đó vắng mặt. | BF-04, BF-06 | Liên quan UC-025
+UC-010 | Cấu hình tham số cơ cấu giá & hao hụt mặc định | UI / System-assisted | Kỹ thuật | CEO xem (chỉ đọc), Kỹ thuật và Kế toán nội bộ cấu hình tỷ lệ hao hụt/thu hồi phế liệu mặc định theo nhóm vật tư hoặc từng vật tư. | BF-06 | Tự điền vào UC-044, UC-058 khi lập định mức
+UC-011 | Cấu hình cấp duyệt | UI | CEO | CEO đặt các mốc giá trị báo giá và cấp duyệt tương ứng, mỗi lần đổi lưu thành phiên bản mới. | BF-06 | Liên quan UC-023, UC-024
+...
+UC-089 | Quản lý vòng đời đơn bán hàng | UI | Nhân viên Kinh doanh | Quản lý vòng đời đơn bán hàng: Nháp → Xác nhận → Hoàn tất/Hủy; xác nhận đơn sẽ tự nâng cấp sản phẩm và khoá BOM liên quan. |  | Kích hoạt UC-046, UC-092A
+UC-090 | Trang chủ điều hướng & badge phê duyệt | UI | Quản trị hệ thống | Sau khi đăng nhập, hệ thống đưa người dùng vào thẳng màn phù hợp với vai trò; hiển thị badge số việc chờ phê duyệt. | BF-07 | 
+UC-090A | Hàng đợi phiếu kho (landing riêng cho Thủ kho) | UI | Kế toán nội bộ / Thủ kho | Thủ kho đăng nhập vào thẳng danh sách các phiếu kho đang chờ xử lý (nhận/kiểm/chuyển/giao) thay vì màn Tồn kho. | BF-07 | Thay thế UC-090 cho vai trò Thủ kho
+UC-091 | Ghi nhận nhận hàng NCC (bước 1/2) | UI / System-assisted | Kế toán nội bộ / Thủ kho | Thủ kho ghi nhận hàng về từ nhà cung cấp vào khu vực chờ kiểm; hệ thống tự cấp số lô nếu chưa nhập, tự sinh phiếu Kiểm & cất hàng kế tiếp. |  | 
+UC-091A | Kiểm tra chất lượng hàng nhận & cất hàng (QC) | UI | Kế toán nội bộ / Thủ kho | Thủ kho kiểm tra chất lượng hàng nhận: nhập số lượng đạt/loại, lý do loại; hệ thống chặn xác nhận nếu số liệu không hợp lệ hoặc thiếu lô. |  | Bước 2/2 của UC-091
+UC-091B | Xử lý phiếu trả hàng NCC (khi QC phát hiện hàng lỗi) | UI | Mua hàng | Mua hàng xử lý phiếu trả nhà cung cấp tự sinh khi Thủ kho phát hiện hàng lỗi ở bước kiểm. |  | Sinh ra từ UC-091A
+UC-092 | Chuyển kho nội bộ | UI | Kế toán nội bộ / Thủ kho | Thủ kho ghi nhận chuyển vật tư/hàng hoá giữa các khu vực trong kho; có 2 nút tạo nhanh cho 2 tuyến thường dùng. |  | 
+UC-092A | Tạo và xử lý phiếu giao hàng khách | UI | Kế toán nội bộ / Thủ kho | Tạo phiếu giao hàng trực tiếp từ đơn bán hàng đã xác nhận; Thủ kho xử lý phiếu, các vai trò khác chỉ bấm nút tạo. |  | Sau UC-089
+UC-092B | Bán phế liệu thu hồi | UI | Kế toán nội bộ / Thủ kho | Thủ kho cân, ghi nhận và bán phế liệu thu hồi được từ khu vực sản xuất theo giá bán đã niêm yết. |  | 
+UC-092C | Đối chiếu dự toán và thực tế thu hồi phế liệu | UI | CEO | So sánh khối lượng phế liệu dự toán (tính từ định mức các đơn đã chốt trong kỳ) với khối lượng thực tế đã cân được, theo từng tháng. |  | Dùng dữ liệu từ UC-044, UC-092B
+UC-093 | Xem tồn kho hiện tại (cảnh báo tồn tối thiểu: xem JOB-04, chưa triển khai) | UI / Report | Quản trị hệ thống | Xem danh sách tồn kho hiện tại theo sản phẩm/lô/vị trí, không hiển thị giá vốn. |  | Cảnh báo tồn tối thiểu: xem JOB-04, chưa triển khai
+UC-094 | Kiểm kê và điều chỉnh tồn kho | UI | Kế toán nội bộ / Thủ kho | Thủ kho đếm thực tế và điều chỉnh số lượng tồn kho cho khớp; hệ thống tự sinh chứng từ điều chỉnh. |  | 
+UC-095 | Kiểm tra khả dụng vật tư theo BOM (Planned — backlog giai đoạn sau, ATP) | Planned | — | Kiểm tra vật tư có đủ tồn kho để đáp ứng một BOM ngay khi lập báo giá — chưa triển khai, thuộc backlog giai đoạn sau. |  | 
+UC-096 | Nhập kho thành phẩm theo BOM (Planned — backlog Lệnh sản xuất/B2, đã seed sẵn loại phiếu Xuất vật tư SX/Nhập thành phẩm, chưa có màn hình) | Planned | — | Nhập kho thành phẩm theo BOM khi hoàn tất sản xuất — chưa triển khai, đã seed sẵn loại phiếu nhưng chưa có màn hình/logic. |  | Thuộc backlog Lệnh sản xuất
+UC-097 | Tính nhu cầu vật tư cho phiếu nhập kho theo BOM (Planned — gắn với UC-096) | Planned | — | Tự tính nhu cầu vật tư cho phiếu nhập kho theo BOM — chưa triển khai, gắn với UC-096. |  | 
+UC-099 | Đăng xuất hệ thống | UI | Quản trị hệ thống | Người dùng đăng xuất khỏi hệ thống. |  | 
+UC-100 | Quên mật khẩu và đặt lại mật khẩu | UI | Quản trị hệ thống | Người dùng quên mật khẩu nhận email kèm liên kết để tự đặt lại. |  | 

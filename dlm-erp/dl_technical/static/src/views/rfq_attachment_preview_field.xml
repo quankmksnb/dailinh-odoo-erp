@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="dl_technical.DlImagePreviewDialog">
+        <Dialog title="props.title" size="'lg'" contentClass="'dl-image-preview-dialog'">
+            <div class="text-center">
+                <img t-att-src="props.url" class="img-fluid" style="max-height: 78vh;" alt="Ảnh xem trước"/>
+            </div>
+            <t t-set-slot="footer">
+                <a t-att-href="props.downloadUrl" class="btn btn-secondary" download="">
+                    <i class="fa fa-download me-1"/>Tải xuống
+                </a>
+                <button class="btn btn-primary" t-on-click="() => this.props.close()">Đóng</button>
+            </t>
+        </Dialog>
+    </t>
+
+    <!-- Bản sao có sửa của web.Many2ManyBinaryField: chỉ đổi t-call sang bản
+         attachment_preview riêng (bên dưới) để gắn thêm click-preview cho ảnh. -->
+    <t t-name="dl_technical.DlM2MBinaryPreviewField" t-inherit="web.Many2ManyBinaryField" t-inherit-mode="primary">
+        <xpath expr="//t[@t-call='Many2ManyBinaryField.attachment_preview']" position="attributes">
+            <attribute name="t-call">dl_technical.DlM2MBinaryPreviewField.attachment_preview</attribute>
+        </xpath>
+    </t>
+
+    <t t-name="dl_technical.DlM2MBinaryPreviewField.attachment_preview" t-inherit="Many2ManyBinaryField.attachment_preview" t-inherit-mode="primary">
+        <xpath expr="//div[hasclass('o_image_box')]/a" position="attributes">
+            <attribute name="t-on-click">(ev) => this.onAttachmentClick(file, ev)</attribute>
+            <attribute name="t-att-class">isImage(file) ? 'o_dl_attachment_preview_link' : ''</attribute>
+        </xpath>
+    </t>
+
+</templates>

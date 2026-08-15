@@ -1,0 +1,130 @@
+UC-ID | Name | Type | Primary Actor | Description | BF-ID | Relationship
+UC-001 | Đăng nhập hệ thống | UI | Tất cả người dùng | Người dùng đăng nhập bằng email và mật khẩu đã được Admin cấp. |  | 
+UC-002 | Truy cập Trang chủ DLM-ERP | UI | Tất cả người dùng | Thanh điều hướng giúp di chuyển giữa các phần của hệ thống sau khi đăng nhập. | BF-07 | 
+UC-003 | Xem ma trận phân quyền của vai trò | UI / Report | Quản trị hệ thống | Admin xem ma trận quyền của từng vai trò trên toàn bộ chức năng hệ thống. | BF-06 | Liên quan UC-005
+UC-004 | Quản lý vai trò | UI | Quản trị hệ thống | Admin tạo, đổi tên hoặc xoá vai trò tự tạo (vai trò cài sẵn theo module không xoá được). | BF-06 | Liên quan UC-092 (FT-92 bảo vệ vai trò hệ thống)
+UC-005 | Cấu hình quyền của vai trò | UI | Quản trị hệ thống | Admin bật/tắt quyền Xem-Thêm-Sửa-Xóa và các thao tác đặc biệt cho từng vai trò, ghi thẳng vào hệ quyền thật. | BF-06 | Liên quan UC-003, UC-004
+UC-006 | Xem danh sách người dùng | UI / Report | Quản trị hệ thống | Admin xem danh sách người dùng, tìm kiếm và lọc theo vai trò/trạng thái. | BF-06 | Tiền đề của UC-007, UC-008
+UC-007 | Tạo tài khoản người dùng | UI | Quản trị hệ thống | Admin tạo tài khoản người dùng mới, hệ thống tự gửi email mời đặt mật khẩu. | BF-06 | 
+UC-008 | Quản lý vai trò & trạng thái tài khoản | UI | Quản trị hệ thống | Admin gán vai trò, đặt lại mật khẩu hoặc khoá/mở lại một tài khoản người dùng. | BF-06 | 
+UC-009 | Chỉ định người duyệt thay (Backup Approver) | UI | Quản trị hệ thống | Admin chỉ định người duyệt dự phòng (Backup Approver) cho một người dùng khi người đó vắng mặt. | BF-04, BF-06 | Liên quan UC-025
+UC-010 | Cấu hình tham số cơ cấu giá & hao hụt mặc định | UI / System-assisted | Kỹ thuật | CEO xem (chỉ đọc), Kỹ thuật và Kế toán nội bộ cấu hình tỷ lệ hao hụt/thu hồi phế liệu mặc định theo nhóm vật tư hoặc từng vật tư. | BF-06 | Tự điền vào UC-044, UC-058 khi lập định mức
+UC-011 | Cấu hình cấp duyệt | UI | CEO | CEO đặt các mốc giá trị báo giá và cấp duyệt tương ứng, mỗi lần đổi lưu thành phiên bản mới. | BF-06 | Liên quan UC-023, UC-024
+UC-012 | Cấu hình SLA & Escalation (chưa triển khai) | UI | CEO | Cấu hình thời hạn xử lý (SLA) và cơ chế nhắc/chuyển việc khi quá hạn — chưa triển khai. |  | 
+UC-013 | Tra cứu nhật ký thay đổi cấu hình (chỉ ghi log VAT/làm tròn; các quy tắc khác dùng chatter, chưa có màn tra cứu tổng hợp) | UI / Report | CEO | Tra cứu ai đã đổi cấu hình nào, vào lúc nào — hiện chỉ ghi log riêng cho VAT/mức làm tròn, các quy tắc khác dùng lịch sử thay đổi (chatter) trên từng bản ghi, chưa có màn tra cứu tổng hợp. | BF-06 | 
+UC-014 | Quản lý Đơn vị tính & Thông tin công ty | UI | CEO | Admin/CEO khai báo và quản lý các đơn vị đo dùng chung (kg, mét, cái...). | BF-06 | 
+UC-015 | Mở màn Cấu hình Báo giá | UI | Kỹ thuật | Mở màn Cấu hình Báo giá — một màn nhiều tab (hao hụt, công đoạn, chi phí chung, lợi nhuận & chiết khấu, phê duyệt, danh mục), mỗi vai trò chỉ thấy nút phù hợp với quyền của mình. | BF-06 | Là cửa vào chung cho UC-010, UC-011, UC-016, UC-020, UC-021, UC-023, UC-024, UC-025, UC-037
+UC-016 | Tạo / sửa quy tắc kỹ thuật (hao hụt, công đoạn, chi phí chung) | UI | Kỹ thuật | Kỹ thuật và Kế toán nội bộ tạo/sửa quy tắc kỹ thuật: hao hụt, công đoạn gia công, chi phí chung. | BF-06 | Dùng khi lập định mức UC-058, UC-065
+UC-017 | Quản lý danh mục dùng chung (công đoạn, mức phức tạp) | UI | Kỹ thuật | Kỹ thuật và Kế toán nội bộ quản lý danh mục dùng chung: công đoạn, mức độ phức tạp. | BF-06 | Dùng bởi UC-066 (khai báo công đoạn trên BOM)
+UC-018 | Áp dụng / Ngừng áp dụng quy tắc kỹ thuật | UI | Kỹ thuật | Kỹ thuật và Kế toán nội bộ áp dụng hoặc ngừng áp dụng một quy tắc kỹ thuật. | BF-06 | 
+UC-019 | Tạo bản sửa đổi quy tắc | UI | Kỹ thuật | Kỹ thuật tạo bản sửa đổi (revision) mới cho một quy tắc kỹ thuật, giữ lại lịch sử các bản trước. | BF-06 | 
+UC-020 | Tạo chính sách lợi nhuận và giá sàn | UI | CEO | CEO tạo chính sách lợi nhuận mục tiêu và giá sàn, phải qua phê duyệt trước khi áp dụng. | BF-06 | Là input cho UC-078 (tính giá báo giá)
+UC-021 | Tạo chính sách chiết khấu theo nhóm khách hàng | UI | Trưởng phòng Kinh doanh | Trưởng phòng Kinh doanh tạo chính sách chiết khấu theo từng nhóm khách hàng (mới/cũ/thân thiết). | BF-06 | Là input cho UC-080
+UC-022 | Gửi duyệt cấu hình thương mại | UI | Trưởng phòng Kinh doanh | CEO/Trưởng phòng Kinh doanh gửi duyệt một thay đổi cấu hình thương mại (lợi nhuận, chiết khấu). | BF-04, BF-06 | Sinh ra UC-026
+UC-023 | Đề xuất ngưỡng phê duyệt báo giá theo giá trị | UI | Trưởng phòng Kinh doanh | Trưởng phòng Kinh doanh đề xuất các mốc ngưỡng giá trị cần phê duyệt báo giá. | BF-06 | Chờ CEO áp dụng ở UC-024
+UC-024 | Áp dụng ngưỡng phê duyệt báo giá theo giá trị | UI | CEO | CEO áp dụng ngưỡng phê duyệt báo giá theo giá trị đã được đề xuất. | BF-06 | Là input cho UC-081 (định tuyến phê duyệt)
+UC-025 | Cấu hình người duyệt theo loại yêu cầu | UI | CEO | CEO chỉ định người duyệt cho từng loại yêu cầu phê duyệt. | BF-04, BF-06 | Liên quan UC-009 (người duyệt dự phòng)
+UC-026 | Xử lý yêu cầu thay đổi cấu hình | UI | CEO | CEO duyệt hoặc từ chối một yêu cầu thay đổi cấu hình thương mại. | BF-04, BF-06 | 
+UC-027 | Xem các yêu cầu phê duyệt | UI / Report | Trưởng phòng Kinh doanh | Xem danh sách các yêu cầu phê duyệt cấu hình đang chờ hoặc đã xử lý. | BF-04 | Tiền đề của UC-026
+UC-028 | Quản lý hồ sơ khách hàng | UI | Nhân viên Kinh doanh | Nhân viên Kinh doanh tạo/sửa/xem hồ sơ khách hàng: liên hệ, địa chỉ, mã số thuế, loại khách hàng. |  | Sinh mã khách hàng tự động (KH-0001)
+UC-029 | Gộp hồ sơ Khách hàng và Nhà cung cấp | UI | Kế toán nội bộ / Thủ kho | Khi một đối tác vừa mua vừa bán, liên kết hồ sơ khách hàng và nhà cung cấp thành một bản ghi dùng chung — chỉ thực hiện được lúc tạo mới. |  | 
+UC-030 | Vô hiệu hoá, Kích hoạt lại khách hàng | UI | Trưởng phòng Kinh doanh | Vô hiệu hoá một khách hàng để ngừng hợp tác (giữ nguyên dữ liệu cũ) và kích hoạt lại khi cần. |  | 
+UC-031 | Tra cứu, lọc & nhóm danh sách khách hàng | UI / Report | Nhân viên Kinh doanh | Tra cứu, lọc và nhóm danh sách khách hàng theo loại, nhóm, trạng thái, nhãn. |  | 
+UC-032 | Quản lý nhãn đối tác | UI | Trưởng phòng Kinh doanh | Trưởng phòng Kinh doanh gắn nhãn tự do (VD: Khách quen, VIP) cho khách hàng/NCC để lọc nhanh. |  | 
+UC-033 | Quản lý hồ sơ nhà cung cấp | UI | Mua hàng | Quản lý hồ sơ nhà cung cấp/thầu phụ: thông tin liên hệ, địa chỉ, mã số thuế. |  | 
+UC-034 | Xem danh sách NCC ở chế độ chỉ đọc | UI / Report | Trưởng phòng Kinh doanh | Trưởng phòng Kinh doanh/Kế toán nội bộ xem danh sách nhà cung cấp ở chế độ chỉ đọc. |  | 
+UC-035 | Xem thống kê & cảnh báo trên hồ sơ khách hàng | UI / Report | Nhân viên Kinh doanh | Xem số báo giá, tỷ lệ thắng, số báo giá chưa đóng và các cảnh báo (KH ngừng hợp tác còn báo giá mở, cảnh báo gộp đơn né duyệt) ngay trên hồ sơ khách hàng. |  | Logic đặt ở module Bán hàng
+UC-036 | Phân loại nhóm khách hàng tự động | System | Hệ thống | Hệ thống tự xếp khách hàng vào nhóm Khách mới/Khách cũ/Khách thân thiết dựa trên lịch sử báo giá đã chốt, tính lại ngay khi báo giá đổi trạng thái. |  | Dùng ngưỡng cấu hình ở UC-037
+UC-037 | Cấu hình ngưỡng khách thân thiết | UI | CEO | Admin/CEO cấu hình mức doanh số để khách hàng tự được xếp vào nhóm Thân thiết. | BF-06 | Input cho UC-036
+UC-038 | Quản lý nhóm sản phẩm | UI | Kỹ thuật | Kỹ thuật và Trưởng phòng Kinh doanh quản lý các nhóm dùng để phân loại sản phẩm và vật tư. | BF-02 | 
+UC-039 | Tạo sản phẩm gia công | UI | Kỹ thuật | Kỹ thuật tạo sản phẩm gia công (sản phẩm đặt làm theo yêu cầu khách). | BF-02 | 
+UC-040 | Tạo sản phẩm thương mại | UI | Nhân viên Kinh doanh | Nhân viên Kinh doanh tạo sản phẩm thương mại (hàng mua sẵn để bán lại). | BF-02 | Cần đủ giá mua/bán mới kích hoạt được — UC-045
+UC-041 | Nhập giá bán sản phẩm thương mại | UI | Nhân viên Kinh doanh | Nhân viên Kinh doanh đặt giá bán cho sản phẩm thương mại và xem mức lợi nhuận so với giá vốn. | BF-02 | 
+UC-042 | Tạo vật tư | UI | Kỹ thuật | Kỹ thuật tạo vật tư dùng để lập định mức. | BF-02 | 
+UC-043 | Tạo bán thành phẩm | UI | Kỹ thuật | Kỹ thuật tạo bán thành phẩm (sản phẩm trung gian dùng trong định mức của sản phẩm khác). | BF-02 | 
+UC-044 | Thiết lập hao hụt cơ sở và phế liệu thu hồi | UI | Kỹ thuật | Kỹ thuật khai báo tỷ lệ hao hụt cơ sở khi gia công và phần phế liệu thu hồi được của từng vật tư. | BF-02, BF-06 | Dùng bởi UC-058, UC-092C
+UC-045 | Chuyển vòng đời sản phẩm | UI | Kỹ thuật | Chuyển vòng đời sản phẩm giữa 3 trạng thái Nháp/Đã duyệt/Ngừng sử dụng; sản phẩm thương mại chỉ kích hoạt được khi đủ giá mua/bán hợp lệ. | BF-02 | Tự động hoá một phần ở UC-046, UC-047
+UC-045A | Chặn kích hoạt tay sản phẩm tạm từ RFQ | System | Hệ thống | Chặn thao tác kích hoạt tay đối với sản phẩm/BOM còn ở trạng thái tạm sinh ra trong lúc xử lý RFQ (`is_rfq_provisional`), tránh dùng nhầm dữ liệu chưa chính thức hoá. | BF-02 | Bảo vệ cho UC-068, UC-069
+UC-046 | Chuẩn hoá & nâng cấp sản phẩm khi đơn chốt | System | Hệ thống | Khi đơn bán hàng được xác nhận, hệ thống tự chuẩn hoá tên/mã và nâng cấp sản phẩm gia công liên quan từ Nháp lên Đã duyệt. | BF-02 | Kích hoạt bởi UC-089
+UC-047 | Tự động ngừng sản phẩm nháp chưa sử dụng | System | Hệ thống | Mỗi ngày hệ thống tự động chuyển sản phẩm/bán thành phẩm Nháp không dùng trong đơn hàng nào sau một số ngày cấu hình được sang Ngừng sử dụng. | BF-02 | Xem JOB-03
+UC-048 | Rà soát bản sản phẩm nháp chưa sử dụng | UI | Kỹ thuật | Kỹ thuật rà soát danh sách sản phẩm nháp chưa dùng để tự tay ngừng sử dụng sớm hơn lịch tự động. | BF-02 | Liên quan UC-047
+UC-049 | Tạo bảng giá nhà cung cấp cho vật tư | UI | Kế toán nội bộ / Thủ kho | Kế toán nội bộ / Mua hàng tạo bảng giá của một nhà cung cấp cho một vật tư. |  | 
+UC-050 | Quản lý vòng đời bảng giá nhà cung cấp | UI | Kế toán nội bộ / Thủ kho | Quản lý vòng đời bảng giá nhà cung cấp: Nháp → Đã duyệt → Đang áp dụng. |  | Kích hoạt UC-113 khi áp dụng
+UC-051 | Cấu hình hệ thống đo lường | UI | Quản trị hệ thống | Admin cấu hình đơn vị đo dùng chung; cách tính định mức theo quy cách vật tư (cắt chiều dài/cắt tấm/đếm chiếc/khối lượng rời) khai trực tiếp trên từng vật tư. | BF-02 | Input cho UC-058
+UC-052 | Tra cứu danh mục sản phẩm, vật tư | UI / Report | Trưởng phòng Kinh doanh | CEO/Trưởng phòng Kinh doanh tra cứu danh mục sản phẩm, vật tư. | BF-02 | 
+UC-053 | Tạo bản vẽ kỹ thuật | UI | Kỹ thuật | Kỹ thuật tạo bản vẽ kỹ thuật gắn với một sản phẩm gia công/bán thành phẩm. | BF-02 | 
+UC-054 | Chuyển trạng thái bản vẽ kỹ thuật | UI | Kỹ thuật | Kỹ thuật chuyển trạng thái bản vẽ: Nháp → Đã xác nhận → Lưu trữ; xác nhận bản vẽ mới sẽ nhắc các BOM liên quan rà lại định mức. | BF-02 | 
+UC-055 | Tải lên và xem bản vẽ từ màn BOM | UI | Kỹ thuật | Tải lên và xem bản vẽ kỹ thuật ngay trên màn BOM, không cần mở màn Bản vẽ riêng. | BF-02 | 
+UC-056 | Tạo BOM cho sản phẩm | UI | Kỹ thuật | Kỹ thuật tạo định mức (BOM) cho một sản phẩm hoặc bán thành phẩm. | BF-02 | 
+UC-057 | Thêm dòng vật tư vào BOM | UI / System-assisted | Kỹ thuật | Kỹ thuật thêm dòng vật tư vào BOM, hệ thống tự tính số lượng cần dùng theo kích thước với vật tư dạng cắt chiều dài/cắt tấm. | BF-02 | Dùng công thức ở UC-058
+UC-057A | Thêm bán thành phẩm vào định mức | UI | Kỹ thuật | Kỹ thuật thêm một bán thành phẩm vào định mức; hệ thống tự cộng gộp vật tư từ định mức của bán thành phẩm đó (BOM nhiều cấp). | BF-02 | 
+UC-058 | Tính định mức vật tư từ kích thước hình học | System | Hệ thống | Hệ thống tự tính số lượng vật tư cần dùng từ kích thước nhập vào dòng BOM, theo 2 kiểu: cắt theo chiều dài (1D) hoặc cắt tấm (2D); chưa hỗ trợ hình dạng phức tạp hơn. | BF-02 | Dùng bởi UC-057
+UC-059 | Ghi đè số lượng định mức | UI | Kỹ thuật | Kỹ thuật ghi đè tay số lượng định mức đã tự tính, kèm lý do. | BF-02 | 
+UC-060 | Chuyển trạng thái BOM | UI | Kỹ thuật | Kỹ thuật chuyển trạng thái BOM: Nháp → Đã xác nhận → Đã khoá (và Lưu trữ). | BF-02 | 
+UC-060A | Tự động chuyển phiên bản hiện hành | System | Hệ thống | Khi một phiên bản BOM chuẩn mới được xác nhận, hệ thống tự đánh dấu nó là phiên bản hiện hành, bỏ cờ phiên bản cũ (chỉ áp dụng cho BOM chuẩn, không áp dụng cho BOM sinh riêng theo báo giá). | BF-02 | 
+UC-061 | Tạo phiên bản BOM mới | UI | Kỹ thuật | Kỹ thuật tạo phiên bản BOM mới từ một BOM chuẩn đã có. | BF-02 | Kích hoạt UC-060A
+UC-062 | Tạo BOM từ BOM mẫu | UI | Kỹ thuật | Kỹ thuật tạo nhanh một BOM mới từ BOM mẫu có sẵn (sao chép dòng tĩnh, hoặc sinh theo tham số nếu là mẫu có tham số). | BF-02 | Liên quan UC-063, UC-063A, UC-069A
+UC-063 | Quản lý BOM mẫu | UI | Kỹ thuật | Kỹ thuật quản lý các BOM mẫu dùng để tạo nhanh định mức mới cho một nhóm sản phẩm. | BF-02 | 
+UC-063A | Khai tham số & ánh xạ kích thước cho BOM mẫu | UI | Kỹ thuật | Kỹ thuật khai báo tham số (mã, khoảng giá trị hợp lệ) và ánh xạ tuyến tính từ tham số vào kích thước từng dòng của BOM mẫu. | BF-02 | Dùng bởi UC-069A
+UC-064 | Tạo yêu cầu báo giá (RFQ) | UI | Nhân viên Kinh doanh | Nhân viên Kinh doanh tạo yêu cầu báo giá (RFQ) mới từ nhu cầu khách hàng. |  | Mở đầu luồng RFQ → UC-078
+UC-065 | Hệ thống tự động ghi nhận tiếp nhận RFQ | System | Hệ thống | Hệ thống tự động đánh dấu một RFQ mới tạo ở trạng thái đã tiếp nhận, sẵn sàng cho Kỹ thuật xử lý. |  | 
+UC-066 | Mở màn xử lý dòng RFQ | UI | Kỹ thuật | Kỹ thuật mở workspace xử lý từng dòng RFQ: xác định sản phẩm, lập định mức, xác nhận kết quả. |  | Cửa vào chung cho UC-067 đến UC-072
+UC-067 | Chọn sản phẩm có sẵn cho dòng RFQ | UI / System-assisted | Kỹ thuật | Kỹ thuật chọn một sản phẩm có sẵn cho dòng RFQ; hệ thống tự gợi ý sản phẩm đã từng gia công tương tự dựa trên tên, nhóm, khách hàng, kích thước. |  | 
+UC-068 | Tạo sản phẩm mới từ màn xử lý RFQ | UI | Kỹ thuật | Kỹ thuật tạo sản phẩm mới ngay trong màn xử lý RFQ khi chưa có sản phẩm phù hợp; hệ thống cảnh báo nếu trùng/gần giống tên. | BF-02 | 
+UC-069 | Tạo BOM mới từ màn xử lý RFQ | UI / System-assisted | Kỹ thuật | Kỹ thuật tạo BOM mới ngay trong màn xử lý RFQ. | BF-02 | 
+UC-069A | Sinh định mức từ BOM mẫu tham số | UI / System-assisted | Kỹ thuật | Kỹ thuật sinh định mức từ BOM mẫu tham số bằng cách nhập giá trị tham số (kích thước); tái sử dụng BOM cũ nếu đã từng sinh đúng bộ tham số này. | BF-02 | 
+UC-070 | Sửa BOM đã chọn qua phiên bản mới | UI | Kỹ thuật | Kỹ thuật sửa BOM đã chọn cho dòng RFQ bằng cách tạo một bản BOM mới (không sửa trực tiếp BOM chuẩn đang dùng). | BF-02 | 
+UC-071 | Hoàn tất dòng RFQ (xác nhận kết quả xử lý kỹ thuật) | UI | Kỹ thuật | Kỹ thuật xác nhận hoàn tất kết quả xử lý kỹ thuật cho một dòng RFQ. |  | Có thể chuyển ngay sang dòng kế tiếp
+UC-072 | Đánh dấu dòng RFQ không khả thi | UI | Kỹ thuật | Kỹ thuật đánh dấu một dòng RFQ không thể gia công/báo giá, kèm lý do. |  | 
+UC-073 | Trả lại RFQ để bổ sung | UI | Kỹ thuật | Kỹ thuật trả lại RFQ (một hoặc nhiều dòng) cho Sales để bổ sung thông tin còn thiếu. |  | Đối lập với UC-074
+UC-074 | Gửi lại RFQ sau bổ sung | UI | Nhân viên Kinh doanh | Nhân viên Kinh doanh bổ sung thông tin còn thiếu và gửi lại RFQ cho Kỹ thuật xử lý tiếp. |  | 
+UC-075 | Xem lịch sử xử lý RFQ | UI / Report | Nhân viên Kinh doanh | Xem lại toàn bộ diễn biến xử lý của một yêu cầu báo giá. |  | 
+UC-076 | Hủy RFQ | UI | Nhân viên Kinh doanh | Nhân viên Kinh doanh hủy một RFQ chưa lên báo giá chính thức. |  | 
+UC-077 | Mở khu vực CRM & Báo giá (menu Báo giá / Phê duyệt / Đơn bán hàng) | UI | Nhân viên Kinh doanh | Truy cập các menu Báo giá / Phê duyệt / Đơn bán hàng (không có màn hub hợp nhất). |  | 
+UC-078 | Tạo báo giá từ RFQ | UI / System-assisted | Nhân viên Kinh doanh | Nhân viên Kinh doanh tạo báo giá từ một RFQ đã xử lý xong; hệ thống tự tính giá từng dòng (vật tư + công đoạn + điều chỉnh + markup). | BF-03 | 
+UC-079 | Điều chỉnh dòng báo giá | UI / System-assisted | Nhân viên Kinh doanh | Nhân viên Kinh doanh điều chỉnh số lượng/đơn giá dòng báo giá ở trạng thái Nháp; hệ thống tự đánh giá lại nhu cầu phê duyệt. | BF-03, BF-04 | 
+UC-080 | Điều chỉnh chiết khấu và VAT của báo giá | UI / System-assisted | Nhân viên Kinh doanh | Nhân viên Kinh doanh điều chỉnh chiết khấu và VAT của báo giá; hệ thống gợi ý khoảng cho phép theo nhóm khách hàng. | BF-03 | 
+UC-081 | Tái đánh giá và định tuyến yêu cầu phê duyệt báo giá | System | Hệ thống | Khi dữ liệu giá của báo giá thay đổi, hệ thống tự huỷ yêu cầu phê duyệt cũ (nếu còn) và đánh giá lại theo ma trận giá trị, mức chiết khấu, giá sàn để tạo yêu cầu phê duyệt mới nếu cần. | BF-04 | 
+UC-082 | Xem phân tích giá thành & cấu phần giá | UI / Report | Kế toán nội bộ / Thủ kho | Xem phân tích giá thành và cấu phần giá của báo giá: lãi gộp, cơ cấu vật tư/công đoạn/chi phí chung, markup theo giá niêm yết và giá sàn. | BF-03 | 
+UC-083 | Xử lý hòm Phê duyệt báo giá | UI | CEO | CEO/Trưởng phòng Kinh doanh xử lý hòm Phê duyệt báo giá: danh sách yêu cầu chờ/đã xử lý. | BF-04 | 
+UC-084 | Ra quyết định trên yêu cầu duyệt báo giá | UI | CEO | CEO/Trưởng phòng Kinh doanh duyệt hoặc từ chối (bắt buộc nhập lý do) một yêu cầu phê duyệt báo giá. | BF-04 | 
+UC-085 | Duyệt nội bộ báo giá | System | Hệ thống | Báo giá tự động chuyển sang Đã duyệt nội bộ ngay khi yêu cầu phê duyệt liên quan được duyệt (không phải thao tác riêng). | BF-04 | Gộp vào UC-084
+UC-086 | Gửi báo giá cho khách hàng | UI | Nhân viên Kinh doanh | Nhân viên Kinh doanh gửi báo giá cho khách hàng; hệ thống tự đặt hạn hiệu lực mặc định, đính kèm PDF, cảnh báo thiếu MST/địa chỉ. |  | 
+UC-087 | Cập nhật kết quả báo giá | UI | Nhân viên Kinh doanh | Nhân viên Kinh doanh cập nhật kết quả phản hồi của khách: đồng ý, rút lại đồng ý, hoặc từ chối (bắt buộc lý do). |  | 
+UC-087A | Khách hàng yêu cầu điều chỉnh báo giá | UI | Nhân viên Kinh doanh | Ghi nhận yêu cầu điều chỉnh của khách hàng (giá/chiết khấu, vật liệu-kỹ thuật, hoặc giao hàng-điều khoản) và định hướng bước tiếp theo tương ứng. |  | Có thể chuyển lại cho Kỹ thuật (UC-073)
+UC-088 | Tạo đơn bán hàng từ báo giá | UI | Nhân viên Kinh doanh | Nhân viên Kinh doanh tạo đơn bán hàng từ báo giá đã được khách đồng ý; snapshot dòng hàng, giá, định mức. |  | 
+UC-089 | Quản lý vòng đời đơn bán hàng | UI | Nhân viên Kinh doanh | Quản lý vòng đời đơn bán hàng: Nháp → Xác nhận → Hoàn tất/Hủy; xác nhận đơn sẽ tự nâng cấp sản phẩm và khoá BOM liên quan. |  | Kích hoạt UC-046, UC-092A
+UC-090 | Trang chủ điều hướng & badge phê duyệt | UI | Tất cả người dùng | Sau khi đăng nhập, hệ thống đưa người dùng vào thẳng màn phù hợp với vai trò; hiển thị badge số việc chờ phê duyệt. | BF-07 | 
+UC-090A | Hàng đợi phiếu kho (landing riêng cho Thủ kho) | UI | Kế toán nội bộ / Thủ kho | Thủ kho đăng nhập vào thẳng danh sách các phiếu kho đang chờ xử lý (nhận/kiểm/chuyển/giao) thay vì màn Tồn kho. | BF-07 | Thay thế UC-090 cho vai trò Thủ kho
+UC-091 | Ghi nhận nhận hàng NCC (bước 1/2) | UI / System-assisted | Kế toán nội bộ / Thủ kho | Thủ kho ghi nhận hàng về từ nhà cung cấp vào khu vực chờ kiểm; hệ thống tự cấp số lô nếu chưa nhập, tự sinh phiếu Kiểm & cất hàng kế tiếp. |  | 
+UC-091A | Kiểm tra chất lượng hàng nhận & cất hàng (QC) | UI | Kế toán nội bộ / Thủ kho | Thủ kho kiểm tra chất lượng hàng nhận: nhập số lượng đạt/loại, lý do loại; hệ thống chặn xác nhận nếu số liệu không hợp lệ hoặc thiếu lô. |  | Bước 2/2 của UC-091
+UC-091B | Xử lý phiếu trả hàng NCC (khi QC phát hiện hàng lỗi) | UI | Mua hàng | Mua hàng xử lý phiếu trả nhà cung cấp tự sinh khi Thủ kho phát hiện hàng lỗi ở bước kiểm. |  | Sinh ra từ UC-091A
+UC-092 | Chuyển kho nội bộ | UI | Kế toán nội bộ / Thủ kho | Thủ kho ghi nhận chuyển vật tư/hàng hoá giữa các khu vực trong kho; có 2 nút tạo nhanh cho 2 tuyến thường dùng. |  | 
+UC-092A | Tạo và xử lý phiếu giao hàng khách | UI | Kế toán nội bộ / Thủ kho | Tạo phiếu giao hàng trực tiếp từ đơn bán hàng đã xác nhận; Thủ kho xử lý phiếu, các vai trò khác chỉ bấm nút tạo. |  | Sau UC-089
+UC-092B | Bán phế liệu thu hồi | UI | Kế toán nội bộ / Thủ kho | Thủ kho cân, ghi nhận và bán phế liệu thu hồi được từ khu vực sản xuất theo giá bán đã niêm yết. |  | 
+UC-092C | Đối chiếu dự toán và thực tế thu hồi phế liệu | UI | Kế toán nội bộ / Thủ kho | So sánh khối lượng phế liệu dự toán (tính từ định mức các đơn đã chốt trong kỳ) với khối lượng thực tế đã cân được, theo từng tháng. |  | Dùng dữ liệu từ UC-044, UC-092B
+UC-093 | Xem tồn kho hiện tại (cảnh báo tồn tối thiểu: xem JOB-04, chưa triển khai) | UI / Report | Kế toán nội bộ / Thủ kho | Xem danh sách tồn kho hiện tại theo sản phẩm/lô/vị trí, không hiển thị giá vốn. |  | Cảnh báo tồn tối thiểu: xem JOB-04, chưa triển khai
+UC-094 | Kiểm kê và điều chỉnh tồn kho | UI | Kế toán nội bộ / Thủ kho | Thủ kho đếm thực tế và điều chỉnh số lượng tồn kho cho khớp; hệ thống tự sinh chứng từ điều chỉnh. |  | 
+UC-095 | Kiểm tra khả dụng vật tư theo BOM (Planned — backlog giai đoạn sau, ATP) | Planned | — | Kiểm tra vật tư có đủ tồn kho để đáp ứng một BOM ngay khi lập báo giá — chưa triển khai, thuộc backlog giai đoạn sau. |  | 
+UC-096 | Nhập kho thành phẩm theo BOM (Planned — backlog Lệnh sản xuất/B2, đã seed sẵn loại phiếu Xuất vật tư SX/Nhập thành phẩm, chưa có màn hình) | Planned | — | Nhập kho thành phẩm theo BOM khi hoàn tất sản xuất — chưa triển khai, đã seed sẵn loại phiếu nhưng chưa có màn hình/logic. |  | Thuộc backlog Lệnh sản xuất
+UC-097 | Tính nhu cầu vật tư cho phiếu nhập kho theo BOM (Planned — gắn với UC-096) | Planned | — | Tự tính nhu cầu vật tư cho phiếu nhập kho theo BOM — chưa triển khai, gắn với UC-096. |  | 
+UC-099 | Đăng xuất hệ thống | UI | Tất cả người dùng | Người dùng đăng xuất khỏi hệ thống. |  | 
+UC-100 | Quên mật khẩu và đặt lại mật khẩu | UI | Tất cả người dùng | Người dùng quên mật khẩu nhận email kèm liên kết để tự đặt lại. |  | 
+UC-101 | Đổi mật khẩu | UI | Tất cả người dùng | Người dùng tự đổi mật khẩu của mình sau khi đăng nhập. |  | 
+UC-102 | Cảnh báo cấu hình tham số giá bất hợp lý (chưa triển khai đúng mô tả — chỉ cảnh báo thiếu cấu hình gây lỗi báo giá, xem FT-17) | System | Hệ thống | Hệ thống cảnh báo khi cấu hình tham số giá bị thiếu gây lỗi báo giá (chưa cảnh báo đúng nghĩa 'giá trị bất hợp lý' như tên gọi). | BF-06 | Xem FT-17
+UC-103 | Kiểm tra trùng mã số thuế khi tạo hoặc sửa khách hàng | System | Hệ thống | Khi tạo hoặc sửa khách hàng, hệ thống rà trùng mã số thuế với các khách hàng/NCC khác, cho phép đánh dấu ngoại lệ khi là chi nhánh dùng chung MST. |  | 
+UC-104 | Quản lý người liên hệ của đối tác | UI | Quản trị hệ thống | Quản lý người liên hệ (họ tên, chức vụ, điện thoại, email) gắn với một hồ sơ khách hàng — hiện chưa có ở hồ sơ nhà cung cấp. |  | 
+UC-105 | Theo dõi trạng thái và tiến độ xử lý RFQ | UI / Report | Kỹ thuật | Theo dõi trạng thái và % tiến độ xử lý của từng yêu cầu báo giá. |  | 
+UC-106 | Cảnh báo quá hạn xử lý RFQ | System | Hệ thống | Hệ thống tự tính số ngày chờ xử lý và cảnh báo khi RFQ quá hạn xử lý kỹ thuật. |  | 
+UC-107 | Nhập điều khoản thương mại của báo giá | UI / System-assisted | Nhân viên Kinh doanh | Nhập điều khoản thương mại (thanh toán, giao hàng...) của báo giá. |  | 
+UC-108 | Cảnh báo thiếu thông tin khách hàng khi gửi báo giá | System | Hệ thống | Hệ thống cảnh báo khi khách hàng thiếu thông tin bắt buộc (MST, địa chỉ) ngay lúc gửi báo giá. |  | 
+UC-109 | Quản lý hạn hiệu lực báo giá | UI | Nhân viên Kinh doanh | Đặt/gia hạn hạn hiệu lực báo giá; tự động chuyển sang Hết hiệu lực khi quá hạn mà khách chưa chốt (chạy hằng ngày). |  | Xem JOB-01
+UC-110 | Giám sát và nhắc việc quá hạn phê duyệt báo giá | UI / Report | CEO | Giám sát và nhắc việc (activity) cho người duyệt hợp lệ khi phát sinh yêu cầu phê duyệt báo giá quá hạn. | BF-04 | 
+UC-111 | Cảnh báo trùng tên khi tạo sản phẩm | System | Hệ thống | Khi tên sản phẩm mới trùng hoặc gần giống một sản phẩm đã có, hệ thống báo cho người dùng biết — hiện chỉ áp dụng khi Kỹ thuật tạo SP gia công/BTP qua RFQ. | BF-02 | 
+UC-112 | Cảnh báo và theo dõi vật tư chưa có giá nhà cung cấp | UI | Mua hàng | Khi định mức/vật tư chưa có giá nhà cung cấp, hệ thống cảnh báo và giao việc nhắc Mua hàng cập nhật. | BF-02, BF-08 | 
+UC-113 | Tự động cập nhật giá vốn sản phẩm theo bảng giá nhà cung cấp | System | Hệ thống | Khi một bảng giá nhà cung cấp được áp dụng, hệ thống tự cập nhật lại giá vốn tham chiếu của sản phẩm/vật tư liên quan. |  | Kích hoạt bởi UC-050
+UC-114 | Phát lệnh sản xuất | Planned | — | Phát lệnh sản xuất từ đơn bán hàng đã chốt theo định mức — chưa triển khai (module Sản xuất chưa có code). |  | Planned
+UC-115 | Theo dõi trạng thái lệnh sản xuất | Planned | — | Theo dõi trạng thái lệnh sản xuất — chưa triển khai. |  | Planned
+UC-116 | Lập kế hoạch sản xuất theo hạn giao hàng | Planned | — | Lập kế hoạch sản xuất theo hạn giao hàng — chưa triển khai. |  | Planned
+UC-117 | Tổng quan sản xuất cho quản lý | Planned | — | Tổng quan sản xuất cho quản lý — chưa triển khai. |  | Planned
+UC-118 | Bảng tổng quan báo cáo quản trị | Planned | — | Bảng tổng quan báo cáo quản trị: báo giá, đơn hàng, sản xuất, tồn kho cho CEO — chưa triển khai (module Báo cáo & Dashboard chưa có code). |  | Planned

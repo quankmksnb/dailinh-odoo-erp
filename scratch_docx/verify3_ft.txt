@@ -1,0 +1,50 @@
+--- BPM FT ---
+FT-ID | Feature | Priority | Description | UC-ID | BF-ID | SOURCE
+FT-19 | Quản lý hồ sơ khách hàng | Must | Tạo/sửa/xem hồ sơ khách hàng: thông tin liên hệ, địa chỉ, loại KH, MST, nhãn; hệ thống tự sinh mã khách hàng dạng KH-0001 | UC-028 |  | Tự phát triển (trên nền res.partner của Odoo)
+FT-20 | Gộp hồ sơ Khách hàng và Nhà cung cấp | Should | Khi tạo khách hàng mới trùng với một nhà cung cấp đã có (hoặc ngược lại), cho phép liên kết để gộp thành một hồ sơ dùng chung (vai trò "Khách hàng & NCC"). Chỉ thực hiện được lúc tạo mới, chưa hỗ trợ gộp 2 hồ sơ đã tồn tại sẵn cả hai | UC-029 |  | Tự phát triển
+FT-21 | Vô hiệu hoá / Kích hoạt lại khách hàng | Should | Ngừng hợp tác một khách hàng (giữ nguyên dữ liệu, ẩn khỏi lựa chọn khi tạo báo giá/RFQ mới) và kích hoạt lại khi cần | UC-030 |  | Tự phát triển
+FT-22 | Tra cứu, lọc & nhóm danh sách khách hàng | Must | Tìm kiếm/lọc theo loại khách hàng, nhóm, trạng thái, nhãn; xem dạng danh sách hoặc kanban | UC-031 |  | Tự phát triển
+FT-23 | Kiểm tra trùng mã số thuế | Must | Khi tạo hoặc sửa khách hàng/NCC, hệ thống rà trùng MST; cho phép đánh dấu ngoại lệ khi là chi nhánh dùng chung MST công ty mẹ | UC-103 |  | Tự phát triển
+FT-24 | Quản lý người liên hệ của khách hàng | Should | Thêm/sửa/xoá danh sách người liên hệ (họ tên, chức vụ, điện thoại, email) gắn với một hồ sơ khách hàng. Hiện chỉ có ở hồ sơ Khách hàng, chưa có ở hồ sơ Nhà cung cấp | UC-104 |  | Tự phát triển
+FT-25 | Quản lý hồ sơ nhà cung cấp | Must | Tạo/sửa/xem hồ sơ nhà cung cấp/thầu phụ; xem danh sách NCC ở chế độ chỉ đọc cho vai trò không sở hữu (Trưởng KD, Kế toán) | UC-033, UC-034 |  | Tự phát triển
+FT-26 | Tạo nhanh đối tác từ màn nghiệp vụ | Should | Tạo nhanh khách hàng/nhà cung cấp ngay trong màn tạo RFQ hoặc tạo bảng giá NCC, dùng chung form chi tiết đối tác | UC-064 |  | Tự phát triển
+FT-93 | Phân loại nhóm khách hàng tự động | Should | Hệ thống tự xếp khách hàng vào nhóm Khách mới / Khách cũ / Khách thân thiết dựa trên lịch sử báo giá đã chốt và ngưỡng doanh số cấu hình được, cập nhật ngay khi báo giá đổi trạng thái (không qua tác vụ định kỳ). Logic đặt ở module Bán hàng, hiển thị trên hồ sơ khách hàng | UC-036, UC-037 |  | Tự phát triển
+FT-94 | Thống kê & cảnh báo trên hồ sơ khách hàng | Should | Hiển thị số báo giá, tỷ lệ thắng, số báo giá chưa đóng; cảnh báo khách hàng ngừng hợp tác còn báo giá mở, cảnh báo gộp đơn né duyệt. Logic đặt ở module Bán hàng, hiển thị trên hồ sơ khách hàng | UC-035 |  | Tự phát triển
+FT-95 | Quản lý nhãn đối tác | Could | Gắn nhãn tự do (VD: Khách quen, VIP) cho khách hàng/NCC để lọc/nhóm nhanh; tạo nhãn mới ngay trên form. Chưa có màn quản lý danh sách nhãn riêng | UC-032 |  | Tự phát triển
+--- SALE FT ---
+FT-ID | Feature | Priority | Description | UC-ID | BF-ID | SOURCE
+FT-27 | Tạo yêu cầu báo giá (RFQ) | Must | Sales tạo yêu cầu báo giá mới từ nhu cầu khách hàng, tách dòng theo loại gia công/thương mại | UC-064 |  | Tự phát triển (mô hình RFQ thuộc dl_technical)
+FT-28 | Mở màn xử lý dòng RFQ (workspace kỹ thuật) | Must | Kỹ thuật xác định sản phẩm cho từng dòng (có gợi ý sản phẩm đã từng gia công tương tự), tạo BOM mới hoặc sinh từ BOM mẫu tham số | UC-066, UC-067, UC-068, UC-069, UC-069A |  | Tự phát triển
+FT-29 | Chọn/gán sản phẩm cho dòng RFQ | Must | Gắn một mặt hàng khách cần với sản phẩm và định mức có sẵn, hoặc tạo mới ngay trong màn xử lý; cho phép sửa BOM đã chọn bằng cách tạo bản ghi định mức mới | UC-067, UC-069, UC-070 |  | Tự phát triển
+FT-30 | Trả lại RFQ để bổ sung | Should | Kỹ thuật chọn một hoặc nhiều dòng, nhập lý do, trả cả yêu cầu về cho Sales bổ sung thông tin | UC-073 |  | Tự phát triển
+FT-31 | Đánh dấu dòng RFQ không khả thi | Should | Kỹ thuật kết luận một dòng không thể gia công/báo giá, ghi lý do, thông báo cho Sales | UC-072 |  | Tự phát triển
+FT-32 | Hoàn tất dòng RFQ | Must | Xác nhận kết quả xử lý kỹ thuật cho một dòng (tự xác nhận BOM nháp liên quan), có thể chuyển ngay sang dòng kế tiếp | UC-071 |  | Tự phát triển
+FT-33 | Theo dõi trạng thái & tiến độ xử lý RFQ | Should | Danh sách yêu cầu báo giá, lọc theo trạng thái/tiến độ; hiển thị % hoàn tất, số ngày chờ xử lý, cảnh báo quá hạn | UC-105, UC-106 |  | Tự phát triển
+FT-34 | Gửi lại RFQ sau bổ sung | Should | Sales bổ sung thông tin còn thiếu và gửi lại cho Kỹ thuật xử lý tiếp các dòng đã được yêu cầu bổ sung | UC-074 |  | Tự phát triển
+FT-35 | Xem lịch sử xử lý RFQ | Could | Xem lại toàn bộ diễn biến xử lý của một yêu cầu báo giá (dựng từ nhật ký thay đổi) | UC-075 |  | Tự phát triển
+FT-36 | Hủy RFQ | Should | Sales hủy một yêu cầu báo giá chưa lên báo giá chính thức | UC-076 |  | Tự phát triển
+FT-37 | Tra cứu, lọc danh sách báo giá | Must | Danh sách báo giá, tìm kiếm/lọc theo trạng thái, khách hàng | — |  | Tự phát triển
+FT-38 | Tạo báo giá từ RFQ | Must | Tự tính giá bán từng dòng (vật tư + công đoạn + điều chỉnh + markup), snapshot cấu phần giá, tự loại dòng không khả thi | UC-078 |  | Tự phát triển
+FT-39 | Điều chỉnh dòng báo giá | Must | Sửa số lượng/đơn giá dòng ở trạng thái Nháp, tự đánh giá lại nhu cầu phê duyệt khi thay đổi | UC-079 |  | Tự phát triển
+FT-40 | Điều chỉnh chiết khấu và VAT | Must | Nhập chiết khấu/VAT ở header báo giá, gợi ý khoảng cho phép theo nhóm khách hàng | UC-080 |  | Tự phát triển
+FT-41 | Tái đánh giá & định tuyến yêu cầu phê duyệt báo giá | Must | Khi dữ liệu giá thay đổi, hệ thống tự huỷ yêu cầu phê duyệt cũ (nếu còn) và đánh giá lại theo ma trận giá trị, mức chiết khấu và giá sàn để tạo yêu cầu mới nếu cần | UC-081 |  | Tự phát triển
+FT-42 | Xem phân tích giá thành & cấu phần giá | Should | Tab riêng: lãi gộp, cơ cấu vật tư/công đoạn/chi phí chung, markup theo giá niêm yết và theo giá sàn | UC-082 |  | Tự phát triển
+FT-43 | Xử lý hòm Phê duyệt báo giá | Must | Danh sách yêu cầu phê duyệt chờ/đã xử lý, thời gian chờ, mức độ rủi ro (vượt trần chiết khấu/dưới giá sàn) | UC-083 |  | Tự phát triển
+FT-44 | Ra quyết định trên yêu cầu duyệt báo giá | Must | Duyệt hoặc từ chối (bắt buộc nhập lý do) một yêu cầu phê duyệt báo giá | UC-084 |  | Tự phát triển
+FT-45 | Xuất và gửi báo giá | Should | Chọn định dạng Word/PDF, tải về hoặc mở sẵn trình soạn thư đính kèm file để gửi khách hàng | UC-086, UC-087 |  | Tự phát triển (dùng python-docx/reportlab, không qua wkhtmltopdf)
+FT-46 | Gửi báo giá cho khách hàng | Must | Chuyển báo giá sang trạng thái Đã gửi khách, tự đặt hạn hiệu lực mặc định, cảnh báo thiếu MST/địa chỉ khách hàng | UC-086, UC-108 |  | Tự phát triển
+FT-47 | Quản lý hạn hiệu lực báo giá | Should | Đặt/gia hạn hạn hiệu lực báo giá; tự động chuyển sang Hết hiệu lực khi quá hạn mà khách chưa chốt (chạy hằng ngày) | UC-109 |  | Tự phát triển
+FT-47A | Khách hàng yêu cầu điều chỉnh báo giá | Should | Ghi nhận yêu cầu điều chỉnh của khách (giá/chiết khấu, vật liệu-kỹ thuật, hoặc giao hàng-điều khoản); định hướng bước tiếp theo tương ứng, kể cả chuyển lại cho Kỹ thuật khi cần đổi vật liệu/kỹ thuật | UC-087A |  | Tự phát triển
+FT-48 | Tạo bản báo giá mới (phiên bản sửa đổi) | Should | Lập phiên bản báo giá kế tiếp, giữ liên kết với bản gốc, sao chép các dòng chi tiết để chỉnh sửa | UC-087A |  | Tự phát triển
+FT-49 | Tạo đơn bán hàng từ báo giá | Must | Snapshot dòng hàng, giá, định mức từ báo giá đã được khách đồng ý; khoá báo giá nguồn ở trạng thái Đã lên đơn | UC-088 |  | Tự phát triển
+FT-50 | Quản lý vòng đời đơn bán hàng | Must | Xác nhận/Hoàn tất/Hủy đơn; đưa về Nháp có kiểm soát (chỉ Trưởng KD/Admin, chỉ đơn không gắn báo giá và chưa phát sinh chứng từ sau); tự nâng cấp sản phẩm/khoá BOM khi đơn được xác nhận | UC-089 |  | Tự phát triển
+FT-51 | Xem chi tiết yêu cầu phê duyệt báo giá | Must | Hiển thị đầy đủ dòng báo giá, giá thành, chiết khấu và lý do phát sinh yêu cầu duyệt ngay tại màn phê duyệt, không cần mở báo giá gốc | UC-027, UC-083 |  | Tự phát triển
+FT-52 | Danh sách yêu cầu phê duyệt | Must | Lọc theo trạng thái, thời gian chờ, cấp duyệt | UC-027, UC-084, UC-110 |  | Tự phát triển
+FT-53 | Từ chối yêu cầu phê duyệt | Must | Bắt buộc nhập lý do trước khi từ chối một yêu cầu phê duyệt báo giá | UC-081, UC-084 |  | Tự phát triển
+FT-54 | Giám sát & nhắc việc quá hạn phê duyệt | Should | Giao việc "Cần phê duyệt" cho người duyệt hợp lệ khi phát sinh yêu cầu; hiển thị số lượng chờ duyệt trên thanh điều hướng | UC-110 |  | Tự phát triển
+--- PROD FT (has FT-96) ---
+FT-59 | Cảnh báo trùng tên sản phẩm | Should | Khi tên sản phẩm mới trùng hoặc gần giống một sản phẩm đã có, hệ thống báo cho người dùng biết để tránh tạo trùng. Hiện chỉ áp dụng khi Kỹ thuật tạo sản phẩm gia công/bán thành phẩm qua màn xử lý RFQ; chưa cảnh báo khi tạo trực tiếp sản phẩm thương mại hoặc vật tư. | UC-111 | BF-02 | Tự phát triển
+FT-62 | Cách tính định mức theo quy cách vật tư | Could | Mỗi vật tư khai cách tính định mức (cắt theo chiều dài / cắt tấm / đếm chiếc / khối lượng rời) cùng quy cách quy đổi (khổ tấm, chiều dài cây, khối lượng/mét...), làm cơ sở để dòng BOM tự tính lượng vật tư theo kích thước nhập vào. Đã thay thế cơ chế "Loại đo lường / Hình dạng đo lường" (Type/Shape/Param) trong thiết kế trước — các model này vẫn còn trong code nhưng không còn dùng (không seed dữ liệu, ẩn sau dev mode). | UC-051 | BF-02 | Tự phát triển
+FT-96 | Tự động ngừng sản phẩm nháp chưa sử dụng | Could | Sản phẩm hoặc bán thành phẩm ở trạng thái Nháp không được dùng trong đơn hàng sau một thời gian sẽ tự động chuyển sang Ngừng sử dụng | UC-047 | BF-02 | Tự phát triển
+--- JOB ---
+JOB-03 | Dọn sản phẩm gia công nháp không dùng |  | Mỗi ngày hệ thống đánh dấu ngừng sử dụng cho các sản phẩm gia công còn ở trạng thái nháp mà không còn gắn với yêu cầu hay định mức nào, để danh mục gọn gàng. | FT-96 | UC-047

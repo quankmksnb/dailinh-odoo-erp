@@ -1,0 +1,16 @@
+UC-077 | Mở khu vực CRM & Báo giá (menu Báo giá / Phê duyệt / Đơn bán hàng) | No | No | No | Full | No | No | No
+UC-102 | Cảnh báo cấu hình tham số giá bất hợp lý (chưa triển khai đúng mô tả — chỉ cảnh báo thiếu cấu hình gây lỗi báo giá, xem FT-17) | — | — | — | — | — | — | —
+--- TECH FT (FT-64,68,97) ---
+FT-64 | Tự tính định mức theo quy cách vật tư | Must | Với vật tư dạng cắt theo chiều dài hoặc cắt tấm, hệ thống tự tính số lượng cần dùng từ kích thước (dài/rộng, số lượng chiếc) nhập vào dòng định mức, quy đổi theo quy cách của vật tư (khổ tấm, chiều dài cây, khối lượng/mét...). Chưa hỗ trợ các hình dạng phức tạp hơn (tròn, ống, khối) — cơ chế "hình dạng đo lường" tổng quát trong thiết kế trước đã ngừng dùng. | UC-058 | BF-02 | Tự phát triển
+FT-68 | Quản lý phiên bản BOM | Must | Mỗi định mức có thể lưu nhiều phiên bản và hệ thống đánh dấu rõ phiên bản nào đang được dùng. Lưu ý: định mức có 2 loại mang ý nghĩa "phiên bản" khác nhau — định mức chuẩn của sản phẩm (tham gia đánh dấu "hiện hành") và định mức sinh riêng cho một báo giá/đơn hàng cụ thể (không tham gia đánh dấu "hiện hành", tồn tại song song). | UC-061, UC-060A | BF-02 | Tự phát triển
+FT-97 | Gợi ý sản phẩm đã từng gia công tương tự | Could | Khi Kỹ thuật xử lý một dòng RFQ, hệ thống tự chấm điểm và gợi ý các sản phẩm đã có sẵn dựa trên nhiều tín hiệu (trùng/gần giống tên, cùng nhóm, cùng khách hàng, khớp kích thước, thuộc cùng họ BOM mẫu tham số...); tự chọn sẵn khi điểm đủ cao, chỉ gợi ý khi điểm ở mức trung bình | UC-067 | BF-02 | Tự phát triển
+--- SCR fixes ---
+SCR-17 | Process Product | SALE | Gắn một mặt hàng khách cần với sản phẩm và định mức, hoặc tạo mới | FT-29 | UC-067, UC-068, UC-069
+SCR-18 | Return Request | SALE | Nhập lý do khi kỹ thuật trả yêu cầu về cho nhân viên kinh doanh bổ sung | FT-30 | UC-073
+SCR-19 | Request History | SALE | Xem lại toàn bộ quy trình của một yêu cầu | FT-35 | UC-075
+SCR-20 | Quotation List | SALE | Danh sách báo giá, có tìm kiếm và lọc theo trạng thái, khách hàng | FT-37 | —
+SCR-21 | Quotation Detail | SALE | Xem và xử lý báo giá: giá từng dòng, cách tính, chiết khấu, thuế, điều khoản, duyệt nội bộ và gửi khách | FT-38, FT-39, FT-40, FT-41, FT-42, FT-43, FT-44, FT-46, FT-48 | UC-079, UC-080, UC-083, UC-084, UC-086, UC-087A, UC-088, UC-107, UC-108
+SCR-22 | Export and Send Quotation | SALE | Chọn định dạng Word/PDF và gửi báo giá cho khách qua email | FT-45 | UC-086, UC-087, UC-087A
+SCR-24 | Sales Order List | SALE | Danh sách đơn bán hàng, có tìm kiếm và lọc theo trạng thái | FT-50 | UC-089
+SCR-25 | Sales Order Detail | SALE | Xem và cập nhật đơn bán hàng: các dòng hàng và trạng thái | FT-49, FT-50 | UC-089
+SCR-28 | Reject Approval | SALE | Nhập lý do khi từ chối một yêu cầu phê duyệt | FT-53 | UC-084

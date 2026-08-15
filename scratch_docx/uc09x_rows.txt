@@ -1,0 +1,10 @@
+96	UC-090 | Trang chủ điều hướng & badge phê duyệt | Full | Full | Full | Full | Full | Full | Full
+97	UC-091 | Ghi nhận nhập kho | No | No | No | No | No | Full | Full
+98	UC-092 | Ghi nhận xuất kho | No | No | No | No | No | Full | No
+99	UC-093 | Xem tồn kho hiện tại và cảnh báo tồn tối thiểu | Full | Full | Full | Restricted | No | Full | Restricted
+100	UC-094 | Kiểm kê kho | No | No | No | No | No | Full | No
+101	UC-095 | Kiểm tra khả dụng vật tư theo BOM | No | No | No | Restricted | No | No | No
+102	UC-096 | Nhập kho thành phẩm theo BOM | No | No | No | No | No | Full | No
+103	UC-097 | Tính nhu cầu vật tư cho phiếu nhập kho theo BOM | No | No | No | No | No | No | No
+104	UC-098 | Duyệt chứng từ kho | Full | Full | Full | No | No | No | No
+105	UC-099 | Đăng xuất hệ thống | Full | Full | Full | Full | Full | Full | Full

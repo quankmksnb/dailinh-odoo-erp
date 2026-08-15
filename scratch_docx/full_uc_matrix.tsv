@@ -1,0 +1,129 @@
+UC-001	Đăng nhập hệ thống	Full	Full	Full	Full	Full	Full	Full
+UC-002	Truy cập Trang chủ DLM-ERP	Full	Full	Full	Full	Full	Full	Full
+UC-003	Xem ma trận phân quyền của vai trò	Full	No	No	No	No	No	No
+UC-004	Quản lý vai trò	Full	No	No	No	No	No	No
+UC-005	Cấu hình quyền của vai trò	Full	No	No	No	No	No	No
+UC-006	Xem danh sách người dùng	Full	No	No	No	No	No	No
+UC-007	Tạo tài khoản người dùng	Full	No	No	No	No	No	No
+UC-008	Quản lý vai trò & trạng thái tài khoản	Full	No	No	No	No	No	No
+UC-009	Chỉ định người duyệt thay (Backup Approver)	Full	No	No	No	No	No	No
+UC-010	Cấu hình tham số cơ cấu giá & hao hụt mặc định	No	Restricted	No	No	Full	Full	No
+UC-011	Cấu hình cấp duyệt	No	Full	No	No	No	No	No
+UC-012	Cấu hình SLA & Escalation (chưa triển khai)	No	Full	No	No	No	No	No
+UC-013	Tra cứu nhật ký thay đổi cấu hình (chỉ ghi log VAT/làm tròn; các quy tắc khác dùng chatter, chưa có màn tra cứu tổng hợp)	Full	Full	Restricted	No	No	No	No
+UC-014	Quản lý Đơn vị tính & Thông tin công ty	No	Full	No	No	No	No	No
+UC-015	Mở màn Cấu hình Báo giá	Full	Full	Full	Restricted	Full	Restricted	No
+UC-016	Tạo / sửa quy tắc kỹ thuật (hao hụt, công đoạn, chi phí chung)	No	No	No	No	Full	Full	No
+UC-017	Quản lý danh mục dùng chung (công đoạn, mức phức tạp)	No	No	No	No	Full	Full	No
+UC-018	Áp dụng / Ngừng áp dụng quy tắc kỹ thuật	No	No	No	No	Full	Full	No
+UC-019	Tạo bản sửa đổi quy tắc	No	No	No	No	Full	No	No
+UC-020	Tạo chính sách lợi nhuận và giá sàn	No	Full	No	No	No	No	No
+UC-021	Tạo chính sách chiết khấu theo nhóm khách hàng	No	No	Full	No	No	No	No
+UC-022	Gửi duyệt cấu hình thương mại	No	Full	Full	No	No	No	No
+UC-023	Đề xuất ngưỡng phê duyệt báo giá theo giá trị	No	No	Full	No	No	No	No
+UC-024	Áp dụng ngưỡng phê duyệt báo giá theo giá trị	No	Full	No	No	No	No	No
+UC-025	Cấu hình người duyệt theo loại yêu cầu	No	Full	No	No	No	No	No
+UC-026	Xử lý yêu cầu thay đổi cấu hình	No	Full	No	No	No	No	No
+UC-027	Xem các yêu cầu phê duyệt	Restricted	Full	Full	Restricted	No	No	No
+UC-028	Quản lý hồ sơ khách hàng	No	No	No	Full	No	No	No
+UC-029	Gộp hồ sơ Khách hàng và Nhà cung cấp	No	No	No	Full	No	Full	No
+UC-030	Vô hiệu hoá, Kích hoạt lại khách hàng	Full	No	Full	No	No	Restricted	No
+UC-031	Tra cứu, lọc & nhóm danh sách khách hàng	Full	Full	Full	Full	No	No	No
+UC-032	Quản lý nhãn đối tác	No	No	Full	No	No	No	No
+UC-033	Quản lý hồ sơ nhà cung cấp	Full	Full	No	No	No	Restricted	Full
+UC-034	Xem danh sách NCC ở chế độ chỉ đọc	No	No	Full	No	No	Restricted	No
+UC-035	Xem thống kê & cảnh báo trên hồ sơ khách hàng	No	No	No	Full	No	No	No
+UC-036	Phân loại nhóm khách hàng tự động	—	—	—	—	—	—	—
+UC-037	Cấu hình ngưỡng khách thân thiết	Full	Full	No	No	No	No	No
+UC-038	Quản lý nhóm sản phẩm	No	No	Full	No	Full	No	No
+UC-039	Tạo sản phẩm gia công	No	No	No	No	Full	No	No
+UC-040	Tạo sản phẩm thương mại	No	No	No	Full	No	No	No
+UC-041	Nhập giá bán sản phẩm thương mại	No	No	No	Full	No	No	No
+UC-042	Tạo vật tư	No	No	No	No	Full	No	No
+UC-043	Tạo bán thành phẩm	No	No	No	No	Full	No	No
+UC-044	Thiết lập hao hụt cơ sở và phế liệu thu hồi	No	No	No	No	Full	No	No
+UC-045	Chuyển vòng đời sản phẩm	No	No	No	No	Full	No	No
+UC-045A	Chặn kích hoạt tay sản phẩm tạm từ RFQ	—	—	—	—	—	—	—
+UC-046	Chuẩn hoá & nâng cấp sản phẩm khi đơn chốt	—	—	—	—	—	—	—
+UC-047	Tự động ngừng sản phẩm nháp chưa sử dụng	—	—	—	—	—	—	—
+UC-048	Rà soát bản sản phẩm nháp chưa sử dụng	No	No	No	No	Full	No	No
+UC-049	Tạo bảng giá nhà cung cấp cho vật tư	No	No	No	No	No	Full	No
+UC-050	Quản lý vòng đời bảng giá nhà cung cấp	No	No	No	No	No	Full	No
+UC-051	Cấu hình hệ thống đo lường	Full	No	No	No	No	No	No
+UC-052	Tra cứu danh mục sản phẩm, vật tư	No	Full	Full	No	No	No	No
+UC-053	Tạo bản vẽ kỹ thuật	No	No	No	No	Full	No	No
+UC-054	Chuyển trạng thái bản vẽ kỹ thuật	No	No	No	No	Full	No	No
+UC-055	Tải lên và xem bản vẽ từ màn BOM	No	No	No	No	Full	No	No
+UC-056	Tạo BOM cho sản phẩm	No	No	No	No	Full	No	No
+UC-057	Thêm dòng vật tư vào BOM	No	No	No	No	Full	No	No
+UC-057A	Thêm bán thành phẩm vào định mức	No	No	No	No	Full	No	No
+UC-058	Tính định mức vật tư từ kích thước hình học	—	—	—	—	—	—	—
+UC-059	Ghi đè số lượng định mức	No	No	No	No	Full	No	No
+UC-060	Chuyển trạng thái BOM	No	No	No	No	Full	No	No
+UC-060A	Tự động chuyển phiên bản hiện hành	—	—	—	—	—	—	—
+UC-061	Tạo phiên bản BOM mới	No	No	No	No	Full	No	No
+UC-062	Tạo BOM từ BOM mẫu	No	No	No	No	Full	No	No
+UC-063	Quản lý BOM mẫu	No	No	No	No	Full	No	No
+UC-063A	Khai tham số & ánh xạ kích thước cho BOM mẫu	No	No	No	No	Full	No	No
+UC-064	Tạo yêu cầu báo giá (RFQ)	No	No	No	Full	No	No	No
+UC-065	Hệ thống tự động ghi nhận tiếp nhận RFQ	—	—	—	—	—	—	—
+UC-066	Mở màn xử lý dòng RFQ	No	No	No	No	Full	No	No
+UC-067	Chọn sản phẩm có sẵn cho dòng RFQ	No	No	No	No	Full	No	No
+UC-068	Tạo sản phẩm mới từ màn xử lý RFQ	No	No	No	No	Full	No	No
+UC-069	Tạo BOM mới từ màn xử lý RFQ	No	No	No	No	Full	No	No
+UC-069A	Sinh định mức từ BOM mẫu tham số	No	No	No	No	Full	No	No
+UC-070	Sửa BOM đã chọn qua phiên bản mới	No	No	No	No	Full	No	No
+UC-071	Hoàn tất dòng RFQ (xác nhận kết quả xử lý kỹ thuật)	No	No	No	No	Full	No	No
+UC-072	Đánh dấu dòng RFQ không khả thi	No	No	No	No	Full	No	No
+UC-073	Trả lại RFQ để bổ sung	No	No	No	No	Full	No	No
+UC-074	Gửi lại RFQ sau bổ sung	No	No	No	Full	No	No	No
+UC-075	Xem lịch sử xử lý RFQ	No	No	No	Full	No	No	No
+UC-076	Hủy RFQ	No	No	No	Full	No	No	No
+UC-077	Mở khu vực CRM & Báo giá (menu Báo giá / Phê duyệt / Đơn bán hàng)	No	No	No	Full	No	No	No
+UC-078	Tạo báo giá từ RFQ	No	No	No	Full	No	No	No
+UC-079	Điều chỉnh dòng báo giá	No	No	No	Full	No	No	No
+UC-080	Điều chỉnh chiết khấu và VAT của báo giá	No	No	No	Full	No	No	No
+UC-081	Tái đánh giá và định tuyến yêu cầu phê duyệt báo giá	—	—	—	—	—	—	—
+UC-082	Xem phân tích giá thành & cấu phần giá	No	Full	Full	No	No	Full	No
+UC-083	Xử lý hòm Phê duyệt báo giá	No	Full	Restricted	No	No	No	No
+UC-084	Ra quyết định trên yêu cầu duyệt báo giá	No	Full	Restricted	No	No	No	No
+UC-085	Duyệt nội bộ báo giá	—	—	—	—	—	—	—
+UC-086	Gửi báo giá cho khách hàng	No	No	No	Full	No	No	No
+UC-087	Cập nhật kết quả báo giá	No	No	No	Full	No	No	No
+UC-087A	Khách hàng yêu cầu điều chỉnh báo giá	No	No	No	Full	No	No	No
+UC-088	Tạo đơn bán hàng từ báo giá	No	No	No	Full	No	No	No
+UC-089	Quản lý vòng đời đơn bán hàng	No	No	No	Full	No	No	No
+UC-090	Trang chủ điều hướng & badge phê duyệt	Full	Full	Full	Full	Full	Full	Full
+UC-090A	Hàng đợi phiếu kho (landing riêng cho Thủ kho)	No	No	No	No	No	Full	No
+UC-091	Ghi nhận nhận hàng NCC (bước 1/2)	No	No	No	No	No	Full	Restricted
+UC-091A	Kiểm tra chất lượng hàng nhận & cất hàng (QC)	No	No	No	No	No	Full	No
+UC-091B	Xử lý phiếu trả hàng NCC (khi QC phát hiện hàng lỗi)	No	No	No	No	No	Restricted	Full
+UC-092	Chuyển kho nội bộ	No	No	No	No	No	Full	No
+UC-092A	Tạo và xử lý phiếu giao hàng khách	No	Restricted	Restricted	Restricted	No	Full	No
+UC-092B	Bán phế liệu thu hồi	No	No	No	No	No	Full	No
+UC-092C	Đối chiếu dự toán và thực tế thu hồi phế liệu	No	Full	No	No	Restricted	Full	No
+UC-093	Xem tồn kho hiện tại (cảnh báo tồn tối thiểu: xem JOB-04, chưa triển khai)	Full	Full	Full	Restricted	Restricted	Full	Restricted
+UC-094	Kiểm kê và điều chỉnh tồn kho	No	No	No	No	No	Full	No
+UC-095	Kiểm tra khả dụng vật tư theo BOM (Planned — backlog giai đoạn sau, ATP)	No	No	No	Restricted	No	No	No
+UC-096	Nhập kho thành phẩm theo BOM (Planned — backlog Lệnh sản xuất/B2, đã seed sẵn loại phiếu Xuất vật tư SX/Nhập thành phẩm, chưa có màn hình)	No	No	No	No	No	Full	No
+UC-097	Tính nhu cầu vật tư cho phiếu nhập kho theo BOM (Planned — gắn với UC-096)	No	No	No	No	No	No	No
+UC-099	Đăng xuất hệ thống	Full	Full	Full	Full	Full	Full	Full
+UC-100	Quên mật khẩu và đặt lại mật khẩu	Full	Full	Full	Full	Full	Full	Full
+UC-101	Đổi mật khẩu	Full	Full	Full	Full	Full	Full	Full
+UC-102	Cảnh báo cấu hình tham số giá bất hợp lý (chưa triển khai đúng mô tả — chỉ cảnh báo thiếu cấu hình gây lỗi báo giá, xem FT-17)	—	—	—	—	—	—	—
+UC-103	Kiểm tra trùng mã số thuế khi tạo hoặc sửa khách hàng	—	—	—	—	—	—	—
+UC-104	Quản lý người liên hệ của đối tác	Full	Restricted	Restricted	Restricted	No	Restricted	Restricted
+UC-105	Theo dõi trạng thái và tiến độ xử lý RFQ	Full	Full	Full	Full	Full	No	No
+UC-106	Cảnh báo quá hạn xử lý RFQ	—	—	—	—	—	—	—
+UC-107	Nhập điều khoản thương mại của báo giá	Full	Restricted	Full	Full	No	No	No
+UC-108	Cảnh báo thiếu thông tin khách hàng khi gửi báo giá	—	—	—	—	—	—	—
+UC-109	Quản lý hạn hiệu lực báo giá	Full	Restricted	Full	Full	No	No	No
+UC-110	Giám sát và nhắc việc quá hạn phê duyệt báo giá	Full	Full	Restricted	Restricted	Restricted	Restricted	No
+UC-111	Cảnh báo trùng tên khi tạo sản phẩm	—	—	—	—	—	—	—
+UC-112	Cảnh báo và theo dõi vật tư chưa có giá nhà cung cấp	Full	Restricted	Restricted	No	Restricted	Restricted	Full
+UC-113	Tự động cập nhật giá vốn sản phẩm theo bảng giá nhà cung cấp	—	—	—	—	—	—	—
+UC-114	Phát lệnh sản xuất	Full	No	No	No	Full	No	No
+UC-115	Theo dõi trạng thái lệnh sản xuất	Full	Restricted	No	No	Full	No	No
+UC-116	Lập kế hoạch sản xuất theo hạn giao hàng	Full	No	No	No	Full	No	No
+UC-117	Tổng quan sản xuất cho quản lý	Full	Full	Restricted	No	Restricted	No	No
+UC-118	Bảng tổng quan báo cáo quản trị	Full	Full	Full	No	No	No	No

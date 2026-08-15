@@ -1,0 +1,9 @@
+// Ảnh đính kèm RFQ (attachment_ids, widget dl_m2m_binary_preview) — bấm để
+// xem full-size thay vì tải về. Con trỏ zoom-in gợi ý hành vi khác download.
+.o_dl_attachment_preview_link {
+    cursor: zoom-in;
+}
+
+.dl-image-preview-dialog .modal-body {
+    background: #00000008;
+}

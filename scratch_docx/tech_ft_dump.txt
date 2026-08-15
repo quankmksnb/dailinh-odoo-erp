@@ -1,0 +1,13 @@
+FT-ID | Feature | Priority | Description | UC-ID | BF-ID | SOURCE
+FT-63 |  | Must | Liệt kê các vật tư cần dùng và số lượng để làm ra một sản phẩm | UC-056, UC-057 | BF-02 | Tự phát triển
+FT-64 |  | Must |  | UC-058 | BF-02 | Tự phát triển
+FT-65 | Tính hao hụt và độ phức tạp | Should | Tính thêm phần hao hụt khi cắt gọt và độ phức tạp của từng vật tư để ra lượng thực tế cần dùng | UC-016, UC-044, UC-058 | BF-02, BF-06 | Tự phát triển
+FT-66 | Khai báo công đoạn gia công | Should | Khai báo các công đoạn như cắt, hàn, sơn cùng chi phí tương ứng để đưa vào giá thành | UC-017 | BF-06 | Tự phát triển
+FT-67 | BOM nhiều cấp | Should | BOM của một sản phẩm có thể chứa bán thành phẩm, hệ thống sẽ tự cộng gộp vật tư từ định mức của các bán thành phẩm đó | UC-057A | BF-02 | Tự phát triển
+FT-68 | Quản lý phiên bản BOM | Must | Mỗi định mức có thể lưu nhiều phiên bản và hệ thống đánh dấu rõ phiên bản nào đang được dùng | UC-061, UC-060A | BF-02 | Tự phát triển
+FT-69 | Quản lý trạng thái BOM | Must | Theo dõi định mức đang ở Nháp, Đã xác nhận hay Đã khóa để biết định mức nào được dùng để báo giá | UC-060 | BF-02 | Tự phát triển
+FT-70 |  | Should | Khi định mức có vật tư chưa được định giá, hệ thống cảnh báo và nhắc Mua hàng cập nhật | UC-112 | BF-02, BF-08 | Tự phát triển
+FT-71 |  | Should | Hệ thống tính sẵn tiền vật tư và tiền công đoạn của định mức để người dùng tham khảo giá thành | UC-082 | BF-03 | Tự phát triển
+FT-72 | Tạo BOM từ mẫu | Could | Tạo nhanh một định mức mới từ mẫu có sẵn; nếu sản phẩm chỉ khác nhau về kích thước, hệ thống tự lập định mức theo số đo nhập vào | UC-062, UC-063, UC-063A | BF-02 | Tự phát triển
+FT-73 | Tạo bán thành phẩm từ BOM | Could | Hệ thống cho phép tạo mới một bán thành phẩm ngay khi đang lập định mức và đưa thẳng vào định mức đó | UC-057A | BF-02 | Tự phát triển
+FT-74 | Quản lý bán vẽ kỹ thuật | Should |  | UC-053, UC-054, UC-055 | BF-02 | Tự phát triển (trên nền tệp đính kèm của Odoo)

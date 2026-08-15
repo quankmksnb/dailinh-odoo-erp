@@ -22,11 +22,9 @@ class ProductCategoryTechnical(models.Model):
         ondelete="set null",
     )
 
+    # Validate lúc lưu Nhóm sản phẩm: "BOM mẫu mặc định" phải cùng nhóm và đã Xác nhận/Khóa.
     @api.constrains("bom_template_id")
     def _dlm_check_bom_template_id(self):
-        """LK-04 (§3.1-L2) — mẫu mặc định của nhóm không được trỏ bậy: phải CÙNG
-        NHÓM và ĐÃ DUYỆT (confirmed/locked). Giữ field nhập tay (cho override)
-        nhưng chặn trỏ bản Nháp/Archived/khác nhóm để hết lệch phiên bản."""
         for rec in self:
             tmpl = rec.bom_template_id
             if not tmpl:
@@ -104,11 +102,9 @@ class DlProductTechnical(models.Model):
         "dl.bom", "product_id", string="Định mức theo đơn",
         compute="_compute_bom_ids")
 
+    # Tính lại danh sách BOM/BOM chuẩn/BOM theo đơn hiện trên tab "BOM liên quan" của form sản phẩm.
     @api.depends("product_kind")
     def _compute_bom_ids(self):
-        # SP thương mại / vật tư thô không bao giờ có BOM — bỏ qua tìm kiếm
-        # trên dl.bom để các role không có quyền dl.bom (VD: Kế toán) không
-        # bị chặn quyền truy cập khi mở SP thương mại/vật tư.
         eligible = self.filtered(lambda p: p.product_kind in BOM_ELIGIBLE_KINDS)
         boms = (
             self.env["dl.bom"].search([("product_id", "in", eligible.ids)])
@@ -127,16 +123,8 @@ class DlProductTechnical(models.Model):
             product.instance_bom_ids = visible.filtered(
                 lambda b: b.bom_type == "quotation")
 
+    # Kiểm tra sản phẩm này có phải "Sản phẩm dùng chung" của 1 BOM mẫu tham số không — dùng để chặn wizard RFQ tự động chọn nhầm nó.
     def _dlm_is_parametric_generic(self):
-        """SP này có phải SẢN PHẨM DÙNG CHUNG của một mẫu tham số không?
-
-        Hai hệ quả, đều là "đừng tự quyết hộ" ở workspace xử lý RFQ:
-          • KHÔNG tự gán làm sản phẩm của dòng — điểm nó nhận là điểm "thuộc họ",
-            tức tín hiệu về HỌ chứ không phải về món cụ thể; mọi cỡ trong họ đều
-            khớp như nhau.
-          • KHÔNG tự chọn định mức — định mức của nó là INSTANCE, mỗi bản một cỡ
-            và tồn tại SONG SONG, nên không bản nào là "mặc định".
-        """
         self.ensure_one()
         return bool(self.env["dl.bom.template"].search_count([
             ("generic_product_id", "=", self.id),
@@ -144,14 +132,9 @@ class DlProductTechnical(models.Model):
             ("status", "in", ("confirmed", "locked")),
         ]))
 
+    # Validate lúc lưu sản phẩm: chặn tạo sản phẩm gia công/BTP trùng hệt tên với sản phẩm chính thức đã có.
     @api.constrains("name", "product_kind", "is_rfq_provisional")
     def _check_dlm_name_duplicate(self):
-        """Chặn cứng SP gia công/BTP TRÙNG HỆT tên (đã chuẩn hoá) với SP chính
-        thức đã có — bảo vệ MỌI đường tạo (form SP, RPC, import), không chỉ
-        wizard RFQ. SP tạm từ RFQ (is_rfq_provisional) xử lý mềm ở wizard nên
-        bỏ qua khi CÒN tạm; khi chính thức hóa (cờ tạm tắt) mới soi lại để chặn
-        hai dòng RFQ cùng chốt một tên trùng. Bỏ qua khi context
-        'dl_skip_name_dup_check' (seed/migration)."""
         if self.env.context.get("dl_skip_name_dup_check"):
             return
         for rec in self:
@@ -170,6 +153,7 @@ class DlProductTechnical(models.Model):
                     name=dup.display_name,
                     categ=dup.categ_id.display_name or _("chưa phân nhóm")))
 
+    # Nút "Chuyển Hoạt động" trên form sản phẩm — chặn nếu sản phẩm còn tạm từ RFQ chưa hoàn tất.
     def action_lifecycle_activate(self):
         provisional = self.filtered("is_rfq_provisional")
         if provisional:
@@ -178,8 +162,8 @@ class DlProductTechnical(models.Model):
                 "'Hoàn tất dòng' trong workspace RFQ."))
         return super().action_lifecycle_activate()
 
+    # Dọn tự động các sản phẩm tạm từ RFQ bị bỏ dở (chưa dùng tới) — không đụng sản phẩm đang được tham chiếu.
     def _cleanup_unused_rfq_provisional(self):
-        """Delete only unused RFQ-created draft products; fail closed on doubt."""
         deleted = 0
         for product in self.sudo().with_context(active_test=False).exists():
             if (not product.is_rfq_provisional
@@ -198,12 +182,9 @@ class DlProductTechnical(models.Model):
                 )
         return deleted
 
-    # ── Hao hụt: tự điền mặc định theo nhóm (field ở dl_product; logic đọc
-    # dl.pricing.waste.rule phải ở đây vì dl_technical mới depends dl_config) ──
+    # Khi đổi Nhóm sản phẩm trên form vật tư mà chưa nhập % hao hụt, tự điền theo quy tắc hao hụt cấu hình cho nhóm đó.
     @api.onchange("categ_id", "product_kind")
     def _onchange_dlm_waste_default(self):
-        """Khi chọn nhóm cho vật tư mà chưa nhập hao hụt: điền mặc định từ quy
-        tắc hao hụt theo NHÓM đang áp dụng (dl.pricing.waste.rule)."""
         if self.product_kind not in ("material", "material_processed"):
             return
         if self.dlm_waste_rate:
@@ -211,11 +192,9 @@ class DlProductTechnical(models.Model):
         rule = self._dlm_category_waste_rule()
         if rule:
             self.dlm_waste_rate = rule.waste_rate
-            # K16 — không chép `has_recovery`/`recovery_rate` nữa (đã ngưng dùng,
-            # xem dl_bom_line_mixin._dlm_recovery_kg). `scrap_product_id` thì vẫn
-            # chép: "vật tư này thải ra loại phế nào" là câu hỏi còn sống.
             self.dlm_scrap_product_id = rule.scrap_product_id
 
+    # Tìm quy tắc hao hụt đang áp dụng cho Nhóm sản phẩm của vật tư này.
     def _dlm_category_waste_rule(self):
         self.ensure_one()
         if not self.categ_id:
@@ -226,10 +205,8 @@ class DlProductTechnical(models.Model):
             ("category_id", "=", self.categ_id.id),
         ], order="valid_from desc, revision desc", limit=1)
 
+    # Nút "+ Tạo BOM" trên tab "BOM liên quan" của form sản phẩm — mở form BOM mới, tự gắn sẵn sản phẩm đang xem.
     def action_create_bom(self):
-        # bom_ids là computed field (chỉ đọc) — nút này mở form dl.bom mới,
-        # tự set product_id theo sản phẩm đang xem (dl.bom.product_id đã gộp
-        # chung cho cả manufactured lẫn material_processed).
         self.ensure_one()
         return {
             "type": "ir.actions.act_window",

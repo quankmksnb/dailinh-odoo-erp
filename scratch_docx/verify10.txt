@@ -1,0 +1,16 @@
+UC-ID | Use Case | System Administrator | CEO | Sales Manager | Sales Staff | Technician | Internal Accountant | Purchasing Staff | Warehouse Keeper
+UC-090 | Trang chủ điều hướng & badge phê duyệt | Full | Full | Full | Full | Full | Full | Full | No
+UC-090A | Hàng đợi phiếu kho (landing riêng cho Thủ kho) | No | No | No | No | No | No | No | Full
+UC-091 | Ghi nhận nhận hàng NCC (bước 1/2) | No | No | No | No | No | Restricted | Restricted | Full
+UC-091A | Kiểm tra chất lượng hàng nhận & cất hàng (QC) | No | No | No | No | No | Restricted | No | Full
+UC-091B | Xử lý phiếu trả hàng NCC (khi QC phát hiện hàng lỗi) | No | No | No | No | No | No | Full | Restricted
+UC-092 | Chuyển kho nội bộ | No | No | No | No | No | Restricted | No | Full
+UC-092A | Tạo và xử lý phiếu giao hàng khách | No | Restricted | Restricted | Restricted | No | Restricted | No | Full
+UC-092B | Bán phế liệu thu hồi | No | No | No | No | No | Restricted | No | Full
+UC-092C | Đối chiếu dự toán và thực tế thu hồi phế liệu | No | Full | No | No | Restricted | Full | No | Full
+UC-093 | Xem tồn kho hiện tại (cảnh báo tồn tối thiểu: xem JOB-04, chưa triển khai) | Full | Full | Full | Restricted | Restricted | Full | Restricted | Full
+UC-094 | Kiểm kê và điều chỉnh tồn kho | No | No | No | No | No | No | No | Full
+UC-095 | Kiểm tra khả dụng vật tư theo BOM (Planned — backlog giai đoạn sau, ATP) | No | No | No | Restricted | No | No | No | No
+UC-096 | Nhập kho thành phẩm theo BOM (Planned — backlog Lệnh sản xuất/B2, đã seed sẵn loại phiếu Xuất vật tư SX/Nhập thành phẩm, chưa có màn hình) | No | No | No | No | No | Full | No | No
+UC-097 | Tính nhu cầu vật tư cho phiếu nhập kho theo BOM (Planned — gắn với UC-096) | No | No | No | No | No | No | No | No
+UC-099 | Đăng xuất hệ thống | Full | Full | Full | Full | Full | Full | Full | No

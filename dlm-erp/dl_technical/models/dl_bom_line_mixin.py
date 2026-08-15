@@ -1,13 +1,7 @@
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
 
-# ---------------------------------------------------------------------------
-# Field dùng chung khi copy 1 dòng mixin sang model mixin khác (vd Tạo BOM từ
-# BOM mẫu, bộ sinh định mức tham số).
-#
-# 🔴 BẪY (thiết kế §13.5): thiếu "piece_count" ở đây thì mọi BOM tạo từ mẫu
-# ÂM THẦM mất số đoạn, rơi về 1 — giá vốn hụt mà không có cảnh báo nào.
-# ---------------------------------------------------------------------------
+# Danh sách field copy khi tạo BOM từ BOM mẫu / sinh định mức tham số — thiếu field nào ở đây thì field đó bị bỏ sót khi copy.
 BOM_LINE_MIXIN_FIELDS = [
     "material_id", "dim_length", "dim_width", "piece_count", "quantity",
     "complexity_id", "waste_rate", "is_override", "override_reason",
@@ -15,22 +9,7 @@ BOM_LINE_MIXIN_FIELDS = [
 
 
 class DlBomLineMixin(models.AbstractModel):
-    """Field/logic dùng chung cho 1 dòng BOM — dl.bom.line (BOM sản phẩm) và
-    dl.bom.template.line (BOM mẫu).
-
-    Thiết kế: docs/Doi_chieu_du_lieu_doanh_nghiep_va_thiet_ke_dinh_muc_vat_tu.md
-
-    Quy trình nhập gọn còn 3 bước (§4):
-      1. Chọn Vật tư — vật tư đã mang sẵn ĐVT mua, quy cách, chiều dài cây/khổ tấm.
-      2. Nhập KÍCH THƯỚC CẮT theo kiểu tính của vật tư:
-           cắt đoạn → chiều dài đoạn + số đoạn
-           tấm      → dài × rộng + số tấm
-           đếm/định lượng → nhập thẳng Số lượng
-      3. Hao hụt: lấy từ vật tư × Mức phức tạp; thu hồi phế liệu theo vật tư.
-
-    ⚠️ Cơ chế Rule/Shape cũ (dl.measurement.*) đã RỜI KHỎI dòng BOM (§6, §14).
-    Định mức nay suy từ `material_id.dlm_calc_kind` × nhóm ĐVT của vật tư.
-    """
+    # Field/logic dùng chung cho 1 dòng vật tư, trên cả form BOM sản phẩm và form BOM mẫu.
 
     _name = "dl.bom.line.mixin"
     _description = "Dòng BOM — trường & logic dùng chung"
@@ -124,16 +103,19 @@ class DlBomLineMixin(models.AbstractModel):
     # COMPUTE
     # ==========================================================
 
+    # Tính "Số lượng thực tế" = Số lượng × (1 + % hao hụt) — cột dùng để tính thành tiền.
     @api.depends("quantity", "waste_rate")
     def _compute_effective_qty(self):
         for rec in self:
             rec.effective_qty = rec.quantity * (1 + rec.waste_rate / 100)
 
+    # Tự điền ĐVT của dòng theo ĐVT của vật tư đã chọn.
     @api.depends("material_id")
     def _compute_uom(self):
         for rec in self:
             rec.uom_id = rec.material_id.uom_id if rec.material_id else False
 
+    # Tính lại ô "Định mức (hệ thống tính)" trên form dòng — hiển thị tham khảo song song với Số lượng.
     @api.depends("material_id", "dim_length", "dim_width", "piece_count")
     def _compute_computed_quantity(self):
         for rec in self:
@@ -144,12 +126,8 @@ class DlBomLineMixin(models.AbstractModel):
     # ĐỊNH MỨC — 5 ca theo (kiểu tính × nhóm ĐVT), thiết kế §13.2
     # ==========================================================
 
+    # Tự tính số lượng vật tư cần dùng từ kích thước cắt, quy theo đúng ĐVT của vật tư; trả None nếu không tự tính được (giữ nguyên số nhập tay).
     def _dlm_auto_quantity(self):
-        """Định mức tự tính, ĐÃ theo đúng uom_id của vật tư.
-
-        Trả None khi không tự tính được ⇒ caller giữ nguyên `quantity` mà kỹ
-        thuật nhập tay (vật tư dạng đếm/định lượng, hoặc thiếu khai quy cách).
-        """
         self.ensure_one()
         mat = self.material_id
         if not mat:
@@ -190,15 +168,9 @@ class DlBomLineMixin(models.AbstractModel):
     # CRUD
     # ==========================================================
 
+    # Khi tạo dòng BOM bằng code (sinh định mức tham số...) mà chưa có % hao hụt, tự tính từ vật tư × mức phức tạp (vì onchange không chạy trong trường hợp này).
     @api.model_create_multi
     def create(self, vals_list):
-        """RV-07 — Dòng BOM tạo BẰNG CODE (bộ sinh định mức tham số, import dữ
-        liệu) KHÔNG chạy onchange nên % hao hụt không tự bung theo hệ số phức
-        tạp ⇒ hao hụt thấp hơn thực, giá vốn thiếu. Nếu người tạo chưa nêu
-        waste_rate rõ ràng mà dòng đã có vật tư, tự tính = hao hụt cơ sở của vật
-        tư × hệ số phức tạp (đối xứng _onchange_material_waste của luồng UI).
-        Không đụng khi caller đã truyền waste_rate (vd _mixin_copy_vals của BOM
-        mẫu đã mang sẵn giá trị đúng)."""
         Product = self.env["product.product"]
         for vals in vals_list:
             if "waste_rate" not in vals and vals.get("material_id"):
@@ -214,20 +186,17 @@ class DlBomLineMixin(models.AbstractModel):
     # ONCHANGE
     # ==========================================================
 
+    # Khi đổi vật tư/mức phức tạp trên form dòng, tự tính lại % hao hụt = hao hụt vật tư × hệ số phức tạp.
     @api.onchange("material_id", "complexity_id")
     def _onchange_material_waste(self):
-        """Tự tính % hao hụt = hao hụt cơ sở của vật tư × hệ số phức tạp."""
         if not self.material_id:
             return
         factor = self.complexity_id.factor if self.complexity_id else 1.0
         self.waste_rate = (self.material_id.dlm_waste_rate or 0.0) * factor
 
+    # Khi đổi kích thước cắt trên form dòng, tự điền lại Số lượng (trừ khi đã bật Ghi đè), cảnh báo nếu vật tư thiếu quy cách để tự tính.
     @api.onchange("material_id", "dim_length", "dim_width", "piece_count")
     def _onchange_dlm_auto_quantity(self):
-        """Tự điền Số lượng từ kích thước cắt — TRỪ KHI kỹ thuật bật ghi đè.
-
-        Cảnh báo MỀM khi vật tư chưa khai đủ để tự tính: nêu đúng tên field
-        thiếu thay vì để định mức im lặng ra 0."""
         if self.is_override:
             return
         qty = self._dlm_auto_quantity()
@@ -251,34 +220,18 @@ class DlBomLineMixin(models.AbstractModel):
     # THU HỒI PHẾ LIỆU
     # ==========================================================
 
-    # 🔴 NGƯNG SỬ DỤNG 2026-08-13 (K16) — người dùng chốt BỎ cách tính % thu hồi
-    # phế liệu. Hai hàm dưới đây trả 0 thay vì bị xoá, và đó là CHỦ Ý:
-    #
-    #   • Chúng là ĐIỂM NGHẼN duy nhất — `dl_bom_line._compute_recovery_value`
-    #     và engine giá (`quotation_pricing_service` §5.3) đều gọi qua đây. Tắt
-    #     một chỗ là tắt toàn hệ thống, không phải đi sửa ba nơi rồi bỏ sót nơi
-    #     thứ tư.
-    #   • Field `dlm_has_recovery` / `dlm_recovery_rate` trên vật tư vẫn còn
-    #     (chỉ gỡ khỏi UI): xoá cột là mất dữ liệu cấu hình không lấy lại được,
-    #     mà quyết định kinh doanh thì có thể đảo.
-    #
-    # HỆ QUẢ VỀ TIỀN, nói thẳng: giá vốn vật tư nay KHÔNG còn được trừ tiền phế
-    # liệu ⇒ giá vốn cao lên ⇒ giá chào khách cao lên (hoặc biên lợi nhuận giảm
-    # nếu giữ giá). Đổi lại, tiền bán phế liệu thành lãi thật và không còn hai
-    # con số "thu hồi" phải đối chiếu với nhau.
+    # NGƯNG DÙNG (2026-08-13, chủ ý): luôn trả 0 — thu hồi phế liệu không còn trừ vào giá vốn. Giữ hàm để nơi gọi cũ không vỡ.
     def _dlm_recovery_kg(self):
-        """0.0 — xem khối chú thích trên. Giữ chữ ký hàm cho nơi gọi cũ."""
         self.ensure_one()
         return 0.0
 
+    # NGƯNG DÙNG (2026-08-13, chủ ý): luôn trả 0 — xem hàm _dlm_recovery_kg ở trên.
     def _dlm_recovery_value(self):
-        """0.0 — xem khối chú thích trên. Giữ chữ ký hàm cho nơi gọi cũ."""
         self.ensure_one()
         return 0.0
 
+    # Trả dict giá trị các field dùng chung của dòng — dùng khi copy dòng sang BOM khác (VD "Tạo từ BOM mẫu").
     def _mixin_copy_vals(self):
-        """Trả về dict giá trị các field dùng chung — dùng khi copy 1 dòng
-        sang model mixin khác (vd Tạo BOM từ BOM mẫu)."""
         self.ensure_one()
         vals = {}
         for name in BOM_LINE_MIXIN_FIELDS:
@@ -291,12 +244,14 @@ class DlBomLineMixin(models.AbstractModel):
     # CONSTRAINT
     # ==========================================================
 
+    # Validate lúc lưu dòng BOM: số lượng phải > 0.
     @api.constrains("quantity")
     def _check_quantity(self):
         for rec in self:
             if rec.quantity <= 0:
                 raise ValidationError(_("Số lượng phải lớn hơn 0."))
 
+    # Validate lúc lưu dòng BOM: số đoạn phải >= 1.
     @api.constrains("piece_count")
     def _check_piece_count(self):
         for rec in self:

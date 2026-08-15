@@ -1,0 +1,10 @@
+40	SCR-40 | Create BOM from Template | TECH | Chọn mẫu và nhập số đo để tạo nhanh định mức mới | FT-72 | UC-062, UC-063, UC-063A
+41	SCR-41 | Add Semi-finished Product to BOM | TECH | Tạo nhanh một bán thành phẩm mới ngay khi đang lập định mức | FT-73 | UC-057A
+42	SCR-42 | Material Supplier Price List | INV |  | FT-76, FT-77, FT-78 | UC-050, UC-112, UC-113
+43	SCR-43 | Trading Product Price List | INV |  | FT-76, FT-77, FT-62 | UC-050, UC-051, UC-113
+44	SCR-44 | Materials Awaiting Pricing | INV | Danh sách vật tư chưa có giá nhà cung cấp để bộ phận Mua hàng cập nhật | FT-79 | UC-091
+45	SCR-45 | Goods Receipt | INV | Ghi nhận phiếu nhập kho | FT-80 | UC-092
+46	SCR-46 | Goods Issue | INV | Ghi nhận phiếu xuất kho | FT-81 | UC-093
+47	SCR-47 | Stock on Hand | INV |  | FT-82, FT-84 | UC-094, UC-095
+48	SCR-48 | Stock Count and Adjustment | INV | Đối chiếu và điều chỉnh số lượng trong kho | FT-83 | UC-093
+49	SCR-49 | Manufacturing Order List | MFG | Tạo và quản lý các lệnh sản xuất | FT-85 | UC-114

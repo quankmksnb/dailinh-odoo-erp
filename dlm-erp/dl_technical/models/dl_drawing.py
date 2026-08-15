@@ -100,10 +100,9 @@ class DlDrawing(models.Model):
                 )
         return super().create(vals_list)
 
+    # Validate lúc lưu bản vẽ: chặn gắn bản vẽ cho vật tư thô / sản phẩm thương mại.
     @api.constrains("product_id")
     def _check_product_kind(self):
-        """LK-05 / LX-07 — chặn cứng gắn bản vẽ cho vật tư thô / SP thương mại
-        (song song domain UI, bịt import/API)."""
         for rec in self:
             if rec.product_id and rec.product_id.product_kind not in DRAWING_ELIGIBLE_KINDS:
                 raise ValidationError(_(
@@ -111,6 +110,7 @@ class DlDrawing(models.Model):
                     "không gắn bản vẽ kỹ thuật cho loại này."
                 ) % rec.product_id.display_name)
 
+    # Nút "Xác nhận" trên form Bản vẽ — bắt buộc đã đính kèm file, xong thì đặt làm bản vẽ hiện hành và nhắc Kỹ thuật rà lại BOM.
     def action_confirm(self):
         for rec in self:
             if rec.status != "draft":
@@ -123,14 +123,11 @@ class DlDrawing(models.Model):
                 "status": "confirmed",
                 "confirmed_date": fields.Date.today(),
             })
-            # D4 — bản vừa xác nhận thành bản vẽ hiện hành, bỏ cờ ở bản cũ cùng SP.
             rec._set_current_drawing()
-            # LK-15 (§3.2-D2) — nhắc rà lại các BOM chưa khóa của SP (chỉ nhắc,
-            # KHÔNG tự sửa; BOM đã khóa/đơn đã dùng giữ nguyên — ranh giới snapshot).
             rec._notify_boms_drawing_updated()
 
+    # Đặt bản ghi này làm bản vẽ hiện hành của sản phẩm, tự bỏ cờ hiện hành ở bản vẽ khác cùng sản phẩm.
     def _set_current_drawing(self):
-        """Đặt bản ghi này làm bản vẽ hiện hành của sản phẩm, bỏ cờ ở bản khác."""
         for rec in self:
             others = self.search([
                 ("product_id", "=", rec.product_id.id),
@@ -142,9 +139,8 @@ class DlDrawing(models.Model):
             if not rec.is_current:
                 rec.is_current = True
 
+    # Đăng thông báo + tạo việc nhắc trên các BOM chưa khóa của sản phẩm để Kỹ thuật rà lại định mức khi bản vẽ đổi.
     def _notify_boms_drawing_updated(self):
-        """LK-15 — đăng chatter + activity lên các BOM draft/confirmed CHƯA KHÓA
-        của sản phẩm để KTV rà lại định mức nếu kích thước đổi."""
         Bom = self.env["dl.bom"].sudo()
         for rec in self:
             boms = Bom.search([
@@ -161,6 +157,7 @@ class DlDrawing(models.Model):
                         summary=_("Rà định mức theo bản vẽ mới v%s") % rec.version,
                         user_id=self.env.uid)
 
+    # Nút "Lưu trữ" trên form Bản vẽ.
     def action_archive(self):
         for rec in self:
             if rec.status == "draft":
@@ -171,6 +168,7 @@ class DlDrawing(models.Model):
                 "is_current": False,
             })
 
+    # Nút "Về nháp" trên form Bản vẽ.
     def action_reset_draft(self):
         for rec in self:
             if rec.status != "confirmed":

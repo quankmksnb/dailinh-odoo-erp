@@ -1,0 +1,31 @@
+--- INV FT ---
+FT-ID | Feature | Priority | Description | UC-ID | BF-ID | SOURCE
+FT-75 | Thiết lập layout kho | Must | Hệ thống dựng sẵn 1 kho, 3 khu vực (Nhận hàng/Xưởng/Thành phẩm) và các loại phiếu kho khi cài đặt module, không có màn hình cấu hình riêng cho người dùng | — |  | Tự phát triển
+FT-80 | Nhận hàng NCC (bước 1/2) | Must | Ghi nhận hàng về từ nhà cung cấp vào khu vực chờ kiểm; tự cấp số lô cho vật tư/bán thành phẩm theo dõi theo lô nếu chưa nhập; xác nhận phiếu tự sinh phiếu Kiểm & cất hàng kế tiếp | UC-091 |  | Tự phát triển (trên nền stock của Odoo)
+FT-80A | Kiểm tra chất lượng hàng nhận & cất hàng (QC, bước 2/2) | Must | Nhập số lượng đạt/loại cho từng dòng hàng khi cất kho; bắt buộc lý do khi có hàng loại; chặn xác nhận nếu số liệu không hợp lệ hoặc thiếu lô | UC-091A |  | Tự phát triển
+FT-80B | Tự động tách và tạo phiếu trả hàng NCC | Must | Khi có hàng bị loại ở bước kiểm, hệ thống tự tách phần hàng lỗi và tạo phiếu trả nhà cung cấp ở trạng thái nháp, giao cho bộ phận Mua hàng xử lý | UC-091B |  | Tự phát triển
+FT-81 | Chuyển kho nội bộ | Must | Ghi nhận chuyển vật tư/hàng hoá giữa các khu vực trong kho; có 2 nút tạo nhanh cho 2 tuyến thường dùng (Vật tư & hàng thương mại → Xưởng sản xuất, → Kho thành phẩm) | UC-092 |  | —
+FT-82 | Xem tồn kho hiện tại | Must | Danh sách tồn kho theo sản phẩm/lô/vị trí, chỉ xem, không hiển thị giá vốn | UC-093 |  | Tự phát triển (trên nền tồn kho của Odoo)
+FT-83 | Kiểm kê và điều chỉnh tồn kho | Should | Đếm thực tế và điều chỉnh số lượng tồn kho cho khớp; sinh chứng từ điều chỉnh tự động khi áp dụng | UC-094 |  | Tự phát triển (trên nền chế độ kiểm kê tồn kho gốc của Odoo)
+FT-84 | Truy vết lô hàng | Should | Mỗi lô lưu lại nhà cung cấp, ngày nhận và phiếu nhập gốc; hiển thị trên màn Tồn kho và xem lại được từ màn Lô hàng riêng | UC-093 |  | Tự phát triển
+FT-98 | Hàng đợi phiếu kho | Should | Thủ kho đăng nhập vào thẳng danh sách các phiếu đang chờ xử lý (nhận/kiểm/chuyển/giao), bấm vào từng dòng mở đúng màn xử lý tương ứng thay vì phải nhớ vào đúng menu | UC-090A |  | Tự phát triển
+FT-99 | Tạo và xử lý phiếu giao hàng khách | Must | Tạo phiếu giao hàng trực tiếp từ đơn bán hàng đã xác nhận, lấy hàng từ Kho thành phẩm; đối chiếu số lượng cần giao/đã giao/còn lại; không tạo trùng phiếu khi bấm nhiều lần | UC-092A |  | Tự phát triển
+FT-100 | Bán phế liệu thu hồi | Should | Cân và ghi nhận số lượng phế liệu thu hồi được từ khu vực sản xuất vào tồn kho; chọn dòng còn tồn và lập phiếu bán cho khách mua phế liệu theo giá bán đã niêm yết | UC-092B |  | Tự phát triển
+FT-101 | Đối chiếu dự toán và thực tế thu hồi phế liệu | Should | So sánh khối lượng phế liệu dự toán (tính từ tỷ lệ hao hụt trên định mức của các đơn hàng đã chốt trong kỳ) với khối lượng thực tế đã cân được, theo từng tháng, để phát hiện định mức hao hụt đặt sai hoặc thất thoát | UC-092C |  | Tự phát triển
+--- SCR 44-48 ---
+SCR-40 | Create BOM from Template | TECH | Chọn mẫu và nhập số đo để tạo nhanh định mức mới | FT-72 | UC-062, UC-063, UC-063A
+SCR-41 | Add Semi-finished Product to BOM | TECH | Tạo nhanh một bán thành phẩm mới ngay khi đang lập định mức | FT-73 | UC-057A
+SCR-42 | Material Supplier Price List | INV |  | FT-76, FT-77, FT-78 | UC-050, UC-112, UC-113
+SCR-43 | Trading Product Price List | INV |  | FT-76, FT-77, FT-62 | UC-050, UC-051, UC-113
+SCR-44 | Materials Awaiting Pricing | INV | Danh sách vật tư chưa có giá nhà cung cấp để bộ phận Mua hàng cập nhật | FT-79 | UC-091
+SCR-44A | Picking Queue | INV | Hàng đợi phiếu kho đang chờ Thủ kho xử lý (nhận/kiểm/chuyển/giao), bấm vào 1 dòng để mở đúng màn xử lý | FT-98 | UC-090A
+SCR-45 | Goods Receipt | INV | Ghi nhận phiếu nhập kho | FT-80 | UC-091
+SCR-45A | Goods Receipt Inspection (QC) | INV | Kiểm tra chất lượng hàng nhận về: nhập số lượng đạt/loại, lý do loại; hệ thống tự tạo phiếu trả nhà cung cấp khi có hàng lỗi | FT-80A, FT-80B | UC-091A, UC-091B
+SCR-46 | Internal Transfer | INV | Ghi nhận chuyển kho nội bộ giữa các khu vực trong kho | FT-81 | UC-092
+SCR-46A | Customer Delivery | INV | Tạo và xử lý phiếu giao hàng cho khách từ đơn bán hàng đã xác nhận | FT-99 | UC-092A
+SCR-46B | Scrap Sale | INV | Cân, ghi nhận và bán phế liệu thu hồi từ khu vực sản xuất | FT-100 | UC-092B
+SCR-46C | Scrap Recovery Reconciliation | INV | Đối chiếu khối lượng phế liệu dự toán theo định mức với khối lượng thực tế đã cân được, theo từng tháng | FT-101 | UC-092C
+SCR-47 | Stock on Hand | INV |  | FT-82, FT-84 | UC-093
+SCR-47A | Lot List | INV | Danh sách lô hàng, truy vết nhà cung cấp và phiếu nhập gốc của từng lô | FT-84 | UC-093
+SCR-48 | Stock Count and Adjustment | INV | Đối chiếu và điều chỉnh số lượng trong kho | FT-83 | UC-094
+SCR-49 | Manufacturing Order List | MFG | Tạo và quản lý các lệnh sản xuất | FT-85 | UC-114

@@ -1,0 +1,16 @@
+SCR-40 | Create BOM from Template | TECH | Chọn mẫu và nhập số đo để tạo nhanh định mức mới | FT-72 | UC-062, UC-063, UC-063A
+SCR-41 | Add Semi-finished Product to BOM | TECH | Tạo nhanh một bán thành phẩm mới ngay khi đang lập định mức | FT-73 | UC-057A
+SCR-42 | Material Supplier Price List | INV |  | FT-76, FT-77, FT-78 | UC-050, UC-112, UC-113
+SCR-43 | Trading Product Price List | INV |  | FT-76, FT-77, FT-62 | UC-050, UC-051, UC-113
+SCR-44 | Materials Awaiting Pricing | INV | Danh sách vật tư chưa có giá nhà cung cấp để bộ phận Mua hàng cập nhật | FT-79 | UC-091
+SCR-45 | Goods Receipt | INV | Ghi nhận phiếu nhập kho | FT-80 | UC-091
+SCR-45A | Goods Receipt Inspection (QC) | INV | Kiểm tra chất lượng hàng nhận về: nhập số lượng đạt/loại, lý do loại; hệ thống tự tạo phiếu trả nhà cung cấp khi có hàng lỗi | FT-80A, FT-80B | UC-091A, UC-091B
+SCR-46 | Goods Issue | INV | Ghi nhận phiếu xuất kho (chưa triển khai — kế hoạch K6-K8) | FT-81 | UC-092
+SCR-47 | Stock on Hand | INV |  | FT-82, FT-84 | UC-093
+SCR-47A | Lot List | INV | Danh sách lô hàng, truy vết nhà cung cấp và phiếu nhập gốc của từng lô | FT-84 | UC-093
+SCR-48 | Stock Count and Adjustment | INV | Đối chiếu và điều chỉnh số lượng trong kho (chưa triển khai — kế hoạch K6-K8) | FT-83 | UC-094
+SCR-49 | Manufacturing Order List | MFG | Tạo và quản lý các lệnh sản xuất | FT-85 | UC-114
+SCR-50 | Manufacturing Order Detail | MFG | Xem chi tiết lệnh sản xuất: nhu cầu vật tư, đối chiếu tồn kho và trạng thái | FT-86, FT-87, FT-88 | UC-095, UC-097, UC-115
+SCR-51 | Production Planning | MFG | Sắp xếp các lệnh sản xuất theo hạn giao hàng | FT-89 | UC-116
+SCR-52 | Production Overview | MFG |  | FT-90 | UC-117
+SCR-53 | Management Dashboard | RPT | Tổng hợp số liệu về báo giá, đơn hàng, sản xuất và tồn kho cho CEO | FT-91 | UC-118

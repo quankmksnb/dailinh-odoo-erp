@@ -1,0 +1,8 @@
+135	b. Module: Quản trị hệ thống & Phân quyền (AUTH)
+138	c. Module: Quản lý Đối tác (BPM)
+141	d. Module: Bán hàng (Sale)
+144	e. Module: Sản phẩm & Vật tư (PROD)
+147	f. Module: Kỹ thuật (TECH)
+152	g. Module: Kho & Mua hàng (INV)
+157	h. Module: Sản xuất (MFG)
+162	i. Module: Báo cáo & Dashboard (RPT)

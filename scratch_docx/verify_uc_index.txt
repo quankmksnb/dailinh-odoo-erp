@@ -1,0 +1,130 @@
+UC-ID | Use Case | Type
+UC-001 | Đăng nhập hệ thống | UI
+UC-002 | Truy cập Trang chủ DLM-ERP | UI
+UC-003 | Xem ma trận phân quyền của vai trò | UI / Report
+UC-004 | Quản lý vai trò | UI
+UC-005 | Cấu hình quyền của vai trò | UI
+UC-006 | Xem danh sách người dùng | UI / Report
+UC-007 | Tạo tài khoản người dùng | UI
+UC-008 | Quản lý vai trò & trạng thái tài khoản | UI
+UC-009 | Chỉ định người duyệt thay (Backup Approver) | UI
+UC-010 | Cấu hình tham số cơ cấu giá & hao hụt mặc định | UI / System-assisted
+UC-011 | Cấu hình cấp duyệt | UI
+UC-012 | Cấu hình SLA & Escalation (chưa triển khai) | UI
+UC-013 | Tra cứu nhật ký thay đổi cấu hình (chỉ ghi log VAT/làm tròn; các quy tắc khác dùng chatter, chưa có màn tra cứu tổng hợp) | UI / Report
+UC-014 | Quản lý Đơn vị tính & Thông tin công ty | UI
+UC-015 | Mở màn Cấu hình Báo giá | UI
+UC-016 | Tạo / sửa quy tắc kỹ thuật (hao hụt, công đoạn, chi phí chung) | UI
+UC-017 | Quản lý danh mục dùng chung (công đoạn, mức phức tạp) | UI
+UC-018 | Áp dụng / Ngừng áp dụng quy tắc kỹ thuật | UI
+UC-019 | Tạo bản sửa đổi quy tắc | UI
+UC-020 | Tạo chính sách lợi nhuận và giá sàn | UI
+UC-021 | Tạo chính sách chiết khấu theo nhóm khách hàng | UI
+UC-022 | Gửi duyệt cấu hình thương mại | UI
+UC-023 | Đề xuất ngưỡng phê duyệt báo giá theo giá trị | UI
+UC-024 | Áp dụng ngưỡng phê duyệt báo giá theo giá trị | UI
+UC-025 | Cấu hình người duyệt theo loại yêu cầu | UI
+UC-026 | Xử lý yêu cầu thay đổi cấu hình | UI
+UC-027 | Xem các yêu cầu phê duyệt | UI / Report
+UC-028 | Quản lý hồ sơ khách hàng | UI
+UC-029 | Gộp hồ sơ Khách hàng và Nhà cung cấp | UI
+UC-030 | Vô hiệu hoá, Kích hoạt lại khách hàng | UI
+UC-031 | Tra cứu, lọc & nhóm danh sách khách hàng | UI / Report
+UC-032 | Quản lý nhãn đối tác | UI
+UC-033 | Quản lý hồ sơ nhà cung cấp | UI
+UC-034 | Xem danh sách NCC ở chế độ chỉ đọc | UI / Report
+UC-035 | Xem thống kê & cảnh báo trên hồ sơ khách hàng | UI / Report
+UC-036 | Phân loại nhóm khách hàng tự động | System
+UC-037 | Cấu hình ngưỡng khách thân thiết | UI
+UC-038 | Quản lý nhóm sản phẩm | UI
+UC-039 | Tạo sản phẩm gia công | UI
+UC-040 | Tạo sản phẩm thương mại | UI
+UC-041 | Nhập giá bán sản phẩm thương mại | UI
+UC-042 | Tạo vật tư | UI
+UC-043 | Tạo bán thành phẩm | UI
+UC-044 | Thiết lập hao hụt cơ sở và phế liệu thu hồi | UI
+UC-045 | Chuyển vòng đời sản phẩm | UI
+UC-045A | Chặn kích hoạt tay sản phẩm tạm từ RFQ | System
+UC-046 | Chuẩn hoá & nâng cấp sản phẩm khi đơn chốt | System
+UC-047 | Tự động ngừng sản phẩm nháp chưa sử dụng | System
+UC-048 | Rà soát bản sản phẩm nháp chưa sử dụng | UI
+UC-049 | Tạo bảng giá nhà cung cấp cho vật tư | UI
+UC-050 | Quản lý vòng đời bảng giá nhà cung cấp | UI
+UC-051 | Cấu hình hệ thống đo lường | UI
+UC-052 | Tra cứu danh mục sản phẩm, vật tư | UI / Report
+UC-053 | Tạo bản vẽ kỹ thuật | UI
+UC-054 | Chuyển trạng thái bản vẽ kỹ thuật | UI
+UC-055 | Tải lên và xem bản vẽ từ màn BOM | UI
+UC-056 | Tạo BOM cho sản phẩm | UI
+UC-057 | Thêm dòng vật tư vào BOM | UI / System-assisted
+UC-057A | Thêm bán thành phẩm vào định mức | UI
+UC-058 | Tính định mức vật tư từ kích thước hình học | System
+UC-059 | Ghi đè số lượng định mức | UI
+UC-060 | Chuyển trạng thái BOM | UI
+UC-060A | Tự động chuyển phiên bản hiện hành | System
+UC-061 | Tạo phiên bản BOM mới | UI
+UC-062 | Tạo BOM từ BOM mẫu | UI
+UC-063 | Quản lý BOM mẫu | UI
+UC-063A | Khai tham số & ánh xạ kích thước cho BOM mẫu | UI
+UC-064 | Tạo yêu cầu báo giá (RFQ) | UI
+UC-065 | Hệ thống tự động ghi nhận tiếp nhận RFQ | System
+UC-066 | Mở màn xử lý dòng RFQ | UI
+UC-067 | Chọn sản phẩm có sẵn cho dòng RFQ | UI / System-assisted
+UC-068 | Tạo sản phẩm mới từ màn xử lý RFQ | UI
+UC-069 | Tạo BOM mới từ màn xử lý RFQ | UI / System-assisted
+UC-069A | Sinh định mức từ BOM mẫu tham số | UI / System-assisted
+UC-070 | Sửa BOM đã chọn qua phiên bản mới | UI
+UC-071 | Hoàn tất dòng RFQ (xác nhận kết quả xử lý kỹ thuật) | UI
+UC-072 | Đánh dấu dòng RFQ không khả thi | UI
+UC-073 | Trả lại RFQ để bổ sung | UI
+UC-074 | Gửi lại RFQ sau bổ sung | UI
+UC-075 | Xem lịch sử xử lý RFQ | UI / Report
+UC-076 | Hủy RFQ | UI
+UC-077 | Mở khu vực CRM & Báo giá (menu Báo giá / Phê duyệt / Đơn bán hàng) | UI
+UC-078 | Tạo báo giá từ RFQ | UI / System-assisted
+UC-079 | Điều chỉnh dòng báo giá | UI / System-assisted
+UC-080 | Điều chỉnh chiết khấu và VAT của báo giá | UI / System-assisted
+UC-081 | Tái đánh giá và định tuyến yêu cầu phê duyệt báo giá | System
+UC-082 | Xem phân tích giá thành & cấu phần giá | UI / Report
+UC-083 | Xử lý hòm Phê duyệt báo giá | UI
+UC-084 | Ra quyết định trên yêu cầu duyệt báo giá | UI
+UC-085 | Duyệt nội bộ báo giá | System
+UC-086 | Gửi báo giá cho khách hàng | UI
+UC-087 | Cập nhật kết quả báo giá | UI
+UC-087A | Khách hàng yêu cầu điều chỉnh báo giá | UI
+UC-088 | Tạo đơn bán hàng từ báo giá | UI
+UC-089 | Quản lý vòng đời đơn bán hàng | UI
+UC-090 | Trang chủ điều hướng & badge phê duyệt | UI
+UC-090A | Hàng đợi phiếu kho (landing riêng cho Thủ kho) | UI
+UC-091 | Ghi nhận nhận hàng NCC (bước 1/2) | UI / System-assisted
+UC-091A | Kiểm tra chất lượng hàng nhận & cất hàng (QC) | UI
+UC-091B | Xử lý phiếu trả hàng NCC (khi QC phát hiện hàng lỗi) | UI
+UC-092 | Chuyển kho nội bộ | UI
+UC-092A | Tạo và xử lý phiếu giao hàng khách | UI
+UC-092B | Bán phế liệu thu hồi | UI
+UC-092C | Đối chiếu dự toán và thực tế thu hồi phế liệu | UI
+UC-093 | Xem tồn kho hiện tại (cảnh báo tồn tối thiểu: xem JOB-04, chưa triển khai) | UI / Report
+UC-094 | Kiểm kê và điều chỉnh tồn kho | UI
+UC-095 | Kiểm tra khả dụng vật tư theo BOM (Planned — backlog giai đoạn sau, ATP) | Planned
+UC-096 | Nhập kho thành phẩm theo BOM (Planned — backlog Lệnh sản xuất/B2, đã seed sẵn loại phiếu Xuất vật tư SX/Nhập thành phẩm, chưa có màn hình) | Planned
+UC-097 | Tính nhu cầu vật tư cho phiếu nhập kho theo BOM (Planned — gắn với UC-096) | Planned
+UC-099 | Đăng xuất hệ thống | UI
+UC-100 | Quên mật khẩu và đặt lại mật khẩu | UI
+UC-101 | Đổi mật khẩu | UI
+UC-102 | Cảnh báo cấu hình tham số giá bất hợp lý (chưa triển khai đúng mô tả — chỉ cảnh báo thiếu cấu hình gây lỗi báo giá, xem FT-17) | System
+UC-103 | Kiểm tra trùng mã số thuế khi tạo hoặc sửa khách hàng | System
+UC-104 | Quản lý người liên hệ của đối tác | UI
+UC-105 | Theo dõi trạng thái và tiến độ xử lý RFQ | UI / Report
+UC-106 | Cảnh báo quá hạn xử lý RFQ | System
+UC-107 | Nhập điều khoản thương mại của báo giá | UI / System-assisted
+UC-108 | Cảnh báo thiếu thông tin khách hàng khi gửi báo giá | System
+UC-109 | Quản lý hạn hiệu lực báo giá | UI
+UC-110 | Giám sát và nhắc việc quá hạn phê duyệt báo giá | UI / Report
+UC-111 | Cảnh báo trùng tên khi tạo sản phẩm | System
+UC-112 | Cảnh báo và theo dõi vật tư chưa có giá nhà cung cấp | UI
+UC-113 | Tự động cập nhật giá vốn sản phẩm theo bảng giá nhà cung cấp | System
+UC-114 | Phát lệnh sản xuất | UI
+UC-115 | Theo dõi trạng thái lệnh sản xuất | UI / Report
+UC-116 | Lập kế hoạch sản xuất theo hạn giao hàng | UI
+UC-117 | Tổng quan sản xuất cho quản lý | UI / Report
+UC-118 | Bảng tổng quan báo cáo quản trị | UI / Report

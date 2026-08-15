@@ -3,11 +3,7 @@ from odoo.exceptions import UserError, ValidationError
 
 
 class DlBomTemplate(models.Model):
-    """BOM Template — dùng cho Product Group (product_category_id). Một
-    Product Group có thể có nhiều BOM Template (nhiều version). Cấu trúc đầu
-    BOM giống Product BOM (dl.bom): version/status/Output Quantity, cùng
-    workflow xác nhận/khóa/lưu trữ/tạo phiên bản mới — dùng chung qua
-    dl.bom.header.mixin. Độc lập với BOM thật, KHÔNG gắn 1 product cụ thể."""
+    # BOM mẫu dùng chung cho 1 Nhóm sản phẩm (không gắn 1 sản phẩm cụ thể) — màn "BOM mẫu".
 
     _name = "dl.bom.template"
     _description = "BOM mẫu"
@@ -47,6 +43,7 @@ class DlBomTemplate(models.Model):
         string="Có tham số (sinh định mức)", compute="_compute_is_parametric",
         store=True)
 
+    # Cờ "Có tham số (sinh định mức)" trên form BOM mẫu — bật khi mẫu có khai tham số.
     @api.depends("param_ids")
     def _compute_is_parametric(self):
         for rec in self:
@@ -67,6 +64,7 @@ class DlBomTemplate(models.Model):
     generic_missing = fields.Boolean(
         string="Chưa gán sản phẩm dùng chung", compute="_compute_generic_missing")
 
+    # Bật banner cảnh báo trên form BOM mẫu: mẫu tham số đã duyệt nhưng chưa gán Sản phẩm dùng chung.
     @api.depends("is_parametric", "status", "generic_product_id")
     def _compute_generic_missing(self):
         for rec in self:
@@ -75,41 +73,30 @@ class DlBomTemplate(models.Model):
                 and rec.status in ("confirmed", "locked")
                 and not rec.generic_product_id)
 
-    # ── 🔴 SP dùng chung KHÔNG được tồn kho (Kho §3.5) ───────────────────────
-    # Odoo giữ hàng (reserve) theo product_id, KHÔNG theo kích thước. Nếu SP dùng
-    # chung là storable và trong kho có 5 "Bàn thép" gồm nhiều cỡ, một đơn đặt
-    # 1200×800 sẽ được giữ nhầm một cái 1000×600 rồi báo "đủ hàng" — tới lúc giao
-    # mới lộ. Không chặn được bằng cấu hình; phải đè cơ chế reservation của Odoo.
-    # ⇒ Ép 'consu' ngay tại nơi TÍNH GENERIC được khai. Cấu hình nào cần tồn kho
-    # thì thăng hạng thành SKU riêng — lúc đó reserve theo product_id lại ĐÚNG.
-    #
-    # Ép ở đây (dl_technical) chứ không ở dl_product vì dl_product KHÔNG depends
-    # dl_technical ⇒ không thấy được model này.
+    # Khi tạo BOM mẫu, ép luôn Sản phẩm dùng chung về loại "không tồn kho" (xem _dlm_enforce_generic_not_stocked).
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
         records._dlm_enforce_generic_not_stocked()
         return records
 
+    # Khi đổi Sản phẩm dùng chung trên form BOM mẫu, ép lại về loại "không tồn kho".
     def write(self, vals):
         res = super().write(vals)
         if "generic_product_id" in vals:
             self._dlm_enforce_generic_not_stocked()
         return res
 
+    # Ép Sản phẩm dùng chung thành "Vật tư tiêu hao" (không quản lý tồn kho) — Odoo giữ hàng theo mã sản phẩm chứ không theo size, để tồn kho sẽ giữ nhầm hàng sai size.
     def _dlm_enforce_generic_not_stocked(self):
-        """SP dùng chung ⇒ detailed_type='consu'. sudo vì Kỹ thuật không có
-        quyền ghi loại lưu kho của sản phẩm."""
         products = self.mapped("generic_product_id").filtered(
             lambda p: p.detailed_type == "product")
         if products:
             products.sudo().product_tmpl_id.write({"detailed_type": "consu"})
 
+    # Validate lúc lưu BOM mẫu: Sản phẩm dùng chung phải cùng Nhóm sản phẩm với mẫu.
     @api.constrains("generic_product_id", "product_category_id")
     def _check_generic_product_category(self):
-        """Sản phẩm dùng chung phải nằm ĐÚNG nhóm của mẫu — nếu không, bộ định
-        tuyến ở workspace RFQ (tìm mẫu theo nhóm rồi lấy generic) sẽ trả về sản
-        phẩm của nhóm khác."""
         for rec in self:
             product = rec.generic_product_id
             if product and product.categ_id != rec.product_category_id:
@@ -120,19 +107,19 @@ class DlBomTemplate(models.Model):
                     pc=product.categ_id.display_name or _("chưa phân nhóm"),
                     c=rec.product_category_id.display_name))
 
+    # Phạm vi tìm phiên bản cùng BOM mẫu = cùng Nhóm sản phẩm (dùng bởi mixin vòng đời).
     def _version_domain(self):
         self.ensure_one()
         return [("product_category_id", "=", self.product_category_id.id)]
 
+    # Khi đổi Nhóm sản phẩm trên form BOM mẫu mới, tự gợi ý số phiên bản kế tiếp.
     @api.onchange("product_category_id")
     def _onchange_category_version(self):
         if self.product_category_id:
             self.version = self._compute_next_version()
 
-    # ── Đợt 4 — bộ sinh định mức tham số (thiết kế §7.4d) ────────────────────
+    # Validate bộ tham số KTV nhập ở panel "Sinh định mức": đủ tham số bắt buộc + nằm trong khoảng min/max.
     def _dlm_validate_param_values(self, param_values):
-        """Kiểm bộ tham số KTV nhập: đủ tham số bắt buộc + trong miền hợp lệ
-        (RES-018/019 · EX-27 — KHÔNG tự kẹp về biên, nêu rõ giới hạn nào vượt)."""
         self.ensure_one()
         param_values = param_values or {}
         for p in self.param_ids:
@@ -155,17 +142,8 @@ class DlBomTemplate(models.Model):
                     "của mẫu.",
                     name=p.name, val=value, max=p.value_max))
 
+    # Nút "Sinh định mức" ở panel tham số trong wizard xử lý RFQ — sinh (hoặc tái dùng nếu đã có) 1 BOM thật từ bộ kích thước KTV vừa nhập.
     def generate_instance(self, product, param_values, rfq_line=None):
-        """Sinh một BOM báo giá (INSTANCE) cho MỘT đơn từ mẫu tham số này.
-
-        Trình tự (§7.4d): validate tham số → mỗi dòng mẫu copy field dùng chung
-        rồi ÁP ánh xạ tuyến tính (target = factor × tham số + offset) → tạo
-        dl.bom kiểu 'quotation' (is_rfq_provisional) → tính lại định mức từ hình
-        dạng có sẵn. Instance KHÔNG BAO GIỜ là phiên bản hiện hành (§3/§7.4c).
-
-        Trả về định mức ĐÃ CÓ nếu cấu hình này từng được chốt (RES-028) — caller
-        phải kiểm ``is_rfq_provisional``/``status`` nếu cần biết là bản mới hay
-        bản tái dùng."""
         self.ensure_one()
         if not self.param_ids:
             raise UserError(_(
@@ -181,11 +159,7 @@ class DlBomTemplate(models.Model):
         Line = self.env["dl.bom.line"]
         signature = Bom._dlm_param_signature(param_values)
 
-        # RES-028 — cùng sản phẩm + cùng bộ tham số nghĩa là ĐÃ có định mức cho
-        # cấu hình này: tái dùng thay vì đẻ bản trùng nội dung. BOM chỉ lưu KẾT
-        # CẤU (giá được snapshot ở báo giá) nên nhiều đơn dùng chung một định mức
-        # là đúng. Chỉ nhận bản đã chốt và KHÔNG còn tạm — bản nháp đang gắn dòng
-        # RFQ khác có thể bị sửa/dọn bất cứ lúc nào, tái dùng sẽ hỏng chéo hai đơn.
+        # Cùng sản phẩm + cùng bộ tham số = đã có sẵn định mức này rồi, tái dùng thay vì tạo trùng.
         reusable = Bom.search([
             ("product_id", "=", product.id),
             ("bom_type", "=", "quotation"),

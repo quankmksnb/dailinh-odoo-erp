@@ -63,17 +63,8 @@ class DlBomLine(models.Model):
         "material_id.seller_ids.approval_state",
         "material_id.seller_ids.is_applied",
     )
+    # Tính lại "Đơn giá snapshot" mỗi khi đổi vật tư/giá NCC — cột chi phí trên tab Dòng BOM (chỉ Kế toán/CEO/Admin/Trưởng KD thấy).
     def _compute_price_snapshot(self):
-        """Snapshot đơn giá tại thời điểm tạo BOM.
-
-        - Vật tư (material): lấy giá product.supplierinfo đang được đánh dấu
-          "đang áp dụng" (is_applied=True, kéo theo approval_state='approved'
-          — PROD-03). Kế toán chọn rõ 1 bảng giá áp dụng cho mỗi vật tư thay
-          vì suy đoán "mới nhất theo ngày" (không phân biệt được khi 1 vật tư
-          có nhiều bảng giá đã duyệt từ nhiều NCC).
-        - Vật tư đã gia công / BTP: chi phí đệ quy = total_material_cost của
-          BOM confirmed/locked của chính nó.
-        """
         for rec in self:
             price = 0.0
             component = rec.material_id
@@ -96,10 +87,12 @@ class DlBomLine(models.Model):
     @api.depends("effective_qty", "quantity", "material_id.dlm_has_recovery",
                  "material_id.dlm_recovery_rate",
                  "material_id.dlm_scrap_product_id.list_price")
+    # Tính lại "Giá trị thu hồi" (tiền phế liệu thu hồi được) khi số lượng/vật tư đổi.
     def _compute_recovery_value(self):
         for rec in self:
             rec.recovery_value = rec._dlm_recovery_value()
 
+    # Tính lại "Thành tiền" của dòng = số lượng thực dùng × đơn giá − giá trị thu hồi.
     @api.depends("effective_qty", "price_snapshot", "recovery_value")
     def _compute_subtotal(self):
         for rec in self:
@@ -109,6 +102,7 @@ class DlBomLine(models.Model):
         string="Là bán thành phẩm",
         compute="_compute_dlm_material_is_btp")
 
+    # Cờ hiển thị nút "Mở định mức BTP" trên dòng — bật khi vật tư của dòng là bán thành phẩm.
     @api.depends("material_id")
     def _compute_dlm_material_is_btp(self):
         for rec in self:
@@ -116,10 +110,8 @@ class DlBomLine(models.Model):
                 rec.material_id
                 and rec.material_id.product_kind == "material_processed")
 
+    # Nút "Mở định mức BTP ↗" trên dòng BOM — mở BOM chuẩn của BTP, hoặc mở form tạo mới nếu chưa có.
     def action_open_btp_bom(self):
-        """§13.2 — nút "Mở định mức BTP ↗" trên dòng có material_id là BTP: mở
-        BOM CHUẨN của BTP đó trên breadcrumb (chống "chuyển đi chuyển lại"). Nếu
-        BTP chưa có định mức nào thì mở form BOM mới đã gắn sẵn sản phẩm."""
         self.ensure_one()
         material = self.material_id
         if not material or material.product_kind != "material_processed":
@@ -152,12 +144,9 @@ class DlBomLine(models.Model):
             },
         }
 
+    # Validate lúc lưu dòng BOM: chặn tham chiếu BTP vòng lặp (BTP con lại chứa chính sản phẩm cha).
     @api.constrains("material_id", "bom_id")
     def _dlm_check_no_cycle(self):
-        """LK-01 (P2) — chặn định mức VÒNG LẶP: một dòng BOM dùng BTP mà BTP đó
-        (trực tiếp hoặc gián tiếp qua BOM chuẩn của nó) lại chứa chính sản phẩm
-        của BOM cha ⇒ đệ quy giá vốn vô hạn. Duyệt đồ thị BTP qua helper CHUNG
-        _standard_child_bom (đúng đường mà compute snapshot đi)."""
         Bom = self.env["dl.bom"]
         for line in self:
             mat = line.material_id
