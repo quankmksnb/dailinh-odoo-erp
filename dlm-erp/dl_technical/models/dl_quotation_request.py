@@ -616,14 +616,31 @@ class DlQuotationRequest(models.Model):
                 # alert "N dòng chờ bổ sung" + filter "Cần bổ sung"; flip sớm
                 # khiến worklist KTV rớt "Đang xử lý" trong khi việc vẫn còn.
                 unresolved = lines.filtered(lambda l: not l._is_resolved())
+
+                # Bằng chứng "Kỹ thuật đã bắt tay vào việc": có người tiếp nhận,
+                # hoặc có dòng GIA CÔNG đã ra kết quả kỹ thuật. Dòng thương mại
+                # KHÔNG tính: sản phẩm trên dòng đó do chính Sales chọn lúc tạo
+                # RFQ (§3, đối xứng với technical_status = "Không cần Kỹ thuật")
+                # — tính vào đây thì RFQ vừa bấm Lưu đã hiện "Đang xử lý" bên Kỹ
+                # thuật trong khi chưa ai nhận.
+                tech_started = bool(rec.received_by) or any(
+                    l.product_type != "trading"
+                    and (l.resolved_product_id or l.is_infeasible)
+                    for l in lines)
+
                 if unresolved and all(l.supplement_note for l in unresolved):
                     status = "returned"
 
                 # KTV ĐÃ bắt đầu xử lý nhưng chưa xong hết → "Đang xử lý".
-                elif rec.status in ("processing", "confirmed", "returned") \
-                        or any(line.resolved_product_id or line.is_infeasible
-                               for line in lines):
+                elif tech_started or rec.status in ("processing", "returned"):
                     status = "processing"
+
+                # Từng đủ điều kiện tạo báo giá mà KHÔNG cần Kỹ thuật (RFQ toàn
+                # hàng thương mại), nay Sales thêm dòng gia công → trả về hàng
+                # đợi Kỹ thuật ở đúng mốc "Chưa nhận", không đứng lại ở "Chờ tạo
+                # báo giá" (Sales sẽ tạo báo giá thiếu dòng chưa xử lý).
+                elif rec.status == "confirmed":
+                    status = "new"
 
                 # new / supplemented: chưa ai đụng tới → GIỮ NGUYÊN.
                 else:
