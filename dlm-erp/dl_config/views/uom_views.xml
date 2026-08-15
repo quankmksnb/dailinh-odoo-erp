@@ -86,7 +86,8 @@
         <field name="model">uom.uom</field>
         <field name="arch" type="xml">
             <search string="Tìm đơn vị tính">
-                <field name="name" string="Tên"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', ('name', 'ilike', self), ('category_id', 'ilike', self)]"/>
                 <field name="category_id" string="Nhóm đơn vị"/>
                 <separator/>
                 <filter name="filter_reference" string="Tham chiếu"

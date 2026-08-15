@@ -73,7 +73,8 @@
         <field name="model">stock.quant</field>
         <field name="arch" type="xml">
             <search string="Kiểm kê">
-                <field name="product_id" string="Hàng hoá"/>
+                <field name="product_id" string="Tìm nhanh"
+                       filter_domain="['|', '|', ('product_id', 'ilike', self), ('lot_id', 'ilike', self), ('location_id', 'ilike', self)]"/>
                 <field name="lot_id" string="Số lô"/>
                 <field name="location_id" string="Vị trí"/>
                 <!-- Chờ áp: dòng đã đếm nhưng chưa bấm Áp dụng — việc còn dở. -->
@@ -210,7 +211,8 @@
         <field name="model">stock.quant</field>
         <field name="arch" type="xml">
             <search string="Tồn kho">
-                <field name="product_id" string="Hàng hoá"/>
+                <field name="product_id" string="Tìm nhanh"
+                       filter_domain="['|', '|', '|', ('product_id', 'ilike', self), ('lot_id', 'ilike', self), ('location_id', 'ilike', self), ('dlm_supplier_id', 'ilike', self)]"/>
                 <field name="lot_id" string="Số lô"/>
                 <field name="location_id" string="Vị trí"/>
                 <field name="dlm_supplier_id" string="Nhà cung cấp"/>

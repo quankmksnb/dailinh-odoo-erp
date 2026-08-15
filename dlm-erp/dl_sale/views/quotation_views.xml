@@ -402,7 +402,8 @@
         <field name="model">dl.quotation</field>
         <field name="arch" type="xml">
             <search string="Tìm kiếm báo giá">
-                <field name="name" string="Số báo giá"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', ('name', 'ilike', self), ('partner_id', 'ilike', self)]"/>
                 <field name="partner_id" string="Khách hàng"/>
                 <!-- Bộ lọc gộp: mặc định (search_default_open trên action) list
                      chỉ mở ra pipeline đang sống. "Đã đóng" gom các kết cục

@@ -215,7 +215,8 @@
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
             <search string="Giao hàng khách">
-                <field name="name" string="Số phiếu"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', '|', ('name', 'ilike', self), ('partner_id', 'ilike', self), ('dlm_sale_order_id', 'ilike', self), ('product_id', 'ilike', self)]"/>
                 <field name="partner_id" string="Khách hàng"/>
                 <field name="dlm_sale_order_id" string="Đơn bán hàng"/>
                 <field name="product_id" string="Mặt hàng"/>

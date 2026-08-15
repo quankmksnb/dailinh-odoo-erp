@@ -177,7 +177,8 @@
         <field name="model">dl.sale.order</field>
         <field name="arch" type="xml">
             <search string="Đơn chờ điều phối">
-                <field name="name" string="Số đơn"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', ('name', 'ilike', self), ('partner_id', 'ilike', self)]"/>
                 <field name="partner_id" string="Khách hàng"/>
                 <filter name="chua_xong" string="Chưa điều phối xong"
                         domain="[('dlm_dispatch_state', '!=', 'dispatched')]"/>

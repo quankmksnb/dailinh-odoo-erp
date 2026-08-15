@@ -212,7 +212,8 @@
         <field name="model">dl.purchase.order</field>
         <field name="arch" type="xml">
             <search string="Đơn mua hàng">
-                <field name="name" string="Số đơn"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', ('name', 'ilike', self), ('partner_id', 'ilike', self)]"/>
                 <field name="partner_id" string="Nhà cung cấp"/>
                 <!-- Segment mặc định là "Đang chạy": đơn đã nhận đủ và đơn huỷ
                      là lịch sử, để chúng nằm chung làm loãng đúng thứ cần làm. -->

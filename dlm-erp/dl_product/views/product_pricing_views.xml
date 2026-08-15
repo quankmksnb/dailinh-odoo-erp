@@ -296,7 +296,8 @@
         <field name="model">product.product</field>
         <field name="arch" type="xml">
             <search string="Vật tư chờ định giá">
-                <field name="name"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', ('name', 'ilike', self), ('default_code', 'ilike', self), ('categ_id', 'ilike', self)]"/>
                 <field name="default_code" string="Mã"/>
                 <field name="categ_id" string="Nhóm"/>
                 <separator/>
