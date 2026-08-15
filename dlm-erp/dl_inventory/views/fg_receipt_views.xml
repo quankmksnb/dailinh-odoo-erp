@@ -61,7 +61,8 @@
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft' or dlm_blocked"/>
+                            invisible="state != 'draft' or dlm_blocked"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <!-- 🔴 K16 — KHÔNG có nút button_validate ở đây. Phiếu này
                          chỉ hoàn tất qua chữ ký của Thủ kho: xưởng tự xác nhận
                          được thì con số nhập kho không ai đối chiếu, mà đó
@@ -69,7 +70,8 @@
                     <button name="action_dlm_handover"
                             string="Bàn giao cho thủ kho"
                             type="object" class="btn-primary"
-                            invisible="dlm_receipt_state != 'ready' or state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
+                            invisible="dlm_receipt_state != 'ready' or state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_admin"/>
                     <!-- groups= chỉ giấu khỏi mắt; chốt thật ở
                          _dlm_check_receipt_signer (bài học RS-03). -->
                     <button name="action_dlm_confirm_receipt"
@@ -79,7 +81,8 @@
                             invisible="dlm_receipt_state != 'waiting'"/>
                     <button name="action_cancel" string="Huỷ phiếu"
                             type="object" class="btn-danger"
-                            invisible="state in ('done', 'cancel')"/>
+                            invisible="state in ('done', 'cancel')"
+                            groups="dl_base.dl_group_tech,dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
                 </header>

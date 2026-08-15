@@ -58,37 +58,45 @@
                          tránh ngưỡng. -->
                     <button name="action_dlm_send" string="Gửi hỏi giá nhà cung cấp"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft'"/>
+                            invisible="state != 'draft'"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_confirm" string="Chốt đơn"
                             type="object" class="btn-primary"
                             invisible="state not in ('draft', 'sent')
-                                       or dlm_needs_approval"/>
+                                       or dlm_needs_approval"
+                                       groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_submit_approval"
                             string="Trình Giám đốc duyệt"
                             type="object" class="btn-primary"
                             invisible="state not in ('draft', 'sent')
-                                       or not dlm_needs_approval"/>
+                                       or not dlm_needs_approval"
+                                       groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_print"
                             string="In yêu cầu báo giá"
                             type="object" class="btn-secondary"
-                            invisible="state not in ('draft', 'sent')"/>
+                            invisible="state not in ('draft', 'sent')"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_print" string="In đơn đặt hàng"
                             type="object" class="btn-secondary"
-                            invisible="state != 'confirmed'"/>
+                            invisible="state != 'confirmed'"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <!-- MỘT nút cho cả hai biến thể: PDF và mẫu thư đều tự đổi
                          giọng theo trạng thái, nên tách hai nút chỉ để đổi chữ
                          trên nhãn là bắt người dùng chọn hộ máy. Ẩn ở đơn đã
                          huỷ — không gửi cho NCC một đơn không còn hiệu lực. -->
                     <button name="action_dlm_email" string="Gửi mail cho NCC"
                             type="object" class="btn-secondary"
-                            invisible="state == 'cancelled' or not line_ids"/>
+                            invisible="state == 'cancelled' or not line_ids"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_reset_draft" string="Đưa về nháp"
                             type="object" class="btn-link"
-                            invisible="state not in ('sent', 'cancelled')"/>
+                            invisible="state not in ('sent', 'cancelled')"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_cancel" string="Huỷ đơn"
                             type="object" class="btn-danger"
                             invisible="state in ('confirmed', 'cancelled')"
-                            confirm="Huỷ đơn mua này? Phiếu nhận chưa xác nhận sẽ bị huỷ theo."/>
+                            confirm="Huỷ đơn mua này? Phiếu nhận chưa xác nhận sẽ bị huỷ theo."
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,sent,confirmed"/>
                 </header>

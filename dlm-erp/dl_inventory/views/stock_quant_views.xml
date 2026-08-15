@@ -138,14 +138,16 @@
                 <header>
                     <button name="%(action_dl_stock_inventory)d" type="action"
                             string="Kiểm kê" class="btn-secondary"
-                            display="always"/>
+                            display="always"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <!-- K12 — lối vào thứ hai của phiếu [9] (§6.5): vật tư hỏng
                          trong kho mà KHÔNG đòi được NCC. KHÔNG display="always"
                          — nút này phải có dòng được chọn mới có nghĩa, hiện sẵn
                          khi chưa chọn gì là mời bấm rồi ăn lỗi. -->
                     <button name="action_dlm_to_scrap" type="object"
                             string="Chuyển thành phế liệu"
-                            class="btn-secondary"/>
+                            class="btn-secondary"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                 </header>
                 <field name="product_id" string="Hàng hoá"/>
                 <field name="lot_id" string="Lô" optional="show"/>

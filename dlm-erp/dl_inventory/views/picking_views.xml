@@ -74,16 +74,19 @@
                          phá huỷ = danger (quy ước §11.1). -->
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft' or dlm_blocked"/>
+                            invisible="state != 'draft' or dlm_blocked"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <button name="button_validate" string="Xác nhận nhận hàng"
                             type="object" class="btn-primary"
-                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
+                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <button name="action_dlm_open_qc_picking" string="Mở phiếu kiểm"
                             type="object" class="btn-primary"
                             invisible="state != 'done'"/>
                     <button name="action_cancel" string="Huỷ phiếu"
                             type="object" class="btn-danger"
-                            invisible="state in ('done', 'cancel')"/>
+                            invisible="state in ('done', 'cancel')"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <!-- RS-12 (§11.3) — nhãn của XƯỞNG, không phải của Odoo:
                          "Hoàn tất" trên phiếu nhận khiến thủ kho tưởng xong cả
                          việc kiểm, trong khi hàng mới chỉ vào khu Chờ kiểm. -->
@@ -304,10 +307,12 @@
                          đâu và ai xử lý tiếp (§11.4). -->
                     <button name="action_dlm_validate_qc" string="Xác nhận kiểm"
                             type="object" class="btn-primary"
-                            invisible="state in ('done', 'cancel') or dlm_blocked"/>
+                            invisible="state in ('done', 'cancel') or dlm_blocked"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <button name="action_dlm_pass_all" string="Đạt tất cả"
                             type="object" class="btn-secondary"
-                            invisible="state in ('done', 'cancel')"/>
+                            invisible="state in ('done', 'cancel')"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <!-- RS-12 (§11.4) — "Đang chờ / Sẵn sàng / Hoàn tất" là
                          ngôn ngữ Odoo. Thủ kho đọc theo việc: chờ kiểm → đang
                          kiểm → đã cất vào kho. -->
