@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Unit test L2 (TransactionCase, dùng DB thật) cho dl.pricing.ui — cầu nối
+"""Unit test L2 (TransactionCase, dùng DB thật) cho dl.pricing.ui, cầu nối
 dữ liệu cho màn OWL "Cấu hình Báo giá". Sheet nguồn: DlPricingUi trong
-Report_5_1_UnitTests_L1.xlsx (đặt ở đây, không phải test-DB-free, vì
-get_health()/get_bootstrap() đụng self.env.search/self.env.company thật).
-
-Bổ sung 2026-08-11 (Round 3 — trước đó 0% coverage)."""
+Report_5_1_UnitTests_L1.xlsx. Đặt ở L2 chứ không phải test thuần không đụng
+DB, vì get_health()/get_bootstrap() đụng self.env.search/self.env.company thật.
+"""
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -15,14 +14,16 @@ class TestPricingUi(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.Ui = cls.env["dl.pricing.ui"]
-        # Không active profit rule nào tồn tại theo mặc định trong DB test —
-        # nhưng để chắc chắn (không lệ thuộc data demo/seed khác), hết hiệu
-        # lực mọi profit rule đang active trước khi test.
+        # Mặc định DB test không có profit rule active nào, nhưng để chắc chắn
+        # và không lệ thuộc data demo/seed khác, cho hết hiệu lực mọi profit
+        # rule đang active trước khi test.
         cls.env["dl.pricing.profit.rule"].sudo().search([
             ("state", "=", "active")]).sudo().write({"state": "expired"})
 
     def test_no_active_profit_rule_returns_block_item(self):
-        """TC-UNIT-DlPricingUi-001"""
+        """TC-UNIT-DlPricingUi-001: không có profit rule nào ở trạng thái active thì
+        get_health() trả về một item mức block cảnh báo thiếu chính sách lợi
+        nhuận."""
         items = self.Ui.get_health()
         block_texts = [i["text"] for i in items if i["level"] == "block"]
         self.assertTrue(
@@ -31,7 +32,9 @@ class TestPricingUi(TransactionCase):
         )
 
     def test_operation_used_on_confirmed_bom_without_price_returns_block_item(self):
-        """TC-UNIT-DlPricingUi-002"""
+        """TC-UNIT-DlPricingUi-002: công đoạn chưa có đơn giá được dùng trong dòng
+        operation của một BOM đã confirm thì get_health() trả về item mức block nêu
+        đúng tên công đoạn đó."""
         # Có 1 profit rule active để cô lập đúng nhánh đang test (tránh lẫn
         # với cảnh báo ở TC-001).
         self.env["dl.pricing.profit.rule"].create({
@@ -62,7 +65,9 @@ class TestPricingUi(TransactionCase):
         )
 
     def test_get_bootstrap_perms_differ_by_role(self):
-        """TC-UNIT-DlPricingUi-003"""
+        """TC-UNIT-DlPricingUi-003: get_bootstrap()["perms"] trả về quyền khác nhau
+        theo vai trò: KTV chỉ có quyền waste, không có profit/discount; Giám đốc có
+        đủ profit, discount và self_approve."""
         tech_user = self.env["res.users"].create({
             "name": "KTV test DlPricingUi", "login": "ktv_pricingui_test",
             "groups_id": [(6, 0, [

@@ -1,12 +1,12 @@
-"""Đợt 4 — bộ sinh định mức tham số (thiết kế Thiet_ke_xu_ly_dong_RFQ_ky_thuat
-§7.4a–d).
+"""Đợt 4: bộ sinh định mức tham số (thiết kế Thiet_ke_xu_ly_dong_RFQ_ky_thuat
+§7.4a-d).
 
-Kiểm: chữ ký tham số chuẩn hoá, cổng chất lượng mẫu (chưa duyệt / thiếu tham
-số / ngoài miền), và ánh xạ tuyến tính `target = factor × tham số + offset`
-sinh ra một BOM báo giá (instance) — KHÔNG bao giờ là phiên bản hiện hành.
+Kiểm: chữ ký tham số chuẩn hóa, cổng chất lượng mẫu (chưa duyệt, thiếu tham
+số, ngoài miền), và ánh xạ tuyến tính target = factor x tham số + offset
+sinh ra một BOM báo giá (instance), không bao giờ là phiên bản hiện hành.
 
-File này từng chỉ tồn tại ở máy local (chưa push) nên bị mất khi pull nhánh;
-khôi phục lại vì `tests/__init__.py` vẫn import và feature vẫn chạy.
+File này từng chỉ tồn tại ở máy local (chưa push) nên bị mất khi pull nhánh.
+Khôi phục lại vì tests/__init__.py vẫn import và tính năng vẫn còn dùng.
 """
 
 from odoo.exceptions import UserError
@@ -50,10 +50,11 @@ class TestParametricGenerator(TransactionCase):
             template.action_lock()
         return template
 
-    # ------------------------------------------------------------------
-    # Chữ ký tham số — nền của đường A (khớp cấu hình cũ) và catalog
-    # ------------------------------------------------------------------
+    # Chữ ký tham số: nền của đường A (khớp cấu hình cũ) và catalog
     def test_param_signature_normalized(self):
+        """_dlm_param_signature() phải sắp khoá theo alphabet, bỏ '.0' ở số
+        nguyên, làm tròn 1 chữ số thập phân, và không phụ thuộc thứ tự khai
+        báo tham số đầu vào."""
         sig = self.Bom._dlm_param_signature({"D": 1400, "R": 830})
         self.assertEqual(sig, "D=1400|R=830", "Khoá sắp alphabet, số nguyên bỏ '.0'")
         # Không phụ thuộc thứ tự khai báo + làm tròn 1 chữ số thập phân.
@@ -61,10 +62,10 @@ class TestParametricGenerator(TransactionCase):
             self.Bom._dlm_param_signature({"R": 830.0, "D": 1400.04}),
             "D=1400|R=830")
 
-    # ------------------------------------------------------------------
     # Cổng chất lượng mẫu
-    # ------------------------------------------------------------------
     def test_generate_requires_confirmed_template(self):
+        """Template còn ở state draft (chưa confirm) thì generate_instance()
+        phải raise UserError."""
         template = self._make_template(status="draft")
         template.param_ids = [(0, 0, {
             "code": "L", "name": "Chiều dài", "required": True})]
@@ -72,11 +73,15 @@ class TestParametricGenerator(TransactionCase):
             template.generate_instance(self.product, {"L": 1000})
 
     def test_generate_requires_params(self):
-        template = self._make_template()   # confirmed nhưng CHƯA khai tham số
+        """Template đã confirmed nhưng chưa khai tham số nào thì
+        generate_instance() phải raise UserError."""
+        template = self._make_template()   # confirmed nhưng chưa khai tham số
         with self.assertRaises(UserError):
             template.generate_instance(self.product, {"L": 1000})
 
     def test_missing_required_param_raises(self):
+        """Template có tham số bắt buộc "L" nhưng generate_instance() gọi
+        không truyền giá trị cho L, kỳ vọng raise UserError."""
         template = self._make_template()
         template.param_ids = [(0, 0, {
             "code": "L", "name": "Chiều dài", "required": True})]
@@ -84,6 +89,8 @@ class TestParametricGenerator(TransactionCase):
             template.generate_instance(self.product, {})
 
     def test_param_out_of_range_raises(self):
+        """Tham số "L" có value_min/value_max (100-2000) nhưng giá trị
+        truyền vào là 5000, vượt ngưỡng, kỳ vọng raise UserError."""
         template = self._make_template()
         template.param_ids = [(0, 0, {
             "code": "L", "name": "Chiều dài", "required": True,
@@ -91,10 +98,12 @@ class TestParametricGenerator(TransactionCase):
         with self.assertRaises(UserError):
             template.generate_instance(self.product, {"L": 5000})
 
-    # ------------------------------------------------------------------
-    # Ánh xạ tuyến tính → instance
-    # ------------------------------------------------------------------
+    # Ánh xạ tuyến tính sang instance
     def test_generate_instance_applies_linear_map(self):
+        """Tham số N ánh xạ tuyến tính (factor=2, offset=1) sang quantity
+        của dòng BOM. Instance sinh ra phải là bom_type=quotation,
+        status=draft, is_rfq_provisional=True, is_current=False, và trỏ
+        đúng source_template_id."""
         template = self._make_template()
         param = self.env["dl.bom.template.param"].create({
             "bom_template_id": template.id,

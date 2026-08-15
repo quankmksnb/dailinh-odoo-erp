@@ -1,10 +1,10 @@
-"""Test chấp nhận LKT-01..16 — Thiet_ke_lien_ket_ky_thuat_BOM_vat_tu_BTP_ban_ve
-§15.
+"""Test chấp nhận LKT-01..16, tài liệu
+Thiet_ke_lien_ket_ky_thuat_BOM_vat_tu_BTP_ban_ve §15.
 
 Bao phủ liên kết khối Kỹ thuật: giá vốn BTP dùng chung một helper (LK-02), tự
 cập nhật khi BOM con đổi (LK-16), chặn định mức vòng lặp (LK-01), wizard tạo
 BTP (P3), vệ sinh dữ liệu tạm (LK-07), storable (LK-14), siết mẫu (LK-03),
-guard danh mục (LK-11/13), chính sách & neo bản vẽ (LK-05/06/15), banner cấu
+guard danh mục (LK-11/13), chính sách và neo bản vẽ (LK-05/06/15), banner cấu
 phần chưa định giá (LK-09/10).
 """
 
@@ -39,7 +39,7 @@ class TestBomBtpLinkage(TransactionCase):
         cls.raw_plain = cls.env["product.product"].create({
             "name": "Thép hộp trơn (LKT)", "product_kind": "material"})
 
-    # ------------------------------------------------------------------ helpers
+    # Helpers
     def _mk_product(self, kind, name, categ=None):
         vals = {"name": name, "product_kind": kind}
         if categ is not None:
@@ -47,8 +47,8 @@ class TestBomBtpLinkage(TransactionCase):
         return self.env["product.product"].create(vals)
 
     def _apply_price(self, product, price):
-        """Tạo một bảng giá NCC ĐÃ DUYỆT & ĐANG ÁP DỤNG cho vật tư (để BOM con
-        có total_material_cost khác 0)."""
+        """Tạo một bảng giá nhà cung cấp đã duyệt và đang áp dụng cho vật tư,
+        để BOM con có total_material_cost khác 0."""
         return self.env["product.supplierinfo"].create({
             "partner_id": self.supplier.id,
             "product_tmpl_id": product.product_tmpl_id.id,
@@ -78,10 +78,10 @@ class TestBomBtpLinkage(TransactionCase):
             "datas": base64.b64encode(b"%PDF-1.4 test drawing").decode(),
         })
 
-    # ================================================================ LKT-01/02
+    # LKT-01/02
     def test_lkt01_standard_child_bom_prefers_template(self):
-        """BTP có cả BOM template (is_current) lẫn BOM báo giá version cao hơn →
-        _standard_child_bom trả TEMPLATE; snapshot dòng cha lấy giá vốn template."""
+        """BTP có cả BOM template (is_current) lẫn BOM báo giá version cao hơn,
+        _standard_child_bom phải trả về template; snapshot dòng cha lấy giá vốn template."""
         btp = self._mk_product("material_processed", "BTP khung LKT01", self.btp_categ)
         mat_std = self._mk_product("material", "Thép chuẩn LKT01")
         mat_quote = self._mk_product("material", "Thép báo giá LKT01")
@@ -104,14 +104,14 @@ class TestBomBtpLinkage(TransactionCase):
             "Giá vốn BTP phải lấy từ BOM chuẩn (100), không phải BOM báo giá (999)")
 
     def test_lkt02_fallback_to_quotation_when_no_template(self):
-        """BTP chỉ có BOM báo giá (chưa có template) → fallback trả báo giá."""
+        """BTP chỉ có BOM báo giá, chưa có template, thì fallback trả về báo giá."""
         btp = self._mk_product("material_processed", "BTP chỉ báo giá LKT02", self.btp_categ)
         quotation = self._mk_bom(btp, "quotation", confirm=True)
         self.assertEqual(self.Bom._standard_child_bom(btp), quotation)
 
-    # =================================================================== LKT-03
+    # LKT-03
     def test_lkt03_parent_snapshot_follows_child_cost(self):
-        """Đổi tổng chi phí BOM con của BTP → snapshot BOM cha tự cập nhật (P10)."""
+        """Đổi tổng chi phí BOM con của BTP thì snapshot BOM cha phải tự cập nhật (P10)."""
         btp = self._mk_product("material_processed", "BTP LKT03", self.btp_categ)
         mat = self._mk_product("material", "Thép LKT03")
         self._apply_price(mat, 100.0)
@@ -123,7 +123,7 @@ class TestBomBtpLinkage(TransactionCase):
             "template", material=btp)
         self.assertEqual(parent.line_ids.price_snapshot, 100.0)
 
-        # Thêm 1 dòng vào BOM con confirmed → tổng chi phí 100 → 200.
+        # Thêm 1 dòng vào BOM con đã confirmed, tổng chi phí tăng từ 100 lên 200.
         template.write({"line_ids": [(0, 0, {
             "material_id": mat.id, "quantity": 1.0})]})
         self.assertEqual(template.total_material_cost, 200.0)
@@ -133,19 +133,22 @@ class TestBomBtpLinkage(TransactionCase):
             parent.line_ids.price_snapshot, 200.0,
             "Snapshot BOM cha phải lan theo tổng chi phí BOM con (LK-16)")
 
-    # =================================================================== LKT-04
+    # LKT-04
     def test_lkt04_cycle_blocked(self):
-        """Dòng BOM trỏ BTP mà BTP (gián tiếp) dùng lại SP cha → ValidationError."""
+        """Dòng BOM trỏ tới BTP mà BTP đó (gián tiếp) dùng lại sản phẩm cha
+        thì phải raise ValidationError."""
         btp_a = self._mk_product("material_processed", "BTP A LKT04", self.btp_categ)
         btp_b = self._mk_product("material_processed", "BTP B LKT04", self.btp_categ)
         # B làm từ A.
         self._mk_bom(btp_b, "template", material=btp_a, confirm=True)
-        # A làm từ B → A dùng B, B dùng A ⇒ vòng lặp.
+        # A làm từ B: A dùng B, B dùng A, thành vòng lặp.
         with self.assertRaises(ValidationError):
             self._mk_bom(btp_a, "template", material=btp_b)
 
-    # ================================================================ LKT-05/06
+    # LKT-05/06
     def test_lkt05_wizard_blocks_exact_duplicate_name(self):
+        """LKT-05: wizard tạo BTP với tên trùng y hệt một sản phẩm BTP đã tồn
+        tại (không phải bản tạm) phải raise UserError, không cho tạo trùng."""
         existing = self._mk_product(
             "material_processed", "Khung hàn LKT05", self.btp_categ)
         self.assertFalse(existing.is_rfq_provisional)
@@ -161,6 +164,10 @@ class TestBomBtpLinkage(TransactionCase):
             wizard.action_create()
 
     def test_lkt06_wizard_creates_btp_tree(self):
+        """LKT-06: wizard tạo BTP mới (init_mode=empty) từ một BOM cha đang
+        nháp phải tạo đồng thời sản phẩm BTP (draft, đúng category) và BOM
+        con status draft, đồng thời thêm vào BOM cha một dòng vật tư
+        quantity=2 trỏ tới BTP vừa tạo."""
         parent = self._mk_bom(
             self._mk_product("manufactured", "Bàn LKT06", self.finished_categ),
             "template")
@@ -187,18 +194,18 @@ class TestBomBtpLinkage(TransactionCase):
         self.assertEqual(len(new_line), 1)
         self.assertEqual(new_line.quantity, 2.0)
 
-    # ================================================================ LKT-07/08
+    # LKT-07/08
     def test_lkt08_cleanup_handles_material_and_btp(self):
-        """Vệ sinh dữ liệu tạm mở rộng cho CẢ vật tư thô lẫn BTP (LK-07): dọn
+        """Vệ sinh dữ liệu tạm mở rộng cho cả vật tư thô lẫn BTP (LK-07): dọn
         bản mồ côi, giữ bản còn được bản ghi khác trỏ tới."""
-        # Vật tư thô tạm KHÔNG được dùng → phải bị dọn.
+        # Vật tư thô tạm không được dùng, phải bị dọn.
         orphan_mat = self.Product.create({
             "name": "Vật tư tạm mồ côi LKT08",
             "product_kind": "material",
             "dlm_lifecycle_state": "draft",
             "is_rfq_provisional": True,
         })
-        # BTP tạm ĐƯỢC một BOM trỏ tới (material_id) → phải GIỮ.
+        # BTP tạm được một BOM trỏ tới (material_id), phải giữ lại.
         used_btp = self.Product.create({
             "name": "BTP tạm được dùng LKT08",
             "product_kind": "material_processed",
@@ -222,8 +229,11 @@ class TestBomBtpLinkage(TransactionCase):
             self.Product.browse(used_id).exists(),
             "BTP tạm còn được BOM khác trỏ tới thì phải giữ")
 
-    # =================================================================== LKT-09
+    # LKT-09
     def test_lkt09_created_products_are_storable(self):
+        """LKT-09: sản phẩm tạo qua ứng dụng với bất kỳ product_kind nào
+        (manufactured/material/material_processed/trading) phải luôn storable
+        (detailed_type=product) để tương thích module Kho."""
         for kind in ("manufactured", "material", "material_processed", "trading"):
             product = self.Product.create({
                 "name": "Storable %s LKT09" % kind, "product_kind": kind})
@@ -231,8 +241,11 @@ class TestBomBtpLinkage(TransactionCase):
                 product.detailed_type, "product",
                 "SP kind=%s tạo qua app phải storable (mở đường Kho)" % kind)
 
-    # =================================================================== LKT-10
+    # LKT-10
     def test_lkt10_copy_from_draft_template_blocked(self):
+        """LKT-10: áp dụng một dl.bom.template đang ở trạng thái nháp vào một
+        BOM khác qua wizard phải raise UserError, chỉ được áp dụng mẫu đã
+        duyệt."""
         prod = self._mk_product("manufactured", "Bàn LKT10", self.finished_categ)
         bom = self._mk_bom(prod, "template")   # đích, còn Nháp
         draft_template = self.env["dl.bom.template"].create({
@@ -248,8 +261,11 @@ class TestBomBtpLinkage(TransactionCase):
         with self.assertRaises(UserError):
             wizard.action_confirm()
 
-    # =================================================================== LKT-11
+    # LKT-11
     def test_lkt11_archive_category_with_active_product_blocked(self):
+        """LKT-11: lưu trữ (archive) một product.category còn chứa sản phẩm
+        đang ở trạng thái active phải raise ValidationError, chặn ẩn nhóm khi
+        còn sản phẩm đang dùng thật."""
         categ = self.env["product.category"].create({
             "name": "Nhóm còn SP active LKT11",
             "parent_id": self.material_root.id,
@@ -259,8 +275,12 @@ class TestBomBtpLinkage(TransactionCase):
         with self.assertRaises(ValidationError):
             categ.active = False
 
-    # =================================================================== LKT-12
+    # LKT-12
     def test_lkt12_tech_can_create_material_branch_only(self):
+        """LKT-12: người dùng nhóm Kỹ thuật (dl_group_tech) tạo
+        product.category dưới nhánh Vật tư thì được phép và dl_branch tự
+        nhận đúng giá trị 'material'; tạo dưới nhánh Thành phẩm thì bị
+        record rule chặn, raise AccessError."""
         tech_user = self.env["res.users"].create({
             "name": "KTV LKT12",
             "login": "ktv_lkt12",
@@ -270,18 +290,22 @@ class TestBomBtpLinkage(TransactionCase):
             ])],
         })
         Category = self.env["product.category"].with_user(tech_user)
-        # Nhánh Vật tư — được tạo.
+        # Nhánh Vật tư: được tạo.
         mat_cat = Category.create({
             "name": "KTV nhóm vật tư LKT12", "parent_id": self.material_root.id})
         self.assertTrue(mat_cat.exists())
         self.assertEqual(mat_cat.dl_branch, "material")
-        # Nhánh Thành phẩm — record rule chặn.
+        # Nhánh Thành phẩm: record rule chặn.
         with self.assertRaises(AccessError):
             Category.create({
                 "name": "KTV nhóm TP LKT12", "parent_id": self.finished_root.id})
 
-    # =================================================================== LKT-13
+    # LKT-13
     def test_lkt13_depth_warning_soft(self):
+        """LKT-13: onchange _onchange_dlm_depth_warning() trả cảnh báo khi tạo
+        category vượt quá độ sâu tối đa cấu hình (category_max_depth), nhưng
+        không cảnh báo khi còn trong ngưỡng. Đây là cảnh báo mềm, không chặn
+        lưu."""
         self.env["ir.config_parameter"].sudo().set_param(
             "dl_product.category_max_depth", "1")
         c1 = self.env["product.category"].create({"name": "c1 LKT13"})
@@ -297,10 +321,14 @@ class TestBomBtpLinkage(TransactionCase):
             shallow._onchange_dlm_depth_warning(),
             "Nhóm trong ngưỡng không cảnh báo")
 
-    # =================================================================== LKT-14
+    # LKT-14
     def test_lkt14_drawing_version_notifies_unlocked_bom(self):
+        """LKT-14: khi bản vẽ (dl.drawing) của một BTP có version mới được
+        duyệt, hệ thống phải tạo mail.activity nhắc rà soát cho BOM chưa khóa
+        của sản phẩm đó, nhưng BOM đã khóa (action_lock) thì không tạo
+        activity vì đã đóng băng theo snapshot (LK-15)."""
         product = self._mk_product("material_processed", "BTP có bản vẽ LKT14", self.btp_categ)
-        draft_bom = self._mk_bom(product, "template")           # còn Nháp
+        draft_bom = self._mk_bom(product, "template")           # còn nháp
         locked_bom = self._mk_bom(product, "template", confirm=True)
         locked_bom.action_lock()
 
@@ -325,13 +353,17 @@ class TestBomBtpLinkage(TransactionCase):
             "BOM đã khóa không bị đụng (ranh giới snapshot)")
 
     def test_lkt13b_drawing_domain_blocks_raw_material(self):
-        """LKT-13(§) — gắn bản vẽ cho vật tư thô bị chặn cứng (LK-05)."""
+        """LKT-13(§): gắn bản vẽ cho vật tư thô bị chặn cứng (LK-05)."""
         with self.assertRaises(ValidationError):
             self.env["dl.drawing"].create({
                 "name": "BV sai loại", "product_id": self.raw_plain.id})
 
-    # =================================================================== LKT-15
+    # LKT-15
     def test_lkt15_drawing_policy_block_then_warn(self):
+        """LKT-15: xác nhận BOM của sản phẩm hoàn thiện chưa có bản vẽ, khi
+        tham số dl_technical.require_drawing_for_finished='block' phải raise
+        UserError; đổi tham số sang 'warn' thì xác nhận vẫn thành công (chỉ
+        cảnh báo, không chặn)."""
         Param = self.env["ir.config_parameter"].sudo()
         product = self._mk_product("manufactured", "Bàn cần bản vẽ LKT15", self.finished_categ)
         bom = self._mk_bom(product, "template")
@@ -344,9 +376,10 @@ class TestBomBtpLinkage(TransactionCase):
         bom.action_confirm()
         self.assertEqual(bom.status, "confirmed")
 
-    # =================================================================== LKT-16
+    # LKT-16
     def test_lkt16_unpriced_components_flag(self):
-        """BOM có vật tư chưa giá / BTP chưa BOM chuẩn → cờ + tên đúng."""
+        """BOM có vật tư chưa giá hoặc BTP chưa có BOM chuẩn thì phải bật cờ
+        và nêu đúng tên."""
         product = self._mk_product("manufactured", "Bàn LKT16", self.finished_categ)
         unpriced_mat = self._mk_product("material", "Vật tư chưa giá LKT16")
         btp_no_bom = self._mk_product("material_processed", "BTP chưa BOM LKT16", self.btp_categ)

@@ -2,9 +2,7 @@
 """L2 Integration test cho các wizard chưa từng có test: dl.quotation.reject.
 wizard, dl.quotation.revision.wizard, dl.sale.order.reset.draft.wizard,
 dl.quotation.export.wizard. Sheet nguồn: TestUntestedWizards trong
-Report_5_2_IntegrationTests_L2.xlsx.
-
-Bổ sung 2026-08-11 (Round 3 — trước đó 0% coverage)."""
+Report_5_2_IntegrationTests_L2.xlsx."""
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import TransactionCase, tagged
 
@@ -27,7 +25,9 @@ class TestQuotationWizards(TransactionCase):
 
     # ---------------------------------------------------------- reject wizard
     def test_reject_wizard_other_reason_without_note_raises(self):
-        """TC-INT-TestUntestedWizards-003"""
+        """TC-INT-TestUntestedWizards-003: báo giá đang sent, wizard từ chối
+        chọn reason "other" nhưng note rỗng thì action_confirm báo lỗi
+        UserError."""
         quotation = self._quotation(state="sent")
         wizard = self.env["dl.quotation.reject.wizard"].create({
             "quotation_id": quotation.id, "reason": "other", "note": "",
@@ -37,7 +37,8 @@ class TestQuotationWizards(TransactionCase):
 
     # --------------------------------------------------------- revision wizard
     def test_revision_wizard_empty_note_raises(self):
-        """TC-INT-TestUntestedWizards-004"""
+        """TC-INT-TestUntestedWizards-004: wizard yêu cầu chỉnh sửa với note
+        chỉ toàn khoảng trắng thì action_confirm báo lỗi UserError."""
         quotation = self._quotation(state="sent")
         wizard = self.env["dl.quotation.revision.wizard"].create({
             "quotation_id": quotation.id, "adjust_type": "commercial", "note": "  ",
@@ -46,7 +47,10 @@ class TestQuotationWizards(TransactionCase):
             wizard.action_confirm()
 
     def test_revision_wizard_happy_delegates_to_apply_revision_request(self):
-        """TC-INT-TestUntestedWizards-005"""
+        """TC-INT-TestUntestedWizards-005: wizard yêu cầu chỉnh sửa kỹ thuật
+        với note hợp lệ thì action_confirm chuyển báo giá sang state
+        revision_requested, lưu đúng loại và nội dung yêu cầu, đồng thời trả
+        về action đóng cửa sổ (ir.actions.act_window_close)."""
         quotation = self._quotation(state="sent")
         wizard = self.env["dl.quotation.revision.wizard"].create({
             "quotation_id": quotation.id, "adjust_type": "technical",
@@ -60,7 +64,9 @@ class TestQuotationWizards(TransactionCase):
 
     # --------------------------------------------------------- reset-draft wizard
     def test_sale_order_reset_draft_wizard_empty_reason_raises(self):
-        """TC-INT-TestUntestedWizards-006"""
+        """TC-INT-TestUntestedWizards-006: đơn hàng đang confirmed, wizard
+        chuyển về nháp với lý do chỉ toàn khoảng trắng thì action_confirm báo
+        lỗi ValidationError."""
         order = self.env["dl.sale.order"].create({
             "partner_id": self.customer.id, "state": "confirmed"})
         wizard = self.env["dl.sale.order.reset.draft.wizard"].create({
@@ -71,7 +77,8 @@ class TestQuotationWizards(TransactionCase):
 
     # --------------------------------------------------------- export wizard
     def test_export_wizard_email_blocked_when_customer_has_no_email(self):
-        """TC-INT-TestUntestedWizards-007"""
+        """TC-INT-TestUntestedWizards-007: khách hàng của báo giá chưa có
+        email thì wizard xuất báo giá gọi action_email báo lỗi UserError."""
         quotation = self._quotation(state="sent")
         self.assertFalse(quotation.partner_id.email)
         wizard = self.env["dl.quotation.export.wizard"].create({
@@ -81,7 +88,10 @@ class TestQuotationWizards(TransactionCase):
             wizard.action_email()
 
     def test_export_wizard_email_happy_builds_composer_action(self):
-        """TC-INT-TestUntestedWizards-008"""
+        """TC-INT-TestUntestedWizards-008: khách hàng đã có email, wizard
+        xuất báo giá gọi action_email trả về action mở mail.compose.message
+        với context đúng model/res_ids của báo giá, có đính kèm file và đúng
+        partner_ids của khách hàng."""
         quotation = self._quotation(state="sent")
         quotation.partner_id.email = "khach_test_export@dailinh.vn"
         wizard = self.env["dl.quotation.export.wizard"].create({

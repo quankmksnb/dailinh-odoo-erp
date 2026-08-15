@@ -3,11 +3,11 @@
 Thiết kế: docs/Thiet_ke_xu_ly_dong_RFQ_ky_thuat.md §3 (ba trục), §7.4c (C1–C5),
 §15.3 (RC05, RC14). Bất biến được kiểm: I7 và I9 (§7.1).
 
-Vì sao cần bộ test này: BOM báo giá (`bom_type='quotation'`) là ĐỊNH MỨC CỦA
-MỘT ĐƠN — nó tồn tại song song với các đơn khác, nên KHÔNG được tranh cờ
-"phiên bản hiện hành" với định mức chuẩn của sản phẩm. Trước đây nó tranh, và
-mỗi lần Kỹ thuật hoàn tất một dòng RFQ thì định mức chuẩn của sản phẩm bị một
-đơn lẻ ghi đè.
+Vì sao cần bộ test này: BOM báo giá (bom_type='quotation') là định mức riêng
+của một đơn, tồn tại song song với các đơn khác, nên không được tranh cờ
+"phiên bản hiện hành" với định mức chuẩn của sản phẩm. Trước đây nó tranh cờ:
+mỗi lần Kỹ thuật hoàn tất một dòng RFQ, định mức chuẩn của sản phẩm lại bị
+đơn lẻ đó ghi đè.
 """
 
 from odoo.tests.common import TransactionCase, tagged
@@ -31,7 +31,7 @@ class TestBomAxisSeparation(TransactionCase):
         })
 
     def _make_bom(self, bom_type, version, product=None, qty=1.0):
-        """BOM tối thiểu nhưng ĐỦ ĐIỀU KIỆN xác nhận (phải có ≥1 dòng vật tư)."""
+        """BOM tối thiểu nhưng đủ điều kiện xác nhận (phải có ít nhất 1 dòng vật tư)."""
         return self.env["dl.bom"].create({
             "product_id": (product or self.product).id,
             "bom_type": bom_type,
@@ -43,18 +43,16 @@ class TestBomAxisSeparation(TransactionCase):
             })],
         })
 
-    # ------------------------------------------------------------------
-    # I7 — instance không bao giờ là phiên bản hiện hành
-    # ------------------------------------------------------------------
+    # I7: instance không bao giờ là phiên bản hiện hành
     def test_quotation_bom_never_becomes_current(self):
-        """RC05 — xác nhận BOM báo giá KHÔNG bật cờ hiện hành."""
+        """RC05: xác nhận BOM báo giá không bật cờ hiện hành."""
         quotation_bom = self._make_bom("quotation", 1)
         quotation_bom.action_confirm()
 
         self.assertEqual(quotation_bom.status, "confirmed")
         self.assertFalse(
             quotation_bom.is_current,
-            "BOM báo giá là định mức của MỘT đơn, không phải phiên bản của sản phẩm",
+            "BOM báo giá là định mức của một đơn, không phải phiên bản của sản phẩm",
         )
 
     def test_standard_bom_still_becomes_current(self):
@@ -64,14 +62,14 @@ class TestBomAxisSeparation(TransactionCase):
 
         self.assertTrue(
             standard.is_current,
-            "BOM chuẩn (template) vẫn là trục thời gian — phải giữ nguyên hành vi",
+            "BOM chuẩn (template) vẫn là trục thời gian, phải giữ nguyên hành vi",
         )
 
     def test_quotation_boms_do_not_steal_current_from_standard(self):
-        """RC05 (trọng tâm) — ba đơn khác kích thước KHÔNG đụng định mức chuẩn.
+        """RC05 (trọng tâm): ba đơn khác kích thước không được đụng vào định mức chuẩn.
 
-        Đây chính là kịch bản hỏng trước đây: mỗi lần hoàn tất một dòng RFQ,
-        BOM riêng của đơn đó lại thành "phiên bản hiện hành" của sản phẩm.
+        Đây là kịch bản đã từng hỏng: mỗi lần hoàn tất một dòng RFQ, BOM riêng
+        của đơn đó lại thành "phiên bản hiện hành" của sản phẩm.
         """
         standard = self._make_bom("template", 1)
         standard.action_confirm()
@@ -88,10 +86,11 @@ class TestBomAxisSeparation(TransactionCase):
             "Định mức chuẩn phải giữ nguyên cờ hiện hành sau 3 đơn tuỳ kích thước",
         )
 
-    # ------------------------------------------------------------------
-    # I9 — mỗi sản phẩm tối đa một bản hiện hành, và phải là BOM chuẩn
-    # ------------------------------------------------------------------
+    # I9: mỗi sản phẩm tối đa một bản hiện hành, và phải là BOM chuẩn
     def test_at_most_one_current_bom_per_product_and_it_is_standard(self):
+        """I9: xác nhận 2 BOM chuẩn (version 1, 2) rồi thêm 1 BOM báo giá cùng
+        sản phẩm. Tìm theo is_current=True chỉ trả về đúng 1 bản ghi, kiểu
+        template, và đó là bản chuẩn mới nhất (version 2)."""
         first = self._make_bom("template", 1)
         first.action_confirm()
         second = self._make_bom("template", 2)
@@ -104,18 +103,16 @@ class TestBomAxisSeparation(TransactionCase):
             ("product_id", "=", self.product.id),
             ("is_current", "=", True),
         ])
-        self.assertEqual(len(current), 1, "Mỗi sản phẩm chỉ có MỘT bản hiện hành")
+        self.assertEqual(len(current), 1, "Mỗi sản phẩm chỉ có một bản hiện hành")
         self.assertEqual(current.bom_type, "template")
         self.assertEqual(current, second, "Bản chuẩn mới hơn thay thế bản cũ")
 
-    # ------------------------------------------------------------------
-    # Chỉnh định mức cho MỘT đơn phải ra BOM báo giá, không phải BOM mẫu
-    # ------------------------------------------------------------------
+    # Chỉnh định mức cho một đơn phải ra BOM báo giá, không phải BOM mẫu
     def test_editing_standard_bom_for_an_order_creates_quotation_bom(self):
-        """`copy()` kế thừa `bom_type` — nếu không ghi đè thì chỉnh một BOM mẫu
-        cho một đơn lại đẻ thêm một BOM MẪU: định mức của một đơn chiếm số
-        phiên bản trong dòng dõi định mức chuẩn của sản phẩm, hiện sai nhãn, và
-        có thể bị lấy làm giá vốn chuẩn nếu sản phẩm là bán thành phẩm."""
+        """copy() kế thừa bom_type, nên nếu không ghi đè thì chỉnh một BOM mẫu
+        cho một đơn lại đẻ thêm một BOM mẫu khác: định mức của đơn đó chiếm số
+        phiên bản trong dòng dõi định mức chuẩn của sản phẩm, sai nhãn, và có
+        thể bị lấy làm giá vốn chuẩn nếu sản phẩm là bán thành phẩm."""
         standard = self._make_bom("template", 1)
         standard.action_confirm()
 
@@ -156,7 +153,7 @@ class TestBomAxisSeparation(TransactionCase):
         )
 
     def test_version_numbering_untouched(self):
-        """C3 — KHÔNG đụng `_version_domain()`.
+        """C3: không đụng đến _version_domain().
 
         Đánh số vẫn theo (product, bom_type) để giữ nguyên SQL constraint
         unique(product_id, version, bom_type). Chỉ cờ hiện hành bị chặn.

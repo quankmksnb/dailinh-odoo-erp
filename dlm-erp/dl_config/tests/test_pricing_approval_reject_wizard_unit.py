@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-"""L2 Integration test cho dl.pricing.approval.reject.wizard (dl_config/
-wizard/pricing_approval_reject_wizard.py). Sheet nguồn: TestUntestedWizards
-trong Report_5_2_IntegrationTests_L2.xlsx.
-
-Bổ sung 2026-08-11 (Round 3 — trước đó 0% coverage)."""
+"""Integration test (L2) cho dl.pricing.approval.reject.wizard
+(dl_config/wizard/pricing_approval_reject_wizard.py).
+Sheet nguồn: TestUntestedWizards trong Report_5_2_IntegrationTests_L2.xlsx.
+"""
 from odoo.exceptions import ValidationError
 from odoo.tests.common import TransactionCase, tagged
 
@@ -29,7 +28,8 @@ class TestPricingApprovalRejectWizard(TransactionCase):
         })
 
     def test_empty_reject_comment_raises(self):
-        """TC-INT-TestUntestedWizards-001"""
+        """TC-INT-TestUntestedWizards-001: reject_comment chỉ có khoảng trắng thì
+        action_confirm() báo lỗi ValidationError."""
         req = self._pending_request()
         wizard = self.env["dl.pricing.approval.reject.wizard"].with_user(
             self.admin_user).create({"request_id": req.id, "reject_comment": "   "})
@@ -37,7 +37,8 @@ class TestPricingApprovalRejectWizard(TransactionCase):
             wizard.action_confirm()
 
     def test_happy_writes_comment_and_delegates_to_action_reject(self):
-        """TC-INT-TestUntestedWizards-002"""
+        """TC-INT-TestUntestedWizards-002: reject_comment hợp lệ thì action_confirm()
+        chuyển request sang trạng thái rejected và ghi lại đúng nội dung comment."""
         req = self._pending_request()
         wizard = self.env["dl.pricing.approval.reject.wizard"].with_user(
             self.admin_user).create({

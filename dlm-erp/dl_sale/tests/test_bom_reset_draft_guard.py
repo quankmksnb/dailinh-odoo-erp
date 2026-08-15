@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""L2 Integration test cho dl.bom._check_can_reset_draft() override TỪ
-dl_sale (dl_sale/models/dl_bom_ext.py, DlBom._inherit='dl.bom') — chặn
-hạ-nháp/sửa 1 BOM đã được đơn hàng/báo giá chốt tham chiếu. Sheet nguồn:
-DlBomHeaderMixin trong Report_5_1_UnitTests_L1.xlsx (TC-017/018, method
-thật nằm ở dl_sale nhưng gộp vào sheet BOM gốc — cùng cơ chế
-_check_can_reset_draft()).
+"""L2 Integration test cho dl.bom._check_can_reset_draft() override từ
+dl_sale (dl_sale/models/dl_bom_ext.py, DlBom._inherit='dl.bom'). Test này
+kiểm tra việc chặn hạ nháp hoặc sửa một BOM đã được đơn hàng/báo giá đã
+chốt tham chiếu.
 
-Bổ sung 2026-08-11 (Round 3 — trước đó 0% coverage)."""
+Sheet nguồn: DlBomHeaderMixin trong Report_5_1_UnitTests_L1.xlsx (TC-017/018).
+Method thật nằm ở dl_sale nhưng gộp vào sheet BOM gốc vì dùng chung cơ chế
+_check_can_reset_draft()."""
 from odoo.exceptions import UserError
 from odoo.tests.common import TransactionCase, tagged
 
@@ -35,11 +35,11 @@ class TestBomResetDraftGuard(TransactionCase):
         return bom
 
     def test_bom_used_by_confirmed_sale_order_blocks_reset_draft(self):
-        """TC-UNIT-DlBomHeaderMixin-017 — tạo đơn THẲNG ở state='confirmed'
-        lúc create() (không đi qua write({'state':'confirmed'})) để không bị
-        _promote_draft_products() khoá BOM trước khi kịp test guard riêng
-        của dl_sale — cô lập đúng nhánh đang test (BOM đã Đã xác nhận, bị
-        1 dòng đơn Đã xác nhận tham chiếu)."""
+        """TC-UNIT-DlBomHeaderMixin-017: tạo đơn trực tiếp ở state='confirmed'
+        ngay lúc create() (không đi qua write({'state':'confirmed'})) để
+        tránh _promote_draft_products() khoá BOM trước khi guard của dl_sale
+        kịp chạy. Nhờ vậy test cô lập đúng nhánh cần kiểm: BOM đã xác nhận,
+        bị một dòng đơn đã xác nhận tham chiếu."""
         bom = self._make_confirmed_bom()
         order = self.env["dl.sale.order"].create({
             "partner_id": self.customer.id, "state": "confirmed",
@@ -52,7 +52,9 @@ class TestBomResetDraftGuard(TransactionCase):
         self.assertEqual(bom.status, "confirmed", "Không được đổi khi bị chặn")
 
     def test_bom_used_by_accepted_quotation_blocks_reset_draft(self):
-        """TC-UNIT-DlBomHeaderMixin-018"""
+        """TC-UNIT-DlBomHeaderMixin-018: BOM đã xác nhận bị một báo giá ở
+        trạng thái accepted tham chiếu thì action_reset_draft() phải raise
+        UserError và giữ nguyên status='confirmed'."""
         bom = self._make_confirmed_bom()
         quotation = self.env["dl.quotation"].create({
             "partner_id": self.customer.id,

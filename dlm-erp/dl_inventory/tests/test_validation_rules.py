@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-"""RS-06, RS-07, RS-11 — Ca ngoại lệ: chặn đúng chỗ, báo bằng tiếng Việt.
+"""RS-06, RS-07, RS-11: các ca ngoại lệ, chặn đúng chỗ, báo lỗi bằng tiếng Việt.
 
 Rà soát: docs/Ra_soat_phan_he_kho_2026-08-12.md
 
 Nguyên tắc đã chốt (memory `rfq-sales-hard-constrains-ux-branch`): ràng buộc
-**sửa-được-trên-form** phải báo INLINE — dải đỏ + ẩn nút, không bắn modal. Guard
-server chỉ là lưới cuối cho đường RPC.
+sửa được ngay trên form phải báo inline bằng dải đỏ và ẩn nút, không bắn modal.
+Guard phía server chỉ là lưới chặn cuối cho đường RPC.
 
 Ca đắt nhất trong file này là RS-07: kiểm kê ở khu Chờ trả NCC xoá đúng số hàng
-mà phiếu trả (nháp) đang tham chiếu — mất bằng chứng khiếu nại NCC, không lỗi
-nào nổ.
+mà phiếu trả (nháp) đang tham chiếu, làm mất bằng chứng khiếu nại NCC mà không
+có lỗi nào báo trước.
 """
 
 from odoo.exceptions import UserError
@@ -20,7 +20,7 @@ from .common import DlInventoryCase
 
 @tagged("post_install", "-at_install", "dl_inventory")
 class TestQcEntryEase(DlInventoryCase):
-    """RS-06 — Gõ Loại thì tự hạ Đạt."""
+    """RS-06: gõ Loại thì tự hạ Đạt."""
 
     def _qc(self, qty=198.0):
         receipt = self._receive(self._make_receipt(qty=qty), qty=qty)
@@ -38,7 +38,7 @@ class TestQcEntryEase(DlInventoryCase):
         self.assertFalse(move.dlm_qc_over, "QC-02 không được còn nổ đỏ.")
 
     def test_khong_ha_khi_chua_vuot(self):
-        """Chỉ can thiệp khi vượt — không được sửa số người dùng gõ vô cớ."""
+        """Chỉ can thiệp khi vượt, không được sửa số người dùng đã gõ vô cớ."""
         qc = self._qc()
         move = qc.move_ids.filtered(lambda m: m.product_id == self.material)[:1]
         move.quantity = 100.0
@@ -59,7 +59,7 @@ class TestQcEntryEase(DlInventoryCase):
                         "Loại 250 trên 198 nhận vẫn phải bị chặn.")
 
     def test_onchange_duoc_noi_vao_form_kiem_hang(self):
-        """Method đúng chưa đủ — client phải thật sự gọi nó khi gõ.
+        """Method đúng chưa đủ, client phải thật sự gọi nó khi gõ.
 
         Hai điều kiện: onchange có trong registry của model, và ô Loại có mặt
         trên bảng dòng của form Kiểm hàng (client chỉ kích hoạt onchange cho
@@ -75,9 +75,11 @@ class TestQcEntryEase(DlInventoryCase):
 
 @tagged("post_install", "-at_install", "dl_inventory")
 class TestTransitZoneInventory(DlInventoryCase):
-    """RS-07 — Khu quá cảnh: tồn chỉ đổi qua phiếu."""
+    """RS-07: khu quá cảnh, tồn chỉ đổi qua phiếu."""
 
     def test_hai_khu_qua_canh_bi_danh_dau(self):
+        """Khu Chờ kiểm và khu Chờ trả NCC là khu quá cảnh, kỳ vọng cả hai
+        đều bị đánh dấu dlm_no_inventory=True (cấm kiểm kê tay)."""
         self.assertTrue(self.loc_qc.dlm_no_inventory,
                         "Khu Chờ kiểm phải bị cấm kiểm kê tay.")
         self.assertTrue(self.loc_tra.dlm_no_inventory,
@@ -108,6 +110,9 @@ class TestTransitZoneInventory(DlInventoryCase):
             quant._apply_inventory()
 
     def test_man_kiem_ke_khong_liet_ke_khu_qua_canh(self):
+        """Domain của action kiểm kê không được liệt kê khu Chờ trả NCC và
+        khu Chờ kiểm, kỳ vọng cả hai khu đều không nằm trong locations trả
+        về."""
         from odoo.tools.safe_eval import safe_eval
         domain = safe_eval(
             self.env.ref("dl_inventory.action_dl_stock_inventory").domain)
@@ -118,7 +123,7 @@ class TestTransitZoneInventory(DlInventoryCase):
 
 @tagged("post_install", "-at_install", "dl_inventory")
 class TestConfirmValidation(DlInventoryCase):
-    """RS-11 — Năm ca ngoại lệ từng rơi xuống thông báo tiếng Anh."""
+    """RS-11: năm ca ngoại lệ từng rơi xuống thông báo tiếng Anh."""
 
     def _transfer(self, source, dest, qty=5.0):
         return self.env["stock.picking"].create({
@@ -137,6 +142,9 @@ class TestConfirmValidation(DlInventoryCase):
         })
 
     def test_chuyen_kho_nguon_trung_dich_bi_chan(self):
+        """Phiếu chuyển kho có vị trí nguồn trùng vị trí đích thì bị chặn
+        (dlm_blocked=True, banner danger) và action_confirm() phải raise
+        UserError."""
         picking = self._transfer(self.loc_kho, self.loc_kho)
         self.assertTrue(picking.dlm_blocked,
                         "Nguồn trùng đích ⇒ phải chặn xác nhận.")
@@ -146,12 +154,17 @@ class TestConfirmValidation(DlInventoryCase):
             picking.action_confirm()
 
     def test_chuyen_kho_hop_le_khong_bi_chan(self):
+        """Phiếu chuyển kho có nguồn khác đích (hợp lệ) thì không bị chặn,
+        action_confirm() chạy được và đổi state khỏi draft."""
         picking = self._transfer(self.loc_kho, self.loc_xuong)
         self.assertFalse(picking.dlm_blocked)
         picking.action_confirm()
         self.assertNotEqual(picking.state, "draft")
 
     def test_dong_so_luong_0_bi_chan_va_neu_ten(self):
+        """Dòng chuyển kho có số lượng 0 thì bị chặn, banner phải nêu đích
+        danh tên vật tư sai chứ không nói chung chung, và action_confirm()
+        phải raise UserError."""
         picking = self._transfer(self.loc_kho, self.loc_xuong, qty=0.0)
         self.assertTrue(picking.dlm_blocked)
         self.assertIn(self.material.display_name, picking.dlm_banner_message,
@@ -160,6 +173,8 @@ class TestConfirmValidation(DlInventoryCase):
             picking.action_confirm()
 
     def test_phieu_nhan_dong_so_luong_0_bi_chan(self):
+        """Phiếu nhận hàng từ NCC cũng áp dụng cùng quy tắc: dòng số lượng
+        0 phải bị chặn."""
         picking = self.env["stock.picking"].create({
             "picking_type_id": self.warehouse.in_type_id.id,
             "partner_id": self.vendor.id,
@@ -191,7 +206,7 @@ class TestConfirmValidation(DlInventoryCase):
             qc.action_dlm_validate_qc()
 
     def test_chuyen_kho_thieu_ton_canh_bao_chu_khong_chan(self):
-        """Thiếu tồn là cảnh báo, KHÔNG chặn — cùng lệ với màn Bán phế liệu.
+        """Thiếu tồn là cảnh báo, không chặn, cùng lệ với màn Bán phế liệu.
 
         Chặn cứng ở đây là chặn luôn ca hợp lệ "lập phiếu trước, hàng về sau".
         """
@@ -226,13 +241,13 @@ class TestConfirmValidation(DlInventoryCase):
 class TestTransferShortage(DlInventoryCase):
     """Chuyển kho: khu nguồn có đủ hàng để chuyển số đó không?
 
-    Lỗ hổng đang vá: domain SM-03 chỉ lọc mặt hàng CÓ tồn (> 0) ở khu nguồn —
-    nó không nói gì về SỐ LƯỢNG. Chọn đúng mặt hàng rồi gõ số vượt tồn vẫn lọt
-    trơn, phiếu treo `confirmed` mà màn hình không giải thích vì sao.
+    Lỗ hổng đang vá: domain SM-03 chỉ lọc mặt hàng có tồn (> 0) ở khu nguồn,
+    không nói gì về số lượng. Chọn đúng mặt hàng rồi gõ số vượt tồn vẫn lọt
+    trơn, phiếu treo ở trạng thái `confirmed` mà màn hình không giải thích vì sao.
     """
 
     def _stock(self, location, qty, product=None):
-        """Đặt sẵn tồn ở một khu (kèm lô — vật tư của dự án theo lô)."""
+        """Đặt sẵn tồn ở một khu, kèm lô vì vật tư của dự án theo lô."""
         product = product or self.material
         lot = self.env["stock.lot"].create({
             "name": "LO-TEST-%s" % location.id,
@@ -259,7 +274,7 @@ class TestTransferShortage(DlInventoryCase):
         })
 
     def test_go_vuot_ton_thi_canh_bao_kem_con_so(self):
-        """Cảnh báo phải nêu ĐÍCH DANH mặt hàng + số còn thực tế.
+        """Cảnh báo phải nêu đích danh mặt hàng và số còn thực tế.
 
         "Không đủ hàng" chung chung thì thủ kho vẫn phải tự đi tra tồn.
         """
@@ -292,11 +307,11 @@ class TestTransferShortage(DlInventoryCase):
         self.assertIn("cần chuyển 6", picking.dlm_banner_message)
 
     def test_doi_khu_nguon_thi_tinh_lai(self):
-        """Đổi "Từ vị trí" phải tính lại ngay — nếu không, dải đứng hình nói sai.
+        """Đổi "Từ vị trí" phải tính lại ngay, nếu không dải đứng hình nói sai.
 
         Chính là ca `location_id` chưa có trong @api.depends của dải thông báo.
         """
-        # Đích là XƯỞNG, không phải Kho thành phẩm: vật tư vào kho thành phẩm
+        # Đích là Xưởng, không phải Kho thành phẩm: vật tư vào kho thành phẩm
         # nay bị chặn hẳn (xem TestFinishedGoodsWarehouseKinds) và dải đỏ đó sẽ
         # che mất thứ ca này muốn đo.
         self._stock(self.loc_qc, 10.0)
@@ -309,7 +324,7 @@ class TestTransferShortage(DlInventoryCase):
                          "Đổi sang khu đang có 10 mà dải vẫn kêu thiếu.")
 
     def test_dong_da_xong_khong_bi_tinh_la_thieu(self):
-        """Phiếu đã chuyển xong: hàng rời khu nguồn là ĐÚNG, không phải thiếu."""
+        """Phiếu đã chuyển xong: hàng rời khu nguồn là đúng, không phải thiếu."""
         self._stock(self.loc_kho, 5.0)
         picking = self._transfer(self.loc_kho, self.loc_xuong, qty=5.0)
         picking.action_confirm()
@@ -324,14 +339,15 @@ class TestTransferShortage(DlInventoryCase):
 
 @tagged("post_install", "-at_install", "dl_inventory")
 class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
-    """Kho thành phẩm chỉ chứa hàng ĐỂ BÁN.
+    """Kho thành phẩm chỉ chứa hàng để bán.
 
     Luật do người dùng chốt 2026-08-12: Đại Linh chỉ bán sản phẩm thương mại và
     sản phẩm gia công hoàn chỉnh. Kho thành phẩm là nơi phiếu Giao hàng lấy hàng
-    (§5.3) ⇒ vật tư lọt vào đây sớm muộn cũng bị giao cho khách.
+    (§5.3) nên vật tư lọt vào đây sớm muộn cũng bị giao cho khách.
 
-    Neo vào VỊ TRÍ ĐÍCH, không vào nút lối tắt: hai lối tắt đi từ cùng một khu
-    nguồn, và người dùng sửa tay ô vị trí sau khi bấm nút thì nút không biết.
+    Luật neo vào vị trí đích, không neo vào nút lối tắt: hai lối tắt đi từ cùng
+    một khu nguồn, và khi người dùng sửa tay ô vị trí sau khi bấm nút thì nút
+    không biết được điều đó.
     """
 
     @classmethod
@@ -363,9 +379,9 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
             })],
         })
 
-    # ── Lớp 1: dropdown ──────────────────────────────────────────────────────
+    # Lớp 1: dropdown
     def test_dropdown_sang_kho_thanh_pham_bo_vat_tu(self):
-        """Ca trong ảnh chụp: khu nguồn chỉ có sơn (vật tư) ⇒ không được mời."""
+        """Ca trong ảnh chụp: khu nguồn chỉ có sơn (vật tư) nên không được mời."""
         self._stock(self.material, self.loc_kho, 197.0)
         self._stock(self.trading, self.loc_kho, 10.0)
         picking = self._transfer(self.loc_tp)
@@ -377,9 +393,9 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
                       "SP thương mại có tồn thì phải mời.")
 
     def test_dropdown_ra_xuong_van_co_vat_tu(self):
-        """Lọc đúng một hướng — không được lan sang tuyến vật tư ra xưởng.
+        """Lọc đúng một hướng, không được lan sang tuyến vật tư ra xưởng.
 
-        Xưởng CỐ Ý để mở: hàng gia công hoàn chỉnh vẫn quay lại xưởng để sửa.
+        Xưởng cố ý để mở: hàng gia công hoàn chỉnh vẫn quay lại xưởng để sửa.
         """
         self._stock(self.material, self.loc_kho, 197.0)
         picking = self._transfer(self.loc_xuong)
@@ -396,7 +412,7 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
                          "Đổi đích sang Kho thành phẩm mà danh sách đứng hình.")
 
     def test_khu_con_cua_kho_thanh_pham_cung_bi_rang(self):
-        """Luật theo CÂY vị trí, không phải đúng một bản ghi.
+        """Luật theo cây vị trí, không phải đúng một bản ghi.
 
         Hôm nay DL/TP chưa có khu con; ngày ai đó chia "DL/TP/Khu A" mà luật chỉ
         khớp đúng DL/TP thì vật tư lại vào được, không lỗi nào nổ.
@@ -412,11 +428,11 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
         self.assertNotIn(self.material, picking.dlm_source_available_product_ids)
         self.assertTrue(picking.dlm_blocked)
 
-    # ── Lớp 2: chặn thật khi xác nhận ────────────────────────────────────────
+    # Lớp 2: chặn thật khi xác nhận
     def test_bam_loi_tat_sau_khi_them_dong_van_bi_chan(self):
-        """🔴 Ca dropdown KHÔNG cứu được.
+        """🔴 Ca dropdown không cứu được.
 
-        Thêm dòng vật tư theo tuyến mặc định (ra xưởng — hợp lệ) rồi mới bấm
+        Thêm dòng vật tư theo tuyến mặc định (ra xưởng, hợp lệ) rồi mới bấm
         "Hàng thương mại sang Kho thành phẩm": preset ghi đè đích của cả dòng đã
         có, dòng vật tư âm thầm thành sai chỗ mà không ô nào đổi màu.
         """
@@ -459,13 +475,13 @@ class TestTransferFormWording(DlInventoryCase):
         return self.env.ref("dl_inventory.view_dl_transfer_form").arch
 
     def test_nut_loi_tat_khong_viet_tat(self):
-        """"Hàng TM sang kho TP" — thủ kho mới vào không đoán được TM/TP là gì."""
+        """"Hàng TM sang kho TP": thủ kho mới vào không đoán được TM/TP là gì."""
         arch = self._arch()
         self.assertIn("Hàng thương mại sang Kho thành phẩm", arch)
         self.assertNotIn("Hàng TM sang kho TP", arch)
 
     def test_cot_thuc_chuyen_an_khi_con_nhap(self):
-        """Lúc nháp "Thực chuyển" luôn 0 (chưa giữ chỗ) — hiện ra chỉ gây hiểu
+        """Lúc nháp "Thực chuyển" luôn 0 (chưa giữ chỗ), hiện ra chỉ gây hiểu
         nhầm là phải tự điền."""
         self.assertIn(
             """column_invisible="parent.state == 'draft'\"""", self._arch(),
@@ -473,5 +489,5 @@ class TestTransferFormWording(DlInventoryCase):
 
     def test_nhan_cot_nhu_cau_dong_bo_voi_man_giao_hang(self):
         """"Số lượng" quá mơ hồ cạnh "Thực chuyển". Màn Giao hàng đã dùng cặp
-        "Cần giao"/"Thực giao" — chuyển kho phải cùng một lối nói."""
+        "Cần giao"/"Thực giao", chuyển kho phải cùng một lối nói."""
         self.assertIn('string="Cần chuyển"', self._arch())

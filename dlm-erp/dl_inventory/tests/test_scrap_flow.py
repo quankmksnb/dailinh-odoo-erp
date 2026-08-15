@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""K7 — Phế liệu: cân thực tế, bán, và đối chiếu với dự toán.
+"""K7: Phế liệu, cân thực tế, bán, và đối chiếu với dự toán.
 
 Thiết kế: docs/Thiet_ke_phan_he_kho.md §7, §11.8, §12.1 (tiêu chí verify K7).
 
-Bất biến quan trọng nhất KHÔNG phải là con số tồn, mà là **dải chú thích luôn
-hiện**: giá trị phế liệu đã được trừ vào giá vốn lúc báo giá, nên tiền bán phế
-liệu là thu về khoản đã tính trước. Thiếu câu đó thì người đọc chắc chắn cộng
-nhầm vào lãi — tính hai lần (§7.2).
+Bất biến quan trọng nhất không phải là con số tồn, mà là dải chú thích luôn
+hiện: giá trị phế liệu đã được trừ vào giá vốn lúc báo giá, nên tiền bán phế
+liệu là thu về khoản đã tính trước. Thiếu câu đó, người đọc dễ cộng nhầm vào
+lãi và tính hai lần (§7.2).
 """
 
 from odoo.tests.common import tagged
@@ -22,7 +22,7 @@ class TestScrapFlow(DlInventoryCase):
         super().setUpClass()
         cls.loc_scrap = cls.env.ref("dl_inventory.stock_location_xuong_pl")
         cls.uom_kg = cls.env.ref("uom.product_uom_kgm")
-        # Phế liệu: KHÔNG theo lô (§3.4) — vụn gom từ nhiều lô trong cùng thùng.
+        # Phế liệu không theo lô (§3.4): vụn gom từ nhiều lô trong cùng thùng.
         cls.scrap = cls.env["product.product"].create({
             "name": "Phế liệu thép (test)",
             "product_kind": "material",
@@ -35,7 +35,7 @@ class TestScrapFlow(DlInventoryCase):
             "name": "Vựa ve chai (test)"})
 
     def _weigh_in(self, qty):
-        """Cân thực tế: đường DUY NHẤT phế liệu vào kho ở B1 (§7.3)."""
+        """Cân thực tế: đường duy nhất để phế liệu vào kho ở B1 (§7.3)."""
         quant = self.env["stock.quant"].with_context(inventory_mode=True).create({
             "product_id": self.scrap.id,
             "location_id": self.loc_scrap.id,
@@ -44,9 +44,8 @@ class TestScrapFlow(DlInventoryCase):
         quant.action_apply_inventory()
         return quant
 
-    # ── Ca test ──────────────────────────────────────────────────────────────
     def test_can_thuc_te_50kg_ban_het_thi_ton_ve_0(self):
-        """Tiêu chí verify K7: nhập tay 50kg ⇒ bán 50kg ⇒ tồn 0."""
+        """Tiêu chí verify K7: nhập tay 50kg, bán 50kg, tồn phải về 0."""
         self._weigh_in(50.0)
         self.assertEqual(self._qty_at(self.loc_scrap, self.scrap), 50.0)
 
@@ -74,26 +73,26 @@ class TestScrapFlow(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_scrap, self.scrap), 0.0)
 
     def test_khong_chon_dong_nao_thi_bao_loi_ro(self):
-        """Bấm Bán phế liệu khi chưa chọn dòng ⇒ nói rõ phải làm gì."""
+        """Bấm Bán phế liệu khi chưa chọn dòng thì phải nói rõ cần làm gì."""
         from odoo.exceptions import UserError
         with self.assertRaises(UserError) as caught:
             self.env["stock.quant"].browse().action_dlm_sell_scrap()
         self.assertIn("Chọn ít nhất một dòng", str(caught.exception))
 
     def test_thanh_tien_bang_so_luong_nhan_don_gia(self):
-        """§11.8 — Cột Thành tiền là thứ người dùng dùng để mặc cả với bên mua.
+        """§11.8: cột Thành tiền là thứ người dùng dùng để mặc cả với bên mua.
 
-        Đơn giá ở đây là GIÁ BÁN phế liệu, không phải giá vốn ⇒ không vi phạm
-        §8.3 ("Thủ kho không thấy giá").
+        Đơn giá ở đây là giá bán phế liệu, không phải giá vốn, nên không vi
+        phạm §8.3 ("Thủ kho không thấy giá").
         """
         quant = self._weigh_in(12.5)
         self.assertEqual(quant.dlm_scrap_unit_price, 8000.0)
         self.assertEqual(quant.dlm_scrap_value, 100000.0)
 
     def test_dai_chu_thich_luon_hien_va_khong_dong_duoc(self):
-        """🔴 §7.2 — Dải "không phải lợi nhuận tăng thêm" là bắt buộc.
+        """🔴 §7.2: dải "không phải lợi nhuận tăng thêm" là bắt buộc.
 
-        Kiểm hai điều: route trả về nội dung, và nội dung KHÔNG mang
+        Kiểm hai điều: route trả về nội dung, và nội dung không mang
         `data-o-hide-banner` (thứ duy nhất làm banner của Odoo đóng được).
         """
         from odoo.addons.dl_inventory.controllers.scrap_banner import (
@@ -110,7 +109,7 @@ class TestScrapFlow(DlInventoryCase):
                           "Màn %s phải gắn dải chú thích." % xml_id)
 
     def test_bao_cao_doi_chieu_co_ky_va_so_thuc_nhap(self):
-        """§7.4 — Cân 30kg trong tháng ⇒ báo cáo có kỳ đó với thực nhập 30."""
+        """§7.4: cân 30kg trong tháng thì báo cáo phải có kỳ đó với thực nhập 30."""
         self._weigh_in(30.0)
 
         report = self.env["dl.scrap.recovery.report"].search([])
@@ -121,7 +120,8 @@ class TestScrapFlow(DlInventoryCase):
             "Lượng cân được phải vào cột Thực nhập của báo cáo.")
 
     def test_ky_co_don_nhung_chua_can_van_phai_co_dong(self):
-        """🔴 Kỳ nguy hiểm nhất — dự toán có, cân được 0 — KHÔNG được biến mất.
+        """🔴 Kỳ nguy hiểm nhất: có dự toán nhưng cân được 0, kỳ này không được
+        biến mất khỏi báo cáo.
 
         Nếu báo cáo chỉ lấy tháng có phát sinh move thì đúng cái kỳ cần báo động
         lại là kỳ không có dòng nào.

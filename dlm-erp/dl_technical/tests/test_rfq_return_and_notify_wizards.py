@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """L2 Integration test cho dl.rfq.return.wizard (dl_technical/wizard/
-rfq_return_wizard.py) và dl.rfq.resolve.wizard.action_notify_purchasing()
-— 2 phần hoàn toàn chưa có test. Sheet nguồn: TestUntestedWizards trong
-Report_5_2_IntegrationTests_L2.xlsx.
-
-Bổ sung 2026-08-11 (Round 3 — trước đó 0% coverage)."""
+rfq_return_wizard.py) và dl.rfq.resolve.wizard.action_notify_purchasing(),
+hai phần trước đó hoàn toàn chưa có test. Sheet nguồn: TestUntestedWizards
+trong Report_5_2_IntegrationTests_L2.xlsx.
+"""
 from odoo.exceptions import UserError
 from odoo.tests.common import TransactionCase, tagged
 
@@ -31,7 +30,9 @@ class TestRfqReturnWizard(TransactionCase):
         return request, request.line_ids[0]
 
     def test_no_line_selected_and_no_reason_raises(self):
-        """TC-INT-TestUntestedWizards-009"""
+        """TC-INT-TestUntestedWizards-009: wizard trả yêu cầu về với dòng
+        vật tư selected=False và reason chung để trống thì action_confirm
+        báo lỗi UserError."""
         request, line = self._make_rfq()
         wizard = self.env["dl.rfq.return.wizard"].create({
             "request_id": request.id, "reason": "",
@@ -41,7 +42,11 @@ class TestRfqReturnWizard(TransactionCase):
             wizard.action_confirm()
 
     def test_happy_marks_selected_lines_and_returns_request(self):
-        """TC-INT-TestUntestedWizards-010"""
+        """TC-INT-TestUntestedWizards-010: wizard trả yêu cầu về với dòng
+        vật tư được chọn (selected=True) kèm ghi chú thì action_confirm
+        chuyển request sang status "returned", ghi ghi chú vào return_reason
+        của request và supplement_note của dòng, còn supplement_done vẫn
+        false."""
         request, line = self._make_rfq()
         wizard = self.env["dl.rfq.return.wizard"].create({
             "request_id": request.id, "reason": "",
@@ -98,11 +103,14 @@ class TestRfqResolveWizardNotifyPurchasing(TransactionCase):
         return wizard, bom
 
     def test_notifies_purchasing_once_no_duplicate_activity(self):
-        """TC-INT-TestUntestedWizards-011"""
+        """TC-INT-TestUntestedWizards-011: BOM có vật tư chưa có giá NCC áp
+        dụng, gọi action_notify_purchasing hai lần liên tiếp thì không lỗi
+        và lần gọi thứ hai không tạo thêm activity trùng lặp cho cùng một
+        vật tư trên product.product."""
         wizard, bom = self._make_wizard()
         self.assertTrue(
             bom._dlm_unpriced_raw_materials(),
-            "Vật tư của BOM test chưa có giá NCC áp dụng — tiền đề của test",
+            "Vật tư của BOM test chưa có giá NCC áp dụng, đây là tiền đề của test",
         )
         wizard.action_notify_purchasing()
         Activity = self.env["mail.activity"].sudo()

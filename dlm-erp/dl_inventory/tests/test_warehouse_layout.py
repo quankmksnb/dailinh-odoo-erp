@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""K2 — Bố cục kho: MỘT kho, ba khu, nhận hàng 2 bước.
+"""K2: bố cục kho, một kho, ba khu, nhận hàng hai bước.
 
 Thiết kế: docs/Thiet_ke_phan_he_kho.md §3.1, §4, §5.
 
-Vì sao cần bộ test này: cấu trúc kho là loại quyết định **đổi sau rất đau** —
+Vì sao cần bộ test này: cấu trúc kho là loại quyết định đổi sau rất đau, vì
 mọi luân chuyển lịch sử trỏ vào vị trí cũ. Nếu ai đó lỡ tạo warehouse thứ hai
-hoặc đổi vị trí đích của loại hoạt động, hàng sẽ nhập/xuất sai chỗ mà KHÔNG lỗi
-nào nổ: phiếu vẫn xác nhận được, chỉ có tồn nằm sai khu.
+hoặc đổi vị trí đích của loại hoạt động, hàng sẽ nhập/xuất sai chỗ mà không có
+lỗi nào báo: phiếu vẫn xác nhận được, chỉ có tồn nằm sai khu.
 """
 
 from odoo.tests.common import tagged
@@ -18,7 +18,7 @@ from .common import DlInventoryCase
 class TestWarehouseLayout(DlInventoryCase):
 
     def test_chi_mot_kho(self):
-        """§3.1 — Đại Linh là MỘT nhà xưởng ⇒ đúng một stock.warehouse.
+        """§3.1: Đại Linh chỉ có một nhà xưởng, nên phải đúng một stock.warehouse.
 
         Kho thứ hai biến mọi luân chuyển nội bộ thành liên kho: thêm phiếu
         chuyển, thêm ô bắt buộc chọn kho, báo cáo tồn phải cộng thủ công.
@@ -29,7 +29,7 @@ class TestWarehouseLayout(DlInventoryCase):
         self.assertEqual(self.warehouse.code, "DL")
 
     def test_cay_vi_tri_ba_khu(self):
-        """§4.1 — Ba khu nằm dưới kho DL, vị trí con nằm đúng khu của nó."""
+        """§4.1: ba khu nằm dưới kho DL, vị trí con nằm đúng khu của nó."""
         expected = {
             self.loc_qc: "DL/Khu nhập hàng/Chờ kiểm hàng",
             self.loc_kho: "DL/Khu nhập hàng/Vật tư & hàng thương mại",
@@ -41,9 +41,9 @@ class TestWarehouseLayout(DlInventoryCase):
             self.assertEqual(location.complete_name, complete_name)
 
     def test_khu_gom_nhom_khong_duoc_la_view(self):
-        """🔴 §4.1 — Khu phải là 'internal', KHÔNG phải 'view'.
+        """🔴 §4.1: khu phải là 'internal', không được là 'view'.
 
-        _compute_complete_name của Odoo BỎ tiền tố cha với vị trí 'view'; khu để
+        _compute_complete_name của Odoo bỏ tiền tố cha với vị trí 'view'. Khu để
         'view' sẽ hiện "Khu nhập hàng/Chờ kiểm hàng", mất luôn "DL/" và lệch hẳn
         với hai khu còn lại. Đã vấp thật khi thực thi K2.
         """
@@ -52,7 +52,7 @@ class TestWarehouseLayout(DlInventoryCase):
         self.assertTrue(nhan.complete_name.startswith("DL/"))
 
     def test_loai_hoat_dong_dung_nguon_dich(self):
-        """§5.1 — Tám loại hoạt động, mỗi loại nối đúng hai đầu của nó."""
+        """§5.1: tám loại hoạt động, mỗi loại nối đúng hai đầu của nó."""
         cases = [
             ("dl_inventory.picking_type_qc", self.loc_qc, self.loc_kho),
             ("dl_inventory.picking_type_vendor_return",
@@ -67,13 +67,13 @@ class TestWarehouseLayout(DlInventoryCase):
             self.assertEqual(
                 picking_type.default_location_dest_id, destination, xml_id)
 
-        # Giao hàng khách đi từ KHO THÀNH PHẨM, không phải vị trí tồn mặc định.
+        # Giao hàng khách đi từ Kho thành phẩm, không phải vị trí tồn mặc định.
         self.assertEqual(
             self.warehouse.out_type_id.default_location_src_id, self.loc_tp)
 
     def test_nhan_hang_hai_buoc_tu_sinh_phieu_kiem(self):
-        """§3.2/§5.2 — Xác nhận phiếu nhận ⇒ hàng vào khu Chờ kiểm VÀ hệ thống
-        TỰ SINH phiếu "Kiểm & cất hàng".
+        """§3.2/§5.2: xác nhận phiếu nhận thì hàng vào khu Chờ kiểm và hệ thống
+        phải tự sinh phiếu "Kiểm & cất hàng".
 
         Đây là mắt xích làm bước QC (K5) khả thi: không có phiếu tự sinh thì thủ
         kho phải nhớ tự tạo, và bước kiểm sẽ bị bỏ qua trong thực tế.

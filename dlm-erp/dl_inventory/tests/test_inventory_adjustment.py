@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-"""K8 — Kiểm kê + hàng đợi phiếu.
+"""K8: kiểm kê và hàng đợi phiếu.
 
 Thiết kế: docs/Thiet_ke_phan_he_kho.md §11.10, §11.11, §12.1 (tiêu chí verify K8).
 
 Hai bất biến quan trọng nhất:
-  • Thủ kho ÁP được số kiểm kê dù KHÔNG có group_stock_manager (§8.3). Native
-    chốt cứng bằng group đó; dl_inventory nâng quyền sau khi kiểm vai trò. Test
-    này CHẠY DƯỚI QUYỀN THỦ KHO — không phải admin — nếu không nó không bắt được
-    đúng cái lỗ hổng đang vá (bản thân màn Phế liệu K7 test bằng admin nên lọt).
-  • Hàng đợi định tuyến ĐÚNG loại: mở phiếu kiểm bằng form nhận là mời ghi hàng
+  - Thủ kho áp được số kiểm kê dù không có group_stock_manager (§8.3). Native
+    chốt cứng bằng group đó, dl_inventory nâng quyền sau khi kiểm vai trò. Test
+    này phải chạy dưới quyền Thủ kho, không phải admin, nếu không nó không bắt
+    được đúng lỗ hổng đang vá (màn Phế liệu K7 test bằng admin nên bị lọt).
+  - Hàng đợi định tuyến đúng loại: mở phiếu kiểm bằng form nhận là mời ghi hàng
     lỗi vào ô hàng thiếu (§6). `dlm_picking_kind` là khoá định tuyến đó.
 """
 
@@ -30,7 +30,7 @@ class TestInventoryAdjustment(DlInventoryCase):
             "groups_id": [(6, 0, [
                 cls.env.ref("dl_base.dl_group_warehouse").id])],
         })
-        # Hàng thương mại: storable nhưng KHÔNG theo lô (§4.2) ⇒ đếm/áp không
+        # Hàng thương mại: storable nhưng không theo lô (§4.2), đếm/áp không
         # vướng bước gán lô, tách bạch đúng thứ đang test là quyền áp kiểm kê.
         cls.item = cls.env["product.product"].create({
             "name": "Hàng thương mại (test K8)",
@@ -48,12 +48,12 @@ class TestInventoryAdjustment(DlInventoryCase):
         quant.action_apply_inventory()
         return quant
 
-    # ── Tiêu chí verify K8: kiểm kê lệch −3 ⇒ sinh move, tồn khớp ────────────
+    # Tiêu chí verify K8: kiểm kê lệch -3 thì phải sinh move điều chỉnh, tồn khớp
     def test_kiem_ke_lech_am_3_sinh_move_dieu_chinh_va_ton_khop(self):
-        """§12.1 — đếm được 97 trên tồn hệ thống 100 ⇒ áp ⇒ tồn về 97, có phiếu
-        điều chỉnh cho 3 đơn vị hụt.
+        """§12.1: đếm được 97 trên tồn hệ thống 100, áp xong thì tồn về 97, có
+        phiếu điều chỉnh cho 3 đơn vị hụt.
 
-        🔴 Áp DƯỚI QUYỀN THỦ KHO: đây là chỗ duy nhất chứng minh quyết định K8
+        🔴 Áp dưới quyền Thủ kho: đây là chỗ duy nhất chứng minh quyết định K8
         (Thủ kho áp được mà không cần manager) chạy thật.
         """
         self._seed_stock(100.0)
@@ -72,8 +72,8 @@ class TestInventoryAdjustment(DlInventoryCase):
             quant.quantity, 97.0,
             "Áp kiểm kê xong tồn hệ thống phải khớp số đếm.")
 
-        # Chỉ lấy move HỤT (hàng đi VÀO vị trí điều chỉnh) — loại trừ chính move
-        # 100 đơn vị lúc gây tồn ban đầu (đi RA từ vị trí điều chỉnh).
+        # Chỉ lấy move hụt (hàng đi vào vị trí điều chỉnh), loại trừ chính move
+        # 100 đơn vị lúc gây tồn ban đầu (đi ra từ vị trí điều chỉnh).
         shrink = self.env["stock.move"].search([
             ("product_id", "=", self.item.id),
             ("state", "=", "done"),
@@ -85,7 +85,7 @@ class TestInventoryAdjustment(DlInventoryCase):
             "Phần điều chỉnh phải đúng bằng chênh lệch đếm được.")
 
     def test_thu_kho_ap_duoc_du_khong_co_group_manager(self):
-        """🔴 §8.3 vs native — Thủ kho KHÔNG có group_stock_manager nhưng vẫn áp
+        """🔴 §8.3 vs native: Thủ kho không có group_stock_manager nhưng vẫn áp
         được kiểm kê nhờ _apply_inventory nâng quyền có kiểm vai trò.
 
         Không có override này, native ném "Only a stock manager can validate".
@@ -105,9 +105,9 @@ class TestInventoryAdjustment(DlInventoryCase):
         quant_wh.action_apply_inventory()
         self.assertEqual(quant.quantity, 25.0)
 
-    # ── Định tuyến hàng đợi ──────────────────────────────────────────────────
+    # Định tuyến hàng đợi
     def test_picking_kind_suy_dung_tung_loai(self):
-        """§11.11 — `dlm_picking_kind` phải phân biệt được các loại đi chung
+        """§11.11: `dlm_picking_kind` phải phân biệt được các loại đi chung
         `internal` (KC vs CK) và chung `outgoing` (GH vs TR vs BPL)."""
         cases = [
             (self.warehouse.in_type_id, "receipt"),
@@ -128,15 +128,15 @@ class TestInventoryAdjustment(DlInventoryCase):
                 % (picking_type.name, expected))
 
     def test_hang_doi_chi_gom_phieu_assigned_cua_thu_kho(self):
-        """§11.11 — hàng đợi = phiếu `assigned` của loại thủ kho phụ trách.
+        """§11.11: hàng đợi là phiếu `assigned` của loại thủ kho phụ trách.
 
-        Phiếu NHÁP chưa sẵn sàng ⇒ không vào hàng đợi; phiếu Trả NCC là việc Mua
-        hàng ⇒ cũng không vào (dù có thể ở assigned).
+        Phiếu nháp chưa sẵn sàng nên không vào hàng đợi. Phiếu Trả NCC là việc
+        Mua hàng nên cũng không vào, dù có thể ở assigned.
         """
         domain = safe_eval(
             self.env.ref("dl_inventory.action_dl_picking_todo").domain)
 
-        receipt = self._make_receipt()  # action_confirm + assign ⇒ assigned
+        receipt = self._make_receipt()  # action_confirm + assign, kết quả assigned
         self.assertEqual(receipt.state, "assigned")
         queue = self.env["stock.picking"].search(domain)
         self.assertIn(
