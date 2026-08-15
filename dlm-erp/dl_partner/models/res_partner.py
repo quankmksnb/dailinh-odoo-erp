@@ -15,8 +15,8 @@ _EMAIL_RE = re.compile(r'^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$')
 _TAX_CODE_RE = re.compile(r'^\d{10}(-\d{3})?$')
 _CUSTOMER_ROLES = ('customer', 'both')
 
-# Độ dài tối thiểu của Tên khách hàng — chặn các giá trị rác kiểu 'a', '..'
-# lọt qua khi import hàng loạt.
+# Độ dài tối thiểu của Họ tên người liên hệ — chặn các giá trị rác kiểu 'a',
+# '..' lọt qua khi nhập inline trong lưới.
 _MIN_NAME_LEN = 2
 # Loại khách hàng có tư cách pháp nhân: bắt buộc địa chỉ vì địa chỉ được in lên
 # báo giá / hợp đồng gửi ra ngoài.
@@ -766,27 +766,25 @@ class ResPartner(models.Model):
             name = (rec.name or '').strip()
             if not name:
                 raise ValidationError(_('%s bắt buộc phải có Tên.') % kind)
-            if len(name) < _MIN_NAME_LEN:
-                raise ValidationError(_(
-                    "Tên '%s' quá ngắn — cần ít nhất %s ký tự."
-                ) % (rec.name, _MIN_NAME_LEN))
 
     @api.constrains('partner_role', 'partner_type', 'phone', 'mobile', 'email')
     def _check_partner_contact_channel(self):
         """Đối tác phải có ít nhất một kênh liên lạc. Áp cho cả khách hàng lẫn
         NCC — một NCC không gọi được thì không đặt hàng được.
 
-        Riêng đối tác Cá nhân bắt buộc Di động: cá nhân không có MST nên số di
-        động là dữ liệu duy nhất định danh được họ (và cũng là căn cứ chống
-        trùng hồ sơ). Doanh nghiệp / Đại lý thì linh hoạt hơn — điện thoại bàn
-        hoặc email đều nhận."""
+        Riêng đối tác Cá nhân bắt buộc có số điện thoại (Điện thoại hoặc Di
+        động): cá nhân không có MST nên số điện thoại là dữ liệu duy nhất định
+        danh được họ (và cũng là căn cứ chống trùng hồ sơ). Doanh nghiệp / Đại
+        lý thì linh hoạt hơn — email cũng được nhận."""
         for rec in self:
             if not rec._dl_is_dlm_partner():
                 continue
             if rec.partner_type == 'individual':
-                if not (rec.mobile and rec.mobile.strip()):
+                if not any((value or '').strip()
+                           for value in (rec.phone, rec.mobile)):
                     raise ValidationError(_(
-                        '%s loại Cá nhân bắt buộc phải có số Di động.'
+                        '%s loại Cá nhân bắt buộc phải có số Điện thoại '
+                        'hoặc Di động.'
                     ) % rec._dl_partner_kind_label())
                 continue
             has_channel = any(

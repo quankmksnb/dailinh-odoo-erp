@@ -104,15 +104,17 @@
 
                     <group>
                         <group string="Thông tin liên hệ">
-                            <!-- Cá nhân bắt buộc Di động (không có MST nên số di
-                                 động là dữ liệu định danh duy nhất); DN/Đại lý
+                            <!-- Cá nhân bắt buộc có số điện thoại, Điện thoại
+                                 hoặc Di động đều được (không có MST nên số điện
+                                 thoại là dữ liệu định danh duy nhất); DN/Đại lý
                                  chỉ cần một trong ba kênh — luật đầy đủ nằm ở
                                  _check_customer_contact_channel. -->
                             <field name="phone" string="Điện thoại" readonly="not active"
+                                required="partner_type == 'individual' and not mobile"
                                 placeholder="Bắt buộc một trong: Điện thoại / Di động / Email" />
                             <field name="mobile" string="Di động" readonly="not active"
-                                required="partner_type == 'individual'"
-                                placeholder="Bắt buộc với khách Cá nhân" />
+                                required="partner_type == 'individual' and not phone"
+                                placeholder="Bắt buộc với khách Cá nhân: Điện thoại hoặc Di động" />
                             <field name="email" widget="email" readonly="not active" />
                             <field name="vat" string="Mã số thuế"
                                 widget="dl_tax_code"
