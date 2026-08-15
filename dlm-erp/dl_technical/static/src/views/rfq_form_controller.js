@@ -10,8 +10,11 @@ import { FormController } from "@web/views/form/form_controller";
 import { setupFormActionsMenu, setupStatusbarButtons } from "@dl_base/js/actions_menu";
 
 // Các field bảng dòng RFQ có thể xuất hiện trên form (tùy view):
-//  - form xử lý: line_ids (1 bảng)
 //  - form Tạo RFQ (Sales): trading_line_ids + manufactured_line_ids (2 bảng)
+//  - form xử lý: cũng 2 bảng, nhưng bảng thương mại bị `groups` cắt khỏi arch của
+//    Kỹ thuật ⇒ với KTV chỉ còn manufactured_line_ids. Vì vậy form đó kèm thêm
+//    line_ids ẩn: nhánh đếm line_ids bên dưới mới là nhánh cho ra TỔNG đúng
+//    (nếu chỉ cộng bảng thấy được, RFQ toàn hàng thương mại sẽ ra 0 với KTV).
 const DL_LINE_FIELDS = ["line_ids", "trading_line_ids", "manufactured_line_ids"];
 
 export class DlRfqFormController extends FormController {

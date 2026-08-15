@@ -294,11 +294,27 @@
 
                     <notebook>
                         <page string="Dòng sản phẩm" name="lines">
-                            <!-- required client-side (Odoo báo lúc Save như
-                                 customer_id) — RFQ phải có ≥1 dòng. @api.constrains
+                            <!-- Bảng CHÍNH = chỉ dòng GIA CÔNG — đúng phần việc của
+                                 Kỹ thuật. RFQ hỗn hợp (khách đặt cả hàng thương mại
+                                 lẫn hàng gia công) trước đây đổ chung một bảng, KTV
+                                 phải tự lọc mắt qua những dòng mà mọi nút xử lý đều
+                                 bị ẩn (invisible="product_type == 'trading'").
+                                 Dòng thương mại tách xuống bảng riêng bên dưới, cắt
+                                 bằng `groups` (KHÔNG phải invisible): bảng đó có cột
+                                 đơn giá/thành tiền — giá BÁN, thứ Kỹ thuật không được
+                                 thấy — nên phải cắt ở server, invisible vẫn tải giá
+                                 về máy KTV.
+                                 Bỏ required="1": nay bảng này rỗng là hợp lệ (RFQ
+                                 toàn hàng thương mại). Luật "RFQ phải có ≥1 dòng"
+                                 vẫn còn: line_ids ẩn bên dưới (chỉ id, không kèm
+                                 subview nên không kéo theo giá) nuôi bộ đếm của
+                                 dl_rfq_form — nếu bỏ, KTV mở RFQ toàn hàng thương
+                                 mại rồi Lưu sẽ bị báo "thiếu dòng" oan. @api.constrains
                                  _check_has_lines vẫn là chốt cuối cho RPC/import. -->
-                            <field name="line_ids"
-                                   required="1"
+                            <field name="line_ids" invisible="1"/>
+                            <separator string="Sản phẩm gia công"
+                                       groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
+                            <field name="manufactured_line_ids"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <!-- §3a — tree KHÔNG editable: click 1 dòng mở form
                                      con dạng dialog (dễ quan sát/xử lý). -->
@@ -516,6 +532,32 @@
                                                invisible="product_type == 'trading'"/>
                                     </sheet>
                                 </form>
+                            </field>
+
+                            <!-- BẢNG PHỤ: dòng thương mại — Sales đã chọn sẵn sản
+                                 phẩm và giá, không qua BOM nên KHÔNG có việc gì cho
+                                 Kỹ thuật. Cắt hẳn khỏi arch của KTV bằng `groups` (có
+                                 cột giá bán); giữ cho Sales/quản lý vì họ vẫn phải
+                                 xem & sửa số lượng/giá trước khi tạo báo giá. Cột
+                                 giống hệt bảng thương mại màn Tạo RFQ. -->
+                            <separator string="Sản phẩm thương mại"
+                                       groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
+                            <field name="trading_line_ids"
+                                   groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
+                                   readonly="status in ('quoted', 'cancelled')">
+                                <tree string="Sản phẩm thương mại" editable="bottom">
+                                    <field name="currency_id" column_invisible="1"/>
+                                    <field name="product_type" column_invisible="1"/>
+                                    <field name="resolved_product_id" string="Sản phẩm"
+                                           required="1"
+                                           options="{'no_create': True}"
+                                           domain="[('product_kind', '=', 'trading'), ('dlm_lifecycle_state', '=', 'active')]"/>
+                                    <field name="product_price" string="Đơn giá"
+                                           widget="dl_money" options="{'currency_field': 'currency_id'}"/>
+                                    <field name="quantity" string="Số lượng"/>
+                                    <field name="price_subtotal" string="Thành tiền"
+                                           widget="dl_money" options="{'currency_field': 'currency_id'}"/>
+                                </tree>
                             </field>
 
                             <!-- Bối cảnh yêu cầu (khách hàng/thời hạn) — đặt DƯỚI bảng
