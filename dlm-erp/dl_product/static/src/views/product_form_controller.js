@@ -23,10 +23,12 @@ export class DlProductFormController extends FormController {
   }
 
   // Chặn INLINE (tô đỏ ô Giá bán + toast, KHÔNG modal — cùng cơ chế form RFQ):
-  // SP thương mại KHÔNG được lưu Giá bán < Giá vốn tham chiếu — ở MỌI trạng thái
+  // SP thương mại phải có Giá bán CAO HƠN Giá vốn tham chiếu — ở MỌI trạng thái
   // vòng đời (Nháp lẫn Đã duyệt). Trước đây chỉ chặn khi còn Nháp nên sau khi
   // duyệt vẫn hạ được giá bán xuống dưới giá vốn (vô lý) → nay chặn cả khi active.
   // Bán lỗ (nếu thực sự cần) xử lý ở duyệt báo giá, không hạ giá niêm yết.
+  // ⚠️ Phải khớp CHÍNH XÁC với ràng buộc server _check_sale_price_above_cost
+  // (bán NGANG giá vốn cũng chặn) — lệch một dấu là báo lỗi hai kiểu khác nhau.
   async save(params = {}) {
     const record = this.model.root;
     const d = record.data;
@@ -34,12 +36,12 @@ export class DlProductFormController extends FormController {
       d.product_kind === "trading" &&
       d.list_price > 0 &&
       d.standard_price > 0 &&
-      d.list_price < d.standard_price;
+      d.list_price <= d.standard_price;
     if (belowCost) {
       await record.setInvalidField("list_price");
       this.notification.add(
         _t(
-          "Giá bán (%s) không được thấp hơn Giá vốn tham chiếu (%s). Nếu thực sự cần bán lỗ, xử lý ở quy trình duyệt báo giá (CEO/Trưởng KD), không hạ giá niêm yết sản phẩm.",
+          "Giá bán (%s) phải cao hơn Giá vốn tham chiếu (%s) — bán ngang giá vốn cũng không hợp lệ. Nếu thực sự cần bán lỗ, xử lý ở quy trình duyệt báo giá (CEO/Trưởng phòng KD), không hạ giá niêm yết sản phẩm.",
           d.list_price.toLocaleString("vi-VN"),
           d.standard_price.toLocaleString("vi-VN"),
         ),

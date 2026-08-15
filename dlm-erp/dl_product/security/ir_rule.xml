@@ -44,10 +44,26 @@
             <field name="perm_unlink">0</field>
         </record>
 
-        <!-- Sales (BA) được TẠO/SỬA nhưng CHỈ với Sản phẩm thương mại (luồng:
-             Sales tạo SP thương mại → Kế toán nhập giá → Sales kích hoạt).
-             perm_read=0 ⇒ không đụng quyền đọc (Sales vẫn xem mọi SP để tham
-             khảo khi tạo RFQ). Không đụng SP gia công/vật tư/BTP. -->
+        <!-- Trưởng phòng KD được TẠO/SỬA nhưng CHỈ với Sản phẩm thương mại — họ
+             là chủ sở hữu danh mục hàng thương mại và là người CHỐT GIÁ BÁN
+             (luồng: TPKD tạo SP → Mua hàng tìm NCC & nhập giá vốn → TPKD chốt
+             giá bán rồi kích hoạt). perm_read=0 ⇒ không đụng quyền đọc (vẫn xem
+             mọi SP). Không đụng SP gia công/vật tư/BTP. -->
+        <record id="rule_product_sm_trading_write_create" model="ir.rule">
+            <field name="name">Trưởng phòng KD: chỉ tạo/sửa Sản phẩm thương mại</field>
+            <field name="model_id" ref="product.model_product_product" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_sales_manager'))]" />
+            <field name="domain_force">[('product_kind', '=', 'trading')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!-- Sales (BA) nay CHỈ-ĐỌC sản phẩm: quyền tạo SP thương mại & chốt giá
+             bán đã chuyển hẳn lên Trưởng phòng KD (2026-08-15). Rule giữ lại cho
+             tương thích DB cũ — ACL write/create của BA đã về 0 nên không còn
+             tác dụng (giống rule Kế toán bên trên). -->
         <record id="rule_product_ba_trading_write_create" model="ir.rule">
             <field name="name">Sales: chỉ tạo/sửa Sản phẩm thương mại</field>
             <field name="model_id" ref="product.model_product_product" />

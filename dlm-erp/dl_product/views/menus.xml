@@ -28,26 +28,41 @@
         sequence="11"
         groups="dl_base.dl_group_tech"
     />
-    <!-- View-only: CEO, Trưởng phòng KD (BA dùng menu tạo bên dưới; Kế toán thao
-         tác giá qua màn Bảng giá riêng, xem product_pricing_views.xml) -->
+    <!-- View-only: CEO, Sales/BA (Trưởng phòng KD dùng menu tạo bên dưới; Kế toán
+         thao tác giá qua màn Bảng giá riêng, xem product_pricing_views.xml) -->
     <menuitem
         id="menu_dl_product_view"
         name="Sản phẩm"
         action="action_dl_product_view"
         parent="menu_dl_product_root"
         sequence="12"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_ba"
     />
-    <!-- Sales: mục "Sản phẩm" DUY NHẤT của BA — THẤY đủ loại SP (như role khác),
-         chỉ TẠO được SP thương mại. Không tách tab con riêng. -->
+    <!-- Trưởng phòng KD: mục "Sản phẩm" DUY NHẤT — THẤY đủ loại SP (như role
+         khác), chỉ TẠO được SP thương mại. Không tách tab con riêng.
+         XML ID giữ hậu tố "_ba" (lịch sử) — xem product_views.xml. -->
     <menuitem
         id="menu_dl_product_trading_ba"
         name="Sản phẩm"
         action="action_dl_product_trading_ba"
         parent="menu_dl_product_root"
         sequence="12"
-        groups="dl_base.dl_group_ba"
+        groups="dl_base.dl_group_sales_manager"
     />
+    <!-- menuitem groups= chỉ CỘNG DỒN (Command.link) ⇒ bỏ nhóm khỏi thuộc tính
+         KHÔNG gỡ được nhóm cũ trên DB đã nâng cấp. Chốt cứng bằng (6,0,...) để
+         quyền "tạo SP thương mại" thực sự chuyển hẳn BA → Trưởng phòng KD. -->
+    <record id="menu_dl_product_view" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_ceo'),
+            ref('dl_base.dl_group_ba'),
+        ])]" />
+    </record>
+    <record id="menu_dl_product_trading_ba" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_sales_manager'),
+        ])]" />
+    </record>
 
     <menuitem
         id="menu_dl_material_full"
