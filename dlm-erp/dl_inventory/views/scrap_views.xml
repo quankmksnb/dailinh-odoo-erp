@@ -30,7 +30,8 @@
                      từng ký ⇒ hành động theo lựa chọn là đúng nhịp làm việc. -->
                 <header>
                     <button name="action_dlm_sell_scrap" type="object"
-                            string="Bán phế liệu" class="btn-primary"/>
+                            string="Bán phế liệu" class="btn-primary"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                 </header>
                 <field name="product_id" string="Phế liệu"
                        readonly="id != False"/>
@@ -111,13 +112,16 @@
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft' or dlm_blocked"/>
+                            invisible="state != 'draft' or dlm_blocked"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <button name="button_validate" string="Xác nhận đã giao"
                             type="object" class="btn-primary"
-                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
+                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <button name="action_cancel" string="Huỷ phiếu"
                             type="object" class="btn-danger"
-                            invisible="state in ('done', 'cancel')"/>
+                            invisible="state in ('done', 'cancel')"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
                 </header>

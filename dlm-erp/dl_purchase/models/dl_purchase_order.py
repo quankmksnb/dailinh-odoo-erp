@@ -246,11 +246,13 @@ class DlPurchaseOrder(models.Model):
     # Vòng đời
     # ------------------------------------------------------------------
     def action_dlm_send(self):
-        """Đánh dấu đã gửi yêu cầu báo giá cho NCC (gửi bằng kênh của Mua hàng).
+        """Đánh dấu ĐÃ gửi yêu cầu báo giá cho NCC — ghi MỐC THỜI GIAN.
 
-        Không có nút gửi mail: chưa cấu hình mail server (nợ ghi từ K17). Mua
-        hàng tải PDF rồi gửi qua Zalo/mail tay — nhưng MỐC THỜI GIAN phải nằm
-        trong hệ thống, không thì không ai trả lời được "gửi lâu chưa".
+        Tách khỏi việc gửi: gửi bằng [Gửi mail cho NCC] (``action_dlm_email``,
+        có từ khi SMTP được khai trong ``odoo.conf``) hay bằng Zalo/mail tay thì
+        mốc vẫn phải nằm trong hệ thống, không thì không ai trả lời được "gửi
+        lâu chưa". Nút mail CỐ Ý không tự bật mốc này: trình soạn thư gửi ở một
+        bước sau, đóng cửa sổ là thư không đi.
         """
         self.ensure_one()
         self._dlm_check_buyer()

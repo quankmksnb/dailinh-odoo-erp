@@ -176,3 +176,67 @@ class TestPurchaseOrder(DlPurchaseCase):
         pdf = order._dlm_build_pdf(is_order=False)
 
         self.assertTrue(pdf.startswith(b"%PDF"))
+
+    # -------------------------------------------- Gửi PDF cho NCC bằng email
+    def test_gui_mail_ncc_dinh_san_pdf_va_dung_nguoi_nhan(self):
+        """🔴 Thư phải mở ra ĐÃ có file và ĐÃ điền NCC.
+
+        Đỏ = Mua hàng vẫn phải tự tải PDF rồi tự gõ địa chỉ — đúng việc thủ công
+        mà nút này sinh ra để thay thế, và gõ tay là gửi nhầm NCC.
+        """
+        self.vendor.email = "thanghao@test.local"
+        order = self._mk_po([(self.thep, 20.0, 200000.0)])
+
+        action = order.action_dlm_email()
+
+        ctx = action["context"]
+        self.assertEqual(action["res_model"], "mail.compose.message")
+        self.assertEqual(ctx["default_partner_ids"], [(6, 0, self.vendor.ids)])
+        attachment = self.env["ir.attachment"].browse(
+            ctx["default_attachment_ids"][0][2])
+        self.assertEqual(attachment.mimetype, "application/pdf")
+        # Nháp ⇒ tờ HỎI GIÁ, không phải đơn đặt hàng.
+        self.assertIn("YeuCauBaoGia", attachment.name)
+        self.assertIn("Yêu cầu báo giá", ctx["default_subject"])
+        # Đính kèm neo vào chính đơn: ba tháng sau còn tra được đã gửi cái gì.
+        self.assertEqual(attachment.res_model, "dl.purchase.order")
+        self.assertEqual(attachment.res_id, order.id)
+
+    def test_don_da_chot_thi_gui_don_dat_hang_chu_khong_phai_hoi_gia(self):
+        """Một nút, hai tờ giấy — chọn theo trạng thái, không bắt người dùng chọn."""
+        self.vendor.email = "thanghao@test.local"
+        order = self._mk_po([(self.thep, 20.0, 200000.0)])
+        order.action_dlm_confirm()
+
+        ctx = order.action_dlm_email()["context"]
+
+        attachment = self.env["ir.attachment"].browse(
+            ctx["default_attachment_ids"][0][2])
+        self.assertIn("DonDatHang", attachment.name)
+        self.assertIn("Đơn đặt hàng", ctx["default_subject"])
+
+    def test_ncc_khong_co_email_thi_chan_som_va_chi_duong_khac(self):
+        """🔴 Chặn TRƯỚC khi mở trình soạn thư.
+
+        Đỏ = composer mở ra với ô người nhận rỗng, người dùng bấm Gửi rồi tưởng
+        đã gửi — im lặng, và NCC không bao giờ nhận được gì.
+        """
+        self.vendor.email = False
+        order = self._mk_po([(self.thep, 20.0, 200000.0)])
+
+        with self.assertRaises(UserError):
+            order.action_dlm_email()
+
+    def test_mo_thu_khong_tu_danh_dau_da_gui(self):
+        """🔴 Mốc "đã gửi" phải phản ánh việc ĐÃ XẢY RA, không phải ý định.
+
+        Composer gửi ở một bước SAU; đóng cửa sổ là thư không đi. Tự chuyển
+        trạng thái ở đây thì "đã gửi lâu chưa" trả lời sai ngay từ đầu.
+        """
+        self.vendor.email = "thanghao@test.local"
+        order = self._mk_po([(self.thep, 20.0, 200000.0)])
+
+        order.action_dlm_email()
+
+        self.assertEqual(order.state, "draft")
+        self.assertFalse(order.date_sent)

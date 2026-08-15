@@ -47,17 +47,20 @@
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
-                            invisible="state != 'draft' or dlm_blocked"/>
+                            invisible="state != 'draft' or dlm_blocked"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <!-- Tuyến thường: một nút chốt. Tuyến ra Xưởng thì nút này
                          NHƯỜNG chỗ cho cặp bàn giao/ký nhận bên dưới — để cả
                          hai cùng hiện là mời thủ kho đi đường tắt qua chữ ký
                          (server vẫn chặn, nhưng bằng một lỗi khó hiểu). -->
                     <button name="button_validate" string="Xác nhận chuyển kho"
                             type="object" class="btn-primary"
-                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked or dlm_needs_receipt"/>
+                            invisible="state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked or dlm_needs_receipt"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <button name="action_dlm_handover" string="Bàn giao ra xưởng"
                             type="object" class="btn-primary"
-                            invisible="dlm_receipt_state != 'ready' or state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"/>
+                            invisible="dlm_receipt_state != 'ready' or state not in ('waiting', 'confirmed', 'assigned') or dlm_blocked"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <!-- groups= chỉ giấu khỏi mắt; chốt thật ở
                          _dlm_check_receipt_signer (bài học RS-03). -->
                     <button name="action_dlm_confirm_receipt"
@@ -67,7 +70,8 @@
                             invisible="dlm_receipt_state != 'waiting'"/>
                     <button name="action_cancel" string="Huỷ phiếu"
                             type="object" class="btn-danger"
-                            invisible="state in ('done', 'cancel')"/>
+                            invisible="state in ('done', 'cancel')"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
                 </header>

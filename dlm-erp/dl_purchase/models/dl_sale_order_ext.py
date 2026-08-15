@@ -12,7 +12,10 @@ Hai việc, cùng một mối nối:
 Thiết kế: ``docs/Thiet_ke_mua_hang_va_vong_cung_ung.md`` §4, §6.4.
 """
 
+from markupsafe import Markup
+
 from odoo import _, fields, models
+from odoo.tools import html_escape
 
 from .dl_purchase_order import _DLM_BUY_PRICE_GROUPS
 
@@ -85,7 +88,12 @@ class DlSaleOrderPurchase(models.Model):
         if orders:
             self._dlm_notify_buyers(orders)
         if khong_ncc:
-            # Không chặn điều phối — phần còn lại vẫn phải chạy. Nhưng phải NÓI.
+            # Không chặn điều phối — phần còn lại vẫn phải chạy. Nhưng phải NÓI,
+            # và nói vào HÒM VIỆC của Mua hàng chứ không chỉ chatter đơn bán:
+            # đây là ca DUY NHẤT thiếu hàng mà không sinh ra đơn mua nào, nên
+            # cũng là ca duy nhất không có activity nào — im lặng đúng chỗ nguy
+            # hiểm nhất. Chatter đơn bán thì Mua hàng không có lý do gì để mở.
+            self._dlm_notify_missing_seller(khong_ncc)
             labels.append(_(
                 "⚠ chưa có nhà cung cấp cho: %s (không lên được đơn mua)"
             ) % ", ".join(p.display_name for p in khong_ncc))
@@ -114,21 +122,90 @@ class DlSaleOrderPurchase(models.Model):
             # Mua hàng sẽ thấy dòng giá 0 và phải gõ giá trước khi chốt (MH-05).
             return 0.0
 
-    def _dlm_notify_buyers(self, orders):
-        """Giao việc cho Mua hàng — không để đơn nháp nằm chờ ai đó tình cờ mở màn."""
-        self.ensure_one()
+    def _dlm_buyer_users(self):
+        """User nhóm Mua hàng đang hoạt động — người nhận mọi lời báo mua hàng."""
         group = self.env.ref(
             "dl_base.dl_group_purchasing", raise_if_not_found=False)
-        users = group.users.filtered(lambda u: u.active and not u.share) \
-            if group else self.env["res.users"]
+        if not group:
+            return self.env["res.users"]
+        return group.users.filtered(lambda u: u.active and not u.share)
+
+    def _dlm_notify_buyers(self, orders):
+        """Giao việc cho Mua hàng — không để đơn nháp nằm chờ ai đó tình cờ mở màn.
+
+        🔴 Đây LÀ đường gửi email, không chỉ là việc trong app: Odoo
+        ``mail.activity.create`` gọi ``action_notify()`` →
+        ``record.message_notify(...)`` ⇒ mỗi activity giao cho người khác là một
+        email thật gửi đi. Nên NỘI DUNG ở đây chính là nội dung lá thư Mua hàng
+        nhận được — người dùng chốt 2026-08-14 rằng báo phải TỰ ĐỘNG, không qua
+        một nút phải nhớ bấm.
+
+        Vì vậy note phải LIỆT KÊ vật tư + số lượng, không chỉ nêu tên đơn mua:
+        đọc thư xong là biết phải đi hỏi giá cái gì, không phải mở đơn ra đếm.
+        """
+        self.ensure_one()
+        users = self._dlm_buyer_users()
         for order in orders:
+            note = self._dlm_buyer_note(order)
             for user in users:
                 order.sudo().activity_schedule(
                     "mail.mail_activity_data_todo", user_id=user.id,
                     summary=_("Cần mua hàng cho đơn %s") % self.name,
-                    note=_("Điều phối kho phát hiện thiếu hàng. Đơn mua nháp "
-                           "%(po)s đã được gom sẵn theo nhà cung cấp — hỏi giá "
-                           "rồi chốt giá cho lô này.") % {"po": order.name})
+                    note=note)
+        return True
+
+    def _dlm_buyer_note(self, order):
+        """Thân việc/thư cho MỘT đơn mua nháp.
+
+        🔴 CỐ Ý KHÔNG CÓ GIÁ. Giá trên đơn nháp mới là giá bảng, còn phải hỏi
+        lại NCC; đưa nó vào thư là tự chốt hộ mức trước khi đàm phán — cùng luật
+        với biên bản hàng không đạt của K17.
+        """
+        self.ensure_one()
+        dong = "".join(
+            "<li>%s — <strong>%s %s</strong></li>" % (
+                html_escape(line.product_id.display_name),
+                _num(line.qty),
+                html_escape(line.product_id.uom_id.name or ""))
+            for line in order.line_ids)
+        return Markup(
+            "<p>Điều phối kho đơn bán <strong>%(don)s</strong> (khách %(khach)s) "
+            "phát hiện thiếu hàng. Đơn mua nháp <strong>%(po)s</strong> đã gom "
+            "sẵn cho %(ncc)s:</p><ul>%(dong)s</ul>"
+            "<p>Hỏi giá nhà cung cấp rồi chốt giá cho lô này.</p>" % {
+                "don": html_escape(self.name),
+                "khach": html_escape(self.partner_id.display_name),
+                "po": html_escape(order.name),
+                "ncc": html_escape(order.partner_id.display_name),
+                "dong": dong,
+            })
+
+    def _dlm_notify_missing_seller(self, products):
+        """Giao việc cho ca KHÔNG sinh được đơn mua — gắn lên chính đơn bán.
+
+        Không có đơn mua để gắn thì gắn lên đơn bán: Mua hàng đọc được
+        ``dl.sale.order`` (ACL 1,0,0,0) nên mở được từ hòm việc. sudo vì người
+        bấm điều phối là Thủ kho, họ không ghi được lên đơn bán.
+        """
+        self.ensure_one()
+        note = Markup(
+            "<p>Điều phối kho đơn bán <strong>%(don)s</strong> thiếu những thứ "
+            "sau, nhưng <strong>chưa vật tư nào có bảng giá nhà cung cấp đang "
+            "áp dụng</strong> nên hệ thống KHÔNG lên được đơn mua:</p>"
+            "<ul>%(dong)s</ul>"
+            "<p>Khai nhà cung cấp và bảng giá cho các mặt hàng trên, rồi điều "
+            "phối lại đơn để hệ thống gom đơn mua.</p>" % {
+                "don": html_escape(self.name),
+                "dong": "".join(
+                    "<li>%s</li>" % html_escape(product.display_name)
+                    for product in products),
+            })
+        for user in self._dlm_buyer_users():
+            self.sudo().activity_schedule(
+                "mail.mail_activity_data_todo", user_id=user.id,
+                summary=_("Thiếu vật tư CHƯA CÓ nhà cung cấp — đơn %s")
+                % self.name,
+                note=note)
         return True
 
     # ------------------------------------------------------------------

@@ -28,10 +28,12 @@
                 <header>
                     <button name="button_validate" string="Xác nhận đổi"
                             type="object" class="btn-primary"
-                            invisible="state in ('done', 'cancel') or dlm_blocked"/>
+                            invisible="state in ('done', 'cancel') or dlm_blocked"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <button name="action_cancel" string="Huỷ"
                             type="object" class="btn-danger"
-                            invisible="state in ('done', 'cancel')"/>
+                            invisible="state in ('done', 'cancel')"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
                 </header>

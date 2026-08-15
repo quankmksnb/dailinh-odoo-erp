@@ -45,6 +45,8 @@ cùng lý do dự án đã tự xây dl.sale.order.
         "data/ir_sequence.xml",
         "data/approval_setting.xml",
         "data/rbac_features.xml",
+        # Mẫu thư gửi NCC — nạp TRƯỚC view: action_dlm_email tra bằng env.ref.
+        "data/purchase_mail_template.xml",
         "views/purchase_order_views.xml",
         "views/stock_lot_views_ext.xml",
         "views/sale_order_views_ext.xml",

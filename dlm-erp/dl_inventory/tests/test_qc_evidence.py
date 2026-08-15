@@ -544,3 +544,75 @@ class TestQcEvidence(DlInventoryCase):
         self.assertEqual(
             action["views"][0][0],
             self.env.ref("dl_inventory.view_dl_move_evidence_form").id)
+
+    # ── Nhóm 6: gửi biên bản cho NCC bằng email ─────────────────────────────
+    def test_gui_bien_ban_dinh_san_pdf_va_dung_ncc(self):
+        """🔴 Thư mở ra phải ĐÃ có biên bản và ĐÃ điền đúng NCC.
+
+        Đỏ = Mua hàng vẫn phải tải PDF rồi gõ tay địa chỉ — đúng việc thủ công
+        mà K17 sinh ra để thay thế, và gõ tay là gửi nhầm nhà cung cấp.
+        """
+        tra = self._phieu_tra(anh=self._anh_that())
+        tra.partner_id.email = "ncc.bienban@test.local"
+
+        action = tra.action_dlm_email_reject_report()
+
+        ctx = action["context"]
+        self.assertEqual(action["res_model"], "mail.compose.message")
+        self.assertEqual(ctx["default_partner_ids"],
+                         [(6, 0, tra.partner_id.ids)])
+        dinh_kem = self.env["ir.attachment"].browse(
+            ctx["default_attachment_ids"][0][2])
+        self.assertEqual(dinh_kem.mimetype, "application/pdf")
+        self.assertIn("Bien_ban_hang_khong_dat", dinh_kem.name)
+        # Neo vào chính phiếu: ba tháng sau còn tra được đã đưa NCC cái gì.
+        self.assertEqual(dinh_kem.res_model, "stock.picking")
+        self.assertEqual(dinh_kem.res_id, tra.id)
+
+    def test_thu_gui_ncc_khong_co_gia(self):
+        """🔴 Cùng luật với tờ biên bản: thư nói về HÀNG, không phải tiền.
+
+        Số tiền giảm trừ là KẾT QUẢ đàm phán. Viết ra trước là tự chốt mức hộ
+        NCC — sửa "cho đầy đủ" ở thư mà quên luật này là hỏng đúng chỗ tờ giấy
+        đã cẩn thận tránh.
+        """
+        tra = self._phieu_tra(anh=self._anh_that())
+        tra.partner_id.email = "ncc.bienban@test.local"
+
+        body = tra.action_dlm_email_reject_report()["context"]["default_body"]
+
+        for tu_tien in ("giảm trừ", "bồi thường", "VNĐ", "₫"):
+            self.assertNotIn(tu_tien, body)
+
+    def test_thu_kho_khong_gui_duoc_bien_ban_cho_ncc(self):
+        """🔴 IN thì thủ kho làm được, GỬI thì không — quan hệ với NCC là của
+        Mua hàng, cùng lằn kiểm soát chéo của đơn mua.
+
+        Lá chắn phải ở TẦNG SERVER: `groups=` trên view chỉ giấu nút, RPC vẫn
+        gọi thẳng được. `env.su` của TransactionCase bỏ qua ACL nên phải chạy
+        bằng vai trò THẬT.
+        """
+        tra = self._phieu_tra(anh=self._anh_that())
+        tra.partner_id.email = "ncc.bienban@test.local"
+        thu_kho = self.env["res.users"].create({
+            "name": "Thủ kho (gửi biên bản)", "login": "thukho_send_bb_test",
+            "email": "thukho.sendbb@test.local",
+            "groups_id": [(6, 0, [
+                self.env.ref("dl_base.dl_group_warehouse").id])],
+        })
+        self.env.invalidate_all()
+
+        with self.assertRaises(UserError):
+            tra.with_user(thu_kho).action_dlm_email_reject_report()
+
+        # Nhưng IN thì vẫn phải được — nút kia cố ý không khoá vai trò.
+        tra.with_user(thu_kho).action_dlm_print_reject_report()
+
+    def test_ncc_chua_co_email_thi_chan_som(self):
+        """Chặn TRƯỚC khi mở trình soạn thư: composer mở ra với ô người nhận
+        rỗng thì người dùng bấm Gửi rồi tưởng đã gửi — im lặng."""
+        tra = self._phieu_tra(anh=self._anh_that())
+        tra.partner_id.email = False
+
+        with self.assertRaises(UserError):
+            tra.action_dlm_email_reject_report()

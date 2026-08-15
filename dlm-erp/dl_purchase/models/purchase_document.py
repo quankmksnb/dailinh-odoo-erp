@@ -42,6 +42,87 @@ class DlPurchaseOrderDocument(models.Model):
         NCC đúng cái gì" — cùng lý do biên bản hàng loại của K17 được lưu.
         """
         self.ensure_one()
+        attachment = self._dlm_create_document_attachment()
+        self.message_post(
+            body=_("Đã xuất %s gửi nhà cung cấp.") % self._dlm_document_label(),
+            attachment_ids=[attachment.id])
+        return {
+            "type": "ir.actions.act_url",
+            "url": "/web/content/%s?download=true" % attachment.id,
+            "target": "self",
+        }
+
+    def action_dlm_email(self):
+        """Mở trình soạn thư đã đính sẵn PDF + tiêu đề/nội dung từ mẫu thư.
+
+        🔴 Dùng TRÌNH SOẠN THƯ chứ không gửi thẳng — ngược với
+        ``dl.sale.order.action_dlm_notify_shortage`` (thư nội bộ, gửi một phát).
+        Hai lý do, và cả hai đều là lý do của thư ĐỐI NGOẠI:
+
+          • người nhận là NCC, không phải đồng nghiệp: gửi nhầm giá hay nhầm NCC
+            là hỏng đàm phán, phải đọc lại được trước khi bấm Gửi;
+          • ACL cho phép — Mua hàng có quyền GHI trên ``dl.purchase.order``, nên
+            composer ghi ``mail.message`` bằng quyền của họ không bị chặn (chỗ
+            khác phải sudo là vì Thủ kho chỉ có quyền đọc đơn bán).
+
+        Cùng khuôn ``dl_sale/wizard/quotation_export_wizard.action_email``.
+
+        🔴 KHÔNG tự đổi trạng thái sang "Đã gửi": composer gửi thư ở một bước
+        SAU, ta không biết người dùng có thật sự bấm Gửi hay đóng cửa sổ. Đánh
+        dấu mốc gửi vẫn là việc của nút [Gửi hỏi giá nhà cung cấp] — mốc thời
+        gian phải phản ánh việc đã xảy ra, không phải ý định.
+        """
+        self.ensure_one()
+        if not self.partner_id.email:
+            raise UserError(_(
+                "Nhà cung cấp %s chưa có email — bổ sung email trên hồ sơ nhà "
+                "cung cấp, hoặc dùng nút In rồi gửi bằng kênh của bạn."
+            ) % self.partner_id.display_name)
+
+        attachment = self._dlm_create_document_attachment()
+        template = self.env.ref(
+            "dl_purchase.mail_template_dl_purchase_order",
+            raise_if_not_found=False)
+        subject = body = ""
+        if template:
+            rendered = template._generate_template(
+                self.ids, {"subject", "body_html"})[self.id]
+            subject = rendered.get("subject") or ""
+            body = rendered.get("body_html") or ""
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Gửi %s cho nhà cung cấp") % self._dlm_document_label(),
+            "res_model": "mail.compose.message",
+            "view_mode": "form",
+            "views": [(False, "form")],
+            "target": "new",
+            "context": {
+                "default_model": self._name,
+                "default_res_ids": self.ids,
+                "default_composition_mode": "comment",
+                "default_subject": subject,
+                "default_body": body,
+                "default_partner_ids": [(6, 0, self.partner_id.ids)],
+                "default_attachment_ids": [(6, 0, attachment.ids)],
+                "force_email": True,
+            },
+        }
+
+    def _dlm_document_label(self):
+        """Tên tờ giấy theo trạng thái — một nguồn cho cả chatter, tiêu đề action
+        và mẫu thư, để ba chỗ không gọi khác tên nhau."""
+        self.ensure_one()
+        return (_("Đơn đặt hàng") if self.state == "confirmed"
+                else _("Yêu cầu báo giá"))
+
+    def _dlm_create_document_attachment(self):
+        """Dựng PDF rồi lưu thành đính kèm của đơn.
+
+        Lưu lại chứ không chỉ tải về: ba tháng sau còn trả lời được "hôm đó gửi
+        NCC đúng cái gì" — cùng lý do biên bản hàng loại của K17 được lưu.
+        """
+        self.ensure_one()
         self._dlm_check_buyer()
         if not self.line_ids:
             raise UserError(_("Đơn %s chưa có dòng nào để in.") % self.name)
@@ -50,7 +131,7 @@ class DlPurchaseOrderDocument(models.Model):
         filename = "%s_%s.pdf" % (
             "DonDatHang" if is_order else "YeuCauBaoGia",
             self.name.replace("/", "_"))
-        attachment = self.env["ir.attachment"].sudo().create({
+        return self.env["ir.attachment"].sudo().create({
             "name": filename,
             "type": "binary",
             "datas": base64.b64encode(pdf),
@@ -58,15 +139,6 @@ class DlPurchaseOrderDocument(models.Model):
             "res_id": self.id,
             "mimetype": "application/pdf",
         })
-        self.message_post(
-            body=_("Đã xuất %s gửi nhà cung cấp.") % (
-                _("Đơn đặt hàng") if is_order else _("Yêu cầu báo giá")),
-            attachment_ids=[attachment.id])
-        return {
-            "type": "ir.actions.act_url",
-            "url": "/web/content/%s?download=true" % attachment.id,
-            "target": "self",
-        }
 
     # ------------------------------------------------------------------
     def _dlm_build_pdf(self, is_order):
