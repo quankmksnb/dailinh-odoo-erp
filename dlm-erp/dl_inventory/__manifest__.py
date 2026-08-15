@@ -107,8 +107,13 @@ Thêm ở K17 (bằng chứng hàng loại):
     trả lời được "hôm đó đưa NCC đúng cái gì".
     🔴 CỐ Ý KHÔNG CÓ GIÁ — biên bản nói về HÀNG; in số tiền trước khi đàm phán
     là tự chốt mức giảm trừ hộ NCC.
-  • 🔴 Vẫn chưa có nút GỬI MAIL cho NCC — Mua hàng tải PDF rồi gửi bằng kênh của
-    mình (Zalo/mail tay). Cần server mail cấu hình xong mới làm được.
+  • Nút [Gửi biên bản qua email] gửi thẳng cho NCC: dựng biên bản rồi mở trình
+    soạn thư đã đính sẵn file và điền sẵn NCC, người gửi đọc lại mới bấm Gửi
+    (cùng khuôn gửi báo giá của dl_sale). SMTP lấy từ odoo.conf.
+    🔴 Nút GỬI hẹp hơn nút IN: in là việc của kho (kẹp vào hàng lúc xe NCC tới
+    lấy) nên không khoá vai trò; còn gửi là mở đầu cuộc đàm phán giảm trừ, chỉ
+    Mua hàng/Admin/CEO — chặn ở TẦNG SERVER chứ không chỉ `groups` trên view.
+    Thư cũng KHÔNG CÓ GIÁ, cùng luật với tờ biên bản.
 
 Thêm ở K15–K16 (kiểm tra kho & điều phối đơn hàng):
   • Nổ BOM thành nhu cầu vật tư (dl.bom._dlm_explode_requirements): bù trừ BTP
@@ -142,6 +147,8 @@ hệ thống, điều hướng đi thẳng qua submenu rail.
         # ⚠️ Nạp SAU seed: rule neo vào sequence_code của loại hoạt động ở trên.
         "security/ir_rule.xml",
         "data/rbac_features.xml",
+        # Mẫu thư gửi NCC — nạp TRƯỚC view: action tra bằng env.ref.
+        "data/vendor_return_mail_template.xml",
         "views/picking_views.xml",
         "views/transfer_views.xml",
         "views/fg_receipt_views.xml",

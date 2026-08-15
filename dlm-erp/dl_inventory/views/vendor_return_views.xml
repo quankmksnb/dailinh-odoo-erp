@@ -107,6 +107,15 @@
                     <button name="action_dlm_print_reject_report"
                             string="Biên bản gửi nhà cung cấp" icon="fa-file-pdf-o"
                             type="object" class="btn-secondary"/>
+                    <!-- Nút GỬI hẹp hơn nút IN ngay trên: in là việc của kho
+                         (kẹp vào hàng lúc xe NCC tới lấy), còn gửi là mở đầu
+                         cuộc đàm phán giảm trừ — quan hệ với NCC là của Mua
+                         hàng. `groups` chỉ giấu nút; lá chắn thật nằm ở
+                         action_dlm_email_reject_report. -->
+                    <button name="action_dlm_email_reject_report"
+                            string="Gửi biên bản qua email" icon="fa-envelope-o"
+                            type="object" class="btn-secondary"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
                 </header>

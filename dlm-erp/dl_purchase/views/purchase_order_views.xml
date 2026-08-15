@@ -75,6 +75,13 @@
                     <button name="action_dlm_print" string="In đơn đặt hàng"
                             type="object" class="btn-secondary"
                             invisible="state != 'confirmed'"/>
+                    <!-- MỘT nút cho cả hai biến thể: PDF và mẫu thư đều tự đổi
+                         giọng theo trạng thái, nên tách hai nút chỉ để đổi chữ
+                         trên nhãn là bắt người dùng chọn hộ máy. Ẩn ở đơn đã
+                         huỷ — không gửi cho NCC một đơn không còn hiệu lực. -->
+                    <button name="action_dlm_email" string="Gửi mail cho NCC"
+                            type="object" class="btn-secondary"
+                            invisible="state == 'cancelled' or not line_ids"/>
                     <button name="action_dlm_reset_draft" string="Đưa về nháp"
                             type="object" class="btn-link"
                             invisible="state not in ('sent', 'cancelled')"/>

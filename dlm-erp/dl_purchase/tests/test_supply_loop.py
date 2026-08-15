@@ -226,3 +226,64 @@ class TestSupplyLoop(DlPurchaseCase):
         # Đúng thứ client đọc cho `widget="many2many_tags"`: id rồi display_name.
         tags = po.with_user(self.buyer).dlm_origin_order_ids
         self.assertEqual(tags.mapped("display_name"), [order.name])
+
+
+    # --------------------------------- Báo Mua hàng: TỰ ĐỘNG, không có nút
+    def test_dieu_phoi_tu_giao_viec_kem_danh_sach_vat_tu(self):
+        """🔴 Activity KHÔNG chỉ là việc trong app — `mail.activity.create` gọi
+        `action_notify()` → `message_notify()` ⇒ đây LÀ lá thư Mua hàng nhận.
+
+        Nên nó phải NÊU SỐ và TÊN. Đỏ = Mua hàng nhận thư "có hàng cần mua" rồi
+        vẫn phải mở từng đơn ra đếm — đúng việc mà lời báo sinh ra để thay thế.
+
+        Người dùng chốt 2026-08-14: báo phải TỰ ĐỘNG theo cú bấm Điều phối, chứ
+        không qua một nút riêng phải nhớ bấm.
+        """
+        self._apply_price(self.thep, self.vendor, 200000.0)
+        bom = self._mk_bom(self.ban, self.thep, 2.0)
+        order = self._mk_sale_order(self.ban, 10.0, "manufactured", bom)
+
+        order.action_dlm_dispatch()
+
+        po = order.dlm_purchase_order_ids
+        viec = self.env["mail.activity"].search([
+            ("res_model", "=", "dl.purchase.order"), ("res_id", "=", po.id),
+            ("user_id", "=", self.buyer.id)])
+        self.assertTrue(viec, "Phải giao việc cho Mua hàng ngay khi điều phối.")
+        self.assertIn(order.name, viec[0].summary)
+        self.assertIn("Thép hộp 30x60x1.4", viec[0].note)
+        self.assertIn("20", viec[0].note)
+
+    def test_thu_bao_mua_hang_khong_lot_gia(self):
+        """🔴 Giá trên đơn nháp là giá BẢNG, còn phải hỏi lại NCC. Đưa vào thư
+        là tự chốt hộ mức trước khi đàm phán — cùng luật với biên bản K17."""
+        self._apply_price(self.thep, self.vendor, 200000.0)
+        bom = self._mk_bom(self.ban, self.thep, 2.0)
+        order = self._mk_sale_order(self.ban, 10.0, "manufactured", bom)
+
+        order.action_dlm_dispatch()
+
+        note = self.env["mail.activity"].search([
+            ("res_model", "=", "dl.purchase.order"),
+            ("res_id", "=", order.dlm_purchase_order_ids.id)])[0].note
+        for so_tien in ("200000", "200.000", "4000000", "4.000.000"):
+            self.assertNotIn(so_tien, note)
+
+    def test_vat_tu_khong_co_ncc_van_phai_giao_viec(self):
+        """🔴 Ca DUY NHẤT thiếu hàng mà không sinh đơn mua nào ⇒ trước đây cũng
+        là ca duy nhất KHÔNG có activity nào: im lặng đúng chỗ nguy hiểm nhất.
+
+        Đỏ = dấu vết duy nhất là một dòng chatter trên đơn BÁN — màn mà Mua hàng
+        không có lý do gì để mở. Vật tư đó không bao giờ được mua.
+        """
+        bom = self._mk_bom(self.ban, self.thep, 2.0)   # thép CHƯA có bảng giá
+        order = self._mk_sale_order(self.ban, 10.0, "manufactured", bom)
+
+        order.action_dlm_dispatch()
+
+        self.assertFalse(order.dlm_purchase_order_ids)
+        viec = self.env["mail.activity"].search([
+            ("res_model", "=", "dl.sale.order"), ("res_id", "=", order.id),
+            ("user_id", "=", self.buyer.id)])
+        self.assertTrue(viec, "Không có đơn mua thì việc phải gắn lên đơn bán.")
+        self.assertIn(self.thep.display_name, viec[0].note)

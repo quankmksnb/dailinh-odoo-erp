@@ -42,6 +42,15 @@ from .stock_picking import _DLM_RETURN_CODE
 _ANH_W_MM = 82.0
 _ANH_H_MM = 62.0
 
+# Ai được GỬI biên bản cho NCC — hẹp hơn ai được IN nó (xem
+# action_dlm_email_reject_report). CEO/Admin có mặt để không ai bị kẹt khi Mua
+# hàng nghỉ, đúng khuôn _DLM_DISPATCH_ROLES.
+_DLM_SEND_ROLES = (
+    "dl_base.dl_group_purchasing",
+    "dl_base.dl_group_admin",
+    "dl_base.dl_group_ceo",
+)
+
 
 class StockPickingRejectReport(models.Model):
     _inherit = "stock.picking"
@@ -328,21 +337,7 @@ class StockPickingRejectReport(models.Model):
         ba tháng sau phải trả lời được "hôm đó mình đưa họ đúng cái gì".
         """
         self.ensure_one()
-        if self.picking_type_id.sequence_code != _DLM_RETURN_CODE:
-            raise UserError(_(
-                "Biên bản hàng không đạt chỉ lập từ phiếu Trả hàng nhà cung cấp."))
-        if not self.move_ids:
-            raise UserError(_("Phiếu chưa có dòng hàng nào để lập biên bản."))
-
-        content = self._dlm_build_reject_report()
-        attachment = self.env["ir.attachment"].create({
-            "name": "Bien_ban_hang_khong_dat_%s.pdf" % (
-                self.name or "moi").replace("/", "_"),
-            "datas": base64.b64encode(content),
-            "res_model": "stock.picking",
-            "res_id": self.id,
-            "mimetype": "application/pdf",
-        })
+        attachment = self._dlm_create_reject_report_attachment()
         # sudo: message_post nổ UserError khi người dùng chưa khai email — cùng
         # lý do đã ghi ở _dlm_create_vendor_return. Dấu vết không được phép làm
         # hỏng việc in.
@@ -354,3 +349,89 @@ class StockPickingRejectReport(models.Model):
             "url": "/web/content/%s?download=true" % attachment.id,
             "target": "self",
         }
+
+    def action_dlm_email_reject_report(self):
+        """Mở trình soạn thư đã đính sẵn biên bản, gửi thẳng nhà cung cấp.
+
+        🔴 Nút IN cố ý KHÔNG khoá theo vai trò (thủ kho cần in kẹp vào hàng lúc
+        xe NCC tới lấy), nhưng nút GỬI thì có: thư này mở đầu một cuộc đàm phán
+        giảm trừ, và quan hệ với NCC là của Mua hàng. Thủ kho nhận hàng theo đơn
+        nhưng không nói chuyện với NCC — cùng lằn kiểm soát chéo mà
+        ``dl.purchase.order._dlm_check_buyer`` đang giữ.
+
+        Lá chắn nằm ở ĐÂY chứ không chỉ ở ``groups=`` của view: view chỉ giấu
+        nút, còn RPC/import/test vẫn gọi thẳng được.
+
+        Dùng trình soạn thư (không gửi thẳng): người nhận là NCC, và Mua hàng có
+        quyền GHI ``stock.picking`` (ACL 1,1,1,0) nên composer không bị chặn.
+        Cùng khuôn ``dl.purchase.order.action_dlm_email``.
+        """
+        self.ensure_one()
+        if not self.env.su and not any(
+                self.env.user.has_group(role) for role in _DLM_SEND_ROLES):
+            raise UserError(_(
+                "Gửi biên bản cho nhà cung cấp là việc của Mua hàng — thư này "
+                "mở đầu cuộc đàm phán giảm trừ. Bạn vẫn in được bản giấy bằng "
+                "nút [Biên bản gửi nhà cung cấp]."))
+        if not self.partner_id:
+            raise UserError(_(
+                "Phiếu %s chưa gắn nhà cung cấp nên không biết gửi cho ai.")
+                % self.name)
+        if not self.partner_id.email:
+            raise UserError(_(
+                "Nhà cung cấp %s chưa có email — bổ sung email trên hồ sơ nhà "
+                "cung cấp, hoặc in bản giấy rồi gửi bằng kênh của bạn."
+            ) % self.partner_id.display_name)
+
+        attachment = self._dlm_create_reject_report_attachment()
+        template = self.env.ref(
+            "dl_inventory.mail_template_dl_reject_report",
+            raise_if_not_found=False)
+        subject = body = ""
+        if template:
+            rendered = template._generate_template(
+                self.ids, {"subject", "body_html"})[self.id]
+            subject = rendered.get("subject") or ""
+            body = rendered.get("body_html") or ""
+
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Gửi biên bản cho nhà cung cấp"),
+            "res_model": "mail.compose.message",
+            "view_mode": "form",
+            "views": [(False, "form")],
+            "target": "new",
+            "context": {
+                "default_model": "stock.picking",
+                "default_res_ids": self.ids,
+                "default_composition_mode": "comment",
+                "default_subject": subject,
+                "default_body": body,
+                "default_partner_ids": [(6, 0, self.partner_id.ids)],
+                "default_attachment_ids": [(6, 0, attachment.ids)],
+                "force_email": True,
+            },
+        }
+
+    def _dlm_create_reject_report_attachment(self):
+        """Dựng biên bản rồi đính vào phiếu.
+
+        Lưu lại chứ không dựng-rồi-quên: bản đưa cho NCC là chứng từ đối ngoại,
+        ba tháng sau phải trả lời được "hôm đó mình đưa họ đúng cái gì".
+        """
+        self.ensure_one()
+        if self.picking_type_id.sequence_code != _DLM_RETURN_CODE:
+            raise UserError(_(
+                "Biên bản hàng không đạt chỉ lập từ phiếu Trả hàng nhà cung cấp."))
+        if not self.move_ids:
+            raise UserError(_("Phiếu chưa có dòng hàng nào để lập biên bản."))
+
+        content = self._dlm_build_reject_report()
+        return self.env["ir.attachment"].create({
+            "name": "Bien_ban_hang_khong_dat_%s.pdf" % (
+                self.name or "moi").replace("/", "_"),
+            "datas": base64.b64encode(content),
+            "res_model": "stock.picking",
+            "res_id": self.id,
+            "mimetype": "application/pdf",
+        })
