@@ -251,6 +251,30 @@ class DlRfqResolveWizard(models.TransientModel):
     # tạo mã sản phẩm mới ở đây gần như luôn là nhầm "khác cỡ" thành "khác món".
     confirm_not_just_size = fields.Boolean(
         string="Đây là sản phẩm khác kết cấu, không phải chỉ khác kích thước")
+    # 🔴 Mẫu tham số CHẶN việc tạo SP mới — đọc nhóm KTV đang chọn ở ô "Nhóm sản
+    # phẩm" của Case B. Cố ý TÁCH khỏi parametric_template_id: hai field trả lời
+    # hai câu hỏi khác nhau trên hai ô nhóm khác nhau ("nhóm của SP đang xử lý có
+    # mẫu để SINH định mức?" vs "tạo SP mới ở nhóm này có bị CHẶN?"). Trước đây
+    # cảnh báo lấy nhóm của dòng RFQ còn nút lấy nhóm KTV chọn ⇒ chọn nhóm khác
+    # nhóm Sales ghi thì alert + ô tick không hiện nhưng nút vẫn nổ lỗi, KTV kẹt
+    # cứng không có gì để tick. Nay nút và cảnh báo dùng CHUNG field này.
+    new_product_blocking_template_id = fields.Many2one(
+        "dl.bom.template", string="Mẫu tham số chặn tạo sản phẩm mới",
+        compute="_compute_new_product_blocking_template")
+
+    @api.depends("new_product_category_id")
+    def _compute_new_product_blocking_template(self):
+        Template = self.env["dl.bom.template"]
+        for rec in self:
+            tmpl = Template.browse()
+            if rec.new_product_category_id:
+                tmpl = Template.search([
+                    ("product_category_id", "=", rec.new_product_category_id.id),
+                    ("status", "in", ("confirmed", "locked")),
+                    ("is_parametric", "=", True),
+                    ("generic_product_id", "!=", False),
+                ], order="is_current desc, version desc", limit=1)
+            rec.new_product_blocking_template_id = tmpl
 
     # ── Soi trùng/gần giống tên khi tạo SP mới (Case B) ───────────────────
     # exact → chặn cứng (chọn lại SP có sẵn); similar → cảnh báo mềm, KTV tick
@@ -860,12 +884,9 @@ class DlRfqResolveWizard(models.TransientModel):
             raise UserError(_("Vui lòng chọn Nhóm sản phẩm."))
         # §8.1 — nhóm này có mẫu tham số ⇒ mọi kích thước dùng CHUNG sản phẩm dùng
         # chung, chỉ định mức là riêng. Chặn mềm để KTV không đẻ mã cho từng cỡ.
-        parametric = self.env["dl.bom.template"].search([
-            ("product_category_id", "=", self.new_product_category_id.id),
-            ("status", "in", ("confirmed", "locked")),
-            ("is_parametric", "=", True),
-            ("generic_product_id", "!=", False),
-        ], limit=1)
+        # Đọc field computed (không search lại tại chỗ) để điều kiện chặn LUÔN
+        # trùng điều kiện hiện cảnh báo + ô tick trên form.
+        parametric = self.new_product_blocking_template_id
         if parametric and not self.confirm_not_just_size:
             raise UserError(_(
                 "Nhóm “%(categ)s” đã có mẫu tham số “%(tmpl)s”: các kích thước "

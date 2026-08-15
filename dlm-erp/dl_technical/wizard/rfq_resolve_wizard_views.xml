@@ -49,6 +49,7 @@
                     <field name="suggestion_count" invisible="1"/>
                     <field name="auto_selected" invisible="1"/>
                     <field name="has_parametric_template" invisible="1"/>
+                    <field name="new_product_blocking_template_id" invisible="1"/>
                     <field name="show_param_panel" invisible="1"/>
                     <field name="param_reused_bom" invisible="1"/>
 
@@ -248,7 +249,7 @@
                                          lý do đẻ mã sản phẩm mới. Cảnh báo + bắt tick,
                                          và hạ nút tạo xuống thứ cấp. -->
                                     <div class="alert alert-warning" colspan="2" role="alert"
-                                         invisible="not has_parametric_template">
+                                         invisible="not new_product_blocking_template_id">
                                         <i class="fa fa-magic me-1" title="Có mẫu tham số"/>
                                         Nhóm này có <b>mẫu tham số</b>: các kích thước khác nhau
                                         <b>dùng chung một sản phẩm</b>, chỉ định mức là riêng cho
@@ -265,10 +266,10 @@
 
                                     <button name="action_create_product" type="object"
                                             string="Tạo sản phẩm" class="btn-primary"
-                                            invisible="name_dup_state == 'exact' or has_parametric_template"/>
+                                            invisible="name_dup_state == 'exact' or new_product_blocking_template_id"/>
                                     <button name="action_create_product" type="object"
                                             string="Tạo sản phẩm" class="btn-secondary"
-                                            invisible="name_dup_state == 'exact' or not has_parametric_template"/>
+                                            invisible="name_dup_state == 'exact' or not new_product_blocking_template_id"/>
                                 </group>
                             </div>
 
