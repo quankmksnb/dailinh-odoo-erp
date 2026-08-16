@@ -52,7 +52,7 @@
                         </div>
                         <div class="dl-cost-cell"
                              groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
-                            <span class="dl-cost-lbl">Markup niêm yết → thực thu (sau CK)</span>
+                            <span class="dl-cost-lbl">Markup niêm yết → thực thu (sau chiết khấu)</span>
                             <span class="dl-cost-val2">
                                 <field name="q_list_markup" readonly="1" nolabel="1" class="oe_inline"/>% →
                                 <field name="q_effective_markup" readonly="1" nolabel="1" class="oe_inline"/>%
@@ -115,18 +115,18 @@
                                 <div class="dl-cost-box-title">Giá sàn</div>
                                 <div class="dl-cost-line"><span>Tổng giá sàn</span>
                                     <field name="q_floor_amount" widget="dl_money" nolabel="1" readonly="1"/></div>
-                                <div class="dl-cost-line"><span>Doanh thu (sau CK, trước VAT)</span>
+                                <div class="dl-cost-line"><span>Doanh thu (sau chiết khấu, trước VAT)</span>
                                     <field name="q_amount_before_vat" widget="dl_money" nolabel="1" readonly="1"/></div>
                                 <div class="dl-cost-line dl-cost-line-total"><span>Lãi gộp</span>
                                     <field name="q_gross_profit" widget="dl_money" nolabel="1" readonly="1"/></div>
                             </div>
                             <div class="dl-cost-box">
                                 <div class="dl-cost-box-title">Chiết khấu &amp; phê duyệt</div>
-                                <div class="dl-cost-line"><span>Nhóm khách</span>
+                                <div class="dl-cost-line"><span>Nhóm khách hàng</span>
                                     <field name="q_partner_group" nolabel="1" readonly="1"/></div>
-                                <div class="dl-cost-line"><span>CK áp dụng</span>
+                                <div class="dl-cost-line"><span>Chiết khấu áp dụng</span>
                                     <span><field name="q_discount_pct" nolabel="1" readonly="1" class="oe_inline"/>%</span></div>
-                                <div class="dl-cost-line"><span>CK mặc định / tối đa</span>
+                                <div class="dl-cost-line"><span>Chiết khấu mặc định / tối đa</span>
                                     <span><field name="q_discount_default_rate" nolabel="1" readonly="1" class="oe_inline"/>% / <field name="q_discount_max_rate" nolabel="1" readonly="1" class="oe_inline"/>%</span></div>
                                 <div class="dl-cost-line"><span>Cấp duyệt yêu cầu</span>
                                     <field name="approval_level" nolabel="1" readonly="1"/></div>
@@ -146,13 +146,13 @@
                                        decoration-info="line_type == 'manufactured'"/>
                                 <field name="name"/>
                                 <field name="qty" widget="dl_money" digits="[16, 0]"/>
-                                <field name="material_cost" widget="dl_money" digits="[16, 0]" string="CP vật tư/đv" optional="hide"
+                                <field name="material_cost" widget="dl_money" digits="[16, 0]" string="Chi phí vật tư/đơn vị" optional="hide"
                                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                <field name="operation_cost" widget="dl_money" digits="[16, 0]" string="CP công đoạn/đv" optional="hide"
+                                <field name="operation_cost" widget="dl_money" digits="[16, 0]" string="Chi phí công đoạn/đơn vị" optional="hide"
                                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                <field name="total_cost" widget="dl_money" digits="[16, 0]" string="Giá thành/đv"
+                                <field name="total_cost" widget="dl_money" digits="[16, 0]" string="Giá thành/đơn vị"
                                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
-                                <field name="floor_price" widget="dl_money" digits="[16, 0]" string="Giá sàn/đv"
+                                <field name="floor_price" widget="dl_money" digits="[16, 0]" string="Giá sàn/đơn vị"
                                        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
                                 <field name="price_unit" widget="dl_money" digits="[16, 0]"/>
                                 <field name="price_subtotal" widget="dl_money" digits="[16, 0]"/>

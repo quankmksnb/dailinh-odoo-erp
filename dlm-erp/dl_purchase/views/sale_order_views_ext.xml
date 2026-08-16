@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K20/K22 — Đơn bán hàng thấy phần mua hàng & giá vốn thực tế của nó.
+         docs/Thiet_ke_mua_hang_va_vong_cung_ung.md §6.4
+
+         Đặt trên chính form đơn bán chứ không đẻ màn báo cáo riêng: câu hỏi
+         "đơn này lãi bao nhiêu" luôn được hỏi khi đang nhìn vào đơn.
+    ============================================================ -->
+
+    <record id="view_dl_sale_order_form_purchase" model="ir.ui.view">
+        <field name="name">dl.sale.order.form.purchase</field>
+        <field name="model">dl.sale.order</field>
+        <field name="inherit_id" ref="dl_sale.view_dl_sale_order_form"/>
+        <field name="arch" type="xml">
+
+            <div name="dlm_button_box" position="inside">
+                <button name="action_dlm_open_purchase_orders" type="object"
+                        class="oe_stat_button" icon="fa-shopping-cart"
+                        invisible="dlm_purchase_count == 0"
+                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant">
+                    <field name="dlm_purchase_count" widget="statinfo"
+                           string="Đơn mua"/>
+                </button>
+            </div>
+
+            <notebook position="inside">
+                <!-- Trang gated theo vai trò: giá MUA không phải việc của Sales.
+                     Thủ kho không mở form này (họ dùng màn Điều phối riêng). -->
+                <page string="Giá vốn thực tế" name="dlm_actual_cost"
+                      groups="dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant">
+                    <div class="alert alert-warning" role="alert"
+                         invisible="not dlm_cost_is_estimated">
+                        <i class="fa fa-exclamation-triangle me-1" role="img"
+                           aria-label="Cảnh báo"/>
+                        Có lô dùng <strong>giá ước tính</strong> (không đến từ
+                        đơn mua nào). Con số dưới đây là tham khảo, không phải
+                        chi phí đã trả.
+                    </div>
+                    <group>
+                        <field name="dlm_actual_material_cost"
+                               widget="dl_money" readonly="1"/>
+                        <field name="dlm_cost_is_estimated" invisible="1"/>
+                    </group>
+                    <!-- Trạng thái RỖNG: chưa tiêu thụ vật tư thì nói lý do,
+                         đừng để một bảng trắng. -->
+                    <div class="text-muted"
+                         invisible="dlm_cost_detail_html">
+                        Chưa có vật tư nào được ghi nhận tiêu thụ cho đơn này.
+                        Con số xuất hiện khi Xưởng nộp phiếu "Nhập kho từ xưởng"
+                        có khai vật tư đã dùng.
+                    </div>
+                    <field name="dlm_cost_detail_html" nolabel="1" readonly="1"
+                           invisible="not dlm_cost_detail_html"/>
+                </page>
+            </notebook>
+
+        </field>
+    </record>
+
+</odoo>

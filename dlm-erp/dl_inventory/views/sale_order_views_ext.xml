@@ -43,8 +43,38 @@
                 </div>
             </div>
 
+            <!-- K16 — Sales THẤY tình hình cung ứng nhưng KHÔNG bấm được nút
+                 điều phối (U-4: một chủ sở hữu là Thủ kho). Dải này tồn tại để
+                 Sales trả lời được khách "bao giờ có hàng" mà không phải gọi
+                 xuống kho — nếu không thì họ sẽ gọi, và đó là cuộc gọi hệ thống
+                 lẽ ra phải thay thế. -->
+            <div class="oe_title" position="before">
+                <div class="alert alert-warning" role="alert"
+                     invisible="state != 'confirmed' or dlm_supply_level != 'warning'">
+                    <i class="fa fa-exclamation-triangle me-1" role="img"
+                       aria-label="Cảnh báo"/><strong>Cung ứng: </strong>
+                    <field name="dlm_supply_summary" nolabel="1" class="d-inline"/>
+                    <div class="small mt-1">Thủ kho là người điều phối đơn này.</div>
+                </div>
+                <div class="alert alert-danger" role="alert"
+                     invisible="state != 'confirmed' or dlm_supply_level != 'danger'">
+                    <i class="fa fa-ban me-1" role="img"
+                       aria-label="Chặn"/><strong>Chưa điều phối được: </strong>
+                    <field name="dlm_supply_summary" nolabel="1" class="d-inline"/>
+                </div>
+            </div>
+
             <field name="quotation_id" position="after">
                 <field name="dlm_has_deliverable" invisible="1"/>
+                <field name="dlm_supply_level" invisible="1"/>
+                <!-- Chip điều phối: trả lời "kho đã nhận việc chưa" — khác hẳn
+                     chip giao hàng bên dưới ("hàng tới tay khách chưa"). -->
+                <field name="dlm_dispatch_state" string="Điều phối"
+                       widget="badge"
+                       decoration-warning="dlm_dispatch_state == 'to_dispatch'"
+                       decoration-info="dlm_dispatch_state == 'dispatching'"
+                       decoration-success="dlm_dispatch_state == 'dispatched'"
+                       invisible="state != 'confirmed'"/>
                 <!-- Chip tình trạng giao: trả lời "đơn này giao xong chưa" ngay
                      trên form, không phải mở phiếu kho ra đếm. -->
                 <field name="dlm_delivery_state" string="Tình trạng giao hàng"

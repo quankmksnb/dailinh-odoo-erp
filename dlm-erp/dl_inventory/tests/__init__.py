@@ -5,6 +5,7 @@ from . import test_generic_not_stocked
 from . import test_access_warehouse
 from . import test_lot_traceability
 from . import test_qc_receipt
+from . import test_qc_evidence
 from . import test_delivery_link
 from . import test_scrap_flow
 from . import test_inventory_adjustment
@@ -16,3 +17,10 @@ from . import test_dl_sale_order_pure_unit
 from . import test_scrap_banner_pure_unit
 from . import test_migration_rs01_split
 from . import test_rbac_feature_acl_crosscheck
+from . import test_availability
+from . import test_to_scrap
+from . import test_workshop_handover
+from . import test_fg_receipt
+from . import test_workshop_batch
+from . import test_bom_explosion
+from . import test_dispatch

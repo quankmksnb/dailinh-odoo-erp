@@ -53,7 +53,7 @@
 
         <record id="dl_group_accountant" model="res.groups">
             <field name="name">Kế toán nội bộ</field>
-            <field name="comment">Chủ sở hữu Bảng giá Vật tư: cập nhật đơn giá, NCC, ngày hiệu lực, đánh dấu giá không hợp lệ</field>
+            <field name="comment">Chủ sở hữu Bảng giá Vật tư: cập nhật đơn giá, nhà cung cấp, ngày hiệu lực, đánh dấu giá không hợp lệ</field>
             <field name="category_id" ref="module_category_dl_rbac"/>
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         </record>
@@ -70,7 +70,7 @@
              chuyển cho Sales; Kế toán chỉ còn xem giá). -->
         <record id="dl_group_purchasing" model="res.groups">
             <field name="name">Mua hàng</field>
-            <field name="comment">Chủ sở hữu giá MUA: Nhà cung cấp, đơn giá NCC (duyệt/áp dụng), giá vốn</field>
+            <field name="comment">Chủ sở hữu giá MUA: Nhà cung cấp, đơn giá nhà cung cấp (duyệt/áp dụng), giá vốn</field>
             <field name="category_id" ref="module_category_dl_rbac"/>
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
         </record>

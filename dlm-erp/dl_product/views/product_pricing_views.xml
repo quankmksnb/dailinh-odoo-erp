@@ -47,7 +47,7 @@
                         invisible="not dlm_has_draft_seller"
                         groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin">
                         <i class="fa fa-lightbulb-o me-2" />
-                        Giá NCC phải được <b>Duyệt</b> mới dùng được để tính giá
+                        Giá nhà cung cấp phải được <b>Duyệt</b> mới dùng được để tính giá
                         trong BOM / báo giá. Nhập xong dòng giá, bấm nút
                         <b>Duyệt</b> ở cuối dòng — bảng giá đầu tiên của vật tư
                         sẽ tự động được áp dụng.
@@ -65,7 +65,7 @@
                             <field name="currency_id" column_invisible="1" />
                             <field name="date_start" string="Từ ngày" />
                             <field name="date_end" string="Đến ngày" />
-                            <field name="min_qty" string="SL tối thiểu" optional="hide" />
+                            <field name="min_qty" string="Số lượng tối thiểu" optional="hide" />
                             <field
                                 name="display_state"
                                 widget="badge"
@@ -123,16 +123,16 @@
                 <field name="currency_id" column_invisible="1" />
                 <!-- Trạng thái giá NCC: Mua hàng nhìn cột này biết ngay SP nào
                      còn thiếu giá (none = đỏ) mà xử lý — không bị động. -->
-                <field name="dlm_supplier_price_state" string="Giá NCC" widget="badge"
+                <field name="dlm_supplier_price_state" string="Giá nhà cung cấp" widget="badge"
                     decoration-danger="dlm_supplier_price_state == 'none'"
                     decoration-warning="dlm_supplier_price_state == 'pending'"
                     decoration-success="dlm_supplier_price_state == 'applied'" />
-                <field name="standard_price" string="Giá vốn TC" widget="dl_money"
+                <field name="standard_price" string="Giá vốn tham chiếu" widget="dl_money"
                     options="{'currency_field': 'currency_id'}" optional="show" />
                 <field name="list_price" string="Giá bán" widget="dl_money"
                     options="{'currency_field': 'currency_id'}" />
                 <!-- Biên LN tô màu theo ngưỡng: &lt;15% đỏ, 15–30% vàng, ≥30% xanh -->
-                <field name="dlm_sale_margin" string="Biên LN (%)" widget="badge"
+                <field name="dlm_sale_margin" string="Biên lợi nhuận (%)" widget="badge"
                     decoration-danger="dlm_sale_margin &lt; 15"
                     decoration-warning="dlm_sale_margin &gt;= 15 and dlm_sale_margin &lt; 30"
                     decoration-success="dlm_sale_margin &gt;= 30" />
@@ -160,14 +160,14 @@
                  chỉ còn SP cần thiết lập giá — chủ động thay vì dò cả danh sách. -->
             <xpath expr="//search" position="inside">
                 <separator />
-                <filter name="f_no_supplier_price" string="Chưa có giá NCC"
+                <filter name="f_no_supplier_price" string="Chưa có giá nhà cung cấp"
                     domain="[('dlm_supplier_price_state', '=', 'none')]" />
                 <filter name="f_supplier_price_pending" string="Có giá — chưa áp dụng"
                     domain="[('dlm_supplier_price_state', '=', 'pending')]" />
-                <filter name="f_supplier_price_applied" string="Đã áp dụng giá NCC"
+                <filter name="f_supplier_price_applied" string="Đã áp dụng giá nhà cung cấp"
                     domain="[('dlm_supplier_price_state', '=', 'applied')]" />
-                <group expand="0" string="Nhóm giá NCC">
-                    <filter name="group_supplier_price_state" string="Trạng thái giá NCC"
+                <group expand="0" string="Nhóm giá nhà cung cấp">
+                    <filter name="group_supplier_price_state" string="Trạng thái giá nhà cung cấp"
                         context="{'group_by': 'dlm_supplier_price_state'}" />
                 </group>
             </xpath>
@@ -181,7 +181,7 @@
          trading/material). Quản lý (CEO/TrKD/Kế toán) chỉ xem (ACL read-only).
          Giá vốn/Giá bán/Vòng đời/Loại SP vẫn khóa cứng ở write() guard. -->
     <record id="action_dl_product_pricing" model="ir.actions.act_window">
-        <field name="name">Bảng giá SP thương mại</field>
+        <field name="name">Bảng giá sản phẩm thương mại</field>
         <field name="res_model">product.product</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
@@ -284,7 +284,7 @@
                 <!-- Việc Kỹ thuật đã giao (Cập nhật giá NCC) hiện ngay trên dòng. -->
                 <field name="activity_ids" widget="list_activity" optional="show"/>
                 <button name="action_dlm_add_supplier_price" type="object"
-                        string="Thêm / sửa giá NCC" icon="fa-tag"
+                        string="Thêm / sửa giá nhà cung cấp" icon="fa-tag"
                         class="btn-link"
                         groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin"/>
             </tree>
@@ -296,11 +296,12 @@
         <field name="model">product.product</field>
         <field name="arch" type="xml">
             <search string="Vật tư chờ định giá">
-                <field name="name"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', ('name', 'ilike', self), ('default_code', 'ilike', self), ('categ_id', 'ilike', self)]"/>
                 <field name="default_code" string="Mã"/>
                 <field name="categ_id" string="Nhóm"/>
                 <separator/>
-                <filter name="none" string="Chưa có giá NCC"
+                <filter name="none" string="Chưa có giá nhà cung cấp"
                         domain="[('dlm_supplier_price_state', '=', 'none')]"/>
                 <filter name="pending" string="Có giá — chưa áp dụng"
                         domain="[('dlm_supplier_price_state', '=', 'pending')]"/>
@@ -335,7 +336,7 @@
         ])]" />
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Không có vật tư nào chờ định giá.</p>
-            <p>Vật tư sẽ hiện ở đây khi được dùng trong định mức mà chưa có giá NCC
+            <p>Vật tư sẽ hiện ở đây khi được dùng trong định mức mà chưa có giá nhà cung cấp
                đang áp dụng — Kỹ thuật bấm "Báo Mua hàng" cũng đẩy vật tư vào danh sách này.</p>
         </field>
     </record>

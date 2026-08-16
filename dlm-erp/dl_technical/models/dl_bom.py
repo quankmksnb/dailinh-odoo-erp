@@ -169,7 +169,7 @@ class DlBom(models.Model):
     # Ước tính THAM KHẢO tổng chi phí công đoạn BIẾN ĐỔI/đơn vị (gated — Kỹ thuật
     # không thấy). Không phải giá chốt (giá chốt tính khi tạo báo giá, pha B2).
     total_operation_cost_est = fields.Float(
-        string="Ước tính chi phí công đoạn/đv",
+        string="Ước tính chi phí công đoạn/đơn vị",
         compute="_compute_total_operation_cost_est",
         digits="Product Price",
         groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,"
@@ -284,17 +284,9 @@ class DlBom(models.Model):
         # snapshot ở các dòng BOM CHA không tự lan. Vá bằng recompute chủ động.
         self._dlm_propagate_cost_to_parents()
 
-    def _dlm_recovery_kg_per_unit(self):
-        """Phế liệu DỰ TOÁN thu hồi được cho MỘT đơn vị sản phẩm, theo KG.
-
-        Chia cho `product_qty` vì BOM có thể khai đầu ra khác 1 (vd một bộ 4
-        chân bàn): không chia thì dự toán phế liệu của cả đơn bị nhân lên theo
-        số đầu ra, và màn đối chiếu (thiết kế Kho §7.4) sẽ báo "cân thiếu" ở mọi
-        kỳ trong khi xưởng không hề làm sai.
-        """
-        self.ensure_one()
-        total = sum(line._dlm_recovery_kg() for line in self.line_ids)
-        return total / (self.product_qty or 1.0)
+    # 🔴 K16 — `_dlm_recovery_kg_per_unit` ĐÃ GỠ cùng màn Đối chiếu thu hồi
+    # (dl_inventory), nơi duy nhất gọi nó. Xem chú thích ở
+    # `dl_bom_line_mixin._dlm_recovery_kg` để biết vì sao cả nhánh thu hồi dừng.
 
     @api.model
     def _standard_child_bom(self, product):
@@ -514,7 +506,7 @@ class DlBom(models.Model):
         Activity = self.env["mail.activity"].sudo()
         for material in missing:
             material.sudo().message_post(body=_(
-                "Kỹ thuật (định mức %s) cần Mua hàng cập nhật giá NCC (đã duyệt "
+                "Kỹ thuật (định mức %s) cần Mua hàng cập nhật giá nhà cung cấp (đã duyệt "
                 "&amp; đang áp dụng) cho vật tư này.") % self.display_name)
             for user in users:
                 if Activity.search_count([
@@ -525,7 +517,7 @@ class DlBom(models.Model):
                     continue
                 material.sudo().activity_schedule(
                     "mail.mail_activity_data_todo",
-                    summary=_("Cập nhật giá NCC — %s") % material.display_name,
+                    summary=_("Cập nhật giá nhà cung cấp — %s") % material.display_name,
                     note=_("Yêu cầu từ Kỹ thuật khi lập định mức %s.")
                     % self.display_name,
                     user_id=user.id)

@@ -156,11 +156,17 @@
                             string="Đánh dấu đã tạo báo giá" class="oe_highlight"
                             invisible="status != 'confirmed' or all_infeasible"
                             groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"/>
-                    <!-- Hủy: chỉ Sale/Trưởng KD/CEO/Admin — Kỹ thuật KHÔNG có quyền -->
+                    <!-- Hủy: chỉ Sale/Trưởng KD/Admin — Kỹ thuật KHÔNG có quyền.
+                         CEO cũng KHÔNG: quyền của CEO trên dl.quotation.request là
+                         1,0,0,0 (chỉ đọc) trong ir.model.access.csv, mà action_cancel
+                         ghi status = cancelled. Để CEO trong nhóm này là cho thấy
+                         một cái nút bấm vào chỉ ra lỗi quyền. CEO không phải người
+                         vận hành RFQ — muốn CEO hủy được thì phải mở perm_write,
+                         đó là quyết định phân quyền khác. -->
                     <button name="action_cancel" type="object"
                             string="Hủy RFQ"
                             invisible="status in ('quoted', 'cancelled')"
-                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
+                            groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
                             confirm="Bạn có chắc muốn hủy RFQ này?"/>
                     <field name="status" widget="dl_stepper"
                            statusbar_visible="new,processing,confirmed,quoted"
@@ -303,8 +309,8 @@
                                     <!-- Yêu cầu từ Sales — ảnh/mô tả/số file hiện MẶC ĐỊNH
                                          để KTV triage được ngay trên bảng (phân loại dòng
                                          thiếu thông tin mà không phải mở từng dòng). -->
-                                    <field name="product_name" required="1"/>
-                                    <field name="quantity" string="SL"/>
+                                    <field name="product_name" required="1" widget="dl_min_length_char" options="{'min_length': 2}"/>
+                                    <field name="quantity" string="Số lượng"/>
                                     <field name="dimension_note" optional="show"/>
                                     <field name="preview_image" widget="image"
                                            options="{'size': [40, 40]}" string="Ảnh" optional="show"/>
@@ -367,9 +373,9 @@
                                     <!-- Cột phụ — ẩn mặc định, bật qua menu cột -->
                                     <field name="product_type" optional="hide"/>
                                     <field name="product_category_id" optional="hide"/>
-                                    <field name="reference_product_id" string="SP tham khảo"
+                                    <field name="reference_product_id" string="Sản phẩm tham khảo"
                                            optional="hide"/>
-                                    <field name="resolved_product_id" string="SP đã xác định"
+                                    <field name="resolved_product_id" string="Sản phẩm đã xác định"
                                            readonly="1" optional="hide"/>
                                     <field name="resolved_bom_id" string="BOM đã xác định"
                                            readonly="1" optional="hide"/>
@@ -379,7 +385,7 @@
                                            invisible="not is_infeasible"
                                            readonly="1" optional="hide"/>
                                     <!-- EX-13: cột tín hiệu cho Sales — vật tư thiếu giá NCC. -->
-                                    <field name="pricing_block_summary" string="Thiếu giá NCC"
+                                    <field name="pricing_block_summary" string="Thiếu giá nhà cung cấp"
                                            readonly="1" optional="hide"/>
                                 </tree>
                                 <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
@@ -426,6 +432,7 @@
                                             <h2>
                                                 <field name="product_name" required="1"
                                                        readonly="is_technician"
+                                                       widget="dl_min_length_char" options="{'min_length': 2}"
                                                        placeholder="Tên sản phẩm..."/>
                                             </h2>
                                         </div>
@@ -480,8 +487,8 @@
                                                      trên dòng (trước khi bấm Tạo báo giá). -->
                                                 <div colspan="2" class="alert alert-warning py-2" role="status"
                                                      invisible="not pricing_blocked">
-                                                    <i class="fa fa-money me-1" title="Thiếu giá NCC"/>
-                                                    <b>Vật tư chưa có giá NCC đã duyệt:</b>
+                                                    <i class="fa fa-money me-1" title="Thiếu giá nhà cung cấp"/>
+                                                    <b>Vật tư chưa có giá nhà cung cấp đã duyệt:</b>
                                                     <field name="pricing_block_summary" nolabel="1"
                                                            readonly="1" class="d-inline"/>.
                                                     Chưa tạo được báo giá cho tới khi Mua hàng cập nhật giá.
@@ -717,7 +724,7 @@
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Sản phẩm gia công">
                                     <field name="product_type" column_invisible="1"/>
-                                    <field name="product_name" string="Tên sản phẩm"/>
+                                    <field name="product_name" string="Tên sản phẩm" widget="dl_min_length_char" options="{'min_length': 2}"/>
                                     <field name="product_category_id" string="Nhóm sản phẩm"/>
                                     <field name="reference_product_id" string="Sản phẩm tham khảo"/>
                                     <field name="quantity" string="Số lượng"/>
@@ -732,7 +739,7 @@
                                     <field name="reference_product_ids" invisible="1"/>
                                     <group>
                                         <group string="Thông tin">
-                                            <field name="product_name" required="1"/>
+                                            <field name="product_name" required="1" widget="dl_min_length_char" options="{'min_length': 2}"/>
                                             <!-- §1a — chỉ nhóm SP gia công -->
                                             <field name="product_category_id"
                                                    options="{'no_create': True}"
@@ -790,8 +797,22 @@
         <field name="model">dl.quotation.request</field>
         <field name="arch" type="xml">
             <search string="Tìm yêu cầu báo giá">
-                <field name="name"/>
+                <!-- Ô tìm MẶC ĐỊNH phải quét nhiều trường cùng lúc: giao diện
+                     DL ẩn nút mở dropdown chọn trường (global_cp.scss:
+                     .o_searchview_dropdown_toggler { display: none }) nên gõ chữ
+                     rồi Enter LUÔN dùng field đứng đầu. Nếu để `name` đứng đầu
+                     một mình thì gõ tên sản phẩm hay tên khách sẽ không bao giờ
+                     ra kết quả — người dùng tưởng không có dữ liệu. -->
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', '|', ('name', 'ilike', self), ('customer_id', 'ilike', self), ('line_ids.product_name', 'ilike', self), ('line_ids.resolved_product_id.name', 'ilike', self)]"/>
                 <field name="customer_id"/>
+                <!-- Tìm theo TÊN SẢN PHẨM trong dòng: khi cần lục lại một yêu
+                     cầu cũ, cả Sales lẫn Kỹ thuật đều nhớ "cái khung kệ kho"
+                     chứ không nhớ mã RFQ-0012. Phủ cả hai loại dòng — gia công
+                     (product_name Sales gõ) và thương mại (tên sản phẩm đã
+                     chọn) — vì người tìm không phân biệt hai loại đó. -->
+                <field name="line_ids" string="Tên sản phẩm"
+                       filter_domain="['|', ('line_ids.product_name', 'ilike', self), ('line_ids.resolved_product_id.name', 'ilike', self)]"/>
                 <separator/>
                 <filter name="new" string="Mới"
                         domain="[('status', '=', 'new')]"/>
@@ -823,6 +844,9 @@
                             context="{'group_by': 'status'}"/>
                     <filter name="group_customer" string="Khách hàng"
                             context="{'group_by': 'customer_id'}"/>
+                    <!-- Kỹ thuật chia việc theo người: ai đang ôm bao nhiêu RFQ. -->
+                    <filter name="group_received_by" string="Người tiếp nhận"
+                            context="{'group_by': 'received_by'}"/>
                 </group>
             </search>
         </field>

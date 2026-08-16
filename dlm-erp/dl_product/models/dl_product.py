@@ -83,8 +83,8 @@ class ProductProduct(models.Model):
         tracking=True,
         help="Phân loại nghiệp vụ (Data Model PROD-02):\n"
         "• Gia công (manufactured): tự sản xuất theo BOM\n"
-        "• Thương mại (trading): nhập về bán thẳng, tra giá NCC\n"
-        "• Vật tư (material): NVL thô, tra giá NCC\n"
+        "• Thương mại (trading): nhập về bán thẳng, tra giá nhà cung cấp\n"
+        "• Vật tư (material): NVL thô, tra giá nhà cung cấp\n"
         "• Bán thành phẩm (material_processed): cắt/gia công từ vật tư gốc, có BOM riêng",
     )
 
@@ -182,7 +182,7 @@ class ProductProduct(models.Model):
         required=True,
         tracking=True,
         copy=False,
-        help="• Nháp: vừa tạo khi xử lý RFQ / khai báo SP thương mại — chưa tái "
+        help="• Nháp: vừa tạo khi xử lý RFQ / khai báo sản phẩm thương mại — chưa tái "
              "sử dụng được.\n"
              "• Đã duyệt: đã chốt (đơn hàng xác nhận hoặc duyệt tay) — nằm trong "
              "danh mục để tái sử dụng.\n"
@@ -232,7 +232,7 @@ class ProductProduct(models.Model):
             if float_compare(old_cost, new_cost, precision_digits=prec) != 0:
                 prod.sudo().standard_price = new_cost
                 prod.sudo().message_post(body=_(
-                    "Giá vốn tham chiếu: %.0f → %.0f (theo giá NCC đang áp dụng).")
+                    "Giá vốn tham chiếu: %.0f → %.0f (theo giá nhà cung cấp đang áp dụng).")
                     % (old_cost, new_cost))
         return True
 
@@ -254,7 +254,7 @@ class ProductProduct(models.Model):
     # engine báo giá có luồng markup/floor riêng). compute_sudo để mọi role xem
     # bảng giá (kể cả CEO/Trưởng KD chỉ xem) đọc được standard_price không vướng ACL.
     dlm_sale_margin = fields.Float(
-        string="Biên LN (%)", digits=(5, 1),
+        string="Biên lợi nhuận (%)", digits=(5, 1),
         compute="_compute_dlm_sale_margin", compute_sudo=True,
         help="Biên lợi nhuận của Giá bán so với Giá vốn (standard_price). "
              "Chỉ mang tính tham khảo trên màn Bảng giá; giá vốn 0 ⇒ hiển thị 100%.",
@@ -280,15 +280,15 @@ class ProductProduct(models.Model):
                 s.approval_state == "draft" for s in rec.seller_ids)
 
     # Trạng thái GIÁ NCC của SP — để Mua hàng CHỦ ĐỘNG thấy SP nào còn thiếu giá
-    # (cột + bộ lọc "Chưa có giá NCC" trên màn Bảng giá SP thương mại). Stored để
+    # (cột + bộ lọc "Chưa có giá nhà cung cấp" trên màn Bảng giá SP thương mại). Stored để
     # lọc/nhóm nhanh. Đối xứng ý nghĩa với display_state của từng dòng giá.
     dlm_supplier_price_state = fields.Selection(
         [
-            ("none", "Chưa có giá NCC"),
+            ("none", "Chưa có giá nhà cung cấp"),
             ("pending", "Có giá — chưa áp dụng"),
             ("applied", "Đã áp dụng"),
         ],
-        string="Giá NCC",
+        string="Giá nhà cung cấp",
         compute="_compute_dlm_supplier_price_state",
         store=True,
     )
@@ -312,7 +312,7 @@ class ProductProduct(models.Model):
         form = self.env.ref("dl_product.view_dl_supplierinfo_material_form")
         return {
             "type": "ir.actions.act_window",
-            "name": _("Giá NCC — %s") % self.display_name,
+            "name": _("Giá nhà cung cấp — %s") % self.display_name,
             "res_model": "product.supplierinfo",
             "view_mode": "tree,form",
             "views": [(tree.id, "tree"), (form.id, "form")],
@@ -360,11 +360,11 @@ class ProductProduct(models.Model):
                 ("res_id", "=", prod.id),
                 ("activity_type_id", "=", todo.id),
             ]).filtered(
-                lambda a: a.summary and a.summary.startswith("Cập nhật giá NCC"))
+                lambda a: a.summary and a.summary.startswith("Cập nhật giá nhà cung cấp"))
             if acts:
-                acts.action_feedback(feedback=_("Đã có giá NCC đang áp dụng."))
+                acts.action_feedback(feedback=_("Đã có giá nhà cung cấp đang áp dụng."))
                 prod.sudo().message_post(body=_(
-                    "Đã cập nhật &amp; áp dụng giá NCC — các yêu cầu cập nhật giá "
+                    "Đã cập nhật &amp; áp dụng giá nhà cung cấp — các yêu cầu cập nhật giá "
                     "từ Kỹ thuật đã được đóng."))
 
     # ── Readiness kích hoạt SP thương mại (mục 3) — dùng cho UI, KHÔNG chặn ────
@@ -410,17 +410,17 @@ class ProductProduct(models.Model):
         cost_ready = False
         if not applied:
             reasons.append(_(
-                "Chờ Mua hàng thiết lập & áp dụng giá NCC (ở màn Bảng giá SP "
+                "Chờ Mua hàng thiết lập & áp dụng giá nhà cung cấp (ở màn Bảng giá sản "
                 "thương mại) — cần có giá mua trước khi định giá bán."))
         else:
             today = fields.Date.context_today(self)
             if applied.approval_state != "approved":
-                reasons.append(_("Bảng giá NCC đang áp dụng chưa được Mua hàng duyệt."))
+                reasons.append(_("Bảng giá nhà cung cấp đang áp dụng chưa được Mua hàng duyệt."))
             elif not applied._is_valid_on(today):
                 reasons.append(_(
-                    "Bảng giá NCC đang áp dụng đã hết hạn hoặc chưa tới ngày hiệu lực."))
+                    "Bảng giá nhà cung cấp đang áp dụng đã hết hạn hoặc chưa tới ngày hiệu lực."))
             elif applied.price <= 0:
-                reasons.append(_("Giá NCC của bảng giá đang áp dụng phải > 0."))
+                reasons.append(_("Giá nhà cung cấp của bảng giá đang áp dụng phải > 0."))
             elif not applied.partner_id.active:
                 reasons.append(_(
                     "Nhà cung cấp '%s' của bảng giá đang áp dụng đã bị vô hiệu hóa."
@@ -428,7 +428,7 @@ class ProductProduct(models.Model):
             elif prod.standard_price <= 0:
                 reasons.append(_(
                     "Chưa xác định được Giá vốn tham chiếu (kiểm tra tiền tệ / đơn "
-                    "vị của bảng giá NCC đang áp dụng)."))
+                    "vị của bảng giá nhà cung cấp đang áp dụng)."))
             else:
                 cost_ready = True
         # Chỉ nhắc Giá bán KHI đã có giá vốn (đúng luồng mua trước → bán sau).
@@ -560,7 +560,7 @@ class ProductProduct(models.Model):
             orphans.write({"dlm_lifecycle_state": "obsolete"})
             for rec in orphans:
                 rec.message_post(body=_(
-                    "Tự động chuyển 'Ngừng' — SP còn Nháp quá %s ngày và không "
+                    "Tự động chuyển 'Ngừng' — sản phẩm còn Nháp quá %s ngày và không "
                     "có đơn bán nào sử dụng (nháp mồ côi).") % days)
         return True
 
@@ -699,8 +699,11 @@ class ProductProduct(models.Model):
         dl.bom.action_confirm (CỨNG).
 
         for_auto_calc=False cho dòng kỹ thuật đã GHI ĐÈ số lượng: dòng đó không
-        cần tự tính nữa nên mẫu số không còn bắt buộc — nhưng khối lượng mỗi
-        đơn vị thì vẫn cần, vì tiền phế liệu thu hồi luôn quy qua kg."""
+        cần tự tính nữa nên mẫu số không còn bắt buộc.
+
+        🔴 K16 — bỏ điều kiện "phải khai Khối lượng vì tiền thu hồi quy qua kg":
+        không còn tiền thu hồi nào để quy. Khối lượng mỗi đơn vị nay chỉ cần cho
+        hai kiểu tính cắt/tấm, và hai kiểu đó đã kiểm ở khối trên."""
         self.ensure_one()
         group, miss = self._dlm_uom_group(), []
         if for_auto_calc:
@@ -714,16 +717,11 @@ class ProductProduct(models.Model):
                     miss.append("kg/m²")
                 if group == "unit" and not (self.dlm_sheet_w and self.dlm_sheet_h):
                     miss.append("Khổ tấm")
-        # Vật tư mua theo kg: hao hụt đã là kg, không cần khai quy đổi.
-        if (self.dlm_has_recovery and not self.dlm_mass_per_unit
-                and group != "weight"):
-            miss.append("Khối lượng (cần cho thu hồi phế liệu)")
         return miss
 
     @api.depends("product_kind", "dlm_calc_kind", "uom_id",
                  "dlm_mass_per_meter", "dlm_mass_per_sqm", "dlm_stock_length",
-                 "dlm_sheet_w", "dlm_sheet_h",
-                 "dlm_has_recovery", "dlm_mass_per_unit")
+                 "dlm_sheet_w", "dlm_sheet_h", "dlm_mass_per_unit")
     def _compute_dlm_calc_missing_hint(self):
         for rec in self:
             if rec.product_kind not in ("material", "material_processed"):
@@ -741,14 +739,40 @@ class ProductProduct(models.Model):
         help="Tỷ lệ hao hụt của vật tư này. Hệ số phức tạp chọn theo từng dòng "
              "BOM sẽ nhân thêm vào tỷ lệ này khi tính giá.",
     )
-    dlm_has_recovery = fields.Boolean(string="Có thu hồi phế liệu")
+    # 🔴 NGƯNG SỬ DỤNG 2026-08-13 (K16) — người dùng chốt bỏ cách tính % thu hồi.
+    # Hai field GIỮ CỘT nhưng đã gỡ khỏi màn và khỏi mọi công thức: xoá cột là
+    # mất cấu hình 20 vật tư không lấy lại được, mà quyết định kinh doanh thì có
+    # thể đảo. Đừng cắm lại vào công thức nào — điểm nghẽn nằm ở
+    # `dl_bom_line_mixin._dlm_recovery_kg`, không phải ở đây.
+    dlm_has_recovery = fields.Boolean(string="Có thu hồi phế liệu (ngưng dùng)")
     dlm_recovery_rate = fields.Float(
-        string="Tỷ lệ thu hồi (%)", digits=(6, 2),
-        help="Tính trên LƯỢNG hao hụt (không tính trên lượng vật tư thuần).",
+        string="Tỷ lệ thu hồi (%) (ngưng dùng)", digits=(6, 2),
+        help="NGƯNG SỬ DỤNG từ 2026-08-13: phế liệu nay khai theo số CÂN THỰC "
+             "trên phiếu Nhập kho từ xưởng, không dự toán theo tỷ lệ nữa.",
     )
     dlm_scrap_product_id = fields.Many2one(
         "product.product", string="Sản phẩm phế liệu",
-        help="Đơn giá thu hồi lấy từ giá bán (list_price) của sản phẩm phế này.",
+        help="Vật tư này thải ra loại phế liệu nào — dùng khi khai số phế liệu "
+             "cân được trên phiếu Nhập kho từ xưởng.",
+    )
+    # 🔴 K12 — CỜ NHẬN DIỆN phế liệu. Đây là NGUỒN SỰ THẬT cho câu hỏi "mặt hàng
+    # này có phải phế liệu không"; khu Phế liệu (`DL/KHOSX/PL`) khoá đầu vào bằng
+    # đúng nó (Thiet_ke_phan_he_kho.md §4.2).
+    #
+    # Vì sao là CỜ chứ không suy ngược từ `dlm_scrap_product_id`:
+    #  1. Khớp cách người dùng mô tả — phế liệu là MẶT HÀNG RIÊNG bán theo kg,
+    #     không phải một trạng thái của thép.
+    #  2. `dlm_scrap_product_id` là ÁNH XẠ DỰ TOÁN (vật tư X hao hụt thì thu về
+    #     phế liệu Y). Suy tập phế liệu từ nó nghĩa là: gỡ liên kết của vật tư
+    #     cuối cùng ⇒ SCRAP-STEEL THÔI LÀ phế liệu và khu PL mở toang, không lỗi
+    #     nào nổ. Nhận diện phải là thuộc tính của CHÍNH mặt hàng đó.
+    #  3. Rẻ hơn hẳn việc thêm `product_kind = 'scrap'` — thứ đụng BOM,
+    #     supplierinfo, engine giá và mọi domain đang liệt kê `product_kind`.
+    dlm_is_scrap = fields.Boolean(
+        string="Là mặt hàng phế liệu", default=False, copy=False,
+        help="Bật cho các mặt hàng phế liệu bán theo cân (phế thép, phế nhôm…). "
+             "Chỉ những mặt hàng bật cờ này mới được đưa vào khu Phế liệu chờ "
+             "bán — thép nguyên cây lọt vào đó là bị bán ve chai.",
     )
     # Onchange tự điền mặc định theo nhóm (đọc dl.pricing.waste.rule) nằm ở
     # dl_technical — module đó mới phụ thuộc dl_config; dl_product KHÔNG được
@@ -760,14 +784,20 @@ class ProductProduct(models.Model):
         return self.dlm_scrap_product_id.list_price if self.dlm_scrap_product_id else 0.0
 
     def _dlm_is_scrap_product(self):
-        """SP này có đang được dùng làm SẢN PHẨM PHẾ LIỆU của vật tư nào không.
+        """SP này có phải mặt hàng phế liệu không (quyết định `tracking='none'`).
 
         Phế liệu tuy mang product_kind='material' nhưng KHÔNG theo lô: nó là vụn
         gom từ nhiều lô khác nhau trong cùng thùng chứa — bắt thủ kho nhập số lô
         mỗi lần cân là vô nghĩa và không truy vết được gì.
+
+        🔴 K12 — `dlm_is_scrap` là NGUỒN SỰ THẬT. Vế suy ngược giữ lại làm lưới
+        an toàn cho bản ghi chưa kịp bật cờ (dữ liệu cũ, SP người dùng tự tạo):
+        bỏ nó đi là đổi `tracking` của các SP đó một cách âm thầm. Không phải hai
+        nguồn sự thật — cờ luôn thắng, vế kia chỉ mở rộng chứ không phủ định.
         """
         self.ensure_one()
-        return bool(self.search_count([("dlm_scrap_product_id", "=", self.id)]))
+        return bool(self.dlm_is_scrap) or bool(
+            self.search_count([("dlm_scrap_product_id", "=", self.id)]))
 
     def set_dlm_waste(self, vals):
         """Cập nhật hao hụt vật tư từ màn Cấu hình (sửa inline). Guard quyền
@@ -779,8 +809,10 @@ class ProductProduct(models.Model):
                 or user.has_group("dl_base.dl_group_accountant")
                 or user.has_group("dl_base.dl_group_admin")):
             raise AccessError(_("Chỉ Kỹ thuật/Kế toán/Admin được sửa hao hụt vật tư."))
-        allowed = {"dlm_waste_rate", "dlm_has_recovery", "dlm_recovery_rate",
-                   "dlm_scrap_product_id"}
+        # K16 — bỏ `dlm_has_recovery`/`dlm_recovery_rate` khỏi whitelist: màn
+        # Cấu hình không gửi chúng nữa, và để lại là mở một đường ghi vào hai
+        # field đã ngưng dùng.
+        allowed = {"dlm_waste_rate", "dlm_scrap_product_id"}
         self.sudo().write({k: v for k, v in vals.items() if k in allowed})
         return True
 
@@ -927,10 +959,10 @@ class ProductProduct(models.Model):
         for user in users:
             self.sudo().activity_schedule(
                 act_type_xmlid="mail.mail_activity_data_todo",
-                summary=_("Thiết lập giá NCC cho SP thương mại mới"),
+                summary=_("Thiết lập giá nhà cung cấp cho sản phẩm thương mại mới"),
                 note=_(
                     "Sản phẩm thương mại '%s' vừa được tạo — cần nhập nhà cung cấp "
-                    "và giá mua ở màn Bảng giá SP thương mại, rồi Duyệt/Áp dụng để "
+                    "và giá mua ở màn Bảng giá sản phẩm thương mại, rồi Duyệt/Áp dụng để "
                     "Sales định giá bán và kích hoạt."
                 ) % self.display_name,
                 user_id=user.id,
@@ -945,7 +977,7 @@ class ProductProduct(models.Model):
                 if not groups:
                     raise AccessError(_(
                         "Trường '%s' chỉ được hệ thống cập nhật tự động (qua giá "
-                        "NCC áp dụng / action nghiệp vụ), không sửa trực tiếp."
+                        "nhà cung cấp áp dụng / action nghiệp vụ), không sửa trực tiếp."
                     ) % self._fields[fname].get_description(self.env)["string"])
                 if not any(user.has_group(g) for g in groups):
                     raise AccessError(_(

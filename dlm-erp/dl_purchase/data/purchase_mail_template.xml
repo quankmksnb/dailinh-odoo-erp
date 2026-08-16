@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================
+         Mẫu thư gửi nhà cung cấp — MỘT mẫu, hai giọng theo trạng thái, đúng
+         như PDF (purchase_document.py): nháp/đã gửi là HỎI GIÁ, đã chốt là
+         ĐẶT HÀNG. Tách hai mẫu thì hai bên lệch nhau lúc sửa câu chữ.
+
+         Chỉ cung cấp TIÊU ĐỀ + NỘI DUNG. File đính kèm do
+         `action_dlm_email` dựng bằng reportlab rồi gắn vào trình soạn thư —
+         KHÔNG dùng report_template_ids (vốn cần wkhtmltopdf). Người dùng ĐỌC
+         LẠI rồi mới bấm Gửi. Cùng khuôn mail_template_dl_quotation.
+
+         🔴 KHÔNG nêu tên khách hàng cuối — cùng lý do đã ghi trong PDF: NCC
+         không có lý do gì phải biết Đại Linh đang làm cho ai.
+         ================================================================ -->
+    <record id="mail_template_dl_purchase_order" model="mail.template">
+        <field name="name">Mua hàng: Gửi nhà cung cấp</field>
+        <field name="model_id" ref="dl_purchase.model_dl_purchase_order"/>
+        <field name="subject">{{ 'Đơn đặt hàng' if object.state == 'confirmed' else 'Yêu cầu báo giá' }} {{ object.name }} — {{ object.company_id.name }}</field>
+        <field name="email_from">{{ (object.company_id.partner_id.email_formatted or user.email_formatted) }}</field>
+        <field name="partner_to">{{ object.partner_id.id }}</field>
+        <field name="body_html" type="html">
+            <div style="margin: 0px; padding: 0px; font-size: 13px;">
+                <p>Kính gửi <t t-out="object.partner_id.name or ''">Nhà cung cấp</t>,</p>
+
+                <t t-if="object.state == 'confirmed'">
+                    <p>
+                        Công ty <t t-out="object.company_id.name or ''"></t> gửi tới Quý công ty
+                        đơn đặt hàng <strong t-out="object.name or ''"></strong> (đính kèm).
+                    </p>
+                    <p>
+                        Tổng giá trị:
+                        <strong t-out="format_amount(object.amount_total, object.currency_id) or ''"></strong>.
+                        <t t-if="object.date_expected">
+                            Ngày cần hàng: <strong t-out="format_date(object.date_expected) or ''"></strong>.
+                        </t>
+                    </p>
+                    <p>Đề nghị Quý công ty xác nhận lại thời gian giao hàng.</p>
+                </t>
+
+                <t t-else="">
+                    <p>
+                        Công ty <t t-out="object.company_id.name or ''"></t> gửi tới Quý công ty
+                        yêu cầu báo giá <strong t-out="object.name or ''"></strong> (đính kèm).
+                        Cột đơn giá trong file để trống — kính mong Quý công ty điền giá và
+                        gửi lại.
+                    </p>
+                    <t t-if="object.date_expected">
+                        <p>Ngày cần hàng dự kiến:
+                            <strong t-out="format_date(object.date_expected) or ''"></strong>.
+                        </p>
+                    </t>
+                </t>
+
+                <t t-if="object.note">
+                    <p t-out="object.note"></p>
+                </t>
+
+                <p>Trân trọng,<br/><t t-out="user.name or ''"></t></p>
+            </div>
+        </field>
+    </record>
+</odoo>

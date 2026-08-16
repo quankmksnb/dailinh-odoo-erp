@@ -17,7 +17,11 @@ class DlInventoryCase(TransactionCase):
         cls.loc_qc = cls.env.ref("dl_inventory.stock_location_nhan_qc")
         cls.loc_kho = cls.env.ref("dl_inventory.stock_location_nhan_kho")
         cls.loc_tra = cls.env.ref("dl_inventory.stock_location_nhan_tra")
+        # K15 — `loc_khosx` là khu GOM NHÓM (chỗ cất), `loc_xuong` là ô LÁ (chỗ
+        # làm). Trước K15 hai vai này nằm trên cùng một bản ghi.
+        cls.loc_khosx = cls.env.ref("dl_inventory.stock_location_khosx")
         cls.loc_xuong = cls.env.ref("dl_inventory.stock_location_xuong")
+        cls.loc_xuong_pl = cls.env.ref("dl_inventory.stock_location_xuong_pl")
         cls.loc_tp = cls.env.ref("dl_inventory.stock_location_tp")
         cls.loc_vendors = cls.env.ref("stock.stock_location_suppliers")
 

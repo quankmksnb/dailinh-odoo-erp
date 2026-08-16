@@ -120,7 +120,8 @@
         <field name="model">dl.sale.order</field>
         <field name="arch" type="xml">
             <search string="Tìm đơn bán hàng">
-                <field name="name" string="Số đơn"/>
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', ('name', 'ilike', self), ('partner_id', 'ilike', self), ('quotation_id', 'ilike', self)]"/>
                 <field name="partner_id" string="Khách hàng"/>
                 <field name="quotation_id" string="Báo giá nguồn"/>
                 <filter name="draft" string="Nháp" domain="[('state','=','draft')]"/>

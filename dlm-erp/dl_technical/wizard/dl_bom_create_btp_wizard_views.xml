@@ -62,7 +62,7 @@
 
                 <footer>
                     <button name="action_create" type="object"
-                            string="Tạo &amp; mở định mức BTP" class="btn-primary"/>
+                            string="Tạo &amp; mở định mức bán thành phẩm" class="btn-primary"/>
                     <button string="Hủy" special="cancel" class="btn-secondary"/>
                 </footer>
             </form>

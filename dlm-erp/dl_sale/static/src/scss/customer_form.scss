@@ -31,9 +31,61 @@
 
     h1 {
       margin: 2px 0 10px;
+      // Ô tên phải chiếm hết bề ngang cột head-main. Mặc định input co theo
+      // nội dung nên tên dài kiểu "Công ty Cổ phần Da Công nghiệp Việt Nam"
+      // bị cắt cụt ngay giữa chừng, không đọc được hết.
+      // .dl-cust-head-main đã có min-width:0 nên co giãn được trong flex.
+      display: block;
+      width: 100%;
+
+      .o_field_widget,
+      .o_field_char {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      input {
+        width: 100% !important;
+        font-size: 18px;
+        text-overflow: ellipsis;
+      }
     }
-    h1 .o_field_widget input {
-      font-size: 18px;
+
+    // Gạch chân của ô tên chạy hết bề ngang form trông rất thô. Cho ô CO THEO
+    // NỘI DUNG để vạch chỉ dài bằng đúng cái tên.
+    //
+    // Bọc trong @supports: `field-sizing` chỉ có trên Chrome/Edge đời mới. Trình
+    // duyệt không hỗ trợ vẫn giữ width:100% ở trên — vạch dài nhưng tên dài đọc
+    // được đủ, tức là xấu hơn chứ không hỏng.
+    @supports (field-sizing: content) {
+      h1 input {
+        field-sizing: content;
+        width: auto !important;
+        min-width: 280px;
+        max-width: 100%;
+      }
+    }
+  }
+
+  // Khối "Loại ..." — nhãn nằm ngay trên cụm nút, cùng lề trái.
+  // Nhãn KHÔNG dùng class o_form_label: class đó bị .dl-cust-type-seg bên dưới
+  // biến thành nút pill, dùng lại là nhãn bị lệch/đóng khung theo.
+  .dl-cust-type-block {
+    margin: 2px 0 4px;
+
+    .dl-cust-type-label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      color: $dl-text-muted;
+    }
+
+    // Widget radio của Odoo mang sẵn padding/margin của lưới form — gỡ đi để
+    // nút đầu tiên thẳng lề với nhãn phía trên.
+    .dl-cust-type-seg {
+      margin: 0 !important;
+      padding: 0 !important;
     }
   }
 
@@ -41,6 +93,15 @@
     .o_radio_input,
     input[type="radio"] {
       display: none;
+    }
+
+    // Widget radio của Odoo mang class .form-check của Bootstrap, vốn có
+    // `padding-left: 1.5em` để chừa chỗ cho ô tròn. Ta ẩn ô tròn đi nhưng chỗ
+    // chừa vẫn còn ⇒ cả cụm nút thụt vào ~24px so với nhãn phía trên.
+    .form-check,
+    .o_radio_item {
+      padding-left: 0 !important;
+      margin-left: 0 !important;
     }
 
     .o_radio_item {

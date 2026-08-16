@@ -10,7 +10,7 @@
         <field name="name">dl.product.supplierinfo.tree</field>
         <field name="model">product.supplierinfo</field>
         <field name="arch" type="xml">
-            <tree string="Bảng giá NCC" class="dl-supplierinfo-list" js_class="dl_supplierinfo_list" editable="bottom"
+            <tree string="Bảng giá nhà cung cấp" class="dl-supplierinfo-list" js_class="dl_supplierinfo_list" editable="bottom"
                 decoration-muted="display_state == 'draft'">
                 <field name="company_id" column_invisible="1" />
                 <field name="dl_product_kind" column_invisible="1" />
@@ -20,7 +20,7 @@
                 <field name="partner_id" string="Nhà cung cấp"
                     domain="[('partner_role', 'in', ['supplier', 'both'])]"
                     context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
-                <field name="price" string="Giá NCC" widget="dl_money"
+                <field name="price" string="Giá nhà cung cấp" widget="dl_money"
                     options="{'currency_field': 'currency_id'}" />
                 <field name="currency_id" column_invisible="1" />
                 <field name="product_uom" string="Đơn vị" />
@@ -30,7 +30,7 @@
                     decoration-success="validity_state == 'active'"
                     decoration-warning="validity_state in ('upcoming', 'expiring')"
                     decoration-danger="validity_state == 'expired'" />
-                <field name="min_qty" string="SL tối thiểu" optional="hide" />
+                <field name="min_qty" string="Số lượng tối thiểu" optional="hide" />
                 <field
                     name="display_state"
                     widget="badge"
@@ -61,7 +61,7 @@
         <field name="model">product.supplierinfo</field>
         <field name="priority">1</field>
         <field name="arch" type="xml">
-            <form string="Giá NCC" class="dl-supplierinfo-form" js_class="dl_supplierinfo_form">
+            <form string="Giá nhà cung cấp" class="dl-supplierinfo-form" js_class="dl_supplierinfo_form">
                 <header>
                     <field name="approval_state" invisible="1" />
                     <field name="is_applied" invisible="1" />
@@ -108,14 +108,14 @@
                                 context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
                         </group>
                         <group string="Giá &amp; Hiệu lực">
-                            <field name="price" string="Giá NCC" widget="dl_money"
+                            <field name="price" string="Giá nhà cung cấp" widget="dl_money"
                                 options="{'currency_field': 'currency_id'}" />
                             <field name="currency_id" invisible="1" />
                             <field name="product_uom" string="Đơn vị" readonly="1" />
                             <field name="date_start" string="Từ ngày" />
                             <field name="date_end" string="Đến ngày" />
                             <field name="validity_state" widget="badge" readonly="1" />
-                            <field name="min_qty" string="SL tối thiểu" />
+                            <field name="min_qty" string="Số lượng tối thiểu" />
                         </group>
                     </group>
                 </sheet>
@@ -127,8 +127,9 @@
         <field name="name">dl.product.supplierinfo.search</field>
         <field name="model">product.supplierinfo</field>
         <field name="arch" type="xml">
-            <search string="Tìm bảng giá NCC">
-                <field name="product_tmpl_id" string="Sản phẩm &amp; Vật tư" />
+            <search string="Tìm bảng giá nhà cung cấp">
+                <field name="product_tmpl_id" string="Tìm nhanh"
+                       filter_domain="['|', ('product_tmpl_id', 'ilike', self), ('partner_id', 'ilike', self)]"/>
                 <field name="partner_id" string="Nhà cung cấp" />
                 <separator />
                 <filter name="draft" string="Chờ duyệt"
@@ -149,7 +150,7 @@
 
     <!-- Full: Admin, Kế toán -->
     <record id="action_dl_supplierinfo_full" model="ir.actions.act_window">
-        <field name="name">Bảng giá NCC</field>
+        <field name="name">Bảng giá nhà cung cấp</field>
         <field name="res_model">product.supplierinfo</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
@@ -160,13 +161,13 @@
         ]" />
         <field name="search_view_id" ref="view_dl_supplierinfo_search" />
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Thêm bảng giá NCC đầu tiên!</p>
+            <p class="o_view_nocontent_smiling_face">Thêm bảng giá nhà cung cấp đầu tiên!</p>
         </field>
     </record>
 
     <!-- View-only: CEO, Trưởng KD -->
     <record id="action_dl_supplierinfo_view" model="ir.actions.act_window">
-        <field name="name">Bảng giá NCC</field>
+        <field name="name">Bảng giá nhà cung cấp</field>
         <field name="res_model">product.supplierinfo</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
@@ -179,8 +180,8 @@
         <field name="context">{'create': False, 'edit': False, 'delete': False}</field>
     </record>
 
-    <!-- Màn chuyên cho giá mua vật tư: đi thẳng vào từng dòng giá thay vì
-         Kanban vật tư, để người dùng so sánh NCC/giá/hiệu lực ngay trên list. -->
+    <!-- Màn chuyên cho giá mua vật tư: đi thẳng vào từng dòng giá thay vì danh
+         sách vật tư, để người dùng so sánh NCC/giá/hiệu lực ngay trên list. -->
     <record id="view_dl_supplierinfo_material_tree" model="ir.ui.view">
         <field name="name">dl.product.supplierinfo.material.tree</field>
         <field name="model">product.supplierinfo</field>

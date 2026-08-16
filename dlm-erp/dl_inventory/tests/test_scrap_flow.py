@@ -102,42 +102,10 @@ class TestScrapFlow(DlInventoryCase):
         self.assertIn("không phải lợi nhuận tăng thêm", html)
         self.assertNotIn("data-o-hide-banner", html)
 
-        for xml_id in ("dl_inventory.view_dl_scrap_quant_tree",
-                       "dl_inventory.view_dl_scrap_recovery_tree"):
-            arch = self.env.ref(xml_id).arch
-            self.assertIn("/dl_inventory/scrap_banner", arch,
-                          "Màn %s phải gắn dải chú thích." % xml_id)
+        arch = self.env.ref("dl_inventory.view_dl_scrap_quant_tree").arch
+        self.assertIn("/dl_inventory/scrap_banner", arch,
+                      "Màn Phế liệu phải gắn dải chú thích.")
 
-    def test_bao_cao_doi_chieu_co_ky_va_so_thuc_nhap(self):
-        """§7.4: cân 30kg trong tháng thì báo cáo phải có kỳ đó với thực nhập 30."""
-        self._weigh_in(30.0)
-
-        report = self.env["dl.scrap.recovery.report"].search([])
-        self.assertTrue(report, "Có phát sinh phế liệu thì phải có kỳ để đối chiếu.")
-        total_in = sum(report.mapped("qty_in"))
-        self.assertGreaterEqual(
-            total_in, 30.0,
-            "Lượng cân được phải vào cột Thực nhập của báo cáo.")
-
-    def test_ky_co_don_nhung_chua_can_van_phai_co_dong(self):
-        """🔴 Kỳ nguy hiểm nhất: có dự toán nhưng cân được 0, kỳ này không được
-        biến mất khỏi báo cáo.
-
-        Nếu báo cáo chỉ lấy tháng có phát sinh move thì đúng cái kỳ cần báo động
-        lại là kỳ không có dòng nào.
-        """
-        order = self.env["dl.sale.order"].create({
-            "partner_id": self.env["res.partner"].create({
-                "name": "Khách phế liệu (test)",
-                "partner_role": "customer",
-            }).id,
-            "state": "confirmed",
-            "line_ids": [(0, 0, {
-                "name": "Bàn thép (test K7)", "qty": 2.0, "price_unit": 1000.0,
-            })],
-        })
-
-        periods = self.env["dl.scrap.recovery.report"].search([]).mapped("period")
-        self.assertIn(
-            order.date_order.replace(day=1), periods,
-            "Tháng có đơn hàng phải xuất hiện trong báo cáo dù chưa cân được kg nào.")
+    # 🔴 K16 — hai test của màn "Đối chiếu thu hồi" đã gỡ cùng chính màn đó:
+    # bỏ cách tính % thu hồi thì không còn DỰ TOÁN để đối chiếu với số cân được.
+    # Vòng phản hồi thay thế nằm ở test_workshop_batch (định mức vs thực cấp).

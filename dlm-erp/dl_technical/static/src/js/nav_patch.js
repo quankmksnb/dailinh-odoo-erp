@@ -8,7 +8,7 @@ import { DlmRail } from "@dl_base/components/rail/rail";
 const TECHNICAL_CHILDREN = [
     {
         key: "bom_quotation",
-        name: "BOM sản phẩm / BTP",
+        name: "BOM sản phẩm / Bán thành phẩm",
         icon: "fa-list-alt",
         actionXmlId: "dl_technical.action_dl_bom",
         menuXmlIds: ["dl_technical.menu_bom_quotation"],

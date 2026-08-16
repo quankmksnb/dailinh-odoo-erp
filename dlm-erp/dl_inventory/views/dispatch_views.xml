@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ============================================================
+         K16 — M12/M13 Điều phối đơn hàng (Thủ kho)
+         docs/Thiet_ke_mua_hang_va_vong_cung_ung.md §3, §11
+
+         🔴 VÌ SAO CÓ TREE/FORM RIÊNG THAY VÌ KẾ THỪA VIEW CỦA dl_sale:
+         view đơn bán hàng của dl_sale có cột "Tổng tiền" và cả tab tiền. Thủ
+         kho KHÔNG được thấy giá (§8.3 doc Kho) — họ chỉ có ACL đọc 1,0,0,0 trên
+         dl.sale.order. Gắn `groups=` lên từng ô tiền của form Sales là sửa màn
+         của người khác và sẽ vỡ mỗi lần dl_sale thêm một ô tiền mới. Màn riêng
+         thì ranh giới nằm ở CHỖ DỰNG MÀN, đọc ra ngay được.
+
+         Cùng lý do, đây KHÔNG phải màn Sales dùng: Sales xem tình trạng điều
+         phối bằng chip + dải trên chính form đơn của họ (sale_order_views_ext).
+    ============================================================ -->
+
+    <record id="view_dl_dispatch_tree" model="ir.ui.view">
+        <field name="name">dl.sale.order.dispatch.tree</field>
+        <field name="model">dl.sale.order</field>
+        <field name="arch" type="xml">
+            <!-- Bề rộng khai TƯỜNG MINH: list của dự án dùng
+                 table-layout:fixed, cột không khai bị bóp về ~0px và chữ đè
+                 nhau — hỏng im lặng, đã vấp 7 chỗ. -->
+            <tree string="Đơn chờ điều phối" class="dl-dispatch-list"
+                  create="false" delete="false"
+                  decoration-muted="dlm_dispatch_state == 'dispatched'">
+                <field name="name" string="Số đơn" width="130px"/>
+                <field name="partner_id" string="Khách hàng" width="260px"/>
+                <field name="date_order" string="Ngày lên đơn" width="120px"/>
+                <field name="dlm_dispatch_state" string="Điều phối"
+                       widget="badge" width="140px"
+                       decoration-warning="dlm_dispatch_state == 'to_dispatch'"
+                       decoration-info="dlm_dispatch_state == 'dispatching'"
+                       decoration-success="dlm_dispatch_state == 'dispatched'"/>
+                <field name="dlm_delivery_state" string="Giao hàng"
+                       widget="badge" width="130px"
+                       decoration-success="dlm_delivery_state == 'done'"
+                       decoration-warning="dlm_delivery_state == 'partial'"
+                       decoration-muted="dlm_delivery_state == 'nothing'"/>
+                <field name="dlm_picking_count" string="Phiếu giao"
+                       width="100px" optional="hide"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_dispatch_form" model="ir.ui.view">
+        <field name="name">dl.sale.order.dispatch.form</field>
+        <field name="model">dl.sale.order</field>
+        <field name="arch" type="xml">
+            <form string="Điều phối đơn hàng" class="dl-dispatch-form"
+                  create="false" edit="false">
+                <header>
+                    <!-- MỘT CTA primary cho cả màn (§11.1). Nút tự ẩn khi không
+                         còn gì để điều phối — DP-08: bấm hai lần là giữ chỗ gấp
+                         đôi, và một nút bấm được nhưng luôn báo lỗi thì tệ hơn
+                         một nút biến mất. -->
+                    <button name="action_dlm_dispatch"
+                            string="Điều phối đơn này"
+                            type="object" class="btn-primary"
+                            invisible="state != 'confirmed'
+                                       or dlm_supply_level in ('none', 'danger')"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
+                    <field name="state" widget="dl_stepper"
+                           statusbar_visible="draft,confirmed,done"/>
+                </header>
+                <sheet>
+                    <field name="dlm_supply_level" invisible="1"/>
+                    <field name="dlm_dispatch_state" invisible="1"/>
+
+                    <div class="oe_button_box" name="dlm_dispatch_box">
+                        <button name="action_dlm_open_pickings" type="object"
+                                class="oe_stat_button" icon="fa-truck"
+                                invisible="dlm_picking_count == 0">
+                            <field name="dlm_picking_count" widget="statinfo"
+                                   string="Phiếu giao hàng"/>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <!-- MỘT dải thông báo, mức do model quyết định (§11.1).
+                         Kèm ICON + CHỮ chứ không chỉ màu: dải đỏ và dải vàng
+                         phải phân biệt được khi in ra giấy hoặc với người mù
+                         màu. -->
+                    <div class="alert alert-danger" role="alert"
+                         invisible="dlm_supply_level != 'danger'">
+                        <i class="fa fa-ban me-1" role="img"
+                           aria-label="Chặn"/><strong>Chưa điều phối được: </strong>
+                        <field name="dlm_supply_summary" nolabel="1"
+                               class="d-inline"/>
+                    </div>
+                    <div class="alert alert-warning" role="alert"
+                         invisible="dlm_supply_level != 'warning'">
+                        <i class="fa fa-exclamation-triangle me-1" role="img"
+                           aria-label="Cảnh báo"/><strong>Thiếu hàng: </strong>
+                        <field name="dlm_supply_summary" nolabel="1"
+                               class="d-inline"/>
+                        <div class="small mt-1">
+                            Vẫn điều phối được — phần đang có sẽ được giữ chỗ
+                            ngay, phần thiếu chuyển sang Mua hàng.
+                        </div>
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="dlm_supply_level != 'ok'">
+                        <i class="fa fa-check me-1" role="img"
+                           aria-label="Đủ"/>
+                        <field name="dlm_supply_summary" nolabel="1"
+                               class="d-inline"/>
+                    </div>
+                    <div class="alert alert-info" role="alert"
+                         invisible="dlm_supply_level != 'none'">
+                        <i class="fa fa-info-circle me-1" role="img"
+                           aria-label="Thông tin"/>
+                        Đơn này không còn gì để điều phối — mọi mặt hàng đã có
+                        chứng từ hoặc đã giao xong.
+                    </div>
+
+                    <group>
+                        <group>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="date_order" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="dlm_dispatch_state" widget="badge"
+                                   readonly="1"
+                                   decoration-warning="dlm_dispatch_state == 'to_dispatch'"
+                                   decoration-info="dlm_dispatch_state == 'dispatching'"
+                                   decoration-success="dlm_dispatch_state == 'dispatched'"/>
+                            <field name="dlm_delivery_state" widget="badge"
+                                   readonly="1"
+                                   decoration-success="dlm_delivery_state == 'done'"
+                                   decoration-warning="dlm_delivery_state == 'partial'"
+                                   decoration-muted="dlm_delivery_state == 'nothing'"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="Kiểm tra kho" name="supply">
+                            <!-- Bảng tính SỐNG mỗi lần mở. KHÔNG có cột tiền
+                                 nào — đây là màn của Thủ kho. -->
+                            <field name="dlm_supply_html" nolabel="1"
+                                   readonly="1"/>
+                        </page>
+                        <page string="Hàng khách đặt" name="lines">
+                            <field name="line_ids" readonly="1">
+                                <tree create="false" delete="false"
+                                      edit="false">
+                                    <field name="name" string="Mô tả"
+                                           width="380px"/>
+                                    <field name="product_id" string="Sản phẩm"
+                                           width="260px"/>
+                                    <field name="qty" string="Số lượng"
+                                           widget="dl_qty" width="90px"/>
+                                    <field name="line_type" string="Loại dòng"
+                                           width="120px"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ⚠️ Khai TRƯỚC action: `ref()` của act_window cần bản ghi đã tồn tại tại
+         thời điểm nạp — XML nạp tuần tự, không phải theo phụ thuộc. -->
+    <record id="view_dl_dispatch_search" model="ir.ui.view">
+        <field name="name">dl.sale.order.dispatch.search</field>
+        <field name="model">dl.sale.order</field>
+        <field name="arch" type="xml">
+            <search string="Đơn chờ điều phối">
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', ('name', 'ilike', self), ('partner_id', 'ilike', self)]"/>
+                <field name="partner_id" string="Khách hàng"/>
+                <filter name="chua_xong" string="Chưa điều phối xong"
+                        domain="[('dlm_dispatch_state', '!=', 'dispatched')]"/>
+                <filter name="chua_bat_dau" string="Chưa bắt đầu"
+                        domain="[('dlm_dispatch_state', '=', 'to_dispatch')]"/>
+                <separator/>
+                <filter name="chua_giao" string="Chưa giao đủ"
+                        domain="[('dlm_delivery_state', '!=', 'done')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_dispatch" string="Tình trạng điều phối"
+                            context="{'group_by': 'dlm_dispatch_state'}"/>
+                    <filter name="group_partner" string="Khách hàng"
+                            context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_dl_dispatch_queue" model="ir.actions.act_window">
+        <field name="name">Đơn chờ điều phối</field>
+        <field name="res_model">dl.sale.order</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state', '=', 'confirmed')]</field>
+        <field name="context">{'search_default_chua_xong': 1}</field>
+        <field name="view_ids"
+               eval="[(5, 0, 0),
+                      (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_dispatch_tree')}),
+                      (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_dispatch_form')})]"/>
+        <field name="search_view_id" ref="view_dl_dispatch_search"/>
+        <!-- Trạng thái RỖNG nói được việc tiếp theo, không chỉ "không có bản
+             ghi": hàng đợi rỗng là tin tốt, phải nói ra như tin tốt. -->
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Không còn đơn nào chờ điều phối</p>
+            <p>Mọi đơn đã xác nhận đều đã có chứng từ kho. Đơn mới sẽ tự xuất
+               hiện ở đây ngay khi Kinh doanh xác nhận.</p>
+        </field>
+    </record>
+
+</odoo>

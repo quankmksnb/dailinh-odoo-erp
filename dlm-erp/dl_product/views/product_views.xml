@@ -24,12 +24,12 @@
                     options="{'size': [24, 24]}"
                     optional="show"
                 />
-                <field name="default_code" string="Mã SP" />
-                <field name="name" string="Tên SP" />
-                <field name="categ_id" string="Nhóm SP" />
+                <field name="default_code" string="Mã sản phẩm" />
+                <field name="name" string="Tên sản phẩm" />
+                <field name="categ_id" string="Nhóm sản phẩm" />
                 <!-- Loại SP: badge màu để phân biệt nhanh gia công / thương mại /
                      vật tư / BTP — mỗi loại một sắc thái riêng -->
-                <field name="product_kind" string="Loại SP" widget="badge"
+                <field name="product_kind" string="Loại sản phẩm" widget="badge"
                     decoration-info="product_kind == 'manufactured'"
                     decoration-success="product_kind == 'trading'"
                     decoration-warning="product_kind == 'material_processed'"
@@ -39,7 +39,7 @@
                     decoration-success="dlm_lifecycle_state == 'active'"
                     decoration-muted="dlm_lifecycle_state == 'obsolete'"
                     optional="show" />
-                <field name="uom_id" string="ĐVT" optional="show" />
+                <field name="uom_id" string="Đơn vị tính" optional="show" />
                 <field name="active" column_invisible="1" />
             </tree>
         </field>
@@ -82,7 +82,7 @@
                         type="object"
                         string="Ngừng sử dụng"
                         class="btn-secondary"
-                        confirm="Đưa sản phẩm này về trạng thái Ngừng sử dụng? SP vẫn giữ trong danh mục để tra lịch sử nhưng không còn được chọn để tái sử dụng."
+                        confirm="Đưa sản phẩm này về trạng thái Ngừng sử dụng? Sản phẩm vẫn giữ trong danh mục để tra lịch sử nhưng không còn được chọn để tái sử dụng."
                         invisible="dlm_lifecycle_state != 'active' or not id"
                         groups="dl_base.dl_group_tech,dl_base.dl_group_ba,dl_base.dl_group_admin"
                     />
@@ -97,10 +97,10 @@
                     <button
                         name="toggle_active"
                         type="object"
-                        string="Vô hiệu hóa SP"
+                        string="Vô hiệu hóa sản phẩm"
                         class="btn-danger"
                         invisible="not active or not id"
-                        confirm="Vô hiệu hóa sản phẩm này? SP sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu cũ giữ nguyên."
+                        confirm="Vô hiệu hóa sản phẩm này? Sản phẩm sẽ không xuất hiện khi tạo RFQ/BOM mới; dữ liệu cũ giữ nguyên."
                         groups="dl_base.dl_group_admin"
                     />
                     <button
@@ -158,7 +158,7 @@
                         <!-- Mã SP TỰ SINH theo loại (GC-/TM-/VT-/BTP-) khi lưu —
                              người dùng không phải nhập tay. Ẩn tới khi có mã. -->
                         <div class="text-muted" invisible="not default_code">
-                            Mã SP: <field name="default_code" class="oe_inline"
+                            Mã sản phẩm: <field name="default_code" class="oe_inline"
                                 readonly="1" />
                         </div>
                     </div>
@@ -177,7 +177,7 @@
                             <field name="dl_categ_branch" invisible="1" />
                             <field
                                 name="categ_id"
-                                string="Nhóm SP"
+                                string="Nhóm sản phẩm"
                                 options="{'no_open': True, 'no_create': True}"
                                 domain="[('dl_branch', '=', dl_categ_branch)]"
                             />
@@ -194,7 +194,7 @@
                                 invisible="product_kind not in ('material', 'material_processed')"
                             >
                                 Đơn vị nhà cung cấp <b>bán</b> vật tư này (Cây ·
-                                Tấm · Cuộn · Túi · kg · Lít). Giá NCC là đồng trên
+                                Tấm · Cuộn · Túi · kg · Lít). Giá nhà cung cấp là đồng trên
                                 <b>chính đơn vị này</b>, và định mức cũng quy về nó
                                 — không có đơn vị trung gian.
                             </div>
@@ -233,7 +233,7 @@
                             widget="dl_money"
                             options="{'currency_field': 'currency_id'}"
                             readonly="not dlm_can_edit_sale_price"
-                            help="Sales nhập SAU khi Mua hàng đã thiết lập &amp; áp dụng giá NCC (đã có Giá vốn tham chiếu), rồi kích hoạt sản phẩm."
+                            help="Sales nhập SAU khi Mua hàng đã thiết lập &amp; áp dụng giá nhà cung cấp (đã có Giá vốn tham chiếu), rồi kích hoạt sản phẩm."
                         />
                         <div
                             class="text-muted fst-italic"
@@ -242,7 +242,7 @@
                         >
                             <i class="fa fa-lock me-1" />
                             Giá bán sẽ mở để nhập sau khi Mua hàng thiết lập &amp;
-                            áp dụng giá NCC (có Giá vốn tham chiếu).
+                            áp dụng giá nhà cung cấp (có Giá vốn tham chiếu).
                         </div>
                     </group>
 
@@ -319,7 +319,7 @@
                              là mẫu số biến kích thước cắt thành số cây/số tấm. -->
                         <group
                             string="Một đơn vị mua lớn cỡ nào"
-                            invisible="(dlm_uom_group != 'unit' or dlm_calc_kind not in ('cut_length', 'sheet')) and (dlm_uom_group == 'weight' or not dlm_has_recovery)"
+                            invisible="dlm_uom_group != 'unit' or dlm_calc_kind not in ('cut_length', 'sheet')"
                         >
                             <div class="text-muted" colspan="2"
                                 invisible="dlm_uom_group != 'unit' or dlm_calc_kind not in ('cut_length', 'sheet')">
@@ -348,27 +348,21 @@
                                  hệ số quy đổi là 1. -->
                             <field
                                 name="dlm_mass_per_unit"
-                                invisible="dlm_uom_group == 'weight' or (dlm_calc_kind not in ('cut_length', 'sheet') and not dlm_has_recovery)"
+                                invisible="dlm_uom_group == 'weight' or dlm_calc_kind not in ('cut_length', 'sheet')"
                             />
                             <div
                                 class="text-muted"
                                 colspan="2"
-                                invisible="dlm_uom_group == 'weight' or (dlm_calc_kind not in ('cut_length', 'sheet') and not dlm_has_recovery)"
+                                invisible="dlm_uom_group == 'weight' or dlm_calc_kind not in ('cut_length', 'sheet')"
                             >
-                                Số cân thật trên chứng từ nhà cung cấp. Dùng để tính
-                                tiền phế liệu thu hồi, và để đối chiếu khi có nhà
-                                cung cấp báo giá theo kg. <b>Không vào giá vốn.</b>
+                                Số cân thật trên chứng từ nhà cung cấp. Dùng để
+                                đối chiếu khi có nhà cung cấp báo giá theo kg.
+                                <b>Không vào giá vốn.</b>
                             </div>
-                            <div
-                                class="alert alert-warning py-2 mb-0"
-                                role="status"
-                                colspan="2"
-                                invisible="not dlm_has_recovery or dlm_uom_group == 'weight' or dlm_mass_per_unit"
-                            >
-                                <i class="fa fa-exclamation-triangle me-1" title="Thiếu" />
-                                Đã bật thu hồi phế liệu mà chưa khai số kg ⇒ tiền
-                                phế liệu sẽ ra <b>0</b>.
-                            </div>
+                            <!-- 🔴 K16 — dải "đã bật thu hồi mà chưa khai kg" đã
+                                 gỡ cùng cách tính % thu hồi: không còn tiền phế
+                                 liệu nào để ra 0. -->
+
                         </group>
 
                         <!-- Vật tư mua theo KG: không có "một đơn vị" nào để mô tả
@@ -405,18 +399,23 @@
                         </group>
                     </group>
 
+                    <!-- 🔴 K16 (2026-08-13) — hai ô "Có thu hồi phế liệu" và "Tỷ
+                         lệ thu hồi (%)" ĐÃ GỠ khỏi màn: người dùng chốt bỏ cách
+                         tính % thu hồi, nên để chúng lại là hiện một con số
+                         không còn ảnh hưởng tới đồng nào — kiểu sai khó phát
+                         hiện nhất. Cột dữ liệu vẫn còn (xem
+                         dl_bom_line_mixin._dlm_recovery_kg).
+                         `dlm_scrap_product_id` thì Ở LẠI và nay LUÔN hiện: nó
+                         trả lời "vật tư này thải ra loại phế liệu nào" — câu
+                         hỏi vẫn sống, vì phiếu Nhập kho từ xưởng bắt khai đúng
+                         mặt hàng phế cân được. -->
                     <group
                         name="group_waste_info"
-                        string="Hao hụt &amp; thu hồi"
+                        string="Hao hụt &amp; phế liệu"
                         invisible="product_kind not in ('material', 'material_processed')"
                     >
                         <field name="dlm_waste_rate" />
-                        <field name="dlm_has_recovery" />
-                        <field name="dlm_recovery_rate"
-                            invisible="not dlm_has_recovery"
-                            required="dlm_has_recovery" />
                         <field name="dlm_scrap_product_id"
-                            invisible="not dlm_has_recovery"
                             options="{'no_create': True}" />
                     </group>
 
@@ -463,11 +462,12 @@
         <field name="model">product.product</field>
         <field name="arch" type="xml">
             <search string="Tìm sản phẩm">
-                <field name="name" string="Tên" />
-                <field name="default_code" string="Mã SP" />
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', '|', ('name', 'ilike', self), ('default_code', 'ilike', self), ('categ_id', 'ilike', self)]"/>
+                <field name="default_code" string="Mã sản phẩm" />
                 <field
                     name="categ_id"
-                    string="Nhóm SP"
+                    string="Nhóm sản phẩm"
                     domain="[('id', 'not in', [%(product.product_category_all)d, %(product.product_category_1)d, %(product.cat_expense)d])]"
                 />
                 <separator />
@@ -490,65 +490,14 @@
                 <filter string="Thương mại" name="f_trading"
                     domain="[('product_kind', '=', 'trading')]" />
                 <group expand="0" string="Nhóm theo">
-                    <filter string="Nhóm SP" name="group_category"
+                    <filter string="Nhóm sản phẩm" name="group_category"
                         context="{'group_by': 'categ_id'}" />
-                    <filter string="Loại SP" name="group_kind"
+                    <filter string="Loại sản phẩm" name="group_kind"
                         context="{'group_by': 'product_kind'}" />
                     <filter string="Trạng thái vòng đời" name="group_lifecycle"
                         context="{'group_by': 'dlm_lifecycle_state'}" />
                 </group>
             </search>
-        </field>
-    </record>
-
-    <record id="view_dl_product_kanban" model="ir.ui.view">
-        <field name="name">dl.product.kanban</field>
-        <field name="model">product.product</field>
-        <field name="arch" type="xml">
-            <kanban
-                string="Sản phẩm"
-                class="dl-product-kanban"
-                js_class="dl_product_kanban"
-                sample="1"
-            >
-                <field name="id" />
-                <field name="name" />
-                <field name="default_code" />
-                <field name="categ_id" />
-                <field name="product_kind" />
-                <field name="uom_id" />
-                <field name="active" />
-                <field name="image_128" />
-                <templates>
-                    <t t-name="kanban-box">
-                        <div t-attf-class="oe_kanban_global_click dl-prod-card #{record.active.raw_value ? '' : 'dl-prod-card--off'}">
-                            <div class="dl-prod-img">
-                                <img t-if="record.image_128.raw_value"
-                                    t-att-src="kanban_image('product.product', 'image_128', record.id.raw_value)"
-                                    t-att-alt="record.name.value" />
-                                <span t-else="" class="dl-prod-img__placeholder">
-                                    <i class="fa fa-cube" title="Sản phẩm" />
-                                </span>
-                            </div>
-                            <div class="dl-prod-info">
-                                <span class="dl-prod-name" t-esc="record.name.value" />
-                                <div class="dl-prod-meta">
-                                    <span class="dl-prod-code" t-if="record.default_code.value"
-                                        t-esc="record.default_code.value" />
-                                    <span class="dl-prod-sep" t-if="record.default_code.value and record.categ_id.value">·</span>
-                                    <span t-if="record.categ_id.value" t-esc="record.categ_id.value" />
-                                </div>
-                                <div class="dl-prod-detail" t-if="record.uom_id.value">
-                                    <i class="fa fa-balance-scale" title="Đơn vị tính" />
-                                    <span t-esc="record.uom_id.value" />
-                                </div>
-                            </div>
-                            <span t-attf-class="dl-prod-badge dl-prod-badge--#{record.product_kind.raw_value}"
-                                t-esc="record.product_kind.value" />
-                        </div>
-                    </t>
-                </templates>
-            </kanban>
         </field>
     </record>
 
@@ -603,12 +552,12 @@
                             <field name="name" placeholder="VD: Khung thép hàn CT-200..." />
                         </h1>
                         <div class="text-muted" invisible="not default_code">
-                            Mã SP: <field name="default_code" class="oe_inline" readonly="1" />
+                            Mã sản phẩm: <field name="default_code" class="oe_inline" readonly="1" />
                         </div>
                     </div>
                     <group>
                         <group string="Phân loại">
-                            <field name="categ_id" string="Nhóm SP" />
+                            <field name="categ_id" string="Nhóm sản phẩm" />
                         </group>
                         <group string="Đơn vị tính">
                             <field name="uom_id" />

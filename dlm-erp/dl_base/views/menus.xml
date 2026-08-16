@@ -55,6 +55,21 @@
         groups="dl_base.dl_group_warehouse,dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
     />
 
+    <!-- Menu CONTAINER của phân hệ Mua hàng (menu con khai ở dl_purchase).
+         ⚠️ Odoo bắt pass groups CẢ TỔ TIÊN ⇒ phải liệt kê ĐỦ mọi vai trò có ít
+         nhất một menu con: Mua hàng (chủ sở hữu), Admin, CEO (duyệt đơn vượt
+         ngưỡng), Kế toán (chỉ xem đơn mua). Thủ kho KHÔNG vào nhóm này — họ
+         nhận hàng theo đơn nhưng không đặt hàng, đó là kiểm soát chéo.
+         Khai ở dl_base (không phải dl_purchase) đúng khuôn menu_dl_inventory:
+         rail của dl_base tham chiếu XML ID này. -->
+    <menuitem
+        id="menu_dl_purchase"
+        name="Mua hàng"
+        parent="menu_dl_root"
+        sequence="25"
+        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+    />
+
     <!-- Chưa có màn báo cáo thực tế: ẩn hẳn để người dùng không mở vào ngõ cụt. -->
     <record id="menu_dl_report" model="ir.ui.menu">
         <field name="name">Báo cáo</field>

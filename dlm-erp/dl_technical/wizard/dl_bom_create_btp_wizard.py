@@ -39,14 +39,14 @@ class DlBomCreateBtpWizard(models.TransientModel):
     init_mode = fields.Selection(
         [
             ("empty", "Tạo trống"),
-            ("copy", "Chép từ BTP tương tự"),
+            ("copy", "Chép từ bán thành phẩm tương tự"),
         ],
-        string="Định mức BTP", default="empty", required=True)
+        string="Định mức bán thành phẩm", default="empty", required=True)
     copy_from_bom_id = fields.Many2one(
         "dl.bom", string="Chép định mức từ",
         domain="[('product_id.product_kind', '=', 'material_processed'),"
                " ('status', 'in', ('confirmed', 'locked'))]",
-        help="Chép các dòng vật tư của một BTP tương tự làm điểm khởi đầu.")
+        help="Chép các dòng vật tư của một bán thành phẩm tương tự làm điểm khởi đầu.")
 
     # Cảnh báo mềm khi cha là bản tạm RFQ — BTP sẽ kế thừa trạng thái tạm.
     parent_is_provisional = fields.Boolean(
@@ -59,9 +59,9 @@ class DlBomCreateBtpWizard(models.TransientModel):
     name_dup_message = fields.Char(
         string="Cảnh báo trùng tên", compute="_compute_name_dup")
     name_dup_exact_id = fields.Many2one(
-        "product.product", string="BTP trùng hệt", compute="_compute_name_dup")
+        "product.product", string="Bán thành phẩm trùng hệt", compute="_compute_name_dup")
     confirm_similar_name = fields.Boolean(
-        string="Xác nhận đây thực sự là BTP khác")
+        string="Xác nhận đây thực sự là bán thành phẩm khác")
 
     @api.depends("name")
     def _compute_name_dup(self):
@@ -81,15 +81,16 @@ class DlBomCreateBtpWizard(models.TransientModel):
                 rec.name_dup_exact_id = dup.id
                 rec.name_dup_message = _(
                     "Đã có bán thành phẩm “%(name)s” (nhóm %(categ)s). Không "
-                    "tạo trùng — hãy chọn BTP này vào dòng.",
+                    "tạo trùng — hãy chọn bán thành phẩm này vào dòng.",
                     name=dup.display_name,
                     categ=dup.categ_id.display_name or _("chưa phân nhóm"))
             elif matches["similar"]:
                 rec.name_dup_state = "similar"
                 names = ", ".join(matches["similar"][:5].mapped("display_name"))
                 rec.name_dup_message = _(
-                    "Có bán thành phẩm gần giống: %s. Nếu đây thực sự là BTP "
-                    "khác, tick xác nhận bên dưới rồi bấm Tạo.") % names
+                    "Có bán thành phẩm gần giống: %s. Nếu đây thực sự là bán "
+                    "thành phẩm khác, tick xác nhận bên dưới rồi bấm Tạo."
+                ) % names
 
     def action_create(self):
         """Tạo BTP + BOM con + 1 dòng vào định mức cha, mở BOM con trên breadcrumb."""
@@ -113,14 +114,15 @@ class DlBomCreateBtpWizard(models.TransientModel):
             dup = matches["exact"][0]
             raise UserError(_(
                 "Đã tồn tại bán thành phẩm “%(name)s” (nhóm %(categ)s). Không "
-                "tạo trùng — hãy chọn BTP này vào dòng định mức.",
+                "tạo trùng — hãy chọn bán thành phẩm này vào dòng định mức.",
                 name=dup.display_name,
                 categ=dup.categ_id.display_name or _("chưa phân nhóm")))
         if matches["similar"] and not self.confirm_similar_name:
             names = ", ".join(matches["similar"][:5].mapped("display_name"))
             raise UserError(_(
-                "Có bán thành phẩm gần giống: %s.\nNếu đây thực sự là BTP khác, "
-                "hãy tick “Xác nhận đây thực sự là BTP khác” rồi tạo lại.") % names)
+                "Có bán thành phẩm gần giống: %s.\nNếu đây thực sự là bán thành "
+                "phẩm khác, hãy tick “Xác nhận đây thực sự là bán thành phẩm "
+                "khác” rồi tạo lại.") % names)
 
         # BTP kế thừa trạng thái tạm từ định mức cha: cha tạm RFQ ⇒ BTP + BOM con
         # cũng tạm (bị cron dọn nếu RFQ bỏ dở; chính thức hóa khi Hoàn tất dòng).

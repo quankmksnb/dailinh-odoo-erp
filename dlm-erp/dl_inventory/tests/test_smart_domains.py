@@ -3,10 +3,14 @@
 
 Thiết kế: docs/Thiet_ke_kho_thong_minh_context_aware.md SM-03, SM-04.
 
-Hai field computed nuôi domain của product_id trên dòng hàng. Nếu hỏng, dropdown
-sẽ lọc sai: hoặc mời chọn mặt hàng không thể giữ chỗ (chuyển kho), hoặc cho giao
-thứ khách không đặt (giao hàng). Test này kiểm chính logic compute, domain
-trong view đã được Odoo validate lúc nạp rồi nên không cần kiểm lại.
+Cái sai đắt nếu hỏng có HAI chiều, và SM-03 đã vấp cả hai:
+
+* lọc thiếu ⇒ mời giao thứ khách không đặt (SM-04, giao hàng);
+* lọc thừa ⇒ mặt hàng biến mất khỏi dropdown, thủ kho không phân biệt được
+  "khu đó hết hàng" với "hệ thống hỏng" (SM-03, sửa 2026-08-12).
+
+Nên phần SM-03 dưới đây kiểm cả ba tín hiệu thay-cho-việc-ẩn: nhãn trong
+dropdown, cột "Tồn ở nơi lấy" của dòng, và dải cảnh báo của phiếu.
 """
 
 from odoo import fields
@@ -22,8 +26,9 @@ class TestSmartDomains(DlInventoryCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.customer = cls.env["res.partner"].create({
-            "name": "Khách hàng (test SM)", "partner_role": "customer"})
-        # Hàng thương mại, không theo lô: test này nói về lọc mặt hàng, không phải lô.
+            "name": "Khách hàng (test SM)", "partner_role": "customer",
+            "mobile": "0900000012"})
+        # Hàng thương mại, KHÔNG theo lô — test nói về lọc mặt hàng, không phải lô.
         cls.prod_a = cls.env["product.product"].create({
             "name": "Bản lề A (test SM)", "product_kind": "trading"})
         cls.prod_a.tracking = "none"
@@ -59,34 +64,83 @@ class TestSmartDomains(DlInventoryCase):
             })],
         })
 
-    # SM-03: chuyển kho lọc theo tồn ở nguồn
-    def test_sm03_nguon_chi_hien_hang_co_ton(self):
-        """SP có tồn ở nguồn thì vào danh sách; SP không tồn thì không."""
-        self._stock_up(self.prod_a, 5.0, self.loc_kho)
-        picking = self._transfer(self.loc_kho)
-        available = picking.dlm_source_available_product_ids
-        self.assertIn(self.prod_a, available)
-        self.assertNotIn(
-            self.prod_b, available,
-            "Mặt hàng không có tồn ở nguồn không được vào danh sách.")
+    # ── SM-03: chuyển kho — hết hàng thì NÓI RA, không giấu đi ───────────────
+    def _name_search(self, location):
+        """Danh sách mặt hàng đúng như dropdown của dòng chuyển kho thấy."""
+        return dict(self.env["product.product"]
+                    .with_context(dlm_src_location_id=location.id)
+                    .name_search(name="test SM"))
 
-    def test_sm03_ton_bang_khong_khong_tinh(self):
-        """Tồn = 0 (quant có nhưng hết hàng) không được coi là có sẵn.
-        Đây chính là bẫy 'hai điều kiện trên o2m' mà compute né bằng search."""
+    def test_sm03_het_hang_van_hien_kem_nhan(self):
+        """🔴 Ca người dùng báo: mặt hàng hết ở nơi lấy vẫn phải hiện.
+
+        Giấu nó đi thì thủ kho tìm không thấy và tưởng hệ thống hỏng — nên phải
+        vừa hiện, vừa nói rõ là hết.
+        """
+        self._stock_up(self.prod_a, 5.0, self.loc_kho)  # prod_b: không có tồn
+        labels = self._name_search(self.loc_kho)
+
+        self.assertIn(self.prod_b.id, labels,
+                      "Mặt hàng hết hàng bị biến mất khỏi danh sách.")
+        self.assertIn("hết hàng", labels[self.prod_b.id])
+        self.assertNotIn("hết hàng", labels[self.prod_a.id],
+                         "Hàng còn tồn mà bị dán nhãn hết.")
+
+    def test_sm03_ton_ve_khong_thi_dan_nhan(self):
+        """Tồn = 0 (quant còn bản ghi, hàng thì hết) — ca dễ nhầm nhất: người
+        dùng thấy kho "có ghi" mặt hàng này nên chắc chắn phải tìm ra nó."""
         self._stock_up(self.prod_a, 5.0, self.loc_kho)
         self._stock_up(self.prod_a, -5.0, self.loc_kho)  # về 0, quant vẫn tồn tại
-        picking = self._transfer(self.loc_kho)
-        self.assertNotIn(
-            self.prod_a, picking.dlm_source_available_product_ids,
-            "Tồn 0 không được hiện — reservation sẽ thất bại.")
+        labels = self._name_search(self.loc_kho)
+        self.assertIn("hết hàng", labels[self.prod_a.id])
 
-    def test_sm03_doi_nguon_thi_danh_sach_doi_theo(self):
-        """Đổi vị trí nguồn thì compute phải chạy lại theo nguồn mới."""
+    def test_sm03_khong_co_context_thi_khong_doi_ten(self):
+        """Nhãn chỉ được xuất hiện ở ô có khai context — không rò sang màn khác
+        (name_search của product.product dùng chung cả hệ thống)."""
+        labels = dict(self.env["product.product"].name_search(name="test SM"))
+        self.assertNotIn("hết hàng", labels[self.prod_b.id])
+
+    def test_sm03_ton_o_noi_lay_hien_tren_dong(self):
+        """Chọn xong vẫn phải thấy số: cột "Tồn ở nơi lấy" của dòng."""
         self._stock_up(self.prod_a, 5.0, self.loc_kho)
         picking = self._transfer(self.loc_kho)
-        self.assertIn(self.prod_a, picking.dlm_source_available_product_ids)
-        picking.location_id = self.loc_xuong  # không có tồn ở đây
-        self.assertNotIn(self.prod_a, picking.dlm_source_available_product_ids)
+        move = self.env["stock.move"].create({
+            "name": self.prod_b.name,
+            "picking_id": picking.id,
+            "product_id": self.prod_b.id,
+            "product_uom_qty": 2.0,
+            "product_uom": self.prod_b.uom_id.id,
+            "location_id": self.loc_kho.id,
+            "location_dest_id": self.loc_xuong.id,
+        })
+        self.assertEqual(move.dlm_src_available_qty, 0.0)
+
+        move.product_id = self.prod_a
+        self.assertEqual(move.dlm_src_available_qty, 5.0,
+                         "Đổi mặt hàng mà số tồn đứng hình.")
+
+    def test_sm03_het_hang_thi_canh_bao_khong_chan(self):
+        """Cho chọn thì phải cảnh báo hệ quả — nhưng KHÔNG chặn: đặt trước phiếu
+        chờ hàng về là nghiệp vụ hợp lệ.
+
+        Dùng VẬT TƯ chứ không phải hàng thương mại: tuyến khu nhập → xưởng chỉ
+        hợp lệ với vật tư, mà dải đỏ "sai khu" sẽ che mất dải vàng "hết hàng"
+        cần đo ở đây.
+        """
+        picking = self._transfer(self.loc_kho)
+        self.env["stock.move"].create({
+            "name": self.material.name,
+            "picking_id": picking.id,
+            "product_id": self.material.id,
+            "product_uom_qty": 2.0,
+            "product_uom": self.material.uom_id.id,
+            "location_id": self.loc_kho.id,
+            "location_dest_id": self.loc_xuong.id,
+        })
+        self.assertEqual(picking.dlm_banner_level, "warning")
+        self.assertIn("đang hết hàng", picking.dlm_banner_message)
+        self.assertFalse(picking.dlm_blocked,
+                         "Hết hàng chỉ là cảnh báo, không được chặn phiếu.")
 
     # SM-04: giao hàng lọc theo đơn
     def test_sm04_giao_chi_hien_hang_trong_don(self):

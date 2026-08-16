@@ -37,17 +37,17 @@ class ResPartnerQuoteStats(models.Model):
         compute='_compute_dlm_quote_stats',
     )
     dlm_win_rate = fields.Float(
-        string='Win rate (%)',
+        string='Tỷ lệ thắng (%)',
         compute='_compute_dlm_quote_stats',
         help='Tỷ lệ Accepted / (Accepted + Rejected/Lost)',
     )
     dlm_open_quote_count = fields.Integer(
-        string='BG chưa đóng',
+        string='Báo giá chưa đóng',
         compute='_compute_dlm_quote_stats',
-        help='Số báo giá còn mở (Nháp / Đã gửi) — dùng cảnh báo khi vô hiệu hóa KH (EX-30)',
+        help='Số báo giá còn mở (Nháp / Đã gửi) — dùng cảnh báo khi vô hiệu hóa khách hàng (EX-30)',
     )
     dlm_recent_quote_count = fields.Integer(
-        string='BG trong 7 ngày',
+        string='Báo giá trong 7 ngày',
         compute='_compute_dlm_quote_stats',
     )
     dlm_currency_id = fields.Many2one(
@@ -56,7 +56,7 @@ class ResPartnerQuoteStats(models.Model):
         help='Tiền tệ hiển thị số liệu báo giá (theo công ty)',
     )
     dlm_recent_quote_total = fields.Monetary(
-        string='Tổng BG 7 ngày',
+        string='Tổng báo giá 7 ngày',
         compute='_compute_dlm_quote_stats',
         currency_field='dlm_currency_id',
         help='Tổng giá trị báo giá trong 7 ngày gần đây (EX-42)',
@@ -64,7 +64,7 @@ class ResPartnerQuoteStats(models.Model):
     dlm_split_warning = fields.Boolean(
         string='Cảnh báo gộp đơn',
         compute='_compute_dlm_quote_stats',
-        help='≥2 báo giá cho KH này trong 7 ngày VÀ tổng gộp vượt ngưỡng auto (EX-42)',
+        help='≥2 báo giá cho khách hàng này trong 7 ngày VÀ tổng gộp vượt ngưỡng auto (EX-42)',
     )
     dlm_split_threshold = fields.Monetary(
         string='Ngưỡng gộp đơn',

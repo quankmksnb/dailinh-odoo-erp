@@ -12,12 +12,15 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="image_128"] { width: 8% !important; }
-        th[data-name="default_code"] { width: 14% !important; }
-        th[data-name="name"] { width: 30% !important; }
-        th[data-name="categ_id"] { width: 20% !important; }
-        th[data-name="product_kind"] { width: 16% !important; }
-        th[data-name="uom_id"] { width: 12% !important; }
+        // Cột "Vòng đời" (badge) bị bỏ sót width ⇒ bị bóp về ~0px dưới
+        // table-layout fixed. Chia lại cho đủ 7 cột đang hiện, tổng = 100%.
+        th[data-name="image_128"] { width: 6% !important; }
+        th[data-name="default_code"] { width: 13% !important; }
+        th[data-name="name"] { width: 26% !important; }
+        th[data-name="categ_id"] { width: 17% !important; }
+        th[data-name="product_kind"] { width: 14% !important; }
+        th[data-name="dlm_lifecycle_state"] { width: 14% !important; }
+        th[data-name="uom_id"] { width: 10% !important; }
 
         td[name="name"],
         td[name="categ_id"] {

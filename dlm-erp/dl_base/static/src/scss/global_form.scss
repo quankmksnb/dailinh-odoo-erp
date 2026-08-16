@@ -41,21 +41,24 @@
     }
 
     // --- Input (dl-input mixin) ----------------------------------------------
-    // Phủ CẢ 2 layout: .o_group (form Odoo chuẩn) VÀ .dl-field (layout tùy biến
+    // Phủ CẢ 2 layout: group Odoo chuẩn VÀ .dl-field (layout tùy biến
     // dl-fields-row dùng ở form Kho, Báo giá, Khách hàng...). Trước đây chỉ scope
     // .o_group nên field trong .dl-field của form Kho không có viền — trông như
     // chữ tĩnh, many2one (dropdown) không lộ affordance.
-    .o_group .o_field_widget input.o_input,
-    .o_group .o_field_many2one .o_input,
-    .o_group .o_field_date input,
-    .o_group .o_field_widget .o_input_dropdown input,
-    .o_group textarea.o_input,
-    .dl-field input.o_input,
-    .dl-field .o_field_many2one .o_input,
-    .dl-field .o_field_date input,
-    .dl-field .o_input_dropdown input,
-    .dl-field textarea.o_input {
-        @include dl-input;
+    //
+    // 🔴 Phải liệt kê CẢ `.o_inner_group`, không chỉ `.o_group`: Odoo 17 chỉ bọc
+    // `.o_group` khi <group> có <group> CON (form_compiler.js `isOuterGroup`).
+    // Một <group> chỉ chứa field render thẳng ra `.o_inner_group` KHÔNG có tổ
+    // tiên `.o_group` ⇒ 90 nhóm field ở 20 form (SP, BOM, NCC, RFQ, Lô hàng,
+    // UoM...) rơi hết ra ngoài luật này và hiện không có viền ô nhập.
+    .o_group, .o_inner_group, .dl-field {
+        input.o_input,
+        .o_field_many2one .o_input,
+        .o_field_date input,
+        .o_input_dropdown input,
+        textarea.o_input {
+            @include dl-input;
+        }
     }
 
     // --- Selection (<select>): lộ affordance dropdown ------------------------
@@ -65,6 +68,7 @@
     // vì nó có `background:` shorthand sẽ xoá luôn chevron. Nên khối riêng:
     // viền như input + mũi tên LUÔN hiện (dùng background-color, không shorthand).
     .o_group .o_field_selection select,
+    .o_inner_group .o_field_selection select,
     .dl-field .o_field_selection select {
         border: 1px solid $dl-border !important;
         border-radius: $dl-radius-sm;
@@ -83,6 +87,36 @@
         }
     }
 
+    // --- Trần bề ngang ô nhập trong group ------------------------------------
+    // Cột field của .o_inner_group là `minmax(0, 1fr)` và sheet Odoo 17 rộng hết
+    // màn ⇒ mọi ô nhập kéo dài tới mép phải: ô "VAT (%)" hay "Phiên bản" cũng
+    // dài ~1400px trên màn 1920. Chặn ở tầng Ô LƯỚI (.o_cell) chứ không ở
+    // widget, để nhãn vẫn nằm đúng cột của nó.
+    //
+    // Scope `> .o_wrap_field > .o_cell` (con TRỰC TIẾP) là có chủ đích: nó không
+    // thò vào bảng x2many hay group lồng nằm sâu bên trong.
+    .o_inner_group > .o_wrap_field > .o_cell {
+        max-width: $dl-field-max-w;
+
+        // Text nhiều dòng: 400px quá chật để soạn đoạn (điều khoản bảo hành,
+        // ghi chú), nhưng vẫn phải có trần.
+        &:has(.o_field_text) { max-width: 640px; }
+
+        // Ô cần bề ngang thật — bóp lại là hỏng công dụng. PHẢI đứng SAU luật
+        // .o_field_text ở trên: .dl-textarea-lg cũng là .o_field_text, cùng
+        // specificity nên luật viết sau mới thắng.
+        //
+        // `[style*="grid-column"]` là ô khai colspan: Odoo render colspan thành
+        // inline style `grid-column: span N` (form_group.xml). Trong repo này
+        // colspan chỉ dùng cho thứ CỐ Ý chiếm trọn bề ngang — dòng chú thích
+        // .text-muted, bảng con, dropzone bản vẽ (preview PDF rộng 100%). Bắt
+        // theo tín hiệu đó thay vì kể tên từng class của module con.
+        &[style*="grid-column"],
+        &:has(.o_field_x2many),
+        &:has(.o_field_html),
+        &:has(.dl-textarea-lg) { max-width: none; }
+    }
+
     // --- Layout dl-fields-row / dl-field -------------------------------------
     // Layout tùy biến (thay .o_group) dùng ở form Kho, Báo giá, Khách hàng,
     // Trả NCC, Chuyển kho...: hàng field NGANG, mỗi field NHÃN TRÊN – Ô DƯỚI,
@@ -99,6 +133,14 @@
         .dl-field {
             flex: 1 1 0;
             min-width: 220px;
+            // Trần bề ngang — CÙNG token với ô nhập trong group, để hai layout
+            // không cho ra hai cỡ ô khác nhau. `flex: 1 1 0` không có trần thì
+            // hàng ÍT field chia hết bề ngang sheet cho từng ô: hàng 2 field
+            // trên màn 1920 cho ra ô "VAT (%)" rộng ~790px. Trần này KHÔNG đổi
+            // hàng 4–5 field (ở 1920 mỗi ô đã tự ~385px, dưới trần) và KHÔNG gây
+            // xuống dòng thêm — flexbox quyết định wrap theo min-width (220px),
+            // không theo max-width.
+            max-width: $dl-field-max-w;
             display: flex;
             flex-direction: column;
             gap: 6px;

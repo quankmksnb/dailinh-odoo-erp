@@ -108,7 +108,8 @@
         <field name="model">dl.pricing.approval.request</field>
         <field name="arch" type="xml">
             <search string="Tìm yêu cầu phê duyệt">
-                <field name="object_label" string="Đối tượng"/>
+                <field name="object_label" string="Tìm nhanh"
+                       filter_domain="['|', ('object_label', 'ilike', self), ('requester_id', 'ilike', self)]"/>
                 <field name="requester_id" string="Người yêu cầu"/>
                 <filter name="pending" string="Chờ duyệt" domain="[('state','=','pending')]"/>
                 <filter name="approved" string="Đã duyệt" domain="[('state','=','approved')]"/>

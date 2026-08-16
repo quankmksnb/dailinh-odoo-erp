@@ -275,7 +275,7 @@ class DlQuotation(models.Model):
     # Nhóm khách (từ res.partner) — hiển thị cho Sales biết khoảng chiết khấu
     # được phép thương lượng (mặc định/tối đa) ngay trên báo giá.
     partner_group = fields.Selection(
-        related='partner_id.dlm_customer_group', string='Nhóm khách',
+        related='partner_id.dlm_customer_group', string='Nhóm khách hàng',
         readonly=True)
 
     # --- Định tuyến phê duyệt (đặc tả §8) ---
@@ -561,7 +561,7 @@ class DlQuotation(models.Model):
         return Markup(
             '<div class="dl-recipe-colhead">'
             '<span class="c-prod">Sản phẩm</span>'
-            '<span class="c-qty">SL đặt</span>'
+            '<span class="c-qty">Số lượng đặt</span>'
             '<span class="c-unit">Giá thành/sp</span>'
             '<span class="c-sell">Giá bán dòng</span>'
             '<span class="c-mk">Markup</span></div>')
@@ -1234,7 +1234,7 @@ class DlQuotationLine(models.Model):
 
     quotation_id = fields.Many2one('dl.quotation', string='Báo giá', ondelete='cascade')
     name = fields.Char(string='Mô tả', required=True)
-    qty = fields.Float(string='SL', default=1.0)
+    qty = fields.Float(string='Số lượng', default=1.0)
     price_unit = fields.Float(string='Đơn giá', digits='Product Price')
     price_subtotal = fields.Float(string='Thành tiền', compute='_compute_subtotal',
                                   store=True, digits='Product Price')
@@ -1271,9 +1271,9 @@ class DlQuotationLine(models.Model):
     adjustment_cost = fields.Float(string='Chi phí chung/điều chỉnh/đv',
                                    digits='Product Price',
                                    readonly=True, groups=_COST_GROUPS)
-    total_cost = fields.Float(string='Giá thành/đv', digits='Product Price',
+    total_cost = fields.Float(string='Giá thành/đơn vị', digits='Product Price',
                               readonly=True, groups=_COST_GROUPS)
-    floor_price = fields.Float(string='Giá sàn/đv', digits='Product Price',
+    floor_price = fields.Float(string='Giá sàn/đơn vị', digits='Product Price',
                                readonly=True, groups=_COST_GROUPS)
 
     component_ids = fields.One2many('dl.quotation.price.component', 'quotation_line_id',

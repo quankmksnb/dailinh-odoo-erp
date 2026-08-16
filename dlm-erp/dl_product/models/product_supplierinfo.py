@@ -92,7 +92,7 @@ class ProductSupplierinfo(models.Model):
         default="draft",
         required=True,
         copy=False,
-        help="Kế toán duyệt giá NCC trước khi áp dụng cho báo giá / BOM.",
+        help="Kế toán duyệt giá nhà cung cấp trước khi áp dụng cho báo giá / BOM.",
     )
 
     # Một vật tư/SP thương mại có thể có nhiều bảng giá (nhiều NCC) đã duyệt
@@ -198,7 +198,7 @@ class ProductSupplierinfo(models.Model):
         """Data Model PROD-03: price NUMERIC(14,2) NOT NULL CHECK > 0."""
         for rec in self:
             if rec.price <= 0:
-                raise ValidationError(_("Đơn giá NCC phải lớn hơn 0."))
+                raise ValidationError(_("Đơn giá nhà cung cấp phải lớn hơn 0."))
 
     @api.constrains("date_start", "date_end")
     def _check_date_range(self):
@@ -215,7 +215,7 @@ class ProductSupplierinfo(models.Model):
             return
         if not (self.env.user.has_group("dl_base.dl_group_purchasing")
                 or self.env.user.has_group("dl_base.dl_group_admin")):
-            raise UserError(_("Chỉ Mua hàng hoặc Admin mới được thao tác giá NCC."))
+            raise UserError(_("Chỉ Mua hàng hoặc Admin mới được thao tác giá nhà cung cấp."))
 
     # ── Giá vốn tham chiếu (mục 4) ───────────────────────────────────────────
     def _dlm_product(self):

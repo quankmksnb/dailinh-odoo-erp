@@ -51,7 +51,7 @@ class DlBomLineMixin(models.AbstractModel):
     material_calc_kind = fields.Selection(
         related="material_id.dlm_calc_kind", string="Kiểu tính", readonly=True)
     material_uom_name = fields.Char(
-        related="material_id.uom_id.name", string="ĐVT", readonly=True)
+        related="material_id.uom_id.name", string="Đơn vị tính", readonly=True)
 
     # ── Kích thước cắt (mm) ──────────────────────────────────────────────
     # Chỉ còn 2 ô: mặt cắt (cạnh/đường kính/độ dày) nay là quy cách của VẬT TƯ,
@@ -251,38 +251,30 @@ class DlBomLineMixin(models.AbstractModel):
     # THU HỒI PHẾ LIỆU
     # ==========================================================
 
+    # 🔴 NGƯNG SỬ DỤNG 2026-08-13 (K16) — người dùng chốt BỎ cách tính % thu hồi
+    # phế liệu. Hai hàm dưới đây trả 0 thay vì bị xoá, và đó là CHỦ Ý:
+    #
+    #   • Chúng là ĐIỂM NGHẼN duy nhất — `dl_bom_line._compute_recovery_value`
+    #     và engine giá (`quotation_pricing_service` §5.3) đều gọi qua đây. Tắt
+    #     một chỗ là tắt toàn hệ thống, không phải đi sửa ba nơi rồi bỏ sót nơi
+    #     thứ tư.
+    #   • Field `dlm_has_recovery` / `dlm_recovery_rate` trên vật tư vẫn còn
+    #     (chỉ gỡ khỏi UI): xoá cột là mất dữ liệu cấu hình không lấy lại được,
+    #     mà quyết định kinh doanh thì có thể đảo.
+    #
+    # HỆ QUẢ VỀ TIỀN, nói thẳng: giá vốn vật tư nay KHÔNG còn được trừ tiền phế
+    # liệu ⇒ giá vốn cao lên ⇒ giá chào khách cao lên (hoặc biên lợi nhuận giảm
+    # nếu giữ giá). Đổi lại, tiền bán phế liệu thành lãi thật và không còn hai
+    # con số "thu hồi" phải đối chiếu với nhau.
     def _dlm_recovery_kg(self):
-        """Khối lượng phế liệu THU HỒI ĐƯỢC của dòng này, theo KG.
-
-        🔴 Lượng hao hụt tính theo ĐVT của vật tư (vd CÂY), còn phế liệu cân và
-        bán theo KG ⇒ BẮT BUỘC quy đổi qua dlm_mass_per_unit. Bỏ bước này thì
-        con số sai hàng nghìn lần (0,23 "kg" thay vì 0,23 cây × 11,5 kg/cây).
-
-        Tách khỏi `_dlm_recovery_value` vì phân hệ Kho cần đúng số KG này để đối
-        chiếu dự toán với lượng cân thực tế (thiết kế Kho §7.4) — chép lại công
-        thức sang đó là mở đường cho hai con số "thu hồi" lệch nhau.
-        """
+        """0.0 — xem khối chú thích trên. Giữ chữ ký hàm cho nơi gọi cũ."""
         self.ensure_one()
-        mat = self.material_id
-        if not mat or not mat.dlm_has_recovery or not mat.dlm_recovery_rate:
-            return 0.0
-        waste_qty = self.effective_qty - self.quantity      # theo uom_id vật tư
-        # Vật tư mua theo KG thì lượng hao hụt ĐÃ là kg — hệ số quy đổi là 1.
-        # Không rơi về dlm_mass_per_unit ở ca này, vì bỏ trống (0) sẽ biến tiền
-        # phế liệu thành 0 mà không ai thấy.
-        per_unit = (1.0 if mat._dlm_uom_group() == "weight"
-                    else (mat.dlm_mass_per_unit or 0.0))
-        return waste_qty * per_unit * mat.dlm_recovery_rate / 100.0
+        return 0.0
 
     def _dlm_recovery_value(self):
-        """Giá trị phế liệu thu hồi được trừ khỏi chi phí vật tư."""
+        """0.0 — xem khối chú thích trên. Giữ chữ ký hàm cho nơi gọi cũ."""
         self.ensure_one()
-        recovery_kg = self._dlm_recovery_kg()
-        # Thoát sớm khi không thu hồi: _dlm_scrap_unit_price() có ensure_one()
-        # nên gọi trên dòng chưa chọn vật tư sẽ nổ thay vì trả 0.
-        if not recovery_kg:
-            return 0.0
-        return recovery_kg * self.material_id._dlm_scrap_unit_price()
+        return 0.0
 
     def _mixin_copy_vals(self):
         """Trả về dict giá trị các field dùng chung — dùng khi copy 1 dòng

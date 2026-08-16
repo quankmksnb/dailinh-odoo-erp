@@ -27,6 +27,20 @@
         groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo"
     />
 
+    <!-- K16 — Điều phối đứng NGAY SAU Hàng đợi: đây là việc đầu ngày của thủ
+         kho (đơn nào mới chốt, có làm được không), trước cả việc nhận hàng.
+         🔴 CHỈ Thủ kho/Admin/CEO — người dùng chốt 2026-08-14 (U-4): một chủ
+         sở hữu cho bước này. Sales xem tình trạng bằng chip trên chính form
+         đơn của họ, không có lối vào thứ hai ở đây. -->
+    <menuitem
+        id="menu_dl_dispatch_queue"
+        name="Điều phối đơn hàng"
+        action="action_dl_dispatch_queue"
+        parent="dl_base.menu_dl_inventory"
+        sequence="7"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+    />
+
     <menuitem
         id="menu_dl_stock_quant"
         name="Tồn kho"
@@ -54,13 +68,34 @@
         groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
     />
 
+    <!-- K13 — Đầu ra của nhánh gia công.
+         🔴 K16 ĐẢO quyết định của K13 ("người TẠO phiếu vẫn là Thủ kho"): nay
+         chính KỸ THUẬT lập phiếu này, và Thủ kho là người đếm & ký nhận. Lý do
+         đảo: từ K16 phiếu khai cả VẬT TƯ ĐÃ DÙNG — con số chỉ xưởng biết. Bắt
+         thủ kho gõ hộ là chép lại lời người khác rồi ký tên mình.
+         Quyền ghi của Kỹ thuật bị khoá đúng loại phiếu này bằng ir.rule
+         (rule_picking_tech_fg_receipt_only), không phải mở ACL toàn bộ. -->
+    <menuitem
+        id="menu_dl_picking_fg_receipt"
+        name="Nhập kho từ xưởng"
+        action="action_dl_picking_fg_receipt"
+        parent="dl_base.menu_dl_inventory"
+        sequence="35"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_tech"
+    />
+
+    <!-- K15 — Kỹ thuật CÓ mục này: phiếu ra Xưởng sản xuất chờ chữ ký NHẬN
+         HÀNG của họ, mà đây là đường duy nhất tới phiếu đó (họ không có smart
+         button nào trỏ tới). Chip "Chờ xưởng xác nhận" ở màn này là hàng đợi
+         của họ. Quyền vẫn chỉ-đọc — cái họ ghi được đúng một thứ, qua nút
+         "Xác nhận đã nhận" (chạy sudo sau khi kiểm vai trò). -->
     <menuitem
         id="menu_dl_picking_transfer"
         name="Chuyển kho"
         action="action_dl_picking_transfer"
         parent="dl_base.menu_dl_inventory"
         sequence="40"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant,dl_base.dl_group_tech"
     />
 
     <menuitem
@@ -76,7 +111,7 @@
          hàng loại ở bước kiểm, quyết định trả là việc đối ngoại của Mua hàng. -->
     <menuitem
         id="menu_dl_picking_vendor_return"
-        name="Trả hàng NCC"
+        name="Trả hàng nhà cung cấp"
         action="action_dl_picking_vendor_return"
         parent="dl_base.menu_dl_inventory"
         sequence="60"
@@ -92,17 +127,11 @@
         groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
     />
 
-    <!-- Kỹ thuật CÓ mục này dù không đụng hàng vật lý: đây là vòng phản hồi duy
-         nhất cho biết hệ số hao hụt (dlm_waste_rate) họ đặt có khớp thực tế
-         không — mà hệ số đó đi thẳng vào giá báo khách. -->
-    <menuitem
-        id="menu_dl_scrap_recovery"
-        name="Đối chiếu thu hồi"
-        action="action_dl_scrap_recovery"
-        parent="dl_base.menu_dl_inventory"
-        sequence="66"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant,dl_base.dl_group_tech"
-    />
+    <!-- 🔴 K16 — mục "Đối chiếu thu hồi" ĐÃ GỠ cùng với cách tính % thu hồi phế
+         liệu (người dùng chốt 2026-08-13). Không còn DỰ TOÁN thì không còn gì
+         để đối chiếu. Vòng phản hồi thay thế nằm ở phiếu cấp vật tư: "định mức
+         BOM / đã cấp / cộng dồn" (stock_picking._dlm_build_bom_hint) — đo bằng
+         vật tư đếm được từng cây, chính xác hơn hẳn phế liệu cân gộp. -->
 
     <menuitem
         id="menu_dl_stock_lot"

@@ -9,7 +9,7 @@
         <field name="inherit_id" ref="dl_partner.view_dl_customer_tree"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='partner_type']" position="after">
-                <field name="dlm_customer_group" string="Nhóm KH" widget="badge"
+                <field name="dlm_customer_group" string="Nhóm khách hàng" widget="badge"
                     decoration-info="dlm_customer_group == 'new'"
                     decoration-success="dlm_customer_group == 'existing'"
                     decoration-warning="dlm_customer_group == 'loyal'"/>
@@ -60,24 +60,24 @@
                 <div class="alert alert-danger" role="alert"
                     invisible="active or dlm_open_quote_count == 0">
                     <i class="fa fa-ban" title="Đang chặn báo giá" />
-                    <strong>KH đã ngừng hợp tác.</strong> Vẫn còn <field
+                    <strong>Khách hàng đã ngừng hợp tác.</strong> Vẫn còn <field
                         name="dlm_open_quote_count" class="oe_inline" /> báo giá chưa đóng — các
                     báo giá này tiếp tục quy trình bình thường, nhưng không thể tạo báo giá/RFQ
-                    mới cho KH này.
+                    mới cho khách hàng này.
                 </div>
 
                 <div class="alert alert-info" role="alert"
                     invisible="not active or dlm_open_quote_count == 0">
-                    <i class="fa fa-info-circle" /> KH này đang có <field
+                    <i class="fa fa-info-circle" /> Khách hàng này đang có <field
                         name="dlm_open_quote_count" class="oe_inline" /> báo giá chưa đóng. Vô
-                    hiệu hóa KH sẽ không hủy các báo giá đó.
+                    hiệu hóa khách hàng sẽ không hủy các báo giá đó.
                 </div>
 
                 <div class="alert alert-warning" role="alert"
                     invisible="not dlm_split_warning">
                     <i class="fa fa-exclamation-triangle" title="Cảnh báo" />
                     <strong>Cảnh báo gộp đơn:</strong>
-                    KH này có <field name="dlm_recent_quote_count" class="oe_inline" /> báo giá
+                    Khách hàng này có <field name="dlm_recent_quote_count" class="oe_inline" /> báo giá
                     trong 7 ngày gần đây với tổng <field name="dlm_recent_quote_total"
                         class="oe_inline" widget="dl_money" />, vượt ngưỡng duyệt tự động (<field
                         name="dlm_split_threshold" class="oe_inline" widget="dl_money" />) —
@@ -106,7 +106,7 @@
                             <field name="dlm_quotation_count" string="Tổng số báo giá" />
                         </group>
                         <group groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
-                            <field name="dlm_win_rate" string="Win rate (%)"
+                            <field name="dlm_win_rate" string="Tỷ lệ thắng (%)"
                                 widget="float" digits="[16, 1]" />
                         </group>
                     </group>
@@ -115,7 +115,7 @@
                             decoration-success="state in ('accepted', 'ordered')"
                             decoration-danger="state == 'rejected'"
                             decoration-info="state in ('approved', 'sent')">
-                            <field name="name" string="Số BG" />
+                            <field name="name" string="Số báo giá" />
                             <field name="date_order" string="Ngày" />
                             <field name="amount_total" string="Giá trị" widget="dl_money" />
                             <field name="currency_id" column_invisible="1" />

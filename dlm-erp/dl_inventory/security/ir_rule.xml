@@ -13,7 +13,7 @@
              seed đặt và không đổi khi người dùng sửa tên hiển thị.
         ============================================================ -->
         <record id="rule_picking_purchasing_vendor_return" model="ir.rule">
-            <field name="name">Mua hàng: chỉ thao tác phiếu Trả hàng NCC</field>
+            <field name="name">Mua hàng: chỉ thao tác phiếu Trả hàng nhà cung cấp</field>
             <field name="model_id" ref="stock.model_stock_picking" />
             <field name="groups" eval="[(4, ref('dl_base.dl_group_purchasing'))]" />
             <field name="domain_force">[('picking_type_id.sequence_code', '=', 'TR')]</field>
@@ -64,12 +64,65 @@
              "write để validate" với "write để chốt".
         ============================================================ -->
         <record id="rule_picking_warehouse_no_return_create" model="ir.rule">
-            <field name="name">Thủ kho: không tạo phiếu Trả hàng NCC</field>
+            <field name="name">Thủ kho: không tạo phiếu Trả hàng nhà cung cấp</field>
             <field name="model_id" ref="stock.model_stock_picking" />
             <field name="groups" eval="[(4, ref('dl_base.dl_group_warehouse'))]" />
             <field name="domain_force">[('picking_type_id.sequence_code', '!=', 'TR')]</field>
             <field name="perm_read">0</field>
             <field name="perm_write">0</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!-- ============================================================
+             K16 — Kỹ thuật LẬP được phiếu "Nhập kho từ xưởng", và chỉ nó.
+
+             Đây là lần đầu bên Kỹ thuật có quyền GHI trên chứng từ kho. Lý do
+             không thể tránh: họ là người biết xưởng vừa làm ra cái gì và tốn
+             bao nhiêu vật tư, mà form Odoo thì không lưu được nếu người dùng
+             thiếu quyền create — khuôn "kiểm vai trò rồi sudo" (K6/K8/K15) chỉ
+             cứu được NÚT BẤM, không cứu được việc tạo bản ghi trên form.
+
+             Ranh giới vì thế chuyển sang ir.rule: ACL mở ở tầng model, rule
+             khoá lại đúng một loại phiếu. Không có rule này thì Kỹ thuật sửa
+             được cả phiếu nhận hàng NCC lẫn phiếu giao khách.
+
+             perm_read=0: giữ nguyên quyền ĐỌC rộng đang có — họ cần đọc phiếu
+             chuyển kho ra xưởng để ký nhận (K15), và đọc phiếu khác để đối
+             chiếu. Rule này chỉ nói về ghi/tạo.
+        ============================================================ -->
+        <record id="rule_picking_tech_fg_receipt_only" model="ir.rule">
+            <field name="name">Kỹ thuật: chỉ lập phiếu Nhập kho từ xưởng</field>
+            <field name="model_id" ref="stock.model_stock_picking" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_tech'))]" />
+            <field name="domain_force">[('picking_type_id.sequence_code', '=', 'NTP')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <record id="rule_move_tech_fg_receipt_only" model="ir.rule">
+            <field name="name">Kỹ thuật: chỉ sửa dòng của phiếu Nhập kho từ xưởng</field>
+            <field name="model_id" ref="stock.model_stock_move" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_tech'))]" />
+            <field name="domain_force">[('picking_id.picking_type_id.sequence_code', '=', 'NTP')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
+        <!-- move.line: cần vì `action_confirm`/`action_assign` chạy DƯỚI QUYỀN
+             NGƯỜI BẤM và sinh dòng chi tiết để giữ chỗ. Thiếu quyền ở đây thì
+             Kỹ thuật lưu được phiếu nhưng không xác nhận nổi. -->
+        <record id="rule_move_line_tech_fg_receipt_only" model="ir.rule">
+            <field name="name">Kỹ thuật: chỉ sửa chi tiết phiếu Nhập kho từ xưởng</field>
+            <field name="model_id" ref="stock.model_stock_move_line" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_tech'))]" />
+            <field name="domain_force">[('picking_id.picking_type_id.sequence_code', '=', 'NTP')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
             <field name="perm_create">1</field>
             <field name="perm_unlink">0</field>
         </record>

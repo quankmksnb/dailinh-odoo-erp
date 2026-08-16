@@ -249,3 +249,54 @@ class TestVendorReturnDecision(DlScreenCase):
                 "location_id": self.loc_tra.id,
                 "location_dest_id": self.loc_vendors.id,
             })
+
+
+@tagged("post_install", "-at_install", "dl_inventory")
+class TestRailCoverage(DlInventoryCase):
+    """K16 — mọi menu con của nhóm Kho phải có mặt trên rail.
+
+    🔴 Vì sao cần test này: rail KHÔNG tự đọc cây menu — nó lấy từ mảng khai
+    cứng `INVENTORY_CHILDREN` trong `nav_patch.js`. Thêm `<menuitem>` mà quên
+    khai ở mảng đó thì menu vẫn tồn tại, vẫn vào được bằng URL, nhưng **không
+    xuất hiện trên rail** và **không có lỗi nào nổ**. Người dùng chỉ phát hiện
+    bằng cách... không thấy nó.
+
+    Đã vấp thật với "Điều phối đơn hàng" (2026-08-14): menu đúng, quyền đúng,
+    action đúng — thủ kho vẫn không có đường vào.
+    """
+
+    def test_moi_menu_con_cua_kho_deu_co_tren_rail(self):
+        import os
+
+        from odoo.modules.module import get_module_path
+
+        path = os.path.join(
+            get_module_path("dl_inventory"),
+            "static", "src", "js", "nav_patch.js")
+        with open(path, encoding="utf-8") as handle:
+            source = handle.read()
+
+        parent = self.env.ref("dl_base.menu_dl_inventory")
+        # 🔴 `ir.ui.menu.search` LỌC THEO NHÓM của user đang chạy, và `sudo()`
+        # KHÔNG gỡ bộ lọc đó (nó là lọc Python, không phải ACL). Superuser
+        # không thuộc nhóm DL nào nên thấy **0 menu con** — phép thử sẽ xanh
+        # một cách rỗng tuếch. `ir.ui.menu.full_list` là khoá Odoo dùng cho
+        # đúng việc này (ir_ui_menu.py:146).
+        children = self.env["ir.ui.menu"].with_context(
+            **{"ir.ui.menu.full_list": True}).search(
+                [("parent_id", "=", parent.id)])
+        self.assertTrue(
+            children, "Không đọc được menu con của nhóm Kho — phép thử này sẽ "
+                      "xanh rỗng nếu bỏ qua.")
+
+        thieu = []
+        for menu in children:
+            xml_id = menu.get_external_id().get(menu.id)
+            if not xml_id:
+                continue
+            if xml_id not in source:
+                thieu.append("%s (%s)" % (menu.name, xml_id))
+
+        self.assertFalse(thieu, (
+            "Menu con của nhóm Kho KHÔNG được khai trong INVENTORY_CHILDREN "
+            "của nav_patch.js nên sẽ không hiện trên rail: %s" % ", ".join(thieu)))

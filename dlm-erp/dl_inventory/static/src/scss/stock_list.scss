@@ -10,20 +10,51 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="product_id"] { width: 26% !important; }
-        th[data-name="lot_id"] { width: 14% !important; }
-        th[data-name="dlm_supplier_id"] { width: 16% !important; }
-        th[data-name="dlm_receipt_date"] { width: 10% !important; }
-        th[data-name="location_id"] { width: 18% !important; }
-        th[data-name="quantity"] { width: 10% !important; }
-        th[data-name="product_uom_id"] { width: 6% !important; }
+        // 🔴 K14 thêm 3 cột (Đang giữ chỗ / nút xem phiếu giữ / Còn lấy được)
+        // nhưng bảng width vẫn là bộ 7 cột cũ đã chiếm đủ 100% ⇒ table-layout
+        // fixed bóp 3 cột mới về ~0px: "Tồn" và "ĐVT" đè chữ lên nhau. Chia lại
+        // cho ĐỦ 10 cột đang hiện (9 field + 1 cột nút), tổng đúng 100%.
+        // Chia theo ĐỘ DÀI NỘI DUNG THẬT, không chia đều: hai cột định danh
+        // ("Hàng hoá" hiện kèm mã — `[VT-TH-25X50] Thép hộp…` 43 ký tự; "Vị trí"
+        // hiện đường dẫn đầy đủ `DL/Kho nhà máy sản xuất/Kho nguyên vật liệu`
+        // 43 ký tự) cần ~300px mỗi cột, trong khi Lô/Ngày/Đơn vị tính chỉ cần
+        // ~60–105px. Cấp đều cho nhóm hẹp là bỏ đói đúng hai cột người ta đọc
+        // để nhận diện dòng hàng. Tổng nhu cầu thật ~89% ⇒ phần dư dồn cho hai
+        // cột đó.
+        // ⚠️ Cột đơn vị nới 4% → 8% từ 2026-08-14: nhãn viết đầy đủ
+        // ("Đơn vị tính" thay "ĐVT") không lọt 4% ≈ 55px, bị bẻ ba dòng. Phần
+        // bù lấy từ ba cột rộng nhất, tổng vẫn đúng 100%.
+        th[data-name="product_id"] { width: 23% !important; }
+        th[data-name="lot_id"] { width: 7% !important; }
+        th[data-name="dlm_supplier_id"] { width: 14% !important; }
+        th[data-name="dlm_receipt_date"] { width: 6% !important; }
+        th[data-name="location_id"] { width: 19% !important; }
+        th[data-name="quantity"] { width: 6% !important; }
+        th[data-name="reserved_quantity"] { width: 7% !important; }
+        th[data-name="available_quantity"] { width: 7% !important; }
+        th[data-name="product_uom_id"] { width: 8% !important; }
+
+        // Cột nút "Xem phiếu đang giữ chỗ" — không có data-name nên phải cấp
+        // width riêng, cùng bẫy đã ghi ở dl-rfq-list. 3% ≈ 49px, vừa đủ vùng
+        // bấm 44px của nút icon.
+        thead th.o_list_button { width: 3% !important; }
 
         th[data-name="product_id"], td[name="product_id"] { padding-left: 24px !important; }
 
         // Cột số canh phải để so sánh bằng mắt theo cột dọc — chuẩn bảng ERP.
-        th[data-name="quantity"] { text-align: right !important; }
-        th[data-name="quantity"] > div { justify-content: flex-end !important; }
-        td[name="quantity"] { text-align: right !important; font-variant-numeric: tabular-nums; }
+        th[data-name="quantity"],
+        th[data-name="reserved_quantity"],
+        th[data-name="available_quantity"] { text-align: right !important; }
+        th[data-name="quantity"] > div,
+        th[data-name="reserved_quantity"] > div,
+        th[data-name="available_quantity"] > div { justify-content: flex-end !important; }
+        td[name="quantity"],
+        td[name="reserved_quantity"],
+        td[name="available_quantity"] {
+            text-align: right !important;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
 
         td[name="product_id"], td[name="location_id"], td[name="dlm_supplier_id"] {
             overflow: hidden;
@@ -42,12 +73,23 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="name"] { width: 16% !important; }
-        th[data-name="product_id"] { width: 28% !important; }
-        th[data-name="dlm_supplier_id"] { width: 18% !important; }
-        th[data-name="dlm_receipt_date"] { width: 12% !important; }
-        th[data-name="dlm_receipt_picking_id"] { width: 14% !important; }
-        th[data-name="product_qty"] { width: 12% !important; }
+        th[data-name="name"] { width: 12% !important; }
+        th[data-name="product_id"] { width: 20% !important; }
+        th[data-name="dlm_supplier_id"] { width: 13% !important; }
+        th[data-name="dlm_receipt_date"] { width: 9% !important; }
+        th[data-name="dlm_receipt_picking_id"] { width: 11% !important; }
+        // Ba cột giá mua do dl_purchase chèn vào tree này bằng kế thừa
+        // (views/stock_lot_views_ext.xml). Cột thêm từ module khác vẫn phải khai
+        // width Ở ĐÂY, vì bảng width của một scope phải nằm gọn một chỗ — tách
+        // ra là lần sau đếm thiếu và cột lại biến mất.
+        th[data-name="dlm_unit_cost"] { width: 11% !important; }
+        th[data-name="dlm_purchase_order_id"] { width: 10% !important; }
+        th[data-name="dlm_cost_is_estimated"] { width: 8% !important; }
+        th[data-name="product_qty"] { width: 6% !important; }
+        // Cột tùy chọn (optional="hide"): mặc định không hiện nên tổng
+        // width vẫn đúng, nhưng NGƯỜI DÙNG BẬT LÊN là phải có width, không thì
+        // table-layout:fixed bóp nó về ~0px và cột vừa bật lại vô hình.
+        th[data-name="ref"] { width: 12% !important; }
 
         th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
         // Số lô là danh tính của dòng ⇒ nhấn mạnh như cột mã ở các màn khác.
@@ -86,6 +128,10 @@
         th[data-name="dlm_qty_rejected_total"] { width: 10% !important; }
         th[data-name="dlm_qc_state"] { width: 12% !important; }
         th[data-name="state"] { width: 12% !important; }
+        // Cột tùy chọn (optional="hide"): mặc định không hiện nên tổng
+        // width vẫn đúng, nhưng NGƯỜI DÙNG BẬT LÊN là phải có width, không thì
+        // table-layout:fixed bóp nó về ~0px và cột vừa bật lại vô hình.
+        th[data-name="origin"] { width: 12% !important; }
 
         th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
         // Số phiếu là danh tính của dòng — nhấn như cột mã ở các màn khác.
@@ -118,16 +164,25 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="name"] { width: 14% !important; }
-        th[data-name="location_id"] { width: 27% !important; }
-        th[data-name="location_dest_id"] { width: 27% !important; }
-        th[data-name="scheduled_date"] { width: 14% !important; }
+        // K15 thêm 2 cột (Bàn giao / Người nhận) — phải khai width, nếu không
+        // table-layout fixed bóp chúng về ~0px và đè lên cột Trạng thái.
+        th[data-name="name"] { width: 12% !important; }
+        th[data-name="location_id"] { width: 20% !important; }
+        th[data-name="location_dest_id"] { width: 20% !important; }
+        th[data-name="scheduled_date"] { width: 12% !important; }
+        th[data-name="dlm_receipt_state"] { width: 12% !important; }
+        th[data-name="dlm_received_uid"] { width: 12% !important; }
         th[data-name="state"] { width: 12% !important; }
+        // Cột tùy chọn (optional="hide"): mặc định không hiện nên tổng
+        // width vẫn đúng, nhưng NGƯỜI DÙNG BẬT LÊN là phải có width, không thì
+        // table-layout:fixed bóp nó về ~0px và cột vừa bật lại vô hình.
+        th[data-name="origin"] { width: 12% !important; }
 
         th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
         td[name="name"] { font-weight: 600; color: $dl-heading; }
 
-        td[name="location_id"], td[name="location_dest_id"] {
+        td[name="location_id"], td[name="location_dest_id"],
+        td[name="dlm_received_uid"] {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -145,11 +200,13 @@
         table-layout: fixed !important;
         width: 100% !important;
 
-        th[data-name="name"] { width: 15% !important; }
-        th[data-name="partner_id"] { width: 30% !important; }
-        th[data-name="dlm_sale_order_id"] { width: 18% !important; }
-        th[data-name="scheduled_date"] { width: 15% !important; }
-        th[data-name="state"] { width: 14% !important; }
+        // Tổng đúng 100%: thiếu hụt thì trình duyệt chia phần dư theo cách của
+        // nó, cột rộng hẹp không còn theo chủ đích.
+        th[data-name="name"] { width: 16% !important; }
+        th[data-name="partner_id"] { width: 33% !important; }
+        th[data-name="dlm_sale_order_id"] { width: 20% !important; }
+        th[data-name="scheduled_date"] { width: 16% !important; }
+        th[data-name="state"] { width: 15% !important; }
 
         th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
         td[name="name"] { font-weight: 600; color: $dl-heading; }
@@ -178,6 +235,10 @@
         th[data-name="dlm_qty_total"] { width: 11% !important; }
         th[data-name="dlm_reject_summary"] { width: 24% !important; }
         th[data-name="state"] { width: 15% !important; }
+        // Cột tùy chọn (optional="hide"): mặc định không hiện nên tổng
+        // width vẫn đúng, nhưng NGƯỜI DÙNG BẬT LÊN là phải có width, không thì
+        // table-layout:fixed bóp nó về ~0px và cột vừa bật lại vô hình.
+        th[data-name="scheduled_date"] { width: 12% !important; }
 
         th[data-name="name"], td[name="name"] { padding-left: 24px !important; }
         td[name="name"] { font-weight: 600; color: $dl-heading; }
@@ -198,41 +259,29 @@
     }
 }
 
-// ── K7 — Phế liệu & đối chiếu thu hồi ───────────────────────────────────────
-// Cột số nhiều hơn hẳn các màn khác (tồn / cân / chênh / đơn giá / thành tiền)
-// nên phải canh phải + tabular-nums đồng loạt, không thì bảng đọc như văn xuôi.
-.dl-scrap-list,
-.dl-scrap-recovery-list {
+// ── K7 — Phế liệu ───────────────────────────────────────────────────────────
+// Cột số nhiều hơn hẳn các màn khác (tồn / cân / đơn giá / thành tiền) nên phải
+// canh phải + tabular-nums đồng loạt, không thì bảng đọc như văn xuôi.
+// K16 — bỏ `.dl-scrap-recovery-list` cùng màn Đối chiếu thu hồi.
+.dl-scrap-list {
     .o_list_table {
         th[data-name="quantity"],
         th[data-name="inventory_quantity"],
         th[data-name="inventory_diff_quantity"],
         th[data-name="dlm_scrap_unit_price"],
-        th[data-name="dlm_scrap_value"],
-        th[data-name="qty_estimated"],
-        th[data-name="qty_in"],
-        th[data-name="qty_diff"],
-        th[data-name="qty_sold"] { text-align: right !important; }
+        th[data-name="dlm_scrap_value"] { text-align: right !important; }
 
         th[data-name="quantity"] > div,
         th[data-name="inventory_quantity"] > div,
         th[data-name="inventory_diff_quantity"] > div,
         th[data-name="dlm_scrap_unit_price"] > div,
-        th[data-name="dlm_scrap_value"] > div,
-        th[data-name="qty_estimated"] > div,
-        th[data-name="qty_in"] > div,
-        th[data-name="qty_diff"] > div,
-        th[data-name="qty_sold"] > div { justify-content: flex-end !important; }
+        th[data-name="dlm_scrap_value"] > div { justify-content: flex-end !important; }
 
         td[name="quantity"],
         td[name="inventory_quantity"],
         td[name="inventory_diff_quantity"],
         td[name="dlm_scrap_unit_price"],
-        td[name="dlm_scrap_value"],
-        td[name="qty_estimated"],
-        td[name="qty_in"],
-        td[name="qty_diff"],
-        td[name="qty_sold"] {
+        td[name="dlm_scrap_value"] {
             text-align: right !important;
             font-variant-numeric: tabular-nums;
         }
@@ -242,26 +291,6 @@
 .dl-scrap-list .o_list_table {
     thead th[data-name="product_id"] { border-top-left-radius: $dl-radius; }
     th[data-name="product_id"], td[name="product_id"] { padding-left: 24px !important; }
-}
-
-.dl-scrap-recovery-list .o_list_table {
-    table-layout: fixed !important;
-    width: 100% !important;
-
-    thead th[data-name="period"] { border-top-left-radius: $dl-radius; }
-    thead th[data-name="diff_level"] { border-top-right-radius: $dl-radius; }
-
-    th[data-name="period"] { width: 16% !important; }
-    th[data-name="qty_estimated"] { width: 16% !important; }
-    th[data-name="qty_in"] { width: 16% !important; }
-    th[data-name="qty_diff"] { width: 16% !important; }
-    th[data-name="qty_sold"] { width: 16% !important; }
-    th[data-name="diff_level"] { width: 20% !important; }
-
-    th[data-name="period"], td[name="period"] { padding-left: 24px !important; }
-    td[name="period"] { font-weight: 600; color: $dl-heading; white-space: nowrap; }
-    // Chênh lệch là con số kết luận của cả bảng — nhấn hơn bốn cột còn lại.
-    td[name="qty_diff"] { font-weight: 600; }
 }
 
 // ── K6 — Hàng nút "tuyến hay dùng" trên form Chuyển kho ─────────────────────
@@ -277,6 +306,79 @@
     .dl-preset-label {
         font-size: 12px;
         color: $dl-text-muted;
+    }
+}
+
+// ── K17 — Bảng hàng trả trên form Trả hàng NCC ──────────────────────────────
+// Không đặt `table-layout: fixed` (khác các màn LIST ở trên): bảng này có cột
+// ĐVT chỉ hiện với người có group_uom và một cột NÚT không mang `data-name` —
+// fixed mà sót width một trong hai là bóp cột đó về ~0px, đúng lỗi im lặng đã
+// vấp 7 lần trong repo. Ở đây chỉ ra GỢI Ý bề rộng: trình duyệt vẫn tự co giãn,
+// nhưng thôi dồn gần nửa bảng cho cột Mặt hàng rồi bỏ trống phần còn lại.
+.dl-vendor-return-form {
+    .o_field_x2many_list .o_list_table {
+        th[data-name="product_id"] { width: 32%; }
+        th[data-name="dlm_return_lot_display"] { width: 16%; }
+        th[data-name="product_uom_qty"] { width: 12%; }
+        th[data-name="dlm_reject_reason"] { width: 16%; }
+        th[data-name="dlm_reject_note"] { width: 18%; }
+
+        th[data-name="product_uom_qty"] > div { justify-content: flex-end !important; }
+        td[name="product_uom_qty"] {
+            text-align: right !important;
+            font-variant-numeric: tabular-nums;
+        }
+
+        // Tên vật tư dài ("Thép hộp vuông 25×25×1.5mm") không được đẩy bảng
+        // rộng ra: cắt bằng ellipsis, rê chuột vẫn đọc đủ.
+        td[name="product_id"], td[name="dlm_reject_note"] {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+}
+
+// ── K17 — Lưới ảnh bằng chứng trong hộp xem của một dòng ────────────────────
+// Thumbnail đủ to để NHÌN RA vết gỉ mà không phải mở ảnh gốc — đó là toàn bộ lý
+// do màn này tồn tại. `object-fit: cover` giữ khung đều nhau: ảnh điện thoại lẫn
+// ngang lẫn dọc, để tự do thì lưới răng cưa và mắt phải căn lại từng tấm.
+.dl-evi-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    .dl-evi-item {
+        display: flex;
+        flex-direction: column;
+        width: 260px;
+    }
+
+    .dl-evi-item img {
+        width: 260px;
+        height: 195px;
+        object-fit: cover;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        background: #f4f4f4;
+    }
+
+    // Tên file dưới ảnh: hai tấm chụp cùng một vết lỗi ở hai góc thì chỉ có tên
+    // mới phân biệt được đâu là đâu khi trao đổi với NCC.
+    .dl-evi-name {
+        margin-top: 4px;
+        font-size: 11px;
+        color: $dl-text-muted;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dl-evi-file {
+        align-self: center;
+        padding: 6px 10px;
+        border: 1px dashed $dl-border;
+        border-radius: $dl-radius;
     }
 }
 
@@ -300,10 +402,126 @@
             text-align: right !important;
             font-variant-numeric: tabular-nums;
         }
+
+        // K17 — cột đếm ảnh phải HẸP: nó chỉ đứng cạnh để trả lời "có bằng
+        // chứng chưa", rộng ra là ăn chỗ của ba cột số vốn phải đọc theo dọc.
+        th[data-name="dlm_evidence_count"] { width: 5% !important; }
+        th[data-name="dlm_evidence_count"] > div { justify-content: flex-end !important; }
+        td[name="dlm_evidence_count"] {
+            text-align: right !important;
+            font-variant-numeric: tabular-nums;
+        }
     }
 
     // Cột "Loại" là con số quyết định hàng có bị trả lại hay không — tô đậm để
     // không lẫn vào hai cột số bên trái khi lướt.
     td[name="dlm_qty_rejected"] { font-weight: 600; }
     tr:not(.o_selected_row) td[name="dlm_qty_rejected"]:not(:empty) { color: $dl-danger; }
+}
+
+// ── K16 — Bảng "Kiểm tra kho" trên form Điều phối đơn hàng ──────────────────
+// Đây là bảng HTML computed (dl_sale_order_dispatch._dlm_supply_table), KHÔNG
+// phải list Odoo — nên không có th[data-name] để bám, bề rộng khai bằng
+// nth-child. Hai bảng đứng chồng nhau và phải đọc được như MỘT khối.
+
+// ── Hai tab phải bắt đầu ở CÙNG một mép ─────────────────────────────────────
+// Odoo xử hai loại nội dung tab theo hai hướng NGƯỢC nhau (form_controller.scss):
+//   • list o2m đứng đầu tab  → margin ÂM `--notebook-margin-x`, tràn ra sát mép
+//     sheet — đó là tab "Hàng khách đặt";
+//   • field HTML đứng đầu tab → `.note-editing-area, .o_readonly` được pad NGANG
+//     2 × $o-horizontal-padding, vì Odoo coi nó là khung soạn thảo wysiwyg.
+// Nội dung ở đây không phải khung soạn thảo mà là một BẢNG, nên nó phải theo
+// luật của list. Để nguyên thì bấm qua lại hai tab là nội dung nhảy ngang ~60px
+// — chính chỗ lệch người dùng chỉ ra.
+.dl-dispatch-form .o_notebook > .tab-content > .tab-pane > .o_field_html:first-child {
+    margin-left: var(--notebook-margin-x);
+    margin-right: var(--notebook-margin-x);
+
+    // !important: luật padding của Odoo dày 7 lớp và nằm ở bundle lõi. Cùng lý
+    // do các luật width của list ở đầu file này phải dùng !important.
+    .o_readonly { padding: 0 !important; }
+}
+
+.dl-supply {
+    // 🔴 KHÔNG cap bề rộng. Bản trước cap 1040px để số khỏi dạt xa tên hàng,
+    // nhưng dải cảnh báo và nhóm field ngay trên đó vẫn trải hết sheet ⇒ bảng
+    // dừng giữa chừng thành một mép rách, và cả màn trông lệch hơn là trước khi
+    // sửa. Trên một trang, MÉP CHUNG thắng bề rộng lý tưởng của từng khối.
+    // Vấn đề "số xa tên" xử bằng cụm cột và kẻ dòng bên dưới, không phải bằng
+    // cách cắt ngắn bảng.
+    // Đầu cột không xuống dòng (xem dưới) ⇒ trên màn hẹp bảng có sàn bề ngang.
+    // Cho CHÍNH nó cuộn ngang, không thì cả trang lệch theo.
+    overflow-x: auto;
+
+    .dl-supply-table {
+        // Mọi cột đều được khai bề rộng dưới đây ⇒ fixed an toàn (bẫy "cột
+        // không khai bị bóp về ~0px" chỉ nổ khi khai sót).
+        table-layout: fixed;
+        width: 100%;
+        margin-bottom: 20px;
+        border-bottom: 1px solid $dl-border;
+
+        &:last-child { margin-bottom: 0; }
+
+        thead th {
+            background: $dl-table-head-bg;
+            color: $dl-text-2;
+            font-weight: 600;
+            white-space: nowrap;
+            border-bottom: 1px solid $dl-border;
+        }
+
+        // Lề ngang của ô BẰNG ĐÚNG lề ô của list Odoo ($o-horizontal-padding =
+        // 16px, ở đây dùng token repo cùng giá trị): bảng đã tràn ra cùng mép
+        // với tab "Hàng khách đặt" rồi, lề trong lệch nhau thì chữ vẫn so le khi
+        // bấm qua lại hai tab.
+        th, td {
+            padding: $dl-cell-y $dl-page-pad;
+            vertical-align: middle;
+        }
+
+        // Chữ số đều bề ngang: cột số chỉ so sánh được theo dọc khi hàng nghìn
+        // của dòng trên nằm đúng trên hàng nghìn của dòng dưới.
+        td.text-end { font-variant-numeric: tabular-nums; }
+
+        // Bảng trải hết sheet ⇒ tên hàng và con số của nó cách nhau cả gang
+        // tay. Kẻ dòng + tô khi rê chuột là hai thứ giữ mắt đi đúng hàng ngang;
+        // thiếu chúng thì bề rộng nào cũng đọc nhầm dòng.
+        tbody tr { border-top: 1px solid $dl-divider; }
+        tbody tr:hover td { background: $dl-active; }
+
+        // Cột đầu là TÊN — cho xuống dòng chứ không cắt: "Thép hộp chữ nhật
+        // 25×50×1.4mm" mà mất đuôi thì thủ kho lấy nhầm quy cách.
+        td:first-child {
+            font-weight: 500;
+            color: $dl-heading;
+            word-break: break-word;
+        }
+    }
+
+    // Bề rộng đặt theo HAI ràng buộc, không phải chia đều:
+    //   • ba cột số CUỐI của hai bảng trùng mép nhau (60% / 73% / 87%) — đọc
+    //     dọc xuống là so được "cần giao" với "cần";
+    //   • phần dôi ra khi bảng trải hết sheet dồn CẢ cho cột tên, để cụm số
+    //     đứng sát nhau ở bên phải thay vì rải đều khắp bề ngang. Chia đều 5
+    //     cột trên màn 1920 là mỗi con số cách nhau 300px — đúng cái làm màn
+    //     trông rỗng và lệch.
+    .dl-supply-goods {
+        th:nth-child(1) { width: 46%; }
+        th:nth-child(2) { width: 14%; }
+        th:nth-child(3) { width: 13%; }
+        th:nth-child(4) { width: 14%; }
+        th:nth-child(5) { width: 13%; }
+
+        // Cột "Nhánh" là nhãn phân loại, không phải dữ liệu để so — làm mờ để
+        // nó lùi ra sau tên hàng và cụm số.
+        td:nth-child(2) { color: $dl-text-2; }
+    }
+
+    .dl-supply-materials {
+        th:nth-child(1) { width: 60%; }
+        th:nth-child(2) { width: 13%; }
+        th:nth-child(3) { width: 14%; }
+        th:nth-child(4) { width: 13%; }
+    }
 }

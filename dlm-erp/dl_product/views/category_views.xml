@@ -23,7 +23,7 @@
                     decoration-success="dl_branch == 'finished'"
                     decoration-info="dl_branch == 'material'"
                     decoration-warning="dl_branch == 'other'" />
-                <field name="product_count" string="Số SP" />
+                <field name="product_count" string="Số sản phẩm" />
             </tree>
         </field>
     </record>
@@ -65,7 +65,8 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
             <search string="Tìm nhóm sản phẩm">
-                <field name="name" string="Tên nhóm" />
+                <field name="name" string="Tìm nhanh"
+                       filter_domain="['|', ('name', 'ilike', self), ('parent_id', 'ilike', self)]"/>
                 <field name="parent_id" string="Nhóm cha" />
                 <filter string="Nhánh Thành phẩm" name="branch_finished"
                     domain="[('dl_branch', '=', 'finished')]" />

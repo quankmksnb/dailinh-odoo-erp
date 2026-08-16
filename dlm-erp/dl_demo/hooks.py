@@ -308,6 +308,7 @@ class DemoBuilder:
                 "product_name": "Khung CT-200 (đã xác định)",
                 "product_category_id": khung_cat.id if khung_cat else False,
                 "quantity": 10,
+                "dimension_note": "Khung 2000×800×750mm, thép hộp 40×40.",
                 "resolved_product_id": ct200.id if ct200 else False,
                 "resolved_bom_id": bom_ct200.id if bom_ct200 else False,
             },
@@ -316,6 +317,7 @@ class DemoBuilder:
                 "product_name": "Giá đỡ đặc biệt (đang chờ KTV)",
                 "product_category_id": ban_cat.id if ban_cat else False,
                 "quantity": 4,
+                "dimension_note": "Giá 3 tầng, cao 1800mm, tải 120kg/tầng.",
             },
         ])
         if rfq2:
@@ -331,6 +333,7 @@ class DemoBuilder:
             "product_name": "Bàn thao tác (thiếu kích thước)",
             "product_category_id": ban_cat.id if ban_cat else False,
             "quantity": 2,
+            "dimension_note": "Mặt bàn khoảng 1200mm, chưa rõ chiều cao chân.",
         }])
         if rfq3 and rfq3.line_ids:
             rfq3.line_ids[0].write({
@@ -345,6 +348,7 @@ class DemoBuilder:
             "product_name": "Khung kệ kho (đã bổ sung bản vẽ)",
             "product_category_id": khung_cat.id if khung_cat else False,
             "quantity": 6,
+            "dimension_note": "Kệ 4 tầng 2400×600×2000mm, theo bản vẽ đính kèm.",
         }])
         if rfq4 and rfq4.line_ids:
             rfq4.line_ids[0].write({
@@ -360,6 +364,7 @@ class DemoBuilder:
             "product_name": "Khung thép CT-200 (đủ điều kiện báo giá)",
             "product_category_id": khung_cat.id if khung_cat else False,
             "quantity": 8,
+            "dimension_note": "Khung 2000×800×750mm, thép hộp 40×40.",
             "resolved_product_id": ct200.id if ct200 else False,
             "resolved_bom_id": bom_ct200.id if bom_ct200 else False,
         }])
@@ -370,6 +375,7 @@ class DemoBuilder:
             "product_name": "Yêu cầu khách đã rút lại",
             "product_category_id": ban_cat.id if ban_cat else False,
             "quantity": 1,
+            "dimension_note": "Bàn 1500×700×750mm.",
         }])
         if rfq7:
             rfq7.action_cancel()
@@ -408,6 +414,9 @@ class DemoBuilder:
             "product_type": "manufactured",
             "product_name": name or (product.display_name if product else "?"),
             "quantity": qty,
+            # Bắt buộc theo _check_manufactured_spec: dòng gia công phải có mô tả
+            # kích thước hoặc đính kèm.
+            "dimension_note": "Theo định mức sản phẩm đã chuẩn hóa.",
             "resolved_product_id": product.id if product else False,
             "resolved_bom_id": bom.id if bom else False,
         }

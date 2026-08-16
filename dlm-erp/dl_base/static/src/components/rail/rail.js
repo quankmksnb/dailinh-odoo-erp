@@ -35,7 +35,7 @@ const RAIL_ITEMS = [
   },
   {
     key: "supplier",
-    name: "NCC / Thầu phụ",
+    name: "Nhà cung cấp / Thầu phụ",
     icon: "fa-truck",
     actionXmlId: "dl_partner.action_dl_supplier",
     menuXmlIds: [
@@ -90,6 +90,17 @@ const RAIL_ITEMS = [
     icon: "fa-archive",
     actionXmlId: null,
     menuXmlIds: ["dl_base.menu_dl_inventory"],
+  },
+  // Mua hàng — mục con do dl_purchase/nav_patch.js gắn (Đơn mua, Trả hàng NCC).
+  // An toàn khi CHƯA cài dl_purchase: menu container khai ở dl_base nhưng lúc
+  // đó không có mục con nào có action ⇒ `_hasActionableMenu` lọc cả nhóm ra
+  // khỏi rail, đúng như Kho trước khi dl_inventory tồn tại.
+  {
+    key: "purchase",
+    name: "Mua hàng",
+    icon: "fa-shopping-cart",
+    actionXmlId: null,
+    menuXmlIds: ["dl_base.menu_dl_purchase"],
   },
   {
     key: "report",

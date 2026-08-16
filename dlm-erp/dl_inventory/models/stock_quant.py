@@ -55,7 +55,7 @@ class StockQuant(models.Model):
         raise UserError(_(
             "Không kiểm kê tay được ở khu quá cảnh: %s.\n\n"
             "Tồn ở đây đang gắn với chứng từ đang mở (phiếu kiểm, phiếu trả "
-            "NCC). Muốn đổi số thì xử lý bằng chính phiếu đó — đếm tay sẽ xoá "
+            "nhà cung cấp). Muốn đổi số thì xử lý bằng chính phiếu đó — đếm tay sẽ xoá "
             "mất hàng mà chứng từ còn tham chiếu."
         ) % ", ".join(blocked.mapped("display_name")))
 
@@ -63,6 +63,84 @@ class StockQuant(models.Model):
         related="lot_id.dlm_supplier_id", string="Nhà cung cấp", readonly=True)
     dlm_receipt_date = fields.Date(
         related="lot_id.dlm_receipt_date", string="Ngày nhập", readonly=True)
+
+    # ── K14 — Số KHẢ DỤNG: một hàm, mọi chỗ đọc ──────────────────────────────
+    @api.model
+    def _dlm_available_qty(self, product, location, own_move_lines=None):
+        """Số lấy được NGAY của `product` tại/dưới `location`.
+
+        🔴 Khả dụng = tồn − phần đã bị phiếu khác giữ. Đọc thẳng `quantity` là
+        ca hai người cùng bán một lô thép: cả hai đều thấy "còn 24", cả hai đều
+        hứa giao. Dùng đúng hàm mà `action_assign` gọi khi giữ chỗ
+        (`_get_available_quantity`) ⇒ số màn hình báo và số phiếu giữ được không
+        bao giờ lệch. `strict=False` ⇒ gộp theo cây, khớp phạm vi giữ chỗ.
+
+        `own_move_lines`: dòng của CHÍNH phiếu đang xét — cộng trả lại phần nó
+        đang giữ, không thì phiếu vừa giữ chỗ xong lại tự báo mình thiếu hàng.
+
+        🔴 Đây là NGUỒN SỰ THẬT DUY NHẤT cho câu "còn lấy được bao nhiêu". Ba
+        chỗ đọc nó (dải cảnh báo phiếu chuyển · dải phiếu bán phế liệu · cột
+        "Còn lấy được" trên từng dòng) phải cùng ra một số — hai chỗ trên cùng
+        một màn nói hai số là lỗi người dùng không bao giờ báo, chỉ mất niềm tin.
+        """
+        if not product or not location:
+            return 0.0
+        con = self.sudo()._get_available_quantity(
+            product, location, strict=False)
+        if own_move_lines and location.parent_path:
+            giu = own_move_lines.filtered(
+                lambda ml: ml.product_id == product
+                and ml.state not in ("done", "cancel")
+                and ml.location_id.parent_path
+                and ml.location_id.parent_path.startswith(location.parent_path))
+            # quantity_product_uom (không phải `quantity`): quant tính theo ĐVT
+            # gốc của sản phẩm, dòng phiếu có thể ghi theo ĐVT khác.
+            con += sum(giu.mapped("quantity_product_uom"))
+        return con
+
+    @api.model
+    def _dlm_on_hand_qty(self, product, location):
+        """Tồn THỰC (chưa trừ chỗ giữ) — chỉ dùng để nói đúng LÝ DO khi thiếu.
+
+        "Hết hàng" và "bị phiếu khác giữ hết" là hai việc phải làm khác hẳn
+        nhau: một cái đi mua, một cái đi nói chuyện với người đang giữ. Gộp hai
+        ca vào một câu là đẩy người dùng đi mua thứ đang nằm trong kho.
+        """
+        if not product or not location:
+            return 0.0
+        return sum(self.sudo().search([
+            ("location_id", "child_of", location.id),
+            ("product_id", "=", product.id),
+        ]).mapped("quantity"))
+
+    # ── K14 — "Ai đang giữ chỗ lô hàng này?" ─────────────────────────────────
+    def action_dlm_open_reservations(self):
+        """Phiếu đang giữ chỗ đúng dòng tồn này.
+
+        Cột "Đang giữ chỗ" trả lời BAO NHIÊU; câu hỏi tiếp theo luôn là CHO AI —
+        không trả lời được thì người dùng chỉ còn cách đoán, và cách đoán rẻ nhất
+        là bán chồng. Một cú bấm ra thẳng phiếu + đơn hàng để còn thương lượng.
+        """
+        self.ensure_one()
+        domain = [
+            ("product_id", "=", self.product_id.id),
+            ("location_id", "=", self.location_id.id),
+            ("state", "not in", ("done", "cancel")),
+        ]
+        # Khớp lô CHỈ khi mặt hàng theo lô: hàng không theo lô có lot_id rỗng ở
+        # cả hai bên, thêm điều kiện chỉ tổ lọc nhầm khi dữ liệu cũ lệch.
+        if self.product_id.tracking != "none":
+            domain.append(("lot_id", "=", self.lot_id.id))
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "stock.move.line",
+            "name": _("Đang giữ chỗ — %s") % self.product_id.display_name,
+            "view_mode": "tree",
+            "views": [(self.env.ref(
+                "dl_inventory.view_dl_reservation_tree").id, "tree")],
+            "domain": domain,
+            "target": "new",
+        }
 
     # ── K7 — Phế liệu ────────────────────────────────────────────────────────
     # Đơn giá ở đây là GIÁ BÁN phế liệu (`list_price`), KHÔNG phải giá vốn — nên
@@ -79,6 +157,32 @@ class StockQuant(models.Model):
     def _compute_dlm_scrap_value(self):
         for quant in self:
             quant.dlm_scrap_value = quant.quantity * quant.product_id.list_price
+
+    def action_dlm_to_scrap(self):
+        """K12 — Hoá phế liệu các dòng tồn đang chọn ở màn Tồn kho.
+
+        Lối vào thứ hai của phiếu [9] (§11.14): vật tư hỏng trong kho — gỉ, quá
+        hạn, cong vênh — mà KHÔNG đòi được NCC (§6.5). Ca đòi được NCC thì phải
+        đi đường phiếu trả, và đường đó cố ý khoá ở B1.
+        """
+        quants = self.filtered(
+            lambda q: not float_is_zero(
+                q.quantity, precision_rounding=q.product_uom_id.rounding or 0.01)
+            and q.quantity > 0)
+        if not quants:
+            raise UserError(_(
+                "Chọn ít nhất một dòng tồn còn hàng để hoá phế liệu."))
+        cam = quants.location_id.filtered("dlm_no_inventory")
+        if cam:
+            raise UserError(_(
+                "Không hoá phế liệu thẳng từ khu quá cảnh (%s) được.\n\n"
+                "Hàng ở đó đang gắn với một phiếu đang mở. Mở đúng phiếu trả "
+                "nhà cung cấp rồi bấm <Chuyển thành phế liệu> trên đó — làm vậy mới giữ "
+                "được dấu vết lô hàng này đi từ đâu ra."
+            ) % ", ".join(cam.mapped("display_name")))
+        picking = self.env["stock.picking"]._dlm_build_to_scrap(quants)
+        return picking._dlm_open_picking(
+            picking, _("Hoá phế liệu %s") % picking.name)
 
     def action_dlm_sell_scrap(self):
         """Tạo phiếu Bán phế liệu (nháp) từ các dòng tồn đang chọn.

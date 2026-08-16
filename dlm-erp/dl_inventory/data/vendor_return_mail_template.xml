@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ================================================================
+         K17 — Mẫu thư gửi kèm biên bản hàng không đạt.
+
+         Chỉ cung cấp TIÊU ĐỀ + NỘI DUNG. File biên bản do
+         `action_dlm_email_reject_report` dựng bằng reportlab rồi gắn vào trình
+         soạn thư — KHÔNG dùng report_template_ids (vốn cần wkhtmltopdf). Người
+         dùng ĐỌC LẠI rồi mới bấm Gửi. Cùng khuôn mail_template_dl_quotation.
+
+         🔴 KHÔNG CÓ GIÁ, giống hệt tờ biên bản (vendor_return_document.py):
+         đây là thư về HÀNG, không phải yêu cầu bồi thường. Số tiền giảm trừ là
+         KẾT QUẢ đàm phán — viết ra trước là tự chốt mức hộ NCC. Ghi ở cả hai
+         chỗ để người sau không "sửa cho đầy đủ".
+
+         🔴 KHÔNG hứa hạn xử lý cụ thể ("trong 3 ngày…"): thư này do hệ thống
+         soạn sẵn, không biết cam kết trong hợp đồng với từng NCC. Mua hàng tự
+         thêm câu đó trong trình soạn thư nếu cần.
+         ================================================================ -->
+    <record id="mail_template_dl_reject_report" model="mail.template">
+        <field name="name">Kho: Biên bản hàng không đạt gửi NCC</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="subject">Biên bản hàng không đạt {{ object.name }} — {{ object.company_id.name }}</field>
+        <field name="email_from">{{ (object.company_id.partner_id.email_formatted or user.email_formatted) }}</field>
+        <field name="partner_to">{{ object.partner_id.id }}</field>
+        <field name="body_html" type="html">
+            <div style="margin: 0px; padding: 0px; font-size: 13px;">
+                <p>Kính gửi <t t-out="object.partner_id.name or ''">Nhà cung cấp</t>,</p>
+                <p>
+                    Trong quá trình kiểm hàng, Công ty
+                    <t t-out="object.company_id.name or ''"></t> ghi nhận một số
+                    mặt hàng không đạt yêu cầu. Chi tiết từng mặt hàng — số lượng,
+                    số lô, lý do và ảnh chụp thực tế — được lập thành biên bản
+                    <strong t-out="object.name or ''"></strong> đính kèm thư này.
+                </p>
+                <p>
+                    Kính đề nghị Quý công ty xem biên bản và phản hồi hướng xử lý
+                    cho số hàng nói trên. Hàng đang được giữ tại kho, chờ ý kiến
+                    của Quý công ty.
+                </p>
+                <p>Trân trọng,<br/><t t-out="user.name or ''"></t></p>
+            </div>
+        </field>
+    </record>
+</odoo>

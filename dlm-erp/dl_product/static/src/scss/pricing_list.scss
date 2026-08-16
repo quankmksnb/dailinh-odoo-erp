@@ -8,12 +8,15 @@
         width: 100% !important;
 
         // Tổng width các cột hiển thị = 100%. product_kind/image ẩn nên bỏ qua.
+        // ⚠️ Cột biên lợi nhuận nới 9% → 12% từ 2026-08-14: nhãn viết đầy đủ
+        // ("Biên lợi nhuận (%)" thay "Biên LN (%)") không lọt 9%. Phần bù lấy
+        // từ cột Tên vốn rộng nhất, tổng vẫn đúng 100%.
         th[data-name="default_code"]        { width: 12% !important; }
-        th[data-name="name"]                { width: 26% !important; }
+        th[data-name="name"]                { width: 23% !important; }
         th[data-name="categ_id"]            { width: 17% !important; }
         th[data-name="standard_price"]      { width: 13% !important; }
         th[data-name="list_price"]          { width: 13% !important; }
-        th[data-name="dlm_sale_margin"]     { width: 9%  !important; }
+        th[data-name="dlm_sale_margin"]     { width: 12% !important; }
         th[data-name="dlm_lifecycle_state"] { width: 10% !important; }
 
         td[name="name"],

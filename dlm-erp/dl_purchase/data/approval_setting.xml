@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Ai duyệt đơn mua vượt ngưỡng. `_approver_user_ids` đọc bảng này;
+             thiếu dòng thì nó rơi về nhóm CEO — nhưng rơi về mặc định là hành
+             vi không ai đọc ra được từ cấu hình, nên khai tường minh. -->
+        <record id="approval_setting_purchase" model="dl.pricing.approval.setting">
+            <field name="request_type">purchase_over_threshold</field>
+            <field name="approver_role">ceo</field>
+        </record>
+        <!-- Ngưỡng duyệt (đ) và ngưỡng cảnh báo lệch giá (tỷ lệ).
+             🔴 Hai con số này do thiết kế đặt ra, CHƯA hỏi doanh nghiệp —
+             docs/Thiet_ke_mua_hang_va_vong_cung_ung.md §15 câu 1 và 2. -->
+        <record id="param_purchase_threshold" model="ir.config_parameter">
+            <field name="key">dl_purchase.approval_threshold</field>
+            <field name="value">20000000</field>
+        </record>
+        <record id="param_purchase_price_gap" model="ir.config_parameter">
+            <field name="key">dl_purchase.price_gap_limit</field>
+            <field name="value">0.10</field>
+        </record>
+    </data>
+</odoo>
