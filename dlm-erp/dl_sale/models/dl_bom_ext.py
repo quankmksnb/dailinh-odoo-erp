@@ -3,18 +3,19 @@ from odoo.exceptions import UserError
 
 
 class DlBom(models.Model):
-    """Mở rộng dl.bom TỪ dl_sale (chiều phụ thuộc đúng: dl_sale → dl_technical).
+    """Chặn hạ-nháp/sửa một BOM đã có báo giá đồng ý hoặc đơn hàng dùng.
 
-    Chặn cứng hạ-nháp/sửa một BOM đã được báo giá hoặc đơn hàng chốt tham chiếu
-    — bảo toàn lịch sử: đơn cũ phải luôn truy được đúng BOM đã dùng (thiết kế
-    BOM truy xuất §6/§9). Muốn đổi thiết kế → tạo phiên bản mới.
-    """
+    Đơn cũ phải luôn tra được đúng BOM đã làm, nên BOM đã "bị dùng" thì đóng
+    lại; muốn đổi thiết kế thì tạo phiên bản mới. Việc nối BOM ↔ báo giá/đơn
+    nằm ở dl_sale (module thấy được cả hai), nên chặn đặt ở đây."""
 
     _inherit = "dl.bom"
 
     def _check_can_reset_draft(self):
+        """Chặn nếu BOM đã bị đơn (đã xác nhận/hoàn tất) hoặc báo giá (khách đã
+        đồng ý/đã lên đơn) dùng tới."""
         for rec in self:
-            # Đơn bán hàng đang hiệu lực (đã xác nhận/hoàn tất) dùng BOM này.
+            # Đơn bán đang hiệu lực dùng BOM này.
             order_line = self.env["dl.sale.order.line"].sudo().search(
                 [
                     ("bom_id", "=", rec.id),

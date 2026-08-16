@@ -265,6 +265,10 @@ class ProductSupplierinfo(models.Model):
             # đã giao cho Mua hàng (dọn hòm việc; cờ pricing_blocked phía RFQ tự
             # hết vì dlm_supplier_price_state chuyển 'applied').
             product._dlm_close_price_requests()
+            # Khép vòng SP thương mại: đã có Giá vốn tham chiếu ⇒ đóng việc của
+            # Mua hàng và báo Trưởng phòng KD vào chốt Giá bán (tự lọc loại SP/
+            # trạng thái trong hàm).
+            product._dlm_on_supplier_cost_applied()
 
     def _dlm_unapply(self, when=None):
         when = when or fields.Datetime.now()

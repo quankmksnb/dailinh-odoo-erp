@@ -5,7 +5,7 @@
     'author': 'Dai Linh',
     'category': 'Hidden',
     'depends': ['dl_partner', 'dl_product', 'dl_technical', 'dl_base', 'mail'],
-    # RV-02 — xuất báo giá Word/PDF thuần Python (không cần wkhtmltopdf).
+    # Xuất báo giá Word/PDF bằng thuần Python (không cần wkhtmltopdf).
     # python-docx import dưới tên 'docx'.
     'external_dependencies': {'python': ['docx', 'reportlab']},
     'data': [

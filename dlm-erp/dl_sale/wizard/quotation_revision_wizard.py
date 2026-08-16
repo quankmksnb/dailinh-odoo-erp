@@ -3,11 +3,10 @@ from odoo.exceptions import UserError
 
 
 class DlQuotationRevisionWizard(models.TransientModel):
-    """Sales ghi nhận khách yêu cầu điều chỉnh báo giá — chọn LOẠI điều chỉnh +
-    ghi rõ nội dung. Loại điều chỉnh quyết định bước tiếp theo được hướng dẫn:
-      - Giá/chiết khấu, Giao hàng/điều khoản → Sửa & gửi lại (Sales tự làm).
-      - Vật liệu/kỹ thuật → chuyển Kỹ thuật sửa BOM rồi báo giá lại.
-    """
+    """Dialog "Khách yêu cầu điều chỉnh" — chọn LOẠI điều chỉnh + ghi nội dung.
+    Loại chọn ở đây quyết định dải hướng dẫn hiện sau đó trên form Báo giá:
+      - Giá/chiết khấu, Giao hàng/điều khoản → Sales tự "Sửa & gửi lại".
+      - Vật liệu/kỹ thuật → chuyển Kỹ thuật sửa BOM rồi báo giá lại."""
 
     _name = "dl.quotation.revision.wizard"
     _description = "Khách yêu cầu điều chỉnh báo giá"
@@ -31,6 +30,7 @@ class DlQuotationRevisionWizard(models.TransientModel):
         help="Ghi rõ nội dung khách yêu cầu để xử lý và truy vết.")
 
     def action_confirm(self):
+        """Nút Xác nhận — chuyển yêu cầu sang model chính rồi đóng dialog."""
         self.ensure_one()
         if not (self.note or "").strip():
             raise UserError(_("Vui lòng ghi rõ khách muốn điều chỉnh gì."))

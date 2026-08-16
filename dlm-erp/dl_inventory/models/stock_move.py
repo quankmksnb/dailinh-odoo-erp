@@ -1,21 +1,5 @@
 # -*- coding: utf-8 -*-
-"""K5 — Kết quả kiểm hàng ghi ngay trên dòng dịch chuyển.
-
-Thiết kế: ``docs/Thiet_ke_phan_he_kho.md`` §6.
-
-Ba tình huống phải tách bạch, vì mỗi cái là một vấn đề NCC khác nhau:
-
-    NCC giao thiếu   đặt 100, giao 95      ⇒ phiếu NHẬN ghi 95, Odoo sinh backorder
-    NCC giao hàng lỗi  giao 100, 8 cây gỉ  ⇒ phiếu KIỂM ghi Loại 8, sang Chờ trả NCC
-    NCC giao thừa    đặt 100, giao 103     ⇒ phiếu NHẬN ghi 103
-
-Gộp "giao thiếu" vào "hàng lỗi" là mất đúng thông tin quý nhất của QC: NCC nào
-giao thiếu, NCC nào giao hàng kém — hai cách xử lý hoàn toàn khác nhau.
-
-KHÔNG có field "số đạt": số đạt CHÍNH LÀ ``quantity`` native (số thực hiện của
-dòng), view chỉ đổi nhãn thành "Đạt". Thêm một field alias chỉ để đổi nhãn là
-đẻ ra hai nguồn sự thật cho cùng một con số.
-"""
+"""Kết quả kiểm hàng (QC) ghi ngay trên dòng dịch chuyển — số đạt = `quantity` native."""
 
 import base64
 
@@ -32,9 +16,7 @@ from .stock_picking import _DLM_QC_CODE
 class StockMoveLine(models.Model):
     _inherit = "stock.move.line"
 
-    # K14 — màn "Đang giữ chỗ" phải nói được hàng hứa cho ĐƠN nào, không chỉ cho
-    # phiếu nào: thủ kho biết số phiếu cũng chưa gọi được cho ai. Related không
-    # lưu — dữ liệu đã ở phiếu, nhân bản sang dòng chỉ tạo thêm chỗ lệch.
+    # Đơn bán hàng của phiếu — để màn "Đang giữ chỗ" nói được hàng hứa cho đơn nào.
     dlm_sale_order_id = fields.Many2one(
         related="picking_id.dlm_sale_order_id", string="Đơn bán hàng",
         readonly=True)
@@ -44,25 +26,12 @@ class IrAttachment(models.Model):
     _inherit = "ir.attachment"
 
     def _dlm_evidence_thumb(self, size=(480, 480)):
-        """Thumbnail base64 của một ảnh bằng chứng, hoặc rỗng nếu không phải ảnh.
-
-        Thu nhỏ TRƯỚC khi nhúng: ảnh điện thoại 4MB nhúng thẳng vào HTML sẽ đẩy
-        gói onchange lên hàng chục MB cho một hộp thoại. 480px là đủ để nhìn ra
-        vết gỉ mà chỉ tốn vài chục KB.
-
-        Nuốt mọi lỗi: một tấm ảnh hỏng phải rơi xuống dạng link tên file, không
-        được giết cả lưới — cùng nguyên tắc đã áp cho biên bản PDF.
-        """
+        """Thumbnail base64 của ảnh bằng chứng (thu về 480px), rỗng nếu không phải ảnh hoặc ảnh hỏng."""
         self.ensure_one()
         if not (self.mimetype or "").startswith("image/"):
             return ""
         try:
-            # sudo: ảnh vừa upload còn `res_id=0`; đọc qua quyền thường là đi
-            # vào đúng vùng ACL mà cả tính năng này đang né.
-            # 🔴 `raw` chứ KHÔNG phải `datas`: `image_process` của Odoo 17 mở
-            # thẳng bằng `Image.open(BytesIO(source))` nên nhận BYTES THÔ. Đưa
-            # base64 vào thì PIL báo "cannot identify image file" — và vì lỗi bị
-            # nuốt để một ảnh hỏng không giết cả lưới, nó im lặng thành ô trống.
+            # sudo: ảnh vừa upload còn res_id=0. Dùng `raw` (bytes thô), không phải `datas` base64.
             raw = self.sudo().raw
             if not raw:
                 return ""
@@ -86,11 +55,8 @@ class StockMove(models.Model):
     ], string="Lý do loại")
     dlm_reject_note = fields.Char(string="Ghi chú loại")
 
-    # ── K17 — Bằng chứng hàng loại ───────────────────────────────────────────
-    # Neo vào DÒNG, không vào phiếu: một phiếu kiểm loại được 3 mặt hàng vì 3 lý
-    # do khác nhau, gom ảnh ở mức phiếu thì không nói được tấm nào của mặt hàng
-    # nào. Bộ ba lý do / ghi chú / ảnh vì thế nằm cùng chỗ và đi cùng nhau qua cả
-    # ba chặng chứng từ ([2] kiểm → [3] trả NCC → [9] hoá phế liệu).
+    # ── Bằng chứng hàng loại ─────────────────────────────────────────────────
+    # Neo vào DÒNG (không vào phiếu): 1 phiếu kiểm loại nhiều mặt hàng vì nhiều lý do.
     dlm_evidence_ids = fields.Many2many(
         "ir.attachment", "dlm_move_evidence_rel", "move_id", "attachment_id",
         string="Ảnh bằng chứng",
@@ -98,23 +64,14 @@ class StockMove(models.Model):
              "KHOÁ lại sau khi xác nhận.")
     dlm_evidence_count = fields.Integer(
         string="Ảnh", compute="_compute_dlm_evidence_count")
-    # 🔴 Vì sao phải khoá: bằng chứng bổ sung được SAU KHI biết NCC cãi gì thì
-    # không còn là bằng chứng — nó thành lời khai. Ảnh phải chụp lúc mở hàng,
-    # tại phiếu kiểm, trước khi xác nhận. Sau đó cả 3 chặng chỉ được ĐỌC.
-    # Quên chụp thì đường bù là chatter phiếu trả (phân biệt rõ với bản gốc).
+    # Khoá bằng chứng sau khi xác nhận: ảnh phải chụp lúc mở hàng, sau đó chỉ ĐỌC.
     dlm_evidence_locked = fields.Boolean(
         string="Bằng chứng đã khoá", compute="_compute_dlm_evidence_locked")
-    # Widget `many2many_binary` bày FILE (thẻ "JPG" + tên cắt cụt), không bày
-    # ẢNH — muốn xem chỗ gỉ phải tải từng tấm về. Với một màn hình mà toàn bộ lý
-    # do tồn tại là "nhìn tận mắt vết lỗi" thì đó là hỏng đúng việc chính. Trường
-    # HTML này render thumbnail thật; bấm vào mở ảnh gốc ở tab mới.
+    # Trường HTML render thumbnail thật (many2many_binary chỉ bày thẻ file, không xem được ảnh).
     dlm_evidence_gallery = fields.Html(
         string="Lưới ảnh bằng chứng", sanitize=False, readonly=True,
         compute="_compute_dlm_evidence_gallery")
-    # Số lượng ĐANG NÓI TỚI của dòng, đúng theo từng chặng: ở phiếu kiểm là số
-    # bị loại, ở phiếu trả / hoá phế liệu thì chính nhu cầu của dòng LÀ số hàng
-    # lỗi. Không có nó thì hộp ảnh trên phiếu trả hiện "Số loại 0" — một con số
-    # sai ngay cạnh bằng chứng, chỗ tệ nhất để đặt một con số sai.
+    # Số đang nói tới của dòng theo từng chặng: phiếu kiểm = số loại; phiếu trả/phế liệu = nhu cầu dòng.
     dlm_reject_qty_shown = fields.Float(
         string="Số lượng", digits="Product Unit of Measure",
         compute="_compute_dlm_reject_qty_shown")
@@ -124,10 +81,7 @@ class StockMove(models.Model):
         for move in self:
             move.dlm_evidence_count = len(move.dlm_evidence_ids)
 
-    # Cột Lô của phiếu trả NCC đứng TRỐNG suốt lúc nháp — mà nháp mới là trạng
-    # thái người ta nhìn màn này nhiều nhất: `lot_ids` chỉ có sau khi giữ chỗ.
-    # Một cột rỗng vẫn chiếm chỗ, và tệ hơn: biên bản PDF thì in ra số lô đầy đủ
-    # còn màn hình lại để trắng — hai nguồn nói hai chuyện về cùng lô hàng.
+    # Số lô hiện trên phiếu trả NCC, kể cả lúc nháp chưa giữ chỗ (tra cùng cách biên bản PDF).
     dlm_return_lot_display = fields.Char(
         string="Lô", compute="_compute_dlm_return_lot_display")
 
@@ -138,9 +92,7 @@ class StockMove(models.Model):
                 move.dlm_return_lot_display = ", ".join(
                     move.lot_ids.mapped("name"))
             elif move.picking_id:
-                # Cùng đúng một cách tra như biên bản PDF (xem
-                # vendor_return_document._dlm_reject_report_lots) — một nguồn
-                # sự thật cho cả màn hình lẫn tờ giấy đưa NCC.
+                # Cùng cách tra như biên bản PDF — một nguồn cho cả màn hình lẫn tờ giấy.
                 move.dlm_return_lot_display = ", ".join(
                     move.picking_id._dlm_reject_report_lots(move))
             else:
@@ -154,20 +106,7 @@ class StockMove(models.Model):
 
     @api.depends("dlm_evidence_ids")
     def _compute_dlm_evidence_gallery(self):
-        """Dựng lưới thumbnail, ảnh NHÚNG THẲNG dưới dạng data URI.
-
-        🔴 Cố ý KHÔNG dùng `<img src="/web/image/ir.attachment/...">`. Bản đầu
-        làm vậy và ảnh vỡ ngay khi thủ kho vừa upload (biểu tượng ảnh hỏng + tên
-        file). Truy ngược tầng server thì mọi mắt xích đều sạch: `check('read')`
-        pass cho chính người upload kể cả khi attachment còn `res_id=0`,
-        `_find_record` pass, route `/web/image/<model>/<id>/<field>` và field
-        `datas` đều hợp lệ. Nghĩa là chỗ gãy nằm ở tầng HTTP/trình duyệt, chỗ
-        không quan sát được từ đây.
-
-        Nhúng thẳng thì cả đoạn đường đó biến mất: không request, không quyền,
-        không phụ thuộc bản ghi đã lưu hay chưa. Ảnh được thu về 480px trước khi
-        mã hoá nên payload chỉ vài chục KB/tấm, không phải ảnh điện thoại 4MB.
-        """
+        """Dựng lưới thumbnail, ảnh nhúng thẳng dạng data URI (né route /web/image lỗi khi res_id=0)."""
         for move in self:
             o = []
             khac = self.env["ir.attachment"]
@@ -181,9 +120,7 @@ class StockMove(models.Model):
                     '<img src="data:image/jpeg;base64,%s" alt="%s"/>'
                     '<span class="dl-evi-name">%s</span></div>'
                 ) % (att.name or "", thumb, att.name or "", att.name or ""))
-            # File không phải ảnh (PDF chứng thư, video) — và cả ảnh hỏng không
-            # đọc nổi — vẫn phải nêu tên: không xem trực tiếp được thì ít nhất
-            # phải biết là nó tồn tại.
+            # File không phải ảnh / ảnh hỏng: vẫn nêu tên để biết nó tồn tại.
             o += [Markup(
                 '<a href="/web/content/%s?download=true" class="dl-evi-file">'
                 '<i class="fa fa-paperclip me-1"></i>%s</a>'
@@ -201,29 +138,14 @@ class StockMove(models.Model):
                 and move.state not in ("done", "cancel"))
 
     def _dlm_stamp_evidence(self):
-        """Gắn ảnh vừa upload về đúng dòng — bẫy `res_id=0` đã vấp ở RFQ.
-
-        Widget many2many_binary tạo `ir.attachment` với res_id=0 khi file được
-        upload trước lúc bản ghi có id. Attachment res_id=0 chỉ NGƯỜI TẠO và
-        admin đọc được (cơ chế lọc của ir.attachment) ⇒ Mua hàng mở phiếu trả sẽ
-        ăn AccessError trên đúng thứ họ cần nhất. Đóng dấu res_model/res_id về
-        dòng kiểm thì quyền đọc ảnh bám theo quyền đọc dòng — mà Mua hàng, Kế
-        toán, CEO, Trưởng KD đều có read `stock.move`.
-        (Cùng lỗi và cùng cách chữa: dl_technical `_stamp_attachments`.)
-        """
+        """Đóng dấu res_model/res_id ảnh vừa upload về đúng dòng để Mua hàng đọc được (bẫy res_id=0)."""
         for move in self:
             orphan = move.dlm_evidence_ids.filtered(lambda a: not a.res_id)
             if orphan:
                 orphan.sudo().write({"res_model": move._name, "res_id": move.id})
 
     def action_dlm_open_evidence(self):
-        """Mở hộp ảnh của MỘT dòng.
-
-        Cố ý không nhét many2many_binary thẳng vào tree: bảng kiểm là bảng gõ
-        nhanh theo hàng ngang (Đạt / Loại / Lý do), bỏ `editable` để có chỗ đặt
-        widget upload là đánh đổi sai — thủ kho gõ 20 dòng mỗi ngày, còn ảnh thì
-        chỉ vài dòng lỗi mới cần.
-        """
+        """Màn Phiếu kiểm: mở hộp ảnh bằng chứng của một dòng (dialog riêng, không nhét widget vào tree)."""
         self.ensure_one()
         return {
             "type": "ir.actions.act_window",
@@ -237,17 +159,7 @@ class StockMove(models.Model):
         }
 
     # ── Tồn ở nơi lấy, hiện ngay cạnh mặt hàng ───────────────────────────────
-    # Danh sách mặt hàng của phiếu chuyển kho KHÔNG còn ẩn hàng đã hết (xem
-    # stock_picking._compute_dlm_blocked_product_ids). Ẩn đi thì thủ kho
-    # tìm không thấy và tưởng hệ thống hỏng; đổi lại, đã cho chọn thì phải nói
-    # ra số tồn NGAY trên dòng — không thì họ chọn xong mới biết là chọn hụt.
-    # Neo vào `location_id` của chính dòng (không phải của phiếu): native
-    # `_onchange_locations` đã đẩy vị trí phiếu xuống mọi dòng, nên số này theo
-    # kịp khi đổi "Từ vị trí" mà không cần đi vòng qua parent.
-    # 🔴 K14 — đọc số KHẢ DỤNG, KHÔNG phải tồn thực. Cột này nằm ngay cạnh dải
-    # cảnh báo thiếu hàng của phiếu; hai chỗ đọc hai công thức khác nhau thì dải
-    # báo "bị giữ hết" trong khi cột cạnh nó khoe "24" — người dùng tin cột, và
-    # cột đang sai. Cả hai nay gọi chung stock.quant._dlm_available_qty.
+    # Số KHẢ DỤNG tại nơi lấy của chính dòng (đọc chung stock.quant._dlm_available_qty).
     dlm_src_available_qty = fields.Float(
         string="Còn lấy được", digits="Product Unit of Measure",
         compute="_compute_dlm_src_available_qty",
@@ -256,8 +168,7 @@ class StockMove(models.Model):
              "hàng, hoặc hàng còn nhưng đã hứa cho phiếu khác. Vẫn tạo phiếu "
              "được, nhưng phiếu sẽ treo chờ hàng chứ không giữ chỗ được ngay.")
 
-    # move_line_ids.quantity: chính dòng này vừa giữ chỗ thì số phải nhích lên
-    # lại, không thì dòng tự tố mình thiếu hàng ngay sau khi giữ chỗ thành công.
+    # move_line_ids.quantity: dòng vừa giữ chỗ thì số phải nhích lên lại.
     @api.depends("product_id", "location_id", "state", "move_line_ids.quantity")
     def _compute_dlm_src_available_qty(self):
         Quant = self.env["stock.quant"]
@@ -266,11 +177,7 @@ class StockMove(models.Model):
                 move.product_id, move.location_id,
                 own_move_lines=move.move_line_ids)
 
-    # ── K12 — Vai trò dòng trên phiếu Hoá phế liệu ───────────────────────────
-    # Phiếu [9] có hai loại dòng ngược nhau trong cùng một bảng. Không có cột
-    # nói ra vai trò thì người dùng nhìn hai dòng cùng cỡ và không biết dòng nào
-    # là thứ mình đang bỏ đi, dòng nào là thứ thu về — mà đó là toàn bộ nội dung
-    # của phiếu này.
+    # ── Vai trò dòng trên phiếu Hoá phế liệu: phân biệt "Hàng bỏ" vs "Phế liệu thu về" ──
     dlm_is_scrap_line = fields.Boolean(
         string="Là dòng phế liệu thu về",
         compute="_compute_dlm_scrap_role")
@@ -285,19 +192,9 @@ class StockMove(models.Model):
             move.dlm_scrap_role = (
                 _("Phế liệu thu về") if la_phe else _("Hàng bỏ"))
 
-    # ── K16 — Vai trò dòng trên phiếu [8] Nhập kho từ xưởng ──────────────────
-    # Phiếu [8] mô tả TRỌN một mẻ sản xuất, nên nó có ba loại dòng đi hai chiều
-    # ngược nhau trên cùng một chứng từ. Người dùng khai VAI TRÒ; vị trí nguồn
-    # và đích thì SUY RA — không có ô vị trí nào trên màn để chọn sai.
-    #
-    # 🔴 Vì sao "Vật tư đã dùng" đi vào vị trí ẢO Sản xuất chứ không phải "biến
-    # mất": thép rời sổ vì nó đã thành cái bàn, không phải vì ai đó xoá nó.
-    # Vị trí ảo giữ lại vết đó — truy ngược được "100 cây này đi đâu".
-    #
-    # 🔴 Vì sao "Xưởng nộp về" lấy nguồn ảo chứ không phải Xưởng: ở B1 chưa nổ
-    # BOM nên cái bàn CHƯA TỪNG tồn tại ở Xưởng trên sổ. Xuất bàn từ Xưởng là
-    # ghi tồn ÂM ở một chỗ đang có 0 — mà Odoo không chặn tồn âm nội bộ, nên nó
-    # hỏng im lặng. Đây là lý do nguồn không được là một ô để người dùng chọn.
+    # ── Vai trò dòng trên phiếu [8] Nhập kho từ xưởng ────────────────────────
+    # Người dùng khai VAI TRÒ; vị trí nguồn/đích SUY RA (dùng vị trí ảo Sản xuất
+    # để giữ vết và tránh tồn âm), không có ô vị trí nào để chọn sai.
     dlm_move_kind = fields.Selection([
         ("output", "Xưởng nộp về"),
         ("consume", "Vật tư đã dùng"),
@@ -308,12 +205,7 @@ class StockMove(models.Model):
 
     @api.model
     def _dlm_route_for(self, move_kind, product):
-        """(nguồn, đích) suy từ vai trò dòng + mặt hàng. False nếu không khai.
-
-        Là `@api.model` chứ không phải phương thức của bản ghi vì `create` phải
-        biết vị trí TRƯỚC khi bản ghi tồn tại: `location_id` là required trên
-        stock.move, nên đóng dấu sau khi tạo thì đã nổ mất rồi.
-        """
+        """(nguồn, đích) suy từ vai trò dòng + mặt hàng; @api.model vì create cần vị trí trước khi bản ghi tồn tại."""
         if not move_kind:
             return False
         Location = self.env["stock.location"]
@@ -324,9 +216,8 @@ class StockMove(models.Model):
         if move_kind == "return":
             return xuong, Location._dlm_location(
                 "dl_inventory.stock_location_nhan_kho")
-        # "output" — đích theo MẶT HÀNG. Soi cờ phế liệu TRƯỚC `product_kind`:
-        # SCRAP-STEEL mang product_kind='material' y hệt thép thật (xem
-        # _DLM_LOCATION_RULES), nên hỏi theo loại hàng sẽ trả lời sai.
+        # "output" — đích theo MẶT HÀNG; soi cờ phế liệu TRƯỚC product_kind
+        # (SCRAP-STEEL mang kind='material' y hệt thép thật).
         if product.dlm_is_scrap:
             dest_xml_id = "dl_inventory.stock_location_xuong_pl"
         elif product.product_kind == "material_processed":
@@ -341,12 +232,7 @@ class StockMove(models.Model):
         return self._dlm_route_for(self.dlm_move_kind, self.product_id)
 
     def _dlm_stamp_workshop_route(self):
-        """Đóng vị trí đúng theo vai trò dòng.
-
-        Chạy ở `create`/`write` chứ không chỉ ở onchange: onchange KHÔNG nổ với
-        import, RPC, hay bất kỳ đường ghi nào không đi qua form. Vị trí sai trên
-        phiếu này không phải lỗi hiển thị — nó là tồn âm hoặc hàng vào nhầm kho.
-        """
+        """Đóng vị trí đúng theo vai trò dòng ở create/write (onchange không nổ với RPC/import)."""
         for move in self:
             if move.state in ("done", "cancel"):
                 continue
@@ -375,10 +261,7 @@ class StockMove(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            # `name` là required trên stock.move nhưng KHÔNG có mặc định nào —
-            # nó chỉ được điền nhờ onchange của form. Dòng tạo qua RPC, import,
-            # hay test sẽ nổ "trường bắt buộc chưa được đặt" ở đúng chỗ khó đoán
-            # nhất (xem cùng bẫy đã gặp với location_id ở 4 form phiếu kho).
+            # `name` required nhưng không có default — điền tay để dòng tạo qua RPC/import/test không nổ.
             if not vals.get("dlm_move_kind"):
                 continue
             product = self.env["product.product"].browse(vals.get("product_id"))
@@ -395,10 +278,7 @@ class StockMove(models.Model):
 
     def write(self, vals):
         if "dlm_evidence_ids" in vals and not self.env.su:
-            # Khoá ở TẦNG SERVER, không chỉ readonly trên view: bằng chứng mà
-            # sửa được qua RPC thì lá chắn chỉ là trang trí. Các đường tự động
-            # (tách dòng loại, sinh phiếu trả, hoá phế liệu) chạy dưới sudo hoặc
-            # qua `create` nên không vướng.
+            # Khoá bằng chứng ở tầng server, không chỉ readonly view (RPC né được view).
             locked = self.filtered("dlm_evidence_locked")
             if locked:
                 raise UserError(_(
@@ -413,9 +293,7 @@ class StockMove(models.Model):
             self._dlm_stamp_evidence()
         return res
 
-    # QC-02 — Đạt + Loại không được vượt số hàng đang nằm ở khu Chờ kiểm.
-    # Là field (không phải @api.constrains) để view tô đỏ dòng NGAY khi gõ:
-    # ràng buộc sửa-được-trên-form phải báo INLINE, không bắn modal.
+    # Đạt + Loại không được vượt số nhận; là field (không @api.constrains) để tô đỏ INLINE khi gõ.
     dlm_qc_over = fields.Boolean(
         string="Vượt số nhận", compute="_compute_dlm_qc_over")
 
@@ -424,10 +302,7 @@ class StockMove(models.Model):
     def _compute_dlm_qc_over(self):
         for move in self:
             if move.state in ("done", "cancel"):
-                # QC-02 là luật lúc NHẬP LIỆU. Sau khi xác nhận, dòng gốc đã bị
-                # thu hẹp nhu cầu về đúng số đạt (xem _dlm_split_rejected_moves)
-                # nên phép so Đạt+Loại ≤ nhu cầu không còn nghĩa — để nguyên thì
-                # phiếu đã xong lại hiện dải đỏ vô cớ.
+                # Chỉ áp lúc nhập liệu; sau xác nhận dòng đã thu hẹp nhu cầu nên bỏ qua.
                 move.dlm_qc_over = False
                 continue
             rounding = move.product_uom.rounding or 0.01
@@ -435,20 +310,10 @@ class StockMove(models.Model):
                 move.quantity + move.dlm_qty_rejected, move.product_uom_qty,
                 precision_rounding=rounding) > 0
 
-    # ── RS-06 — Gõ Loại thì tự hạ Đạt ────────────────────────────────────────
+    # ── Gõ Loại thì tự hạ Đạt ────────────────────────────────────────────────
     @api.onchange("dlm_qty_rejected")
     def _onchange_dlm_qty_rejected(self):
-        """Bỏ phép cộng trừ khỏi đầu thủ kho.
-
-        Luồng thật: bấm "Đạt tất cả" (ca phổ biến nhất) ⇒ Đạt = 198. Rồi phát
-        hiện 2 cái lỗi, gõ Loại = 2 ⇒ QC-02 nổ dải đỏ, nút Xác nhận biến mất, và
-        thủ kho phải tự hiểu là còn phải quay lại hạ Đạt xuống 196.
-
-        Mô hình suy nghĩ của người dùng là "trong 198 cái nhận, 2 cái loại" —
-        chứ không phải "ghi Đạt 196 và Loại 2". Ở đây làm nốt phép trừ đó.
-        QC-02 GIỮ NGUYÊN làm lưới an toàn: nó vẫn bắt ca gõ Đạt lớn hơn số nhận,
-        và ca Loại một mình đã vượt số nhận (Đạt bị kẹp về 0).
-        """
+        """Màn Phiếu kiểm: gõ Loại thì tự hạ Đạt (mô hình "trong 198 nhận, 2 loại")."""
         for move in self:
             if (move.picking_type_id.sequence_code != _DLM_QC_CODE
                     or move.state in ("done", "cancel")):
@@ -460,29 +325,9 @@ class StockMove(models.Model):
                 move.quantity = max(
                     move.product_uom_qty - move.dlm_qty_rejected, 0.0)
 
-    # ── RS-01 — Một lần nhận hàng = một phiếu kiểm riêng ──────────────────────
+    # ── Một lần nhận hàng = một phiếu kiểm riêng ─────────────────────────────
     def _action_confirm(self, merge=True, merge_into=False):
-        """Đóng dấu nhóm cung ứng cho dòng NHẬN trước khi push sinh dòng kiểm.
-
-        Thiết kế: docs/Ra_soat_phan_he_kho_2026-08-12.md RS-01.
-
-        `_push_apply` (sinh dòng kiểm cho tuyến nhận 2 bước) nằm BÊN TRONG
-        `super()._action_confirm()`, và nó copy nguyên dòng nhận — kể cả
-        `group_id`. Nên chỉ cần dòng nhận đã có nhóm TRƯỚC lời gọi super() là
-        dòng kiểm thừa hưởng đúng nhóm của phiếu nhận đó.
-
-        🔴 Vì sao phải đứng ở đây chứ không ở `stock.picking.action_confirm`:
-        đó chỉ là MỘT trong nhiều đường xác nhận. Đo trên dlm_dev (DL/KC/00003):
-        hai phiếu nhận DL/NH/00003 + DL/NH/00004 đều CÓ nhóm, nhưng hai dòng
-        kiểm sinh ra lại `group_id = NULL` — nghĩa là nhóm được đóng dấu SAU khi
-        push đã copy xong, tức lần xác nhận thật không đi qua override ở tầng
-        phiếu. Hậu quả: hai dòng kiểm cùng khoá `group_id = NULL` nên
-        `_assign_picking` nhồi hàng của hai NCC vào CÙNG một phiếu kiểm, ô Nhà
-        cung cấp bị xoá trắng, và phiếu trả hàng sẽ ghi SAI NCC.
-
-        `_action_confirm` của move thì KHÔNG đường nào né được: push chỉ chạy
-        trong chính nó.
-        """
+        """Đóng dấu nhóm cung ứng cho dòng nhận trước khi push sinh dòng kiểm — để không trộn 2 NCC vào 1 phiếu kiểm."""
         self.picking_id._dlm_group_receipt_moves()
         return super()._action_confirm(merge=merge, merge_into=merge_into)
 
@@ -492,13 +337,7 @@ class StockMove(models.Model):
         return self.move_orig_ids.picking_id.filtered(
             lambda p: p.picking_type_id.code == "incoming")[:1]
 
-    # ── RS-01 — Bất biến cứng: phiếu kiểm không được trộn hai phiếu nhận ──────
-    #
-    # Nhóm cung ứng ở trên là cơ chế "đúng theo Odoo", nhưng nó vẫn là một giá
-    # trị có thể trống (dữ liệu cũ, phiếu tạo tay, code khác ghi đè). Hai móc
-    # dưới đây neo thẳng vào NGUỒN GỐC — dòng kiểm chỉ được gom vào phiếu kiểm
-    # đi ra từ ĐÚNG phiếu nhận của nó — nên mất nhóm cũng không gộp nhầm được.
-    # Đây là thứ giữ được truy xuất "lô này của NCC nào, theo lần giao nào".
+    # ── Bất biến cứng: dòng kiểm chỉ gom vào phiếu kiểm ra từ ĐÚNG phiếu nhận của nó (kể cả khi mất nhóm) ──
     def _key_assign_picking(self):
         keys = super()._key_assign_picking()
         if self.picking_type_id.sequence_code == _DLM_QC_CODE:
@@ -514,22 +353,9 @@ class StockMove(models.Model):
             return domain
         return domain + [("move_ids.move_orig_ids.picking_id", "=", receipt.id)]
 
-    # ── RS-01 — Phiếu kho tự sinh phải mang nhóm cung ứng + NCC của nó ────────
+    # ── Phiếu kho tự sinh mang nhóm cung ứng + NCC ───────────────────────────
     def _get_new_picking_values(self):
-        """Điền nhóm cung ứng và NCC lên phiếu kho do hệ thống tự sinh.
-
-        Thiết kế: docs/Ra_soat_phan_he_kho_2026-08-12.md RS-01 (b).
-
-        Odoo gốc dựng phiếu mới KHÔNG set `group_id`, và chỉ điền `partner_id` khi
-        MỌI dòng cùng một đối tác — mà move kiểm không có `partner_id` (nó compute
-        từ phiếu, phiếu thì chưa tồn tại lúc này). Kết quả: phiếu kiểm để trống cả
-        nhóm lẫn NCC (đúng ô "Nhà cung cấp" trống trong ảnh chụp).
-
-        Sau khi move đã mang `group_id` (xem `_action_confirm` trên), mỗi phiếu tự sinh
-        gom đúng MỘT nhóm ⇒ điền nhóm để `_search_picking_for_assignation` gộp
-        đúng các move cùng nhóm, và điền NCC của nhóm để phiếu kiểm hiện đúng đối
-        tác. `group_id.partner_id` do `_dlm_group_receipt_moves` đóng dấu.
-        """
+        """Điền nhóm cung ứng + NCC lên phiếu kho tự sinh (Odoo gốc để trống ⇒ phiếu kiểm mất NCC)."""
         vals = super()._get_new_picking_values()
         group = self.mapped("group_id")
         if len(group) == 1:

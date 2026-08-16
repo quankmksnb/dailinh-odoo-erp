@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- ================================================================
-         RV-02 — Mẫu email gửi báo giá cho khách.
-
-         Chỉ cung cấp TIÊU ĐỀ + NỘI DUNG thư (được render trong wizard xuất
-         báo giá). File đính kèm (Word/PDF) do wizard tự dựng bằng python-docx /
-         reportlab rồi gắn vào trình soạn thư — KHÔNG dùng report_template_ids
-         (vốn cần wkhtmltopdf). Người dùng ĐỌC LẠI rồi mới bấm Gửi.
+         Mẫu email gửi báo giá cho khách — CHỈ cấp tiêu đề + nội dung thư.
+         File Word/PDF do dialog xuất báo giá tự dựng và đính kèm; người dùng
+         đọc lại rồi mới tự bấm Gửi.
          ================================================================ -->
     <record id="mail_template_dl_quotation" model="mail.template">
         <field name="name">Báo giá: Gửi khách hàng</field>

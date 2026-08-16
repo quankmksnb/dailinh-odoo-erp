@@ -3,10 +3,9 @@ from odoo.exceptions import UserError
 
 
 class DlQuotationRejectWizard(models.TransientModel):
-    """Sales ghi nhận khách từ chối báo giá — BẮT BUỘC chọn lý do (đặc tả
-    "Trường hợp 4"). Lý do "Khác" phải kèm mô tả để truy vết nguyên nhân mất
-    đơn. Việc chuyển trạng thái + hủy yêu cầu phê duyệt treo do model chính lo
-    (dl.quotation._apply_reject)."""
+    """Dialog "Từ chối báo giá" — BẮT BUỘC chọn lý do; lý do "Khác" phải ghi
+    thêm mô tả để còn biết vì sao mất đơn. Việc đổi trạng thái + huỷ yêu cầu
+    duyệt treo do dl.quotation._apply_reject lo."""
 
     _name = "dl.quotation.reject.wizard"
     _description = "Từ chối báo giá — nhập lý do"
@@ -28,6 +27,7 @@ class DlQuotationRejectWizard(models.TransientModel):
         help="Nêu rõ nguyên nhân (bắt buộc khi chọn 'Lý do khác').")
 
     def action_confirm(self):
+        """Nút Xác nhận — chuyển lý do sang model chính rồi đóng dialog."""
         self.ensure_one()
         if self.reason == "other" and not (self.note or "").strip():
             raise UserError(_(

@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
-"""K4 — Màn Tồn kho đọc thẳng nguồn gốc lô. K7 — bán phế liệu.
-
-Thiết kế: docs/Thiet_ke_phan_he_kho.md §11.2, §7.3, §11.8.
-
-Hai field related để thủ kho trả lời được "thép đang nằm kho này của ai, về ngày
-nào" mà KHÔNG phải mở từng lô. Không lưu (`store=False`): dữ liệu đã nằm ở
-stock.lot, nhân bản sang quant chỉ tạo thêm chỗ lệch.
-"""
+"""Màn Tồn kho: xem nguồn gốc lô, kiểm kê, hoá/bán phế liệu."""
 
 from odoo import _, api, fields, models, SUPERUSER_ID
 from odoo.exceptions import UserError
@@ -16,25 +9,8 @@ from odoo.tools.float_utils import float_is_zero
 class StockQuant(models.Model):
     _inherit = "stock.quant"
 
-    # ── K8 — Cho Thủ kho áp kiểm kê mà KHÔNG cấp group_stock_manager ──────────
     def _apply_inventory(self):
-        """Áp số kiểm kê ⇒ sinh phiếu điều chỉnh, tồn khớp số đếm.
-
-        🔴 Native `stock.quant._apply_inventory` chốt cứng: chỉ
-        `stock.group_stock_manager` mới validate được. Nhưng §8.3 CẤM cấp
-        manager cho Thủ kho — manager mở kèm cả xoá quant, sửa vị trí, cấu hình
-        tồn kho. Thay vì nới group (rủi ro rộng), kiểm vai trò Thủ kho tường
-        minh rồi chạy phần thân native dưới quyền superuser — đúng khuôn "kiểm
-        vai trò rồi nâng quyền" đã dùng ở K6 (`action_dlm_create_delivery`).
-
-        `base.user_root` là thành viên `stock.group_stock_manager`
-        (stock/security/stock_security.xml) nên `with_user(SUPERUSER_ID)` vượt
-        được chốt native mà không phải chép logic sinh move.
-
-        Một chốt này vá cho CẢ màn Kiểm kê (K8) lẫn màn Phế liệu (K7): mọi lối
-        áp kiểm kê của Thủ kho đều đi qua đây. Vai trò khác giữ nguyên luật
-        native (admin/CEO có manager thì rẽ thẳng super).
-        """
+        """Cho Thủ kho validate kiểm kê mà không cần group manager (màn Kiểm kê + Phế liệu)."""
         self._dlm_check_inventory_allowed()
         if (not self.user_has_groups("stock.group_stock_manager")
                 and self.user_has_groups("dl_base.dl_group_warehouse")):
@@ -42,13 +18,7 @@ class StockQuant(models.Model):
         return super()._apply_inventory()
 
     def _dlm_check_inventory_allowed(self):
-        """RS-07 — Khu quá cảnh không cho đếm tay, kể cả admin.
-
-        Domain của màn Kiểm kê đã ẩn hai khu này, nhưng ẩn khỏi danh sách không
-        phải là chặn: quant vẫn tới được qua màn khác hay RPC. Và đây đúng là
-        chỗ đáng chặn cứng — hàng ở khu Chờ trả NCC đang được một phiếu trả
-        (nháp) tham chiếu tới; đếm về 0 là phiếu đó trỏ vào hàng không tồn tại.
-        """
+        """Chặn kiểm kê tay ở khu quá cảnh (Chờ kiểm hàng / Chờ trả NCC), kể cả admin."""
         blocked = self.location_id.filtered("dlm_no_inventory")
         if not blocked:
             return True
@@ -64,25 +34,9 @@ class StockQuant(models.Model):
     dlm_receipt_date = fields.Date(
         related="lot_id.dlm_receipt_date", string="Ngày nhập", readonly=True)
 
-    # ── K14 — Số KHẢ DỤNG: một hàm, mọi chỗ đọc ──────────────────────────────
     @api.model
     def _dlm_available_qty(self, product, location, own_move_lines=None):
-        """Số lấy được NGAY của `product` tại/dưới `location`.
-
-        🔴 Khả dụng = tồn − phần đã bị phiếu khác giữ. Đọc thẳng `quantity` là
-        ca hai người cùng bán một lô thép: cả hai đều thấy "còn 24", cả hai đều
-        hứa giao. Dùng đúng hàm mà `action_assign` gọi khi giữ chỗ
-        (`_get_available_quantity`) ⇒ số màn hình báo và số phiếu giữ được không
-        bao giờ lệch. `strict=False` ⇒ gộp theo cây, khớp phạm vi giữ chỗ.
-
-        `own_move_lines`: dòng của CHÍNH phiếu đang xét — cộng trả lại phần nó
-        đang giữ, không thì phiếu vừa giữ chỗ xong lại tự báo mình thiếu hàng.
-
-        🔴 Đây là NGUỒN SỰ THẬT DUY NHẤT cho câu "còn lấy được bao nhiêu". Ba
-        chỗ đọc nó (dải cảnh báo phiếu chuyển · dải phiếu bán phế liệu · cột
-        "Còn lấy được" trên từng dòng) phải cùng ra một số — hai chỗ trên cùng
-        một màn nói hai số là lỗi người dùng không bao giờ báo, chỉ mất niềm tin.
-        """
+        """Số khả dụng (tồn − đã giữ chỗ) của SP tại 1 khu — nguồn chung cho mọi cảnh báo thiếu hàng."""
         if not product or not location:
             return 0.0
         con = self.sudo()._get_available_quantity(
@@ -93,19 +47,12 @@ class StockQuant(models.Model):
                 and ml.state not in ("done", "cancel")
                 and ml.location_id.parent_path
                 and ml.location_id.parent_path.startswith(location.parent_path))
-            # quantity_product_uom (không phải `quantity`): quant tính theo ĐVT
-            # gốc của sản phẩm, dòng phiếu có thể ghi theo ĐVT khác.
             con += sum(giu.mapped("quantity_product_uom"))
         return con
 
     @api.model
     def _dlm_on_hand_qty(self, product, location):
-        """Tồn THỰC (chưa trừ chỗ giữ) — chỉ dùng để nói đúng LÝ DO khi thiếu.
-
-        "Hết hàng" và "bị phiếu khác giữ hết" là hai việc phải làm khác hẳn
-        nhau: một cái đi mua, một cái đi nói chuyện với người đang giữ. Gộp hai
-        ca vào một câu là đẩy người dùng đi mua thứ đang nằm trong kho.
-        """
+        """Tồn thực (chưa trừ chỗ giữ) — chỉ để nói đúng lý do khi thiếu (hết hàng vs bị giữ chỗ)."""
         if not product or not location:
             return 0.0
         return sum(self.sudo().search([
@@ -113,22 +60,14 @@ class StockQuant(models.Model):
             ("product_id", "=", product.id),
         ]).mapped("quantity"))
 
-    # ── K14 — "Ai đang giữ chỗ lô hàng này?" ─────────────────────────────────
     def action_dlm_open_reservations(self):
-        """Phiếu đang giữ chỗ đúng dòng tồn này.
-
-        Cột "Đang giữ chỗ" trả lời BAO NHIÊU; câu hỏi tiếp theo luôn là CHO AI —
-        không trả lời được thì người dùng chỉ còn cách đoán, và cách đoán rẻ nhất
-        là bán chồng. Một cú bấm ra thẳng phiếu + đơn hàng để còn thương lượng.
-        """
+        """Màn Tồn kho: mở danh sách phiếu đang giữ chỗ đúng dòng tồn này."""
         self.ensure_one()
         domain = [
             ("product_id", "=", self.product_id.id),
             ("location_id", "=", self.location_id.id),
             ("state", "not in", ("done", "cancel")),
         ]
-        # Khớp lô CHỈ khi mặt hàng theo lô: hàng không theo lô có lot_id rỗng ở
-        # cả hai bên, thêm điều kiện chỉ tổ lọc nhầm khi dữ liệu cũ lệch.
         if self.product_id.tracking != "none":
             domain.append(("lot_id", "=", self.lot_id.id))
         return {
@@ -142,10 +81,7 @@ class StockQuant(models.Model):
             "target": "new",
         }
 
-    # ── K7 — Phế liệu ────────────────────────────────────────────────────────
-    # Đơn giá ở đây là GIÁ BÁN phế liệu (`list_price`), KHÔNG phải giá vốn — nên
-    # không vi phạm §8.3 ("Thủ kho không thấy giá"). Thủ kho là người cân và
-    # giao phế liệu cho bên thu mua, phải biết lô vụn này đáng bao nhiêu tiền.
+    # Đơn giá = giá BÁN phế liệu (list_price), không phải giá vốn ⇒ Thủ kho được xem.
     dlm_scrap_unit_price = fields.Float(
         related="product_id.list_price", string="Đơn giá", readonly=True,
         digits="Product Price")
@@ -159,12 +95,7 @@ class StockQuant(models.Model):
             quant.dlm_scrap_value = quant.quantity * quant.product_id.list_price
 
     def action_dlm_to_scrap(self):
-        """K12 — Hoá phế liệu các dòng tồn đang chọn ở màn Tồn kho.
-
-        Lối vào thứ hai của phiếu [9] (§11.14): vật tư hỏng trong kho — gỉ, quá
-        hạn, cong vênh — mà KHÔNG đòi được NCC (§6.5). Ca đòi được NCC thì phải
-        đi đường phiếu trả, và đường đó cố ý khoá ở B1.
-        """
+        """Màn Tồn kho: hoá phế liệu các dòng đang chọn (vật tư hỏng không đòi được NCC)."""
         quants = self.filtered(
             lambda q: not float_is_zero(
                 q.quantity, precision_rounding=q.product_uom_id.rounding or 0.01)
@@ -185,12 +116,7 @@ class StockQuant(models.Model):
             picking, _("Hoá phế liệu %s") % picking.name)
 
     def action_dlm_sell_scrap(self):
-        """Tạo phiếu Bán phế liệu (nháp) từ các dòng tồn đang chọn.
-
-        Để NHÁP và chưa gán khách: bán phế liệu là thoả thuận với bên thu mua
-        (giá theo ngày, ai chở, cân ở đâu). Hệ thống dựng sẵn dòng hàng đúng số
-        đang tồn; người dùng điền khách rồi mới xác nhận.
-        """
+        """Màn Tồn kho: tạo phiếu Bán phế liệu (nháp, chưa gán khách) từ các dòng tồn đang chọn."""
         quants = self.filtered(
             lambda q: not float_is_zero(
                 q.quantity, precision_rounding=q.product_uom_id.rounding or 0.01)

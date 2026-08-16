@@ -1,26 +1,5 @@
 # -*- coding: utf-8 -*-
-"""K21 — Tờ giấy gửi nhà cung cấp.
-
-Vì sao phải có file: **NCC không đăng nhập ERP của Đại Linh.** Đơn mua nằm ngay
-ngắn trong hệ thống bao nhiêu thì lúc gọi cho Thắng Hảo vẫn là con số không.
-
-MỘT mẫu, hai biến thể theo trạng thái:
-
-  nháp / đã gửi  →  **YÊU CẦU BÁO GIÁ**, cột đơn giá ĐỂ TRỐNG cho NCC điền
-  đã chốt        →  **ĐƠN ĐẶT HÀNG**, có giá đã chốt
-
-🔴 **Tờ này CÓ giá — cố ý ngược với biên bản hàng không đạt của K17** (tờ đó cố ý
-KHÔNG có giá). Không mâu thuẫn: đây là giá ta trả cho NCC, do chính họ báo; còn
-kia là biên bản về hàng lỗi, in tiền lên đó là tự chốt mức giảm trừ hộ NCC.
-Ghi ở cả hai chỗ để người sau không "sửa cho nhất quán".
-
-🔴 **KHÔNG in tên khách hàng cuối.** NCC không có lý do gì phải biết Đại Linh
-đang làm cho ai — đó là đường ngắn nhất để họ bán thẳng cho khách của mình.
-
-Thuần Python bằng reportlab, dùng LẠI font tiếng Việt đã đăng ký ở ``dl_sale``
-— KHÔNG wkhtmltopdf (quy ước dự án, xem ``dl_inventory/models/
-vendor_return_document.py``).
-"""
+"""PDF gửi NCC: nháp/đã gửi = YÊU CẦU BÁO GIÁ (trống giá), đã chốt = ĐƠN ĐẶT HÀNG (có giá)."""
 
 import base64
 import io
@@ -36,11 +15,7 @@ class DlPurchaseOrderDocument(models.Model):
     _inherit = "dl.purchase.order"
 
     def action_dlm_print(self):
-        """Xuất PDF gửi NCC và lưu thành đính kèm + ghi chatter.
-
-        Lưu lại chứ không chỉ tải về: ba tháng sau còn trả lời được "hôm đó gửi
-        NCC đúng cái gì" — cùng lý do biên bản hàng loại của K17 được lưu.
-        """
+        """Nút [In] trên đơn mua — xuất PDF gửi NCC, lưu thành đính kèm và tải về."""
         self.ensure_one()
         attachment = self._dlm_create_document_attachment()
         self.message_post(
@@ -53,25 +28,7 @@ class DlPurchaseOrderDocument(models.Model):
         }
 
     def action_dlm_email(self):
-        """Mở trình soạn thư đã đính sẵn PDF + tiêu đề/nội dung từ mẫu thư.
-
-        🔴 Dùng TRÌNH SOẠN THƯ chứ không gửi thẳng — ngược với
-        ``dl.sale.order.action_dlm_notify_shortage`` (thư nội bộ, gửi một phát).
-        Hai lý do, và cả hai đều là lý do của thư ĐỐI NGOẠI:
-
-          • người nhận là NCC, không phải đồng nghiệp: gửi nhầm giá hay nhầm NCC
-            là hỏng đàm phán, phải đọc lại được trước khi bấm Gửi;
-          • ACL cho phép — Mua hàng có quyền GHI trên ``dl.purchase.order``, nên
-            composer ghi ``mail.message`` bằng quyền của họ không bị chặn (chỗ
-            khác phải sudo là vì Thủ kho chỉ có quyền đọc đơn bán).
-
-        Cùng khuôn ``dl_sale/wizard/quotation_export_wizard.action_email``.
-
-        🔴 KHÔNG tự đổi trạng thái sang "Đã gửi": composer gửi thư ở một bước
-        SAU, ta không biết người dùng có thật sự bấm Gửi hay đóng cửa sổ. Đánh
-        dấu mốc gửi vẫn là việc của nút [Gửi hỏi giá nhà cung cấp] — mốc thời
-        gian phải phản ánh việc đã xảy ra, không phải ý định.
-        """
+        """Nút [Gửi mail NCC] — mở trình soạn thư đã đính sẵn PDF + tiêu đề/nội dung từ mẫu."""
         self.ensure_one()
         if not self.partner_id.email:
             raise UserError(_(
@@ -110,18 +67,13 @@ class DlPurchaseOrderDocument(models.Model):
         }
 
     def _dlm_document_label(self):
-        """Tên tờ giấy theo trạng thái — một nguồn cho cả chatter, tiêu đề action
-        và mẫu thư, để ba chỗ không gọi khác tên nhau."""
+        """Tên tờ giấy theo trạng thái (Đơn đặt hàng / Yêu cầu báo giá) — một nguồn cho mọi chỗ."""
         self.ensure_one()
         return (_("Đơn đặt hàng") if self.state == "confirmed"
                 else _("Yêu cầu báo giá"))
 
     def _dlm_create_document_attachment(self):
-        """Dựng PDF rồi lưu thành đính kèm của đơn.
-
-        Lưu lại chứ không chỉ tải về: ba tháng sau còn trả lời được "hôm đó gửi
-        NCC đúng cái gì" — cùng lý do biên bản hàng loại của K17 được lưu.
-        """
+        """Dựng PDF rồi lưu thành đính kèm của đơn (để sau còn tra đã gửi NCC cái gì)."""
         self.ensure_one()
         self._dlm_check_buyer()
         if not self.line_ids:
@@ -150,10 +102,7 @@ class DlPurchaseOrderDocument(models.Model):
             Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle)
 
         self.ensure_one()
-        # 🔴 Mượn tên font của `dl_sale` thì phải mượn cả bước ĐĂNG KÝ nó — hai
-        # thứ đó không tách rời được. Thiếu dòng này, tờ giấy chỉ in được trên
-        # tiến trình đã lỡ in báo giá trước đó; tiến trình vừa khởi động thì
-        # reportlab nổ ngay ở Paragraph đầu tiên (`ps2tt` không tra ra họ font).
+        # Mượn tên font của `dl_sale` thì phải mượn cả bước đăng ký nó, không thì reportlab nổ.
         self.env["dl.quotation"]._register_pdf_font()
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(

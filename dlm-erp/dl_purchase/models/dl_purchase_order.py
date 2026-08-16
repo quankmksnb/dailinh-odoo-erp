@@ -1,22 +1,11 @@
 # -*- coding: utf-8 -*-
-"""K19/K21 — Đơn mua hàng.
-
-Thiết kế: ``docs/Thiet_ke_mua_hang_va_vong_cung_ung.md`` §5, §7.
-
-MỘT chứng từ cho cả vòng đời (người dùng chốt 2026-08-14, U-2). Nháp chính là
-"đề nghị mua" — thêm một model nữa là thêm một bước bấm và một màn để quên, cho
-một doanh nghiệp mà Mua hàng ngồi cách Kho mười mét.
-"""
+"""Đơn mua hàng — một chứng từ cho cả vòng đời (nháp = đề nghị mua)."""
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.float_utils import float_compare
 
-# Ai được thấy GIÁ MUA. 🔴 Cố ý KHÁC `_COST_GROUPS` của dl_sale (ceo/admin/
-# accountant/sales_manager): đó là quyền xem GIÁ VỐN trong báo giá. Ở đây là giá
-# ta trả cho NCC — Mua hàng sở hữu nó, còn Trưởng KD không có việc gì với nó.
-# Đây là hai khái niệm khác nhau tình cờ cùng hình dạng; gộp lại là mở quyền cho
-# một vai mà không ai định mở.
+# Ai được thấy GIÁ MUA. Khác `_COST_GROUPS` của dl_sale (đó là quyền xem giá vốn báo giá).
 _DLM_BUY_PRICE_GROUPS = (
     "dl_base.dl_group_purchasing,"
     "dl_base.dl_group_ceo,"
@@ -24,17 +13,14 @@ _DLM_BUY_PRICE_GROUPS = (
     "dl_base.dl_group_accountant"
 )
 
-# Vai trò được TẠO/SỬA đơn mua. Thủ kho cố ý không có: kiểm soát chéo giữa người
-# đặt hàng và người nhận hàng là lý do tồn tại của hai vai trò tách nhau
-# (cùng nguyên tắc RS-03 — thủ kho không xác nhận được phiếu trả NCC).
+# Vai trò được TẠO/SỬA đơn mua. Thủ kho không có — kiểm soát chéo đặt hàng vs nhận hàng.
 _DLM_BUYER_ROLES = (
     "dl_base.dl_group_purchasing",
     "dl_base.dl_group_admin",
     "dl_base.dl_group_ceo",
 )
 
-# Ngưỡng duyệt mặc định (đ). Người dùng chốt "duyệt theo ngưỡng tiền" (U-3);
-# con số cụ thể còn để ngỏ — xem §15 câu 1 của doc.
+# Ngưỡng duyệt mặc định (đ): trên mức này đơn mua phải trình Giám đốc.
 _DLM_DEFAULT_THRESHOLD = 20000000.0
 _DLM_THRESHOLD_PARAM = "dl_purchase.approval_threshold"
 
@@ -83,9 +69,7 @@ class DlPurchaseOrder(models.Model):
         string="Tổng tiền", compute="_compute_amount_total", store=True,
         digits="Product Price", groups=_DLM_BUY_PRICE_GROUPS)
 
-    # 🔴 M2M chứ không M2O: một lần đặt thép hay gom nhu cầu của NHIỀU đơn bán.
-    # Ép về một đơn là mất dấu các đơn còn lại, và khi hàng về không ai trả lời
-    # được "đang có những đơn nào chờ cái này".
+    # M2M: một lần đặt thép có thể gom nhu cầu của NHIỀU đơn bán.
     dlm_origin_order_ids = fields.Many2many(
         "dl.sale.order", "dl_purchase_sale_order_rel",
         "purchase_id", "sale_id", string="Đơn bán đang chờ", readonly=True,
@@ -133,9 +117,7 @@ class DlPurchaseOrder(models.Model):
         for order in self:
             order.amount_total = sum(order.line_ids.mapped("price_subtotal"))
 
-    # ⚠️ Tách khỏi `_compute_dlm_receipt`: Odoo cảnh báo (đúng) khi một hàm
-    # compute vừa tính field STORED vừa tính field non-stored — đọc field không
-    # lưu sẽ âm thầm ghi lại field lưu.
+    # Tách khỏi `_compute_dlm_receipt`: không trộn field stored và non-stored trong một compute.
     @api.depends("dlm_picking_ids.state")
     def _compute_dlm_picking_count(self):
         for order in self:
@@ -154,13 +136,7 @@ class DlPurchaseOrder(models.Model):
                 "done" if order._dlm_is_fully_received(received) else "partial")
 
     def _dlm_received_qty(self):
-        """{mặt hàng: số NCC đã giao}.
-
-        Đếm move ĐÃ hoàn tất trên phiếu nhận. Cố ý KHÔNG trừ phần bị loại ở bước
-        kiểm: câu hỏi của đơn mua là "NCC đã giao đủ chưa", còn "hàng có đạt
-        không" là câu hỏi của phiếu Trả hàng NCC — trộn hai câu vào một con số
-        thì không trả lời được câu nào.
-        """
+        """{mặt hàng: số NCC đã giao} — đếm move đã hoàn tất, KHÔNG trừ phần bị loại ở bước kiểm."""
         self.ensure_one()
         received = {}
         for picking in self.dlm_picking_ids.filtered(
@@ -210,11 +186,7 @@ class DlPurchaseOrder(models.Model):
 
     @api.depends("line_ids.price_unit", "line_ids.price_list_unit")
     def _compute_dlm_price_warning(self):
-        """MH-13 — giá chốt lệch bảng giá NCC quá ngưỡng thì NÓI RA.
-
-        Không tự sửa bảng giá: bảng giá đang nuôi giá chào khách, đổi nó là một
-        quyết định kinh doanh chứ không phải một `write()`.
-        """
+        """Cảnh báo khi giá chốt lệch bảng giá NCC quá ngưỡng — chỉ NÓI RA, không tự sửa bảng giá."""
         limit = self._dlm_price_gap_limit()
         for order in self:
             lech = []
@@ -246,14 +218,7 @@ class DlPurchaseOrder(models.Model):
     # Vòng đời
     # ------------------------------------------------------------------
     def action_dlm_send(self):
-        """Đánh dấu ĐÃ gửi yêu cầu báo giá cho NCC — ghi MỐC THỜI GIAN.
-
-        Tách khỏi việc gửi: gửi bằng [Gửi mail cho NCC] (``action_dlm_email``,
-        có từ khi SMTP được khai trong ``odoo.conf``) hay bằng Zalo/mail tay thì
-        mốc vẫn phải nằm trong hệ thống, không thì không ai trả lời được "gửi
-        lâu chưa". Nút mail CỐ Ý không tự bật mốc này: trình soạn thư gửi ở một
-        bước sau, đóng cửa sổ là thư không đi.
-        """
+        """Nút [Gửi hỏi giá] trên đơn mua — đánh dấu đã gửi NCC và ghi mốc thời gian."""
         self.ensure_one()
         self._dlm_check_buyer()
         if self.state != "draft":
@@ -272,8 +237,7 @@ class DlPurchaseOrder(models.Model):
             raise UserError(_("Đơn %s không ở trạng thái chốt được.") % self.name)
         self._dlm_check_confirmable()
         if self.dlm_needs_approval:
-            # MH-07 — nút [Chốt đơn] đã ẩn ở view; đây là lá chắn tầng server
-            # cho mọi đường ghi khác (RPC, import, test).
+            # Nút [Chốt đơn] đã ẩn ở view; đây là lá chắn tầng server cho đường ghi khác.
             raise UserError(_(
                 "Đơn %(name)s vượt ngưỡng duyệt. Bấm [Trình duyệt] để gửi "
                 "Giám đốc.") % {"name": self.name})
@@ -289,12 +253,7 @@ class DlPurchaseOrder(models.Model):
         return picking._dlm_open_picking(picking, _("Phiếu nhận %s") % picking.name)
 
     def action_dlm_submit_approval(self):
-        """MH-07 — trình Giám đốc. Dùng lại HÒM DUYỆT sẵn có.
-
-        `dl.pricing.approval.request` vốn đã generic (`res_model`/`res_id` +
-        hook `_on_approval_approved`), nên CEO có MỘT hòm cho cả báo giá lẫn đơn
-        mua. Dựng hòm thứ hai là bắt người duyệt nhớ có hai chỗ phải xem.
-        """
+        """Nút [Trình duyệt] — gửi đơn vượt ngưỡng vào hòm duyệt chung của Giám đốc."""
         self.ensure_one()
         self._dlm_check_buyer()
         if self.state not in ("draft", "sent"):
@@ -327,10 +286,7 @@ class DlPurchaseOrder(models.Model):
         return True
 
     def _on_approval_rejected(self, request):
-        """Bị từ chối ⇒ về lại "Đã gửi hỏi giá" để Mua hàng thương lượng lại.
-
-        KHÔNG về Nháp: đơn đã gửi NCC rồi, quay về Nháp là xoá mất mốc đó.
-        """
+        """Giám đốc từ chối ⇒ đơn về lại "Đã gửi hỏi giá" (không về Nháp, giữ mốc đã gửi)."""
         self.ensure_one()
         if self.state != "to_approve":
             return True
@@ -338,11 +294,7 @@ class DlPurchaseOrder(models.Model):
         return True
 
     def action_dlm_cancel(self):
-        """MH-10/11 — huỷ đơn.
-
-        Đã có phiếu nhận ĐÃ xác nhận ⇒ chặn cứng: hàng nằm trong kho mà chứng từ
-        mua biến mất là một lỗ hổng đối soát, không phải một thao tác.
-        """
+        """Nút [Huỷ đơn] — chặn cứng nếu đã có phiếu nhận hoàn tất (hàng đã vào kho)."""
         self.ensure_one()
         self._dlm_check_buyer()
         done = self.dlm_picking_ids.filtered(lambda p: p.state == "done")
@@ -385,7 +337,7 @@ class DlPurchaseOrder(models.Model):
         return True
 
     def _dlm_check_lines(self):
-        """MH-01→04 — những thứ phải đúng trước khi tờ giấy đi ra khỏi công ty."""
+        """Kiểm dòng hợp lệ trước khi gửi NCC (có dòng, số lượng > 0, không phải phế liệu)."""
         self.ensure_one()
         if not self.line_ids:
             raise UserError(_(
@@ -404,7 +356,7 @@ class DlPurchaseOrder(models.Model):
         return True
 
     def _dlm_check_confirmable(self):
-        """MH-05/06/12 — điều kiện chốt giá."""
+        """Kiểm điều kiện chốt giá: đủ giá, có ngày hàng về, không trùng mặt hàng."""
         self.ensure_one()
         self._dlm_check_lines()
         no_price = self.line_ids.filtered(lambda l: l.price_unit <= 0)
@@ -436,11 +388,7 @@ class DlPurchaseOrder(models.Model):
     # Nối vào Kho
     # ------------------------------------------------------------------
     def _dlm_create_receipt(self):
-        """Phiếu [1] Nhận hàng NCC — từ đây LUỒNG CŨ chạy nguyên.
-
-        Không sửa gì trong luồng QC: hàng vẫn phải qua kiểm, vẫn tách Đạt/Loại,
-        vẫn sinh phiếu trả NCC nháp khi có hàng loại.
-        """
+        """Sinh phiếu [1] Nhận hàng NCC cho thủ kho — từ đây luồng kiểm hàng chạy như cũ."""
         self.ensure_one()
         warehouse = self.env["stock.warehouse"]._dlm_main_warehouse()
         picking_type = warehouse.in_type_id
@@ -484,17 +432,13 @@ class DlPurchaseOrderLine(models.Model):
         ondelete="cascade", index=True)
     product_id = fields.Many2one(
         "product.product", string="Mặt hàng", required=True,
-        # Chỉ hai loại Đại Linh MUA. Bán thành phẩm và hàng gia công là do mình
-        # làm ra — đặt NCC làm hộ là một nghiệp vụ khác (thầu phụ), chưa có.
+        # Chỉ hai loại Đại Linh MUA (vật tư, hàng thương mại) — BTP/hàng gia công là tự làm.
         domain=[("product_kind", "in", ("material", "trading")),
                 ("dlm_is_scrap", "=", False),
                 ("dlm_lifecycle_state", "!=", "obsolete")])
     qty = fields.Float(
         string="Số lượng", default=1.0, digits="Product Unit of Measure")
-    # 🔴 ĐVT là RELATED READONLY: quyết định Q1 của doc dữ liệu doanh nghiệp —
-    # đơn vị tính tiền = đơn vị mua của chính vật tư (Cây/Tấm/Cái/kg). NCC báo
-    # đ/kg cho thép khai theo Cây thì quy đổi MỘT LẦN lúc nhập giá, không phải
-    # đổi ĐVT của dòng.
+    # ĐVT related readonly: đơn vị tính tiền = đơn vị mua của vật tư (Cây/Tấm/Cái/kg).
     uom_id = fields.Many2one(
         "uom.uom", string="Đơn vị tính", related="product_id.uom_id", readonly=True)
     price_unit = fields.Float(
@@ -526,11 +470,7 @@ class DlPurchaseOrderLine(models.Model):
 
     @api.onchange("product_id")
     def _onchange_product_id(self):
-        """Điền sẵn giá từ bảng giá NCC đang áp dụng — GỢI Ý, không phải giá chốt.
-
-        Lấy đúng NCC của đơn nếu họ có bảng giá; không thì lấy bảng giá đang áp
-        dụng của mặt hàng để Mua hàng có mốc so.
-        """
+        """Chọn mặt hàng ⇒ điền sẵn giá gợi ý từ bảng giá NCC (không phải giá chốt)."""
         for line in self:
             if not line.product_id:
                 continue
@@ -539,10 +479,7 @@ class DlPurchaseOrderLine(models.Model):
                 base = seller._dlm_reference_unit_cost(line.product_id) \
                     if seller else line.product_id.standard_price
             except UserError:
-                # Bảng giá khai lệch tiền tệ/ĐVT thì `_dlm_reference_unit_cost`
-                # raise (đúng — nó là cổng chặn ÁP DỤNG giá). Nhưng ở đây nó chỉ
-                # là GỢI Ý: nổ lỗi là chặn Mua hàng thêm dòng vì một bản ghi
-                # không liên quan. Rơi về giá vốn tham chiếu và để họ tự gõ.
+                # Bảng giá lệch ĐVT/tiền tệ thì raise; ở đây chỉ là gợi ý nên rơi về giá vốn tham chiếu.
                 base = line.product_id.standard_price
             line.price_list_unit = base
             if not line.price_unit:

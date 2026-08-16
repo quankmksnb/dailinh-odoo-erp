@@ -1,16 +1,5 @@
 # -*- coding: utf-8 -*-
-"""K20/K22 — Đơn bán hàng nối vào Mua hàng.
-
-Hai việc, cùng một mối nối:
-
-  • **Thiếu hàng ⇒ đơn mua nháp** — ghi đè móc ``_dlm_dispatch_shortage`` mà
-    ``dl_inventory`` để sẵn. Đặt ở đây chứ không ở ``dl_inventory`` vì phân hệ
-    Kho không được biết gì về mua hàng: gỡ ``dl_purchase`` ra thì Kho vẫn phải
-    chạy nguyên.
-  • **Giá vốn vật tư THỰC TẾ theo FIFO** — đọc giá của chính những lô đã dùng.
-
-Thiết kế: ``docs/Thiet_ke_mua_hang_va_vong_cung_ung.md`` §4, §6.4.
-"""
+"""Đơn bán nối vào Mua hàng: thiếu hàng ⇒ đơn mua nháp, và giá vốn vật tư thực tế FIFO theo lô."""
 
 from markupsafe import Markup
 
@@ -47,14 +36,7 @@ class DlSaleOrderPurchase(models.Model):
     # Điều phối: phần THIẾU đi sang Mua hàng
     # ------------------------------------------------------------------
     def _dlm_dispatch_shortage(self, shortages):
-        """Gom phần thiếu thành đơn mua NHÁP, MỘT đơn cho MỖI nhà cung cấp.
-
-        Không đẻ model "đề nghị mua" (D-08, người dùng xác nhận U-2): đơn mua ở
-        trạng thái Nháp CHÍNH LÀ đề nghị mua.
-
-        Mặt hàng không có NCC nào ⇒ **không lên đơn** (MH-14) và phải nêu đích
-        danh: im lặng bỏ qua là Mua hàng không bao giờ biết cần mua món đó.
-        """
+        """Điều phối kho thiếu hàng ⇒ gom phần thiếu thành đơn mua nháp, một đơn mỗi NCC."""
         self.ensure_one()
         if not shortages:
             return []
@@ -88,11 +70,7 @@ class DlSaleOrderPurchase(models.Model):
         if orders:
             self._dlm_notify_buyers(orders)
         if khong_ncc:
-            # Không chặn điều phối — phần còn lại vẫn phải chạy. Nhưng phải NÓI,
-            # và nói vào HÒM VIỆC của Mua hàng chứ không chỉ chatter đơn bán:
-            # đây là ca DUY NHẤT thiếu hàng mà không sinh ra đơn mua nào, nên
-            # cũng là ca duy nhất không có activity nào — im lặng đúng chỗ nguy
-            # hiểm nhất. Chatter đơn bán thì Mua hàng không có lý do gì để mở.
+            # Không chặn điều phối, nhưng phải báo vào hòm việc Mua hàng — ca này không sinh đơn mua nào.
             self._dlm_notify_missing_seller(khong_ncc)
             labels.append(_(
                 "⚠ chưa có nhà cung cấp cho: %s (không lên được đơn mua)"
@@ -100,12 +78,7 @@ class DlSaleOrderPurchase(models.Model):
         return labels
 
     def _dlm_best_seller(self, product):
-        """NCC dùng cho nhu cầu này — DP-17.
-
-        Chỉ lấy bảng giá ĐANG ÁP DỤNG (`is_applied`, kéo theo đã duyệt). Nhiều
-        hơn một thì lấy giá thấp nhất — chọn bừa là Mua hàng phải sửa tay mọi
-        đơn, mà sửa tay thì họ sẽ thôi dùng nút này.
-        """
+        """Chọn NCC cho nhu cầu này: bảng giá đang áp dụng, nhiều hơn một thì lấy giá thấp nhất."""
         self.ensure_one()
         sellers = product.sudo().seller_ids.filtered(
             lambda s: s.is_applied and s.partner_id)
@@ -118,8 +91,7 @@ class DlSaleOrderPurchase(models.Model):
         try:
             return seller._dlm_reference_unit_cost(product)
         except Exception:  # noqa: BLE001 — bảng giá lệch ĐVT/tiền tệ
-            # Không được làm hỏng cả lượt điều phối vì một bảng giá khai sai;
-            # Mua hàng sẽ thấy dòng giá 0 và phải gõ giá trước khi chốt (MH-05).
+            # Không làm hỏng cả lượt điều phối vì một bảng giá sai; Mua hàng thấy giá 0 và phải gõ lại.
             return 0.0
 
     def _dlm_buyer_users(self):
@@ -131,18 +103,7 @@ class DlSaleOrderPurchase(models.Model):
         return group.users.filtered(lambda u: u.active and not u.share)
 
     def _dlm_notify_buyers(self, orders):
-        """Giao việc cho Mua hàng — không để đơn nháp nằm chờ ai đó tình cờ mở màn.
-
-        🔴 Đây LÀ đường gửi email, không chỉ là việc trong app: Odoo
-        ``mail.activity.create`` gọi ``action_notify()`` →
-        ``record.message_notify(...)`` ⇒ mỗi activity giao cho người khác là một
-        email thật gửi đi. Nên NỘI DUNG ở đây chính là nội dung lá thư Mua hàng
-        nhận được — người dùng chốt 2026-08-14 rằng báo phải TỰ ĐỘNG, không qua
-        một nút phải nhớ bấm.
-
-        Vì vậy note phải LIỆT KÊ vật tư + số lượng, không chỉ nêu tên đơn mua:
-        đọc thư xong là biết phải đi hỏi giá cái gì, không phải mở đơn ra đếm.
-        """
+        """Giao việc mua hàng cho nhóm Mua hàng qua activity (chính là email tự động)."""
         self.ensure_one()
         users = self._dlm_buyer_users()
         for order in orders:
@@ -155,12 +116,7 @@ class DlSaleOrderPurchase(models.Model):
         return True
 
     def _dlm_buyer_note(self, order):
-        """Thân việc/thư cho MỘT đơn mua nháp.
-
-        🔴 CỐ Ý KHÔNG CÓ GIÁ. Giá trên đơn nháp mới là giá bảng, còn phải hỏi
-        lại NCC; đưa nó vào thư là tự chốt hộ mức trước khi đàm phán — cùng luật
-        với biên bản hàng không đạt của K17.
-        """
+        """Thân thư/việc cho một đơn mua nháp — liệt kê vật tư + số lượng, CỐ Ý không có giá."""
         self.ensure_one()
         dong = "".join(
             "<li>%s — <strong>%s %s</strong></li>" % (
@@ -181,12 +137,7 @@ class DlSaleOrderPurchase(models.Model):
             })
 
     def _dlm_notify_missing_seller(self, products):
-        """Giao việc cho ca KHÔNG sinh được đơn mua — gắn lên chính đơn bán.
-
-        Không có đơn mua để gắn thì gắn lên đơn bán: Mua hàng đọc được
-        ``dl.sale.order`` (ACL 1,0,0,0) nên mở được từ hòm việc. sudo vì người
-        bấm điều phối là Thủ kho, họ không ghi được lên đơn bán.
-        """
+        """Báo Mua hàng ca thiếu vật tư CHƯA có NCC (không sinh được đơn mua) — gắn lên đơn bán."""
         self.ensure_one()
         note = Markup(
             "<p>Điều phối kho đơn bán <strong>%(don)s</strong> thiếu những thứ "
@@ -221,13 +172,7 @@ class DlSaleOrderPurchase(models.Model):
             order.dlm_cost_detail_html = order._dlm_cost_table(rows)
 
     def _dlm_actual_cost_rows(self):
-        """Vật tư ĐÃ TIÊU THỤ cho đơn này, tính theo giá của chính lô đã lấy.
-
-        🔴 Đọc dòng ``consume`` của phiếu [8] Nhập kho từ xưởng — đó là nơi vật
-        tư THẬT SỰ rời sổ. Phiếu cấp vật tư ra xưởng chỉ là **bàn giao**: thép
-        bàn giao thừa vẫn trả lại kho được, nên tính tiền ở đó là tính cả phần
-        chưa dùng.
-        """
+        """Vật tư đã tiêu thụ cho đơn (dòng consume của phiếu [8]), tính theo giá lô đã lấy."""
         self.ensure_one()
         rows = []
         moves = self.env["stock.move"].sudo().search([

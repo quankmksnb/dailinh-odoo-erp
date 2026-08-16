@@ -1,10 +1,8 @@
 /** @odoo-module **/
 // ============================================================
-//  DL Quote Approval List — kế thừa DlListBaseController (khung chung).
-//  Đăng ký view js_class="dl_quote_approval_list" (quote_approval_views.xml).
-//  Phần RIÊNG: chip lọc theo trạng thái yêu cầu duyệt có số đếm (Tất cả ·
-//  Chờ duyệt · Đã duyệt · Từ chối · Đã hủy). Chip bật/tắt filter sẵn trong
-//  search view nên đồng bộ với bộ lọc gốc của Odoo.
+//  Danh sách Phê duyệt báo giá — chip lọc theo trạng thái + ô tổng giá trị
+//  đang chờ. Gắn bằng js_class="dl_quote_approval_list" (quote_approval_views
+//  .xml). Chip chỉ bật/tắt <filter> sẵn trong search view.
 // ============================================================
 
 import { registry } from "@web/core/registry";
@@ -25,9 +23,9 @@ const STATE_KEYS = ["pending", "approved", "rejected", "cancelled"];
 export class DlQuoteApprovalListController extends DlListBaseController {
     setup() {
         super.setup();
-        // Tổng giá trị hàng chờ theo bộ lọc hiện tại (review UX inbox #f3).
-        // q_amount_total là related non-stored → readGroup không sum được; đọc
-        // qua searchRead trên đúng domain rồi cộng ở client (hàng chờ duyệt nhỏ).
+        // Ô tổng giá trị đang chờ theo bộ lọc hiện tại.
+        // q_amount_total là related non-stored nên readGroup không cộng được;
+        // đọc bằng searchRead trên đúng domain rồi cộng ở client (hàng chờ nhỏ).
         useEffect(
             () => {
                 this._refreshQueueTotal();
@@ -77,8 +75,8 @@ export class DlQuoteApprovalListController extends DlListBaseController {
             }
         }
         amt.textContent = this.dlAmountText || "";
-        // Màn có chipbar nên base ẩn số đếm; nhưng footer vẫn phải hiện để show
-        // ô "Tổng giá trị chờ" — bật lại tường minh.
+        // Khung chung ẩn chân danh sách khi có chipbar; ở đây vẫn cần chân để
+        // hiện ô "Tổng giá trị chờ" — bật lại.
         footer.style.display = "";
     }
 
@@ -91,7 +89,7 @@ export class DlQuoteApprovalListController extends DlListBaseController {
     }
 
     async _loadCounts() {
-        // Chỉ đếm yêu cầu duyệt BÁO GIÁ — khớp domain của action màn này.
+        // Chỉ đếm yêu cầu duyệt BÁO GIÁ, khớp domain của action màn này.
         const groups = await this.orm.readGroup(
             "dl.pricing.approval.request",
             [["request_type", "=", "quote_over_threshold"]],
@@ -120,7 +118,7 @@ export class DlQuoteApprovalListController extends DlListBaseController {
         return active ? active.name : "all";
     }
 
-    // Single-select: tắt hết filter trạng thái rồi bật 1
+    // Bấm chip: tắt hết filter trạng thái rồi bật 1.
     _selectChip(key) {
         const sm = this.env.searchModel;
         const items = this._stateFilters();

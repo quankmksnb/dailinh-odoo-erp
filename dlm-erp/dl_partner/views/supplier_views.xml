@@ -126,8 +126,12 @@
 
                     <group>
                         <group string="Thông tin liên hệ">
-                            <field name="phone" string="Điện thoại"/>
-                            <field name="mobile" string="Di động"/>
+                            <!-- NCC Cá nhân bắt buộc có số điện thoại, Điện thoại
+                                 hoặc Di động đều được. -->
+                            <field name="phone" string="Điện thoại"
+                                required="partner_type == 'individual' and not mobile"/>
+                            <field name="mobile" string="Di động"
+                                required="partner_type == 'individual' and not phone"/>
                             <field name="email"/>
                             <field name="website" string="Trang web"/>
                             <field name="vat" string="Mã số thuế"

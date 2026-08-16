@@ -1,43 +1,11 @@
 # -*- coding: utf-8 -*-
-"""K16 — Kiểm tra kho & Điều phối đơn bán hàng.
-
-Thiết kế: ``docs/Thiet_ke_luong_sau_don_hang_check_kho_dieu_phoi.md`` §3
-và ``docs/Thiet_ke_mua_hang_va_vong_cung_ung.md`` §3.
-
-Trước bản này, đường duy nhất từ đơn bán sang kho là bấm tay [Tạo phiếu giao] —
-bất kể kho có gì. Đơn hàng gia công thì còn không có đường nào cả: không ai từng
-hỏi BOM "làm 10 cái thì cần bao nhiêu thép".
-
-🔴 **LỆCH DOC CÓ CHỦ Ý — không tạo loại hoạt động [10] `XVT`.** Doc B1.5 §3.5 đề
-xuất một loại phiếu mới cho việc "xuất vật tư ra xưởng". Nhưng phiếu **Chuyển
-kho nội bộ** (`CK`) đi tuyến ``Kho nguyên vật liệu → Xưởng sản xuất`` đã có sẵn
-TẤT CẢ những gì loại mới cần:
-
-  • hai chữ ký thủ kho → Kỹ thuật (K15) — chặn cứng ở ``button_validate``;
-  • bảng đối chiếu "định mức BOM / đã cấp / cộng dồn" khi phiếu gắn đơn (K16);
-  • cờ "Cấp bổ sung ngoài định mức" + lý do bắt buộc;
-  • ``dlm_sale_order_id``, form riêng, luật khu, guard nguồn/đích.
-
-Thêm loại thứ 10 là chép lại bốn thứ đó để chúng lệch nhau về sau, và bắt thủ
-kho học một chứng từ mới cho đúng việc họ đang làm. Cái doc thật sự đòi là **tách
-BÀN GIAO khỏi TIÊU THỤ** (D-04) — điều đó đã đúng sẵn: bàn giao là `CK`, tiêu thụ
-là dòng ``consume`` của phiếu [8].
-
-Ba chỗ **không** làm ở đây, cố ý:
-  • Không lưu kết quả kiểm kho. Một bảng ghi "đã kiểm, kết quả đủ" chính là con
-    số cũ đúng vào lúc nó bắt đầu sai (D-01/D-02).
-  • Không tự phân bổ hàng về đơn khi hàng NCC về. Ai điều phối trước thì giữ chỗ
-    trước — chỉ con người biết đơn nào gấp (§4.4 doc Mua hàng).
-  • Không tự nhả chỗ giữ vì quá hạn. Chỗ giữ là cam kết với khách.
-"""
+"""Kiểm tra kho & Điều phối đơn bán hàng: tính sống nhu cầu hàng/vật tư rồi sinh chứng từ trong 1 lần bấm."""
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.float_utils import float_compare, float_round
 
-# U-4 (người dùng chốt 2026-08-14) — Thủ kho là CHỦ SỞ HỮU bước điều phối: họ là
-# người biết hàng thật. Sales/Trưởng KD chỉ XEM (chip + dải trên form đơn).
-# Hai lối vào mà không ai chịu trách nhiệm ⇒ đơn nằm chờ vì "tưởng bên kia làm".
+# Thủ kho là CHỦ điều phối (biết hàng thật); Sales/Trưởng KD chỉ XEM. CEO/Admin dự phòng.
 _DLM_DISPATCH_ROLES = (
     "dl_base.dl_group_warehouse",
     "dl_base.dl_group_admin",
@@ -75,9 +43,7 @@ class DlSaleOrderDispatch(models.Model):
     # ------------------------------------------------------------------
     # Trạng thái điều phối — CHỈ depends vào chứng từ
     # ------------------------------------------------------------------
-    # 🔴 Tuyệt đối không depends `stock.quant`: mỗi lần bất kỳ phiếu kho nào
-    # validate là recompute mọi đơn ⇒ hệ thống bò. Câu hỏi "còn thiếu vật tư
-    # không" chỉ được hỏi trên FORM (§9.1 doc B1.5).
+    # Tuyệt đối không depends stock.quant: mỗi phiếu validate là recompute mọi đơn ⇒ hệ thống bò.
     @api.depends("state", "line_ids.qty", "line_ids.product_id",
                  "dlm_picking_ids.state",
                  "dlm_picking_ids.picking_type_id",
@@ -102,17 +68,7 @@ class DlSaleOrderDispatch(models.Model):
     # Bước 1 — KIỂM TRA KHO (tính sống, không ghi gì)
     # ------------------------------------------------------------------
     def _dlm_supply_check(self):
-        """Bảng cung ứng của đơn — ba nhánh hàng, ba câu hỏi khác nhau.
-
-        Trả về dict:
-          ``goods``     [{product, need, ready, to_make, kind}] theo mặt hàng bán
-          ``materials`` [{product, need, available, missing}] nhu cầu vật tư gộp
-          ``blocking``  [câu chặn] — có cái nào thì KHÔNG điều phối được
-          ``warnings``  [câu cảnh báo mềm]
-
-        🔴 Khả dụng đọc tại ĐÚNG khu mà phiếu sẽ lấy hàng, không dùng
-        ``product.free_qty`` — nó cộng cả hàng chưa qua QC ở khu Chờ kiểm.
-        """
+        """Bảng cung ứng của đơn (hàng bán + vật tư + câu chặn/cảnh báo); khả dụng đọc tại đúng khu phiếu sẽ lấy."""
         self.ensure_one()
         Quant = self.env["stock.quant"]
         Location = self.env["stock.location"]
@@ -124,17 +80,14 @@ class DlSaleOrderDispatch(models.Model):
                   "actionable": False}
         remaining = self._dlm_remaining_qty()
         material_need = {}
-        # Sổ hàng đã hứa trong CHÍNH lần kiểm này: hai dòng cùng mặt hàng không
-        # được cùng nhìn thấy một lô thành phẩm rồi cùng báo "đủ".
+        # Sổ hàng đã hứa trong lần kiểm này: 2 dòng cùng mặt hàng không cùng thấy 1 lô rồi cùng báo "đủ".
         taken = {}
 
         for product, qty in remaining.items():
             line = self._dlm_line_for(product)
             made_to_order = product.detailed_type == "consu"
             if made_to_order:
-                # DP-10 — Hạng A không có tồn và KHÔNG được hỏi tồn. Ghi "không
-                # tính", không ghi "Tồn: 0": báo hết hàng cho hàng đặt riêng là
-                # dạy người dùng bỏ qua cảnh báo.
+                # Hàng đặt riêng (Hạng A) không có tồn và không hỏi tồn — ghi "không tính", không ghi "Tồn 0".
                 ready = 0.0
             else:
                 free = Quant._dlm_available_qty(product, loc_tp)
@@ -170,11 +123,7 @@ class DlSaleOrderDispatch(models.Model):
                 "missing": max(0.0, outstanding - available),
             })
 
-        # 🔴 "Còn việc để làm" KHÔNG bằng "còn dòng hàng chưa giao". Đơn gia
-        # công đã cấp đủ vật tư vẫn còn nguyên dòng hàng chưa giao — hàng đang
-        # nằm ở xưởng. Nếu lấy `goods` rỗng làm điều kiện thì nút Điều phối ở
-        # lại vĩnh viễn, bấm thì không sinh gì, và người dùng học được rằng nút
-        # của hệ thống này bấm cũng chẳng sao.
+        # "Còn việc để làm" ≠ "còn dòng chưa giao": đơn gia công đã cấp đủ vật tư vẫn còn dòng chưa giao.
         result["actionable"] = bool(
             any(row["ready"] > 0 for row in result["goods"])
             or result["materials"])
@@ -182,23 +131,13 @@ class DlSaleOrderDispatch(models.Model):
 
     def _dlm_collect_needs(self, line, product, qty, material_need, location,
                            result):
-        """Phần PHẢI LÀM của một mặt hàng biến thành nhu cầu gì.
-
-        Hàng thương mại không có BOM ⇒ thứ phải mua chính là **mặt hàng đó**
-        (U-5). Bỏ nhánh này là bỏ gần một nửa doanh thu của Đại Linh ra ngoài
-        hệ thống — xem ``docs/Thiet_ke_mua_hang_va_vong_cung_ung.md`` §3.3.
-        """
+        """Phần phải làm của mặt hàng → nhu cầu vật tư (hàng thương mại không BOM ⇒ mua chính nó)."""
         self.ensure_one()
-        # 🔴 `sudo()` NGAY TỪ ĐÂY, không phải chỉ ở lời gọi nổ BOM. Thủ kho
-        # không có quyền đọc `dl.bom` (định mức là tài sản của Kỹ thuật) — đọc
-        # `bom.status` ở dòng dưới mà quên sudo là ném AccessError vào giữa màn
-        # Điều phối. Chỉ số LƯỢNG đi ra khỏi đây; không field tiền nào bị chạm,
-        # đúng khuôn `stock_picking._dlm_bom_required_qty` đã dùng.
+        # sudo ngay từ đây: Thủ kho không có quyền đọc dl.bom; chỉ số LƯỢNG đi ra, không chạm field tiền.
         bom = line.bom_id.sudo() if line else False
         if not bom:
             if line and line.line_type == "manufactured":
-                # DP-03 — dòng gia công thiếu BOM: không tính được nhu cầu, mà
-                # điều phối vẫn "chạy" ⇒ kết quả sai trông như đúng.
+                # Dòng gia công thiếu BOM: không tính được nhu cầu ⇒ chặn cứng.
                 result["blocking"].append(_(
                     "Dòng gia công \"%s\" chưa gắn định mức (BOM) — không tính "
                     "được cần bao nhiêu vật tư."
@@ -209,7 +148,7 @@ class DlSaleOrderDispatch(models.Model):
             return
 
         if bom.status not in ("confirmed", "locked"):
-            # DP-06 — cảnh báo MỀM. Chặn cứng là chặn cả ca hợp lệ.
+            # Cảnh báo MỀM: chặn cứng là chặn cả ca hợp lệ.
             result["warnings"].append(_(
                 "Định mức của \"%s\" chưa được khoá — nhu cầu vật tư có thể "
                 "còn đổi."
@@ -244,11 +183,7 @@ class DlSaleOrderDispatch(models.Model):
             lambda l: l.product_id == product)[:1]
 
     def _dlm_material_planned_qty(self):
-        """{vật tư: số đã nằm trên phiếu cấp vật tư chưa xong của đơn này}.
-
-        Không trừ phần này thì bấm điều phối lần hai là giữ chỗ gấp đôi — cùng
-        cái bẫy mà ``_dlm_planned_qty`` đã phải xử ở nhánh giao hàng.
-        """
+        """{vật tư: số đã trên phiếu cấp chưa xong của đơn} — trừ để bấm điều phối lần 2 không giữ chỗ gấp đôi."""
         self.ensure_one()
         planned = {}
         for picking in self._dlm_material_pickings().filtered(
@@ -281,10 +216,7 @@ class DlSaleOrderDispatch(models.Model):
             try:
                 check = order._dlm_supply_check()
             except UserError as err:
-                # 🔴 Định mức vòng lặp (DP-07) làm hàm nổ BOM raise. Trong một
-                # computed field thì raise = CHẾT CẢ FORM, kể cả với Sales —
-                # người không sửa được BOM và cũng không hiểu lỗi. Biến nó thành
-                # dải đỏ đọc được; chặn thật vẫn nằm ở action.
+                # BOM vòng lặp raise; trong computed field raise = chết cả form ⇒ biến thành dải đỏ đọc được.
                 order.dlm_supply_html = False
                 order.dlm_supply_summary = err.args[0] if err.args else _(
                     "Không tính được nhu cầu vật tư.")
@@ -300,17 +232,11 @@ class DlSaleOrderDispatch(models.Model):
                 else "ok")
 
     def _dlm_supply_sentence(self, check):
-        """Một câu nói được tình hình — dải trên cùng đọc câu này.
-
-        Nêu SỐ và TÊN, không chỉ "thiếu vật tư": người đọc phải biết đi mua gì
-        mà không cần mở bảng.
-        """
+        """Một câu tóm tắt tình hình cung ứng (nêu số + tên) — dải trên cùng đọc câu này."""
         if check["blocking"]:
             return check["blocking"][0]
         if not check["actionable"]:
-            # Hai ca rất khác nhau, và người dùng cần phân biệt: đơn đã xong
-            # hẳn, hay đơn đang nằm ở xưởng chờ làm. Nói nhầm ca thứ hai thành
-            # "xong rồi" là đóng đơn trong đầu người đọc.
+            # Phân biệt: đơn đã xong hẳn vs đơn đang nằm ở xưởng chờ làm.
             if check["goods"]:
                 return _(
                     "Đã điều phối xong phần kho làm được — %s mặt hàng đang "
@@ -333,12 +259,7 @@ class DlSaleOrderDispatch(models.Model):
         return " · ".join(parts)
 
     def _dlm_supply_table(self, check):
-        """Bảng HTML hai phần: mặt hàng bán và vật tư.
-
-        Dùng HTML computed thay vì component OWL — cùng khuôn
-        ``stock_picking._dlm_build_bom_hint`` đang chạy, nên thừa hưởng luôn
-        style bảng của Odoo và không phải nuôi thêm asset nào.
-        """
+        """Bảng HTML hai phần (mặt hàng bán + vật tư) — dùng HTML computed thay component OWL."""
         self.ensure_one()
         if not check["goods"] and not check["materials"]:
             return False
@@ -347,8 +268,7 @@ class DlSaleOrderDispatch(models.Model):
             rows = []
             for row in check["goods"]:
                 if row["made_to_order"]:
-                    # DP-10 — không ghi "0", ghi lý do. Để chữ MỜ: nó nằm giữa
-                    # một cột toàn số, cùng sắc độ là mắt đọc nhầm thành số.
+                    # Hàng đặt riêng: ghi lý do (chữ mờ), không ghi "0" giữa cột số.
                     san_sang = "<span class='text-muted'>%s</span>" % _(
                         "hàng đặt riêng")
                 else:
@@ -368,11 +288,7 @@ class DlSaleOrderDispatch(models.Model):
             rows = []
             for row in check["materials"]:
                 thieu = row["missing"]
-                # Không chỉ tô màu: dòng thiếu phải NÓI ra bằng chữ — bảng in ra
-                # giấy hoặc người mù màu vẫn phải phân biệt được.
-                # Dòng đã tô nền vàng rồi ⇒ KHÔNG chồng thêm một badge vàng
-                # nữa: hai lớp cùng màu thì lớp nào cũng hết nghĩa. Chữ đậm
-                # tương phản là đủ để mắt bắt được, và vẫn đọc ra chữ.
+                # Dòng thiếu nói bằng chữ (in giấy/mù màu vẫn đọc được); không chồng badge vàng lên nền vàng.
                 danh_gia = (
                     "<span class='fw-semibold text-danger'>%s</span>" % (
                         _("thiếu %s") % _dlm_num(thieu)) if thieu > 0
@@ -392,11 +308,7 @@ class DlSaleOrderDispatch(models.Model):
     # Bước 2 — ĐIỀU PHỐI: một nút, N chứng từ, cùng một transaction
     # ------------------------------------------------------------------
     def action_dlm_dispatch(self):
-        """Sinh mọi chứng từ mà đơn này cần, trong MỘT lần bấm.
-
-        Hợp đồng: có lỗi chặn ⇒ raise và KHÔNG sinh chứng từ nào. Tính lại bảng
-        kiểm SỐNG (DP-15) — không tin con số của lần mở màn trước.
-        """
+        """Nút Điều phối: sinh mọi chứng từ đơn cần trong 1 lần bấm (có lỗi chặn ⇒ raise, không sinh gì)."""
         self.ensure_one()
         self._dlm_check_dispatch_allowed()
         check = self._dlm_supply_check()
@@ -406,7 +318,7 @@ class DlSaleOrderDispatch(models.Model):
             ) % {"order": self.name,
                  "problems": "\n".join("• " + p for p in check["blocking"])})
         if not check["actionable"]:
-            # DP-08 — bấm hai lần là giữ chỗ gấp đôi.
+            # Bấm hai lần là giữ chỗ gấp đôi.
             raise UserError(_(
                 "Đơn %(order)s không còn gì để điều phối.\n\n%(detail)s"
             ) % {"order": self.name,
@@ -423,11 +335,7 @@ class DlSaleOrderDispatch(models.Model):
         for label in self._dlm_dispatch_shortage(shortages):
             created.append(label)
 
-        # sudo khi ghi chatter: Thủ kho chỉ có quyền ĐỌC `dl.sale.order` (ACL
-        # 1,0,0,0) nên `mail.message create` bị chặn — và một dòng nhật ký
-        # không được phép làm hỏng cả lượt điều phối đã sinh chứng từ thật.
-        # `author_id` truyền tường minh để vết còn ghi ĐÚNG người bấm, không
-        # phải OdooBot. Cùng khuôn `_notify_approvers` của dl_config.
+        # sudo ghi chatter: Thủ kho chỉ ĐỌC dl.sale.order; author_id tường minh để vết ghi đúng người bấm.
         self.sudo().message_post(
             body=_("Điều phối: đã sinh %(what)s.") % {
                 "what": ", ".join(created) if created else _("không có gì")},
@@ -457,12 +365,7 @@ class DlSaleOrderDispatch(models.Model):
         return True
 
     def _dlm_dispatch_delivery(self, check):
-        """Phiếu giao cho phần thành phẩm lấy được NGAY.
-
-        🔴 Chỉ phần khả dụng, không phải cả dòng đơn. Phiếu giao cho hàng chưa
-        tồn tại sẽ treo mãi trong hàng đợi thủ kho — đúng lý do K6 cố ý không
-        tự sinh phiếu giao lúc chốt đơn.
-        """
+        """Phiếu giao cho phần thành phẩm lấy được NGAY (chỉ phần khả dụng, không cả dòng đơn)."""
         self.ensure_one()
         ready = {row["product"]: row["ready"] for row in check["goods"]
                  if row["ready"] > 0}
@@ -493,22 +396,9 @@ class DlSaleOrderDispatch(models.Model):
         return picking
 
     def _dlm_dispatch_material_issue(self, check):
-        """MỘT phiếu cấp vật tư cho CẢ đơn — không phải mỗi dòng một phiếu.
-
-        Hai dòng gia công của cùng một đơn hay ăn chung thép hộp 30×60; tách hai
-        phiếu thì mỗi phiếu tự thấy "đủ" trong khi cộng lại thì thiếu.
-
-        Đưa nguyên nhu cầu lên phiếu (kể cả phần đang thiếu) rồi để
-        ``action_assign`` giữ được bao nhiêu hay bấy nhiêu: chờ mua đủ mới giữ
-        chỗ là để đơn khác bốc mất phần đang có.
-        """
+        """MỘT phiếu cấp vật tư cho cả đơn; đưa nguyên nhu cầu lên rồi để action_assign giữ được bao nhiêu hay bấy nhiêu."""
         self.ensure_one()
-        # 🔴 CHỈ thứ xưởng thật sự dùng được. Hàng THƯƠNG MẠI cũng nằm trong
-        # `check["materials"]` (nó là thứ phải mua khi thiếu — U-5), nhưng nó
-        # không có việc gì ở xưởng: mua về là bán thẳng. Đẩy nó lên phiếu ra
-        # Xưởng thì luật khu chặn đúng (`_DLM_WORKSHOP_KINDS` không có
-        # 'trading') và cả lượt điều phối chết — kéo theo cả nhánh gia công
-        # hợp lệ trong cùng đơn.
+        # Chỉ thứ xưởng dùng được: hàng thương mại tuy phải mua nhưng không ra Xưởng (luật khu chặn).
         needs = {row["product"]: row["need"] for row in check["materials"]
                  if row["product"].product_kind in
                  ("material", "material_processed")}
@@ -541,14 +431,7 @@ class DlSaleOrderDispatch(models.Model):
         return picking
 
     def _dlm_dispatch_shortage(self, shortages):
-        """Móc nối cho phần THIẾU — mặc định không làm gì.
-
-        ``dl_inventory`` không biết gì về mua hàng, và không được biết: gỡ
-        ``dl_purchase`` ra thì phân hệ Kho vẫn phải chạy. Module Mua hàng ghi đè
-        hàm này để sinh đơn mua nháp (xem ``dl_purchase``).
-
-        Trả về danh sách nhãn để ghi vào chatter.
-        """
+        """Móc nối cho phần THIẾU — mặc định không làm gì; dl_purchase ghi đè để sinh đơn mua nháp."""
         self.ensure_one()
         return []
 
@@ -567,16 +450,7 @@ def _dlm_num(value):
 
 
 def _dlm_table(columns, rows, css):
-    """``columns`` = [(nhãn, lớp căn lề)]; ``rows`` = [(lớp dòng, [ô])].
-
-    🔴 Ô và ĐẦU CỘT dùng CHUNG một lớp căn lề — trước bản này đầu cột luôn căn
-    trái trong khi ô số căn phải, nên đọc một cột là mắt phải nhảy qua lại giữa
-    hai mép của chính nó. Ràng hai thứ vào một chỗ khai thì không lệch lại được.
-
-    Bề rộng cột khai ở SCSS (``.dl-supply-*``, cùng khuôn mọi bảng khác của
-    module) — cố ý để BA CỘT SỐ CUỐI của hai bảng trùng mép nhau, đọc dọc là so
-    được "cần giao" với "cần" mà không phải căn lại từng bảng.
-    """
+    """columns = [(nhãn, lớp căn lề)]; rows = [(lớp dòng, [ô])] — ô và đầu cột dùng CHUNG lớp căn lề."""
     head = "".join(
         "<th class='%s'>%s</th>" % (align, label) for label, align in columns)
     body = "".join(

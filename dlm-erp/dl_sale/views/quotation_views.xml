@@ -23,9 +23,9 @@
                        decoration-success="state in ('accepted', 'ordered')"
                        decoration-danger="state in ('rejected', 'expired')"
                        decoration-muted="state in ('cancelled', 'superseded')"/>
-                <!-- Tín hiệu "kẹt ở khâu duyệt" cho Sales (review UX list #f2) —
-                     ẩn mặc định để không nhiễu (đa số 'Không cần duyệt'); bật cột
-                     qua nút optional khi cần theo dõi hàng chờ duyệt. -->
+                <!-- Cột trạng thái duyệt cho Sales — ẩn mặc định vì đa số báo
+                     giá không cần duyệt; bật qua nút cột tuỳ chọn khi cần theo
+                     dõi hàng chờ duyệt. -->
                 <field name="approval_state" string="Duyệt" widget="badge" optional="hide"
                        decoration-warning="approval_state == 'pending'"
                        decoration-success="approval_state == 'approved'"
@@ -64,8 +64,8 @@
                     <button name="action_create_sale_order" string="Tạo đơn bán hàng"
                             type="object" class="btn-primary"
                             invisible="state != 'accepted'"/>
-                    <!-- RV-08 — khách đổi ý trước khi lên đơn: rút lại đồng ý,
-                         đưa báo giá về Đã gửi khách để mở lại các nhánh. -->
+                    <!-- Khách đổi ý trước khi lên đơn: rút lại đồng ý, đưa báo
+                         giá về Đã gửi khách để mở lại các nhánh phản hồi. -->
                     <button name="action_customer_withdraw" string="Khách rút đồng ý"
                             type="object" class="btn-secondary"
                             invisible="state != 'accepted'"
@@ -98,9 +98,8 @@
                     <button name="action_reset_draft" string="Về nháp"
                             type="object" class="btn-link"
                             invisible="state not in ('approved', 'sent', 'revision_requested', 'rejected', 'expired')"/>
-                    <!-- RV-02 — Đầu ra cho khách: xuất Word/PDF (chỉ giá bán)
-                         rồi tải về hoặc gửi email (đọc lại trước khi gửi).
-                         Thuần Python, không cần wkhtmltopdf. -->
+                    <!-- Xuất file gửi khách: Word/PDF chỉ có giá bán, rồi tải
+                         về hoặc gửi email (đọc lại trước khi gửi). -->
                     <button name="action_open_export_wizard" string="Xuất / Gửi báo giá"
                             type="object" class="btn-secondary"
                             invisible="not line_ids"/>
@@ -127,10 +126,9 @@
                     <field name="approval_state" invisible="1"/>
                     <field name="origin_quotation_id" invisible="1"/>
                     <field name="revision" invisible="1"/>
-                    <!-- MỘT dải trạng thái ngữ cảnh duy nhất (gộp >10 alert cũ,
-                         review UX #f2). Mức + nội dung do model tính
-                         (_compute_status_banner) → mỗi trạng thái chỉ hiện đúng
-                         một dải, không còn chồng lớp. -->
+                    <!-- Chỉ MỘT dải thông báo trạng thái. Màu + nội dung do
+                         model chọn sẵn (_compute_status_banner); view chỉ in ra
+                         đúng dải khớp với mức màu. -->
                     <field name="status_banner_level" invisible="1"/>
                     <div class="alert alert-info" role="alert"
                          invisible="status_banner_level != 'info'">
@@ -182,8 +180,8 @@
                             <field name="pricing_date" nolabel="1" readonly="1"/>
                         </div>
                     </div>
-                    <!-- RV-09 — cảnh báo mềm khi khách thiếu MST/địa chỉ (chỉ
-                         nhắc lúc còn Nháp/Đã duyệt, không chặn gửi). -->
+                    <!-- Nhắc mềm khi khách thiếu MST/địa chỉ (chỉ hiện lúc còn
+                         Nháp/Đã duyệt, không chặn gửi). -->
                     <div class="alert alert-warning" role="alert"
                          invisible="state not in ('draft', 'approved') or not customer_data_warning">
                         <field name="customer_data_warning" nolabel="1" readonly="1"/>
@@ -211,10 +209,10 @@
                                     <field name="price_subtotal" readonly="1" widget="dl_money" digits="[16, 0]"/>
                                 </tree>
                             </field>
-                            <!-- Khoảng chiết khấu cho phép theo nhóm khách + trạng
-                                 thái hợp lệ: gộp 3 alert cũ thành MỘT helper ngắn
-                                 ngay dưới ô nhập (review UX #f3). Mức + nội dung do
-                                 model tính (_compute_discount_hint). -->
+                            <!-- Dòng gợi ý nhỏ dưới ô Chiết khấu: khoảng cho
+                                 phép theo nhóm khách + đổi màu theo con số vừa
+                                 gõ. Màu + nội dung do model tính
+                                 (_compute_discount_hint). -->
                             <field name="discount_hint_level" invisible="1"/>
                             <div class="dl-fields-row">
                                 <div class="dl-field">
@@ -362,9 +360,9 @@
                             <field name="cost_breakdown_html" nolabel="1" readonly="1"/>
                         </page>
                         <page string="Điều khoản &amp; Ghi chú">
-                            <!-- RV-09 — điều khoản thương mại đưa vào bản gửi
-                                 khách (PDF/Word). Văn bản mô tả, không ảnh hưởng
-                                 giá nên để sửa tới khi lên đơn. -->
+                            <!-- Điều khoản in vào file gửi khách (PDF/Word).
+                                 Chỉ là văn bản, không ảnh hưởng giá nên cho sửa
+                                 tới khi lên đơn. -->
                             <group>
                                 <group string="Điều khoản gửi khách">
                                     <field name="payment_terms"

@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
-"""K19/K20 — Phiếu nhận hàng biết mình đến từ đơn mua nào, và đóng giá lên lô.
-
-Thiết kế: ``docs/Thiet_ke_mua_hang_va_vong_cung_ung.md`` §8.
-
-⚠️ Phiếu nhận **vẫn tạo tay được** (NCC giao không đơn, hàng mẫu):
-``dlm_purchase_order_id`` để trống và mọi lá chắn hiện có không đổi. Đơn mua chỉ
-THÊM một nguồn gốc cho phiếu vốn đang tạo tay — không thay thế nó.
-"""
+"""Phiếu nhận hàng gắn đơn mua nguồn và đóng giá mua lên lô lúc xác nhận."""
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
@@ -26,13 +19,7 @@ class StockPicking(models.Model):
              "đơn mua — trên đó có giá.")
 
     def button_validate(self):
-        """Xác nhận phiếu nhận ⇒ đóng giá mua lên từng lô vừa sinh ra.
-
-        🔴 Đóng ở phiếu [1] chứ không phải [2] Kiểm & cất: lô SINH RA ở đây
-        (``_dlm_autofill_lots`` chỉ chạy cho ``code == 'incoming'``). Đóng ở
-        bước sau nghĩa là lô sống một quãng không có giá — và đúng quãng đó hàng
-        có thể bị tách sang khu Chờ trả NCC.
-        """
+        """Xác nhận phiếu nhận NCC ⇒ đóng giá mua lên từng lô vừa sinh ra."""
         result = super().button_validate()
         for picking in self:
             if picking.picking_type_id.code != "incoming":
@@ -41,11 +28,7 @@ class StockPicking(models.Model):
         return result
 
     def _dlm_stamp_lot_costs(self):
-        """Gán giá cho mọi lô của phiếu nhận này.
-
-        Không có đơn mua ⇒ vẫn đóng giá, lấy từ bảng giá NCC và gắn cờ ƯỚC TÍNH
-        (MH-16). Để trống thì báo cáo giá vốn im lặng tính lô đó bằng 0.
-        """
+        """Gán giá cho mọi lô của phiếu nhận — không có đơn mua thì lấy giá bảng NCC và gắn cờ ước tính."""
         self.ensure_one()
         order = self.dlm_purchase_order_id.sudo()
         prices = {}
@@ -67,10 +50,7 @@ class StockPicking(models.Model):
     # Điều hướng
     # ------------------------------------------------------------------
     def action_dlm_open_purchase_order(self):
-        """Từ phiếu nhận về đơn mua — chỉ Mua hàng/CEO/Admin/Kế toán mở được.
-
-        Nút này gated ở view; đây là lá chắn tầng server cho đường gọi khác.
-        """
+        """Nút mở đơn mua nguồn từ phiếu nhận (chỉ Mua hàng/CEO/Admin/Kế toán)."""
         self.ensure_one()
         if not self.dlm_purchase_order_id:
             raise UserError(_("Phiếu %s không gắn đơn mua nào.") % self.name)
@@ -98,20 +78,13 @@ class StockMove(models.Model):
             move.dlm_lot_cost = move._dlm_fifo_cost()
 
     def _dlm_fifo_cost(self):
-        """Tiền của move này theo GIÁ CỦA CHÍNH LÔ đã lấy.
-
-        🔴 Không có phép chia trung bình nào ở đây, và cũng không cần bộ chia
-        FIFO nào: Odoo đã chọn lô theo `removal_strategy` lúc giữ chỗ, kết quả
-        nằm sẵn ở ``move_line.lot_id``. Tự viết bộ chia là dựng nguồn sự thật
-        thứ hai — bộ của mình nói lô A, phiếu lại giữ lô B, và không lỗi nào nổ.
-        """
+        """Tiền của move theo giá của chính lô đã lấy (lô do removal_strategy chọn lúc giữ chỗ)."""
         total = 0.0
         for line in self.move_line_ids:
             lot = line.lot_id.sudo()
             unit = lot.dlm_unit_cost if lot else 0.0
             if not unit:
-                # Hàng không theo lô, hoặc lô chưa kịp có giá: rơi về giá vốn
-                # tham chiếu để báo cáo không âm thầm tính bằng 0.
+                # Hàng không theo lô hoặc lô chưa có giá: rơi về giá vốn tham chiếu.
                 unit = line.product_id.sudo().standard_price or 0.0
             total += line.quantity * unit
         return total
