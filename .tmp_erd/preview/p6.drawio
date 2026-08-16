@@ -1,0 +1,418 @@
+<mxfile host="app.diagrams.net" agent="DLM-ERP conceptual ERD generator" version="24.7.17" type="device">
+  <diagram name="F. Kho - nhap, kiem, cat, giao, phe lieu" id="page-6">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3050" pageHeight="2450" math="0" shadow="0">
+      <root>
+        <mxCell id="p6-0"/>
+        <mxCell id="p6-1" parent="p6-0"/>
+        <mxCell id="p6-ti1" value="Sub-ERD F &amp;#8212; Inventory: Kho &amp;#183; Vị trí &amp;#183; Phiếu kho &amp;#183; Lô &amp;#183; Tồn kho" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#333333;" vertex="1" parent="p6-1">
+          <mxGeometry x="40" y="30" width="1400" height="34" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-ti2" value="Sở hữu: WAREHOUSE · STOCK_LOCATION · OPERATION_TYPE · STOCK_DOCUMENT(+LINE) · LOT · STOCK_BALANCE · SCRAP_RECONCILIATION &lt;i&gt;(derived)&lt;/i&gt;&amp;#160;—&amp;#160;entity biên: SUPPLIER · CUSTOMER · USER (A) · SALES_ORDER (D) · ITEM · UOM (B) · BOM_MATERIAL_LINE (C)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="p6-1">
+          <mxGeometry x="40" y="62" width="1400" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-wh" value="WAREHOUSE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="150" y="260" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-ot" value="OPERATION TYPE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="720" y="260" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-loc" value="STOCK LOCATION" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="150" y="680" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_defines" value="defines" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="470" y="252" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e3" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-wh" target="p6-r_defines">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e4" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;" edge="1" parent="p6-1" source="p6-r_defines" target="p6-ot">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_wh_loc" value="contains" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="185" y="460" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e5" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-wh" target="p6-r_wh_loc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e6" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;" edge="1" parent="p6-1" source="p6-r_wh_loc" target="p6-loc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_parent" value="parent_of" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="30" y="840" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e7" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-loc" target="p6-r_parent">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e8" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.6;entryY=1;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_parent" target="p6-loc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="276" y="877"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-user" value="USER  (A)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;dashPattern=8 6;fontSize=12;fontStyle=2;fontColor=#666666;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1030" y="170" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-supp" value="SUPPLIER  (A)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;dashPattern=8 6;fontSize=12;fontStyle=2;fontColor=#666666;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1290" y="170" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-cust" value="CUSTOMER  (A)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;dashPattern=8 6;fontSize=12;fontStyle=2;fontColor=#666666;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1550" y="170" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-so" value="SALES ORDER  (D)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;dashPattern=8 6;fontSize=12;fontStyle=2;fontColor=#666666;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1810" y="170" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-doc" value="STOCK DOCUMENT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1150" y="760" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_classif" value="classifies" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="760" y="500" width="190" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e9" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0.2;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="p6-1" source="p6-ot" target="p6-r_classif">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e10" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;entryX=0;entryY=0.4;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-r_classif" target="p6-doc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_hand" value="handles" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1045" y="430" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e11" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-user" target="p6-r_hand">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e12" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-r_hand" target="p6-doc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_deliv" value="delivers" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1305" y="430" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e13" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-supp" target="p6-r_deliv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e14" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=0.35;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-r_deliv" target="p6-doc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_recv" value="receives" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1565" y="430" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e15" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-cust" target="p6-r_recv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e16" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=0.6;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-r_recv" target="p6-doc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_rel" value="releases" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1825" y="430" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e17" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-so" target="p6-r_rel">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e18" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=0.85;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-r_rel" target="p6-doc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_origin" value="originates_from&#10;&lt;i&gt;(phiếu nhận gốc)&lt;/i&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1470" y="620" width="200" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e19" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-doc" target="p6-r_origin">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e20" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0;exitY=0.2;exitDx=0;exitDy=0;entryX=0.9;entryY=0;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_origin" target="p6-doc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1339" y="657"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-line" value="STOCK DOCUMENT LINE" style="shape=ext;double=1;rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;verticalAlign=middle;" vertex="1" parent="p6-1">
+          <mxGeometry x="1130" y="1180" width="250" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_contains" value="contains" style="rhombus;double=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1185" y="950" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e21" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-doc" target="p6-r_contains">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e22" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-r_contains" target="p6-line">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_from" value="from_location&#10;&lt;i&gt;vai: nguồn&lt;/i&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="700" y="1150" width="190" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e23" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;exitX=0;exitY=0.4;exitDx=0;exitDy=0;" edge="1" parent="p6-1" source="p6-line" target="p6-r_from">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e24" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.8;entryY=1;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_from" target="p6-loc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="430" y="1187"/>
+              <mxPoint x="430" y="760"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-r_to" value="to_location&#10;&lt;i&gt;vai: đích&lt;/i&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="700" y="1320" width="190" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e25" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;exitX=0;exitY=0.9;exitDx=0;exitDy=0;" edge="1" parent="p6-1" source="p6-line" target="p6-r_to">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e26" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.4;entryY=1;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_to" target="p6-loc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="500" y="1357"/>
+              <mxPoint x="500" y="800"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-lot" value="LOT" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1720" y="940" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-item" value="ITEM + 4 lớp con  (B)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;dashPattern=8 6;fontSize=12;fontStyle=2;fontColor=#666666;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="2200" y="1180" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-uom" value="UNIT OF MEASURE  (B)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;dashPattern=8 6;fontSize=12;fontStyle=2;fontColor=#666666;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="2200" y="1400" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_assigns" value="assigns" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1470" y="1050" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e27" value="M" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;" edge="1" parent="p6-1" source="p6-line" target="p6-r_assigns">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e28" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-r_assigns" target="p6-lot">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-a_assigns" value="&lt;b&gt;thuộc tính của quan hệ&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; Quantity per lot &lt;i&gt;(số lượng theo lô)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="1440" y="1150" width="230" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e29" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p6-1" source="p6-r_assigns" target="p6-a_assigns">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_moves" value="moves" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1800" y="1172" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e30" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;" edge="1" parent="p6-1" source="p6-line" target="p6-r_moves">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e31" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-r_moves" target="p6-item">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_meas" value="measured_in" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1800" y="1392" width="190" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e32" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;exitX=1;exitY=0.9;exitDx=0;exitDy=0;" edge="1" parent="p6-1" source="p6-line" target="p6-r_meas">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e33" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-r_meas" target="p6-uom">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_lot_item" value="identifies_batch_of" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="2050" y="932" width="200" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e34" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p6-1" source="p6-lot" target="p6-r_lot_item">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e35" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=0.2;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-r_lot_item" target="p6-item">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_lot_sup" value="supplied_by" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="2050" y="700" width="190" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e36" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0.8;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="p6-1" source="p6-lot" target="p6-r_lot_sup">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e37" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_lot_sup" target="p6-supp">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2120" y="120"/>
+              <mxPoint x="1395" y="120"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-r_stamp" value="stamped_by_receipt" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1470" y="880" width="200" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e38" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-lot" target="p6-r_stamp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e39" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-r_stamp" target="p6-doc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-bal" value="STOCK BALANCE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1080" y="1700" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_adjust" value="adjusted_by" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1140" y="1450" width="190" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e40" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0.3;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="p6-1" source="p6-bal" target="p6-r_adjust">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e41" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=0.1;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-r_adjust" target="p6-line">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_holds" value="holds" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="700" y="1692" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e42" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;" edge="1" parent="p6-1" source="p6-bal" target="p6-r_holds">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e43" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.8;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_holds" target="p6-loc">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="600" y="1729"/>
+              <mxPoint x="600" y="726"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-r_stocked" value="stocked_as" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1600" y="1692" width="190" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e44" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;" edge="1" parent="p6-1" source="p6-bal" target="p6-r_stocked">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e45" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_stocked" target="p6-item">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2470" y="1729"/>
+              <mxPoint x="2470" y="1209"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-r_held" value="held_as" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1420" y="1600" width="190" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e46" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="p6-1" source="p6-bal" target="p6-r_held">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e47" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_held" target="p6-lot">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1680" y="1637"/>
+              <mxPoint x="1680" y="986"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-scrap" value="SCRAP RECOVERY&#10;RECONCILIATION  &lt;i&gt;(derived)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f3ebff;strokeColor=#9673a6;dashed=1;dashPattern=8 4;fontSize=13;fontStyle=1;fontColor=#6a4c93;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1750" y="2100" width="280" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-bml" value="BOM MATERIAL LINE  (C)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;dashed=1;dashPattern=8 6;fontSize=12;fontStyle=2;fontColor=#666666;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="2100" y="2270" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-r_actual" value="actual_from" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f3ebff;strokeColor=#9673a6;dashed=1;dashPattern=8 4;fontSize=11;fontColor=#6a4c93;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1450" y="2092" width="190" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e48" value="1" style="endArrow=none;html=1;rounded=0;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;strokeColor=#9673a6;fontColor=#6a4c93;labelBackgroundColor=#ffffff;" edge="1" parent="p6-1" source="p6-scrap" target="p6-r_actual">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e49" value="N" style="endArrow=none;html=1;rounded=0;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;strokeColor=#9673a6;fontColor=#6a4c93;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.9;entryY=1;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_actual" target="p6-line">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="2129"/>
+              <mxPoint x="1400" y="1300"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-r_scopes" value="scopes_period" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f3ebff;strokeColor=#9673a6;dashed=1;dashPattern=8 4;fontSize=11;fontColor=#6a4c93;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="2200" y="2092" width="190" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e50" value="1" style="endArrow=none;html=1;rounded=0;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;strokeColor=#9673a6;fontColor=#6a4c93;labelBackgroundColor=#ffffff;" edge="1" parent="p6-1" source="p6-scrap" target="p6-r_scopes">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e51" value="N" style="endArrow=none;html=1;rounded=0;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;strokeColor=#9673a6;fontColor=#6a4c93;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p6-1" source="p6-r_scopes" target="p6-so">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2880" y="2129"/>
+              <mxPoint x="2880" y="199"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-r_est" value="estimates_from" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f3ebff;strokeColor=#9673a6;dashed=1;dashPattern=8 4;fontSize=11;fontColor=#6a4c93;verticalAlign=middle;align=center;" vertex="1" parent="p6-1">
+          <mxGeometry x="1820" y="2260" width="190" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e52" value="M" style="endArrow=none;html=1;rounded=0;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;strokeColor=#9673a6;fontColor=#6a4c93;labelBackgroundColor=#ffffff;exitX=0.4;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="p6-1" source="p6-scrap" target="p6-r_est">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e53" value="N" style="endArrow=none;html=1;rounded=0;dashed=1;dashPattern=8 4;fontSize=12;fontStyle=1;strokeColor=#9673a6;fontColor=#6a4c93;labelBackgroundColor=#ffffff;" edge="1" parent="p6-1" source="p6-r_est" target="p6-bml">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-a_wh" value="&lt;b&gt;WAREHOUSE&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Warehouse code&lt;/u&gt; (&lt;b&gt;DL&lt;/b&gt; &amp;#8212; đúng MỘT thể hiện)&lt;br/&gt;&amp;#8226; Warehouse name&lt;br/&gt;&amp;#8226; &lt;b&gt;Reception mode&lt;/b&gt;: two-step (receive &amp;#8594; inspect &amp;amp; put away)&lt;br/&gt;&amp;#8226; Root location of the location tree&lt;br/&gt;&amp;#8226; Default operation types" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="60" y="120" width="330" height="114" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e54" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p6-1" source="p6-wh" target="p6-a_wh">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-a_ot" value="&lt;b&gt;OPERATION TYPE&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Operation code&lt;/u&gt; (NH · KC · CK · GH · TR · BPL)&lt;br/&gt;&amp;#8226; Operation name · Display order&lt;br/&gt;&amp;#8226; Direction: incoming / outgoing / internal&lt;br/&gt;&amp;#8226; Default source &amp;amp; destination location&lt;br/&gt;&amp;#8226; &lt;i&gt;XSX · NTP đã seed nhưng thuộc sub-ERD G&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="700" y="120" width="320" height="114" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e55" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p6-1" source="p6-ot" target="p6-a_ot">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-a_loc" value="&lt;b&gt;STOCK LOCATION&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; Không có mã &amp;#8212; định danh bởi &lt;u&gt;đường dẫn đầy đủ&lt;/u&gt;&lt;br/&gt;&amp;#8226; Location name · &lt;b&gt;Parent location (đệ quy)&lt;/b&gt;&lt;br/&gt;&amp;#8226; Usage kind: internal / partner / virtual&lt;br/&gt;&amp;#8226; Full path (DL / Khu nhập hàng / Vật tư…)&lt;br/&gt;&amp;#8226; &lt;b&gt;Nằm dưới khu phế liệu?&lt;/b&gt; (báo cáo duyệt cây con)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="60" y="940" width="330" height="114" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e56" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p6-1" source="p6-loc" target="p6-a_loc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-a_doc" value="&lt;b&gt;STOCK DOCUMENT&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Document number&lt;/u&gt; DL/&amp;lt;operation&amp;gt;/00001&lt;br/&gt;&amp;#8226; Operation type &amp;#8212; &lt;b&gt;thuộc tính phân lớp&lt;/b&gt;&lt;br/&gt;&amp;#8226; Partner: NCC khi nhập · KH khi xuất&lt;br/&gt;&amp;#8226; Scheduled date · Effective date · Source document&lt;br/&gt;&amp;#8226; &lt;b&gt;Origin receipt&lt;/b&gt; (tự tham chiếu)&lt;br/&gt;&amp;#8226; Linked sales order &lt;i&gt;(chỉ phiếu giao)&lt;/i&gt; · Thủ kho phụ trách&lt;br/&gt;&amp;#8226; Total quantity · &lt;b&gt;Rejected total&lt;/b&gt;&lt;br/&gt;&amp;#8226; Inspection outcome · Aggregated rejection reasons&lt;br/&gt;&amp;#8226; Blocked flag + inline blocking message&lt;br/&gt;&amp;#8226; Draft → Waiting → Ready → Done ‖ Cancelled" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="700" y="830" width="330" height="194" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e57" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p6-1" source="p6-doc" target="p6-a_doc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-a_line" value="&lt;b&gt;STOCK DOCUMENT LINE &lt;i&gt;(weak)&lt;/i&gt;&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;(Stock document, Item, Line sequence)&lt;/u&gt;&lt;br/&gt;&amp;#8226; Item · Unit of measure · Demanded quantity&lt;br/&gt;&amp;#8226; &lt;b&gt;Passed quantity&lt;/b&gt; &lt;i&gt;(chính là done-qty, chỉ đổi nhãn)&lt;/i&gt;&lt;br/&gt;&amp;#8226; &lt;b&gt;Rejected quantity&lt;/b&gt; + rejection reason bắt buộc&lt;br/&gt;&amp;#8226; Rejection note &lt;i&gt;(bắt buộc khi lý do = Khác)&lt;/i&gt;&lt;br/&gt;&amp;#8226; Source &amp;amp; destination location&lt;br/&gt;&amp;#8226; &lt;b&gt;is-adjustment flag&lt;/b&gt; &amp;#8212; dòng kiểm kê không có phiếu cha,&lt;br/&gt;&amp;#8226; &amp;#160;&amp;#160;định danh bởi &lt;i&gt;(Item, Location, Timestamp)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="900" y="1280" width="330" height="162" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e58" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p6-1" source="p6-line" target="p6-a_line">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-a_lot" value="&lt;b&gt;LOT&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Lot number&lt;/u&gt; LO/2026/00001 &lt;i&gt;(Đại Linh tự sinh)&lt;/i&gt;&lt;br/&gt;&amp;#8226; Item · &lt;b&gt;Supplier&lt;/b&gt; · &lt;b&gt;Receipt date&lt;/b&gt;&lt;br/&gt;&amp;#8226; &lt;b&gt;Originating receipt document&lt;/b&gt;&lt;br/&gt;&amp;#8226; Supplier&#39;s own lot number &lt;i&gt;(tham chiếu, free text)&lt;/i&gt;&lt;br/&gt;&amp;#8226; &lt;i&gt;Ba thuộc tính đậm: chỉ-ghi-một-lần&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="1980" y="780" width="300" height="114" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e59" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p6-1" source="p6-lot" target="p6-a_lot">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-a_bal" value="&lt;b&gt;STOCK BALANCE&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; Không có mã &amp;#8212; &lt;u&gt;(Item, Location, Lot)&lt;/u&gt;&lt;br/&gt;&amp;#8226; On-hand · Reserved · Available quantity&lt;br/&gt;&amp;#8226; Supplier &amp;amp; receipt date &lt;i&gt;(thừa kế từ lô)&lt;/i&gt;&lt;br/&gt;&amp;#8226; &lt;i&gt;Lớp kiểm kê:&lt;/i&gt; counted quantity · count-entered flag&lt;br/&gt;&amp;#8226; &amp;#160;&amp;#160;difference vs. system&lt;br/&gt;&amp;#8226; &lt;i&gt;Lớp phế liệu:&lt;/i&gt; scrap unit price · line value&lt;br/&gt;&amp;#8226; &amp;#160;&amp;#160;&lt;b&gt;đây là giá BÁN, không phải giá vốn&lt;/b&gt; &amp;#8212;&lt;br/&gt;&amp;#8226; &amp;#160;&amp;#160;nên thủ kho được xem (§8.3)&lt;br/&gt;&amp;#8226; Không nhập trực tiếp: dòng sinh/mất theo chứng từ" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="1000" y="1830" width="340" height="178" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e60" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p6-1" source="p6-bal" target="p6-a_bal">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-a_scrap" value="&lt;b&gt;SCRAP RECOVERY RECONCILIATION&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;b&gt;Dẫn xuất &amp;#8212; không có khoá lưu trữ&lt;/b&gt;, một dòng / &lt;u&gt;tháng&lt;/u&gt;&lt;br/&gt;&amp;#8226; Period (month)&lt;br/&gt;&amp;#8226; Actual quantity into the scrap zone&lt;br/&gt;&amp;#8226; Quantity sold out of it&lt;br/&gt;&amp;#8226; &lt;b&gt;Estimated quantity&lt;/b&gt; &lt;i&gt;(từ BOM của đơn đã chốt trong kỳ)&lt;/i&gt;&lt;br/&gt;&amp;#8226; Difference · Verdict: Short / Matches / Over estimate" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="2400" y="2230" width="300" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-e61" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p6-1" source="p6-scrap" target="p6-a_scrap">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-nt62" value="&lt;b&gt;⚠ Chỗ dễ vẽ sai nhất của trang F (§4.7-6)&lt;/b&gt;&lt;br/&gt;Cạnh &lt;b&gt;contains → STOCK DOCUMENT LINE&lt;/b&gt; là &lt;b&gt;đường ĐƠN&lt;/b&gt; (tham gia &lt;i&gt;bộ phận&lt;/i&gt;), &lt;b&gt;không&lt;/b&gt; phải đường kép &amp;#8212; dù dòng phiếu là thực thể yếu.&lt;br/&gt;Lý do: &lt;b&gt;dòng điều chỉnh kiểm kê không có phiếu cha&lt;/b&gt;. Odoo 17 áp kết quả kiểm kê bằng cách sinh thẳng chuyển động &lt;i&gt;is-adjustment&lt;/i&gt;, &lt;b&gt;không&lt;/b&gt; tạo phiếu. Đối ứng là vị trí ảo &lt;i&gt;Điều chỉnh kiểm kê&lt;/i&gt; &amp;#8658; hàng không tự sinh ra hay biến mất, kể cả khi sửa sai.&lt;br/&gt;Những dòng đó định danh bằng &lt;i&gt;(Item, Location, Timestamp)&lt;/i&gt;." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p6-1">
+          <mxGeometry x="60" y="1100" width="560" height="210" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-nt63" value="&lt;b&gt;Hai vai tới cùng một thực thể (§4.7-4, §5-3)&lt;/b&gt;&lt;br/&gt;&lt;b&gt;STOCK_DOCUMENT_LINE → STOCK_LOCATION&lt;/b&gt; xuất hiện &lt;b&gt;hai lần&lt;/b&gt;: &lt;i&gt;từ vị trí&lt;/i&gt; và &lt;i&gt;tới vị trí&lt;/i&gt;. Elmasri bắt buộc đặt &lt;b&gt;tên vai (role name)&lt;/b&gt; khi hai quan hệ nối cùng một cặp thực thể &amp;#8212; thiếu tên vai là &lt;b&gt;sơ đồ sai nghĩa&lt;/b&gt;, không chỉ là thiếu nhãn." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p6-1">
+          <mxGeometry x="60" y="1340" width="560" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-nt64" value="&lt;b&gt;STOCK BALANCE &amp;#8212; khoá tổ hợp từ BA quan hệ&lt;/b&gt;&lt;br/&gt;Không có khoá riêng: định danh bởi &lt;b&gt;(ITEM, LOCATION, LOT)&lt;/b&gt; &amp;#8658; cả ba cạnh &lt;i&gt;stocked_as · holds · held_as&lt;/i&gt; đều là &lt;b&gt;tham gia toàn bộ&lt;/b&gt; phía tồn kho.&lt;br/&gt;&lt;b&gt;Kiểm kê là một trạng thái đếm, không phải chứng từ&lt;/b&gt; (§0.2-6) &amp;#8658; nó &lt;i&gt;không&lt;/i&gt; có hộp riêng trên sơ đồ. Vì thế quan hệ &lt;b&gt;adjusted_by chạy ngược chiều trực giác&lt;/b&gt;: tồn kho &lt;i&gt;sinh ra&lt;/i&gt; dòng chuyển động, chứ không phải ngược lại." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p6-1">
+          <mxGeometry x="60" y="1520" width="560" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-lg65" value="&lt;b&gt;CH&amp;#218; GI&amp;#7842;I K&amp;#221; HI&amp;#7878;U &amp;#8212; Chen / EER (Elmasri &amp;amp; Navathe)&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#9633; H&amp;#7897;p &amp;#273;&amp;#417;n &amp;#8212; ki&amp;#7875;u th&amp;#7921;c th&amp;#7875;&lt;br/&gt;&amp;#9636; H&amp;#7897;p k&amp;#233;p (cam) &amp;#8212; th&amp;#7921;c th&amp;#7875; y&amp;#7871;u (weak entity)&lt;br/&gt;&amp;#9633; H&amp;#7897;p n&amp;#233;t &amp;#273;&amp;#7913;t x&amp;#225;m &amp;#8212; entity bi&amp;#234;n (thu&amp;#7897;c sub-ERD kh&amp;#225;c, kh&amp;#244;ng v&amp;#7869; thu&amp;#7897;c t&amp;#237;nh)&lt;br/&gt;&amp;#9671; H&amp;#236;nh thoi &amp;#8212; ki&amp;#7875;u quan h&amp;#7879;&lt;br/&gt;&amp;#9671; H&amp;#236;nh thoi k&amp;#233;p &amp;#8212; quan h&amp;#7879; &amp;#273;&amp;#7883;nh danh (identifying relationship)&lt;br/&gt;&amp;#8212; &amp;#272;&amp;#432;&amp;#7901;ng &amp;#273;&amp;#417;n &amp;#8212; tham gia b&amp;#7897; ph&amp;#7853;n (partial)&lt;br/&gt;&amp;#8801; &amp;#272;&amp;#432;&amp;#7901;ng k&amp;#233;p &amp;#8212; tham gia to&amp;#224;n b&amp;#7897; (total)&lt;br/&gt;&lt;b&gt;1 / M / N&lt;/b&gt; tr&amp;#234;n c&amp;#7841;nh &amp;#8212; l&amp;#7921;c l&amp;#432;&amp;#7907;ng (cardinality ratio)&lt;br/&gt;&amp;#9711; V&amp;#242;ng tr&amp;#242;n &lt;b&gt;d&lt;/b&gt; / &lt;b&gt;o&lt;/b&gt; &amp;#8212; chuy&amp;#234;n bi&amp;#7879;t ho&amp;#225; disjoint / overlapping; cung mang &lt;b&gt;&amp;#8834;&lt;/b&gt; tr&amp;#7887; v&amp;#7873; l&amp;#7899;p con&lt;br/&gt;&amp;#8943; &amp;#272;&amp;#432;&amp;#7901;ng ch&amp;#7845;m t&amp;#237;m &amp;#8212; tham chi&amp;#7871;u m&amp;#7873;m (snapshot, c&amp;#7889; &amp;#253; kh&amp;#244;ng c&amp;#243; kho&amp;#225; ngo&amp;#7841;i)&lt;br/&gt;&amp;#9642; H&amp;#7897;p tr&amp;#7855;ng c&amp;#7841;nh entity &amp;#8212; thu&amp;#7897;c t&amp;#237;nh nghi&amp;#7879;p v&amp;#7909; ch&amp;#237;nh; &lt;u&gt;g&amp;#7841;ch ch&amp;#226;n&lt;/u&gt; = &amp;#273;&amp;#7883;nh danh nghi&amp;#7879;p v&amp;#7909;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacing=6;" vertex="1" parent="p6-1">
+          <mxGeometry x="60" y="1740" width="560" height="340" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-nt66" value="&lt;b&gt;KHÔNG xuất hiện trên trang F &amp;#8212; và vì sao&lt;/b&gt;&lt;br/&gt;&amp;#8226; &lt;b&gt;Kiểm kê&lt;/b&gt; &amp;#8212; là trạng thái đếm trên STOCK_BALANCE (§0.2-6), không phải chứng từ.&lt;br/&gt;&amp;#8226; &lt;b&gt;Chi tiết dòng phiếu theo lô&lt;/b&gt; &amp;#8212; đã diễn tả đủ bằng quan hệ N:M có thuộc tính (§4.7-5).&lt;br/&gt;&amp;#8226; &lt;b&gt;Tuyến nhập 2 bước · nhóm cung ứng&lt;/b&gt; &amp;#8212; cơ chế nội bộ sinh ra cặp 1—1 &lt;i&gt;Nhận → Kiểm&lt;/i&gt;, không phải dữ liệu nghiệp vụ.&lt;br/&gt;&amp;#8226; &lt;b&gt;XSX · NTP&lt;/b&gt; &amp;#8212; đã seed nhưng thuộc sub-ERD G (§4.8).&lt;br/&gt;&amp;#8226; &lt;b&gt;Sáu lớp con của Phiếu kho&lt;/b&gt; &amp;#8212; xem ghi chú bên phải." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p6-1">
+          <mxGeometry x="60" y="2110" width="560" height="210" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-nt67" value="&lt;b&gt;Ký hiệu riêng trang F&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#9633; Hộp &lt;b&gt;nét đứt tím&lt;/b&gt; &amp;#8212; thực thể &lt;b&gt;dẫn xuất&lt;/b&gt; (derived): không lưu trữ, tính lại mỗi lần đọc.&lt;br/&gt;&amp;#9671; Hình thoi &lt;b&gt;nét đứt tím&lt;/b&gt; + cạnh nét đứt tím &amp;#8212; &lt;b&gt;quan hệ suy diễn&lt;/b&gt;: dữ liệu đọc lại từ nơi khác, không có khoá ngoại.&lt;br/&gt;&lt;i&gt;Khác với đường chấm tím ở chú giải chung&lt;/i&gt; &amp;#8212; đường chấm là &lt;i&gt;tham chiếu mềm / snapshot&lt;/i&gt; (sub-ERD D)." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p6-1">
+          <mxGeometry x="650" y="2110" width="320" height="210" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-nt68" value="&lt;b&gt;Tự tham chiếu = xương sống truy vết đối ngoại (§4.7-2, 3)&lt;/b&gt;&lt;br/&gt;Phiếu &lt;b&gt;Kiểm &amp;amp; cất&lt;/b&gt; và phiếu &lt;b&gt;Trả hàng NCC&lt;/b&gt; đều neo về &lt;b&gt;phiếu Nhận hàng&lt;/b&gt;, &lt;i&gt;không&lt;/i&gt; neo vào nhau &amp;#8658; khiếu nại NCC luôn quy được về &lt;b&gt;lần giao hàng&lt;/b&gt; đã gây ra nó.&lt;br/&gt;&lt;b&gt;Ràng buộc trên quan hệ này:&lt;/b&gt; &lt;i&gt;mỗi phiếu Nhận hàng sinh đúng MỘT phiếu Kiểm &amp;amp; cất.&lt;/i&gt; Đây là &lt;b&gt;ràng buộc, không phải cấu trúc&lt;/b&gt; &amp;#8212; nếu để hệ thống gộp theo mặc định (theo vị trí + loại hoạt động, &lt;b&gt;không&lt;/b&gt; theo đối tác), hai phiếu nhận của hai NCC sẽ gộp thành một phiếu kiểm và phiếu trả hàng sẽ &lt;b&gt;ghi sai tên NCC&lt;/b&gt;." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p6-1">
+          <mxGeometry x="2250" y="130" width="500" height="210" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-nt69" value="&lt;b&gt;Vì sao KHÔNG vẽ hộp cho 6 lớp con của Phiếu kho (§0.2-3, §5-1)&lt;/b&gt;&lt;br/&gt;Nhận hàng · Kiểm &amp;amp; cất · Chuyển kho · Giao hàng · Trả hàng NCC · Bán phế liệu &lt;b&gt;dùng chung đúng một bộ thuộc tính&lt;/b&gt;, chỉ khác tuyến đi và quy trình.&lt;br/&gt;Bản thân &lt;b&gt;thuộc tính phân lớp lại là một thực thể&lt;/b&gt; (&lt;b&gt;OPERATION_TYPE&lt;/b&gt;) &amp;#8658; chuyên biệt hoá ở đây được xác định bởi &lt;b&gt;quan hệ &lt;i&gt;classifies&lt;/i&gt;&lt;/b&gt;, vẽ thêm 6 hộp rỗng chỉ làm sơ đồ ồn." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p6-1">
+          <mxGeometry x="2250" y="370" width="500" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-nt70" value="&lt;b&gt;Cây vị trí &amp;#8212; và vì sao phế liệu là vị trí THẬT (§4.7-1)&lt;/b&gt;&lt;br/&gt;3 khu × 5 vị trí con, quan hệ đệ quy &lt;i&gt;parent_of&lt;/i&gt;.&lt;br/&gt;Cả ba khu đều khai là vị trí &lt;b&gt;nội bộ&lt;/b&gt; (không phải &lt;i&gt;view&lt;/i&gt;) &amp;#8212; khu &lt;i&gt;view&lt;/i&gt; sẽ mất tiền tố &lt;code&gt;DL/&lt;/code&gt; trên đường dẫn hiển thị.&lt;br/&gt;Khu &lt;b&gt;Phế liệu chờ bán&lt;/b&gt; (&lt;code&gt;DL/XUONG/PL&lt;/code&gt;) là vị trí nội bộ thật, &lt;b&gt;không&lt;/b&gt; dùng vị trí phế liệu ảo của Odoo: phế liệu là &lt;b&gt;tài sản bán lại được đã trừ trước vào giá vốn&lt;/b&gt; lúc báo giá, nên phải &lt;b&gt;cân được, đếm được, bán được&lt;/b&gt;." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p6-1">
+          <mxGeometry x="2530" y="830" width="340" height="250" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6-nt71" value="&lt;b&gt;Vòng phản hồi phế liệu (§4.7-7) &amp;#8212; đọc đúng nghĩa&lt;/b&gt;&lt;br/&gt;So &lt;b&gt;dự toán thu hồi&lt;/b&gt; (từ định mức của các đơn đã chốt trong kỳ) với &lt;b&gt;cân thực tế&lt;/b&gt; (hàng vào khu phế liệu).&lt;br/&gt;Tiền bán phế liệu &lt;b&gt;không phải lãi thêm&lt;/b&gt; &amp;#8212; giá trị thu hồi đã bị trừ trước vào giá vốn lúc báo giá. Vậy nên:&lt;br/&gt;&amp;#8226; thu hồi &lt;b&gt;ít hơn&lt;/b&gt; dự toán = &lt;b&gt;đang lỗ ngầm&lt;/b&gt;;&lt;br/&gt;&amp;#8226; thu hồi &lt;b&gt;nhiều hơn&lt;/b&gt; = định mức hao hụt đặt quá tay.&lt;br/&gt;Số thực tế đọc từ &lt;b&gt;STOCK_DOCUMENT_LINE&lt;/b&gt;, &lt;b&gt;không&lt;/b&gt; từ STOCK_BALANCE: tồn kho là ảnh chụp hiện tại, không có chiều thời gian để chia kỳ.&lt;br/&gt;Đây chính là seam &lt;b&gt;S10&lt;/b&gt; đóng vòng về quan hệ &lt;i&gt;recovers_as_scrap&lt;/i&gt; ở sub-ERD B (§4.3)." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p6-1">
+          <mxGeometry x="2530" y="1500" width="340" height="290" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

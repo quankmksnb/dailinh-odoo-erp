@@ -1,0 +1,2995 @@
+{
+ "Stores login credentials for internal staff": [
+  [
+   "Id [Native]",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "login [Native]",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL, UNIQUE",
+   "Login identifier"
+  ],
+  [
+   "password [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Login password"
+  ],
+  [
+   "active [Native]",
+   "Boolean",
+   "BOOL",
+   "NOT NULL DEFAULT True",
+   "Deactivates the account (active = false), does not delete"
+  ],
+  [
+   "login_date [Native]",
+   "Datetime",
+   "TIMESTAMP",
+   "—",
+   "Reads from the res_user_logs table [Native]"
+  ],
+  [
+   "name [Native]",
+   "Char",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "email [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "phone [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   ""
+  ]
+ ],
+ "Stores partner information including Customers and Suppliers (differentiated by partner_role) A partner can simultaneously be a Customer and a Supplier (partner_role = 'both')": [
+  [
+   "Id [Native]",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name [Native]",
+   "Char",
+   "VARCHAR",
+   "NOT NULL",
+   "Partner name"
+  ],
+  [
+   "active [Native]",
+   "Boolean",
+   "BOOL",
+   "NOT NULL DEFAULT True",
+   "Deactivates partnership (active = false), does not delete"
+  ],
+  [
+   "vat [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "phone [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "email [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "website [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "street [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Address — printed on quotations / orders"
+  ],
+  [
+   "city [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "imge_1920 [Native]",
+   "Image",
+   "—",
+   "—",
+   "Original image stored via ir.attachment"
+  ],
+  [
+   "partner_type",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL DEFAULT company",
+   "Enum — see §3.3"
+  ],
+  [
+   "partner_role",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "dl_customer_group",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL DEFAULT new",
+   "Enum — see §3.3"
+  ]
+ ],
+ "Table storing information for 4 types of Items: Manufactured Product / Trading Product / Semi-finished Product / Raw Material / Scrap to better fit inventory tracking in Odoo's built-in inventory module, distinguished by product_kind.": [
+  [
+   "Id [Native]",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name [Native]",
+   "Char",
+   "VARCHAR",
+   "NOT NULL",
+   "Item Name"
+  ],
+  [
+   "default_code [Native]",
+   "Char",
+   "VARCHAR",
+   "NOT NULL, UNIQUE",
+   "Item Code"
+  ],
+  [
+   "active [Native]",
+   "Boolean",
+   "BOOL",
+   "NOT NULL DEFAULT True",
+   "—"
+  ],
+  [
+   "categ_id [Native]",
+   "M2O → product.category",
+   "INTEGER",
+   "FK",
+   "Category"
+  ],
+  [
+   "uom_id [Native]",
+   "M2O → uom.uom required",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Stock UOM"
+  ],
+  [
+   "uom_po_id [Native]",
+   "M2O → uom.uom",
+   "INTEGER",
+   "FK",
+   "Purchase UOM"
+  ],
+  [
+   "list_price [Native]",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Sale price"
+  ],
+  [
+   "imge_1920 [Native]",
+   "Image",
+   "—",
+   "—",
+   "Original image stored via ir.attachment"
+  ],
+  [
+   "product_kind",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "dl_lifecycle_state",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "dl_waste_rate",
+   "Float(6,2)",
+   "NUMERIC",
+   "—",
+   "Base scrap rate (%) — only applies to product_kind = material / material_processed"
+  ],
+  [
+   "dl_has_recorvery",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Scrap recovery enabled — only applies to product_kind = material / material_processed"
+  ]
+ ],
+ "Category tree for Mechanical Items. Divided into 2 main categories: \"Finished\" and \"Materials\" – where Manufactured Products and Trading Products belong to \"Finished\", while Raw Materials and Processed Materials belong to \"Materials\".": [
+  [
+   "Id [Native]",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name [Native]",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL, UNIQUE",
+   "—"
+  ],
+  [
+   "parent_id [Native]",
+   "M2O → product.category",
+   "INTEGER",
+   "FK",
+   "Self-referencing to parent category"
+  ],
+  [
+   "active",
+   "Boolean",
+   "BOOL",
+   "NOT NULL DEFAULT True",
+   "Deactivate (active = false)"
+  ],
+  [
+   "dl_branch",
+   "Selection",
+   "VARCHAR",
+   "—",
+   "Enum — see §3.3"
+  ],
+  [
+   "bom_template_id",
+   "M2O → dl.bom.template",
+   "INTEGER",
+   "FK, ON DELETE SET Null",
+   "Default template BOM for the category"
+  ]
+ ],
+ "A Material can have multiple approved price lists from multiple Suppliers simultaneously. Only one price list is marked as currently active at any given time to calculate the snapshot price for Quotes.": [
+  [
+   "Id [Native]",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "partner_id [Native]",
+   "M2O → res.partner required",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "Supplier"
+  ],
+  [
+   "product_id [Native]",
+   "M2O → product_product",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "Material / Trading Product"
+  ],
+  [
+   "price [Native]",
+   "Float required",
+   "NUMERIC",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "date_start [Native]",
+   "Date",
+   "DATE",
+   "NOT NULL",
+   "Effective from"
+  ],
+  [
+   "date_end [Native]",
+   "Date",
+   "DATE",
+   "NOT NULL",
+   "Effective to"
+  ],
+  [
+   "product_uom [Native]",
+   "M2O → uom.uom",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Item Unit of Measure (UoM), linked to product_product"
+  ],
+  [
+   "sequence [Native]",
+   "Integer",
+   "INTEGER",
+   "DEFAULT 1",
+   "—"
+  ],
+  [
+   "approval_state",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL, DEFAULT draft",
+   "Enum — see §3.3"
+  ],
+  [
+   "is_applied",
+   "Boolean",
+   "BOOL",
+   "NOT NULL, DEFAULT False",
+   "Currently applied to item"
+  ]
+ ],
+ "Physical quantity used for norm calculation: Mass, Area, Perimeter, Volume, Length.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL, UNIQUE",
+   "—"
+  ],
+  [
+   "description",
+   "Text",
+   "TEXT",
+   "—",
+   "—"
+  ],
+  [
+   "active",
+   "Boolean",
+   "BOOL",
+   "NOT NULL DEFAULT True",
+   "—"
+  ],
+  [
+   "formula_uom_id",
+   "M2O → uom.uom",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Resulting physical unit"
+  ]
+ ],
+ "Hình dạng hỗ trợ đo đạc, lưu cố định không thay đổi": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "measurement_type_id",
+   "M2O → dl.measure,emt.type",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "Shape"
+  ],
+  [
+   "code",
+   "Char",
+   "VARCHAR",
+   "NOT NULL",
+   "Formula dispatch key — hardcoded"
+  ],
+  [
+   "default_coefiicient",
+   "Float(16,4)",
+   "NUMERIC",
+   "—",
+   "Suggested factor / coefficient (e.g., density)"
+  ],
+  [
+   "coefficient_label",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Factor display name"
+  ]
+ ],
+ "Table: dl_measurement_shape_param": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "shape_id",
+   "M2O → dl_measurement_shape",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "Shape"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "Display name"
+  ],
+  [
+   "code",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ]
+ ],
+ "Product drawing documents, stored using Odoo's ir.attachment model": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "drawing_code",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL, UNIQUE",
+   "Drawing code"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "product_id",
+   "M2O → product.product required",
+   "INTEGER",
+   "FK, NOT NULL",
+   "—"
+  ],
+  [
+   "attachment_id",
+   "M2O → ir.attachment",
+   "INTEGER",
+   "FK, NOT NULL",
+   "—"
+  ],
+  [
+   "created_by",
+   "M2O → res.users required",
+   "INTEGER",
+   "FK, NOT NULL",
+   "readonly"
+  ]
+ ],
+ "Defines the material requirements for manufacturing a product (finished or semi-finished). Once a BOM has been used to create a quotation or sales order, it becomes immutable. Any modifications require creating a new BOM version.": [
+  [
+   "version",
+   "Integer required",
+   "INTEGER",
+   "NOT NULL, DEFAULT 1",
+   "—"
+  ],
+  [
+   "product_qty",
+   "Float required",
+   "NUMERIC",
+   "NOT NULL, DEFAULT 1",
+   "Output Quantity"
+  ],
+  [
+   "status",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "approved_by",
+   "M2O → res.users",
+   "INTEGER",
+   "FK",
+   "—"
+  ],
+  [
+   "approved_date",
+   "Datetime",
+   "TIMESTAMP",
+   "—",
+   "—"
+  ],
+  [
+   "is_current",
+   "Boolen",
+   "BOOL",
+   "NOT NULLL",
+   "Indicates the current active version. When a new version is confirmed, this field is automatically set to false for the previous version."
+  ],
+  [
+   "created_by",
+   "M2O → res.users required",
+   "INTEGER",
+   "FK, NOT NULL",
+   "readonly"
+  ]
+ ],
+ "Table: dl_bom": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "product_id",
+   "M2O → product.product required",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Output Product"
+  ],
+  [
+   "category_id",
+   "M2O → product.category",
+   "INTEGER",
+   "FK",
+   "Product Category — used to quickly filter the product list."
+  ],
+  [
+   "note",
+   "Text",
+   "TEXT",
+   "—",
+   "—"
+  ],
+  [
+   "version, product_qty, status, approved_by, approved_date, is_current, created_by",
+   "—",
+   "—",
+   "—",
+   "Inherited from dl.bom.header.mixin"
+  ]
+ ],
+ "A template-level BOM associated with a Product Category, used to quickly create a BOM for a new product within the same category. Its structure is similar to an actual BOM and shares the same mixin.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "product_category_id",
+   "M2O → product.category required",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE restrict",
+   "—"
+  ],
+  [
+   "version, product_qty, status, approved_by, approved_date, is_current, created_by",
+   "—",
+   "—",
+   "—",
+   "Inherited from dl.bom.header.mixin"
+  ]
+ ],
+ "A consumable material in the BOM, along with the method for calculating its required quantity.": [
+  [
+   "material_id",
+   "M2O → product.product required",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Material / Semi-finished Product. Domain checks product_kind ∈ {material, material_processed}"
+  ],
+  [
+   "quantity",
+   "Float required",
+   "NUMBERIC",
+   "NOT NULL",
+   "Actual Quantity Used"
+  ],
+  [
+   "complexity_id",
+   "M2O → dl.pricing.complexity.level",
+   "INTEGER",
+   "FK, ON DELETE set null",
+   "Mức phức tạm"
+  ],
+  [
+   "waste_rate",
+   "Float(5.2)",
+   "NUMERIC",
+   "—",
+   "Waste Rate = base waste rate × complexity factor; can be manually overridden"
+  ],
+  [
+   "effective_qty",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Quantity × (1 + waste_rate / 100)"
+  ],
+  [
+   "is_override",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Flag indicating that the system-calculated quantity has been overridden"
+  ],
+  [
+   "override_reason",
+   "Text",
+   "TEXT",
+   "—",
+   "Override Reason (required when is_override = true)"
+  ],
+  [
+   "uom_id",
+   "M2O → uom.uom",
+   "INTEGER",
+   "FK",
+   "Unit of Measure"
+  ]
+ ],
+ "Table: dl_bom_line": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "bom_id",
+   "M2O → dl.bom required",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "(+ all fields from dl.bom.line.mixin)"
+  ]
+ ],
+ "Table: dl_bom_template_line": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "bom_template_id",
+   "M2O → dl.bom.template",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "note",
+   "Text",
+   "TEXT",
+   "—",
+   "—"
+  ],
+  [
+   "(+ all fields from dl.bom.line.mixin)"
+  ]
+ ],
+ "Sales records the customer requirements, Engineering finalizes the product and material requirements, then BA/Sales creates the quotation. Field-level RBAC is applied.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL, UNIQUE",
+   "RFQ-YYYY- …"
+  ],
+  [
+   "customer_id",
+   "M2O → res.partner required",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Customer, domain checks partner_role ∈ {customer, both}"
+  ],
+  [
+   "description",
+   "Text",
+   "Text",
+   "—",
+   "Description"
+  ],
+  [
+   "request_date",
+   "Datetime required",
+   "TIMESTAMP",
+   "NOT NULL",
+   "Request Received Date"
+  ],
+  [
+   "deadline",
+   "Date",
+   "DATE",
+   "NOT NULL",
+   "Request Deadline"
+  ],
+  [
+   "status",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL, DEFAULT new",
+   "Enum — see §3.3"
+  ],
+  [
+   "return_reason",
+   "Text",
+   "TEXT",
+   "—",
+   "Latest Reason for Return by Engineering t"
+  ],
+  [
+   "created_by",
+   "M2O → res.user",
+   "FK",
+   "NOT NULL",
+   "Created By (Sales)"
+  ],
+  [
+   "received_by",
+   "M2O → res.user",
+   "FK",
+   "—",
+   "Assigned Engineer — prevents multiple engineers from processing the same request concurrently"
+  ],
+  [
+   "received_date",
+   "Datetime",
+   "TIMESTAMP",
+   "—",
+   "Processing Start Time"
+  ]
+ ],
+ "A customer-requested product": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "quotation_request_id",
+   "M2O → required",
+   "INTEGER",
+   "FK",
+   "—"
+  ],
+  [
+   "product_type",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "Product type (manufactured / trading)"
+  ],
+  [
+   "product_name",
+   "Char",
+   "VARCHAR",
+   "FK, NOT NULL",
+   "Customer Requested Product Name"
+  ],
+  [
+   "product_category_id",
+   "M2O → product.category",
+   "INTEGER",
+   "FK",
+   "Product Category, domain checks the “finished” branch"
+  ],
+  [
+   "reference_product_id",
+   "M2O → product.category",
+   "INTEGER",
+   "FK",
+   "Reference Product (suggested by Sales) — for reference only"
+  ],
+  [
+   "quantity",
+   "Float required",
+   "NUMERIC",
+   "NOT NULL",
+   "Requested Quantity"
+  ],
+  [
+   "demension_note",
+   "Text",
+   "TEXT",
+   "—",
+   "Dimensions / Technical Requirements"
+  ],
+  [
+   "resolved_product_id",
+   "M2O → product.product",
+   "INTEGER",
+   "FK",
+   "Final Product Determined by Engineering"
+  ],
+  [
+   "resolved_bom_id",
+   "M2O → dl.bom",
+   "INTEGER",
+   "FK",
+   "Referenced BOM — applicable only to manufactured items"
+  ],
+  [
+   "is_infeasible",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Kết luận không khả thi"
+  ],
+  [
+   "infeasible_reason",
+   "Text",
+   "TEXT",
+   "—",
+   "Marked as Infeasible"
+  ]
+ ],
+ "Table: dl_quotation_request_line_image": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "line_id",
+   "M2O → dl.quotation.request.line",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "sequence",
+   "Integer",
+   "INTEGER",
+   "—",
+   "—"
+  ],
+  [
+   "name",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "image",
+   "Image required → ir_attachment",
+   "–",
+   "—",
+   "—"
+  ]
+ ],
+ "A quotation issued to the customer. It is generated from the RFQ, BOM, and supplier price lists, applies commercial pricing rules (markup, discount, and VAT), routes through the approval workflow, and can be converted into a Sales Order.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL, UNIQUE",
+   "Quotation Number"
+  ],
+  [
+   "partner_id",
+   "M2O → res.partner required",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Customer, domain checks partner_role ∈ {customer, both}"
+  ],
+  [
+   "date_order",
+   "Date required",
+   "DATE",
+   "NOT NULL",
+   "Quotation Date"
+  ],
+  [
+   "validity_date",
+   "Date",
+   "DATE",
+   "—",
+   "Validity Date, default = quotation_date + N configured days (default: 30)"
+  ],
+  [
+   "state",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "created_by",
+   "M2O → res.users required",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Created By (read-only)"
+  ],
+  [
+   "note",
+   "Text",
+   "TEXT",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "quotation_request_id",
+   "M2O → dl.quotation.request",
+   "INTEGER",
+   "FK NOT NULL, ON DELETE restrict",
+   "RQF"
+  ],
+  [
+   "revision",
+   "Integer",
+   "INTEGER",
+   "NOT NULL DEFAULT 1",
+   "Version Number"
+  ],
+  [
+   "origin_quotation_id",
+   "M2O → dl.quotation",
+   "INTEGER",
+   "FK, ON DELETE SET NULL",
+   "Previous Version (self-reference)"
+  ],
+  [
+   "discount_pct",
+   "Float(5,2)",
+   "NUMERIC",
+   "—",
+   "% Discount"
+  ],
+  [
+   "vat_pct",
+   "Float(5,2)",
+   "NUMERIC",
+   "—",
+   "% VAT"
+  ],
+  [
+   "amount_untaxed",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Sum of Line Amounts"
+  ],
+  [
+   "discount_amount",
+   "Float",
+   "NUMERIC",
+   "—",
+   "—"
+  ],
+  [
+   "amount_before_vat",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Amount After Discount, Before VAT. This value determines the approval workflow"
+  ],
+  [
+   "vat_amount",
+   "Float",
+   "NUMERIC",
+   "—",
+   "—"
+  ],
+  [
+   "amount_total",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Total Amount"
+  ],
+  [
+   "Internal Control Fields"
+  ],
+  [
+   "total_cost",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Σ (Cost × Quantity)"
+  ],
+  [
+   "floor_amount",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Σ (Floor Price × Quantity)"
+  ],
+  [
+   "effective_markup",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Actual Markup Achieved"
+  ],
+  [
+   "target_markup",
+   "Float(6,2)",
+   "NUMERIC",
+   "—",
+   "Snapshot of the Target Markup Applied"
+  ],
+  [
+   "below_floor",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Below Floor Price Flag n"
+  ],
+  [
+   "Approval Logic Fields"
+  ],
+  [
+   "approval_required",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Approval Required"
+  ],
+  [
+   "approval_state",
+   "Selection",
+   "VARCHAR",
+   "DEFAULT not_required",
+   "Enum — see §3.3"
+  ],
+  [
+   "approval_reasons",
+   "Text",
+   "TEXT",
+   "—",
+   "Approval Reason List"
+  ],
+  [
+   "approval_request_id",
+   "M2O → dl.pricing.approval.request",
+   "INTEGER",
+   "FK",
+   "Approval Request"
+  ],
+  [
+   "Phản hồi của Khách hàng"
+  ],
+  [
+   "reject_reason",
+   "Selection",
+   "VARCHAR",
+   "—",
+   "7 predefined reasons Enum — see §3.3"
+  ],
+  [
+   "reject_reason_note",
+   "Text",
+   "TEXT",
+   "—",
+   "Detailed reason is required when reject_reason = 'other'"
+  ],
+  [
+   "revision_request_type",
+   "Selection",
+   "VARCHAR",
+   "—",
+   "Enum — see §3.3 – Determines the next processing step."
+  ],
+  [
+   "revision_request_note",
+   "Text",
+   "TEXT",
+   "—",
+   "Customer Request Details"
+  ]
+ ],
+ "A quoted item. This table stores both the selling price and the cost/floor price for the item": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "quotation_id",
+   "M2O → dl,quotation",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "Line Description"
+  ],
+  [
+   "qty",
+   "Float",
+   "NUMERIC",
+   "NOT NULL",
+   "Quantity"
+  ],
+  [
+   "price_unit",
+   "Float",
+   "NUMERIC",
+   "NOT NULL",
+   "Rounded Unit Selling Price (according to configuration)"
+  ],
+  [
+   "line_type",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "rfq_line_id",
+   "M2O → dl.quotation.request.line",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE SET NULL",
+   "Source RFQ Line"
+  ],
+  [
+   "product_id",
+   "M2O → product.product",
+   "INTEGER",
+   "FK, NOT NULL",
+   "—"
+  ],
+  [
+   "bom_id",
+   "M2O → dl.bom",
+   "INTEGER",
+   "FK",
+   "Applied BOM"
+  ],
+  [
+   "bom_version",
+   "Integer",
+   "INTERGER",
+   "—",
+   "BOM Version Used for the Quotation"
+  ],
+  [
+   "bom_apprived_by",
+   "M2O → res.user",
+   "INTEGER",
+   "FK",
+   "BOM Approved By (at the time of quotation)"
+  ],
+  [
+   "base_price",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Base Price Before Rounding"
+  ],
+  [
+   "material_cost",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Material Cost per Unit"
+  ],
+  [
+   "total_cost",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Unit Cost"
+  ],
+  [
+   "floor_price",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Floor Price per Unit"
+  ]
+ ],
+ "Snapshot values; individual pricing components cannot be edited, ensuring that quotation prices remain unchanged even if the supplier price list (supplierinfo.price) is updated later.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "quotation_id",
+   "M2O → dl,quotation",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "quotation_line_id",
+   "M2O → dl.quotation.line",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "component_type",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "source_model",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Source Model (product.supplierinfo / dl.bom / product.product / dl.pricing.profit.rule)"
+  ],
+  [
+   "source_revision",
+   "Integer",
+   "INTEGER",
+   "—",
+   "Source Version at Confirmation Time"
+  ],
+  [
+   "material_id",
+   "M2O → product.product",
+   "INTEGER",
+   "FK, ON DELETE SET NULL",
+   "Related Material / Product"
+  ],
+  [
+   "qty",
+   "Float",
+   "NUMERIC",
+   "—",
+   "—"
+  ],
+  [
+   "unit_price",
+   "Float",
+   "NUMERIC",
+   "—",
+   "—"
+  ],
+  [
+   "rate",
+   "Float(5, 2)",
+   "NUMERIC",
+   "—",
+   "Percentage Used for Markup / Discount / VAT"
+  ],
+  [
+   "amount",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Amount"
+  ],
+  [
+   "no_discount",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Discount-Exempt Range"
+  ]
+ ],
+ "Snapshot values that cannot be edited individually, ensuring quotation prices remain unchanged even if the supplier price list (supplierinfo.price) is updated later.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "partner_id",
+   "M2O —> res.partner required",
+   "INTEGER",
+   "FK< NOT NULL",
+   "Customer"
+  ],
+  [
+   "quotation_id",
+   "M2O → dl.quotation",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE restrict",
+   "Source Quotation"
+  ],
+  [
+   "date_order",
+   "Date required",
+   "DATE",
+   "NOT NULL",
+   "Sales Order Date"
+  ],
+  [
+   "state",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL, DEFAULT draft",
+   "Enum — see §3.3"
+  ],
+  [
+   "note",
+   "Text",
+   "TEXT",
+   "—",
+   "—"
+  ],
+  [
+   "reset_draft_reason",
+   "Text",
+   "TEXT",
+   "—",
+   "Latest Reason for Reverting to Draft"
+  ],
+  [
+   "reset_draft_by",
+   "M2O → res.user",
+   "INTEGER",
+   "FK",
+   "Performed By"
+  ],
+  [
+   "reset_draft_at",
+   "Datetime",
+   "TIMESTAMP",
+   "—",
+   "—"
+  ]
+ ],
+ "Copied from the Quotation Line, Excluding All Cost Fields": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "order_id",
+   "M2O → required",
+   "INTE",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "qty",
+   "Float",
+   "NUMERIC",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "product_id",
+   "M2O → product.product",
+   "INTERGER",
+   "FK, NOT NULL",
+   "—"
+  ],
+  [
+   "bom_id",
+   "M2O → dl.bom",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Approved BOM"
+  ],
+  [
+   "line_type",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "trading / manufactured"
+  ]
+ ],
+ "Inherited from the quotation line, omitting all cost columns": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "order_id",
+   "M2O → required",
+   "INTE",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "qty",
+   "Float",
+   "NUMERIC",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "product_id",
+   "M2O → product.product",
+   "INTERGER",
+   "FK, NOT NULL",
+   "—"
+  ],
+  [
+   "bom_id",
+   "M2O → dl.bom",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Applied BOM"
+  ],
+  [
+   "line_type",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "trading / manufactured"
+  ]
+ ],
+ "Mixin: dl.pricing.rule.mixin [Mixin]": [
+  [
+   "revision",
+   "Integer",
+   "INTEGER",
+   "NOT NULL",
+   "Version, Incremented When a New Revision Is Created"
+  ],
+  [
+   "valid_from",
+   "Date required",
+   "DATE",
+   "NOT NULL",
+   "Effective From"
+  ],
+  [
+   "valid_to",
+   "Date",
+   "DATE",
+   "NOT NULL",
+   "Effective To – Automatically Closed When a New Version Is Created"
+  ],
+  [
+   "change_reason",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Reason for Change"
+  ],
+  [
+   "used_in_snapshot",
+   "Boolean",
+   "BOOL",
+   "DEFAULT False",
+   "Once the Rule Has Been Snapshotted by a Confirmed Quotation, It Cannot Be Modified or Deleted"
+  ]
+ ],
+ "Complexity catalog table": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "Complexity level name"
+  ],
+  [
+   "factor",
+   "Float(6,2) required",
+   "NUMERIC",
+   "NOT NULL, DEFAULT 1.0",
+   "Multiplier Applied to the Base Scrap Rate"
+  ],
+  [
+   "note",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Usage Suggestion"
+  ],
+  [
+   "sequence",
+   "Integer",
+   "INTEGER",
+   "—",
+   "—"
+  ],
+  [
+   "active",
+   "Boolean",
+   "BOOL",
+   "—",
+   "—"
+  ]
+ ],
+ "Defines Scrap and Scrap Recovery Rates for Specific Product or Material Groups.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "target_type",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "category / product"
+  ],
+  [
+   "category_id",
+   "M2O → product.category",
+   "INTEGER",
+   "FK, ON DELETE restrict",
+   "Used When target_type = 'category'"
+  ],
+  [
+   "product_id",
+   "M2O → product.product",
+   "INTEGER",
+   "FK, ON DELETE restrict",
+   "Used When target_type = 'product'"
+  ],
+  [
+   "watse_rate",
+   "Float()6,2)",
+   "NUMERIC",
+   "—",
+   "Scrap Rate (%)"
+  ],
+  [
+   "has_recovery",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Scrap Recovery Enabled"
+  ],
+  [
+   "recovery_rate",
+   "Float(6,2)",
+   "NUMERIC",
+   "—",
+   "Scrap Recovery Rate (%) – Calculated Based on the Scrap Quantity"
+  ],
+  [
+   "crap_product_id",
+   "M2O → product.product",
+   "INTEGER",
+   "FK, ONDELETE restrict",
+   "Scrap Product"
+  ],
+  [
+   "state",
+   "Selection",
+   "VARCHAR",
+   "DEFAULT draft",
+   "Enum — see §3.3"
+  ],
+  [
+   "+ All Fields from dl.pricing.rule.mixin"
+  ]
+ ],
+ "Table: dl_pricing_operation": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "\"Cắt\" / \"Hàn\" / \"Chấn\" / \"Khoan\" / \"Sơn\" / \"Thuê ngoài\""
+  ],
+  [
+   "code",
+   "Char required",
+   "VARCHAR",
+   "UNIQUE",
+   "—"
+  ],
+  [
+   "sequence",
+   "Integer",
+   "INTEGER",
+   "—",
+   "—"
+  ],
+  [
+   "active",
+   "Boolean",
+   "BOOL",
+   "—",
+   "—"
+  ]
+ ],
+ "Defines Scrap Rate and Scrap Recovery Rate for Specific Product or Material Groups.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "operation_id",
+   "M2O → dl.pricing.operation",
+   "INTEGER",
+   "FK NOT NULL",
+   "category / product"
+  ],
+  [
+   "category_id",
+   "M2O → product.category",
+   "INTEGER",
+   "FK, ON DELETE restrict",
+   "Used When target_type = \"category\""
+  ],
+  [
+   "product_id",
+   "M2O → product.product",
+   "INTEGER",
+   "FK, ON DELETE restrict",
+   "Used When target_type = \"product\""
+  ],
+  [
+   "watse_rate",
+   "Float()6,2)",
+   "NUMERIC",
+   "—",
+   "Scrap Rate (%)"
+  ],
+  [
+   "has_recovery",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Scrap Recovery Enabled"
+  ],
+  [
+   "recovery_rate",
+   "Float(6,2)",
+   "NUMERIC",
+   "—",
+   "Scrap Recovery Rate (%) – Based on the Scrap Quantity"
+  ],
+  [
+   "crap_product_id",
+   "M2O → product.product",
+   "INTEGER",
+   "FK, ONDELETE restrict",
+   "Scrap Product"
+  ],
+  [
+   "state",
+   "Selection",
+   "VARCHAR",
+   "DEFAULT draft",
+   "Enum — see §3.3"
+  ],
+  [
+   "+ All Fields from dl.pricing.rule.mixin"
+  ]
+ ],
+ "Combines Overhead Costs, Surcharges, and Adjustment Factors into a Single List, Distinguished by rule_type.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "Tên khoản chi phí"
+  ],
+  [
+   "rule_type",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "method",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "value",
+   "Float(16, 2) required",
+   "NUMERIC",
+   "NOT NULL",
+   "Rate / Unit Price / Amount / Factor"
+  ],
+  [
+   "condition_days",
+   "Integer",
+   "INTEGER",
+   "—",
+   "Used Only for rule_type = \"urgent\" When the Lead Time Is ≤ N Days"
+  ],
+  [
+   "condition_amount",
+   "Float(16,2)",
+   "NUMERIC",
+   "—",
+   "Used Only for rule_type = \"small_order\" When the Order Value Is ≤ This Amount"
+  ],
+  [
+   "no_discount",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Excluded from the Discountable Base (e.g., Shipping, Collection Fees)"
+  ],
+  [
+   "state",
+   "Selection",
+   "VARCHAR",
+   "DEFAULT draft",
+   "Enum — see §3.3"
+  ],
+  [
+   "+ All Fields from dl.pricing.rule.mixin"
+  ]
+ ],
+ "Uses the Fixed \"Markup on Cost\" Pricing Method. Determines the Target Selling Price and Minimum Selling Price for All Quotations.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "target_markup",
+   "Float required",
+   "NUMERIC",
+   "NOT NULL",
+   "Target Profit Margin (%)"
+  ],
+  [
+   "min_markup",
+   "Float required",
+   "NUMERIC",
+   "NOT NULL",
+   "Minimum Profit Margin"
+  ],
+  [
+   "state",
+   "Selection",
+   "VARCHAR",
+   "DEFAULT draft",
+   "Enum — see §3.3"
+  ],
+  [
+   "+ All Fields from dl.pricing.rule.mixin"
+  ]
+ ],
+ "Discount by Three Customer Groups": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "customer_group",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "group_rank",
+   "Integer",
+   "INTEGER",
+   "NOT NULL DEFAULT 0",
+   "Loyalty Level: 0 / 1 / 2"
+  ],
+  [
+   "default_rate",
+   "Float required",
+   "NUMERIC",
+   "NOT NULL",
+   "Default Discount"
+  ],
+  [
+   "max_rate",
+   "Float required",
+   "NUMERIC",
+   "NOT NULL",
+   "Maximum Discount"
+  ],
+  [
+   "state",
+   "Selection",
+   "VARCHAR",
+   "DEFAULT draft",
+   "Enum — see §3.3"
+  ],
+  [
+   "+ All Fields from dl.pricing.rule.mixin"
+  ]
+ ],
+ "Approval matrix mapping amount thresholds to approval levels. Each record stores only the starting threshold; the upper bound is implicitly determined by the next threshold.": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "value_from",
+   "Monetary required",
+   "NUMERIC",
+   "NOT NULL",
+   "Amount Threshold"
+  ],
+  [
+   "approval_level",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL, DEFAULT none",
+   "Enum — see §3.3"
+  ],
+  [
+   "level_rank",
+   "Integer",
+   "INTEGER",
+   "—",
+   "Priority used to select the highest approval level when multiple conditions apply (0/1/2)"
+  ],
+  [
+   "approver_user_id",
+   "M2O → res.user",
+   "INTEGER",
+   "—",
+   "Specific Approver (Optional)"
+  ],
+  [
+   "note",
+   "Char",
+   "VARCHAR",
+   "—",
+   "—"
+  ],
+  [
+   "state",
+   "Selection",
+   "VARCHAR",
+   "DEFAULT draft",
+   "Enum — see §3.3"
+  ],
+  [
+   "+ All Fields from dl.pricing.rule.mixin"
+  ]
+ ],
+ "Table: dl_pricing_approval_setting": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "request_type",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "approver_role",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "sales_manager / ceo"
+  ],
+  [
+   "approver_user_id",
+   "M2O → res.users",
+   "INTEGER",
+   "FK",
+   "Specific Approver"
+  ]
+ ],
+ "Approval Request": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "title",
+   "Char",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "request_type",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "res_model",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Target Model Requiring Approval"
+  ],
+  [
+   "res_id",
+   "Integer",
+   "INTEGER",
+   "—",
+   "ID of the object requiring approval – not FK"
+  ],
+  [
+   "object_lable",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Object label (snapshot)"
+  ],
+  [
+   "old_value, new_value, impact",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Description of changes for quick reviewer understanding"
+  ],
+  [
+   "requester_id",
+   "M2O → res.users",
+   "INTEGER",
+   "FK, NOT NULL",
+   "Submitter"
+  ],
+  [
+   "requester_role",
+   "Char",
+   "VARCHAR",
+   "NOT NULL",
+   "Submitter role (snapshot)"
+  ],
+  [
+   "reason",
+   "Text required",
+   "TEXT",
+   "NOT NULL",
+   "Submission reason"
+  ],
+  [
+   "resolved_at",
+   "Datetime",
+   "TIMESTAMP",
+   "—",
+   "—"
+  ],
+  [
+   "reject_comment",
+   "Text",
+   "TEXT",
+   "—",
+   "Rejection reason"
+  ],
+  [
+   "is_self_approval",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Flag for self-approval by submitter"
+  ],
+  [
+   "state",
+   "Selection required",
+   "VARCHAR",
+   "DEFAULT pending",
+   "Enum — see §3.3"
+  ],
+  [
+   "approval_level",
+   "Selection",
+   "VARCHAR",
+   "—",
+   "sales_manager / ceo"
+  ],
+  [
+   "matrix_row_id",
+   "M2O → dl.pricing.approval.matrix",
+   "INTEGER",
+   "ON DELETE restrict",
+   "Snapshot of the matrix row used"
+  ],
+  [
+   "trigger_reasons",
+   "Text",
+   "TEXT",
+   "—",
+   "List of generated conditions"
+  ],
+  [
+   "Mở rộng ở module dl_sale để làm yêu cầu phê duyệt báo giá"
+  ],
+  [
+   "quotation_id",
+   "M2O → dl.quotation.",
+   "INTEGER",
+   "—",
+   "—"
+  ]
+ ],
+ "Table: dl_rbac_feature": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "Feature / Screen name"
+  ],
+  [
+   "Code",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL, UNIQUE",
+   "Feature code"
+  ],
+  [
+   "model_id",
+   "M2O → ir.model",
+   "INTEGER",
+   "FK",
+   "Model for CRUD permissions"
+  ],
+  [
+   "category",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "Enum — see §3.3"
+  ],
+  [
+   "sequence",
+   "Integer",
+   "INTEGER",
+   "—",
+   "—"
+  ],
+  [
+   "active",
+   "Boolean",
+   "BOOL",
+   "—",
+   "—"
+  ]
+ ],
+ "Table: dl_rbac_operation": [
+  [
+   "Id",
+   "—",
+   "BIGSERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "feature_id",
+   "M2O → required",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "—"
+  ],
+  [
+   "name",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "Action name"
+  ],
+  [
+   "code",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL, UNIQUE",
+   "—"
+  ],
+  [
+   "sequence",
+   "Integer",
+   "INTEGER",
+   "—",
+   "—"
+  ],
+  [
+   "group_id",
+   "M2O → res.groups required",
+   "INTEGER",
+   "FK, NOT NULL, ON DELETE cascade",
+   "Odoo native permission table"
+  ]
+ ],
+ "dl_inventory adds NO column here. It overrides get_rules_dict() only.": [
+  [
+   "id [Native]",
+   "—",
+   "SERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name [Native]",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "“Kho Đại Linh”"
+  ],
+  [
+   "code [Native]",
+   "Char required",
+   "VARCHAR(5)",
+   "NOT NULL",
+   "“DL” — prefix of every picking number"
+  ],
+  [
+   "view_location_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_location",
+   "Root location DL (usage = view)"
+  ],
+  [
+   "lot_stock_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_location",
+   "DL/NHAN/KHO — materials & trading goods"
+  ],
+  [
+   "wh_input_stock_loc_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_location",
+   "DL/NHAN/QC — goods awaiting inspection"
+  ],
+  [
+   "reception_steps [Native]",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "Set to two_steps: receive → inspect & put away"
+  ],
+  [
+   "company_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → res_company, NOT NULL",
+   "—"
+  ]
+ ],
+ "The three “kho” the business talks about are three child locations of the single warehouse, seeded by dl_inventory: DL/NHAN (receiving), DL/XUONG (plant), DL/TP (finished goods). Seven internal locations in total.": [
+  [
+   "id [Native]",
+   "—",
+   "SERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name [Native]",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "Zone / bin name"
+  ],
+  [
+   "complete_name [Native]",
+   "Char computed",
+   "VARCHAR",
+   "stored",
+   "e.g. DL/XUONG/PL"
+  ],
+  [
+   "location_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_location, ON DELETE CASCADE",
+   "Parent location — self-referencing tree"
+  ],
+  [
+   "parent_path [Native]",
+   "Char",
+   "VARCHAR",
+   "INDEX",
+   "Materialised path (e.g. 1/4/9/). The scrap SQL VIEW matches the whole subtree with LIKE parent_path || '%' — see §3.1 dl_scrap_recovery_report"
+  ],
+  [
+   "usage [Native]",
+   "Selection",
+   "VARCHAR",
+   "NOT NULL",
+   "view / internal / supplier / customer / production / inventory"
+  ],
+  [
+   "warehouse_id [Native]",
+   "Many2one computed",
+   "INTEGER",
+   "FK → stock_warehouse",
+   "—"
+  ],
+  [
+   "scrap_location [Native]",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Left FALSE on DL/XUONG/PL on purpose — scrap here is a sellable asset, not a write-off"
+  ],
+  [
+   "active [Native]",
+   "Boolean",
+   "BOOL",
+   "DEFAULT TRUE",
+   "Archive instead of delete"
+  ],
+  [
+   "company_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → res_company",
+   "—"
+  ]
+ ],
+ "Eight operation types: 3 native ones renamed (NH receive / GH deliver / CK internal transfer) and 5 created by dl_inventory (KC inspect & put away, TR vendor return, BPL scrap sale, plus XSX / NTP seeded ahead for the future Manufacturing Order phase). The operation type is the discriminator that specialises stock_picking.": [
+  [
+   "id [Native]",
+   "—",
+   "SERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name [Native]",
+   "Char translated",
+   "JSONB",
+   "NOT NULL",
+   "Odoo 17 stores translations as JSONB"
+  ],
+  [
+   "sequence_code [Native]",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "NH / KC / CK / GH / TR / BPL / XSX / NTP — the key the code branches on"
+  ],
+  [
+   "code [Native]",
+   "Selection required",
+   "VARCHAR",
+   "NOT NULL",
+   "incoming / outgoing / internal"
+  ],
+  [
+   "warehouse_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_warehouse, ON DELETE CASCADE",
+   "—"
+  ],
+  [
+   "sequence_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → ir_sequence",
+   "Produces the picking number DL/KC/00001"
+  ],
+  [
+   "default_location_src_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_location",
+   "—"
+  ],
+  [
+   "default_location_dest_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_location",
+   "—"
+  ],
+  [
+   "return_picking_type_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_picking_type",
+   "Self-reference — reverse operation type"
+  ],
+  [
+   "use_create_lots [Native]",
+   "Boolean",
+   "BOOL",
+   "—",
+   "TRUE on NH: lot numbers are generated by Đại Linh, not copied from the vendor's document"
+  ],
+  [
+   "active [Native]",
+   "Boolean",
+   "BOOL",
+   "DEFAULT TRUE",
+   "—"
+  ]
+ ],
+ "dl_inventory adds 4 physical columns; 10 further ORM fields are non-stored (see note).": [
+  [
+   "id [Native]",
+   "—",
+   "SERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Document number, e.g. DL/KC/00001"
+  ],
+  [
+   "origin [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Source document reference"
+  ],
+  [
+   "state [Native]",
+   "Selection",
+   "VARCHAR",
+   "—",
+   "draft / waiting / confirmed / assigned / done / cancel"
+  ],
+  [
+   "picking_type_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → stock_picking_type, NOT NULL, INDEX",
+   "Determines the document kind"
+  ],
+  [
+   "partner_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → res_partner",
+   "Customer on delivery, vendor on receipt"
+  ],
+  [
+   "location_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → stock_location, NOT NULL",
+   "Source"
+  ],
+  [
+   "location_dest_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → stock_location, NOT NULL",
+   "Destination"
+  ],
+  [
+   "backorder_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_picking",
+   "Self-reference — partial-delivery remainder"
+  ],
+  [
+   "group_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → procurement_group",
+   "Chains the 2 legs of the receipt route"
+  ],
+  [
+   "scheduled_date [Native]",
+   "Datetime",
+   "TIMESTAMP",
+   "—",
+   "—"
+  ],
+  [
+   "date_done [Native]",
+   "Datetime",
+   "TIMESTAMP",
+   "—",
+   "Set when the document is validated"
+  ],
+  [
+   "company_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → res_company",
+   "—"
+  ],
+  [
+   "dlm_origin_picking_id",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_picking, ON DELETE SET NULL, INDEX",
+   "Vendor-return document → the inspection document it came from"
+  ],
+  [
+   "dlm_sale_order_id",
+   "Many2one",
+   "INTEGER",
+   "FK → dl_sale_order, ON DELETE RESTRICT, INDEX",
+   "Delivery document → sales order. RESTRICT: an order that has already shipped must not be deletable"
+  ],
+  [
+   "dlm_qty_rejected_total",
+   "Float computed stored",
+   "NUMERIC",
+   "—",
+   "Total rejected quantity; stored so the list view can sort and group on it"
+  ],
+  [
+   "dlm_qc_state",
+   "Selection computed stored",
+   "VARCHAR",
+   "—",
+   "none / pending / passed / has_reject — see §3.3"
+  ]
+ ],
+ "dl_inventory adds 3 physical columns.": [
+  [
+   "id [Native]",
+   "—",
+   "SERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name [Native]",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "—"
+  ],
+  [
+   "product_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → product_product, NOT NULL, INDEX",
+   "—"
+  ],
+  [
+   "product_uom [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → uom_uom, NOT NULL",
+   "—"
+  ],
+  [
+   "product_uom_qty [Native]",
+   "Float required",
+   "NUMERIC",
+   "NOT NULL",
+   "Demand"
+  ],
+  [
+   "quantity [Native]",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Quantity actually done"
+  ],
+  [
+   "picked [Native]",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Odoo 17 replacement for the old “quantity_done”"
+  ],
+  [
+   "state [Native]",
+   "Selection",
+   "VARCHAR",
+   "—",
+   "draft / confirmed / assigned / done / cancel"
+  ],
+  [
+   "date [Native]",
+   "Datetime required",
+   "TIMESTAMP",
+   "NOT NULL",
+   "Period key of the scrap report (date_trunc('month', date))"
+  ],
+  [
+   "picking_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_picking, INDEX",
+   "NULLABLE — inventory-adjustment moves have no parent document"
+  ],
+  [
+   "location_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → stock_location, NOT NULL, INDEX",
+   "—"
+  ],
+  [
+   "location_dest_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → stock_location, NOT NULL, INDEX",
+   "—"
+  ],
+  [
+   "is_inventory [Native]",
+   "Boolean",
+   "BOOL",
+   "—",
+   "TRUE = stock-count adjustment line"
+  ],
+  [
+   "company_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → res_company, NOT NULL, INDEX",
+   "—"
+  ],
+  [
+   "dlm_qty_rejected",
+   "Float",
+   "NUMERIC",
+   "DEFAULT 0.0",
+   "Quantity failing inspection; moves to the “Chờ trả NCC” zone"
+  ],
+  [
+   "dlm_reject_reason",
+   "Selection",
+   "VARCHAR",
+   "—",
+   "defect / wrong_spec / wrong_item / other — see §3.3"
+  ],
+  [
+   "dlm_reject_note",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Free-text detail of the rejection"
+  ]
+ ],
+ "Lot-level detail of a move. Carries the lot number when the product is lot-tracked. Used unchanged — dl_inventory adds no column.": [
+  [
+   "id [Native]",
+   "—",
+   "SERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "move_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_move, INDEX",
+   "—"
+  ],
+  [
+   "picking_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_picking, INDEX",
+   "—"
+  ],
+  [
+   "product_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → product_product, ON DELETE CASCADE, INDEX",
+   "—"
+  ],
+  [
+   "lot_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_lot",
+   "The lot actually picked / received"
+  ],
+  [
+   "lot_name [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Lot number typed on the document before the lot record exists"
+  ],
+  [
+   "quantity [Native]",
+   "Float",
+   "NUMERIC",
+   "—",
+   "—"
+  ],
+  [
+   "location_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → stock_location, NOT NULL",
+   "—"
+  ],
+  [
+   "location_dest_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → stock_location, NOT NULL",
+   "—"
+  ],
+  [
+   "company_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → res_company, NOT NULL, INDEX",
+   "—"
+  ]
+ ],
+ "dl_inventory declares 4 ORM fields here but adds ZERO columns — three are related= and one is compute=, none of them stored.": [
+  [
+   "id [Native]",
+   "—",
+   "SERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "product_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → product_product, ON DELETE RESTRICT, NOT NULL, INDEX",
+   "—"
+  ],
+  [
+   "location_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → stock_location, ON DELETE RESTRICT, NOT NULL, INDEX",
+   "—"
+  ],
+  [
+   "lot_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_lot, ON DELETE RESTRICT, INDEX",
+   "—"
+  ],
+  [
+   "quantity [Native]",
+   "Float",
+   "NUMERIC",
+   "—",
+   "On hand"
+  ],
+  [
+   "reserved_quantity [Native]",
+   "Float required",
+   "NUMERIC",
+   "NOT NULL",
+   "Reserved for open documents"
+  ],
+  [
+   "inventory_quantity [Native]",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Counted quantity (stock count)"
+  ],
+  [
+   "inventory_diff_quantity [Native]",
+   "Float",
+   "NUMERIC",
+   "—",
+   "Counted − on hand"
+  ],
+  [
+   "inventory_quantity_set [Native]",
+   "Boolean",
+   "BOOL",
+   "—",
+   "Distinguishes “counted 0” from “not counted”"
+  ],
+  [
+   "in_date [Native]",
+   "Datetime required",
+   "TIMESTAMP",
+   "NOT NULL",
+   "Entry date — drives FIFO removal"
+  ],
+  [
+   "company_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → res_company",
+   "—"
+  ]
+ ],
+ "dl_inventory adds 3 physical columns, 2 of them indexed.": [
+  [
+   "id [Native]",
+   "—",
+   "SERIAL",
+   "PK",
+   "Auto-increment"
+  ],
+  [
+   "name [Native]",
+   "Char required",
+   "VARCHAR",
+   "NOT NULL",
+   "Lot number LO/2026/00001"
+  ],
+  [
+   "ref [Native]",
+   "Char",
+   "VARCHAR",
+   "—",
+   "Vendor's own lot number, if any"
+  ],
+  [
+   "product_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → product_product, NOT NULL, INDEX",
+   "—"
+  ],
+  [
+   "product_uom_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → uom_uom",
+   "—"
+  ],
+  [
+   "location_id [Native]",
+   "Many2one",
+   "INTEGER",
+   "FK → stock_location",
+   "—"
+  ],
+  [
+   "company_id [Native]",
+   "Many2one required",
+   "INTEGER",
+   "FK → res_company, NOT NULL, INDEX",
+   "—"
+  ],
+  [
+   "dlm_supplier_id",
+   "Many2one readonly",
+   "INTEGER",
+   "FK → res_partner, ON DELETE SET NULL, INDEX",
+   "Which vendor this lot came from — the traceability anchor"
+  ],
+  [
+   "dlm_receipt_date",
+   "Date readonly",
+   "DATE",
+   "INDEX",
+   "Receipt date; indexed because ageing reports filter on it"
+  ],
+  [
+   "dlm_receipt_picking_id",
+   "Many2one readonly",
+   "INTEGER",
+   "FK → stock_picking, ON DELETE SET NULL",
+   "The receipt document that created the lot"
+  ]
+ ],
+ "_auto = False ⇒ this is a PostgreSQL VIEW, not a table. It has no PK sequence, no audit columns, and no INSERT/UPDATE path.": [
+  [
+   "id",
+   "Integer readonly",
+   "INTEGER",
+   "synthetic",
+   "YEAR*100 + MONTH — deterministic surrogate key required by the ORM"
+  ],
+  [
+   "period",
+   "Date readonly",
+   "DATE",
+   "—",
+   "First day of the month, date_trunc('month', move.date)"
+  ],
+  [
+   "qty_in",
+   "Float readonly",
+   "NUMERIC",
+   "—",
+   "Scrap weighed INTO DL/XUONG/PL during the month"
+  ],
+  [
+   "qty_sold",
+   "Float readonly",
+   "NUMERIC",
+   "—",
+   "Scrap moved OUT of DL/XUONG/PL to a customer location"
+  ]
+ ],
+ "The sales order (defined in full earlier in this section) gains two stored columns so the delivery status can be filtered and grouped in the list view.": [
+  [
+   "dlm_delivery_state",
+   "Selection computed stored",
+   "VARCHAR",
+   "DEFAULT 'nothing'",
+   "nothing / partial / done — see §3.3"
+  ],
+  [
+   "dlm_has_deliverable",
+   "Boolean computed stored",
+   "BOOL",
+   "—",
+   "FALSE when no line needs to ship through the warehouse, so the “Create delivery” button is hidden instead of failing on click"
+  ]
+ ]
+}

@@ -79,7 +79,9 @@ if ($LASTEXITCODE -ne 0) { throw "Tạo lại DB thất bại (exit $LASTEXITCOD
 # ── Bước 2: cài module + seed dl_demo ────────────────────────────────────────
 Write-Host ""
 Write-Host "[2/2] Cài module + nạp dữ liệu demo (có thể mất vài phút)..." -ForegroundColor Green
-& $Python $OdooBin -c $Conf -d $DbName --stop-after-init -i dl_demo --without-demo=all
+# dl_purchase KHÔNG nằm trong depends của dl_demo (dl_demo không seed dữ liệu mua
+# hàng) nên phải liệt kê tay — thiếu nó thì DB dựng ra không có màn Mua hàng.
+& $Python $OdooBin -c $Conf -d $DbName --stop-after-init -i dl_demo,dl_purchase --without-demo=all
 if ($LASTEXITCODE -ne 0) { throw "Cài đặt/seed thất bại (exit $LASTEXITCODE)." }
 
 Write-Host ""

@@ -1,0 +1,238 @@
+[70] P <Heading 1> 
+[71] P <Heading 1> 3. Data Model
+[72] P <normal> Cơ chế kế thừa Odoo áp dụng trong dự án:
+[74] P <normal> 
+[75] P <normal> 
+[76] P <normal> 
+[77] P <normal> 
+[78] P <normal> Bảng tổng hợp {N} entities:
+[79] P <normal> 
+[80] TABLE 35x5
+      | ID | Model | Mô tả | — | Odoo native base
+      | NHÓM A — MASTER DATA
+      | A1 | dl.partner | Khách hàng/nhà cung cấp | Kế thừa + mở rộng | res.partner
+      | A2 | dl.product.category | Nhóm sản phẩm, gắn BOM mẫu mặc định | Kế thừa + mở rộng | product.category
+      | A3 | dl.product.product | Thành phẩm — sản phẩm bán cho khách | Kế thừa + mở rộng | product.template
+      | A4 | dl.product.supplierinfo | Bảng giá Vật tư / SP thương mại theo NCC | Kế thừa + mở rộng | product.supplierinfo
+      | A5 | dl.measurement.type | Bảng định nghĩa đại lượng đo lường | Tạo mới | —
+      | A6 | dl.measurement.shape | Định nghĩa hình dạng | Tạo mới | —
+      |  | dl.measurement.shape.param | Định nghĩa tham số theo hình dạng | Tạo mới | —
+      | NHÓM B — KỸ THUẬT & BOM
+      | B1 | dl.drawing | Bản vẽ kỹ thuật với versioning. | Bảng mới dl_drawing | —
+      | B2 | dl.bom | Bill of Materials – Danh sách các bán thành phẩm, nguyên vật liệu để tạo nên một sản phẩm. | Bảng mới dl_bom | —
+      | B3 | dl.bom.line | Dòng chi tiết trong BOM – chi tiết thông tin bán thành phẩm / nguyên vật liệu và số lượng chi tiết. | Bảng mới dl_bom_line | —
+      | NHÓM C — THAM SỐ KỸ THUẬT
+      | C1 | dl.product.price | Bảng giá của vật tư theo từng thời gian được áp dụng | Bảng mới dl_material_price | —
+      | C2 | dl.cost.parameter | Bộ tham số chi phí cho toàn hệ thống (chi phí vật hành, chi phí rủi ro,...) – config động | Bảng mới dl_cost_parameter | —
+      | C3 | dl.parametric.formula |  | Bảng mới dl_parametric_formula | —
+      | NHÓM D — BÁO GIÁ
+      | D1 | dl.quotation.request | Yêu cầu báo giá – bước tiếp nhân đầu tiên – mốc đo cycle time | Bảng mới dl_quotation_request | —
+      | D2 | dl.quotation.request.line | Mỗi dòng = 1 sản phẩm + số lượng khách yêu cầu trong RFQ | Bảng mới dl_quotation request.line | —
+      | D3 | dl.quotation | Phiếu báo giá – Entity trung tâm của IP-01 | Bảng mới dl_quotation | —
+      | D4 | dl.quotation.line | Danh mục, chi tiết các hạng mục trong báo giá – tổng hợp 5 thành phần chi phí (chi phí vật tư, nhân công, gia công ngoài, vận hành và rủi ro) | Bảng mới dl_quotation_line | —
+      | D5 | dl.quotation.outsource.line | Chi tiết 1 dòng gia công ngoài (thầu phụ) trong 1 dòng báo giá | Bảng mới dl_quotation_outsource_line | —
+      | D6 | dl.discount.policy | Chính sách chiết khấu cho khách hàng | Bảng mới dl_discount.policy | —
+      | NHÓM E — PHÊ DUYỆT
+      | E1 | dl.approval.rule | Rule phê duyệt – CEO tự cấu hình | Bảng mới dl_approval_rule | —
+      | E2 | dl.quotation.approval | Lịch sử phê duyệt báo giá – mỗi hành động sẽ tạo một bản khi, không thể xóa | Bảng mới dl_quotation_approval | —
+      | E3 | dl.approval.threshold.config | Cấu hình ngưỡng phê duyệt (margin tối thiểu, giá trị lớn nhất, discount lớn nhât) | Bảng mới dl_approval_threshold_config | —
+      | NHÓM F — SYSTEM CONFIG
+      | F1 | dl.system.config | Tham số kỹ thuật hệ thống — Admin/IT quản lý | Kế thừa | ir_config_parameter
+      | NHÓM G — AUDIT & LỊCH SỬ
+      | G1 | dl.audit.log | Nhật ký thay đổi cấu hình quan trọng | Bảng mới dl_audit_log | —
+      | G2 | dl.quotation.history | Snapshot JSON báo giá tại mốc trạng tái – IMMUTABLE không FK | Bảng mới dl_quotation.history | —
+      | NHÓM H — PHÂN QUYỀN
+      | H1 | dl.user | Thông tin tài khoản (5 roles trong hệ thống) | Kế thừa | res_users
+[81] P <Heading 2> 3.1 Entity Definitions
+[82] P <Heading 3> A1. dl.partner [kế thừa res.partner]
+[83] P <normal> ĐỐI TÁC của Công ty Đại Linh — gồm cả Khách hàng và Nhà cung cấp — tận dụng toàn bộ hạ tầng địa chỉ, liên lạc, ngôn ngữ của Odoo — kế thừa res.partner, không tạo bảng mới. tag_ids (native) dùng tra D6 discount policy.
+[84] P <normal> Cơ chế kế thừa Odoo: _inherit = ‘res.partner’ — không tạo bảng mới, field bổ sung nằm trong bảng res_partner.
+[85] TABLE 1x1
+      | Note / partner_role KHÔNG thay thế customer_rank/supplier_rank native của Odoo (2 field này chỉ tự tăng sau giao dịch đã confirm, vô dụng với đối tác mới chưa phát sinh giao dịch) — partner_role là field nghiệp vụ, gán thủ công ngay khi tạo đối tác mới.
+[86] P <normal> 
+[87] TABLE 9x4
+      | Column | Type | Constraints | Notes
+      | id | BIGSERIAL | PRIMARY KEY | Auto – Odoo native
+      | name | VARCHAR(255) | NOT NULL | Tên khách hàng
+      | partner_type | VARCHAR(30) | NOT NULL | Enum — see §3.3
+      | tag_ids |  | nullable | Tags khách hàng (VIP, khách quen,..) — field native Odoo Contacts
+      | partner_role | varchar(20) | NOT NULL | Enum — see §3.3
+      | phone | VARCHAR(20) | nullable | Validate: ^(0|\+84)[0-9]{9,10}$ (SDT Việt Nam)
+      | email | VARCHAR(255) | nullable | Validate: ^[\w.\-]+@[\w.\-]+\.[a-zA-Z]{2,}$
+      | active | BOOLEAN | NOT NULL, DEFAULT TRUE | Đang hoạt động
+[88] P <normal> 
+[89] P <Heading 3> A2. dl.product.category [kế thừa product.category]
+[90] P <normal> Nhóm sản phẩm cơ khí — kế thừa product.category để giữ tương thích với toàn bộ hệ sinh thái Odoo (Inventory, Accounting) — gắn BOM mẫu mặc định qua bom_template_id (trỏ tới B4 dl.mrp.bom.template).
+[91] P <normal> Cơ chế kế thừa Odoo: *_inherit = ‘product.category’ — không tạo bảng mới.
+[92] TABLE 3x4
+      | Column | Type | Constraints | Notes
+      | bom_template_id | BIGINT | nullable ON DELETE SET NULL | FK tới B4 (dl.mrp.bom.template) — mẫu BOM mặc định gợi ý cho SP thuộc nhóm này
+      | active | BOOLEAN | NOT NULL DEFAULT True | Đang sử dụng
+[93] P <normal> 
+[94] P <Heading 3> A3. dl.product [kế thừa product.template]
+[95] P <normal> SẢN PHẨM — bảng hợp nhất cho CẢ 4 loại nghiệp vụ, phân biệt qua product_kind: (1) manufactured — SP gia công theo yêu cầu, đi qua BOM (B2); (2) trading — SP thương mại nhập về bán thẳng, không cần BOM, tính giá theo purchase_cost; (3) material — vật tư thô mua từ NCC, giá tra product.supplierinfo (C1); (4) material_processed — vật tư đã gia công từ 1 material khác (source_material_id), có BOM riêng như 1 SP con (vd Ván gỗ 120x100x3 gia công từ Ván gỗ dày 3cm).
+[96] P <normal> Cơ chế kế thừa Odoo: _inherit = ‘product.product’ — không tạo bảng mới. type=’product’ (storable) để Inventory theo dõi tồn kho ở module sau.
+[97] TABLE 1x1
+      | Note / Quyết định kiến trúc: KHÔNG dùng _inherits để tách A3b (dl.semi.product) và A4 (dl.material) thành bảng riêng như thiết kế trước — cả 2 gộp vào A3 qua field product_kind (semi → material_processed, material giữ nguyên tên). Lý do: tránh phân mảnh product.product, giữ nguyên vẹn search/report/variant/tồn kho trên 1 bảng duy nhất; đổi loại sản phẩm (vd material → material_processed) chỉ là đổi 1 field, không phải migrate dữ liệu giữa các bảng.
+[98] P <normal> Một điều kiện kỹ thuật cần lưu ý: giá trị 'product' trong selection type không nằm trong module product gốc — nó được module stock extend vào (selection_add). Nghĩa là:
+[99] P <normal> ●      Module dl_product/ của nhóm phải khai depends: ['stock'] trong manifest ngay từ IP-01, kể cả khi chưa build UI Kho — nếu không, gán type='product' sẽ báo lỗi "invalid selection value".
+[100] P <normal> ●      Việc này không bắt buộc phải bật tính năng Kho cho người dùng — chỉ là cài đặt module nền, Sales/Kỹ thuật vẫn không thấy menu Inventory nếu nhóm chưa cấp quyền/chưa build view cho IP-03.
+[101] TABLE 5x4
+      | Column | Type | Constraints | Notes
+      | id | BIGSERIAL | PRIMARY KEY | Auto – Odoo native
+      | product_kind | VARCHAR(30) | NOT NULL | Enum — see §3.3
+      | product_category_id | BIGINT | NOT NULL | FK đến product_category
+      | default_code | VARCHAR(50) | UNIQUE nullable — từ product.product | Mã nội bộ — dùng chung cho mọi loại (mã SKU cho gia công/thương mại, mã vật tư cho material/material_processed) / Validate: ^[A-Z0-9\-]+$ (chữ hoa, số, dấu gạch ngang)
+[102] P <Heading 3> A4. product.supplierinfo [kế thừa product.supplierinfo]
+[103] P <normal> Bảng giá vật tư/SP thương mại theo NHÀ CUNG CẤP + THỜI ĐIỂM — dùng native product.supplierinfo (đã có sẵn partner_id, price, date_start, date_end, min_qty) thay vì tự xây bảng riêng. B3.price_snapshot tra bảng này (bản ghi còn hiệu lực mới nhất) lấy giá tại thời điểm tạo BOM.
+[104] TABLE 10x4
+      | Column | Type | Constraints | Notes
+      | id | BIGSERIAL | PRIMARY KEY | Auto
+      | product_tmpl_id | BIGINT | NOT NULL | Vật tư/SP thương mại áp giá — native (dl.product có product_kind IN material, trading)
+      | price | NUMERIC(14,2) | NOT NULL CHECK > 0 | Đơn giá (VND) — native
+      | date_start | DATE | NOT NULL | Ngày hiệu lực — native
+      | date_end | DATE | nullable | Ngày hết hiệu lực — native
+      | currency_id | BIGINT | nullable | Đơn vị tiền tệ — native, mặc định company currency
+      | partner_id | BIGINT | NOT NULL | NCC cung cấp giá này — native
+      | created_by | BIGINT | NOT NULL | Người nhập — native ORM (create_uid), không cần tự thêm field
+      | approval_state | VARCHAR(20) | NOT NULL DEFAULT 'draft' | Enum: draft / approved — field mở rộng (custom), Kế toán duyệt giá NCC trước khi áp dụng
+[105] P <normal> 
+[106] P <Heading 3> A5. dl.measurement.type
+[107] P <normal> Các loại đo lường
+[109] P <Heading 3> A5. dl.measurement.shape
+[110] P <normal> Các loại hình dạng đo lường
+[112] P <Heading 3> A5. dl.measurement.shape.param
+[113] P <normal> Các loại hình dạng đo lường
+[115] P <normal> 
+[116] P <normal> 
+[117] P <Heading 3> B1. dl.drawing [Model mới]
+[118] P <normal> Quản lý bản vẽ kỹ thuật của Sản phẩm gia công
+[120] P <normal> 
+[121] P <Heading 3> B2. dl.bom [Kế thừa mrp.bom]
+[122] P <normal> Bill of Materials — dùng native mrp.bom thay vì bảng riêng, dùng chung cho SP product_kind=manufactured VÀ material_processed (cả 2 giờ đã cùng nằm trong A3/dl.product nên product_tmpl_id trỏ về đúng 1 bảng, không cần XOR đa hình product_id/semi_product_id/category_id như thiết kế trước). BOM mẫu tái sử dụng theo category tách riêng ra B4 (dl.mrp.bom.template) — không còn gắn category_id trực tiếp lên BOM thật. total_material_cost tính đệ quy qua các cấp BOM con.
+[123] P <normal> Không hiện giá ở đây chỉ hiện số liệu / BOM LINE
+[124] P <normal> 
+[126] P <normal> 
+[127] P <Heading 3> B3. dl.bom.line [kế thừa mrp.bom.line]
+[128] P <normal> Dòng component trong BOM — product_id (native) trỏ về BẤT KỲ dl.product nào có product_kind=material hoặc material_processed — không còn đa hình component_type/material_id/semi_finished_id như thiết kế trước (hệ quả trực tiếp của việc gộp A3/A3b/A4 thành 1 bảng). price_snapshot/subtotal vẫn ẨN với Kỹ thuật viên qua field-level groups.
+[129] P <normal> Không hiện giá ở đây chỉ hiện số liệu
+[131] P <normal> 
+[133] P <normal> 
+[134] P <Heading 3> B4. dl.bom.template [Tạo mới]
+[135] P <normal> Mẫu BOM tái sử dụng theo nhóm sản phẩm (category) — Odoo native không có sẵn khái niệm này. KTV chọn mẫu phù hợp khi tạo B2 (mrp.bom) mới cho SP cùng category để pre-fill nhanh danh sách component, sau đó chỉnh lại số lượng/vật tư cụ thể. Độc lập với BOM thật — không chiếm chỗ trong luồng sản xuất/costing.
+[137] P <normal> 
+[138] P <Heading 3> B4. dl.bom.template.line [Tạo mới]
+[139] P <normal> Dòng mẫu trong B4 — mỗi dòng gợi ý 1 component (theo category hoặc theo đúng 1 sản phẩm cụ thể) kèm số lượng mặc định. Khi KTV áp dụng mẫu lên 1 B2 (mrp.bom) thật, hệ thống sinh B3 (mrp.bom.line) tương ứng từ các dòng này 
+[141] P <normal> 
+[142] P <normal> 
+[143] P <Heading 3> C2. dl.cost.parameter [Model mới]
+[144] P <normal> Bộ tham số chi phí toàn hệ thống — CEO quản lý. Chỉ 1 bản ghi is_active=True tại mọi thời điểm. 
+[146] P <normal> 
+[147] P <normal> 
+[148] P <Heading 3> D1. dl.quotation.request [Model mới]
+[149] P <normal> Yêu cầu báo giá (RFQ) — bước tiếp nhận đầu tiên trước khi có BOM/kỹ thuật và cuộc request_date là mốc đo cycle time (AC-35): thời gian từ nhận yêu cầu đến gửi báo giá. Tách với dl.quotation để không làm nhiều tỷ lệ win-rate (những RFQ không thành báo giá không nằm trong bảng quotation)
+[150] P <normal> Vòng đời status: new (chưa xử lý) → processing (đang có dòng D2 được KTV xử lý) → confirmed (TẤT CẢ dòng D2 đã resolved_product_id hoặc is_infeasible) → quoted (Sale đã tạo báo giá) | cancelled (từ bất kỳ bước nào trước quoted). new/processing/confirmed là COMPUTED từ trạng thái các dòng D2 — không set tay. cancelled chỉ set thủ công bởi Sale/Trưởng KD/CEO/Admin (Kỹ thuật KHÔNG có quyền hủy RFQ — KTV chỉ đánh dấu is_infeasible ở từng dòng D2, xem D2).
+[152] P <Heading 3> D2. dl.quotation.request.line [Model mới]
+[153] TABLE 10x4
+      | Column | Type | Constraints | Notes
+      | id | BIGSERIAL | NOT NULL | Auto
+      | quotation_request_id | BIGINT | NOT NULL ON DELETE CASCADE | FK to dl_quotation_request
+      | sequence | INTEGER | NOT NULL DEFAULT 10 | Thứ tự dòng
+      | product_name | TEXT | NOT NULL | Tên sản phẩm
+      | quantity | NUMERIC(14,2) | NOT NULL CHECK > 0 | Số lượng khách yêu cầu
+      | demension_note | TEXT | nullable | Kích thước/yều cầu/ghi chú riêng cho dòng này
+      | resolved_product_id | BIGINT | nullable — FK to dl_product | SP thật do KTV xác định/tạo sau khi xử lý xong; CHECK: chỉ set được nếu SP có ≥1 dl.bom trạng thái confirmed/locked; XOR với is_infeasible=True
+      | is_infeasible | BOOLEAN | NOT NULL DEFAULT False | KTV đánh dấu khi SP này không thể sản xuất được (thiếu vật liệu, thiết kế bất khả thi...)
+      | infeasible_reason | TEXT | nullable | Bắt buộc nhập khi is_infeasible=True (constraint)
+[154] P <Heading 3> 
+[155] P <Heading 3> D3. dl.quotation [Model mới]
+[156] P <normal> ENTITY TRUNG TÂM — header báo giá. Tổng hợp toàn bộ chi phí từ D3. status=pending_approval khi E1 rule engine phát hiện vi phạm ngưỡng. 
+[158] P <Heading 3> 
+[159] P <Heading 3> D4. dl.quotation.line [Model mới]
+[160] P <normal> Dòng hạng mục trong báo giá. Tổng hợp 5 thành phần chi phí: material, labor, outsource, overhead, contingency . Được nhập các trường từ quotation.request
+[162] P <normal> 
+[163] P <Heading 3> D5. dl.quotation.oursource.line [Model mới]
+[164] P <normal> Dòng gia công ngoài (thầu phụ) như sơn tĩnh điện, mạ kẽm... Hiển thị riêng trên màn duyệt. 
+[166] P <normal> 
+[167] P <Heading 3> D6. dl.discount.policy [Model mới]
+[168] P <normal> 
+[170] P <normal> 
+[171] P <Heading 3> E1. dl.approval.rule [Model mới]
+[172] P <normal> Rule phê duyệt động — CEO tự thêm/sửa không cần deploy lại. Chạy theo priority ASC, rule đầu tiên trigger sẽ set status.
+[174] P <normal> 
+[175] P <Heading 3> E2. dl.quotation.approval [Model mới]
+[176] P <normal> Lịch sử phê duyệt — mỗi lần approve/reject/request_revision tạo 1 bản ghi mới, không xoá.
+[178] P <normal> 
+[179] P <Heading 3> E3. dl.approval.threshold.config [Model mới]
+[180] P <normal> Ngưỡng phê duyệt do CEO cấu hình — APPEND-ONLY, không cho sửa/xoá bản ghi đã tạo.
+[182] P <Heading 3> F1. dl.system.config [Mở rộng res.config.settings]
+[183] P <normal> Tham số kỹ thuật hệ thống lưu qua ir.config_parameter (key-value native Odoo) — không tạo bảng DB mới.
+[185] P <normal> 
+[186] P <Heading 3> G1. dl.audit.log [Model mới]
+[187] P <normal> Nhật ký thay đổi cho bảng cấu hình quan trọng (E3, C2, C3). IMMUTABLE — override _write()/_unlink() raise UserError.
+[189] P <normal> 
+[190] P <Heading 3> G2. dl.quotation.history [Model mới]
+[191] P <normal> Snapshot toàn bộ báo giá (D1+D3+D4+D5+giá vật tư) tại các mốc: submitted, approved, sent. IMMUTABLE, quotation_id KHÔNG có FK (intentional).
+[193] P <Heading 3> 
+[194] P <Heading 3> G2. dl.user [Kế thừa res.users]
+[195] P <normal> Mở rộng res.users — 5 nhóm quyền triển khai qua res.groups (XML): dl_group_sale / sales_manager / ceo / technician / accountant / admin.
+[197] P <normal> 
+[198] P <Heading 2> 3.2 Entity Relationships
+[199] P <normal> 
+[200] P <normal> 
+[201] P <Heading 2> 3.3 Enum / Lookup Values
+[202] TABLE 16x4
+      | Table | Column | Allowed Values | Notes
+      | dl.partner | partner_type | Individual / company / dealer | Phân biệt loại partner
+      | dl.partner | partner_role | customer / supplier / both | Phân loại khách hàng và NCC
+      | dl.product / dl.semi.product / dl.material | product_kind | finished / semi / material | Phân biệt 3 loại trong product_product — cố định theo model con
+      | dl.drawing | status | draft / confirmed / archived | Chỉ confirmed được tham chiếu trong BOM
+      | dl.bom | bom_type | template / quotation | template = mẫu tái sử dụng; quotation = snapshot riêng cho 1 báo giá
+      | dl.bom | status | draft / confirmed / locked / archived | locked chặn UPDATE/DELETE — sửa phải tạo version mới
+      | dl.bom.line | component_type | raw_material / semi_finished | Quyết định material_id hay semi_finished_id có giá trị
+      | dl.parametric.formula | formula_type | volume_density / linear_density / area_based / direct_count / custom_expression | 4 khuôn có sẵn + custom_expression (sandbox simpleeval)
+      | dl.quotation.request | status | new / processing / confirmed / quoted / cancelled | Mốc đo cycle time AC-35
+      | dl.quotation | status | draft / submitted / pending_approval / approved / rejected / sent / accepted | One-way — xem BR-15 (sửa báo giá đã duyệt phải tạo version mới)
+      | dl.approval.rule | condition_type | margin_below / value_above / discount_above / new_bom / price_expired | Điều kiện kích hoạt rule
+      | dl.approval.rule | action | require_ceo / require_sales_manager / auto_pass | Cấp duyệt được yêu cầu khi rule trigger
+      | dl.quotation.approval | action | approved / rejected / request_revision | Reject/Request Revision bắt buộc nhập comment (BR-14)
+      | dl.approval.threshold.config | threshold_type | min_margin / max_value / max_discount | Ngưỡng CEO cấu hình — APPEND-ONLY
+      | dl.quotation.history | status_at_snapshot | submitted / approved / sent | Mốc tạo snapshot audit G2
+[203] P <normal> 
+[204] P <Heading 2> 3.4 Indexing Strategy
+[205] TABLE 20x4
+      | Table | Index Column(s) | Type | Reason
+      | dl_partner | partner_type | BTREE | Lọc khách theo loại
+      | dl_product | product_category_id | BTREE | FK; lọc thành phẩm theo nhóm
+      | dl_material | material_code | UNIQUE | Business identity; tra cứu vật tư
+      | dl_drawing | (product_id, version) | UNIQUE | Đảm bảo mỗi bản vẽ 1 version duy nhất/sản phẩm
+      | dl_bom | (product_id, version, bom_type) | UNIQUE | BOM Thành phẩm — chặn trùng version
+      | dl_bom | (semi_product_id, version, bom_type) | UNIQUE | BOM Bán thành phẩm — chặn trùng version
+      | dl_bom_line | bom_id | BTREE | FK; liệt kê component theo BOM
+      | dl_material_price | (material_id, valid_from, valid_to) | Composite | Tra giá hiện hành nhanh (BR-09)
+      | dl_parametric_formula | material_id | UNIQUE khi active | 1 vật tư → tối đa 1 công thức active
+      | dl_quotation | (customer_id, status) | Composite | Dashboard theo khách + trạng thái
+      | dl_quotation | (status, created_by) | Composite | Lọc báo giá của Sale theo trạng thái (H2 ma trận quyền)
+      | dl_quotation_line | quotation_id | BTREE | FK; liệt kê dòng theo báo giá
+      | dl_quotation_line | (quotation_id, product_id) | Composite | Kiểm tra trùng sản phẩm trong 1 báo giá
+      | dl_quotation_outsource_line | quotation_line_id | BTREE | FK; liệt kê gia công ngoài theo dòng
+      | dl_approval_rule | (is_active, priority) | Composite | Rule engine chạy theo priority ASC
+      | dl_quotation_approval | (quotation_id, action_date) | Composite | Lịch sử duyệt theo thời gian
+      | dl_quotation_approval | (approver_id, is_overdue) | Composite | Dashboard SLA quá hạn theo người duyệt
+      | dl_audit_log | (model_name, record_id) | Composite | Tra audit theo bản ghi bị đổi
+      | dl_audit_log | changed_at | BTREE DESC | Xem audit mới nhất trước
+[206] P <normal> 
+[207] P <Heading 2> 3.5 Migration Strategy
+[208] TABLE 7x2
+      | Setting | Value
+      | Tool | Odoo module versioning + migration scripts (chuẩn OCA: pre-migrate.py / post-migrate.py)
+      | Location | dl_<module>/migrations/<version>/  — vd 17.0.1.1.0/post-migrate.py
+      | Naming | Thư mục đặt theo version khai báo trong __manifest__.py (không dùng V{N}__ như Flyway)
+      | Policy | Forward-only — không sửa migration đã chạy; tăng version trong __manifest__.py để Odoo tự trigger script tương ứng
+      | Dev profile | odoo-bin -u dl_sale --dev=all — reload models/views mỗi lần sửa code, log chi tiết
+      | Prod profile | odoo-bin -u dl_sale (hoặc qua Apps menu) — migration script tự chạy 1 lần khi version tăng, không chạy lại
+[209] P <normal> 
+[210] P <Heading 2> 3.6 Seed Data
+[211] TABLE 1x1
+      | Purpose / Dữ liệu tối thiểu để test end-to-end luồng IP-01+IP-02 trong dev/test — khớp với kịch bản minh hoạ (Công ty Thiên Long, Khung thép hàn CT-200). Password không lưu plaintext — dùng passlib/PBKDF2 qua res.users chuẩn Odoo. (xem file minh họa) /
+[212] P <normal> 

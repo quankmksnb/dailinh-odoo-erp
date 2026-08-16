@@ -1,0 +1,100 @@
+=== ROW 1 (first body row) XML ===
+<w:tr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:lc="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns="http://schemas.microsoft.com/office/tasks/2019/documenttasks" xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions">
+  <w:trPr>
+    <w:cantSplit w:val="0"/>
+    <w:tblHeader w:val="0"/>
+  </w:trPr>
+  <w:tc>
+    <w:tcPr>
+      <w:tcBorders>
+        <w:top w:color="cccccc" w:space="0" w:sz="4" w:val="single"/>
+        <w:left w:color="cccccc" w:space="0" w:sz="4" w:val="single"/>
+        <w:bottom w:color="cccccc" w:space="0" w:sz="4" w:val="single"/>
+        <w:right w:color="cccccc" w:space="0" w:sz="4" w:val="single"/>
+      </w:tcBorders>
+      <w:shd w:fill="ffffff" w:val="clear"/>
+      <w:tcMar>
+        <w:top w:w="80.0" w:type="dxa"/>
+        <w:left w:w="120.0" w:type="dxa"/>
+        <w:bottom w:w="80.0" w:type="dxa"/>
+        <w:right w:w="120.0" w:type="dxa"/>
+      </w:tcMar>
+      <w:vAlign w:val="center"/>
+    </w:tcPr>
+    <w:p w:rsidR="00000000" w:rsidDel="00000000" w:rsidP="00000000" w:rsidRDefault="00000000" w:rsidRPr="00000000" w14:paraId="00000097">
+      <w:pPr>
+        <w:rPr/>
+      </w:pPr>
+      <w:r w:rsidDel="00000000" w:rsidR="00000000" w:rsidRPr="00000000">
+        <w:rPr>
+          <w:color w:val="333333"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+          <w:rtl w:val="0"/>
+        </w:rPr>
+        <w:t xml:space="preserve">None for this version</w:t>
+      </w:r>
+      <w:r w:rsidDel="00000000" w:rsidR="00000000" w:rsidRPr="00000000">
+        <w:rPr>
+          <w:rtl w:val="0"/>
+        </w:rPr>
+      </w:r>
+    </w:p>
+  </w:tc>
+  <w:tc>
+    <w:tcPr>
+      <w:tcBorders>
+        <w:top w:color="cccccc" w:space="0" w:sz="4" w:val="single"/>
+        <w:left w:color="cccccc" w:space="0" w:sz="4" w:val="single"/>
+        <w:bottom w:color="cccccc" w:space="0" w:sz="4" w:val="single"/>
+        <w:right w:color="cccccc" w:space="0" w:sz="4" w:val="single"/>
+      </w:tcBorders>
+      <w:shd w:fill="ffffff" w:val="clear"/>
+      <w:tcMar>
+        <w:top w:w="80.0" w:type="dxa"/>
+        <w:left w:w="120.0" w:type="
+
+=== A 'normal' PARAGRAPH XML (from body) ===
+<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:lc="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns="http://schemas.microsoft.com/office/tasks/2019/documenttasks" xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions" w:rsidR="00000000" w:rsidDel="00000000" w:rsidP="00000000" w:rsidRDefault="00000000" w:rsidRPr="00000000" w14:paraId="00000101">
+  <w:pPr>
+    <w:spacing w:line="360" w:lineRule="auto"/>
+    <w:rPr>
+      <w:b w:val="1"/>
+      <w:bCs w:val="1"/>
+      <w:sz w:val="26"/>
+      <w:szCs w:val="26"/>
+    </w:rPr>
+  </w:pPr>
+  <w:r w:rsidDel="00000000" w:rsidR="00000000" w:rsidRPr="00000000">
+    <w:rPr>
+      <w:b w:val="1"/>
+      <w:bCs w:val="1"/>
+      <w:sz w:val="26"/>
+      <w:szCs w:val="26"/>
+      <w:rtl w:val="0"/>
+    </w:rPr>
+    <w:t xml:space="preserve">Cơ chế kế thừa Odoo áp dụng trong dự án:</w:t>
+  </w:r>
+</w:p>
+
+
+=== A 'Heading 3' PARAGRAPH XML ===
+<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:lc="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns="http://schemas.microsoft.com/office/tasks/2019/documenttasks" xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions" w:rsidR="00000000" w:rsidDel="00000000" w:rsidP="00000000" w:rsidRDefault="00000000" w:rsidRPr="00000000" w14:paraId="000000E6">
+  <w:pPr>
+    <w:pStyle w:val="Heading3"/>
+    <w:rPr/>
+  </w:pPr>
+  <w:bookmarkStart w:colFirst="0" w:colLast="0" w:name="_heading=h.oqp4rfj4ulio" w:id="11"/>
+  <w:bookmarkEnd w:id="11"/>
+  <w:r w:rsidDel="00000000" w:rsidR="00000000" w:rsidRPr=
+
+=== A 'Heading 2' PARAGRAPH XML ===
+<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:lc="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns="http://schemas.microsoft.com/office/tasks/2019/documenttasks" xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions" w:rsidR="00000000" w:rsidDel="00000000" w:rsidP="00000000" w:rsidRDefault="00000000" w:rsidRPr="00000000" w14:paraId="00000054">
+  <w:pPr>
+    <w:pStyle w:val="Heading2"/>
+    <w:spacing w:before="260" w:lineRule="auto"/>
+    <w:rPr/>
+  </w:pPr>
+  <w:bookmarkStart w:colFirst="0" w:colLast="0" w:name="_heading=h.xshv1x2uapr4" w:id="3"/>
+  <w:bookmarkEnd w:id="3"/>
+  <w:r w:

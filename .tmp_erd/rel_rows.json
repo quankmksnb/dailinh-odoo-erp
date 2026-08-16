@@ -1,0 +1,857 @@
+[
+ [
+  "dl_bom",
+  "approved_by",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom",
+  "rfq_source_line_id",
+  "dl_quotation_request_line",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  "Y"
+ ],
+ [
+  "dl_bom",
+  "category_id",
+  "product_category",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom",
+  "product_id",
+  "product_product",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_bom",
+  "source_template_id",
+  "dl_bom_template",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom_line",
+  "material_id",
+  "product_product",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_bom_line",
+  "complexity_id",
+  "dl_pricing_complexity_level",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom_line",
+  "uom_id",
+  "uom_uom",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom_line",
+  "bom_id",
+  "dl_bom",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_bom_operation_line",
+  "bom_id",
+  "dl_bom",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_bom_operation_line",
+  "operation_id",
+  "dl_pricing_operation",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_bom_operation_line",
+  "partner_id",
+  "res_partner",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom_template",
+  "approved_by",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom_template",
+  "product_category_id",
+  "product_category",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_bom_template",
+  "generic_product_id",
+  "product_product",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom_template_line",
+  "material_id",
+  "product_product",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_bom_template_line",
+  "complexity_id",
+  "dl_pricing_complexity_level",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom_template_line",
+  "uom_id",
+  "uom_uom",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_bom_template_line",
+  "bom_template_id",
+  "dl_bom_template",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_bom_template_line_param_map",
+  "template_line_id",
+  "dl_bom_template_line",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_bom_template_line_param_map",
+  "param_id",
+  "dl_bom_template_param",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_bom_template_param",
+  "bom_template_id",
+  "dl_bom_template",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_config_audit_log",
+  "user_id",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_drawing",
+  "product_id",
+  "product_product",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_drawing",
+  "attachment_id",
+  "ir_attachment",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_drawing",
+  "created_by",
+  "res_users",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_measurement_shape",
+  "measurement_type_id",
+  "dl_measurement_type",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_measurement_shape_param",
+  "shape_id",
+  "dl_measurement_shape",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_measurement_type",
+  "formula_uom_id",
+  "uom_uom",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_approval_matrix",
+  "company_id",
+  "res_company",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_pricing_approval_matrix",
+  "currency_id",
+  "res_currency",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_approval_matrix",
+  "approver_user_id",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_approval_matrix",
+  "revised_from_id",
+  "dl_pricing_approval_matrix",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_approval_request",
+  "requester_id",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_approval_request",
+  "resolved_by_id",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_approval_request",
+  "matrix_row_id",
+  "dl_pricing_approval_matrix",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_approval_request",
+  "company_id",
+  "res_company",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_pricing_approval_request",
+  "quotation_id",
+  "dl_quotation",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_approval_setting",
+  "approver_user_id",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_approval_setting",
+  "company_id",
+  "res_company",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_pricing_cost_adjustment_rule",
+  "company_id",
+  "res_company",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_pricing_operation_rule",
+  "company_id",
+  "res_company",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_pricing_operation_rule",
+  "operation_id",
+  "dl_pricing_operation",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_pricing_waste_rule",
+  "company_id",
+  "res_company",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_pricing_waste_rule",
+  "category_id",
+  "product_category",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_waste_rule",
+  "product_id",
+  "product_product",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_pricing_waste_rule",
+  "scrap_product_id",
+  "product_product",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation",
+  "partner_id",
+  "res_partner",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_quotation",
+  "origin_quotation_id",
+  "dl_quotation",
+  "1 : N",
+  "SET NULL",
+  "NULL",
+  "Y"
+ ],
+ [
+  "dl_quotation",
+  "currency_id",
+  "res_currency",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation",
+  "quotation_request_id",
+  "dl_quotation_request",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  "Y"
+ ],
+ [
+  "dl_quotation",
+  "company_id",
+  "res_company",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation",
+  "approval_request_id",
+  "dl_pricing_approval_request",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_line",
+  "quotation_id",
+  "dl_quotation",
+  "N : 1",
+  "CASCADE",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_line",
+  "rfq_line_id",
+  "dl_quotation_request_line",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_line",
+  "product_id",
+  "product_product",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_line",
+  "bom_id",
+  "dl_bom",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_line",
+  "bom_approved_by",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_price_component",
+  "quotation_id",
+  "dl_quotation",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  "Y"
+ ],
+ [
+  "dl_quotation_price_component",
+  "quotation_line_id",
+  "dl_quotation_line",
+  "N : 1",
+  "CASCADE",
+  "NULL",
+  "Y"
+ ],
+ [
+  "dl_quotation_price_component",
+  "material_id",
+  "product_product",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_request",
+  "customer_id",
+  "res_partner",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_quotation_request",
+  "created_by",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_request",
+  "received_by",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_request_line",
+  "quotation_request_id",
+  "dl_quotation_request",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_quotation_request_line",
+  "product_category_id",
+  "product_category",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_request_line",
+  "reference_product_id",
+  "product_product",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_request_line",
+  "resolved_product_id",
+  "product_product",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_request_line",
+  "resolved_bom_id",
+  "dl_bom",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_quotation_request_line_image",
+  "line_id",
+  "dl_quotation_request_line",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_rbac_feature",
+  "model_id",
+  "ir_model",
+  "N : 1",
+  "CASCADE",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_rbac_operation",
+  "feature_id",
+  "dl_rbac_feature",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_rbac_operation",
+  "group_id",
+  "res_groups",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_sale_order",
+  "partner_id",
+  "res_partner",
+  "N : 1",
+  "RESTRICT",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_sale_order",
+  "quotation_id",
+  "dl_quotation",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  "Y"
+ ],
+ [
+  "dl_sale_order",
+  "reset_draft_by",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_sale_order",
+  "currency_id",
+  "res_currency",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_sale_order",
+  "company_id",
+  "res_company",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_sale_order_line",
+  "order_id",
+  "dl_sale_order",
+  "N : 1",
+  "CASCADE",
+  "NOT NULL",
+  ""
+ ],
+ [
+  "dl_sale_order_line",
+  "product_id",
+  "product_product",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_sale_order_line",
+  "bom_id",
+  "dl_bom",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "dl_sale_order_line",
+  "bom_approved_by",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "product_category",
+  "bom_template_id",
+  "dl_bom_template",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "product_product",
+  "dlm_scrap_product_id",
+  "product_product",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "product_product",
+  "rfq_source_line_id",
+  "dl_quotation_request_line",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  "Y"
+ ],
+ [
+  "product_product",
+  "dlm_main_material_id",
+  "product_product",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  ""
+ ],
+ [
+  "product_supplierinfo",
+  "dlm_approved_uid",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "product_supplierinfo",
+  "dlm_applied_uid",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "product_supplierinfo",
+  "dlm_unapplied_uid",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "res_partner",
+  "pending_link_partner_id",
+  "res_partner",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "res_users",
+  "dl_backup_approver_id",
+  "res_users",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "stock_lot",
+  "dlm_supplier_id",
+  "res_partner",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  "Y"
+ ],
+ [
+  "stock_lot",
+  "dlm_receipt_picking_id",
+  "stock_picking",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  ""
+ ],
+ [
+  "stock_picking",
+  "dlm_origin_picking_id",
+  "stock_picking",
+  "N : 1",
+  "SET NULL",
+  "NULL",
+  "Y"
+ ],
+ [
+  "stock_picking",
+  "dlm_sale_order_id",
+  "dl_sale_order",
+  "N : 1",
+  "RESTRICT",
+  "NULL",
+  "Y"
+ ]
+]

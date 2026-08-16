@@ -1,0 +1,800 @@
+
+====================================================================================================
+MODULE dl_base
+  version=17.0.1.0.0  depends=['base', 'web', 'mail']
+====================================================================================================
+
+### CLASS DlRbacFeature   [dl_base/models/dl_rbac.py]
+    _name = 'dl.rbac.feature'
+    _description = 'RBAC — Chức năng phân quyền'
+    _order = 'sequence, category, name'
+    SQL_CONSTRAINT ('code_uniq', 'unique(code)', 'Mã chức năng phải là duy nhất.')
+    name: Char required=True
+    code: Char required=True
+    model_id: Many2one ->'ir.model' string='Model dữ liệu' ondelete='cascade'
+    model_name: Char string='Tên kỹ thuật' store=True related='model_id.model'
+    category: Selection string='Nhóm' required=True default='system'
+        SELECTION ['master', 'sales', 'approval', 'system']
+    sequence: Integer default=10
+    active: Boolean default=True
+    operation_ids: One2many ->'dl.rbac.operation' inv='feature_id' string='Thao tác đặc biệt'
+
+### CLASS DlRbacOperation   [dl_base/models/dl_rbac.py]
+    _name = 'dl.rbac.operation'
+    _description = 'RBAC — Thao tác đặc biệt'
+    _order = 'feature_id, sequence, name'
+    feature_id: Many2one ->'dl.rbac.feature' string='Chức năng' required=True ondelete='cascade'
+    name: Char required=True
+    code: Char required=True
+    sequence: Integer default=10
+    group_id: Many2one ->'res.groups' string='Nhóm kỹ thuật' required=True ondelete='cascade'
+
+====================================================================================================
+MODULE dl_config
+  version=17.0.2.2.0  depends=['dl_base', 'uom', 'auth_signup', 'mail', 'product']
+====================================================================================================
+
+### CLASS DlPricingApprovalSetting   [dl_config/models/pricing_approval.py]
+    _name = 'dl.pricing.approval.setting'
+    _description = 'Cấu hình người duyệt theo loại yêu cầu'
+    _order = 'request_type'
+    SQL_CONSTRAINT ('type_company_uniq', 'unique(request_type, company_id)', 'Mỗi loại yêu cầu chỉ có một cấu hình người duyệt trong công ty.')
+    request_type: Selection string='Loại yêu cầu' required=True
+        SELECTION DYNAMIC:APPROVAL_TYPE_SELECTION
+    approver_role: Selection string='Vai trò duyệt' required=True default='ceo'
+        SELECTION DYNAMIC:APPROVER_ROLE_SELECTION
+    approver_user_id: Many2one ->'res.users' string='Người duyệt cụ thể'
+    company_id: Many2one ->'res.company' string='Công ty' required=True default=lambda self: self.env.company index=True
+
+### CLASS DlPricingApprovalRequest   [dl_config/models/pricing_approval.py]
+    _name = 'dl.pricing.approval.request'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _description = 'Yêu cầu phê duyệt cấu hình thương mại / báo giá'
+    _order = 'create_date desc, id desc'
+    _rec_name = 'title'
+    title: Char store=True compute='_compute_title'
+    request_type: Selection string='Loại yêu cầu' required=True tracking=True
+        SELECTION DYNAMIC:APPROVAL_TYPE_SELECTION
+    res_model: Char readonly=True
+    res_id: Integer readonly=True
+    object_label: Char readonly=True
+    old_value: Char readonly=True
+    new_value: Char readonly=True
+    impact: Char readonly=True
+    requester_id: Many2one ->'res.users' string='Người yêu cầu' readonly=True default=lambda self: self.env.user
+    requester_role: Char readonly=True
+    reason: Text required=True tracking=True
+    resolved_by_id: Many2one ->'res.users' string='Người duyệt' readonly=True
+    resolved_at: Datetime readonly=True
+    reject_comment: Text
+    is_self_approval: Boolean readonly=True
+    approval_level: Selection string='Cấp duyệt xác định' readonly=True
+        SELECTION ['sales_manager', 'ceo']
+    matrix_row_id: Many2one ->'dl.pricing.approval.matrix' string='Dòng ma trận đã dùng' readonly=True ondelete='restrict'
+    matrix_revision: Integer readonly=True
+    trigger_reasons: Text readonly=True
+    state: Selection string='Trạng thái' required=True readonly=True default='pending' index=True tracking=True
+        SELECTION ['pending', 'approved', 'rejected', 'cancelled']
+    can_resolve: Boolean compute='_compute_can_resolve'
+    company_id: Many2one ->'res.company' string='Công ty' required=True default=lambda self: self.env.company index=True
+
+### CLASS DlPricingCommercialMixin   [dl_config/models/pricing_commercial.py]
+    _name = 'dl.pricing.commercial.mixin'
+    _inherit = ['dl.pricing.rule.mixin']
+    _description = 'Luồng phê duyệt cấu hình thương mại'
+
+### CLASS DlPricingProfitRule   [dl_config/models/pricing_commercial.py]
+    _name = 'dl.pricing.profit.rule'
+    _inherit = ['dl.pricing.commercial.mixin']
+    _description = 'Chính sách lợi nhuận và giá sàn'
+    _rec_name = 'name'
+    name: Char store=True compute='_compute_name'
+    target_markup: Float required=True tracking=True digits=(6, 2)
+    min_markup: Float required=True tracking=True digits=(6, 2)
+    state: Selection string='Trạng thái' required=True readonly=True default='draft' index=True tracking=True copy=False
+        SELECTION DYNAMIC:COMMERCIAL_STATE_SELECTION
+    CONSTRAINS _check_markup ["api.constrains('target_markup', 'min_markup')"]
+
+### CLASS DlPricingDiscountRule   [dl_config/models/pricing_commercial.py]
+    _name = 'dl.pricing.discount.rule'
+    _inherit = ['dl.pricing.commercial.mixin']
+    _description = 'Chính sách chiết khấu theo nhóm khách hàng'
+    _order = 'group_rank asc, state, valid_from desc, id desc'
+    _rec_name = 'name'
+    name: Char store=True compute='_compute_name'
+    customer_group: Selection string='Nhóm khách hàng' required=True default='new' tracking=True
+        SELECTION DYNAMIC:CUSTOMER_GROUP_SELECTION
+    group_rank: Integer store=True compute='_compute_group_rank'
+    default_rate: Float required=True tracking=True digits=(6, 2)
+    max_rate: Float required=True tracking=True digits=(6, 2)
+    state: Selection string='Trạng thái' required=True readonly=True default='draft' index=True tracking=True copy=False
+        SELECTION DYNAMIC:COMMERCIAL_STATE_SELECTION
+    CONSTRAINS _check_rates ["api.constrains('default_rate', 'max_rate')"]
+    CONSTRAINS _check_group_ladder ["api.constrains('customer_group', 'default_rate', 'max_rate', 'state', 'company_id')"]
+
+### CLASS DlPricingConfig   [dl_config/models/pricing_config.py]
+    _name = 'dl.pricing.config'
+    _description = 'Cấu hình tham số báo giá (S02 · Tab 1)'
+    name: Char required=True default='Cấu hình báo giá'
+    material_pct: Float default=55.0
+    labor_pct: Float default=25.0
+    overhead_pct: Float default=5.0
+    risk_pct: Float default=3.0
+    margin_pct: Float default=12.0
+    structure_total: Float compute='_compute_structure_total'
+    max_discount_pct: Float default=15.0
+    vat_pct: Float default=0.0
+    price_validity_days: Integer default=30
+    rounding_to: Integer default=1000
+    waste_ids: One2many ->'dl.pricing.waste' inv='config_id'
+    level_ids: One2many ->'dl.approval.level' inv='config_id'
+    matrix_seeded: Boolean default=False
+    sla_sales_manager_hours: Integer default=4
+    sla_ceo_hours: Integer default=8
+    sla_reminder_every_hours: Integer default=2
+    sla_require_late_reason: Boolean default=True
+    sla_overdue_remind: Boolean default=True
+    sla_overdue_escalate: Boolean default=True
+    sla_overdue_log: Boolean default=True
+    sla_overdue_kpi: Boolean default=True
+
+### CLASS DlPricingWaste   [dl_config/models/pricing_config.py]
+    _name = 'dl.pricing.waste'
+    _description = 'Tỷ lệ hao hụt mặc định theo nhóm vật tư'
+    _order = 'id'
+    config_id: Many2one ->'dl.pricing.config' required=True ondelete='cascade'
+    group_name: Char required=True
+    waste_pct: Float
+
+### CLASS DlApprovalLevel   [dl_config/models/pricing_config.py]
+    _name = 'dl.approval.level'
+    _description = 'Cấp duyệt trong Ma trận phê duyệt (S02 · Tab 2)'
+    _order = 'sequence, id'
+    config_id: Many2one ->'dl.pricing.config' required=True ondelete='cascade'
+    sequence: Integer default=10
+    name: Char required=True
+    value_min: Float default=0.0
+    value_max: Float default=0.0
+    discount_min: Float default=0.0
+    discount_max: Float default=100.0
+    margin_min: Float default=0.0
+    approver_role: Selection required=True default='sales_manager'
+        SELECTION ['none', 'sales_manager', 'ceo', 'custom']
+    approver_user_id: Many2one ->'res.users'
+    backup_user_id: Many2one ->'res.users'
+    mode: Selection required=True default='sequential'
+        SELECTION ['sequential', 'parallel', 'direct', 'none']
+    sla_hours: Integer default=4
+    note: Char
+    is_active: Boolean default=True
+    is_priority: Boolean default=False
+    pending_count: Integer readonly=True default=0
+
+### CLASS DlConfigAuditLog   [dl_config/models/pricing_config.py]
+    _name = 'dl.config.audit.log'
+    _description = 'Nhật ký thay đổi cấu hình hệ thống (S02)'
+    _order = 'id desc'
+    config_tab: Char
+    param_label: Char
+    detail: Char
+    user_id: Many2one ->'res.users' default=lambda s: s.env.uid
+
+### CLASS DlPricingCostAdjustmentRule   [dl_config/models/pricing_cost.py]
+    _name = 'dl.pricing.cost.adjustment.rule'
+    _inherit = ['dl.pricing.rule.mixin']
+    _description = 'Chi phí chung và hệ số điều chỉnh'
+    name: Char required=True tracking=True
+    rule_type: Selection string='Loại quy tắc' required=True default='workshop_overhead' tracking=True
+        SELECTION DYNAMIC:COST_RULE_TYPE_SELECTION
+    method: Selection string='Cách tính' required=True default='percent_direct' tracking=True
+        SELECTION DYNAMIC:COST_METHOD_SELECTION
+    value: Float required=True tracking=True digits=(16, 2)
+    condition_days: Integer tracking=True
+    condition_amount: Float tracking=True digits=(16, 2)
+    no_discount: Boolean tracking=True
+    state: Selection string='Trạng thái' required=True readonly=True default='draft' index=True tracking=True copy=False
+        SELECTION DYNAMIC:TECH_STATE_SELECTION
+    CONSTRAINS _check_value ["api.constrains('method', 'value')"]
+
+### CLASS DlPricingApprovalMatrix   [dl_config/models/pricing_matrix.py]
+    _name = 'dl.pricing.approval.matrix'
+    _inherit = ['dl.pricing.rule.mixin']
+    _description = 'Ma trận phê duyệt báo giá theo giá trị'
+    _order = 'value_from asc, revision desc, id desc'
+    _rec_name = 'name'
+    name: Char store=True compute='_compute_name'
+    value_from: Monetary required=True tracking=True
+    currency_id: Many2one ->'res.currency' string='Tiền tệ' readonly=True store=True related='company_id.currency_id'
+    approval_level: Selection string='Cấp duyệt / Vai trò' required=True default='sales_manager' tracking=True
+        SELECTION DYNAMIC:APPROVAL_LEVEL_SELECTION
+    level_rank: Integer store=True compute='_compute_level_rank'
+    approver_user_id: Many2one ->'res.users' string='Người duyệt cụ thể'
+    note: Char
+    state: Selection string='Trạng thái' required=True readonly=True default='draft' index=True tracking=True copy=False
+        SELECTION DYNAMIC:TECH_STATE_SELECTION
+    pending_request_id: Many2one ->'dl.pricing.approval.request' string='Đề xuất chờ duyệt' compute='_compute_pending_request'
+    has_pending_request: Boolean compute='_compute_pending_request'
+    revised_from_id: Many2one ->'dl.pricing.approval.matrix' string='Sửa đổi từ' readonly=True ondelete='set null' copy=False
+    CONSTRAINS _check_value_from ["api.constrains('value_from')"]
+    CONSTRAINS _check_approver_in_role ["api.constrains('approver_user_id', 'approval_level')"]
+    CONSTRAINS _check_unique_threshold ["api.constrains('value_from', 'state', 'company_id')"]
+    CONSTRAINS _check_level_monotonic ["api.constrains('value_from', 'approval_level', 'state', 'company_id')"]
+
+### CLASS DlPricingOperation   [dl_config/models/pricing_operation.py]
+    _name = 'dl.pricing.operation'
+    _description = 'Danh mục công đoạn dùng chung'
+    _order = 'sequence, name'
+    SQL_CONSTRAINT ('code_uniq', 'unique(code)', 'Mã công đoạn đã tồn tại.')
+    name: Char required=True
+    code: Char required=True
+    sequence: Integer default=10
+    active: Boolean default=True
+
+### CLASS DlPricingOperationRule   [dl_config/models/pricing_operation.py]
+    _name = 'dl.pricing.operation.rule'
+    _inherit = ['dl.pricing.rule.mixin']
+    _description = 'Đơn giá/tỷ lệ công đoạn'
+    _rec_name = 'operation_id'
+    operation_id: Many2one ->'dl.pricing.operation' string='Công đoạn' required=True ondelete='restrict' tracking=True
+    method: Selection string='Phương pháp tính' required=True default='percent_material' tracking=True
+        SELECTION DYNAMIC:OPERATION_METHOD_SELECTION
+    price_rate: Float required=True tracking=True digits=(16, 2)
+    setup_fee: Float tracking=True digits=(16, 2)
+    state: Selection string='Trạng thái' required=True readonly=True default='draft' index=True tracking=True copy=False
+        SELECTION DYNAMIC:TECH_STATE_SELECTION
+    CONSTRAINS _check_values ["api.constrains('method', 'price_rate', 'setup_fee')"]
+
+### CLASS DlPricingRuleMixin   [dl_config/models/pricing_rule.py]
+    _name = 'dl.pricing.rule.mixin'
+    _inherit = ['mail.thread']
+    _description = 'Thuộc tính chung của quy tắc cấu hình báo giá'
+    _order = 'valid_from desc, id desc'
+    company_id: Many2one ->'res.company' string='Công ty' required=True default=lambda self: self.env.company index=True
+    revision: Integer readonly=True default=1 tracking=True copy=False
+    valid_from: Date required=True default=fields.Date.context_today tracking=True
+    valid_to: Date readonly=True tracking=True copy=False
+    change_reason: Char tracking=True
+    used_in_snapshot: Boolean readonly=True default=False copy=False
+    CONSTRAINS _check_valid_range ["api.constrains('valid_from', 'valid_to')"]
+
+### CLASS DlPricingUi   [dl_config/models/pricing_ui.py]
+    _name = 'dl.pricing.ui'
+    _description = 'Bootstrap dữ liệu cho màn Cấu hình Báo giá'
+
+### CLASS DlPricingComplexityLevel   [dl_config/models/pricing_waste.py]
+    _name = 'dl.pricing.complexity.level'
+    _description = 'Hệ số phức tạp dùng chung'
+    _order = 'sequence, factor'
+    name: Char required=True
+    factor: Float required=True default=1.0 digits=(6, 2)
+    note: Char
+    sequence: Integer default=10
+    active: Boolean default=True
+    CONSTRAINS _check_factor ["api.constrains('factor')"]
+
+### CLASS DlPricingWasteRule   [dl_config/models/pricing_waste.py]
+    _name = 'dl.pricing.waste.rule'
+    _inherit = ['dl.pricing.rule.mixin']
+    _description = 'Quy tắc hao hụt và thu hồi'
+    _rec_name = 'target_label'
+    target_type: Selection string='Áp dụng cho' required=True default='category' tracking=True
+        SELECTION ['category', 'product']
+    category_id: Many2one ->'product.category' string='Category' ondelete='restrict' tracking=True
+    product_id: Many2one ->'product.product' string='Vật tư' ondelete='restrict' tracking=True
+    target_label: Char store=True compute='_compute_target_label'
+    waste_rate: Float required=True tracking=True digits=(6, 2)
+    has_recovery: Boolean tracking=True
+    recovery_rate: Float tracking=True digits=(6, 2)
+    scrap_product_id: Many2one ->'product.product' string='Sản phẩm phế liệu' ondelete='restrict'
+    state: Selection string='Trạng thái' required=True readonly=True default='draft' index=True tracking=True copy=False
+        SELECTION DYNAMIC:TECH_STATE_SELECTION
+    CONSTRAINS _check_target ["api.constrains('target_type', 'category_id', 'product_id')"]
+    CONSTRAINS _check_rates ["api.constrains('waste_rate', 'has_recovery', 'recovery_rate')"]
+
+### CLASS ResUsers   [dl_config/models/res_users.py]
+    _inherit = 'res.users'
+    dl_backup_approver_id: Many2one ->'res.users' string='Người duyệt dự phòng'
+
+====================================================================================================
+MODULE dl_inventory
+  version=17.0.1.0.0  depends=['dl_base', 'dl_product', 'dl_partner', 'stock']
+====================================================================================================
+
+====================================================================================================
+MODULE dl_partner
+  version=17.0.1.0.0  depends=['dl_base', 'mail']
+====================================================================================================
+
+### CLASS ResPartner   [dl_partner/models/res_partner.py]
+    _inherit = 'res.partner'
+    partner_role: Selection string='Vai trò'
+        SELECTION ['customer', 'supplier', 'both']
+    pending_link_partner_id: Many2one ->'res.partner' string='Liên kết với (gộp thành Khách hàng & NCC)' store=True copy=False
+    dlm_code: Char string='Mã KH' readonly=True index=True copy=False
+    partner_type: Selection string='Loại khách hàng' default='individual'
+        SELECTION ['individual', 'company', 'dealer']
+    dlm_allow_dup_tax: Boolean string='Cho phép trùng MST (chi nhánh khác)' default=False
+    partner_type_label: Char string='Loại' store=False compute='_compute_partner_type_label'
+    dlm_status_label: Char string='Trạng thái' store=False compute='_compute_dlm_status_label'
+    dlm_has_photo: Boolean string='Có ảnh đại diện' store=True compute='_compute_dlm_has_photo'
+    dlm_initial: Char store=False compute='_compute_dlm_avatar_letter'
+    dlm_avatar_bg: Char store=False compute='_compute_dlm_avatar_letter'
+    dlm_avatar_fg: Char store=False compute='_compute_dlm_avatar_letter'
+    CONSTRAINS _check_partner_type ["api.constrains('partner_role', 'partner_type')"]
+    CONSTRAINS _check_company_tax_code ["api.constrains('partner_role', 'partner_type', 'vat')"]
+    CONSTRAINS _check_phone_format ["api.constrains('partner_role', 'phone', 'mobile')"]
+    CONSTRAINS _check_email_format ["api.constrains('partner_role', 'email')"]
+    CONSTRAINS _check_unique_tax_code ["api.constrains('vat', 'partner_role', 'dlm_allow_dup_tax')"]
+
+====================================================================================================
+MODULE dl_product
+  version=17.0.2.4.0  depends=['dl_base', 'product', 'stock', 'uom', 'dl_partner']
+====================================================================================================
+
+### CLASS DlMeasurementType   [dl_product/models/dl_measurement.py]
+    _name = 'dl.measurement.type'
+    _description = 'Loại đo lường'
+    _order = 'name'
+    name: Char string='Tên đại lượng' required=True
+    description: Text string='Mô tả'
+    active: Boolean string='Đang sử dụng' default=True
+    formula_uom_id: Many2one ->'uom.uom' string='Đơn vị công thức'
+    shape_ids: One2many ->'dl.measurement.shape' inv='measurement_type_id' string='Hình dạng'
+
+### CLASS DlMeasurementShape   [dl_product/models/dl_measurement.py]
+    _name = 'dl.measurement.shape'
+    _description = 'Hình dạng đo lường'
+    _order = 'measurement_type_id, name'
+    measurement_type_id: Many2one ->'dl.measurement.type' string='Loại đo lường' required=True ondelete='cascade'
+    name: Char string='Tên hình dạng' required=True
+    code: Char string='Mã hình dạng'
+    default_coefficient: Float string='Hệ số mặc định' digits=(16, 4)
+    coefficient_label: Char string='Nhãn hệ số' default='Hệ số'
+    active: Boolean string='Đang sử dụng' default=True
+    param_ids: One2many ->'dl.measurement.shape.param' inv='shape_id' string='Tham số'
+
+### CLASS DlMeasurementShapeParam   [dl_product/models/dl_measurement.py]
+    _name = 'dl.measurement.shape.param'
+    _description = 'Tham số hình dạng đo lường'
+    _order = 'shape_id, name'
+    shape_id: Many2one ->'dl.measurement.shape' string='Hình dạng' required=True ondelete='cascade'
+    name: Char string='Tên tham số' required=True
+    code: Char string='Mã tham số'
+    active: Boolean string='Đang sử dụng' default=True
+
+### CLASS ProductProduct   [dl_product/models/dl_product.py]
+    _name = 'product.product'
+    _inherit = ['product.product', 'mail.thread', 'mail.activity.mixin']
+    product_kind: Selection string='Loại sản phẩm' required=True default='manufactured' tracking=True
+        SELECTION DYNAMIC:lambda self: self._dl_product_kind_selection()
+    dl_categ_branch: Selection string='Nhánh nhóm kỳ vọng' compute='_compute_dl_categ_branch'
+        SELECTION ['finished', 'material']
+    dlm_lifecycle_state: Selection string='Trạng thái vòng đời' required=True default='active' tracking=True copy=False
+        SELECTION ['draft', 'active', 'obsolete']
+    dlm_is_price_editor: Boolean compute='_compute_dlm_is_price_editor'
+    dlm_has_draft_seller: Boolean compute='_compute_dlm_has_draft_seller'
+    dlm_waste_rate: Float string='Hao hụt cơ sở (%)' digits=(6, 2)
+    dlm_has_recovery: Boolean string='Có thu hồi phế liệu'
+    dlm_recovery_rate: Float string='Tỷ lệ thu hồi (%)' digits=(6, 2)
+    dlm_scrap_product_id: Many2one ->'product.product' string='Sản phẩm phế liệu'
+    CONSTRAINS _check_categ_branch ["api.constrains('categ_id', 'product_kind')"]
+    CONSTRAINS _check_default_code ["api.constrains('default_code')"]
+
+### CLASS ProductCategory   [dl_product/models/dl_product_category.py]
+    _inherit = 'product.category'
+    active: Boolean string='Đang sử dụng' default=True
+    dl_branch: Selection string='Nhánh danh mục' store=True compute='_compute_dl_branch'
+        SELECTION ['finished', 'material', 'other']
+    CONSTRAINS _check_branch_products ["api.constrains('parent_id')"]
+
+### CLASS ProductSupplierinfo   [dl_product/models/product_supplierinfo.py]
+    _inherit = 'product.supplierinfo'
+    date_start: Date required=True
+    product_image_128: Image string='Ảnh sản phẩm' readonly=True related='product_tmpl_id.image_128'
+    approval_state: Selection string='Trạng thái duyệt' required=True default='draft' copy=False
+        SELECTION ['draft', 'approved']
+    is_applied: Boolean string='Đang áp dụng' default=False copy=False
+    display_state: Selection string='Trạng thái' store=True compute='_compute_display_state'
+        SELECTION ['draft', 'approved', 'applied']
+    CONSTRAINS _check_is_applied ["api.constrains('is_applied', 'approval_state')"]
+    CONSTRAINS _check_price_positive ["api.constrains('price')"]
+    CONSTRAINS _check_date_range ["api.constrains('date_start', 'date_end')"]
+
+====================================================================================================
+MODULE dl_sale
+  version=17.0.1.6.0  depends=['dl_partner', 'dl_product', 'dl_technical', 'dl_base', 'mail']
+====================================================================================================
+
+### CLASS DlQuotation   [dl_sale/models/dl_quotation.py]
+    _name = 'dl.quotation'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _description = 'Báo giá'
+    _order = 'date_order desc, id desc'
+    name: Char string='Số báo giá' required=True readonly=True default='New' copy=False
+    partner_id: Many2one ->'res.partner' string='Khách hàng' required=True tracking=True domain=[('partner_role', 'in', ('customer', 'both'))]
+    date_order: Date string='Ngày báo giá' required=True default=fields.Date.context_today tracking=True
+    state: Selection string='Trạng thái' default='draft' tracking=True
+        SELECTION ['draft', 'approved', 'sent', 'accepted', 'ordered', 'rejected', 'cancelled']
+    note: Text string='Ghi chú'
+    line_ids: One2many ->'dl.quotation.line' inv='quotation_id' string='Chi tiết'
+    currency_id: Many2one ->'res.currency' string='Tiền tệ' default=lambda self: self.env.company.currency_id
+    quotation_request_id: Many2one ->'dl.quotation.request' string='Yêu cầu báo giá (RFQ)' readonly=True ondelete='restrict' index=True copy=False
+    company_id: Many2one ->'res.company' string='Công ty' readonly=True default=lambda self: self.env.company
+    pricing_date: Date string='Ngày tính giá' readonly=True
+    discount_pct: Float string='Chiết khấu (%)' tracking=True digits=(5, 2)
+    vat_pct: Float string='VAT (%)' tracking=True digits=(5, 2)
+    amount_untaxed: Float string='Giá trước chiết khấu' store=True compute='_compute_amount' digits='Product Price'
+    discount_amount: Float string='Chiết khấu' store=True compute='_compute_amount' digits='Product Price'
+    amount_before_vat: Float string='Sau chiết khấu, trước VAT' store=True compute='_compute_amount' digits='Product Price'
+    vat_amount: Float string='Tiền VAT' store=True compute='_compute_amount' digits='Product Price'
+    amount_total: Float string='Tổng thanh toán' store=True compute='_compute_amount' digits='Product Price'
+    total_cost: Float string='Tổng giá thành' store=True compute='_compute_amount' digits='Product Price'
+    effective_markup: Float string='Markup thực (%)' store=True compute='_compute_amount' digits=(16, 2)
+    floor_amount: Float string='Tổng giá sàn' store=True compute='_compute_amount' digits='Product Price'
+    component_ids: One2many ->'dl.quotation.price.component' inv='quotation_id' string='Cấu phần giá (snapshot)'
+    target_markup: Float string='Lợi nhuận mục tiêu (%)' readonly=True digits=(6, 2)
+    discount_default_rate: Float string='Chiết khấu mặc định (%)' readonly=True digits=(6, 2)
+    discount_max_rate: Float string='Chiết khấu tối đa (%)' readonly=True digits=(6, 2)
+    approval_required: Boolean string='Cần phê duyệt' readonly=True
+    approval_state: Selection string='Trạng thái duyệt' readonly=True default='not_required' tracking=True
+        SELECTION ['not_required', 'pending', 'approved', 'rejected']
+    approval_level: Char string='Cấp duyệt yêu cầu' readonly=True
+    approval_reasons: Text string='Lý do phải duyệt' readonly=True
+    approval_request_id: Many2one ->'dl.pricing.approval.request' string='Yêu cầu phê duyệt' readonly=True
+    approval_can_resolve: Boolean string='Được duyệt yêu cầu này' related='approval_request_id.can_resolve'
+    below_floor: Boolean string='Dưới giá sàn' readonly=True
+    discount_above_default: Boolean string='Chiết khấu > mặc định' readonly=True
+    discount_above_max: Boolean string='Chiết khấu > tối đa' readonly=True
+    sale_order_id: Many2one ->'dl.sale.order' string='Đơn bán hàng' compute='_compute_sale_order_id'
+
+### CLASS DlQuotationLine   [dl_sale/models/dl_quotation.py]
+    _name = 'dl.quotation.line'
+    _description = 'Chi tiết báo giá'
+    quotation_id: Many2one ->'dl.quotation' string='Báo giá' ondelete='cascade'
+    name: Char string='Mô tả' required=True
+    qty: Float string='SL' default=1.0
+    price_unit: Float string='Đơn giá' digits='Product Price'
+    price_subtotal: Float string='Thành tiền' store=True compute='_compute_subtotal' digits='Product Price'
+    rfq_line_id: Many2one ->'dl.quotation.request.line' string='Dòng RFQ' readonly=True ondelete='set null'
+    product_id: Many2one ->'product.product' string='Sản phẩm' readonly=True
+    bom_id: Many2one ->'dl.bom' string='BOM' readonly=True
+    line_type: Selection string='Loại dòng' readonly=True default='trading'
+        SELECTION ['trading', 'manufactured']
+    base_price: Float string='Giá nền' readonly=True digits='Product Price'
+    material_cost: Float string='Chi phí vật tư/đv' readonly=True digits='Product Price'
+    total_cost: Float string='Giá thành/đv' readonly=True digits='Product Price'
+    floor_price: Float string='Giá sàn/đv' readonly=True digits='Product Price'
+    component_ids: One2many ->'dl.quotation.price.component' inv='quotation_line_id' string='Cấu phần giá'
+
+### CLASS DlSaleOrder   [dl_sale/models/dl_sale_order.py]
+    _name = 'dl.sale.order'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _description = 'Đơn bán hàng'
+    _order = 'date_order desc, id desc'
+    name: Char string='Số đơn' required=True readonly=True default='New' copy=False
+    partner_id: Many2one ->'res.partner' string='Khách hàng' required=True tracking=True domain=[('partner_role', 'in', ('customer', 'both'))]
+    quotation_id: Many2one ->'dl.quotation' string='Báo giá nguồn' readonly=True ondelete='restrict' index=True copy=False
+    date_order: Date string='Ngày lên đơn' required=True default=fields.Date.context_today tracking=True
+    state: Selection string='Trạng thái' default='draft' tracking=True copy=False
+        SELECTION ['draft', 'confirmed', 'done', 'cancelled']
+    note: Text string='Ghi chú'
+    currency_id: Many2one ->'res.currency' string='Tiền tệ' default=lambda self: self.env.company.currency_id
+    company_id: Many2one ->'res.company' string='Công ty' readonly=True default=lambda self: self.env.company
+    line_ids: One2many ->'dl.sale.order.line' inv='order_id' string='Chi tiết'
+    discount_pct: Float string='Chiết khấu (%)' tracking=True digits=(5, 2)
+    vat_pct: Float string='VAT (%)' tracking=True digits=(5, 2)
+    amount_untaxed: Float string='Giá trước chiết khấu' store=True compute='_compute_amount' digits='Product Price'
+    discount_amount: Float string='Chiết khấu' store=True compute='_compute_amount' digits='Product Price'
+    amount_before_vat: Float string='Sau chiết khấu, trước VAT' store=True compute='_compute_amount' digits='Product Price'
+    vat_amount: Float string='Tiền VAT' store=True compute='_compute_amount' digits='Product Price'
+    amount_total: Float string='Tổng thanh toán' store=True compute='_compute_amount' digits='Product Price'
+
+### CLASS DlSaleOrderLine   [dl_sale/models/dl_sale_order.py]
+    _name = 'dl.sale.order.line'
+    _description = 'Chi tiết đơn bán hàng'
+    order_id: Many2one ->'dl.sale.order' string='Đơn bán hàng' required=True ondelete='cascade'
+    name: Char string='Mô tả' required=True
+    qty: Float string='SL' default=1.0
+    price_unit: Float string='Đơn giá' digits='Product Price'
+    price_subtotal: Float string='Thành tiền' store=True compute='_compute_subtotal' digits='Product Price'
+    product_id: Many2one ->'product.product' string='Sản phẩm' readonly=True
+    bom_id: Many2one ->'dl.bom' string='BOM' readonly=True
+    line_type: Selection string='Loại dòng' readonly=True default='trading'
+        SELECTION ['trading', 'manufactured']
+
+### CLASS DlPricingApprovalRequest   [dl_sale/models/pricing_approval_ext.py]
+    _inherit = 'dl.pricing.approval.request'
+    quotation_id: Many2one ->'dl.quotation' string='Báo giá' store=True compute='_compute_quotation_id' ondelete='set null'
+    q_partner_id: Many2one ->'?' string='Khách hàng' related='quotation_id.partner_id'
+    q_currency_id: Many2one ->'?' related='quotation_id.currency_id'
+    q_date_order: Date string='Ngày báo giá' related='quotation_id.date_order'
+    q_state: Selection string='Trạng thái báo giá' related='quotation_id.state'
+    q_line_ids: One2many ->'?' string='Dòng báo giá' related='quotation_id.line_ids'
+    q_component_ids: One2many ->'?' string='Cấu phần giá' related='quotation_id.component_ids'
+    q_amount_untaxed: Float related='quotation_id.amount_untaxed'
+    q_discount_pct: Float string='Chiết khấu (%)' related='quotation_id.discount_pct'
+    q_discount_amount: Float related='quotation_id.discount_amount'
+    q_amount_before_vat: Float related='quotation_id.amount_before_vat'
+    q_vat_pct: Float string='VAT (%)' related='quotation_id.vat_pct'
+    q_vat_amount: Float related='quotation_id.vat_amount'
+    q_amount_total: Float related='quotation_id.amount_total'
+    q_discount_default_rate: Float related='quotation_id.discount_default_rate'
+    q_discount_max_rate: Float related='quotation_id.discount_max_rate'
+    q_discount_above_default: Boolean related='quotation_id.discount_above_default'
+    q_discount_above_max: Boolean related='quotation_id.discount_above_max'
+    q_total_cost: Float related='quotation_id.total_cost'
+    q_target_markup: Float related='quotation_id.target_markup'
+    q_effective_markup: Float related='quotation_id.effective_markup'
+    q_floor_amount: Float related='quotation_id.floor_amount'
+    q_below_floor: Boolean related='quotation_id.below_floor'
+
+### CLASS DlQuotationPriceComponent   [dl_sale/models/quotation_price_component.py]
+    _name = 'dl.quotation.price.component'
+    _description = 'Cấu phần giá báo giá (snapshot)'
+    _order = 'quotation_line_id, id'
+    quotation_id: Many2one ->'dl.quotation' string='Báo giá' required=True ondelete='cascade' index=True
+    quotation_line_id: Many2one ->'dl.quotation.line' string='Dòng báo giá' ondelete='cascade' index=True
+    component_type: Selection string='Loại cấu phần' required=True
+        SELECTION ['trading_base', 'material', 'processed_material', 'recovery', 'markup', 'discount', 'vat']
+    source_model: Char string='Model nguồn'
+    source_id: Integer string='ID nguồn'
+    source_revision: Integer string='Revision nguồn'
+    material_id: Many2one ->'product.product' string='Vật tư/Sản phẩm' ondelete='set null'
+    qty: Float string='Số lượng' digits='Product Unit of Measure'
+    unit_price: Float string='Đơn giá' digits='Product Price'
+    rate: Float string='Tỷ lệ (%)' digits=(5, 2)
+    amount: Float string='Thành tiền' digits='Product Price'
+    no_discount: Boolean string='Không chịu chiết khấu' default=False
+
+### CLASS DlQuotationPricingService   [dl_sale/models/quotation_pricing_service.py]
+    _name = 'dl.quotation.pricing.service'
+    _description = 'Dịch vụ tính giá báo giá'
+
+### CLASS DlQuotationRequest   [dl_sale/models/quotation_pricing_service.py]
+    _inherit = 'dl.quotation.request'
+    quotation_id: Many2one ->'dl.quotation' string='Báo giá' compute='_compute_quotation_id'
+
+### CLASS ResPartnerQuoteStats   [dl_sale/models/res_partner.py]
+    _inherit = 'res.partner'
+    dlm_quotation_ids: One2many ->'dl.quotation' inv='partner_id' string='Báo giá của khách'
+    dlm_quotation_count: Integer string='Số báo giá' compute='_compute_dlm_quote_stats'
+    dlm_win_rate: Float string='Win rate (%)' compute='_compute_dlm_quote_stats'
+    dlm_open_quote_count: Integer string='BG chưa đóng' compute='_compute_dlm_quote_stats'
+    dlm_recent_quote_count: Integer string='BG trong 7 ngày' compute='_compute_dlm_quote_stats'
+    dlm_currency_id: Many2one ->'res.currency' string='Tiền tệ' compute='_compute_dlm_currency'
+    dlm_recent_quote_total: Monetary string='Tổng BG 7 ngày' compute='_compute_dlm_quote_stats'
+    dlm_split_warning: Boolean string='Cảnh báo gộp đơn' compute='_compute_dlm_quote_stats'
+    dlm_split_threshold: Monetary string='Ngưỡng gộp đơn' compute='_compute_dlm_quote_stats'
+    dlm_customer_group: Selection string='Nhóm khách hàng' store=True compute='_compute_dlm_customer_group'
+        SELECTION DYNAMIC:CUSTOMER_GROUP_SELECTION
+
+====================================================================================================
+MODULE dl_technical
+  version=17.0.1.2.0  depends=['dl_base', 'dl_product', 'dl_partner', 'uom', 'dl_config']
+====================================================================================================
+
+### CLASS DlBom   [dl_technical/models/dl_bom.py]
+    _name = 'dl.bom'
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'dl.bom.header.mixin']
+    _description = 'BOM'
+    _order = 'id desc'
+    SQL_CONSTRAINT ('product_version_type_uniq', 'unique(product_id,version,bom_type)', 'Phiên bản BOM của sản phẩm đã tồn tại.')
+    name: Char string='Mã BOM' required=True default=lambda self: _('New') tracking=True copy=False
+    category_id: Many2one ->'product.category' string='Nhóm sản phẩm (lọc)' ondelete='set null' domain=[('dl_branch', 'in', ('finished', 'material'))]
+    product_id: Many2one ->'product.product' string='Sản phẩm' required=True ondelete='restrict' tracking=True domain="[('product_kind', 'in', ('manufactured', 'material_processed'))] + ([('categ_id', '=',...
+    bom_type: Selection string='Loại BOM' required=True default='template' tracking=True
+        SELECTION ['template', 'quotation']
+    line_ids: One2many ->'dl.bom.line' inv='bom_id' string='Danh sách vật tư' copy=True
+    total_material_cost: Float string='Tổng chi phí vật tư' store=True compute='_compute_total_material_cost' digits='Product Price'
+    note: Text string='Ghi chú'
+    drawing_id: Many2one ->'dl.drawing' string='Bản vẽ kỹ thuật' compute='_compute_drawing_ref'
+    drawing_attachment_id: Many2one ->'ir.attachment' string='File bản vẽ' compute='_compute_drawing_ref'
+    drawing_mimetype: Char compute='_compute_drawing_ref'
+    drawing_filename: Char compute='_compute_drawing_ref'
+    show_back_to_rfq: Boolean compute='_compute_show_back_to_rfq'
+    CONSTRAINS _check_product_qty ["api.constrains('product_qty')"]
+
+### CLASS DlBomHeaderMixin   [dl_technical/models/dl_bom_header_mixin.py]
+    _name = 'dl.bom.header.mixin'
+    _description = 'BOM — trường & workflow đầu BOM dùng chung'
+    version: Integer string='Phiên bản' required=True default=1 tracking=True
+    product_qty: Float string='Số lượng đầu ra' required=True default=1.0 digits='Product Unit of Measure'
+    status: Selection string='Trạng thái' default='draft' tracking=True copy=False
+        SELECTION ['draft', 'confirmed', 'locked', 'archived']
+
+### CLASS DlBomLine   [dl_technical/models/dl_bom_line.py]
+    _name = 'dl.bom.line'
+    _inherit = ['dl.bom.line.mixin']
+    _description = 'Dòng BOM'
+    _order = 'id'
+    bom_id: Many2one ->'dl.bom' string='BOM' required=True ondelete='cascade'
+    drawing_attachment_id: Many2one ->'?' string='File bản vẽ' readonly=True related='bom_id.drawing_attachment_id'
+    drawing_mimetype: Char readonly=True related='bom_id.drawing_mimetype'
+    drawing_filename: Char readonly=True related='bom_id.drawing_filename'
+    price_snapshot: Float string='Đơn giá snapshot' readonly=True store=True compute='_compute_price_snapshot' digits='Product Price'
+    recovery_value: Float string='Giá trị thu hồi' store=True compute='_compute_recovery_value' digits='Product Price'
+    subtotal: Float string='Thành tiền' store=True compute='_compute_subtotal' digits='Product Price'
+
+### CLASS DlBomLineMixin   [dl_technical/models/dl_bom_line_mixin.py]
+    _name = 'dl.bom.line.mixin'
+    _description = 'Dòng BOM — trường & logic dùng chung'
+    material_id: Many2one ->'product.product' string='Vật tư' required=True domain=[('product_kind', 'in', ('material', 'material_processed'))]
+    measurement_type_id: Many2one ->'dl.measurement.type' string='Rule'
+    measurement_shape_id: Many2one ->'dl.measurement.shape' string='Shape' domain="[('measurement_type_id', '=', measurement_type_id)]"
+    shape_code: Char string='Mã Shape' related='measurement_shape_id.code'
+    measurement_coefficient: Float string='Hệ số' digits=(16, 4)
+    dim_length: Float string='Chiều dài (mm)' digits=(16, 3)
+    dim_width: Float string='Chiều rộng (mm)' digits=(16, 3)
+    dim_thickness: Float string='Độ dày (mm)' digits=(16, 3)
+    dim_side: Float string='Cạnh ngoài (mm)' digits=(16, 3)
+    dim_diameter: Float string='Đường kính ngoài (mm)' digits=(16, 3)
+    dim_height: Float string='Chiều cao (mm)' digits=(16, 3)
+    computed_quantity: Float string='Định mức (hệ thống tính)' compute='_compute_computed_quantity' digits='Product Unit of Measure'
+    quantity: Float string='Số lượng' required=True default=1.0 digits='Product Unit of Measure'
+    complexity_id: Many2one ->'dl.pricing.complexity.level' string='Mức phức tạp' ondelete='set null'
+    waste_rate: Float string='Tỷ lệ hao hụt (%)' default=0.0 digits=(5, 2)
+    effective_qty: Float string='Số lượng thực tế' store=True compute='_compute_effective_qty' digits='Product Unit of Measure'
+    is_override: Boolean string='Ghi đè số lượng' default=False
+    override_reason: Text string='Lý do ghi đè'
+    uom_id: Many2one ->'uom.uom' string='Đơn vị tính' store=True compute='_compute_uom'
+    material_uom_category_id: Many2one ->'uom.category' string='Nhóm ĐVT của Vật tư' related='uom_id.category_id'
+    rule_applicable: Boolean string='Có Rule phù hợp' compute='_compute_rule_applicable'
+    shape_coefficient_label: Char related='measurement_shape_id.coefficient_label'
+    CONSTRAINS _check_quantity ["api.constrains('quantity')"]
+    CONSTRAINS _check_waste_rate ["api.constrains('waste_rate')"]
+    CONSTRAINS _check_override_reason ["api.constrains('is_override', 'override_reason')"]
+
+### CLASS DlMeasurementShapeCodeCheck   [dl_technical/models/dl_bom_line_mixin.py]
+    _inherit = 'dl.measurement.shape'
+    CONSTRAINS _check_code_known ["api.constrains('code')"]
+
+### CLASS DlBomTemplate   [dl_technical/models/dl_bom_template.py]
+    _name = 'dl.bom.template'
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'dl.bom.header.mixin']
+    _description = 'BOM mẫu'
+    _order = 'name'
+    SQL_CONSTRAINT ('category_version_uniq', 'unique(product_category_id,version)', 'Phiên bản BOM mẫu của nhóm sản phẩm đã tồn tại.')
+    name: Char string='Tên BOM mẫu' required=True tracking=True
+    product_category_id: Many2one ->'product.category' string='Nhóm sản phẩm' required=True ondelete='restrict' tracking=True domain=[('dl_branch', 'in', ('finished', 'material'))]
+    line_ids: One2many ->'dl.bom.template.line' inv='bom_template_id' string='Dòng mẫu' copy=True
+
+### CLASS DlBomTemplateLine   [dl_technical/models/dl_bom_template.py]
+    _name = 'dl.bom.template.line'
+    _inherit = ['dl.bom.line.mixin']
+    _description = 'Dòng BOM mẫu'
+    _order = 'id'
+    bom_template_id: Many2one ->'dl.bom.template' string='BOM mẫu' required=True ondelete='cascade'
+    note: Char string='Ghi chú'
+
+### CLASS DlDrawing   [dl_technical/models/dl_drawing.py]
+    _name = 'dl.drawing'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _description = 'Bản vẽ kỹ thuật'
+    _order = 'drawing_code'
+    SQL_CONSTRAINT ('drawing_code_uniq', 'unique(drawing_code)', 'Mã bản vẽ đã tồn tại.')
+    SQL_CONSTRAINT ('product_version_uniq', 'unique(product_id, version)', 'Phiên bản bản vẽ của sản phẩm đã tồn tại.')
+    name: Char string='Tên bản vẽ' required=True tracking=True
+    product_id: Many2one ->'product.product' string='Sản phẩm' required=True tracking=True
+    drawing_code: Char string='Mã bản vẽ' required=True default=lambda self: _('New') tracking=True copy=False
+    version: Integer string='Phiên bản' required=True default=1 tracking=True
+    status: Selection string='Trạng thái' default='draft' tracking=True copy=False
+        SELECTION ['draft', 'confirmed', 'archived']
+    attachment_id: Many2one ->'ir.attachment' string='Bản vẽ đính kèm'
+    confirmed_date: Date string='Ngày xác nhận' readonly=True
+    created_by: Many2one ->'res.users' string='Người tạo' required=True readonly=True default=lambda self: self.env.user
+
+### CLASS ProductCategoryTechnical   [dl_technical/models/dl_product.py]
+    _inherit = 'product.category'
+    bom_template_id: Many2one ->'dl.bom.template' string='BOM mẫu mặc định' ondelete='set null'
+
+### CLASS DlProductTechnical   [dl_technical/models/dl_product.py]
+    _inherit = 'product.product'
+    bom_ids: One2many ->'dl.bom' inv='product_id' string='Danh sách BOM' compute='_compute_bom_ids'
+
+### CLASS DlQuotationRequest   [dl_technical/models/dl_quotation_request.py]
+    _name = 'dl.quotation.request'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _description = 'Yêu cầu báo giá'
+    _order = 'id desc'
+    SQL_CONSTRAINT ('name_uniq', 'unique(name)', 'Mã yêu cầu báo giá đã tồn tại.')
+    name: Char string='Mã yêu cầu' required=True readonly=True default=lambda self: _('New') tracking=True copy=False
+    customer_id: Many2one ->'res.partner' string='Khách hàng' required=True tracking=True domain=[('partner_role', 'in', ('customer', 'both'))]
+    description: Text string='Mô tả'
+    requested_date: Datetime string='Ngày nhận yêu cầu' required=True default=fields.Datetime.now tracking=True
+    deadline: Date string='Hạn yêu cầu'
+    status: Selection string='Trạng thái' readonly=True default='new' tracking=True copy=False
+        SELECTION ['new', 'processing', 'returned', 'supplemented', 'confirmed', 'quoted', 'cancelled']
+    return_reason: Text string='Lý do trả lại' readonly=True tracking=True copy=False
+    created_by: Many2one ->'res.users' string='Người tạo' readonly=True default=lambda self: self.env.user
+    note: Text string='Ghi chú'
+    line_ids: One2many ->'dl.quotation.request.line' inv='quotation_request_id' string='Danh sách sản phẩm'
+    manufactured_line_ids: One2many ->'dl.quotation.request.line' inv='quotation_request_id' string='Sản phẩm gia công' domain=[('product_type', '=', 'manufactured')]
+    trading_line_ids: One2many ->'dl.quotation.request.line' inv='quotation_request_id' string='Sản phẩm thương mại' domain=[('product_type', '=', 'trading')]
+    resolved_product_ids: Many2many ->'product.product' string='Product Reference' compute='_compute_resolved_refs'
+    resolved_bom_ids: Many2many ->'dl.bom' string='BOM Reference' compute='_compute_resolved_refs'
+    is_technician: Boolean compute='_compute_is_technician'
+    CONSTRAINS _check_deadline ["api.constrains('deadline', 'requested_date')"]
+
+### CLASS DlQuotationRequestLine   [dl_technical/models/dl_quotation_request.py]
+    _name = 'dl.quotation.request.line'
+    _description = 'Dòng yêu cầu báo giá'
+    _order = 'id'
+    quotation_request_id: Many2one ->'dl.quotation.request' string='Yêu cầu báo giá' required=True ondelete='cascade'
+    product_type: Selection string='Loại sản phẩm' required=True default='manufactured'
+        SELECTION ['manufactured', 'trading']
+    product_name: Char string='Tên sản phẩm'
+    product_category_id: Many2one ->'product.category' string='Nhóm sản phẩm' domain=[('dl_branch', '=', 'finished'), ('parent_id', '!=', False)]
+    reference_product_id: Many2one ->'product.product' string='Sản phẩm tham khảo' domain=[('product_kind', '=', 'manufactured'), ('dlm_lifecycle_state', '=', 'active')]
+    quantity: Float string='Số lượng' required=True default=1.0
+    dimension_note: Text string='Kích thước / Yêu cầu'
+    image_ids: One2many ->'dl.quotation.request.line.image' inv='line_id' string='Ảnh'
+    image_count: Integer string='Số ảnh' compute='_compute_image_count'
+    attachment_ids: Many2many ->'ir.attachment' string='File đính kèm'
+    preview_image: Image string='Ảnh' compute='_compute_preview_image'
+    resolved_product_id: Many2one ->'product.product' string='Sản phẩm xác định'
+    resolvable_product_ids: Many2many ->'product.product' string='SP hợp lệ để chọn' compute='_compute_resolvable_product_ids'
+    selectable_category_ids: Many2many ->'product.category' string='Nhóm SP chọn được' compute='_compute_selectable_category_ids'
+    reference_product_ids: Many2many ->'product.product' string='SP tham khảo hợp lệ' compute='_compute_reference_product_ids'
+    resolved_bom_id: Many2one ->'dl.bom' string='BOM tham chiếu'
+    currency_id: Many2one ->'res.currency' string='Tiền tệ' readonly=True related='resolved_product_id.currency_id'
+    product_price: Float string='Đơn giá' readonly=True related='resolved_product_id.list_price' digits='Product Price'
+    price_subtotal: Float string='Thành tiền' readonly=True compute='_compute_price_subtotal' digits='Product Price'
+    is_infeasible: Boolean string='Không khả thi' default=False
+    infeasible_reason: Text string='Lý do không khả thi'
+    is_technician: Boolean compute='_compute_is_technician' default=lambda self: self.env.user.has_group('dl_base.dl_group_tech') or self.env.user.has_grou...
+    CONSTRAINS _check_quantity ["api.constrains('quantity')"]
+    CONSTRAINS _check_resolved_bom ["api.constrains('product_type', 'resolved_bom_id', 'resolved_product_id')"]
+    CONSTRAINS _check_product_type_required ["api.constrains('product_type', 'product_name', 'resolved_product_id')"]
+    CONSTRAINS _check_resolution ["api.constrains('resolved_product_id', 'is_infeasible')"]
+    CONSTRAINS _check_infeasible_reason ["api.constrains('is_infeasible', 'infeasible_reason')"]
+    CONSTRAINS _check_product_has_bom ["api.constrains('resolved_product_id')"]
+
+### CLASS DlQuotationRequestLineImage   [dl_technical/models/dl_quotation_request.py]
+    _name = 'dl.quotation.request.line.image'
+    _description = 'Ảnh dòng yêu cầu báo giá'
+    _order = 'sequence, id'
+    line_id: Many2one ->'dl.quotation.request.line' string='Dòng RFQ' required=True ondelete='cascade'
+    sequence: Integer string='Thứ tự' default=10
+    name: Char string='Mô tả ảnh'
+    image: Image string='Ảnh' required=True
+
+### CLASS DlBomFromTemplateWizard   [dl_technical/wizard/bom_from_template_wizard.py]
+    _name = 'dl.bom.from.template.wizard'
+    _description = 'Tạo BOM từ BOM mẫu'
+    bom_id: Many2one ->'dl.bom' string='BOM đích' required=True readonly=True
+    product_category_id: Many2one ->'?' string='Nhóm sản phẩm' related='bom_id.product_id.categ_id'
+    template_id: Many2one ->'dl.bom.template' string='BOM mẫu' required=True domain="[('product_category_id', '=', product_category_id), ('status', '!=', 'archived')]"
+
+### CLASS DlRfqHistoryWizard   [dl_technical/wizard/rfq_history_wizard.py]
+    _name = 'dl.rfq.history.wizard'
+    _description = 'Lịch sử RFQ'
+    request_id: Many2one ->'dl.quotation.request' string='RFQ' required=True readonly=True
+    history_html: Html string='Lịch sử' compute='_compute_history_html'
+
+### CLASS DlRfqResolveWizard   [dl_technical/wizard/rfq_resolve_wizard.py]
+    _name = 'dl.rfq.resolve.wizard'
+    _description = 'Xử lý RFQ — chọn/tạo Product và BOM'
+    rfq_line_id: Many2one ->'dl.quotation.request.line' string='Dòng RFQ' required=True readonly=True
+    request_product_name: Char string='Tên sản phẩm (RFQ)' readonly=True related='rfq_line_id.product_name'
+    request_quantity: Float string='Số lượng' readonly=True related='rfq_line_id.quantity'
+    request_category_id: Many2one ->'?' string='Nhóm sản phẩm (RFQ)' readonly=True related='rfq_line_id.product_category_id'
+    request_dimension_note: Text string='Kích thước / Yêu cầu' readonly=True related='rfq_line_id.dimension_note'
+    request_reference_product_id: Many2one ->'?' string='Sản phẩm tham khảo (Sales)' readonly=True related='rfq_line_id.reference_product_id'
+    request_attachment_ids: Many2many ->'?' string='Ảnh / File Sales gửi' readonly=True related='rfq_line_id.attachment_ids'
+    is_infeasible: Boolean string='Không khả thi'
+    infeasible_reason: Text string='Lý do không khả thi'
+    mode: Selection string='Trường hợp' required=True default='existing'
+        SELECTION ['existing', 'new']
+    product_id: Many2one ->'product.product' string='Product' domain=[('product_kind', 'in', ('manufactured', 'material_processed'))]
+    allowed_product_ids: Many2many ->'product.product' string='SP hợp lệ' compute='_compute_allowed_product_ids'
+    new_product_name: Char string='Tên sản phẩm mới'
+    new_product_category_id: Many2one ->'product.category' string='Nhóm sản phẩm' domain=[('dl_branch', '=', 'finished')]
+    bom_ids: Many2many ->'dl.bom' string='BOM Version' compute='_compute_bom_ids'
+    selected_bom_id: Many2one ->'dl.bom' string='BOM đã chọn' domain="[('id', 'in', bom_ids)]"
+    selected_bom_line_ids: One2many ->'?' string='Chi tiết BOM' readonly=True related='selected_bom_id.line_ids'
+
+### CLASS DlRfqReturnWizard   [dl_technical/wizard/rfq_return_wizard.py]
+    _name = 'dl.rfq.return.wizard'
+    _description = 'Trả lại RFQ để bổ sung'
+    request_id: Many2one ->'dl.quotation.request' string='Yêu cầu báo giá' required=True readonly=True
+    reason: Text string='Lý do / Cần bổ sung' required=True

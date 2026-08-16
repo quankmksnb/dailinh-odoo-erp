@@ -72,6 +72,7 @@
         <record id="demo_supplier_hoa_phat" model="res.partner">
             <field name="name">Thép Hòa Phát — Chi nhánh miền Nam</field>
             <field name="partner_role">supplier</field>
+            <field name="partner_type">company</field>
             <field name="company_type">company</field>
             <field name="vat">0400101010</field>
             <field name="phone">1800 1755</field>
@@ -82,6 +83,7 @@
         <record id="demo_supplier_dai_bang" model="res.partner">
             <field name="name">Sơn Đại Bàng</field>
             <field name="partner_role">supplier</field>
+            <field name="partner_type">company</field>
             <field name="company_type">company</field>
             <field name="vat">0402223344</field>
             <field name="phone">028 3975 4321</field>

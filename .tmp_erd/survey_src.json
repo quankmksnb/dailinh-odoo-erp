@@ -1,0 +1,9552 @@
+[
+ {
+  "module": "dl_base",
+  "file": "dl_base/models/dl_rbac.py",
+  "line": 27,
+  "cls": "DlRbacFeature",
+  "kind": "Model",
+  "name": "dl.rbac.feature",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "sequence, category, name",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Tên chức năng"
+    ],
+    "kw": {
+     "required": true
+    }
+   },
+   {
+    "name": "code",
+    "type": "Char",
+    "pos": [
+     "Mã"
+    ],
+    "kw": {
+     "required": true
+    }
+   },
+   {
+    "name": "model_id",
+    "type": "Many2one",
+    "pos": [
+     "ir.model"
+    ],
+    "kw": {
+     "string": "Model dữ liệu",
+     "ondelete": "cascade",
+     "help": "Model backing cho quyền Xem/Thêm/Sửa/Xóa. Để trống với màn thuần action (chưa có model) — khi đó chỉ cấu hình thao tác đặc biệt."
+    }
+   },
+   {
+    "name": "model_name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "related": "model_id.model",
+     "store": true,
+     "string": "Tên kỹ thuật"
+    }
+   },
+   {
+    "name": "category",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "master",
+       "Dữ liệu danh mục"
+      ],
+      [
+       "sales",
+       "Kinh doanh & Báo giá"
+      ],
+      [
+       "approval",
+       "Phê duyệt"
+      ],
+      [
+       "system",
+       "Hệ thống & phân quyền"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Nhóm",
+     "default": "system",
+     "required": true
+    }
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pos": [
+     "Thứ tự"
+    ],
+    "kw": {
+     "default": 10
+    }
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pos": [
+     "Đang dùng"
+    ],
+    "kw": {
+     "default": true
+    }
+   },
+   {
+    "name": "operation_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.rbac.operation",
+     "feature_id"
+    ],
+    "kw": {
+     "string": "Thao tác đặc biệt"
+    }
+   }
+  ],
+  "sql_constraints": [
+   [
+    "code_uniq",
+    "unique(code)",
+    "Mã chức năng phải là duy nhất."
+   ]
+  ]
+ },
+ {
+  "module": "dl_base",
+  "file": "dl_base/models/dl_rbac.py",
+  "line": 283,
+  "cls": "DlRbacOperation",
+  "kind": "Model",
+  "name": "dl.rbac.operation",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "feature_id, sequence, name",
+  "fields": [
+   {
+    "name": "feature_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.rbac.feature"
+    ],
+    "kw": {
+     "string": "Chức năng",
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Tên thao tác"
+    ],
+    "kw": {
+     "required": true
+    }
+   },
+   {
+    "name": "code",
+    "type": "Char",
+    "pos": [
+     "Mã"
+    ],
+    "kw": {
+     "required": true
+    }
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pos": [
+     "Thứ tự"
+    ],
+    "kw": {
+     "default": 10
+    }
+   },
+   {
+    "name": "group_id",
+    "type": "Many2one",
+    "pos": [
+     "res.groups"
+    ],
+    "kw": {
+     "string": "Nhóm kỹ thuật",
+     "required": true,
+     "ondelete": "cascade",
+     "help": "res.groups gate nút/field cho thao tác này (view gán groups=...)."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_base",
+  "file": "dl_base/models/res_company.py",
+  "line": 9,
+  "cls": "ResCompany",
+  "kind": "Model",
+  "name": null,
+  "inherit": "res.company",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_approval.py",
+  "line": 48,
+  "cls": "DlPricingApprovalSetting",
+  "kind": "Model",
+  "name": "dl.pricing.approval.setting",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "request_type",
+  "fields": [
+   {
+    "name": "request_type",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Loại yêu cầu",
+     "required": true
+    }
+   },
+   {
+    "name": "approver_role",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Vai trò duyệt",
+     "required": true,
+     "default": "ceo"
+    }
+   },
+   {
+    "name": "approver_user_id",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người duyệt cụ thể",
+     "help": "Để trống thì mọi người thuộc vai trò duyệt đều có thể duyệt."
+    }
+   },
+   {
+    "name": "company_id",
+    "type": "Many2one",
+    "pos": [
+     "res.company"
+    ],
+    "kw": {
+     "string": "Công ty",
+     "required": true,
+     "index": true,
+     "default": "<expr>"
+    }
+   }
+  ],
+  "sql_constraints": [
+   [
+    "type_company_uniq",
+    "unique(request_type, company_id)",
+    "Mỗi loại yêu cầu chỉ có một cấu hình người duyệt trong công ty."
+   ]
+  ]
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_approval.py",
+  "line": 91,
+  "cls": "DlPricingApprovalRequest",
+  "kind": "Model",
+  "name": "dl.pricing.approval.request",
+  "inherit": [
+   "mail.thread",
+   "mail.activity.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "create_date desc, id desc",
+  "fields": [
+   {
+    "name": "title",
+    "type": "Char",
+    "pos": [
+     "Tiêu đề"
+    ],
+    "kw": {
+     "compute": "_compute_title",
+     "store": true
+    }
+   },
+   {
+    "name": "request_type",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Loại yêu cầu",
+     "required": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "res_model",
+    "type": "Char",
+    "pos": [
+     "Model đối tượng"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "res_id",
+    "type": "Integer",
+    "pos": [
+     "ID đối tượng"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "object_label",
+    "type": "Char",
+    "pos": [
+     "Đối tượng"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "old_value",
+    "type": "Char",
+    "pos": [
+     "Giá trị cũ"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "new_value",
+    "type": "Char",
+    "pos": [
+     "Giá trị mới"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "impact",
+    "type": "Char",
+    "pos": [
+     "Tác động"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "requester_id",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người yêu cầu",
+     "readonly": true,
+     "default": "<expr>"
+    }
+   },
+   {
+    "name": "requester_role",
+    "type": "Char",
+    "pos": [
+     "Vai trò khi gửi"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "reason",
+    "type": "Text",
+    "pos": [
+     "Lý do"
+    ],
+    "kw": {
+     "required": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "resolved_by_id",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người duyệt",
+     "readonly": true
+    }
+   },
+   {
+    "name": "resolved_at",
+    "type": "Datetime",
+    "pos": [
+     "Thời điểm xử lý"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "reject_comment",
+    "type": "Text",
+    "pos": [
+     "Lý do từ chối"
+    ],
+    "kw": {
+     "help": "Nhập trước khi bấm Từ chối."
+    }
+   },
+   {
+    "name": "is_self_approval",
+    "type": "Boolean",
+    "pos": [
+     "Tự duyệt"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "approval_level",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "sales_manager",
+       "Trưởng kinh doanh"
+      ],
+      [
+       "ceo",
+       "Giám đốc"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Cấp duyệt xác định",
+     "readonly": true
+    }
+   },
+   {
+    "name": "matrix_row_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.pricing.approval.matrix"
+    ],
+    "kw": {
+     "string": "Dòng ma trận đã dùng",
+     "readonly": true,
+     "ondelete": "restrict"
+    }
+   },
+   {
+    "name": "matrix_revision",
+    "type": "Integer",
+    "pos": [
+     "Revision ma trận"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "trigger_reasons",
+    "type": "Text",
+    "pos": [
+     "Lý do phát sinh duyệt"
+    ],
+    "kw": {
+     "readonly": true,
+     "help": "Danh sách điều kiện khiến báo giá phải phê duyệt (mục 6)."
+    }
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "pending",
+       "Chờ duyệt"
+      ],
+      [
+       "approved",
+       "Đã duyệt"
+      ],
+      [
+       "rejected",
+       "Từ chối"
+      ],
+      [
+       "cancelled",
+       "Đã hủy do báo giá thay đổi"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "default": "pending",
+     "required": true,
+     "readonly": true,
+     "tracking": true,
+     "index": true
+    }
+   },
+   {
+    "name": "can_resolve",
+    "type": "Boolean",
+    "pos": [
+     "Được duyệt yêu cầu này"
+    ],
+    "kw": {
+     "compute": "_compute_can_resolve",
+     "help": "Người dùng hiện tại có quyền Duyệt/Từ chối yêu cầu này không — UI dựa vào đây để ẩn nút (vd Trưởng KD không duyệt thay đổi ma trận, Admin không duyệt báo giá)."
+    }
+   },
+   {
+    "name": "company_id",
+    "type": "Many2one",
+    "pos": [
+     "res.company"
+    ],
+    "kw": {
+     "string": "Công ty",
+     "required": true,
+     "index": true,
+     "default": "<expr>"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_commercial.py",
+  "line": 27,
+  "cls": "DlPricingCommercialMixin",
+  "kind": "Abstract",
+  "name": "dl.pricing.commercial.mixin",
+  "inherit": [
+   "dl.pricing.rule.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_commercial.py",
+  "line": 100,
+  "cls": "DlPricingProfitRule",
+  "kind": "Model",
+  "name": "dl.pricing.profit.rule",
+  "inherit": [
+   "dl.pricing.commercial.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Tên"
+    ],
+    "kw": {
+     "compute": "_compute_name",
+     "store": true
+    }
+   },
+   {
+    "name": "target_markup",
+    "type": "Float",
+    "pos": [
+     "Lợi nhuận mục tiêu (%)"
+    ],
+    "kw": {
+     "required": true,
+     "digits": [
+      6,
+      2
+     ],
+     "tracking": true,
+     "help": "Tỷ lệ cộng trên giá thành để ra giá bán trước chiết khấu."
+    }
+   },
+   {
+    "name": "min_markup",
+    "type": "Float",
+    "pos": [
+     "Lợi nhuận tối thiểu (%)"
+    ],
+    "kw": {
+     "required": true,
+     "digits": [
+      6,
+      2
+     ],
+     "tracking": true,
+     "help": "Dùng tính giá sàn; chiết khấu vượt phải duyệt ngoại lệ."
+    }
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "required": true,
+     "default": "draft",
+     "readonly": true,
+     "copy": false,
+     "tracking": true,
+     "index": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_commercial.py",
+  "line": 154,
+  "cls": "DlPricingDiscountRule",
+  "kind": "Model",
+  "name": "dl.pricing.discount.rule",
+  "inherit": [
+   "dl.pricing.commercial.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "group_rank asc, state, valid_from desc, id desc",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Tên"
+    ],
+    "kw": {
+     "compute": "_compute_name",
+     "store": true
+    }
+   },
+   {
+    "name": "customer_group",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Nhóm khách hàng",
+     "required": true,
+     "default": "new",
+     "tracking": true
+    }
+   },
+   {
+    "name": "group_rank",
+    "type": "Integer",
+    "pos": [
+     "Bậc gắn bó"
+    ],
+    "kw": {
+     "compute": "_compute_group_rank",
+     "store": true,
+     "help": "Dùng nội bộ để sắp xếp và so bậc thang chiết khấu (mới→cũ→thân thiết)."
+    }
+   },
+   {
+    "name": "default_rate",
+    "type": "Float",
+    "pos": [
+     "Chiết khấu mặc định (%)"
+    ],
+    "kw": {
+     "required": true,
+     "digits": [
+      6,
+      2
+     ],
+     "tracking": true,
+     "help": "Hệ thống tự điền lên báo giá."
+    }
+   },
+   {
+    "name": "max_rate",
+    "type": "Float",
+    "pos": [
+     "Chiết khấu tối đa (%)"
+    ],
+    "kw": {
+     "required": true,
+     "digits": [
+      6,
+      2
+     ],
+     "tracking": true,
+     "help": "Vượt mức này bắt buộc quản lý duyệt ngoại lệ."
+    }
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "required": true,
+     "default": "draft",
+     "readonly": true,
+     "copy": false,
+     "tracking": true,
+     "index": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_config.py",
+  "line": 37,
+  "cls": "DlPricingConfig",
+  "kind": "Model",
+  "name": "dl.pricing.config",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Tên cấu hình"
+    ],
+    "kw": {
+     "default": "Cấu hình báo giá",
+     "required": true
+    }
+   },
+   {
+    "name": "vat_pct",
+    "type": "Float",
+    "pos": [
+     "VAT mặc định (%)"
+    ],
+    "kw": {
+     "default": 0.0
+    }
+   },
+   {
+    "name": "rounding_to",
+    "type": "Integer",
+    "pos": [
+     "Làm tròn giá bán đến (đ)"
+    ],
+    "kw": {
+     "default": 1000
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_config.py",
+  "line": 125,
+  "cls": "DlPricingWaste",
+  "kind": "Model",
+  "name": "dl.pricing.waste",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "id",
+  "fields": [
+   {
+    "name": "group_name",
+    "type": "Char",
+    "pos": [
+     "Nhóm vật tư"
+    ],
+    "kw": {}
+   },
+   {
+    "name": "waste_pct",
+    "type": "Float",
+    "pos": [
+     "Hao hụt (%)"
+    ],
+    "kw": {}
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_config.py",
+  "line": 138,
+  "cls": "DlApprovalLevel",
+  "kind": "Model",
+  "name": "dl.approval.level",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "sequence, id",
+  "fields": [
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pos": [
+     "Thứ tự"
+    ],
+    "kw": {
+     "default": 10
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Tên cấp duyệt"
+    ],
+    "kw": {}
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_config.py",
+  "line": 151,
+  "cls": "DlConfigAuditLog",
+  "kind": "Model",
+  "name": "dl.config.audit.log",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "id desc",
+  "fields": [
+   {
+    "name": "config_tab",
+    "type": "Char",
+    "pos": [
+     "Nhóm cấu hình"
+    ],
+    "kw": {}
+   },
+   {
+    "name": "param_label",
+    "type": "Char",
+    "pos": [
+     "Tham số"
+    ],
+    "kw": {}
+   },
+   {
+    "name": "detail",
+    "type": "Char",
+    "pos": [
+     "Thay đổi (cũ → mới)"
+    ],
+    "kw": {}
+   },
+   {
+    "name": "user_id",
+    "type": "Many2one",
+    "pos": [
+     "res.users",
+     "Người thay đổi"
+    ],
+    "kw": {
+     "default": "<expr>"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_cost.py",
+  "line": 53,
+  "cls": "DlPricingCostAdjustmentRule",
+  "kind": "Model",
+  "name": "dl.pricing.cost.adjustment.rule",
+  "inherit": [
+   "dl.pricing.rule.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Tên khoản"
+    ],
+    "kw": {
+     "required": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "rule_type",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Loại quy tắc",
+     "required": true,
+     "default": "workshop_overhead",
+     "tracking": true
+    }
+   },
+   {
+    "name": "method",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Cách tính",
+     "required": true,
+     "default": "percent_direct",
+     "tracking": true
+    }
+   },
+   {
+    "name": "value",
+    "type": "Float",
+    "pos": [
+     "Giá trị"
+    ],
+    "kw": {
+     "required": true,
+     "digits": [
+      16,
+      2
+     ],
+     "tracking": true,
+     "help": "Tỷ lệ %, đơn giá, số tiền hoặc hệ số tùy theo cách tính."
+    }
+   },
+   {
+    "name": "condition_days",
+    "type": "Integer",
+    "pos": [
+     "Số ngày giao tối đa"
+    ],
+    "kw": {
+     "tracking": true,
+     "help": "Chỉ dùng cho Giao gấp: áp dụng khi thời gian giao ≤ số ngày này."
+    }
+   },
+   {
+    "name": "condition_amount",
+    "type": "Float",
+    "pos": [
+     "Giá trị đơn tối đa"
+    ],
+    "kw": {
+     "digits": [
+      16,
+      2
+     ],
+     "tracking": true,
+     "help": "Chỉ dùng cho Đơn hàng nhỏ: áp dụng khi giá trị đơn ≤ mức này."
+    }
+   },
+   {
+    "name": "no_discount",
+    "type": "Boolean",
+    "pos": [
+     "Không chịu chiết khấu"
+    ],
+    "kw": {
+     "tracking": true,
+     "help": "Bật cho vận chuyển, chứng chỉ hoặc khoản thu hộ — tách khỏi cơ sở chiết khấu."
+    }
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "required": true,
+     "default": "draft",
+     "readonly": true,
+     "copy": false,
+     "tracking": true,
+     "index": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_matrix.py",
+  "line": 47,
+  "cls": "DlPricingApprovalMatrix",
+  "kind": "Model",
+  "name": "dl.pricing.approval.matrix",
+  "inherit": [
+   "dl.pricing.rule.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "value_from asc, revision desc, id desc",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Tên"
+    ],
+    "kw": {
+     "compute": "_compute_name",
+     "store": true
+    }
+   },
+   {
+    "name": "value_from",
+    "type": "Monetary",
+    "pos": [
+     "Ngưỡng giá trị từ"
+    ],
+    "kw": {
+     "required": true,
+     "currency_field": "currency_id",
+     "tracking": true,
+     "help": "Áp dụng cho báo giá có giá trị xét duyệt (sau chiết khấu, trước VAT) từ mức này trở lên, cho tới ngưỡng kế tiếp."
+    }
+   },
+   {
+    "name": "currency_id",
+    "type": "Many2one",
+    "pos": [
+     "res.currency"
+    ],
+    "kw": {
+     "string": "Tiền tệ",
+     "related": "company_id.currency_id",
+     "store": true,
+     "readonly": true
+    }
+   },
+   {
+    "name": "approval_level",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Cấp duyệt / Vai trò",
+     "required": true,
+     "default": "sales_manager",
+     "tracking": true,
+     "help": "Cấp phê duyệt cuối cùng cho khoảng giá trị này."
+    }
+   },
+   {
+    "name": "level_rank",
+    "type": "Integer",
+    "pos": [
+     "Thứ bậc"
+    ],
+    "kw": {
+     "compute": "_compute_level_rank",
+     "store": true,
+     "help": "Dùng nội bộ để chọn cấp duyệt cao nhất."
+    }
+   },
+   {
+    "name": "approver_user_id",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người duyệt cụ thể",
+     "help": "Không bắt buộc. Để trống thì mọi người thuộc vai trò trên đều có thể duyệt."
+    }
+   },
+   {
+    "name": "note",
+    "type": "Char",
+    "pos": [
+     "Ghi chú"
+    ],
+    "kw": {}
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "required": true,
+     "default": "draft",
+     "readonly": true,
+     "copy": false,
+     "tracking": true,
+     "index": true
+    }
+   },
+   {
+    "name": "pending_request_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.pricing.approval.request"
+    ],
+    "kw": {
+     "string": "Đề xuất chờ duyệt",
+     "compute": "_compute_pending_request"
+    }
+   },
+   {
+    "name": "has_pending_request",
+    "type": "Boolean",
+    "pos": [
+     "Đang chờ duyệt"
+    ],
+    "kw": {
+     "compute": "_compute_pending_request"
+    }
+   },
+   {
+    "name": "revised_from_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.pricing.approval.matrix"
+    ],
+    "kw": {
+     "string": "Sửa đổi từ",
+     "readonly": true,
+     "copy": false,
+     "ondelete": "set null"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_operation.py",
+  "line": 25,
+  "cls": "DlPricingOperation",
+  "kind": "Model",
+  "name": "dl.pricing.operation",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "sequence, name",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Tên công đoạn"
+    ],
+    "kw": {
+     "required": true
+    }
+   },
+   {
+    "name": "code",
+    "type": "Char",
+    "pos": [
+     "Mã"
+    ],
+    "kw": {
+     "required": true
+    }
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pos": [
+     "Thứ tự"
+    ],
+    "kw": {
+     "default": 10
+    }
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pos": [
+     "Đang dùng"
+    ],
+    "kw": {
+     "default": true
+    }
+   }
+  ],
+  "sql_constraints": [
+   [
+    "code_uniq",
+    "unique(code)",
+    "Mã công đoạn đã tồn tại."
+   ]
+  ]
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_operation.py",
+  "line": 40,
+  "cls": "DlPricingOperationRule",
+  "kind": "Model",
+  "name": "dl.pricing.operation.rule",
+  "inherit": [
+   "dl.pricing.rule.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "operation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.pricing.operation"
+    ],
+    "kw": {
+     "string": "Công đoạn",
+     "required": true,
+     "ondelete": "restrict",
+     "tracking": true
+    }
+   },
+   {
+    "name": "method",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Phương pháp tính",
+     "required": true,
+     "default": "percent_material",
+     "tracking": true
+    }
+   },
+   {
+    "name": "price_rate",
+    "type": "Float",
+    "pos": [
+     "Đơn giá / Tỷ lệ"
+    ],
+    "kw": {
+     "required": true,
+     "digits": [
+      16,
+      2
+     ],
+     "tracking": true,
+     "help": "% khi tính theo vật liệu; đơn giá theo kg/mét/m²/sản phẩm/lô."
+    }
+   },
+   {
+    "name": "setup_fee",
+    "type": "Float",
+    "pos": [
+     "Phí setup/lô"
+    ],
+    "kw": {
+     "digits": [
+      16,
+      2
+     ],
+     "tracking": true,
+     "help": "Chỉ dùng với công đoạn cần chuẩn bị máy; cộng một lần cho lô."
+    }
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "required": true,
+     "default": "draft",
+     "readonly": true,
+     "copy": false,
+     "tracking": true,
+     "index": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_rule.py",
+  "line": 40,
+  "cls": "DlPricingRuleMixin",
+  "kind": "Abstract",
+  "name": "dl.pricing.rule.mixin",
+  "inherit": [
+   "mail.thread"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "valid_from desc, id desc",
+  "fields": [
+   {
+    "name": "company_id",
+    "type": "Many2one",
+    "pos": [
+     "res.company"
+    ],
+    "kw": {
+     "string": "Công ty",
+     "required": true,
+     "index": true,
+     "default": "<expr>"
+    }
+   },
+   {
+    "name": "revision",
+    "type": "Integer",
+    "pos": [
+     "Phiên bản"
+    ],
+    "kw": {
+     "default": 1,
+     "readonly": true,
+     "copy": false,
+     "tracking": true
+    }
+   },
+   {
+    "name": "valid_from",
+    "type": "Date",
+    "pos": [
+     "Hiệu lực từ"
+    ],
+    "kw": {
+     "required": true,
+     "tracking": true,
+     "default": null
+    }
+   },
+   {
+    "name": "valid_to",
+    "type": "Date",
+    "pos": [
+     "Hiệu lực đến"
+    ],
+    "kw": {
+     "readonly": true,
+     "copy": false,
+     "tracking": true,
+     "help": "Hệ thống tự đóng khi có bản mới bắt đầu hiệu lực."
+    }
+   },
+   {
+    "name": "change_reason",
+    "type": "Char",
+    "pos": [
+     "Lý do thay đổi"
+    ],
+    "kw": {
+     "tracking": true
+    }
+   },
+   {
+    "name": "used_in_snapshot",
+    "type": "Boolean",
+    "pos": [
+     "Đã dùng trong báo giá"
+    ],
+    "kw": {
+     "default": false,
+     "readonly": true,
+     "copy": false,
+     "help": "Quy tắc đã được một báo giá chốt snapshot; không được sửa/xóa."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_ui.py",
+  "line": 13,
+  "cls": "DlPricingUi",
+  "kind": "Transient",
+  "name": "dl.pricing.ui",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_waste.py",
+  "line": 15,
+  "cls": "DlPricingComplexityLevel",
+  "kind": "Model",
+  "name": "dl.pricing.complexity.level",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "sequence, factor",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [
+     "Mức phức tạp"
+    ],
+    "kw": {
+     "required": true,
+     "translate": false
+    }
+   },
+   {
+    "name": "factor",
+    "type": "Float",
+    "pos": [
+     "Hệ số"
+    ],
+    "kw": {
+     "required": true,
+     "default": 1.0,
+     "digits": [
+      6,
+      2
+     ],
+     "help": "Nhân với tỷ lệ hao hụt cơ sở khi tính giá. Ví dụ 1,10."
+    }
+   },
+   {
+    "name": "note",
+    "type": "Char",
+    "pos": [
+     "Gợi ý sử dụng"
+    ],
+    "kw": {}
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pos": [
+     "Thứ tự"
+    ],
+    "kw": {
+     "default": 10
+    }
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pos": [
+     "Đang dùng"
+    ],
+    "kw": {
+     "default": true,
+     "help": "Tắt để ẩn mức không dùng (vd mức Đặc biệt) khỏi danh sách chọn."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/pricing_waste.py",
+  "line": 39,
+  "cls": "DlPricingWasteRule",
+  "kind": "Model",
+  "name": "dl.pricing.waste.rule",
+  "inherit": [
+   "dl.pricing.rule.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "target_type",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "category",
+       "Theo category"
+      ],
+      [
+       "product",
+       "Theo vật tư"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Áp dụng cho",
+     "required": true,
+     "default": "category",
+     "tracking": true
+    }
+   },
+   {
+    "name": "category_id",
+    "type": "Many2one",
+    "pos": [
+     "product.category"
+    ],
+    "kw": {
+     "string": "Category",
+     "ondelete": "restrict",
+     "tracking": true
+    }
+   },
+   {
+    "name": "product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Vật tư",
+     "ondelete": "restrict",
+     "tracking": true
+    }
+   },
+   {
+    "name": "target_label",
+    "type": "Char",
+    "pos": [
+     "Đối tượng"
+    ],
+    "kw": {
+     "compute": "_compute_target_label",
+     "store": true
+    }
+   },
+   {
+    "name": "waste_rate",
+    "type": "Float",
+    "pos": [
+     "Tỷ lệ hao hụt cơ sở (%)"
+    ],
+    "kw": {
+     "required": true,
+     "digits": [
+      6,
+      2
+     ],
+     "tracking": true,
+     "help": "Tỷ lệ cộng thêm vào lượng vật tư thuần của BOM."
+    }
+   },
+   {
+    "name": "has_recovery",
+    "type": "Boolean",
+    "pos": [
+     "Có thu hồi"
+    ],
+    "kw": {
+     "tracking": true
+    }
+   },
+   {
+    "name": "recovery_rate",
+    "type": "Float",
+    "pos": [
+     "Tỷ lệ khối lượng thu hồi (%)"
+    ],
+    "kw": {
+     "digits": [
+      6,
+      2
+     ],
+     "tracking": true,
+     "help": "Tính trên lượng hao hụt, không tính trên lượng vật tư thuần."
+    }
+   },
+   {
+    "name": "scrap_product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm phế liệu",
+     "ondelete": "restrict",
+     "help": "Lấy đơn giá thu hồi từ sản phẩm phế liệu liên kết."
+    }
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "required": true,
+     "default": "draft",
+     "readonly": true,
+     "copy": false,
+     "tracking": true,
+     "index": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/models/res_users.py",
+  "line": 16,
+  "cls": "ResUsers",
+  "kind": "Model",
+  "name": null,
+  "inherit": "res.users",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "dl_backup_approver_id",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người duyệt dự phòng",
+     "help": "Dùng khi user vắng / quá SLA — ảnh hưởng Escalation phê duyệt (IP-02)."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_config",
+  "file": "dl_config/wizard/pricing_approval_reject_wizard.py",
+  "line": 5,
+  "cls": "DlPricingApprovalRejectWizard",
+  "kind": "Transient",
+  "name": "dl.pricing.approval.reject.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "request_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.pricing.approval.request"
+    ],
+    "kw": {
+     "string": "Yêu cầu phê duyệt",
+     "required": true,
+     "readonly": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "reject_comment",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lý do từ chối",
+     "required": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_inventory",
+  "file": "dl_inventory/models/dl_sale_order.py",
+  "line": 29,
+  "cls": "DlSaleOrder",
+  "kind": "Model",
+  "name": null,
+  "inherit": "dl.sale.order",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "dlm_picking_ids",
+    "type": "One2many",
+    "pos": [
+     "stock.picking",
+     "dlm_sale_order_id"
+    ],
+    "kw": {
+     "string": "Phiếu giao hàng"
+    }
+   },
+   {
+    "name": "dlm_picking_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số phiếu giao",
+     "compute": "_compute_dlm_picking_count"
+    }
+   },
+   {
+    "name": "dlm_delivery_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "nothing",
+       "Chưa giao"
+      ],
+      [
+       "partial",
+       "Giao một phần"
+      ],
+      [
+       "done",
+       "Đã giao đủ"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Tình trạng giao hàng",
+     "compute": "_compute_dlm_delivery_state",
+     "store": true,
+     "default": "nothing"
+    }
+   },
+   {
+    "name": "dlm_has_deliverable",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Có hàng cần giao qua kho",
+     "compute": "_compute_dlm_delivery_state",
+     "store": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_inventory",
+  "file": "dl_inventory/models/dl_scrap_recovery_report.py",
+  "line": 28,
+  "cls": "DlScrapRecoveryReport",
+  "kind": "Model",
+  "name": "dl.scrap.recovery.report",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": false,
+  "order": "period desc",
+  "fields": [
+   {
+    "name": "period",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "string": "Kỳ (tháng)",
+     "readonly": true
+    }
+   },
+   {
+    "name": "qty_in",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Thực nhập (kg)",
+     "readonly": true,
+     "digits": "Product Unit of Measure"
+    }
+   },
+   {
+    "name": "qty_sold",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Đã bán (kg)",
+     "readonly": true,
+     "digits": "Product Unit of Measure"
+    }
+   },
+   {
+    "name": "qty_estimated",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Dự toán (kg)",
+     "compute": "_compute_dlm_estimate",
+     "digits": "Product Unit of Measure"
+    }
+   },
+   {
+    "name": "qty_diff",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chênh lệch (kg)",
+     "compute": "_compute_dlm_estimate",
+     "digits": "Product Unit of Measure",
+     "help": "Thực nhập − Dự toán. Âm = cân được ít hơn tính toán ⇒ giá vốn thực cao hơn giá đã báo khách."
+    }
+   },
+   {
+    "name": "diff_level",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "short",
+       "Hụt so với dự toán"
+      ],
+      [
+       "match",
+       "Khớp dự toán"
+      ],
+      [
+       "over",
+       "Vượt dự toán"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Đánh giá",
+     "compute": "_compute_dlm_estimate"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_inventory",
+  "file": "dl_inventory/models/stock_lot.py",
+  "line": 21,
+  "cls": "StockLot",
+  "kind": "Model",
+  "name": null,
+  "inherit": "stock.lot",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "dlm_supplier_id",
+    "type": "Many2one",
+    "pos": [
+     "res.partner"
+    ],
+    "kw": {
+     "string": "Nhà cung cấp",
+     "readonly": true,
+     "index": true,
+     "help": "NCC giao lô này, lấy từ phiếu nhận hàng đầu tiên dùng lô."
+    }
+   },
+   {
+    "name": "dlm_receipt_date",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "string": "Ngày nhập",
+     "readonly": true,
+     "index": true
+    }
+   },
+   {
+    "name": "dlm_receipt_picking_id",
+    "type": "Many2one",
+    "pos": [
+     "stock.picking"
+    ],
+    "kw": {
+     "string": "Phiếu nhận",
+     "readonly": true,
+     "help": "Phiếu nhận hàng đã sinh ra lô này."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_inventory",
+  "file": "dl_inventory/models/stock_move.py",
+  "line": 26,
+  "cls": "StockMove",
+  "kind": "Model",
+  "name": null,
+  "inherit": "stock.move",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "dlm_qty_rejected",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Số loại",
+     "digits": "Product Unit of Measure",
+     "default": 0.0,
+     "help": "Số lượng KHÔNG đạt khi kiểm — sẽ chuyển sang khu Chờ trả NCC."
+    }
+   },
+   {
+    "name": "dlm_reject_reason",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "defect",
+       "Hàng lỗi / hư hỏng"
+      ],
+      [
+       "wrong_spec",
+       "Sai quy cách"
+      ],
+      [
+       "wrong_item",
+       "Giao sai mặt hàng"
+      ],
+      [
+       "other",
+       "Khác"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Lý do loại"
+    }
+   },
+   {
+    "name": "dlm_reject_note",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Ghi chú loại"
+    }
+   },
+   {
+    "name": "dlm_qc_over",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Vượt số nhận",
+     "compute": "_compute_dlm_qc_over"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_inventory",
+  "file": "dl_inventory/models/stock_picking.py",
+  "line": 63,
+  "cls": "StockPicking",
+  "kind": "Model",
+  "name": null,
+  "inherit": "stock.picking",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "dlm_origin_picking_id",
+    "type": "Many2one",
+    "pos": [
+     "stock.picking"
+    ],
+    "kw": {
+     "string": "Phiếu nhận gốc",
+     "index": true,
+     "copy": false,
+     "help": "Phiếu nhận hàng đã sinh ra phiếu trả NCC này."
+    }
+   },
+   {
+    "name": "dlm_return_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số phiếu trả NCC",
+     "compute": "_compute_dlm_return_count"
+    }
+   },
+   {
+    "name": "dlm_sale_order_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.sale.order"
+    ],
+    "kw": {
+     "string": "Đơn bán hàng",
+     "index": true,
+     "copy": false,
+     "ondelete": "restrict",
+     "help": "Đơn đã sinh ra phiếu giao này."
+    }
+   },
+   {
+    "name": "dlm_qty_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tổng số lượng",
+     "digits": "Product Unit of Measure",
+     "compute": "_compute_dlm_qty_total"
+    }
+   },
+   {
+    "name": "dlm_reject_summary",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Lý do",
+     "compute": "_compute_dlm_reject_summary"
+    }
+   },
+   {
+    "name": "dlm_source_available_product_ids",
+    "type": "Many2many",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Mặt hàng có tồn ở nguồn",
+     "compute": "_compute_dlm_source_available_product_ids",
+     "help": "Sản phẩm đang có tồn > 0 tại/dưới vị trí nguồn — dùng lọc dòng chuyển kho, tránh chọn mặt hàng không thể giữ chỗ."
+    }
+   },
+   {
+    "name": "dlm_orderable_product_ids",
+    "type": "Many2many",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Mặt hàng trong đơn",
+     "compute": "_compute_dlm_orderable_product_ids",
+     "help": "Sản phẩm nằm trên đơn bán gắn với phiếu giao — dùng lọc dòng giao hàng, tránh giao thứ khách không đặt."
+    }
+   },
+   {
+    "name": "dlm_picking_kind",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "receipt",
+       "Nhận hàng"
+      ],
+      [
+       "qc",
+       "Kiểm hàng"
+      ],
+      [
+       "transfer",
+       "Chuyển kho"
+      ],
+      [
+       "delivery",
+       "Giao hàng"
+      ],
+      [
+       "vendor_return",
+       "Trả hàng NCC"
+      ],
+      [
+       "scrap_sale",
+       "Bán phế liệu"
+      ],
+      [
+       "other",
+       "Khác"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Loại việc",
+     "compute": "_compute_dlm_picking_kind"
+    }
+   },
+   {
+    "name": "dlm_is_qc",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Là phiếu kiểm hàng",
+     "compute": "_compute_dlm_is_qc"
+    }
+   },
+   {
+    "name": "dlm_qty_rejected_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Số loại",
+     "digits": "Product Unit of Measure",
+     "compute": "_compute_dlm_qty_rejected_total",
+     "store": true
+    }
+   },
+   {
+    "name": "dlm_qc_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "none",
+       "—"
+      ],
+      [
+       "pending",
+       "Chờ kiểm"
+      ],
+      [
+       "passed",
+       "Đạt toàn bộ"
+      ],
+      [
+       "has_reject",
+       "Có hàng loại"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Kết quả kiểm",
+     "compute": "_compute_dlm_qc_state",
+     "store": true
+    }
+   },
+   {
+    "name": "dlm_blocked",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đang bị chặn",
+     "compute": "_compute_dlm_banner"
+    }
+   },
+   {
+    "name": "dlm_banner_level",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "info",
+       "Thông tin"
+      ],
+      [
+       "success",
+       "Xong"
+      ],
+      [
+       "warning",
+       "Cảnh báo"
+      ],
+      [
+       "danger",
+       "Chặn"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Mức thông báo",
+     "compute": "_compute_dlm_banner"
+    }
+   },
+   {
+    "name": "dlm_banner_message",
+    "type": "Html",
+    "pos": [],
+    "kw": {
+     "string": "Thông báo",
+     "compute": "_compute_dlm_banner",
+     "sanitize": false
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_inventory",
+  "file": "dl_inventory/models/stock_quant.py",
+  "line": 16,
+  "cls": "StockQuant",
+  "kind": "Model",
+  "name": null,
+  "inherit": "stock.quant",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "dlm_supplier_id",
+    "type": "Many2one",
+    "pos": [],
+    "kw": {
+     "related": "lot_id.dlm_supplier_id",
+     "string": "Nhà cung cấp",
+     "readonly": true
+    }
+   },
+   {
+    "name": "dlm_receipt_date",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "related": "lot_id.dlm_receipt_date",
+     "string": "Ngày nhập",
+     "readonly": true
+    }
+   },
+   {
+    "name": "dlm_scrap_unit_price",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "product_id.list_price",
+     "string": "Đơn giá",
+     "readonly": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "dlm_scrap_value",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Thành tiền",
+     "compute": "_compute_dlm_scrap_value",
+     "digits": "Product Price"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_inventory",
+  "file": "dl_inventory/models/stock_warehouse.py",
+  "line": 78,
+  "cls": "StockWarehouse",
+  "kind": "Model",
+  "name": null,
+  "inherit": "stock.warehouse",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_inventory",
+  "file": "dl_inventory/models/stock_warehouse.py",
+  "line": 315,
+  "cls": "StockLocation",
+  "kind": "Model",
+  "name": null,
+  "inherit": "stock.location",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "dlm_no_inventory",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Không kiểm kê tay",
+     "default": false,
+     "help": "Khu quá cảnh (Chờ kiểm, Chờ trả NCC): tồn chỉ đổi qua phiếu kho. Kiểm kê tay ở đây sẽ xoá hàng mà chứng từ đang tham chiếu tới."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_partner",
+  "file": "dl_partner/models/res_country.py",
+  "line": 4,
+  "cls": "ResCountry",
+  "kind": "Model",
+  "name": null,
+  "inherit": "res.country",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_partner",
+  "file": "dl_partner/models/res_partner.py",
+  "line": 14,
+  "cls": "ResPartner",
+  "kind": "Model",
+  "name": null,
+  "inherit": "res.partner",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "partner_role",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "customer",
+       "Khách hàng"
+      ],
+      [
+       "supplier",
+       "NCC / Thầu phụ"
+      ],
+      [
+       "both",
+       "Khách hàng & NCC"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Vai trò"
+    }
+   },
+   {
+    "name": "pending_link_partner_id",
+    "type": "Many2one",
+    "pos": [
+     "res.partner"
+    ],
+    "kw": {
+     "string": "Liên kết với (gộp thành Khách hàng & NCC)",
+     "copy": false,
+     "store": true,
+     "help": "Gõ tên để tìm Khách hàng ↔ NCC"
+    }
+   },
+   {
+    "name": "dlm_code",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mã KH",
+     "readonly": true,
+     "copy": false,
+     "index": true,
+     "help": "Mã khách hàng tự sinh, duy nhất (VD: KH-0001)"
+    }
+   },
+   {
+    "name": "partner_type",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "selection": [
+      [
+       "individual",
+       "Cá nhân"
+      ],
+      [
+       "company",
+       "Doanh nghiệp"
+      ],
+      [
+       "dealer",
+       "Đại lý"
+      ]
+     ],
+     "string": "Loại khách hàng",
+     "default": "individual",
+     "help": "Phân loại phục vụ lọc báo cáo và chiết khấu tự động (D6)"
+    }
+   },
+   {
+    "name": "dlm_allow_dup_tax",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Cho phép trùng MST (chi nhánh khác)",
+     "default": false,
+     "help": "Tích khi đây là chi nhánh khác dùng chung MST — bỏ qua kiểm tra trùng (EX-05)"
+    }
+   },
+   {
+    "name": "partner_type_label",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Loại",
+     "compute": "_compute_partner_type_label",
+     "store": false
+    }
+   },
+   {
+    "name": "dlm_status_label",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Trạng thái",
+     "compute": "_compute_dlm_status_label",
+     "store": false
+    }
+   },
+   {
+    "name": "dlm_has_photo",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Có ảnh đại diện",
+     "compute": "_compute_dlm_has_photo",
+     "store": true
+    }
+   },
+   {
+    "name": "dlm_initial",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_dlm_avatar_letter",
+     "store": false
+    }
+   },
+   {
+    "name": "dlm_avatar_bg",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_dlm_avatar_letter",
+     "store": false
+    }
+   },
+   {
+    "name": "dlm_avatar_fg",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_dlm_avatar_letter",
+     "store": false
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_product",
+  "file": "dl_product/models/dl_measurement.py",
+  "line": 4,
+  "cls": "DlMeasurementType",
+  "kind": "Model",
+  "name": "dl.measurement.type",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "name",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tên đại lượng",
+     "required": true
+    }
+   },
+   {
+    "name": "description",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Mô tả"
+    }
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đang sử dụng",
+     "default": true
+    }
+   },
+   {
+    "name": "formula_uom_id",
+    "type": "Many2one",
+    "pos": [
+     "uom.uom"
+    ],
+    "kw": {
+     "string": "Đơn vị công thức",
+     "help": "Đơn vị vật lý mà công thức của Rule này trả về (vd kg, m², m³). Dùng để lọc Rule theo UoM vật tư và tự quy đổi kết quả. Để trống = Rule không hiện ở dòng BOM nào."
+    }
+   },
+   {
+    "name": "shape_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.measurement.shape",
+     "measurement_type_id"
+    ],
+    "kw": {
+     "string": "Hình dạng"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_product",
+  "file": "dl_product/models/dl_measurement.py",
+  "line": 38,
+  "cls": "DlMeasurementShape",
+  "kind": "Model",
+  "name": "dl.measurement.shape",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "measurement_type_id, name",
+  "fields": [
+   {
+    "name": "measurement_type_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.measurement.type"
+    ],
+    "kw": {
+     "string": "Loại đo lường",
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tên hình dạng",
+     "required": true
+    }
+   },
+   {
+    "name": "code",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mã hình dạng",
+     "help": "Khóa dispatch công thức hard-code (vd: flat_plate, hollow_square_tube)."
+    }
+   },
+   {
+    "name": "default_coefficient",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Hệ số mặc định",
+     "digits": [
+      16,
+      4
+     ],
+     "help": "Gợi ý hệ số khi dựng BOM (vd khối lượng riêng thép 7850 kg/m³). Sửa được trên từng dòng BOM."
+    }
+   },
+   {
+    "name": "coefficient_label",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Nhãn hệ số",
+     "default": "Hệ số",
+     "help": "Nhãn hiển thị cho hệ số (vd: Khối lượng riêng (kg/m³))."
+    }
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đang sử dụng",
+     "default": true
+    }
+   },
+   {
+    "name": "param_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.measurement.shape.param",
+     "shape_id"
+    ],
+    "kw": {
+     "string": "Tham số"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_product",
+  "file": "dl_product/models/dl_measurement.py",
+  "line": 80,
+  "cls": "DlMeasurementShapeParam",
+  "kind": "Model",
+  "name": "dl.measurement.shape.param",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "shape_id, name",
+  "fields": [
+   {
+    "name": "shape_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.measurement.shape"
+    ],
+    "kw": {
+     "string": "Hình dạng",
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tên tham số",
+     "required": true
+    }
+   },
+   {
+    "name": "code",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mã tham số",
+     "help": "Khóa để công thức đọc giá trị (vd: length, width, thickness, side)."
+    }
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đang sử dụng",
+     "default": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_product",
+  "file": "dl_product/models/dl_product.py",
+  "line": 57,
+  "cls": "ProductProduct",
+  "kind": "Model",
+  "name": "product.product",
+  "inherit": [
+   "product.product",
+   "mail.thread",
+   "mail.activity.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "product_kind",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "selection": "<expr>",
+     "string": "Loại sản phẩm",
+     "required": true,
+     "default": "manufactured",
+     "tracking": true,
+     "help": "Phân loại nghiệp vụ (Data Model PROD-02):\n• Gia công (manufactured): tự sản xuất theo BOM\n• Thương mại (trading): nhập về bán thẳng, tra giá NCC\n• Vật tư (material): NVL thô, tra giá NCC\n• Bán thành phẩm (material_processed): cắt/gia công từ vật tư gốc, có BOM riêng"
+    }
+   },
+   {
+    "name": "dl_categ_branch",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "finished",
+       "Thành phẩm"
+      ],
+      [
+       "material",
+       "Vật tư"
+      ]
+     ]
+    ],
+    "kw": {
+     "compute": "_compute_dl_categ_branch",
+     "string": "Nhánh nhóm kỳ vọng"
+    }
+   },
+   {
+    "name": "dlm_lifecycle_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "draft",
+       "Nháp / Kỹ thuật"
+      ],
+      [
+       "active",
+       "Đã duyệt"
+      ],
+      [
+       "obsolete",
+       "Ngừng sử dụng"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái vòng đời",
+     "default": "active",
+     "required": true,
+     "tracking": true,
+     "copy": false,
+     "help": "• Nháp: vừa tạo khi xử lý RFQ / khai báo SP thương mại — chưa tái sử dụng được.\n• Đã duyệt: đã chốt (đơn hàng xác nhận hoặc duyệt tay) — nằm trong danh mục để tái sử dụng.\n• Ngừng sử dụng: không còn nhận làm/bán nữa, vẫn giữ trong danh mục để tra lịch sử (khác với Lưu trữ/ẩn hẳn)."
+    }
+   },
+   {
+    "name": "dlm_is_price_editor",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_dlm_is_price_editor",
+     "compute_sudo": true
+    }
+   },
+   {
+    "name": "dlm_can_edit_sale_price",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_dlm_can_edit_sale_price",
+     "compute_sudo": true
+    }
+   },
+   {
+    "name": "dlm_can_change_kind",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_dlm_can_change_kind",
+     "compute_sudo": true
+    }
+   },
+   {
+    "name": "dlm_sale_margin",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Biên LN (%)",
+     "digits": [
+      5,
+      1
+     ],
+     "compute": "_compute_dlm_sale_margin",
+     "compute_sudo": true,
+     "help": "Biên lợi nhuận của Giá bán so với Giá vốn (standard_price). Chỉ mang tính tham khảo trên màn Bảng giá; giá vốn 0 ⇒ hiển thị 100%."
+    }
+   },
+   {
+    "name": "dlm_has_draft_seller",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_dlm_has_draft_seller",
+     "compute_sudo": true
+    }
+   },
+   {
+    "name": "dlm_supplier_price_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "none",
+       "Chưa có giá NCC"
+      ],
+      [
+       "pending",
+       "Có giá — chưa áp dụng"
+      ],
+      [
+       "applied",
+       "Đã áp dụng"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Giá NCC",
+     "compute": "_compute_dlm_supplier_price_state",
+     "store": true
+    }
+   },
+   {
+    "name": "dlm_trading_ready",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_dlm_trading_status",
+     "compute_sudo": true
+    }
+   },
+   {
+    "name": "dlm_trading_blockers_html",
+    "type": "Html",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_dlm_trading_status",
+     "compute_sudo": true,
+     "sanitize": false
+    }
+   },
+   {
+    "name": "dlm_calc_kind",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Kiểu tính định mức",
+     "default": "count",
+     "help": "Quyết định DÒNG ĐỊNH MỨC hỏi gì và định mức quy ra đơn vị nào:\n• Cắt đoạn — hỏi Chiều dài đoạn × Số đoạn, chia cho chiều dài cây ⇒ ra số cây (thanh · ống · hộp · thép cây).\n• Tấm — hỏi Dài × Rộng × Số tấm, chia cho khổ tấm ⇒ ra số tấm (tôn · lưới · alu).\n• Đếm — chỉ hỏi Số lượng, không suy được gì từ kích thước (ốc · vít · bản lề · tay nắm).\n• Định lượng — chỉ hỏi Số lượng theo kg/lít, kỹ thuật tự ước lượng (sơn · que hàn).\nTự gợi ý theo Đơn vị tính khi tạo vật tư, sửa lại được."
+    }
+   },
+   {
+    "name": "dlm_stock_length",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chiều dài cây (m)",
+     "digits": [
+      16,
+      3
+     ],
+     "default": 6.0,
+     "help": "Chiều dài MỘT CÂY khi mua, tính bằng MÉT — thép hình thường 6 m.\nĐây là mẫu số biến đoạn cắt thành số cây: cắt 700 mm × 2 đoạn = 1,4 m ÷ 6 m = 0,2333 cây."
+    }
+   },
+   {
+    "name": "dlm_sheet_w",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Khổ tấm — rộng (m)",
+     "digits": [
+      16,
+      3
+     ],
+     "help": "Bề rộng một tấm khi mua, tính bằng MÉT (tôn CT3 thường 1,25 hoặc 1,5 m)."
+    }
+   },
+   {
+    "name": "dlm_sheet_h",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Khổ tấm — dài (m)",
+     "digits": [
+      16,
+      3
+     ],
+     "help": "Chiều dài một tấm khi mua, tính bằng MÉT (thường 2,5 hoặc 6 m). Cùng với bề rộng, đây là mẫu số biến miếng cắt thành số tấm: miếng 1200×500 mm trên khổ 1,25×2,5 m = 0,192 tấm."
+    }
+   },
+   {
+    "name": "dlm_mass_per_unit",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Khối lượng (kg)",
+     "digits": [
+      16,
+      3
+     ],
+     "help": "Số kg CÂN THẬT của 1 cây / 1 tấm — lấy theo chứng từ nhà cung cấp, đừng tính từ kích thước danh nghĩa.\nHai việc cần tới nó: (1) quy lượng hao hụt sang kg để tính tiền phế liệu thu hồi; (2) đối chiếu khi một nhà cung cấp báo giá theo kg còn nhà cung cấp kia báo theo cây.\nKHÔNG tham gia tính giá vốn — giá vốn là số cây × đơn giá mỗi cây."
+    }
+   },
+   {
+    "name": "dlm_mass_per_meter",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "kg/m",
+     "digits": [
+      16,
+      3
+     ],
+     "help": "Số kg của 1 mét dài. CHỈ cần khi vật tư cắt đoạn mà nhà cung cấp bán theo KG — khi đó định mức quy ra kg thay vì ra cây."
+    }
+   },
+   {
+    "name": "dlm_mass_per_sqm",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "kg/m²",
+     "digits": [
+      16,
+      3
+     ],
+     "help": "Số kg của 1 mét vuông. CHỈ cần khi vật tư dạng tấm mà nhà cung cấp bán theo KG — khi đó định mức quy ra kg thay vì ra tấm.\nLấy số cân thật, đừng tính (độ dày × khối lượng riêng): cách đó ra số barem, cao hơn thép thật."
+    }
+   },
+   {
+    "name": "dlm_calc_missing_hint",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Còn thiếu để dùng trong định mức",
+     "compute": "_compute_dlm_calc_missing_hint"
+    }
+   },
+   {
+    "name": "dlm_uom_group",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Nhóm đơn vị tính",
+     "compute": "_compute_dlm_uom_group"
+    }
+   },
+   {
+    "name": "dlm_waste_rate",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Hao hụt cơ sở (%)",
+     "digits": [
+      6,
+      2
+     ],
+     "help": "Tỷ lệ hao hụt của vật tư này. Hệ số phức tạp chọn theo từng dòng BOM sẽ nhân thêm vào tỷ lệ này khi tính giá."
+    }
+   },
+   {
+    "name": "dlm_has_recovery",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Có thu hồi phế liệu"
+    }
+   },
+   {
+    "name": "dlm_recovery_rate",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tỷ lệ thu hồi (%)",
+     "digits": [
+      6,
+      2
+     ],
+     "help": "Tính trên LƯỢNG hao hụt (không tính trên lượng vật tư thuần)."
+    }
+   },
+   {
+    "name": "dlm_scrap_product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm phế liệu",
+     "help": "Đơn giá thu hồi lấy từ giá bán (list_price) của sản phẩm phế này."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_product",
+  "file": "dl_product/models/dl_product_category.py",
+  "line": 5,
+  "cls": "ProductCategory",
+  "kind": "Model",
+  "name": null,
+  "inherit": "product.category",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đang sử dụng",
+     "default": true
+    }
+   },
+   {
+    "name": "dl_branch",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "finished",
+       "Thành phẩm"
+      ],
+      [
+       "material",
+       "Vật tư"
+      ],
+      [
+       "other",
+       "Khác"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Nhánh danh mục",
+     "compute": "_compute_dl_branch",
+     "store": true,
+     "help": "Suy ra từ cây nhóm: nằm dưới gốc 'Thành phẩm' hay 'Vật tư'. 'Khác' = nhóm hệ thống Odoo hoặc nhóm chưa gắn vào 2 gốc chuẩn."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_product",
+  "file": "dl_product/models/product_supplierinfo.py",
+  "line": 7,
+  "cls": "ProductSupplierinfo",
+  "kind": "Model",
+  "name": null,
+  "inherit": "product.supplierinfo",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "date_start",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "required": true
+    }
+   },
+   {
+    "name": "dl_product_kind",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "manufactured",
+       "Sản phẩm gia công"
+      ],
+      [
+       "trading",
+       "Sản phẩm thương mại"
+      ],
+      [
+       "material",
+       "Vật tư"
+      ],
+      [
+       "material_processed",
+       "Bán thành phẩm"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Loại sản phẩm",
+     "compute": "_compute_dl_product_kind",
+     "store": true,
+     "index": true
+    }
+   },
+   {
+    "name": "validity_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "upcoming",
+       "Chưa hiệu lực"
+      ],
+      [
+       "active",
+       "Còn hiệu lực"
+      ],
+      [
+       "expiring",
+       "Sắp hết hạn"
+      ],
+      [
+       "expired",
+       "Đã hết hạn"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Hiệu lực",
+     "compute": "_compute_validity_state"
+    }
+   },
+   {
+    "name": "product_image_128",
+    "type": "Image",
+    "pos": [],
+    "kw": {
+     "related": "product_tmpl_id.image_128",
+     "string": "Ảnh sản phẩm",
+     "readonly": true
+    }
+   },
+   {
+    "name": "approval_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "draft",
+       "Nháp"
+      ],
+      [
+       "approved",
+       "Đã duyệt"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái duyệt",
+     "default": "draft",
+     "required": true,
+     "copy": false,
+     "help": "Kế toán duyệt giá NCC trước khi áp dụng cho báo giá / BOM."
+    }
+   },
+   {
+    "name": "is_applied",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đang áp dụng",
+     "default": false,
+     "copy": false,
+     "help": "Bảng giá đang được dùng để tính giá vật tư khi tạo báo giá/BOM. Mỗi vật tư chỉ có tối đa 1 bảng giá đang áp dụng tại một thời điểm."
+    }
+   },
+   {
+    "name": "dlm_approved_uid",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người duyệt",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "dlm_approved_date",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Ngày duyệt",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "dlm_applied_uid",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người áp dụng",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "dlm_applied_date",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Ngày áp dụng",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "dlm_unapplied_uid",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người bỏ áp dụng gần nhất",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "dlm_unapplied_date",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Ngày bỏ áp dụng gần nhất",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "display_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "draft",
+       "Nháp"
+      ],
+      [
+       "approved",
+       "Đã duyệt"
+      ],
+      [
+       "applied",
+       "Đang áp dụng"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "compute": "_compute_display_state",
+     "store": true,
+     "help": "Pipeline trạng thái bảng giá: Nháp → Đã duyệt → Đang áp dụng. Chỉ bảng giá Đang áp dụng mới được dùng để tính giá trong BOM/báo giá."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/dl_bom_ext.py",
+  "line": 5,
+  "cls": "DlBom",
+  "kind": "Model",
+  "name": null,
+  "inherit": "dl.bom",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/dl_quotation.py",
+  "line": 18,
+  "cls": "DlQuotation",
+  "kind": "Model",
+  "name": "dl.quotation",
+  "inherit": [
+   "mail.thread",
+   "mail.activity.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "date_order desc, id desc",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Số báo giá",
+     "required": true,
+     "copy": false,
+     "readonly": true,
+     "default": "New"
+    }
+   },
+   {
+    "name": "partner_id",
+    "type": "Many2one",
+    "pos": [
+     "res.partner"
+    ],
+    "kw": {
+     "string": "Khách hàng",
+     "required": true,
+     "domain": [
+      [
+       "partner_role",
+       "in",
+       [
+        "customer",
+        "both"
+       ]
+      ]
+     ],
+     "tracking": true
+    }
+   },
+   {
+    "name": "date_order",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "string": "Ngày báo giá",
+     "required": true,
+     "default": null,
+     "tracking": true
+    }
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "draft",
+       "Nháp"
+      ],
+      [
+       "approved",
+       "Đã duyệt nội bộ"
+      ],
+      [
+       "sent",
+       "Đã gửi khách"
+      ],
+      [
+       "revision_requested",
+       "Yêu cầu điều chỉnh"
+      ],
+      [
+       "accepted",
+       "Khách đồng ý"
+      ],
+      [
+       "ordered",
+       "Đã lên đơn"
+      ],
+      [
+       "rejected",
+       "Từ chối"
+      ],
+      [
+       "expired",
+       "Hết hiệu lực"
+      ],
+      [
+       "superseded",
+       "Đã thay bằng bản mới"
+      ],
+      [
+       "cancelled",
+       "Đã hủy"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "default": "draft",
+     "tracking": true
+    }
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Ghi chú"
+    }
+   },
+   {
+    "name": "payment_terms",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Điều khoản thanh toán",
+     "help": "Vd: Tạm ứng 50% khi ký hợp đồng, 50% khi giao hàng."
+    }
+   },
+   {
+    "name": "delivery_terms",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Điều khoản giao hàng",
+     "help": "Thời gian / địa điểm giao hàng, phương thức vận chuyển."
+    }
+   },
+   {
+    "name": "warranty_terms",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Bảo hành",
+     "help": "Điều kiện và thời gian bảo hành."
+    }
+   },
+   {
+    "name": "customer_data_warning",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Cảnh báo dữ liệu khách",
+     "compute": "_compute_customer_data_warning"
+    }
+   },
+   {
+    "name": "validity_date",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "string": "Hạn hiệu lực",
+     "tracking": true,
+     "copy": false,
+     "help": "Ngày báo giá hết hiệu lực với khách. Quá hạn mà khách chưa chốt sẽ được chuyển sang Hết hiệu lực (thủ công hoặc tự động)."
+    }
+   },
+   {
+    "name": "reject_reason",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "price_high",
+       "Giá cao"
+      ],
+      [
+       "lead_time",
+       "Thời gian giao hàng lâu"
+      ],
+      [
+       "tech_not_met",
+       "Không đáp ứng kỹ thuật"
+      ],
+      [
+       "chose_competitor",
+       "Khách chọn nhà cung cấp khác"
+      ],
+      [
+       "demand_cancelled",
+       "Khách hủy nhu cầu"
+      ],
+      [
+       "no_contact",
+       "Không liên hệ được"
+      ],
+      [
+       "other",
+       "Lý do khác"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Lý do từ chối",
+     "readonly": true,
+     "copy": false,
+     "tracking": true
+    }
+   },
+   {
+    "name": "reject_reason_note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Chi tiết từ chối",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "revision_request_type",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "commercial",
+       "Giá / chiết khấu"
+      ],
+      [
+       "technical",
+       "Vật liệu / kích thước / thiết kế"
+      ],
+      [
+       "terms",
+       "Giao hàng / điều khoản / khác"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Loại điều chỉnh khách yêu cầu",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "revision_request_note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Nội dung khách yêu cầu",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "revision",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Phiên bản",
+     "default": 1,
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "origin_quotation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation"
+    ],
+    "kw": {
+     "string": "Bản báo giá trước",
+     "readonly": true,
+     "copy": false,
+     "ondelete": "set null",
+     "index": true,
+     "help": "Bản báo giá liền trước mà báo giá này được lập lại từ."
+    }
+   },
+   {
+    "name": "revision_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.quotation",
+     "origin_quotation_id"
+    ],
+    "kw": {
+     "string": "Bản lập lại sau"
+    }
+   },
+   {
+    "name": "revision_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số bản lập lại",
+     "compute": "_compute_revision_count"
+    }
+   },
+   {
+    "name": "line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.quotation.line",
+     "quotation_id"
+    ],
+    "kw": {
+     "string": "Chi tiết",
+     "copy": true
+    }
+   },
+   {
+    "name": "currency_id",
+    "type": "Many2one",
+    "pos": [
+     "res.currency"
+    ],
+    "kw": {
+     "string": "Tiền tệ",
+     "default": "<expr>"
+    }
+   },
+   {
+    "name": "quotation_request_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request"
+    ],
+    "kw": {
+     "string": "Yêu cầu báo giá (RFQ)",
+     "ondelete": "restrict",
+     "index": true,
+     "copy": false,
+     "readonly": true,
+     "help": "RFQ nguồn đã tạo ra báo giá này."
+    }
+   },
+   {
+    "name": "company_id",
+    "type": "Many2one",
+    "pos": [
+     "res.company"
+    ],
+    "kw": {
+     "string": "Công ty",
+     "readonly": true,
+     "default": "<expr>"
+    }
+   },
+   {
+    "name": "pricing_date",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "string": "Ngày tính giá",
+     "readonly": true,
+     "help": "Ngày khóa logic tính giá — chọn đúng rule/bảng giá hiệu lực."
+    }
+   },
+   {
+    "name": "discount_pct",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chiết khấu (%)",
+     "digits": [
+      5,
+      2
+     ],
+     "tracking": true
+    }
+   },
+   {
+    "name": "vat_pct",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "VAT (%)",
+     "digits": [
+      5,
+      2
+     ],
+     "tracking": true
+    }
+   },
+   {
+    "name": "amount_untaxed",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Giá trước chiết khấu",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "discount_amount",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chiết khấu",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "amount_before_vat",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Sau chiết khấu, trước VAT",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "vat_amount",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tiền VAT",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "amount_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tổng thanh toán",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "validity_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "ok",
+       "Còn hạn"
+      ],
+      [
+       "soon",
+       "Sắp hết hạn"
+      ],
+      [
+       "overdue",
+       "Quá hạn"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Tình trạng hiệu lực",
+     "compute": "_compute_validity_state"
+    }
+   },
+   {
+    "name": "validity_label",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Hạn hiệu lực",
+     "compute": "_compute_validity_label"
+    }
+   },
+   {
+    "name": "total_cost",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tổng giá thành",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price",
+     "groups": null
+    }
+   },
+   {
+    "name": "effective_markup",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Markup thực (%)",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": [
+      16,
+      2
+     ],
+     "groups": null
+    }
+   },
+   {
+    "name": "floor_amount",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tổng giá sàn",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price",
+     "groups": null
+    }
+   },
+   {
+    "name": "component_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.quotation.price.component",
+     "quotation_id"
+    ],
+    "kw": {
+     "string": "Cấu phần giá (snapshot)"
+    }
+   },
+   {
+    "name": "gross_profit",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Lãi gộp",
+     "compute": "_compute_cost_breakdown",
+     "digits": "Product Price",
+     "groups": null
+    }
+   },
+   {
+    "name": "list_markup",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Markup niêm yết (%)",
+     "compute": "_compute_cost_breakdown",
+     "digits": [
+      16,
+      2
+     ],
+     "groups": null
+    }
+   },
+   {
+    "name": "floor_markup",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Markup tại giá sàn (%)",
+     "compute": "_compute_cost_breakdown",
+     "digits": [
+      16,
+      2
+     ],
+     "groups": null
+    }
+   },
+   {
+    "name": "cost_material_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Vật tư",
+     "compute": "_compute_cost_breakdown",
+     "digits": "Product Price",
+     "groups": null
+    }
+   },
+   {
+    "name": "cost_operation_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Công đoạn",
+     "compute": "_compute_cost_breakdown",
+     "digits": "Product Price",
+     "groups": null
+    }
+   },
+   {
+    "name": "cost_adjustment_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chi phí chung/điều chỉnh",
+     "compute": "_compute_cost_breakdown",
+     "digits": "Product Price",
+     "groups": null
+    }
+   },
+   {
+    "name": "cost_breakdown_html",
+    "type": "Html",
+    "pos": [],
+    "kw": {
+     "string": "Diễn giải giá thành",
+     "compute": "_compute_cost_breakdown_html",
+     "sanitize": false,
+     "groups": null
+    }
+   },
+   {
+    "name": "target_markup",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Lợi nhuận mục tiêu (%)",
+     "digits": [
+      6,
+      2
+     ],
+     "readonly": true,
+     "groups": null
+    }
+   },
+   {
+    "name": "discount_default_rate",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chiết khấu mặc định (%)",
+     "digits": [
+      6,
+      2
+     ],
+     "readonly": true
+    }
+   },
+   {
+    "name": "discount_max_rate",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chiết khấu tối đa (%)",
+     "digits": [
+      6,
+      2
+     ],
+     "readonly": true
+    }
+   },
+   {
+    "name": "partner_group",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "related": "partner_id.dlm_customer_group",
+     "string": "Nhóm khách",
+     "readonly": true
+    }
+   },
+   {
+    "name": "approval_required",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Cần phê duyệt",
+     "readonly": true
+    }
+   },
+   {
+    "name": "approval_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "not_required",
+       "Không cần duyệt"
+      ],
+      [
+       "pending",
+       "Chờ duyệt"
+      ],
+      [
+       "approved",
+       "Đã duyệt"
+      ],
+      [
+       "rejected",
+       "Bị từ chối"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái duyệt",
+     "default": "not_required",
+     "readonly": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "approval_level",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Cấp duyệt yêu cầu",
+     "readonly": true
+    }
+   },
+   {
+    "name": "approval_reasons",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lý do phải duyệt",
+     "readonly": true
+    }
+   },
+   {
+    "name": "approval_request_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.pricing.approval.request"
+    ],
+    "kw": {
+     "string": "Yêu cầu phê duyệt",
+     "readonly": true
+    }
+   },
+   {
+    "name": "approval_can_resolve",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Được duyệt yêu cầu này",
+     "related": "approval_request_id.can_resolve",
+     "related_sudo": false
+    }
+   },
+   {
+    "name": "below_floor",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Dưới giá sàn",
+     "readonly": true,
+     "groups": null
+    }
+   },
+   {
+    "name": "discount_above_default",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Chiết khấu > mặc định",
+     "readonly": true
+    }
+   },
+   {
+    "name": "discount_above_max",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Chiết khấu > tối đa",
+     "readonly": true
+    }
+   },
+   {
+    "name": "status_banner_level",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "info",
+       "Thông tin"
+      ],
+      [
+       "success",
+       "Thành công"
+      ],
+      [
+       "warning",
+       "Cảnh báo"
+      ],
+      [
+       "danger",
+       "Nguy hiểm"
+      ],
+      [
+       "secondary",
+       "Trung tính"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Mức thông báo trạng thái",
+     "compute": "_compute_status_banner"
+    }
+   },
+   {
+    "name": "status_banner_message",
+    "type": "Html",
+    "pos": [],
+    "kw": {
+     "string": "Thông báo trạng thái",
+     "compute": "_compute_status_banner",
+     "sanitize": false
+    }
+   },
+   {
+    "name": "discount_hint_level",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "info",
+       "Trong khoảng"
+      ],
+      [
+       "secondary",
+       "Trên mặc định"
+      ],
+      [
+       "warning",
+       "Vượt trần"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Mức gợi ý chiết khấu",
+     "compute": "_compute_discount_hint"
+    }
+   },
+   {
+    "name": "discount_hint_message",
+    "type": "Html",
+    "pos": [],
+    "kw": {
+     "string": "Gợi ý chiết khấu",
+     "compute": "_compute_discount_hint",
+     "sanitize": false
+    }
+   },
+   {
+    "name": "sale_order_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.sale.order"
+    ],
+    "kw": {
+     "string": "Đơn bán hàng",
+     "compute": "_compute_sale_order_id"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/dl_quotation.py",
+  "line": 1231,
+  "cls": "DlQuotationLine",
+  "kind": "Model",
+  "name": "dl.quotation.line",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "quotation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation"
+    ],
+    "kw": {
+     "string": "Báo giá",
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mô tả",
+     "required": true
+    }
+   },
+   {
+    "name": "qty",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "SL",
+     "default": 1.0
+    }
+   },
+   {
+    "name": "price_unit",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Đơn giá",
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "price_subtotal",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Thành tiền",
+     "compute": "_compute_subtotal",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "rfq_line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request.line"
+    ],
+    "kw": {
+     "string": "Dòng RFQ",
+     "ondelete": "set null",
+     "readonly": true
+    }
+   },
+   {
+    "name": "product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm",
+     "readonly": true
+    }
+   },
+   {
+    "name": "bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "string": "BOM",
+     "readonly": true
+    }
+   },
+   {
+    "name": "bom_version",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Phiên bản BOM",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "bom_approved_by",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người duyệt BOM",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "bom_confirmed_date",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Ngày duyệt BOM",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "line_type",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "trading",
+       "Thương mại"
+      ],
+      [
+       "manufactured",
+       "Gia công"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Loại dòng",
+     "default": "trading",
+     "readonly": true
+    }
+   },
+   {
+    "name": "base_price",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Giá nền",
+     "digits": "Product Price",
+     "readonly": true,
+     "groups": null
+    }
+   },
+   {
+    "name": "material_cost",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chi phí vật tư/đv",
+     "digits": "Product Price",
+     "readonly": true,
+     "groups": null
+    }
+   },
+   {
+    "name": "operation_cost",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chi phí công đoạn/đv",
+     "digits": "Product Price",
+     "readonly": true,
+     "groups": null
+    }
+   },
+   {
+    "name": "adjustment_cost",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chi phí chung/điều chỉnh/đv",
+     "digits": "Product Price",
+     "readonly": true,
+     "groups": null
+    }
+   },
+   {
+    "name": "total_cost",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Giá thành/đv",
+     "digits": "Product Price",
+     "readonly": true,
+     "groups": null
+    }
+   },
+   {
+    "name": "floor_price",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Giá sàn/đv",
+     "digits": "Product Price",
+     "readonly": true,
+     "groups": null
+    }
+   },
+   {
+    "name": "component_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.quotation.price.component",
+     "quotation_line_id"
+    ],
+    "kw": {
+     "string": "Cấu phần giá"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/dl_sale_order.py",
+  "line": 7,
+  "cls": "DlSaleOrder",
+  "kind": "Model",
+  "name": "dl.sale.order",
+  "inherit": [
+   "mail.thread",
+   "mail.activity.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "date_order desc, id desc",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Số đơn",
+     "required": true,
+     "copy": false,
+     "readonly": true,
+     "default": "New"
+    }
+   },
+   {
+    "name": "partner_id",
+    "type": "Many2one",
+    "pos": [
+     "res.partner"
+    ],
+    "kw": {
+     "string": "Khách hàng",
+     "required": true,
+     "domain": [
+      [
+       "partner_role",
+       "in",
+       [
+        "customer",
+        "both"
+       ]
+      ]
+     ],
+     "tracking": true
+    }
+   },
+   {
+    "name": "quotation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation"
+    ],
+    "kw": {
+     "string": "Báo giá nguồn",
+     "readonly": true,
+     "ondelete": "restrict",
+     "index": true,
+     "copy": false,
+     "help": "Báo giá đã được khách đồng ý và chuyển thành đơn này."
+    }
+   },
+   {
+    "name": "date_order",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "string": "Ngày lên đơn",
+     "required": true,
+     "default": null,
+     "tracking": true
+    }
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "draft",
+       "Nháp"
+      ],
+      [
+       "confirmed",
+       "Đã xác nhận"
+      ],
+      [
+       "done",
+       "Hoàn tất"
+      ],
+      [
+       "cancelled",
+       "Đã hủy"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "default": "draft",
+     "tracking": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Ghi chú"
+    }
+   },
+   {
+    "name": "reset_draft_reason",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lý do đưa về nháp gần nhất",
+     "readonly": true,
+     "copy": false,
+     "tracking": true
+    }
+   },
+   {
+    "name": "reset_draft_by",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người đưa về nháp",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "reset_draft_at",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Thời điểm đưa về nháp",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "currency_id",
+    "type": "Many2one",
+    "pos": [
+     "res.currency"
+    ],
+    "kw": {
+     "string": "Tiền tệ",
+     "default": "<expr>"
+    }
+   },
+   {
+    "name": "company_id",
+    "type": "Many2one",
+    "pos": [
+     "res.company"
+    ],
+    "kw": {
+     "string": "Công ty",
+     "readonly": true,
+     "default": "<expr>"
+    }
+   },
+   {
+    "name": "line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.sale.order.line",
+     "order_id"
+    ],
+    "kw": {
+     "string": "Chi tiết"
+    }
+   },
+   {
+    "name": "discount_pct",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chiết khấu (%)",
+     "digits": [
+      5,
+      2
+     ],
+     "tracking": true
+    }
+   },
+   {
+    "name": "vat_pct",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "VAT (%)",
+     "digits": [
+      5,
+      2
+     ],
+     "tracking": true
+    }
+   },
+   {
+    "name": "amount_untaxed",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Giá trước chiết khấu",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "discount_amount",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chiết khấu",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "amount_before_vat",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Sau chiết khấu, trước VAT",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "vat_amount",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tiền VAT",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "amount_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tổng thanh toán",
+     "compute": "_compute_amount",
+     "store": true,
+     "digits": "Product Price"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/dl_sale_order.py",
+  "line": 272,
+  "cls": "DlSaleOrderLine",
+  "kind": "Model",
+  "name": "dl.sale.order.line",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "order_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.sale.order"
+    ],
+    "kw": {
+     "string": "Đơn bán hàng",
+     "ondelete": "cascade",
+     "required": true
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mô tả",
+     "required": true
+    }
+   },
+   {
+    "name": "qty",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "SL",
+     "default": 1.0
+    }
+   },
+   {
+    "name": "price_unit",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Đơn giá",
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "price_subtotal",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Thành tiền",
+     "compute": "_compute_subtotal",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm",
+     "readonly": true
+    }
+   },
+   {
+    "name": "bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "string": "BOM",
+     "readonly": true
+    }
+   },
+   {
+    "name": "bom_version",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Phiên bản BOM",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "bom_approved_by",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người duyệt BOM",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "bom_confirmed_date",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Ngày duyệt BOM",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "line_type",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "trading",
+       "Thương mại"
+      ],
+      [
+       "manufactured",
+       "Gia công"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Loại dòng",
+     "default": "trading",
+     "readonly": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/pricing_approval_ext.py",
+  "line": 7,
+  "cls": "DlPricingApprovalRequest",
+  "kind": "Model",
+  "name": null,
+  "inherit": "dl.pricing.approval.request",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "quotation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation"
+    ],
+    "kw": {
+     "string": "Báo giá",
+     "compute": "_compute_quotation_id",
+     "store": true,
+     "ondelete": "set null"
+    }
+   },
+   {
+    "name": "q_partner_id",
+    "type": "Many2one",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.partner_id",
+     "string": "Khách hàng"
+    }
+   },
+   {
+    "name": "q_currency_id",
+    "type": "Many2one",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.currency_id"
+    }
+   },
+   {
+    "name": "q_date_order",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.date_order",
+     "string": "Ngày báo giá"
+    }
+   },
+   {
+    "name": "q_state",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.state",
+     "string": "Trạng thái báo giá"
+    }
+   },
+   {
+    "name": "q_line_ids",
+    "type": "One2many",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.line_ids",
+     "string": "Dòng báo giá"
+    }
+   },
+   {
+    "name": "q_amount_untaxed",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.amount_untaxed"
+    }
+   },
+   {
+    "name": "q_discount_pct",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.discount_pct",
+     "string": "Chiết khấu (%)"
+    }
+   },
+   {
+    "name": "q_discount_amount",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.discount_amount"
+    }
+   },
+   {
+    "name": "q_amount_before_vat",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.amount_before_vat"
+    }
+   },
+   {
+    "name": "q_vat_pct",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.vat_pct",
+     "string": "VAT (%)"
+    }
+   },
+   {
+    "name": "q_vat_amount",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.vat_amount"
+    }
+   },
+   {
+    "name": "q_amount_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.amount_total"
+    }
+   },
+   {
+    "name": "q_discount_default_rate",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.discount_default_rate"
+    }
+   },
+   {
+    "name": "q_discount_max_rate",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.discount_max_rate"
+    }
+   },
+   {
+    "name": "q_discount_above_default",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.discount_above_default"
+    }
+   },
+   {
+    "name": "q_discount_above_max",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.discount_above_max"
+    }
+   },
+   {
+    "name": "q_partner_group",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.partner_group",
+     "string": "Nhóm khách"
+    }
+   },
+   {
+    "name": "q_total_cost",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.total_cost",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_target_markup",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.target_markup",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_effective_markup",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.effective_markup",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_floor_amount",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.floor_amount",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_below_floor",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.below_floor",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_gross_profit",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.gross_profit",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_list_markup",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.list_markup",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_floor_markup",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.floor_markup",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_cost_material_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.cost_material_total",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_cost_operation_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.cost_operation_total",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_cost_adjustment_total",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.cost_adjustment_total",
+     "groups": null
+    }
+   },
+   {
+    "name": "q_cost_breakdown_html",
+    "type": "Html",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.cost_breakdown_html",
+     "sanitize": false,
+     "groups": null
+    }
+   },
+   {
+    "name": "waiting_days",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Chờ (ngày)",
+     "compute": "_compute_waiting_days"
+    }
+   },
+   {
+    "name": "risk_summary",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Rủi ro",
+     "compute": "_compute_risk_summary"
+    }
+   },
+   {
+    "name": "q_in_safe_range",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Trong ngưỡng an toàn",
+     "compute": "_compute_q_in_safe_range"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/quotation_document.py",
+  "line": 25,
+  "cls": "DlQuotationDocument",
+  "kind": "Model",
+  "name": null,
+  "inherit": "dl.quotation",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/quotation_price_component.py",
+  "line": 13,
+  "cls": "DlQuotationPriceComponent",
+  "kind": "Model",
+  "name": "dl.quotation.price.component",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "quotation_line_id, id",
+  "fields": [
+   {
+    "name": "quotation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation"
+    ],
+    "kw": {
+     "string": "Báo giá",
+     "required": true,
+     "index": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "quotation_line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.line"
+    ],
+    "kw": {
+     "string": "Dòng báo giá",
+     "index": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "component_type",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "trading_base",
+       "Giá gốc thương mại"
+      ],
+      [
+       "material",
+       "Vật tư thô"
+      ],
+      [
+       "processed_material",
+       "Bán thành phẩm"
+      ],
+      [
+       "recovery",
+       "Thu hồi phế liệu"
+      ],
+      [
+       "operation",
+       "Công đoạn"
+      ],
+      [
+       "operation_setup",
+       "Phí setup công đoạn"
+      ],
+      [
+       "adjustment",
+       "Chi phí chung/điều chỉnh"
+      ],
+      [
+       "markup",
+       "Lợi nhuận (markup)"
+      ],
+      [
+       "discount",
+       "Chiết khấu"
+      ],
+      [
+       "vat",
+       "Thuế GTGT"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Loại cấu phần",
+     "required": true
+    }
+   },
+   {
+    "name": "source_model",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Model nguồn"
+    }
+   },
+   {
+    "name": "source_id",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "ID nguồn"
+    }
+   },
+   {
+    "name": "source_revision",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Revision nguồn"
+    }
+   },
+   {
+    "name": "material_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Vật tư/Sản phẩm",
+     "ondelete": "set null"
+    }
+   },
+   {
+    "name": "qty",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Số lượng",
+     "digits": "Product Unit of Measure"
+    }
+   },
+   {
+    "name": "unit_price",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Đơn giá",
+     "digits": "Product Price",
+     "groups": null
+    }
+   },
+   {
+    "name": "rate",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tỷ lệ (%)",
+     "digits": [
+      5,
+      2
+     ]
+    }
+   },
+   {
+    "name": "amount",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Thành tiền",
+     "digits": "Product Price",
+     "groups": null
+    }
+   },
+   {
+    "name": "no_discount",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Không chịu chiết khấu",
+     "default": false,
+     "help": "Khoản không nằm trong cơ sở chịu chiết khấu (dành cho P1)."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/quotation_pricing_service.py",
+  "line": 35,
+  "cls": "DlQuotationPricingService",
+  "kind": "Abstract",
+  "name": "dl.quotation.pricing.service",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/quotation_pricing_service.py",
+  "line": 874,
+  "cls": "DlQuotationRequest",
+  "kind": "Model",
+  "name": null,
+  "inherit": "dl.quotation.request",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "quotation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation"
+    ],
+    "kw": {
+     "string": "Báo giá",
+     "compute": "_compute_quotation_id"
+    }
+   },
+   {
+    "name": "auto_quote_error",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lỗi tạo báo giá",
+     "readonly": true,
+     "copy": false,
+     "tracking": true
+    }
+   },
+   {
+    "name": "auto_quote_failed_at",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Thời điểm tạo báo giá lỗi",
+     "readonly": true,
+     "copy": false
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/models/res_partner.py",
+  "line": 27,
+  "cls": "ResPartnerQuoteStats",
+  "kind": "Model",
+  "name": null,
+  "inherit": "res.partner",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "dlm_quotation_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.quotation",
+     "partner_id"
+    ],
+    "kw": {
+     "string": "Báo giá của khách"
+    }
+   },
+   {
+    "name": "dlm_quotation_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số báo giá",
+     "compute": "_compute_dlm_quote_stats"
+    }
+   },
+   {
+    "name": "dlm_win_rate",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Win rate (%)",
+     "compute": "_compute_dlm_quote_stats",
+     "help": "Tỷ lệ Accepted / (Accepted + Rejected/Lost)"
+    }
+   },
+   {
+    "name": "dlm_open_quote_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "BG chưa đóng",
+     "compute": "_compute_dlm_quote_stats",
+     "help": "Số báo giá còn mở (Nháp / Đã gửi) — dùng cảnh báo khi vô hiệu hóa KH (EX-30)"
+    }
+   },
+   {
+    "name": "dlm_recent_quote_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "BG trong 7 ngày",
+     "compute": "_compute_dlm_quote_stats"
+    }
+   },
+   {
+    "name": "dlm_currency_id",
+    "type": "Many2one",
+    "pos": [
+     "res.currency"
+    ],
+    "kw": {
+     "string": "Tiền tệ",
+     "compute": "_compute_dlm_currency",
+     "help": "Tiền tệ hiển thị số liệu báo giá (theo công ty)"
+    }
+   },
+   {
+    "name": "dlm_recent_quote_total",
+    "type": "Monetary",
+    "pos": [],
+    "kw": {
+     "string": "Tổng BG 7 ngày",
+     "compute": "_compute_dlm_quote_stats",
+     "currency_field": "dlm_currency_id",
+     "help": "Tổng giá trị báo giá trong 7 ngày gần đây (EX-42)"
+    }
+   },
+   {
+    "name": "dlm_split_warning",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Cảnh báo gộp đơn",
+     "compute": "_compute_dlm_quote_stats",
+     "help": "≥2 báo giá cho KH này trong 7 ngày VÀ tổng gộp vượt ngưỡng auto (EX-42)"
+    }
+   },
+   {
+    "name": "dlm_split_threshold",
+    "type": "Monetary",
+    "pos": [],
+    "kw": {
+     "string": "Ngưỡng gộp đơn",
+     "compute": "_compute_dlm_quote_stats",
+     "currency_field": "dlm_currency_id"
+    }
+   },
+   {
+    "name": "dlm_customer_group",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Nhóm khách hàng",
+     "compute": "_compute_dlm_customer_group",
+     "store": true,
+     "help": "Tự động: Khách mới (chưa có báo giá duyệt) → Khách cũ (đã có báo giá duyệt) → Khách thân thiết (tổng báo giá duyệt vượt ngưỡng cấu hình)."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/wizard/quotation_export_wizard.py",
+  "line": 11,
+  "cls": "DlQuotationExportWizard",
+  "kind": "Transient",
+  "name": "dl.quotation.export.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "quotation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation"
+    ],
+    "kw": {
+     "string": "Báo giá",
+     "required": true,
+     "readonly": true
+    }
+   },
+   {
+    "name": "doc_format",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "pdf",
+       "PDF"
+      ],
+      [
+       "docx",
+       "Word (.docx)"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Định dạng",
+     "default": "pdf",
+     "required": true
+    }
+   },
+   {
+    "name": "partner_email",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "related": "quotation_id.partner_id.email",
+     "string": "Email khách",
+     "readonly": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/wizard/quotation_reject_wizard.py",
+  "line": 5,
+  "cls": "DlQuotationRejectWizard",
+  "kind": "Transient",
+  "name": "dl.quotation.reject.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "quotation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation"
+    ],
+    "kw": {
+     "string": "Báo giá",
+     "required": true,
+     "readonly": true
+    }
+   },
+   {
+    "name": "reason",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "selection": "<expr>",
+     "string": "Lý do từ chối",
+     "required": true
+    }
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Chi tiết",
+     "help": "Nêu rõ nguyên nhân (bắt buộc khi chọn 'Lý do khác')."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/wizard/quotation_revision_wizard.py",
+  "line": 5,
+  "cls": "DlQuotationRevisionWizard",
+  "kind": "Transient",
+  "name": "dl.quotation.revision.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "quotation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation"
+    ],
+    "kw": {
+     "string": "Báo giá",
+     "required": true,
+     "readonly": true
+    }
+   },
+   {
+    "name": "adjust_type",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "selection": "<expr>",
+     "string": "Loại điều chỉnh",
+     "required": true,
+     "default": "commercial"
+    }
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Khách muốn điều chỉnh gì?",
+     "required": true,
+     "help": "Ghi rõ nội dung khách yêu cầu để xử lý và truy vết."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_sale",
+  "file": "dl_sale/wizard/sale_order_reset_draft_wizard.py",
+  "line": 5,
+  "cls": "DlSaleOrderResetDraftWizard",
+  "kind": "Transient",
+  "name": "dl.sale.order.reset.draft.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "order_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.sale.order"
+    ],
+    "kw": {
+     "string": "Đơn bán hàng",
+     "required": true,
+     "readonly": true
+    }
+   },
+   {
+    "name": "reason",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lý do đưa về nháp",
+     "required": true,
+     "help": "Nêu rõ nội dung cần sửa và nguyên nhân xác nhận nhầm."
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_bom.py",
+  "line": 12,
+  "cls": "DlBom",
+  "kind": "Model",
+  "name": "dl.bom",
+  "inherit": [
+   "mail.thread",
+   "mail.activity.mixin",
+   "dl.bom.header.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "id desc",
+  "fields": [
+   {
+    "name": "is_rfq_provisional",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Dữ liệu tạm từ RFQ",
+     "default": false,
+     "copy": false,
+     "index": true,
+     "tracking": true,
+     "help": "BOM được tạo/copy trong workspace RFQ nhưng dòng RFQ chưa hoàn tất."
+    }
+   },
+   {
+    "name": "rfq_source_line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request.line"
+    ],
+    "kw": {
+     "string": "Dòng RFQ nguồn",
+     "ondelete": "set null",
+     "copy": false,
+     "index": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mã BOM",
+     "required": true,
+     "copy": false,
+     "default": "<expr>",
+     "tracking": true
+    }
+   },
+   {
+    "name": "category_id",
+    "type": "Many2one",
+    "pos": [
+     "product.category"
+    ],
+    "kw": {
+     "string": "Nhóm sản phẩm (lọc)",
+     "ondelete": "set null",
+     "domain": [
+      [
+       "dl_branch",
+       "in",
+       [
+        "finished",
+        "material"
+       ]
+      ]
+     ]
+    }
+   },
+   {
+    "name": "product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm",
+     "required": true,
+     "tracking": true,
+     "ondelete": "restrict",
+     "domain": "[('product_kind', 'in', ('manufactured', 'material_processed')), ('dlm_lifecycle_state', '!=', 'obsolete')] + ([('categ_id', '=', category_id)] if category_id else [])"
+    }
+   },
+   {
+    "name": "bom_type",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "template",
+       "BOM mẫu"
+      ],
+      [
+       "quotation",
+       "BOM báo giá"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Loại BOM",
+     "default": "template",
+     "required": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "source_template_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom.template"
+    ],
+    "kw": {
+     "string": "Sinh từ mẫu",
+     "readonly": true,
+     "ondelete": "restrict",
+     "copy": false
+    }
+   },
+   {
+    "name": "source_template_version",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Phiên bản mẫu",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "param_values",
+    "type": "Json",
+    "pos": [],
+    "kw": {
+     "string": "Giá trị tham số",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "param_signature",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Chữ ký tham số",
+     "readonly": true,
+     "index": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "has_deviation",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Có sai khác so với mẫu",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "deviation_note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Ghi chú sai khác",
+     "copy": false
+    }
+   },
+   {
+    "name": "version_label",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Phiên bản / Lần sinh",
+     "compute": "_compute_version_label"
+    }
+   },
+   {
+    "name": "param_display",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tham số",
+     "compute": "_compute_param_display"
+    }
+   },
+   {
+    "name": "line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.bom.line",
+     "bom_id"
+    ],
+    "kw": {
+     "string": "Danh sách vật tư",
+     "copy": true
+    }
+   },
+   {
+    "name": "total_material_cost",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tổng chi phí vật tư",
+     "compute": "_compute_total_material_cost",
+     "store": true,
+     "digits": "Product Price"
+    }
+   },
+   {
+    "name": "operation_line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.bom.operation.line",
+     "bom_id"
+    ],
+    "kw": {
+     "string": "Công đoạn",
+     "copy": true
+    }
+   },
+   {
+    "name": "total_operation_cost_est",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Ước tính chi phí công đoạn/đv",
+     "compute": "_compute_total_operation_cost_est",
+     "digits": "Product Price",
+     "groups": "dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"
+    }
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Ghi chú"
+    }
+   },
+   {
+    "name": "dlm_used_in_parent_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Được dùng ở N định mức",
+     "compute": "_compute_used_in_parent_count"
+    }
+   },
+   {
+    "name": "drawing_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.drawing"
+    ],
+    "kw": {
+     "string": "Bản vẽ kỹ thuật",
+     "compute": "_compute_drawing_ref"
+    }
+   },
+   {
+    "name": "drawing_attachment_id",
+    "type": "Many2one",
+    "pos": [
+     "ir.attachment"
+    ],
+    "kw": {
+     "string": "File bản vẽ",
+     "compute": "_compute_drawing_ref"
+    }
+   },
+   {
+    "name": "drawing_mimetype",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_drawing_ref"
+    }
+   },
+   {
+    "name": "drawing_filename",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_drawing_ref"
+    }
+   },
+   {
+    "name": "dlm_has_unpriced_component",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Có cấu phần chưa định giá",
+     "compute": "_compute_dlm_unpriced_component"
+    }
+   },
+   {
+    "name": "dlm_unpriced_component_names",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Cấu phần chưa định giá",
+     "compute": "_compute_dlm_unpriced_component"
+    }
+   },
+   {
+    "name": "dlm_has_unpriced_operation",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Có công đoạn chưa định giá",
+     "compute": "_compute_dlm_unpriced_operation"
+    }
+   },
+   {
+    "name": "dlm_unpriced_operation_names",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Công đoạn chưa định giá",
+     "compute": "_compute_dlm_unpriced_operation"
+    }
+   }
+  ],
+  "sql_constraints": [
+   [
+    "product_version_type_uniq",
+    "unique(product_id,version,bom_type)",
+    "Phiên bản BOM của sản phẩm đã tồn tại."
+   ]
+  ]
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_bom_header_mixin.py",
+  "line": 5,
+  "cls": "DlBomHeaderMixin",
+  "kind": "Abstract",
+  "name": "dl.bom.header.mixin",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "version",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Phiên bản",
+     "default": 1,
+     "required": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "product_qty",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Số lượng đầu ra",
+     "default": 1.0,
+     "required": true,
+     "digits": "Product Unit of Measure"
+    }
+   },
+   {
+    "name": "status",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "draft",
+       "Nháp"
+      ],
+      [
+       "confirmed",
+       "Đã xác nhận"
+      ],
+      [
+       "locked",
+       "Đã khóa"
+      ],
+      [
+       "archived",
+       "Lưu trữ"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "default": "draft",
+     "tracking": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "approved_by",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người duyệt",
+     "readonly": true,
+     "copy": false,
+     "tracking": true
+    }
+   },
+   {
+    "name": "approved_date",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Ngày duyệt",
+     "readonly": true,
+     "copy": false,
+     "tracking": true
+    }
+   },
+   {
+    "name": "is_current",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Phiên bản hiện hành",
+     "readonly": true,
+     "copy": false,
+     "default": false
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_bom_line.py",
+  "line": 5,
+  "cls": "DlBomLine",
+  "kind": "Model",
+  "name": "dl.bom.line",
+  "inherit": [
+   "dl.bom.line.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "id",
+  "fields": [
+   {
+    "name": "bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "string": "BOM",
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "drawing_attachment_id",
+    "type": "Many2one",
+    "pos": [],
+    "kw": {
+     "related": "bom_id.drawing_attachment_id",
+     "string": "File bản vẽ",
+     "readonly": true
+    }
+   },
+   {
+    "name": "drawing_mimetype",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "related": "bom_id.drawing_mimetype",
+     "readonly": true
+    }
+   },
+   {
+    "name": "drawing_filename",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "related": "bom_id.drawing_filename",
+     "readonly": true
+    }
+   },
+   {
+    "name": "price_snapshot",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Đơn giá snapshot",
+     "compute": "_compute_price_snapshot",
+     "store": true,
+     "readonly": true,
+     "digits": "Product Price",
+     "groups": "dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"
+    }
+   },
+   {
+    "name": "recovery_value",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Giá trị thu hồi",
+     "compute": "_compute_recovery_value",
+     "store": true,
+     "digits": "Product Price",
+     "groups": "dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"
+    }
+   },
+   {
+    "name": "subtotal",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Thành tiền",
+     "compute": "_compute_subtotal",
+     "store": true,
+     "digits": "Product Price",
+     "groups": "dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"
+    }
+   },
+   {
+    "name": "dlm_material_is_btp",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Là bán thành phẩm",
+     "compute": "_compute_dlm_material_is_btp"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_bom_line_mixin.py",
+  "line": 17,
+  "cls": "DlBomLineMixin",
+  "kind": "Abstract",
+  "name": "dl.bom.line.mixin",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "material_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Vật tư",
+     "required": true,
+     "domain": [
+      [
+       "product_kind",
+       "in",
+       [
+        "material",
+        "material_processed"
+       ]
+      ],
+      [
+       "dlm_lifecycle_state",
+       "!=",
+       "obsolete"
+      ]
+     ]
+    }
+   },
+   {
+    "name": "material_calc_kind",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "related": "material_id.dlm_calc_kind",
+     "string": "Kiểu tính",
+     "readonly": true
+    }
+   },
+   {
+    "name": "material_uom_name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "related": "material_id.uom_id.name",
+     "string": "ĐVT",
+     "readonly": true
+    }
+   },
+   {
+    "name": "dim_length",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chiều dài đoạn (mm)",
+     "digits": [
+      16,
+      3
+     ]
+    }
+   },
+   {
+    "name": "dim_width",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Chiều rộng (mm)",
+     "digits": [
+      16,
+      3
+     ]
+    }
+   },
+   {
+    "name": "piece_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số đoạn",
+     "default": 1,
+     "help": "Số đoạn cắt cùng chiều dài (vd chân bàn 650mm × 4). Với vật tư dạng tấm: số tấm."
+    }
+   },
+   {
+    "name": "computed_quantity",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Định mức (hệ thống tính)",
+     "compute": "_compute_computed_quantity",
+     "digits": "Product Unit of Measure"
+    }
+   },
+   {
+    "name": "quantity",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Số lượng",
+     "required": true,
+     "default": 1.0,
+     "digits": "Product Unit of Measure"
+    }
+   },
+   {
+    "name": "complexity_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.pricing.complexity.level"
+    ],
+    "kw": {
+     "string": "Mức phức tạp",
+     "ondelete": "set null",
+     "help": "Hệ số phức tạp nhân vào tỷ lệ hao hụt cơ sở của vật tư khi tính giá."
+    }
+   },
+   {
+    "name": "waste_rate",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tỷ lệ hao hụt (%)",
+     "default": 0.0,
+     "digits": [
+      5,
+      2
+     ],
+     "help": "Tự tính = hao hụt cơ sở của vật tư × hệ số phức tạp; sửa tay được."
+    }
+   },
+   {
+    "name": "effective_qty",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Số lượng thực tế",
+     "compute": "_compute_effective_qty",
+     "store": true,
+     "digits": "Product Unit of Measure"
+    }
+   },
+   {
+    "name": "is_override",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Ghi đè số lượng",
+     "default": false,
+     "help": "Bật để nhập thẳng số lượng (vd biết sẵn cần 3.5 cây) thay vì để hệ tính từ kích thước cắt."
+    }
+   },
+   {
+    "name": "override_reason",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lý do ghi đè"
+    }
+   },
+   {
+    "name": "uom_id",
+    "type": "Many2one",
+    "pos": [
+     "uom.uom"
+    ],
+    "kw": {
+     "string": "Đơn vị tính",
+     "compute": "_compute_uom",
+     "store": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_bom_operation_line.py",
+  "line": 35,
+  "cls": "DlBomOperationLine",
+  "kind": "Model",
+  "name": "dl.bom.operation.line",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "sequence, id",
+  "fields": [
+   {
+    "name": "bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "string": "Định mức",
+     "required": true,
+     "ondelete": "cascade",
+     "index": true
+    }
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pos": [
+     "Thứ tự"
+    ],
+    "kw": {
+     "default": 10
+    }
+   },
+   {
+    "name": "operation_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.pricing.operation"
+    ],
+    "kw": {
+     "string": "Công đoạn",
+     "required": true,
+     "ondelete": "restrict"
+    }
+   },
+   {
+    "name": "method",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Cách tính",
+     "compute": "_compute_active_rule",
+     "readonly": true
+    }
+   },
+   {
+    "name": "has_active_rule",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đã có đơn giá",
+     "compute": "_compute_active_rule"
+    }
+   },
+   {
+    "name": "needs_base_qty",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Cần định mức cơ sở",
+     "compute": "_compute_active_rule",
+     "help": "Cách tính theo kg/mét/m² cần nhập định mức cơ sở."
+    }
+   },
+   {
+    "name": "base_qty",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Định mức cơ sở/đơn vị",
+     "digits": "Product Unit of Measure",
+     "help": "Khối lượng/chiều dài/diện tích đi qua công đoạn cho MỘT sản phẩm. Chỉ nhập khi cách tính theo kg / mét / m²."
+    }
+   },
+   {
+    "name": "material_scope",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "all",
+       "Toàn bộ vật tư"
+      ],
+      [
+       "selected",
+       "Chỉ vật tư đã chọn"
+      ]
+     ]
+    ],
+    "kw": {
+     "default": "all",
+     "required": true,
+     "string": "Cơ sở % vật liệu"
+    }
+   },
+   {
+    "name": "material_line_ids",
+    "type": "Many2many",
+    "pos": [
+     "dl.bom.line"
+    ],
+    "kw": {
+     "string": "Vật tư đi qua công đoạn",
+     "help": "Dùng khi cơ sở % vật liệu = 'Chỉ vật tư đã chọn'."
+    }
+   },
+   {
+    "name": "is_outsourced",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Thuê ngoài"
+    }
+   },
+   {
+    "name": "partner_id",
+    "type": "Many2one",
+    "pos": [
+     "res.partner"
+    ],
+    "kw": {
+     "string": "NCC gia công",
+     "domain": [
+      [
+       "partner_role",
+       "in",
+       [
+        "supplier",
+        "both"
+       ]
+      ]
+     ]
+    }
+   },
+   {
+    "name": "note",
+    "type": "Char",
+    "pos": [
+     "Ghi chú"
+    ],
+    "kw": {}
+   },
+   {
+    "name": "estimated_unit_cost",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Ước tính biến đổi/đv (tham khảo)",
+     "digits": "Product Price",
+     "compute": "_compute_estimate",
+     "groups": null
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_bom_template.py",
+  "line": 5,
+  "cls": "DlBomTemplate",
+  "kind": "Model",
+  "name": "dl.bom.template",
+  "inherit": [
+   "mail.thread",
+   "mail.activity.mixin",
+   "dl.bom.header.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "name",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tên BOM mẫu",
+     "required": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "product_category_id",
+    "type": "Many2one",
+    "pos": [
+     "product.category"
+    ],
+    "kw": {
+     "string": "Nhóm sản phẩm",
+     "required": true,
+     "ondelete": "restrict",
+     "tracking": true,
+     "domain": [
+      [
+       "dl_branch",
+       "in",
+       [
+        "finished",
+        "material"
+       ]
+      ]
+     ]
+    }
+   },
+   {
+    "name": "line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.bom.template.line",
+     "bom_template_id"
+    ],
+    "kw": {
+     "string": "Dòng mẫu",
+     "copy": true
+    }
+   },
+   {
+    "name": "param_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.bom.template.param",
+     "bom_template_id"
+    ],
+    "kw": {
+     "string": "Tham số",
+     "copy": true
+    }
+   },
+   {
+    "name": "is_parametric",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Có tham số (sinh định mức)",
+     "compute": "_compute_is_parametric",
+     "store": true
+    }
+   },
+   {
+    "name": "generic_product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm dùng chung",
+     "domain": [
+      [
+       "product_kind",
+       "=",
+       "manufactured"
+      ]
+     ],
+     "ondelete": "restrict",
+     "tracking": true,
+     "help": "Sản phẩm đại diện cho MỌI kích thước sinh từ mẫu này. Mỗi đơn chỉ sinh thêm một định mức (instance), KHÔNG đẻ sản phẩm mới."
+    }
+   },
+   {
+    "name": "generic_missing",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Chưa gán sản phẩm dùng chung",
+     "compute": "_compute_generic_missing"
+    }
+   }
+  ],
+  "sql_constraints": [
+   [
+    "category_version_uniq",
+    "unique(product_category_id,version)",
+    "Phiên bản BOM mẫu của nhóm sản phẩm đã tồn tại."
+   ]
+  ]
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_bom_template.py",
+  "line": 240,
+  "cls": "DlBomTemplateLine",
+  "kind": "Model",
+  "name": "dl.bom.template.line",
+  "inherit": [
+   "dl.bom.line.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "id",
+  "fields": [
+   {
+    "name": "bom_template_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom.template"
+    ],
+    "kw": {
+     "string": "BOM mẫu",
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "param_map_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.bom.template.line.param.map",
+     "template_line_id"
+    ],
+    "kw": {
+     "string": "Ánh xạ tham số",
+     "copy": true
+    }
+   },
+   {
+    "name": "note",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Ghi chú"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_bom_template_param.py",
+  "line": 21,
+  "cls": "DlBomTemplateParam",
+  "kind": "Model",
+  "name": "dl.bom.template.param",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "sequence, id",
+  "fields": [
+   {
+    "name": "bom_template_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom.template"
+    ],
+    "kw": {
+     "string": "BOM mẫu",
+     "required": true,
+     "ondelete": "cascade",
+     "index": true
+    }
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "default": 10
+    }
+   },
+   {
+    "name": "code",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mã",
+     "required": true,
+     "help": "Mã tham chiếu ngắn (vd D, R, C) — dùng để ánh xạ vào dòng vật tư."
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tên tham số",
+     "required": true
+    }
+   },
+   {
+    "name": "dim_role",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "length",
+       "Chiều dài"
+      ],
+      [
+       "width",
+       "Chiều rộng"
+      ],
+      [
+       "height",
+       "Chiều cao"
+      ],
+      [
+       "thickness",
+       "Độ dày"
+      ],
+      [
+       "side",
+       "Cạnh"
+      ],
+      [
+       "none",
+       "— (không tự đọc)"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Vai trò kích thước",
+     "default": "none",
+     "help": "Dùng để tự đọc giá trị từ mô tả Sales (vd '1400x830, cao 750'). Để '—' nếu tham số không phải kích thước đọc được từ văn bản."
+    }
+   },
+   {
+    "name": "default_value",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Giá trị mặc định"
+    }
+   },
+   {
+    "name": "value_min",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tối thiểu"
+    }
+   },
+   {
+    "name": "value_max",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Tối đa"
+    }
+   },
+   {
+    "name": "required",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Bắt buộc",
+     "default": true
+    }
+   }
+  ],
+  "sql_constraints": [
+   [
+    "code_uniq",
+    "unique(bom_template_id, code)",
+    "Mã tham số đã tồn tại trong BOM mẫu này."
+   ]
+  ]
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_bom_template_param.py",
+  "line": 74,
+  "cls": "DlBomTemplateLineParamMap",
+  "kind": "Model",
+  "name": "dl.bom.template.line.param.map",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "id",
+  "fields": [
+   {
+    "name": "template_line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom.template.line"
+    ],
+    "kw": {
+     "string": "Dòng vật tư mẫu",
+     "required": true,
+     "ondelete": "cascade",
+     "index": true
+    }
+   },
+   {
+    "name": "bom_template_id",
+    "type": "Many2one",
+    "pos": [],
+    "kw": {
+     "related": "template_line_id.bom_template_id",
+     "store": true,
+     "index": true
+    }
+   },
+   {
+    "name": "target_field",
+    "type": "Selection",
+    "pos": [
+     null
+    ],
+    "kw": {
+     "string": "Ánh xạ vào",
+     "required": true
+    }
+   },
+   {
+    "name": "param_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom.template.param"
+    ],
+    "kw": {
+     "string": "Tham số",
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "factor",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Hệ số nhân",
+     "default": 1.0
+    }
+   },
+   {
+    "name": "offset",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Cộng thêm",
+     "default": 0.0
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_drawing.py",
+  "line": 9,
+  "cls": "DlDrawing",
+  "kind": "Model",
+  "name": "dl.drawing",
+  "inherit": [
+   "mail.thread",
+   "mail.activity.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "drawing_code",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tên bản vẽ",
+     "required": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm",
+     "required": true,
+     "tracking": true,
+     "domain": null
+    }
+   },
+   {
+    "name": "is_current",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Bản vẽ hiện hành",
+     "readonly": true,
+     "copy": false,
+     "default": false
+    }
+   },
+   {
+    "name": "drawing_code",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mã bản vẽ",
+     "required": true,
+     "copy": false,
+     "tracking": true,
+     "default": "<expr>"
+    }
+   },
+   {
+    "name": "version",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Phiên bản",
+     "default": 1,
+     "required": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "status",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "draft",
+       "Nháp"
+      ],
+      [
+       "confirmed",
+       "Đã xác nhận"
+      ],
+      [
+       "archived",
+       "Lưu trữ"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "default": "draft",
+     "tracking": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "attachment_id",
+    "type": "Many2one",
+    "pos": [
+     "ir.attachment"
+    ],
+    "kw": {
+     "string": "Bản vẽ đính kèm"
+    }
+   },
+   {
+    "name": "confirmed_date",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "string": "Ngày xác nhận",
+     "readonly": true
+    }
+   },
+   {
+    "name": "created_by",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người tạo",
+     "default": "<expr>",
+     "readonly": true,
+     "required": true
+    }
+   }
+  ],
+  "sql_constraints": [
+   [
+    "drawing_code_uniq",
+    "unique(drawing_code)",
+    "Mã bản vẽ đã tồn tại."
+   ],
+   [
+    "product_version_uniq",
+    "unique(product_id, version)",
+    "Phiên bản bản vẽ của sản phẩm đã tồn tại."
+   ]
+  ]
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_product.py",
+  "line": 14,
+  "cls": "ProductCategoryTechnical",
+  "kind": "Model",
+  "name": null,
+  "inherit": "product.category",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "bom_template_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom.template"
+    ],
+    "kw": {
+     "string": "BOM mẫu mặc định",
+     "ondelete": "set null"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_product.py",
+  "line": 45,
+  "cls": "DlProductTechnical",
+  "kind": "Model",
+  "name": null,
+  "inherit": "product.product",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "is_rfq_provisional",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Dữ liệu tạm từ RFQ",
+     "default": false,
+     "copy": false,
+     "index": true,
+     "tracking": true,
+     "help": "Sản phẩm được tạo trong workspace RFQ nhưng dòng RFQ chưa hoàn tất."
+    }
+   },
+   {
+    "name": "rfq_source_line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request.line"
+    ],
+    "kw": {
+     "string": "Dòng RFQ nguồn",
+     "ondelete": "set null",
+     "copy": false,
+     "index": true,
+     "tracking": true
+    }
+   },
+   {
+    "name": "dlm_dim_length",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Dài (mm)"
+    }
+   },
+   {
+    "name": "dlm_dim_width",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Rộng (mm)"
+    }
+   },
+   {
+    "name": "dlm_dim_height",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Cao (mm)"
+    }
+   },
+   {
+    "name": "dlm_thickness",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Độ dày (mm)"
+    }
+   },
+   {
+    "name": "dlm_main_material_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Vật liệu chính",
+     "domain": [
+      [
+       "product_kind",
+       "=",
+       "material"
+      ]
+     ],
+     "ondelete": "restrict"
+    }
+   },
+   {
+    "name": "dlm_finish",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "powder",
+       "Sơn tĩnh điện"
+      ],
+      [
+       "galv",
+       "Mạ kẽm"
+      ],
+      [
+       "raw",
+       "Để nguyên"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Lớp hoàn thiện"
+    }
+   },
+   {
+    "name": "dlm_est_weight",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Khối lượng ước tính (kg)"
+    }
+   },
+   {
+    "name": "bom_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.bom",
+     "product_id"
+    ],
+    "kw": {
+     "string": "Danh sách BOM",
+     "compute": "_compute_bom_ids"
+    }
+   },
+   {
+    "name": "standard_bom_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.bom",
+     "product_id"
+    ],
+    "kw": {
+     "string": "Định mức chuẩn",
+     "compute": "_compute_bom_ids"
+    }
+   },
+   {
+    "name": "instance_bom_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.bom",
+     "product_id"
+    ],
+    "kw": {
+     "string": "Định mức theo đơn",
+     "compute": "_compute_bom_ids"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_quotation_request.py",
+  "line": 61,
+  "cls": "DlQuotationRequest",
+  "kind": "Model",
+  "name": "dl.quotation.request",
+  "inherit": [
+   "mail.thread",
+   "mail.activity.mixin"
+  ],
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "id desc",
+  "fields": [
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mã yêu cầu",
+     "required": true,
+     "readonly": true,
+     "copy": false,
+     "tracking": true,
+     "default": "<expr>"
+    }
+   },
+   {
+    "name": "customer_id",
+    "type": "Many2one",
+    "pos": [
+     "res.partner"
+    ],
+    "kw": {
+     "string": "Khách hàng",
+     "required": true,
+     "tracking": true,
+     "domain": [
+      [
+       "partner_role",
+       "in",
+       [
+        "customer",
+        "both"
+       ]
+      ]
+     ]
+    }
+   },
+   {
+    "name": "description",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Mô tả"
+    }
+   },
+   {
+    "name": "requested_date",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Ngày nhận yêu cầu",
+     "required": true,
+     "default": null,
+     "tracking": true
+    }
+   },
+   {
+    "name": "deadline",
+    "type": "Date",
+    "pos": [],
+    "kw": {
+     "string": "Hạn yêu cầu"
+    }
+   },
+   {
+    "name": "status",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "new",
+       "Mới"
+      ],
+      [
+       "processing",
+       "Đang xử lý"
+      ],
+      [
+       "returned",
+       "Trả lại bổ sung"
+      ],
+      [
+       "supplemented",
+       "Đã bổ sung"
+      ],
+      [
+       "confirmed",
+       "Chờ tạo báo giá"
+      ],
+      [
+       "quoted",
+       "Đã tạo báo giá"
+      ],
+      [
+       "cancelled",
+       "Đã hủy"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái",
+     "default": "new",
+     "readonly": true,
+     "copy": false,
+     "tracking": true
+    }
+   },
+   {
+    "name": "return_reason",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lý do trả lại",
+     "readonly": true,
+     "copy": false,
+     "tracking": true
+    }
+   },
+   {
+    "name": "created_by",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người tạo",
+     "readonly": true,
+     "default": "<expr>"
+    }
+   },
+   {
+    "name": "received_by",
+    "type": "Many2one",
+    "pos": [
+     "res.users"
+    ],
+    "kw": {
+     "string": "Người tiếp nhận",
+     "readonly": true,
+     "copy": false,
+     "tracking": true
+    }
+   },
+   {
+    "name": "received_date",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Thời điểm tiếp nhận",
+     "readonly": true,
+     "copy": false
+    }
+   },
+   {
+    "name": "received_by_other",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đã có người khác tiếp nhận",
+     "compute": "_compute_received_info"
+    }
+   },
+   {
+    "name": "received_info",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Thông tin tiếp nhận",
+     "compute": "_compute_received_info"
+    }
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Ghi chú"
+    }
+   },
+   {
+    "name": "line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.quotation.request.line",
+     "quotation_request_id"
+    ],
+    "kw": {
+     "string": "Danh sách sản phẩm"
+    }
+   },
+   {
+    "name": "supplement_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Dòng chờ bổ sung",
+     "compute": "_compute_supplement_count",
+     "store": true
+    }
+   },
+   {
+    "name": "supplement_ready_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Dòng đã bổ sung chờ gửi lại",
+     "compute": "_compute_supplement_count",
+     "store": true
+    }
+   },
+   {
+    "name": "infeasible_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Dòng không khả thi",
+     "compute": "_compute_infeasible_stats"
+    }
+   },
+   {
+    "name": "all_infeasible",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Toàn bộ không khả thi",
+     "compute": "_compute_infeasible_stats"
+    }
+   },
+   {
+    "name": "technical_total_line_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Tổng dòng gia công",
+     "compute": "_compute_technical_progress"
+    }
+   },
+   {
+    "name": "technical_done_line_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Dòng gia công đã xử lý",
+     "compute": "_compute_technical_progress"
+    }
+   },
+   {
+    "name": "technical_progress_percent",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Phần trăm tiến độ kỹ thuật",
+     "compute": "_compute_technical_progress"
+    }
+   },
+   {
+    "name": "technical_progress_label",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tiến độ kỹ thuật",
+     "compute": "_compute_technical_progress"
+    }
+   },
+   {
+    "name": "tech_progress_short",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tiến độ kỹ thuật",
+     "compute": "_compute_technical_progress"
+    }
+   },
+   {
+    "name": "tech_progress_complete",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Kỹ thuật đã xử lý xong",
+     "compute": "_compute_technical_progress"
+    }
+   },
+   {
+    "name": "deadline_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "ok",
+       "Còn hạn"
+      ],
+      [
+       "soon",
+       "Sắp đến hạn"
+      ],
+      [
+       "overdue",
+       "Quá hạn"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Tình trạng hạn",
+     "compute": "_compute_deadline_state"
+    }
+   },
+   {
+    "name": "sales_priority",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Ưu tiên xử lý (Sales)",
+     "compute": "_compute_sales_priority",
+     "store": true
+    }
+   },
+   {
+    "name": "tech_priority",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Ưu tiên xử lý (Kỹ thuật)",
+     "compute": "_compute_tech_priority",
+     "store": true
+    }
+   },
+   {
+    "name": "tech_queue_since",
+    "type": "Datetime",
+    "pos": [],
+    "kw": {
+     "string": "Vào hàng đợi Kỹ thuật lúc",
+     "compute": "_compute_tech_queue_since",
+     "store": true
+    }
+   },
+   {
+    "name": "tech_stage",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "pending",
+       "Chưa nhận"
+      ],
+      [
+       "processing",
+       "Đang xử lý"
+      ],
+      [
+       "waiting_sales",
+       "Chờ Sales bổ sung"
+      ],
+      [
+       "done",
+       "Đã xử lý xong"
+      ],
+      [
+       "closed",
+       "Đã đóng"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Giai đoạn kỹ thuật",
+     "compute": "_compute_tech_stage"
+    }
+   },
+   {
+    "name": "tech_waiting_days",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số ngày chờ xử lý",
+     "compute": "_compute_tech_waiting"
+    }
+   },
+   {
+    "name": "tech_overdue",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Chờ xử lý quá lâu",
+     "compute": "_compute_tech_waiting"
+    }
+   },
+   {
+    "name": "manufactured_line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.quotation.request.line",
+     "quotation_request_id"
+    ],
+    "kw": {
+     "string": "Sản phẩm gia công",
+     "domain": [
+      [
+       "product_type",
+       "=",
+       "manufactured"
+      ]
+     ],
+     "context": {
+      "default_product_type": "manufactured"
+     }
+    }
+   },
+   {
+    "name": "trading_line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.quotation.request.line",
+     "quotation_request_id"
+    ],
+    "kw": {
+     "string": "Sản phẩm thương mại",
+     "domain": [
+      [
+       "product_type",
+       "=",
+       "trading"
+      ]
+     ],
+     "context": {
+      "default_product_type": "trading"
+     }
+    }
+   },
+   {
+    "name": "resolved_product_ids",
+    "type": "Many2many",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "compute": "_compute_resolved_refs",
+     "string": "Product Reference"
+    }
+   },
+   {
+    "name": "resolved_bom_ids",
+    "type": "Many2many",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "compute": "_compute_resolved_refs",
+     "string": "BOM Reference"
+    }
+   },
+   {
+    "name": "is_technician",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_is_technician",
+     "compute_sudo": true
+    }
+   }
+  ],
+  "sql_constraints": [
+   [
+    "name_uniq",
+    "unique(name)",
+    "Mã yêu cầu báo giá đã tồn tại."
+   ]
+  ]
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_quotation_request.py",
+  "line": 738,
+  "cls": "DlQuotationRequestLine",
+  "kind": "Model",
+  "name": "dl.quotation.request.line",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "id",
+  "fields": [
+   {
+    "name": "quotation_request_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request"
+    ],
+    "kw": {
+     "string": "Yêu cầu báo giá",
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "product_type",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "manufactured",
+       "Sản phẩm gia công"
+      ],
+      [
+       "trading",
+       "Sản phẩm thương mại"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Loại sản phẩm",
+     "required": true,
+     "default": "manufactured"
+    }
+   },
+   {
+    "name": "product_name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tên sản phẩm"
+    }
+   },
+   {
+    "name": "product_category_id",
+    "type": "Many2one",
+    "pos": [
+     "product.category"
+    ],
+    "kw": {
+     "string": "Nhóm sản phẩm",
+     "domain": [
+      [
+       "dl_branch",
+       "=",
+       "finished"
+      ],
+      [
+       "parent_id",
+       "!=",
+       false
+      ]
+     ]
+    }
+   },
+   {
+    "name": "reference_product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm tham khảo",
+     "domain": [
+      [
+       "product_kind",
+       "=",
+       "manufactured"
+      ],
+      [
+       "dlm_lifecycle_state",
+       "=",
+       "active"
+      ]
+     ],
+     "help": "Chỉ mang tính tham khảo nếu Sales biết sản phẩm tương tự đã từng gia công — Kỹ thuật sẽ xác nhận sản phẩm chính thức sau."
+    }
+   },
+   {
+    "name": "quantity",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Số lượng",
+     "required": true,
+     "default": 1.0
+    }
+   },
+   {
+    "name": "dimension_note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Kích thước / Yêu cầu"
+    }
+   },
+   {
+    "name": "image_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.quotation.request.line.image",
+     "line_id"
+    ],
+    "kw": {
+     "string": "Thư viện ảnh"
+    }
+   },
+   {
+    "name": "image_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số ảnh",
+     "compute": "_compute_image_count"
+    }
+   },
+   {
+    "name": "attachment_ids",
+    "type": "Many2many",
+    "pos": [
+     "ir.attachment",
+     "dl_rfq_line_ir_attachment_rel",
+     "line_id",
+     "attachment_id"
+    ],
+    "kw": {
+     "string": "File đính kèm"
+    }
+   },
+   {
+    "name": "preview_image",
+    "type": "Image",
+    "pos": [],
+    "kw": {
+     "string": "Ảnh xem trước",
+     "compute": "_compute_preview_image",
+     "attachment": false
+    }
+   },
+   {
+    "name": "attachment_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số file đính kèm",
+     "compute": "_compute_attachment_count"
+    }
+   },
+   {
+    "name": "resolved_product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm xác định"
+    }
+   },
+   {
+    "name": "resolvable_product_ids",
+    "type": "Many2many",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "compute": "_compute_resolvable_product_ids",
+     "string": "SP hợp lệ để chọn"
+    }
+   },
+   {
+    "name": "selectable_category_ids",
+    "type": "Many2many",
+    "pos": [
+     "product.category"
+    ],
+    "kw": {
+     "compute": "_compute_selectable_category_ids",
+     "string": "Nhóm SP chọn được"
+    }
+   },
+   {
+    "name": "reference_product_ids",
+    "type": "Many2many",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "compute": "_compute_reference_product_ids",
+     "string": "SP tham khảo hợp lệ"
+    }
+   },
+   {
+    "name": "suggested_product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm gợi ý",
+     "compute": "_compute_suggestion"
+    }
+   },
+   {
+    "name": "suggestion_reason",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Vì sao gợi ý",
+     "compute": "_compute_suggestion"
+    }
+   },
+   {
+    "name": "suggestion_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "none",
+       "Không có gợi ý"
+      ],
+      [
+       "suggest",
+       "Có gợi ý"
+      ],
+      [
+       "auto",
+       "Gợi ý tự động"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Mức gợi ý sản phẩm",
+     "compute": "_compute_suggestion"
+    }
+   },
+   {
+    "name": "resolved_bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "string": "BOM tham chiếu",
+     "help": "BOM Kỹ thuật đã chọn hoặc tạo mới khi xử lý RFQ — dùng để sản xuất sản phẩm xác định. Chỉ áp dụng cho dòng gia công."
+    }
+   },
+   {
+    "name": "currency_id",
+    "type": "Many2one",
+    "pos": [
+     "res.currency"
+    ],
+    "kw": {
+     "string": "Tiền tệ",
+     "related": "resolved_product_id.currency_id",
+     "readonly": true
+    }
+   },
+   {
+    "name": "product_price",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Đơn giá",
+     "related": "resolved_product_id.list_price",
+     "digits": "Product Price",
+     "readonly": true
+    }
+   },
+   {
+    "name": "price_subtotal",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Thành tiền",
+     "compute": "_compute_price_subtotal",
+     "digits": "Product Price",
+     "readonly": true
+    }
+   },
+   {
+    "name": "is_infeasible",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Không khả thi",
+     "default": false
+    }
+   },
+   {
+    "name": "infeasible_reason",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lý do không khả thi"
+    }
+   },
+   {
+    "name": "supplement_note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Nội dung cần bổ sung",
+     "help": "KTV ghi chú thông tin cần Sales bổ sung cho dòng này."
+    }
+   },
+   {
+    "name": "supplement_done",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đã bổ sung",
+     "default": false,
+     "copy": false,
+     "help": "Sales đã bổ sung thông tin cho dòng đang chờ; chờ Kỹ thuật xem lại."
+    }
+   },
+   {
+    "name": "needs_review",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Cần Kỹ thuật xem lại",
+     "default": false,
+     "copy": false,
+     "help": "Sales đã sửa yêu cầu sau khi Kỹ thuật xác định — kết quả cần xem lại."
+    }
+   },
+   {
+    "name": "technical_status",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "pending",
+       "Chưa xử lý"
+      ],
+      [
+       "waiting",
+       "Chờ bổ sung"
+      ],
+      [
+       "supplemented",
+       "Đã bổ sung"
+      ],
+      [
+       "processing",
+       "Đang xử lý"
+      ],
+      [
+       "review",
+       "Cần xem lại"
+      ],
+      [
+       "done",
+       "Đã xử lý"
+      ],
+      [
+       "infeasible",
+       "Không khả thi"
+      ],
+      [
+       "not_required",
+       "Không cần Kỹ thuật"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trạng thái kỹ thuật",
+     "compute": "_compute_technical_status"
+    }
+   },
+   {
+    "name": "resolved_summary",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Kết quả kỹ thuật",
+     "compute": "_compute_resolved_summary"
+    }
+   },
+   {
+    "name": "pricing_blocked",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Thiếu giá NCC",
+     "compute": "_compute_pricing_blocked",
+     "compute_sudo": true
+    }
+   },
+   {
+    "name": "pricing_block_summary",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Vật tư thiếu giá NCC",
+     "compute": "_compute_pricing_blocked",
+     "compute_sudo": true
+    }
+   },
+   {
+    "name": "request_status",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "related": "quotation_request_id.status",
+     "string": "Trạng thái RFQ",
+     "store": false
+    }
+   },
+   {
+    "name": "is_technician",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_is_technician",
+     "compute_sudo": true,
+     "default": "<expr>"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/models/dl_quotation_request.py",
+  "line": 1798,
+  "cls": "DlQuotationRequestLineImage",
+  "kind": "Model",
+  "name": "dl.quotation.request.line.image",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "sequence, id",
+  "fields": [
+   {
+    "name": "line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request.line"
+    ],
+    "kw": {
+     "string": "Dòng RFQ",
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Thứ tự",
+     "default": 10
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Mô tả ảnh"
+    }
+   },
+   {
+    "name": "image",
+    "type": "Image",
+    "pos": [],
+    "kw": {
+     "string": "Ảnh",
+     "required": true,
+     "max_width": 1920,
+     "max_height": 1920
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/bom_from_template_wizard.py",
+  "line": 5,
+  "cls": "DlBomFromTemplateWizard",
+  "kind": "Transient",
+  "name": "dl.bom.from.template.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "string": "BOM đích",
+     "required": true,
+     "readonly": true
+    }
+   },
+   {
+    "name": "product_category_id",
+    "type": "Many2one",
+    "pos": [],
+    "kw": {
+     "related": "bom_id.product_id.categ_id",
+     "string": "Nhóm sản phẩm"
+    }
+   },
+   {
+    "name": "template_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom.template"
+    ],
+    "kw": {
+     "string": "BOM mẫu",
+     "required": true,
+     "domain": "[('product_category_id', '=', product_category_id), ('status', 'in', ('confirmed', 'locked'))]"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/dl_bom_create_btp_wizard.py",
+  "line": 5,
+  "cls": "DlBomCreateBtpWizard",
+  "kind": "Transient",
+  "name": "dl.bom.create.btp.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "string": "Định mức cha",
+     "required": true,
+     "readonly": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tên bán thành phẩm",
+     "required": true
+    }
+   },
+   {
+    "name": "category_id",
+    "type": "Many2one",
+    "pos": [
+     "product.category"
+    ],
+    "kw": {
+     "string": "Nhóm (Vật tư)",
+     "required": true,
+     "domain": [
+      [
+       "dl_branch",
+       "=",
+       "material"
+      ]
+     ]
+    }
+   },
+   {
+    "name": "quantity",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Số lượng dùng trong định mức cha",
+     "default": 1.0,
+     "required": true
+    }
+   },
+   {
+    "name": "will_be_stocked",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Bán thành phẩm này nhập kho & dùng lại cho đơn khác"
+    }
+   },
+   {
+    "name": "init_mode",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "empty",
+       "Tạo trống"
+      ],
+      [
+       "copy",
+       "Chép từ BTP tương tự"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Định mức BTP",
+     "default": "empty",
+     "required": true
+    }
+   },
+   {
+    "name": "copy_from_bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "string": "Chép định mức từ",
+     "domain": "[('product_id.product_kind', '=', 'material_processed'), ('status', 'in', ('confirmed', 'locked'))]",
+     "help": "Chép các dòng vật tư của một BTP tương tự làm điểm khởi đầu."
+    }
+   },
+   {
+    "name": "parent_is_provisional",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "related": "bom_id.is_rfq_provisional",
+     "readonly": true
+    }
+   },
+   {
+    "name": "name_dup_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "none",
+       "Không trùng"
+      ],
+      [
+       "exact",
+       "Trùng hệt"
+      ],
+      [
+       "similar",
+       "Gần giống"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Kết quả soi trùng tên",
+     "compute": "_compute_name_dup"
+    }
+   },
+   {
+    "name": "name_dup_message",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Cảnh báo trùng tên",
+     "compute": "_compute_name_dup"
+    }
+   },
+   {
+    "name": "name_dup_exact_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "BTP trùng hệt",
+     "compute": "_compute_name_dup"
+    }
+   },
+   {
+    "name": "confirm_similar_name",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Xác nhận đây thực sự là BTP khác"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/rfq_history_wizard.py",
+  "line": 7,
+  "cls": "DlRfqHistoryWizard",
+  "kind": "Transient",
+  "name": "dl.rfq.history.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "request_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request"
+    ],
+    "kw": {
+     "string": "RFQ",
+     "required": true,
+     "readonly": true
+    }
+   },
+   {
+    "name": "history_html",
+    "type": "Html",
+    "pos": [],
+    "kw": {
+     "string": "Lịch sử",
+     "compute": "_compute_history_html",
+     "sanitize": false
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/rfq_line_quick_wizard.py",
+  "line": 4,
+  "cls": "DlRfqLineQuickWizardBase",
+  "kind": "Abstract",
+  "name": "dl.rfq.line.quick.wizard.base",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "rfq_line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request.line"
+    ],
+    "kw": {
+     "string": "Dòng RFQ",
+     "required": true,
+     "readonly": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "request_product_name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.product_name",
+     "string": "Tên sản phẩm",
+     "readonly": true
+    }
+   },
+   {
+    "name": "request_dimension_note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.dimension_note",
+     "string": "Kích thước / Yêu cầu",
+     "readonly": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/rfq_line_quick_wizard.py",
+  "line": 44,
+  "cls": "DlRfqLineSupplementWizard",
+  "kind": "Transient",
+  "name": "dl.rfq.line.supplement.wizard",
+  "inherit": "dl.rfq.line.quick.wizard.base",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "supplement_note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Nội dung cần bổ sung"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/rfq_line_quick_wizard.py",
+  "line": 68,
+  "cls": "DlRfqLineInfeasibleWizard",
+  "kind": "Transient",
+  "name": "dl.rfq.line.infeasible.wizard",
+  "inherit": "dl.rfq.line.quick.wizard.base",
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "infeasible_reason",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lý do không khả thi"
+    }
+   },
+   {
+    "name": "resolved_product_id",
+    "type": "Many2one",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.resolved_product_id",
+     "string": "Sản phẩm đã xác định",
+     "readonly": true
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/rfq_resolve_wizard.py",
+  "line": 7,
+  "cls": "DlRfqResolveParam",
+  "kind": "Transient",
+  "name": "dl.rfq.resolve.param",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": "sequence, id",
+  "fields": [
+   {
+    "name": "wizard_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.rfq.resolve.wizard"
+    ],
+    "kw": {
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "template_param_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom.template.param"
+    ],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "default": 10
+    }
+   },
+   {
+    "name": "code",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tham số",
+     "readonly": true
+    }
+   },
+   {
+    "name": "value",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "string": "Giá trị"
+    }
+   },
+   {
+    "name": "value_min",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "value_max",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "required",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "readonly": true
+    }
+   },
+   {
+    "name": "range_hint",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Miền hợp lệ",
+     "compute": "_compute_range_hint"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/rfq_resolve_wizard.py",
+  "line": 37,
+  "cls": "DlRfqResolveWizard",
+  "kind": "Transient",
+  "name": "dl.rfq.resolve.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "rfq_line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request.line"
+    ],
+    "kw": {
+     "string": "Dòng RFQ",
+     "required": true,
+     "readonly": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "step",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "product",
+       "1. Xác định sản phẩm"
+      ],
+      [
+       "bom",
+       "2. Định mức BOM"
+      ],
+      [
+       "confirm",
+       "3. Xác nhận"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Công đoạn",
+     "compute": "_compute_step"
+    }
+   },
+   {
+    "name": "show_bom_picker",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đang mở danh sách chọn định mức",
+     "help": "Bật khi KTV bấm 'Chọn bản khác' để lộ lại bảng phiên bản định mức."
+    }
+   },
+   {
+    "name": "request_product_name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.product_name",
+     "string": "Tên sản phẩm (RFQ)",
+     "readonly": true
+    }
+   },
+   {
+    "name": "request_quantity",
+    "type": "Float",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.quantity",
+     "string": "Số lượng",
+     "readonly": true
+    }
+   },
+   {
+    "name": "request_category_id",
+    "type": "Many2one",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.product_category_id",
+     "string": "Nhóm sản phẩm (RFQ)",
+     "readonly": true
+    }
+   },
+   {
+    "name": "request_dimension_note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.dimension_note",
+     "string": "Kích thước / Yêu cầu",
+     "readonly": true
+    }
+   },
+   {
+    "name": "request_reference_product_id",
+    "type": "Many2one",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.reference_product_id",
+     "string": "Sản phẩm tham khảo (Sales)",
+     "readonly": true
+    }
+   },
+   {
+    "name": "request_attachment_ids",
+    "type": "Many2many",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.attachment_ids",
+     "string": "Ảnh / File Sales gửi",
+     "readonly": true
+    }
+   },
+   {
+    "name": "is_infeasible",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Không khả thi"
+    }
+   },
+   {
+    "name": "infeasible_reason",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Lý do không khả thi",
+     "readonly": true
+    }
+   },
+   {
+    "name": "has_existing_supplement",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Dòng đã có yêu cầu bổ sung từ trước"
+    }
+   },
+   {
+    "name": "next_line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request.line"
+    ],
+    "kw": {
+     "string": "Dòng chưa xử lý kế tiếp",
+     "compute": "_compute_next_line_id"
+    }
+   },
+   {
+    "name": "mode",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "existing",
+       "Sản phẩm đã từng gia công"
+      ],
+      [
+       "new",
+       "Sản phẩm chưa từng gia công"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Trường hợp",
+     "default": "existing",
+     "required": true
+    }
+   },
+   {
+    "name": "product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Product",
+     "domain": [
+      [
+       "product_kind",
+       "=",
+       "manufactured"
+      ]
+     ]
+    }
+   },
+   {
+    "name": "product_is_rfq_provisional",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "related": "product_id.is_rfq_provisional",
+     "string": "Sản phẩm đang tạm từ RFQ",
+     "readonly": true
+    }
+   },
+   {
+    "name": "search_outside_category",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Tìm sản phẩm ngoài nhóm Sales khai"
+    }
+   },
+   {
+    "name": "allowed_product_ids",
+    "type": "Many2many",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "compute": "_compute_allowed_product_ids",
+     "string": "SP hợp lệ"
+    }
+   },
+   {
+    "name": "suggestion_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "none",
+       "Không có gợi ý"
+      ],
+      [
+       "suggest",
+       "Có gợi ý"
+      ],
+      [
+       "auto",
+       "Gợi ý tự động"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Mức gợi ý",
+     "compute": "_compute_suggestions"
+    }
+   },
+   {
+    "name": "suggested_product_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Sản phẩm gợi ý (tốt nhất)",
+     "compute": "_compute_suggestions"
+    }
+   },
+   {
+    "name": "suggestion_reason",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Vì sao gợi ý",
+     "compute": "_compute_suggestions"
+    }
+   },
+   {
+    "name": "suggestion_ids",
+    "type": "Many2many",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "Các sản phẩm gợi ý",
+     "compute": "_compute_suggestions"
+    }
+   },
+   {
+    "name": "suggestion_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số ứng viên gợi ý",
+     "compute": "_compute_suggestions"
+    }
+   },
+   {
+    "name": "auto_selected",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "SP do hệ thống tự chọn"
+    }
+   },
+   {
+    "name": "new_product_name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Tên sản phẩm mới"
+    }
+   },
+   {
+    "name": "new_product_category_id",
+    "type": "Many2one",
+    "pos": [
+     "product.category"
+    ],
+    "kw": {
+     "string": "Nhóm sản phẩm",
+     "domain": [
+      [
+       "dl_branch",
+       "=",
+       "finished"
+      ]
+     ]
+    }
+   },
+   {
+    "name": "confirm_not_just_size",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đây là sản phẩm khác kết cấu, không phải chỉ khác kích thước"
+    }
+   },
+   {
+    "name": "name_dup_state",
+    "type": "Selection",
+    "pos": [
+     [
+      [
+       "none",
+       "Không trùng"
+      ],
+      [
+       "exact",
+       "Trùng hệt"
+      ],
+      [
+       "similar",
+       "Gần giống"
+      ]
+     ]
+    ],
+    "kw": {
+     "string": "Kết quả soi trùng tên",
+     "compute": "_compute_name_dup"
+    }
+   },
+   {
+    "name": "name_dup_message",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Cảnh báo trùng tên",
+     "compute": "_compute_name_dup"
+    }
+   },
+   {
+    "name": "name_dup_exact_id",
+    "type": "Many2one",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "SP trùng hệt",
+     "compute": "_compute_name_dup"
+    }
+   },
+   {
+    "name": "name_dup_similar_ids",
+    "type": "Many2many",
+    "pos": [
+     "product.product"
+    ],
+    "kw": {
+     "string": "SP gần giống",
+     "compute": "_compute_name_dup"
+    }
+   },
+   {
+    "name": "confirm_similar_name",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Xác nhận đây thực sự là sản phẩm khác"
+    }
+   },
+   {
+    "name": "bom_ids",
+    "type": "Many2many",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "compute": "_compute_bom_ids",
+     "string": "BOM Version"
+    }
+   },
+   {
+    "name": "manual_bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {}
+   },
+   {
+    "name": "selected_bom_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom"
+    ],
+    "kw": {
+     "string": "BOM đã chọn",
+     "domain": "[('id', 'in', bom_ids)]",
+     "compute": "_compute_selected_bom_id",
+     "inverse": "_inverse_selected_bom_id",
+     "store": false,
+     "readonly": false
+    }
+   },
+   {
+    "name": "selected_bom_is_rfq_provisional",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "related": "selected_bom_id.is_rfq_provisional",
+     "string": "BOM đang tạm từ RFQ",
+     "readonly": true
+    }
+   },
+   {
+    "name": "selected_bom_line_ids",
+    "type": "One2many",
+    "pos": [],
+    "kw": {
+     "related": "selected_bom_id.line_ids",
+     "string": "Chi tiết BOM",
+     "readonly": true
+    }
+   },
+   {
+    "name": "selected_bom_label",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Nhãn định mức",
+     "compute": "_compute_bom_summary"
+    }
+   },
+   {
+    "name": "selected_bom_line_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số dòng vật tư",
+     "compute": "_compute_bom_summary"
+    }
+   },
+   {
+    "name": "selected_bom_has_lines",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Định mức có dòng vật tư",
+     "compute": "_compute_bom_summary"
+    }
+   },
+   {
+    "name": "selected_bom_confirmed",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Định mức đã xác nhận",
+     "compute": "_compute_bom_summary"
+    }
+   },
+   {
+    "name": "has_any_bom",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Sản phẩm đã có định mức",
+     "compute": "_compute_has_any_bom"
+    }
+   },
+   {
+    "name": "parametric_template_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.bom.template"
+    ],
+    "kw": {
+     "string": "Mẫu tham số",
+     "compute": "_compute_parametric_template"
+    }
+   },
+   {
+    "name": "has_parametric_template",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Nhóm SP có mẫu tham số",
+     "compute": "_compute_parametric_template"
+    }
+   },
+   {
+    "name": "show_param_panel",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đang mở panel tham số"
+    }
+   },
+   {
+    "name": "param_line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.rfq.resolve.param",
+     "wizard_id"
+    ],
+    "kw": {
+     "string": "Tham số"
+    }
+   },
+   {
+    "name": "param_reused_bom",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Dùng lại định mức đã có"
+    }
+   },
+   {
+    "name": "selected_bom_can_discard",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Có thể bỏ bản nháp",
+     "compute": "_compute_selected_bom_can_discard"
+    }
+   },
+   {
+    "name": "pricing_block_count",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "string": "Số vật tư thiếu giá NCC",
+     "compute": "_compute_pricing_block"
+    }
+   },
+   {
+    "name": "pricing_block_names",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Vật tư thiếu giá NCC",
+     "compute": "_compute_pricing_block"
+    }
+   },
+   {
+    "name": "check_product",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_checklist"
+    }
+   },
+   {
+    "name": "check_bom_selected",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_checklist"
+    }
+   },
+   {
+    "name": "check_bom_belongs",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_checklist"
+    }
+   },
+   {
+    "name": "check_bom_has_lines",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_checklist"
+    }
+   },
+   {
+    "name": "check_bom_confirmed",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_checklist"
+    }
+   },
+   {
+    "name": "check_request_unchanged",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_checklist"
+    }
+   },
+   {
+    "name": "checklist_done",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_checklist"
+    }
+   },
+   {
+    "name": "checklist_total",
+    "type": "Integer",
+    "pos": [],
+    "kw": {
+     "compute": "_compute_checklist"
+    }
+   },
+   {
+    "name": "can_confirm",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Đủ điều kiện hoàn tất",
+     "compute": "_compute_checklist"
+    }
+   },
+   {
+    "name": "confirm_blocker",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "string": "Còn thiếu",
+     "compute": "_compute_checklist"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/rfq_return_wizard.py",
+  "line": 6,
+  "cls": "DlRfqReturnWizard",
+  "kind": "Transient",
+  "name": "dl.rfq.return.wizard",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "request_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request"
+    ],
+    "kw": {
+     "string": "Yêu cầu báo giá",
+     "required": true,
+     "readonly": true
+    }
+   },
+   {
+    "name": "reason",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Ghi chú chung"
+    }
+   },
+   {
+    "name": "line_ids",
+    "type": "One2many",
+    "pos": [
+     "dl.rfq.return.wizard.line",
+     "wizard_id"
+    ],
+    "kw": {
+     "string": "Dòng sản phẩm"
+    }
+   }
+  ],
+  "sql_constraints": []
+ },
+ {
+  "module": "dl_technical",
+  "file": "dl_technical/wizard/rfq_return_wizard.py",
+  "line": 102,
+  "cls": "DlRfqReturnWizardLine",
+  "kind": "Transient",
+  "name": "dl.rfq.return.wizard.line",
+  "inherit": null,
+  "inherits": null,
+  "table": null,
+  "auto": true,
+  "order": null,
+  "fields": [
+   {
+    "name": "wizard_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.rfq.return.wizard"
+    ],
+    "kw": {
+     "required": true,
+     "ondelete": "cascade"
+    }
+   },
+   {
+    "name": "rfq_line_id",
+    "type": "Many2one",
+    "pos": [
+     "dl.quotation.request.line"
+    ],
+    "kw": {
+     "string": "Dòng RFQ",
+     "required": true,
+     "readonly": true
+    }
+   },
+   {
+    "name": "product_name",
+    "type": "Char",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.product_name",
+     "string": "Sản phẩm",
+     "readonly": true
+    }
+   },
+   {
+    "name": "technical_status",
+    "type": "Selection",
+    "pos": [],
+    "kw": {
+     "related": "rfq_line_id.technical_status",
+     "string": "Trạng thái",
+     "readonly": true
+    }
+   },
+   {
+    "name": "selected",
+    "type": "Boolean",
+    "pos": [],
+    "kw": {
+     "string": "Cần bổ sung",
+     "default": false
+    }
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pos": [],
+    "kw": {
+     "string": "Nội dung cần bổ sung"
+    }
+   }
+  ],
+  "sql_constraints": []
+ }
+]

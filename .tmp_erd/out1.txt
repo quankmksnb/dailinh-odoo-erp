@@ -1,0 +1,229 @@
+=== [1] MODEL DO dl_* KHAI SINH ===
+dl_base        dl.rbac.feature                          transient=      | {'en_US': 'RBAC — Chức năng phân quyền'}
+dl_base        dl.rbac.operation                        transient=      | {'en_US': 'RBAC — Thao tác đặc biệt'}
+dl_config      dl.approval.level                        transient=      | {'en_US': 'Cấp duyệt trong Ma trận phê duyệt (S02 · Tab 2)'}
+dl_config      dl.config.audit.log                      transient=      | {'en_US': 'Nhật ký thay đổi cấu hình hệ thống (S02)'}
+dl_config      dl.pricing.approval.matrix               transient=      | {'en_US': 'Ma trận phê duyệt báo giá theo giá trị'}
+dl_config      dl.pricing.approval.reject.wizard        transient=      | {'en_US': 'Từ chối yêu cầu phê duyệt — nhập lý do'}
+dl_config      dl.pricing.approval.request              transient=      | {'en_US': 'Yêu cầu phê duyệt cấu hình thương mại / báo giá'}
+dl_config      dl.pricing.approval.setting              transient=      | {'en_US': 'Cấu hình người duyệt theo loại yêu cầu'}
+dl_config      dl.pricing.commercial.mixin              transient=      | {'en_US': 'Luồng phê duyệt cấu hình thương mại'}
+dl_config      dl.pricing.complexity.level              transient=      | {'en_US': 'Hệ số phức tạp dùng chung'}
+dl_config      dl.pricing.config                        transient=      | {'en_US': 'Cấu hình tham số báo giá (S02 · Tab 1)'}
+dl_config      dl.pricing.cost.adjustment.rule          transient=      | {'en_US': 'Chi phí chung và hệ số điều chỉnh'}
+dl_config      dl.pricing.discount.rule                 transient=      | {'en_US': 'Chính sách chiết khấu theo nhóm khách hàng'}
+dl_config      dl.pricing.operation                     transient=      | {'en_US': 'Danh mục công đoạn dùng chung'}
+dl_config      dl.pricing.operation.rule                transient=      | {'en_US': 'Đơn giá/tỷ lệ công đoạn'}
+dl_config      dl.pricing.profit.rule                   transient=      | {'en_US': 'Chính sách lợi nhuận và giá sàn'}
+dl_config      dl.pricing.rule.mixin                    transient=      | {'en_US': 'Thuộc tính chung của quy tắc cấu hình báo giá'}
+dl_config      dl.pricing.ui                            transient=      | {'en_US': 'Bootstrap dữ liệu cho màn Cấu hình Báo giá'}
+dl_config      dl.pricing.waste                         transient=      | {'en_US': 'Tỷ lệ hao hụt mặc định theo nhóm vật tư'}
+dl_config      dl.pricing.waste.rule                    transient=      | {'en_US': 'Quy tắc hao hụt và thu hồi'}
+dl_config      res.users                                transient=      | {'en_US': 'User', 'vi_VN': 'Người dùng'}
+dl_partner     res.partner                              transient=      | {'en_US': 'Contact', 'vi_VN': 'Liên hệ'}
+dl_product     dl.measurement.shape                     transient=      | {'en_US': 'Hình dạng đo lường'}
+dl_product     dl.measurement.shape.param               transient=      | {'en_US': 'Tham số hình dạng đo lường'}
+dl_product     dl.measurement.type                      transient=      | {'en_US': 'Loại đo lường'}
+dl_product     product.category                         transient=      | {'en_US': 'Product Category', 'vi_VN': 'Danh mục sản phẩm'}
+dl_product     product.product                          transient=      | {'en_US': 'Product Variant', 'vi_VN': 'Biến thể sản phẩm'}
+dl_product     product.supplierinfo                     transient=      | {'en_US': 'Supplier Pricelist', 'vi_VN': 'Bảng giá nhà cung cấp'}
+dl_sale        dl.bom                                   transient=      | {'en_US': 'BOM'}
+dl_sale        dl.pricing.approval.request              transient=      | {'en_US': 'Yêu cầu phê duyệt cấu hình thương mại / báo giá'}
+dl_sale        dl.quotation                             transient=      | {'en_US': 'Báo giá'}
+dl_sale        dl.quotation.line                        transient=      | {'en_US': 'Chi tiết báo giá'}
+dl_sale        dl.quotation.price.component             transient=      | {'en_US': 'Cấu phần giá báo giá (snapshot)'}
+dl_sale        dl.quotation.pricing.service             transient=      | {'en_US': 'Dịch vụ tính giá báo giá'}
+dl_sale        dl.quotation.reject.wizard               transient=      | {'en_US': 'Từ chối báo giá — nhập lý do'}
+dl_sale        dl.quotation.request                     transient=      | {'en_US': 'Yêu cầu báo giá'}
+dl_sale        dl.quotation.revision.wizard             transient=      | {'en_US': 'Khách yêu cầu điều chỉnh báo giá'}
+dl_sale        dl.sale.order                            transient=      | {'en_US': 'Đơn bán hàng'}
+dl_sale        dl.sale.order.line                       transient=      | {'en_US': 'Chi tiết đơn bán hàng'}
+dl_sale        dl.sale.order.reset.draft.wizard         transient=      | {'en_US': 'Lý do đưa đơn bán hàng về nháp'}
+dl_sale        res.partner                              transient=      | {'en_US': 'Contact', 'vi_VN': 'Liên hệ'}
+dl_technical   dl.bom                                   transient=      | {'en_US': 'BOM'}
+dl_technical   dl.bom.from.template.wizard              transient=      | {'en_US': 'Tạo BOM từ BOM mẫu'}
+dl_technical   dl.bom.header.mixin                      transient=      | {'en_US': 'BOM — trường & workflow đầu BOM dùng chung'}
+dl_technical   dl.bom.line                              transient=      | {'en_US': 'Dòng BOM'}
+dl_technical   dl.bom.line.mixin                        transient=      | {'en_US': 'Dòng BOM — trường & logic dùng chung'}
+dl_technical   dl.bom.template                          transient=      | {'en_US': 'BOM mẫu'}
+dl_technical   dl.bom.template.line                     transient=      | {'en_US': 'Dòng BOM mẫu'}
+dl_technical   dl.drawing                               transient=      | {'en_US': 'Bản vẽ kỹ thuật'}
+dl_technical   dl.measurement.shape                     transient=      | {'en_US': 'Hình dạng đo lường'}
+dl_technical   dl.quotation.request                     transient=      | {'en_US': 'Yêu cầu báo giá'}
+dl_technical   dl.quotation.request.line                transient=      | {'en_US': 'Dòng yêu cầu báo giá'}
+dl_technical   dl.quotation.request.line.image          transient=      | {'en_US': 'Ảnh dòng yêu cầu báo giá'}
+dl_technical   dl.rfq.history.wizard                    transient=      | {'en_US': 'Lịch sử RFQ'}
+dl_technical   dl.rfq.resolve.wizard                    transient=      | {'en_US': 'Xử lý RFQ — chọn/tạo Product và BOM'}
+dl_technical   dl.rfq.return.wizard                     transient=      | {'en_US': 'Trả lại RFQ để bổ sung'}
+dl_technical   product.category                         transient=      | {'en_US': 'Product Category', 'vi_VN': 'Danh mục sản phẩm'}
+dl_technical   product.product                          transient=      | {'en_US': 'Product Variant', 'vi_VN': 'Biến thể sản phẩm'}
+  dl_base        dl.rbac.feature                        transient=False  {'en_US': 'RBAC — Chức năng phân quyền'}
+  dl_base        dl.rbac.operation                      transient=False  {'en_US': 'RBAC — Thao tác đặc biệt'}
+  dl_config      dl.approval.level                      transient=False  {'en_US': 'Cấp duyệt trong Ma trận phê duyệt (S02 · Tab 2)'}
+  dl_config      dl.config.audit.log                    transient=False  {'en_US': 'Nhật ký thay đổi cấu hình hệ thống (S02)'}
+  dl_config      dl.pricing.approval.matrix             transient=False  {'en_US': 'Ma trận phê duyệt báo giá theo giá trị'}
+  dl_config      dl.pricing.approval.reject.wizard      transient=True  {'en_US': 'Từ chối yêu cầu phê duyệt — nhập lý do'}
+  dl_config      dl.pricing.approval.request            transient=False  {'en_US': 'Yêu cầu phê duyệt cấu hình thương mại / báo giá'}
+  dl_config      dl.pricing.approval.setting            transient=False  {'en_US': 'Cấu hình người duyệt theo loại yêu cầu'}
+  dl_config      dl.pricing.commercial.mixin            transient=False  {'en_US': 'Luồng phê duyệt cấu hình thương mại'}
+  dl_config      dl.pricing.complexity.level            transient=False  {'en_US': 'Hệ số phức tạp dùng chung'}
+  dl_config      dl.pricing.config                      transient=False  {'en_US': 'Cấu hình tham số báo giá (S02 · Tab 1)'}
+  dl_config      dl.pricing.cost.adjustment.rule        transient=False  {'en_US': 'Chi phí chung và hệ số điều chỉnh'}
+  dl_config      dl.pricing.discount.rule               transient=False  {'en_US': 'Chính sách chiết khấu theo nhóm khách hàng'}
+  dl_config      dl.pricing.operation                   transient=False  {'en_US': 'Danh mục công đoạn dùng chung'}
+  dl_config      dl.pricing.operation.rule              transient=False  {'en_US': 'Đơn giá/tỷ lệ công đoạn'}
+  dl_config      dl.pricing.profit.rule                 transient=False  {'en_US': 'Chính sách lợi nhuận và giá sàn'}
+  dl_config      dl.pricing.rule.mixin                  transient=False  {'en_US': 'Thuộc tính chung của quy tắc cấu hình báo giá'}
+  dl_config      dl.pricing.ui                          transient=True  {'en_US': 'Bootstrap dữ liệu cho màn Cấu hình Báo giá'}
+  dl_config      dl.pricing.waste                       transient=False  {'en_US': 'Tỷ lệ hao hụt mặc định theo nhóm vật tư'}
+  dl_config      dl.pricing.waste.rule                  transient=False  {'en_US': 'Quy tắc hao hụt và thu hồi'}
+  dl_config      res.users                              transient=False  {'en_US': 'User', 'vi_VN': 'Người dùng'}
+  dl_partner     res.partner                            transient=False  {'en_US': 'Contact', 'vi_VN': 'Liên hệ'}
+  dl_product     dl.measurement.shape                   transient=False  {'en_US': 'Hình dạng đo lường'}
+  dl_product     dl.measurement.shape.param             transient=False  {'en_US': 'Tham số hình dạng đo lường'}
+  dl_product     dl.measurement.type                    transient=False  {'en_US': 'Loại đo lường'}
+  dl_product     product.category                       transient=False  {'en_US': 'Product Category', 'vi_VN': 'Danh mục sản phẩm'}
+  dl_product     product.product                        transient=False  {'en_US': 'Product Variant', 'vi_VN': 'Biến thể sản phẩm'}
+  dl_product     product.supplierinfo                   transient=False  {'en_US': 'Supplier Pricelist', 'vi_VN': 'Bảng giá nhà cung cấp'}
+  dl_sale        dl.bom                                 transient=False  {'en_US': 'BOM'}
+  dl_sale        dl.pricing.approval.request            transient=False  {'en_US': 'Yêu cầu phê duyệt cấu hình thương mại / báo giá'}
+  dl_sale        dl.quotation                           transient=False  {'en_US': 'Báo giá'}
+  dl_sale        dl.quotation.line                      transient=False  {'en_US': 'Chi tiết báo giá'}
+  dl_sale        dl.quotation.price.component           transient=False  {'en_US': 'Cấu phần giá báo giá (snapshot)'}
+  dl_sale        dl.quotation.pricing.service           transient=False  {'en_US': 'Dịch vụ tính giá báo giá'}
+  dl_sale        dl.quotation.reject.wizard             transient=True  {'en_US': 'Từ chối báo giá — nhập lý do'}
+  dl_sale        dl.quotation.request                   transient=False  {'en_US': 'Yêu cầu báo giá'}
+  dl_sale        dl.quotation.revision.wizard           transient=True  {'en_US': 'Khách yêu cầu điều chỉnh báo giá'}
+  dl_sale        dl.sale.order                          transient=False  {'en_US': 'Đơn bán hàng'}
+  dl_sale        dl.sale.order.line                     transient=False  {'en_US': 'Chi tiết đơn bán hàng'}
+  dl_sale        dl.sale.order.reset.draft.wizard       transient=True  {'en_US': 'Lý do đưa đơn bán hàng về nháp'}
+  dl_sale        res.partner                            transient=False  {'en_US': 'Contact', 'vi_VN': 'Liên hệ'}
+  dl_technical   dl.bom                                 transient=False  {'en_US': 'BOM'}
+  dl_technical   dl.bom.from.template.wizard            transient=True  {'en_US': 'Tạo BOM từ BOM mẫu'}
+  dl_technical   dl.bom.header.mixin                    transient=False  {'en_US': 'BOM — trường & workflow đầu BOM dùng chung'}
+  dl_technical   dl.bom.line                            transient=False  {'en_US': 'Dòng BOM'}
+  dl_technical   dl.bom.line.mixin                      transient=False  {'en_US': 'Dòng BOM — trường & logic dùng chung'}
+  dl_technical   dl.bom.template                        transient=False  {'en_US': 'BOM mẫu'}
+  dl_technical   dl.bom.template.line                   transient=False  {'en_US': 'Dòng BOM mẫu'}
+  dl_technical   dl.drawing                             transient=False  {'en_US': 'Bản vẽ kỹ thuật'}
+  dl_technical   dl.measurement.shape                   transient=False  {'en_US': 'Hình dạng đo lường'}
+  dl_technical   dl.quotation.request                   transient=False  {'en_US': 'Yêu cầu báo giá'}
+  dl_technical   dl.quotation.request.line              transient=False  {'en_US': 'Dòng yêu cầu báo giá'}
+  dl_technical   dl.quotation.request.line.image        transient=False  {'en_US': 'Ảnh dòng yêu cầu báo giá'}
+  dl_technical   dl.rfq.history.wizard                  transient=True  {'en_US': 'Lịch sử RFQ'}
+  dl_technical   dl.rfq.resolve.wizard                  transient=True  {'en_US': 'Xử lý RFQ — chọn/tạo Product và BOM'}
+  dl_technical   dl.rfq.return.wizard                   transient=True  {'en_US': 'Trả lại RFQ để bổ sung'}
+  dl_technical   product.category                       transient=False  {'en_US': 'Product Category', 'vi_VN': 'Danh mục sản phẩm'}
+  dl_technical   product.product                        transient=False  {'en_US': 'Product Variant', 'vi_VN': 'Biến thể sản phẩm'}
+
+=== [2] MODULE dl_* CÓ FIELD TRÊN MODEL LÕI (extension) ===
+  dl_base        dl.rbac.feature                          fields=14   stored=13
+  dl_base        dl.rbac.operation                        fields=11   stored=10
+  dl_config      dl.approval.level                        fields=23   stored=22
+  dl_config      dl.config.audit.log                      fields=10   stored=9
+  dl_config      dl.pricing.approval.matrix               fields=33   stored=22
+  dl_config      dl.pricing.approval.reject.wizard        fields=8    stored=7
+  dl_config      dl.pricing.approval.request              fields=48   stored=29
+  dl_config      dl.pricing.approval.setting              fields=10   stored=9
+  dl_config      dl.pricing.commercial.mixin              fields=16   stored=8
+  dl_config      dl.pricing.complexity.level              fields=11   stored=10
+  dl_config      dl.pricing.config                        fields=28   stored=26
+  dl_config      dl.pricing.cost.adjustment.rule          fields=30   stored=21
+  dl_config      dl.pricing.discount.rule                 fields=28   stored=19
+  dl_config      dl.pricing.operation                     fields=10   stored=9
+  dl_config      dl.pricing.operation.rule                fields=27   stored=18
+  dl_config      dl.pricing.profit.rule                   fields=26   stored=17
+  dl_config      dl.pricing.rule.mixin                    fields=16   stored=8
+  dl_config      dl.pricing.ui                            fields=6    stored=5
+  dl_config      dl.pricing.waste                         fields=9    stored=8
+  dl_config      dl.pricing.waste.rule                    fields=31   stored=22
+  dl_config      res.users                                fields=1    stored=1
+  dl_partner     res.partner                              fields=11   stored=6
+  dl_partner     res.users                                fields=11   stored=0
+  dl_product     dl.measurement.shape                     fields=13   stored=12
+  dl_product     dl.measurement.shape.param               fields=10   stored=9
+  dl_product     dl.measurement.type                      fields=11   stored=10
+  dl_product     product.category                         fields=2    stored=2
+  dl_product     product.product                          fields=31   stored=10
+  dl_product     product.supplierinfo                     fields=7    stored=5
+  dl_sale        dl.pricing.approval.request              fields=26   stored=1
+  dl_sale        dl.quotation                             fields=78   stored=49
+  dl_sale        dl.quotation.line                        fields=23   stored=22
+  dl_sale        dl.quotation.price.component             fields=18   stored=17
+  dl_sale        dl.quotation.reject.wizard               fields=9    stored=8
+  dl_sale        dl.quotation.request                     fields=3    stored=2
+  dl_sale        dl.quotation.revision.wizard             fields=9    stored=8
+  dl_sale        dl.sale.order                            fields=47   stored=28
+  dl_sale        dl.sale.order.line                       fields=17   stored=16
+  dl_sale        dl.sale.order.reset.draft.wizard         fields=8    stored=7
+  dl_sale        res.partner                              fields=10   stored=2
+  dl_sale        res.users                                fields=10   stored=0
+  dl_technical   dl.bom                                   fields=47   stored=24
+  dl_technical   dl.bom.from.template.wizard              fields=9    stored=7
+  dl_technical   dl.bom.header.mixin                      fields=6    stored=6
+  dl_technical   dl.bom.line                              fields=35   stored=26
+  dl_technical   dl.bom.line.mixin                        fields=22   stored=17
+  dl_technical   dl.bom.template                          fields=37   stored=18
+  dl_technical   dl.bom.template.line                     fields=30   stored=24
+  dl_technical   dl.drawing                               fields=36   stored=17
+  dl_technical   dl.quotation.request                     fields=51   stored=23
+  dl_technical   dl.quotation.request.line                fields=30   stored=18
+  dl_technical   dl.quotation.request.line.image          fields=10   stored=9
+  dl_technical   dl.rfq.history.wizard                    fields=8    stored=6
+  dl_technical   dl.rfq.resolve.wizard                    fields=31   stored=15
+  dl_technical   dl.rfq.return.wizard                     fields=8    stored=7
+  dl_technical   product.category                         fields=1    stored=1
+  dl_technical   product.product                          fields=3    stored=2
+
+=== [3] MAP model -> bảng vật lý (ir_model.model -> replace . by _) ===
+  res.users                                transient=False owner=auth_signup,auth_totp,auth_totp_mail,auth_totp_portal,base,base_import,base_setup,bus,digest,dl_config,mail,mail_bot,phone_validation,resource,stock,web,web_unsplash table=res_users
+  res.partner                              transient=False owner=auth_signup,base,bus,dl_partner,dl_sale,mail,partner_autocomplete,phone_validation,portal,privacy_lookup,product,sms,snailmail,stock,web table=res_partner
+  dl.rbac.feature                          transient=False owner=dl_base        table=dl_rbac_feature
+  dl.rbac.operation                        transient=False owner=dl_base        table=dl_rbac_operation
+  dl.approval.level                        transient=False owner=dl_config      table=dl_approval_level
+  dl.config.audit.log                      transient=False owner=dl_config      table=dl_config_audit_log
+  dl.pricing.approval.matrix               transient=False owner=dl_config      table=dl_pricing_approval_matrix
+  dl.pricing.approval.reject.wizard        transient=True  owner=dl_config      table=dl_pricing_approval_reject_wizard
+  dl.pricing.approval.setting              transient=False owner=dl_config      table=dl_pricing_approval_setting
+  dl.pricing.commercial.mixin              transient=False owner=dl_config      table=None
+  dl.pricing.complexity.level              transient=False owner=dl_config      table=dl_pricing_complexity_level
+  dl.pricing.config                        transient=False owner=dl_config      table=dl_pricing_config
+  dl.pricing.cost.adjustment.rule          transient=False owner=dl_config      table=dl_pricing_cost_adjustment_rule
+  dl.pricing.discount.rule                 transient=False owner=dl_config      table=dl_pricing_discount_rule
+  dl.pricing.operation                     transient=False owner=dl_config      table=dl_pricing_operation
+  dl.pricing.operation.rule                transient=False owner=dl_config      table=dl_pricing_operation_rule
+  dl.pricing.profit.rule                   transient=False owner=dl_config      table=dl_pricing_profit_rule
+  dl.pricing.rule.mixin                    transient=False owner=dl_config      table=None
+  dl.pricing.ui                            transient=True  owner=dl_config      table=dl_pricing_ui
+  dl.pricing.waste                         transient=False owner=dl_config      table=dl_pricing_waste
+  dl.pricing.waste.rule                    transient=False owner=dl_config      table=dl_pricing_waste_rule
+  dl.pricing.approval.request              transient=False owner=dl_config,dl_sale table=dl_pricing_approval_request
+  dl.measurement.shape.param               transient=False owner=dl_product     table=dl_measurement_shape_param
+  dl.measurement.type                      transient=False owner=dl_product     table=dl_measurement_type
+  dl.measurement.shape                     transient=False owner=dl_product,dl_technical table=dl_measurement_shape
+  product.category                         transient=False owner=dl_product,dl_technical,product,stock table=product_category
+  product.product                          transient=False owner=dl_product,dl_technical,product,stock table=product_product
+  product.supplierinfo                     transient=False owner=dl_product,product table=product_supplierinfo
+  dl.quotation                             transient=False owner=dl_sale        table=dl_quotation
+  dl.quotation.line                        transient=False owner=dl_sale        table=dl_quotation_line
+  dl.quotation.price.component             transient=False owner=dl_sale        table=dl_quotation_price_component
+  dl.quotation.pricing.service             transient=False owner=dl_sale        table=None
+  dl.quotation.reject.wizard               transient=True  owner=dl_sale        table=dl_quotation_reject_wizard
+  dl.quotation.revision.wizard             transient=True  owner=dl_sale        table=dl_quotation_revision_wizard
+  dl.sale.order                            transient=False owner=dl_sale        table=dl_sale_order
+  dl.sale.order.line                       transient=False owner=dl_sale        table=dl_sale_order_line
+  dl.sale.order.reset.draft.wizard         transient=True  owner=dl_sale        table=dl_sale_order_reset_draft_wizard
+  dl.bom                                   transient=False owner=dl_sale,dl_technical table=dl_bom
+  dl.quotation.request                     transient=False owner=dl_sale,dl_technical table=dl_quotation_request
+  dl.bom.from.template.wizard              transient=True  owner=dl_technical   table=dl_bom_from_template_wizard
+  dl.bom.header.mixin                      transient=False owner=dl_technical   table=None
+  dl.bom.line                              transient=False owner=dl_technical   table=dl_bom_line
+  dl.bom.line.mixin                        transient=False owner=dl_technical   table=None
+  dl.bom.template                          transient=False owner=dl_technical   table=dl_bom_template
+  dl.bom.template.line                     transient=False owner=dl_technical   table=dl_bom_template_line
+  dl.drawing                               transient=False owner=dl_technical   table=dl_drawing
+  dl.quotation.request.line                transient=False owner=dl_technical   table=dl_quotation_request_line
+  dl.quotation.request.line.image          transient=False owner=dl_technical   table=dl_quotation_request_line_image
+  dl.rfq.history.wizard                    transient=True  owner=dl_technical   table=dl_rfq_history_wizard
+  dl.rfq.resolve.wizard                    transient=True  owner=dl_technical   table=dl_rfq_resolve_wizard
+  dl.rfq.return.wizard                     transient=True  owner=dl_technical   table=dl_rfq_return_wizard

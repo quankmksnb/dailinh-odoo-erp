@@ -1,0 +1,3711 @@
+{
+ "res_partner": {
+  "kind": "Table",
+  "flag": "Inherit",
+  "title": "Table: res_partner [Inherit]",
+  "cols": [
+   {
+    "name": "Id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Partner name"
+   },
+   {
+    "name": "active [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "NOT NULL DEFAULT True",
+    "notes": "Deactivates partnership (active = false), does not delete"
+   },
+   {
+    "name": "vat [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "phone [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "email [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "website [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "street [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Address — printed on quotations / orders"
+   },
+   {
+    "name": "city [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "imge_1920 [Native]",
+    "type": "Image",
+    "pg": "—",
+    "cons": "—",
+    "notes": "Original image stored via ir.attachment"
+   },
+   {
+    "name": "partner_type",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL DEFAULT company",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "partner_role",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "dlm_customer_group",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL DEFAULT new",
+    "notes": "Enum — see §3.3"
+   }
+  ]
+ },
+ "res_users": {
+  "kind": "Table",
+  "flag": "Inherit",
+  "title": "Table: res_users [Inherit]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "login [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE",
+    "notes": "Khoá xác thực. Dự án dùng e-mail làm login."
+   },
+   {
+    "name": "password [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Băm PBKDF2 do Odoo quản lý — không bao giờ lưu bản rõ."
+   },
+   {
+    "name": "active [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "NOT NULL DEFAULT TRUE",
+    "notes": "Khoá tài khoản = đặt false. Không xoá dòng, để mọi cột kiểm toán còn trỏ tới người thật."
+   },
+   {
+    "name": "login_date [Native]",
+    "type": "Datetime",
+    "pg": "TIMESTAMP",
+    "cons": "—",
+    "notes": "Lần đăng nhập gần nhất"
+   },
+   {
+    "name": "partner_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → res_partner, NOT NULL",
+    "notes": "_inherits: name, email, phone của người dùng nằm ở res_partner chứ KHÔNG phải cột của bảng này — cùng cơ chế ủy quyền như product_product → product_template."
+   },
+   {
+    "name": "company_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → res_company, NOT NULL",
+    "notes": "Công ty chủ quản"
+   },
+   {
+    "name": "share [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "false = người dùng nội bộ. Màn Quản lý người dùng lọc theo cột này."
+   },
+   {
+    "name": "dl_backup_approver_id",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_users, ON DELETE SET NULL",
+    "notes": "Người duyệt dự phòng khi người này vắng hoặc quá SLA (IP-02). Đây là cột DUY NHẤT dự án thêm vào bảng res_users."
+   }
+  ]
+ },
+ "res_company": {
+  "kind": "Table",
+  "flag": "Native",
+  "title": "Table: res_company [Native]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Tên công ty"
+   },
+   {
+    "name": "currency_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_currency, NOT NULL",
+    "notes": "Bị ép về VNĐ mỗi lần -u dl_base — xem ràng buộc bên dưới"
+   },
+   {
+    "name": "partner_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_partner, NOT NULL",
+    "notes": "Công ty cũng là một partner"
+   }
+  ]
+ },
+ "res_country": {
+  "kind": "Table",
+  "flag": "Native",
+  "title": "Table: res_country [Native]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char translated",
+    "pg": "JSONB",
+    "cons": "NOT NULL",
+    "notes": "Odoo 17 lưu bản dịch dạng JSONB"
+   },
+   {
+    "name": "code [Native]",
+    "type": "Char",
+    "pg": "VARCHAR(2)",
+    "cons": "UNIQUE",
+    "notes": "Mã ISO 3166-1 alpha-2"
+   }
+  ]
+ },
+ "dl_rbac_feature": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_rbac_feature [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Feature / Screen name"
+   },
+   {
+    "name": "Code",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE",
+    "notes": "Feature code"
+   },
+   {
+    "name": "model_id",
+    "type": "M2O → ir.model",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Model for CRUD permissions"
+   },
+   {
+    "name": "category",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "—"
+   }
+  ]
+ },
+ "dl_rbac_operation": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_rbac_operation [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "feature_id",
+    "type": "M2O → required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "—"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Action name"
+   },
+   {
+    "name": "code",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE",
+    "notes": "—"
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "group_id",
+    "type": "M2O → res.groups required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "Odoo native permission table"
+   }
+  ]
+ },
+ "product_product": {
+  "kind": "Table",
+  "flag": "Inherit",
+  "title": "Table: product_product [Inherit]",
+  "cols": [
+   {
+    "name": "Id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Item Name"
+   },
+   {
+    "name": "default_code [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE",
+    "notes": "Item Code"
+   },
+   {
+    "name": "active [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "NOT NULL DEFAULT True",
+    "notes": "—"
+   },
+   {
+    "name": "categ_id [Native]",
+    "type": "M2O → product.category",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Category"
+   },
+   {
+    "name": "uom_id [Native]",
+    "type": "M2O → uom.uom required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Stock UOM"
+   },
+   {
+    "name": "uom_po_id [Native]",
+    "type": "M2O → uom.uom",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Purchase UOM"
+   },
+   {
+    "name": "list_price [Native]",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Sale price"
+   },
+   {
+    "name": "imge_1920 [Native]",
+    "type": "Image",
+    "pg": "—",
+    "cons": "—",
+    "notes": "Original image stored via ir.attachment"
+   },
+   {
+    "name": "product_kind",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "dlm_lifecycle_state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "dlm_waste_rate",
+    "type": "Float(6,2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Base scrap rate (%) — only applies to product_kind = material / material_processed"
+   },
+   {
+    "name": "dlm_has_recovery",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Scrap recovery enabled — only applies to product_kind = material / material_processed"
+   }
+  ]
+ },
+ "product_template": {
+  "kind": "Table",
+  "flag": "Native",
+  "title": "Table: product_template [Native]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char translated required",
+    "pg": "JSONB",
+    "cons": "NOT NULL",
+    "notes": "Tên mặt hàng"
+   },
+   {
+    "name": "type [Native]",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Đặt 'product' (storable) để Kho theo dõi tồn — giá trị này do module stock thêm vào"
+   },
+   {
+    "name": "categ_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → product_category, NOT NULL",
+    "notes": "Nhóm sản phẩm"
+   },
+   {
+    "name": "uom_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → uom_uom, NOT NULL",
+    "notes": "Đơn vị tính"
+   },
+   {
+    "name": "active [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "DEFAULT TRUE",
+    "notes": "Lưu trữ thay vì xoá"
+   }
+  ]
+ },
+ "product_category": {
+  "kind": "Table",
+  "flag": "Inherit",
+  "title": "Table: product_category [Inherit]",
+  "cols": [
+   {
+    "name": "Id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE",
+    "notes": "—"
+   },
+   {
+    "name": "parent_id [Native]",
+    "type": "M2O → product.category",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Self-referencing to parent category"
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "NOT NULL DEFAULT True",
+    "notes": "Deactivate (active = false)"
+   },
+   {
+    "name": "dl_branch",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "bom_template_id",
+    "type": "M2O → dl.bom.template",
+    "pg": "INTEGER",
+    "cons": "FK, ON DELETE SET Null",
+    "notes": "Default template BOM for the category"
+   }
+  ]
+ },
+ "product_supplierinfo": {
+  "kind": "Table",
+  "flag": "Inherit",
+  "title": "Table: product_supplierinfo [Inherit]",
+  "cols": [
+   {
+    "name": "Id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "partner_id [Native]",
+    "type": "M2O → res.partner required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "Supplier"
+   },
+   {
+    "name": "product_id [Native]",
+    "type": "M2O → product_product",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "Material / Trading Product"
+   },
+   {
+    "name": "price [Native]",
+    "type": "Float required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "date_start [Native]",
+    "type": "Date",
+    "pg": "DATE",
+    "cons": "NOT NULL",
+    "notes": "Effective from"
+   },
+   {
+    "name": "date_end [Native]",
+    "type": "Date",
+    "pg": "DATE",
+    "cons": "NOT NULL",
+    "notes": "Effective to"
+   },
+   {
+    "name": "product_uom [Native]",
+    "type": "M2O → uom.uom",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Item Unit of Measure (UoM), linked to product_product"
+   },
+   {
+    "name": "sequence [Native]",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "DEFAULT 1",
+    "notes": "—"
+   },
+   {
+    "name": "approval_state",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, DEFAULT draft",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "is_applied",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "NOT NULL, DEFAULT False",
+    "notes": "Currently applied to item"
+   }
+  ]
+ },
+ "uom_uom": {
+  "kind": "Table",
+  "flag": "Native",
+  "title": "Table: uom_uom [Native]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char translated required",
+    "pg": "JSONB",
+    "cons": "NOT NULL",
+    "notes": "Tên đơn vị"
+   },
+   {
+    "name": "category_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → uom_category, NOT NULL",
+    "notes": "Chỉ quy đổi được giữa các đơn vị CÙNG category"
+   },
+   {
+    "name": "factor [Native]",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Hệ số quy đổi về đơn vị gốc"
+   },
+   {
+    "name": "uom_type [Native]",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "bigger / reference / smaller"
+   }
+  ]
+ },
+ "dl_measurement_type": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_measurement_type [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE",
+    "notes": "—"
+   },
+   {
+    "name": "description",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "NOT NULL DEFAULT True",
+    "notes": "—"
+   },
+   {
+    "name": "formula_uom_id",
+    "type": "M2O → uom.uom",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Resulting physical unit"
+   }
+  ]
+ },
+ "dl_measurement_shape": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_measurement_shape [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "measurement_type_id",
+    "type": "M2O → dl.measure,emt.type",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "—"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Shape"
+   },
+   {
+    "name": "code",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Formula dispatch key — hardcoded"
+   },
+   {
+    "name": "default_coefiicient",
+    "type": "Float(16,4)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Suggested factor / coefficient (e.g., density)"
+   },
+   {
+    "name": "coefficient_label",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Factor display name"
+   }
+  ]
+ },
+ "dl_measurement_shape_param": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_measurement_shape_param [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "shape_id",
+    "type": "M2O → dl_measurement_shape",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "Shape"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Display name"
+   },
+   {
+    "name": "code",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   }
+  ]
+ },
+ "dl_drawing": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_drawing [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "drawing_code",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE",
+    "notes": "Drawing code"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "product_id",
+    "type": "M2O → product.product required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "attachment_id",
+    "type": "M2O → ir.attachment",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "created_by",
+    "type": "M2O → res.users required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "readonly"
+   }
+  ]
+ },
+ "dl.bom.header.mixin": {
+  "kind": "Mixin",
+  "flag": "Mixin",
+  "title": "Mixin: dl.bom.header.mixin [Mixin]",
+  "cols": [
+   {
+    "name": "version",
+    "type": "Integer required",
+    "pg": "INTEGER",
+    "cons": "NOT NULL, DEFAULT 1",
+    "notes": "—"
+   },
+   {
+    "name": "product_qty",
+    "type": "Float required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL, DEFAULT 1",
+    "notes": "Output Quantity"
+   },
+   {
+    "name": "status",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "approved_by",
+    "type": "M2O → res.users",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "—"
+   },
+   {
+    "name": "approved_date",
+    "type": "Datetime",
+    "pg": "TIMESTAMP",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "is_current",
+    "type": "Boolen",
+    "pg": "BOOL",
+    "cons": "NOT NULLL",
+    "notes": "Indicates the current active version. When a new version is confirmed, this field is automatically set to false for the previous version."
+   },
+   {
+    "name": "created_by",
+    "type": "M2O → res.users required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "readonly"
+   }
+  ]
+ },
+ "dl_bom": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_bom [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "product_id",
+    "type": "M2O → product.product required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Output Product"
+   },
+   {
+    "name": "category_id",
+    "type": "M2O → product.category",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Product Category — used to quickly filter the product list."
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "version, product_qty, status, approved_by, approved_date, is_current, created_by",
+    "type": "—",
+    "pg": "—",
+    "cons": "—",
+    "notes": "Inherited from dl.bom.header.mixin"
+   }
+  ]
+ },
+ "dl.bom.line.mixin": {
+  "kind": "Mixin",
+  "flag": "Mixin",
+  "title": "Mixin: dl.bom.line.mixin [Mixin]",
+  "cols": [
+   {
+    "name": "material_id",
+    "type": "M2O → product.product required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Material / Semi-finished Product. Domain checks product_kind ∈ {material, material_processed}"
+   },
+   {
+    "name": "quantity",
+    "type": "Float required",
+    "pg": "NUMBERIC",
+    "cons": "NOT NULL",
+    "notes": "Actual Quantity Used"
+   },
+   {
+    "name": "complexity_id",
+    "type": "M2O → dl.pricing.complexity.level",
+    "pg": "INTEGER",
+    "cons": "FK, ON DELETE set null",
+    "notes": "Mức phức tạm"
+   },
+   {
+    "name": "waste_rate",
+    "type": "Float(5.2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Waste Rate = base waste rate × complexity factor; can be manually overridden"
+   },
+   {
+    "name": "effective_qty",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Quantity × (1 + waste_rate / 100)"
+   },
+   {
+    "name": "is_override",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Flag indicating that the system-calculated quantity has been overridden"
+   },
+   {
+    "name": "override_reason",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "Override Reason (required when is_override = true)"
+   },
+   {
+    "name": "uom_id",
+    "type": "M2O → uom.uom",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Unit of Measure"
+   }
+  ]
+ },
+ "dl_bom_line": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_bom_line [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "bom_id",
+    "type": "M2O → dl.bom required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "—"
+   },
+   {
+    "name": "(+ all fields from dl.bom.line.mixin)",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   }
+  ]
+ },
+ "dl_bom_operation_line": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_bom_operation_line [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "bom_id",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → dl_bom, NOT NULL, ON DELETE CASCADE, INDEX",
+    "notes": "Xoá BOM thì xoá công đoạn"
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "DEFAULT 10",
+    "notes": "Thứ tự hiển thị"
+   },
+   {
+    "name": "operation_id",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → dl_pricing_operation, NOT NULL, ON DELETE RESTRICT",
+    "notes": "RESTRICT: không cho xoá công đoạn đang được BOM dùng"
+   },
+   {
+    "name": "base_qty",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Định mức cơ sở; chỉ nhập khi phương pháp tính cần (needs_base_qty)"
+   },
+   {
+    "name": "material_scope",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL DEFAULT 'all'",
+    "notes": "all = tính trên toàn bộ vật tư · selected = chỉ vật tư đã chọn"
+   },
+   {
+    "name": "is_outsourced",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Công đoạn thuê ngoài"
+   },
+   {
+    "name": "partner_id",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_partner",
+    "notes": "Nhà cung cấp gia công, chỉ khi is_outsourced"
+   },
+   {
+    "name": "note",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Ghi chú"
+   }
+  ]
+ },
+ "dl_bom_template": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_bom_template [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "product_category_id",
+    "type": "M2O → product.category required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE restrict",
+    "notes": "—"
+   },
+   {
+    "name": "version, product_qty, status, approved_by, approved_date, is_current, created_by",
+    "type": "—",
+    "pg": "—",
+    "cons": "—",
+    "notes": "Inherited from dl.bom.header.mixin"
+   }
+  ]
+ },
+ "dl_bom_template_line": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_bom_template_line [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "bom_template_id",
+    "type": "M2O → dl.bom.template",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "—"
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "(+ all fields from dl.bom.line.mixin)",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   }
+  ]
+ },
+ "dl_bom_template_param": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_bom_template_param [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "bom_template_id",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → dl_bom_template, NOT NULL, ON DELETE CASCADE, INDEX",
+    "notes": "Mẫu chứa tham số"
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "DEFAULT 10",
+    "notes": "Thứ tự nhập liệu"
+   },
+   {
+    "name": "code",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE(bom_template_id, code)",
+    "notes": "Mã tham số dùng trong công thức, VD D, R, C"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Nhãn hiển thị cho người nhập"
+   },
+   {
+    "name": "dim_role",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT 'none'",
+    "notes": "Vai trò kích thước: length / width / height / thickness / side / none"
+   },
+   {
+    "name": "default_value",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Giá trị gợi ý sẵn"
+   },
+   {
+    "name": "value_min",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Chặn dưới khi nhập"
+   },
+   {
+    "name": "value_max",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Chặn trên khi nhập"
+   },
+   {
+    "name": "required",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "DEFAULT TRUE",
+    "notes": "Bắt buộc nhập khi áp mẫu"
+   }
+  ]
+ },
+ "dl_bom_template_line_param_map": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_bom_template_line_param_map [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "template_line_id",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → dl_bom_template_line, NOT NULL, ON DELETE CASCADE, INDEX",
+    "notes": "Dòng vật tư mẫu nhận giá trị"
+   },
+   {
+    "name": "bom_template_id",
+    "type": "Many2one related stored",
+    "pg": "INTEGER",
+    "cons": "FK → dl_bom_template, INDEX",
+    "notes": "Bản sao có store của template_line_id.bom_template_id — để lọc nhanh theo mẫu"
+   },
+   {
+    "name": "target_field",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Ô đích: dim_length / dim_width / piece_count / quantity"
+   },
+   {
+    "name": "param_id",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → dl_bom_template_param, NOT NULL, ON DELETE CASCADE",
+    "notes": "Tham số nguồn"
+   },
+   {
+    "name": "factor",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "DEFAULT 1.0",
+    "notes": "Hệ số nhân"
+   },
+   {
+    "name": "offset",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "DEFAULT 0.0",
+    "notes": "Số cộng thêm"
+   }
+  ]
+ },
+ "dl_quotation_request": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_quotation_request [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE",
+    "notes": "RFQ-YYYY- …"
+   },
+   {
+    "name": "customer_id",
+    "type": "M2O → res.partner required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Customer, domain checks partner_role ∈ {customer, both}"
+   },
+   {
+    "name": "description",
+    "type": "Text",
+    "pg": "Text",
+    "cons": "—",
+    "notes": "Description"
+   },
+   {
+    "name": "request_date",
+    "type": "Datetime required",
+    "pg": "TIMESTAMP",
+    "cons": "NOT NULL",
+    "notes": "Request Received Date"
+   },
+   {
+    "name": "deadline",
+    "type": "Date",
+    "pg": "DATE",
+    "cons": "NOT NULL",
+    "notes": "Request Deadline"
+   },
+   {
+    "name": "status",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, DEFAULT new",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "return_reason",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "Latest Reason for Return by Engineering t"
+   },
+   {
+    "name": "created_by",
+    "type": "M2O → res.user",
+    "pg": "FK",
+    "cons": "NOT NULL",
+    "notes": "Created By (Sales)"
+   },
+   {
+    "name": "received_by",
+    "type": "M2O → res.user",
+    "pg": "FK",
+    "cons": "—",
+    "notes": "Assigned Engineer — prevents multiple engineers from processing the same request concurrently"
+   },
+   {
+    "name": "received_date",
+    "type": "Datetime",
+    "pg": "TIMESTAMP",
+    "cons": "—",
+    "notes": "Processing Start Time"
+   }
+  ]
+ },
+ "dl_quotation_request_line": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_quotation_request_line [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "quotation_request_id",
+    "type": "M2O → required",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "—"
+   },
+   {
+    "name": "product_type",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Product type (manufactured / trading)"
+   },
+   {
+    "name": "product_name",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "FK, NOT NULL",
+    "notes": "Customer Requested Product Name"
+   },
+   {
+    "name": "product_category_id",
+    "type": "M2O → product.category",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Product Category, domain checks the “finished” branch"
+   },
+   {
+    "name": "reference_product_id",
+    "type": "M2O → product.category",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Reference Product (suggested by Sales) — for reference only"
+   },
+   {
+    "name": "quantity",
+    "type": "Float required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Requested Quantity"
+   },
+   {
+    "name": "demension_note",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "Dimensions / Technical Requirements"
+   },
+   {
+    "name": "resolved_product_id",
+    "type": "M2O → product.product",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Final Product Determined by Engineering"
+   },
+   {
+    "name": "resolved_bom_id",
+    "type": "M2O → dl.bom",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Referenced BOM — applicable only to manufactured items"
+   },
+   {
+    "name": "is_infeasible",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Kết luận không khả thi"
+   },
+   {
+    "name": "infeasible_reason",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "Marked as Infeasible"
+   }
+  ]
+ },
+ "dl_quotation_request_line_image": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_quotation_request_line_image [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "line_id",
+    "type": "M2O → dl.quotation.request.line",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "—"
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "image",
+    "type": "Image required → ir_attachment",
+    "pg": "–",
+    "cons": "—",
+    "notes": "—"
+   }
+  ]
+ },
+ "dl_quotation": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_quotation [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, UNIQUE",
+    "notes": "Quotation Number"
+   },
+   {
+    "name": "partner_id",
+    "type": "M2O → res.partner required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Customer, domain checks partner_role ∈ {customer, both}"
+   },
+   {
+    "name": "date_order",
+    "type": "Date required",
+    "pg": "DATE",
+    "cons": "NOT NULL",
+    "notes": "Quotation Date"
+   },
+   {
+    "name": "validity_date",
+    "type": "Date",
+    "pg": "DATE",
+    "cons": "—",
+    "notes": "Validity Date, default = quotation_date + N configured days (default: 30)"
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "created_by",
+    "type": "M2O → res.users required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Created By (read-only)"
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "quotation_request_id",
+    "type": "M2O → dl.quotation.request",
+    "pg": "INTEGER",
+    "cons": "FK NOT NULL, ON DELETE restrict",
+    "notes": "RQF"
+   },
+   {
+    "name": "revision",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "NOT NULL DEFAULT 1",
+    "notes": "Version Number"
+   },
+   {
+    "name": "origin_quotation_id",
+    "type": "M2O → dl.quotation",
+    "pg": "INTEGER",
+    "cons": "FK, ON DELETE SET NULL",
+    "notes": "Previous Version (self-reference)"
+   },
+   {
+    "name": "discount_pct",
+    "type": "Float(5,2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "% Discount"
+   },
+   {
+    "name": "vat_pct",
+    "type": "Float(5,2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "% VAT"
+   },
+   {
+    "name": "amount_untaxed",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Sum of Line Amounts"
+   },
+   {
+    "name": "discount_amount",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "amount_before_vat",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Amount After Discount, Before VAT. This value determines the approval workflow"
+   },
+   {
+    "name": "vat_amount",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "amount_total",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Total Amount"
+   },
+   {
+    "name": "Internal Control Fields",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   },
+   {
+    "name": "total_cost",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Σ (Cost × Quantity)"
+   },
+   {
+    "name": "floor_amount",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Σ (Floor Price × Quantity)"
+   },
+   {
+    "name": "effective_markup",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Actual Markup Achieved"
+   },
+   {
+    "name": "target_markup",
+    "type": "Float(6,2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Snapshot of the Target Markup Applied"
+   },
+   {
+    "name": "below_floor",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Below Floor Price Flag n"
+   },
+   {
+    "name": "Approval Logic Fields",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   },
+   {
+    "name": "approval_required",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Approval Required"
+   },
+   {
+    "name": "approval_state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT not_required",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "approval_reasons",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "Approval Reason List"
+   },
+   {
+    "name": "approval_request_id",
+    "type": "M2O → dl.pricing.approval.request",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Approval Request"
+   },
+   {
+    "name": "Phản hồi của Khách hàng",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   },
+   {
+    "name": "reject_reason",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "7 predefined reasons Enum — see §3.3"
+   },
+   {
+    "name": "reject_reason_note",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "Detailed reason is required when reject_reason = 'other'"
+   },
+   {
+    "name": "revision_request_type",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Enum — see §3.3 – Determines the next processing step."
+   },
+   {
+    "name": "revision_request_note",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "Customer Request Details"
+   }
+  ]
+ },
+ "dl_quotation_line": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_quotation_line [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "quotation_id",
+    "type": "M2O → dl,quotation",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "—"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Line Description"
+   },
+   {
+    "name": "qty",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Quantity"
+   },
+   {
+    "name": "price_unit",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Rounded Unit Selling Price (according to configuration)"
+   },
+   {
+    "name": "line_type",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "rfq_line_id",
+    "type": "M2O → dl.quotation.request.line",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE SET NULL",
+    "notes": "Source RFQ Line"
+   },
+   {
+    "name": "product_id",
+    "type": "M2O → product.product",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "bom_id",
+    "type": "M2O → dl.bom",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Applied BOM"
+   },
+   {
+    "name": "bom_version",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "BOM Version Used for the Quotation"
+   },
+   {
+    "name": "bom_apprived_by",
+    "type": "M2O → res.user",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "BOM Approved By (at the time of quotation)"
+   },
+   {
+    "name": "base_price",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Base Price Before Rounding"
+   },
+   {
+    "name": "material_cost",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Material Cost per Unit"
+   },
+   {
+    "name": "total_cost",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Unit Cost"
+   },
+   {
+    "name": "floor_price",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Floor Price per Unit"
+   }
+  ]
+ },
+ "dl_quotation_price_component": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_quotation_price_component [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "quotation_id",
+    "type": "M2O → dl,quotation",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "—"
+   },
+   {
+    "name": "quotation_line_id",
+    "type": "M2O → dl.quotation.line",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "—"
+   },
+   {
+    "name": "component_type",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "source_model",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Source Model (product.supplierinfo / dl.bom / product.product / dl.pricing.profit.rule)"
+   },
+   {
+    "name": "source_revision",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "Source Version at Confirmation Time"
+   },
+   {
+    "name": "material_id",
+    "type": "M2O → product.product",
+    "pg": "INTEGER",
+    "cons": "FK, ON DELETE SET NULL",
+    "notes": "Related Material / Product"
+   },
+   {
+    "name": "qty",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "unit_price",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "rate",
+    "type": "Float(5, 2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Percentage Used for Markup / Discount / VAT"
+   },
+   {
+    "name": "amount",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Amount"
+   },
+   {
+    "name": "no_discount",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Discount-Exempt Range"
+   }
+  ]
+ },
+ "dl_sale_order": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_sale_order [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "partner_id",
+    "type": "M2O —> res.partner required",
+    "pg": "INTEGER",
+    "cons": "FK< NOT NULL",
+    "notes": "Customer"
+   },
+   {
+    "name": "quotation_id",
+    "type": "M2O → dl.quotation",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE restrict",
+    "notes": "Source Quotation"
+   },
+   {
+    "name": "date_order",
+    "type": "Date required",
+    "pg": "DATE",
+    "cons": "NOT NULL",
+    "notes": "Sales Order Date"
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, DEFAULT draft",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "note",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "reset_draft_reason",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "Latest Reason for Reverting to Draft"
+   },
+   {
+    "name": "reset_draft_by",
+    "type": "M2O → res.user",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Performed By"
+   },
+   {
+    "name": "reset_draft_at",
+    "type": "Datetime",
+    "pg": "TIMESTAMP",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "dlm_delivery_state",
+    "type": "Selection computed stored",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT 'nothing'",
+    "notes": "nothing / partial / done — see §3.3"
+   },
+   {
+    "name": "dlm_has_deliverable",
+    "type": "Boolean computed stored",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "FALSE when no line needs to ship through the warehouse, so the “Create delivery” button is hidden instead of failing on click"
+   }
+  ]
+ },
+ "dl_sale_order_line": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_sale_order_line [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "order_id",
+    "type": "M2O → required",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL, ON DELETE cascade",
+    "notes": "—"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "qty",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "product_id",
+    "type": "M2O → product.product",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "bom_id",
+    "type": "M2O → dl.bom",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Applied BOM"
+   },
+   {
+    "name": "line_type",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "trading / manufactured"
+   }
+  ]
+ },
+ "dl.pricing.rule.mixin": {
+  "kind": "Mixin",
+  "flag": "Mixin",
+  "title": "Mixin: dl.pricing.rule.mixin [Mixin]",
+  "cols": [
+   {
+    "name": "revision",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "NOT NULL",
+    "notes": "Version, Incremented When a New Revision Is Created"
+   },
+   {
+    "name": "valid_from",
+    "type": "Date required",
+    "pg": "DATE",
+    "cons": "NOT NULL",
+    "notes": "Effective From"
+   },
+   {
+    "name": "valid_to",
+    "type": "Date",
+    "pg": "DATE",
+    "cons": "NOT NULL",
+    "notes": "Effective To – Automatically Closed When a New Version Is Created"
+   },
+   {
+    "name": "change_reason",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Reason for Change"
+   },
+   {
+    "name": "used_in_snapshot",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "DEFAULT False",
+    "notes": "Once the Rule Has Been Snapshotted by a Confirmed Quotation, It Cannot Be Modified or Deleted"
+   }
+  ]
+ },
+ "dl.pricing.commercial.mixin": {
+  "kind": "Mixin",
+  "flag": "Mixin",
+  "title": "Mixin: dl.pricing.commercial.mixin [Mixin]",
+  "cols": []
+ },
+ "dl_pricing_config": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_config [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL DEFAULT 'Cấu hình báo giá'",
+    "notes": "Tên cấu hình"
+   },
+   {
+    "name": "vat_pct",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "DEFAULT 0.0",
+    "notes": "VAT mặc định (%), khoảng hợp lệ 0–100"
+   },
+   {
+    "name": "rounding_to",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "DEFAULT 1000",
+    "notes": "Làm tròn giá bán đến bội số này (đồng)"
+   }
+  ]
+ },
+ "dl_pricing_complexity_level": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_complexity_level [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Complexity level name"
+   },
+   {
+    "name": "factor",
+    "type": "Float(6,2) required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL, DEFAULT 1.0",
+    "notes": "Multiplier Applied to the Base Scrap Rate"
+   },
+   {
+    "name": "note",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Usage Suggestion"
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "—"
+   }
+  ]
+ },
+ "dl_pricing_waste_rule": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_waste_rule [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "target_type",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "category / product"
+   },
+   {
+    "name": "category_id",
+    "type": "M2O → product.category",
+    "pg": "INTEGER",
+    "cons": "FK, ON DELETE restrict",
+    "notes": "Used When target_type = 'category'"
+   },
+   {
+    "name": "product_id",
+    "type": "M2O → product.product",
+    "pg": "INTEGER",
+    "cons": "FK, ON DELETE restrict",
+    "notes": "Used When target_type = 'product'"
+   },
+   {
+    "name": "watse_rate",
+    "type": "Float()6,2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Scrap Rate (%)"
+   },
+   {
+    "name": "has_recovery",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Scrap Recovery Enabled"
+   },
+   {
+    "name": "recovery_rate",
+    "type": "Float(6,2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Scrap Recovery Rate (%) – Calculated Based on the Scrap Quantity"
+   },
+   {
+    "name": "crap_product_id",
+    "type": "M2O → product.product",
+    "pg": "INTEGER",
+    "cons": "FK, ONDELETE restrict",
+    "notes": "Scrap Product"
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT draft",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "+ All Fields from dl.pricing.rule.mixin",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   }
+  ]
+ },
+ "dl_pricing_operation": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_operation [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "\"Cắt\" / \"Hàn\" / \"Chấn\" / \"Khoan\" / \"Sơn\" / \"Thuê ngoài\""
+   },
+   {
+    "name": "code",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "UNIQUE",
+    "notes": "—"
+   },
+   {
+    "name": "sequence",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "active",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "—"
+   }
+  ]
+ },
+ "dl_pricing_operation_rule": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_operation_rule [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "operation_id",
+    "type": "M2O → dl.pricing.operation",
+    "pg": "INTEGER",
+    "cons": "FK NOT NULL",
+    "notes": "category / product"
+   },
+   {
+    "name": "category_id",
+    "type": "M2O → product.category",
+    "pg": "INTEGER",
+    "cons": "FK, ON DELETE restrict",
+    "notes": "Used When target_type = \"category\""
+   },
+   {
+    "name": "product_id",
+    "type": "M2O → product.product",
+    "pg": "INTEGER",
+    "cons": "FK, ON DELETE restrict",
+    "notes": "Used When target_type = \"product\""
+   },
+   {
+    "name": "watse_rate",
+    "type": "Float()6,2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Scrap Rate (%)"
+   },
+   {
+    "name": "has_recovery",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Scrap Recovery Enabled"
+   },
+   {
+    "name": "recovery_rate",
+    "type": "Float(6,2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Scrap Recovery Rate (%) – Based on the Scrap Quantity"
+   },
+   {
+    "name": "crap_product_id",
+    "type": "M2O → product.product",
+    "pg": "INTEGER",
+    "cons": "FK, ONDELETE restrict",
+    "notes": "Scrap Product"
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT draft",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "+ All Fields from dl.pricing.rule.mixin",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   }
+  ]
+ },
+ "dl_pricing_cost_adjustment_rule": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_cost_adjustment_rule [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Tên khoản chi phí"
+   },
+   {
+    "name": "rule_type",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "method",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "value",
+    "type": "Float(16, 2) required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Rate / Unit Price / Amount / Factor"
+   },
+   {
+    "name": "condition_days",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "Used Only for rule_type = \"urgent\" When the Lead Time Is ≤ N Days"
+   },
+   {
+    "name": "condition_amount",
+    "type": "Float(16,2)",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Used Only for rule_type = \"small_order\" When the Order Value Is ≤ This Amount"
+   },
+   {
+    "name": "no_discount",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Excluded from the Discountable Base (e.g., Shipping, Collection Fees)"
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT draft",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "+ All Fields from dl.pricing.rule.mixin",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   }
+  ]
+ },
+ "dl_pricing_profit_rule": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_profit_rule [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "target_markup",
+    "type": "Float required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Target Profit Margin (%)"
+   },
+   {
+    "name": "min_markup",
+    "type": "Float required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Minimum Profit Margin"
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT draft",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "+ All Fields from dl.pricing.rule.mixin",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   }
+  ]
+ },
+ "dl_pricing_discount_rule": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_discount_rule [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "customer_group",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "group_rank",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "NOT NULL DEFAULT 0",
+    "notes": "Loyalty Level: 0 / 1 / 2"
+   },
+   {
+    "name": "default_rate",
+    "type": "Float required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Default Discount"
+   },
+   {
+    "name": "max_rate",
+    "type": "Float required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Maximum Discount"
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT draft",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "+ All Fields from dl.pricing.rule.mixin",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   }
+  ]
+ },
+ "dl_pricing_approval_matrix": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_approval_matrix [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "value_from",
+    "type": "Monetary required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Amount Threshold"
+   },
+   {
+    "name": "approval_level",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL, DEFAULT none",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "level_rank",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "Priority used to select the highest approval level when multiple conditions apply (0/1/2)"
+   },
+   {
+    "name": "approver_user_id",
+    "type": "M2O → res.user",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "Specific Approver (Optional)"
+   },
+   {
+    "name": "note",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "state",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT draft",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "+ All Fields from dl.pricing.rule.mixin",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   }
+  ]
+ },
+ "dl_pricing_approval_setting": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_approval_setting [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "request_type",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "approver_role",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "sales_manager / ceo"
+   },
+   {
+    "name": "approver_user_id",
+    "type": "M2O → res.users",
+    "pg": "INTEGER",
+    "cons": "FK",
+    "notes": "Specific Approver"
+   }
+  ]
+ },
+ "dl_pricing_approval_request": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_pricing_approval_request [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "title",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "request_type",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "res_model",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Target Model Requiring Approval"
+   },
+   {
+    "name": "res_id",
+    "type": "Integer",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "ID of the object requiring approval – not FK"
+   },
+   {
+    "name": "object_lable",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Object label (snapshot)"
+   },
+   {
+    "name": "old_value, new_value, impact",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Description of changes for quick reviewer understanding"
+   },
+   {
+    "name": "requester_id",
+    "type": "M2O → res.users",
+    "pg": "INTEGER",
+    "cons": "FK, NOT NULL",
+    "notes": "Submitter"
+   },
+   {
+    "name": "requester_role",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Submitter role (snapshot)"
+   },
+   {
+    "name": "reason",
+    "type": "Text required",
+    "pg": "TEXT",
+    "cons": "NOT NULL",
+    "notes": "Submission reason"
+   },
+   {
+    "name": "resolved_at",
+    "type": "Datetime",
+    "pg": "TIMESTAMP",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "reject_comment",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "Rejection reason"
+   },
+   {
+    "name": "is_self_approval",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Flag for self-approval by submitter"
+   },
+   {
+    "name": "state",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "DEFAULT pending",
+    "notes": "Enum — see §3.3"
+   },
+   {
+    "name": "approval_level",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "sales_manager / ceo"
+   },
+   {
+    "name": "matrix_row_id",
+    "type": "M2O → dl.pricing.approval.matrix",
+    "pg": "INTEGER",
+    "cons": "ON DELETE restrict",
+    "notes": "Snapshot of the matrix row used"
+   },
+   {
+    "name": "trigger_reasons",
+    "type": "Text",
+    "pg": "TEXT",
+    "cons": "—",
+    "notes": "List of generated conditions"
+   },
+   {
+    "name": "Mở rộng ở module dl_sale để làm yêu cầu phê duyệt báo giá",
+    "type": "",
+    "pg": "",
+    "cons": "",
+    "notes": ""
+   },
+   {
+    "name": "quotation_id",
+    "type": "M2O → dl.quotation.",
+    "pg": "INTEGER",
+    "cons": "—",
+    "notes": "—"
+   }
+  ]
+ },
+ "dl_config_audit_log": {
+  "kind": "Table",
+  "flag": "New",
+  "title": "Table: dl_config_audit_log [New]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "config_tab",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Nhóm cấu hình bị đổi"
+   },
+   {
+    "name": "param_label",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Tên tham số"
+   },
+   {
+    "name": "detail",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Nội dung thay đổi, dạng “cũ → mới”"
+   },
+   {
+    "name": "user_id",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_users, DEFAULT env.uid",
+    "notes": "Người thực hiện"
+   },
+   {
+    "name": "create_date",
+    "type": "Datetime",
+    "pg": "TIMESTAMP",
+    "cons": "auto",
+    "notes": "Thời điểm — cột kiểm toán của Odoo"
+   }
+  ]
+ },
+ "stock_warehouse": {
+  "kind": "Table",
+  "flag": "Native",
+  "title": "Table: stock_warehouse [Native]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "“Kho Đại Linh”"
+   },
+   {
+    "name": "code [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR(5)",
+    "cons": "NOT NULL",
+    "notes": "“DL” — prefix of every picking number"
+   },
+   {
+    "name": "view_location_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location",
+    "notes": "Root location DL (usage = view)"
+   },
+   {
+    "name": "lot_stock_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location",
+    "notes": "DL/NHAN/KHO — materials & trading goods"
+   },
+   {
+    "name": "wh_input_stock_loc_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location",
+    "notes": "DL/NHAN/QC — goods awaiting inspection"
+   },
+   {
+    "name": "reception_steps [Native]",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Set to two_steps: receive → inspect & put away"
+   },
+   {
+    "name": "company_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_company, NOT NULL",
+    "notes": "—"
+   }
+  ]
+ },
+ "stock_location": {
+  "kind": "Table",
+  "flag": "Inherit",
+  "title": "Table: stock_location [Inherit]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Zone / bin name"
+   },
+   {
+    "name": "complete_name [Native]",
+    "type": "Char computed",
+    "pg": "VARCHAR",
+    "cons": "stored",
+    "notes": "e.g. DL/XUONG/PL"
+   },
+   {
+    "name": "location_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location, ON DELETE CASCADE",
+    "notes": "Parent location — self-referencing tree"
+   },
+   {
+    "name": "parent_path [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "INDEX",
+    "notes": "Materialised path (e.g. 1/4/9/). The scrap SQL VIEW matches the whole subtree with LIKE parent_path || '%' — see §3.1 dl_scrap_recovery_report"
+   },
+   {
+    "name": "usage [Native]",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "view / internal / supplier / customer / production / inventory"
+   },
+   {
+    "name": "warehouse_id [Native]",
+    "type": "Many2one computed",
+    "pg": "INTEGER",
+    "cons": "FK → stock_warehouse",
+    "notes": "—"
+   },
+   {
+    "name": "scrap_location [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Left FALSE on DL/XUONG/PL on purpose — scrap here is a sellable asset, not a write-off"
+   },
+   {
+    "name": "active [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "DEFAULT TRUE",
+    "notes": "Archive instead of delete"
+   },
+   {
+    "name": "company_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_company",
+    "notes": "—"
+   },
+   {
+    "name": "dlm_no_inventory",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "DEFAULT FALSE",
+    "notes": "Transit-zone flag, set by dl_inventory on DL/NHAN/QC and DL/NHAN/TRA. Manual inventory counting is refused on these locations server-side, not merely hidden from the screen: their stock is already referenced by an open inspection or vendor-return document, so a hand count would erase goods that a draft document still points at."
+   }
+  ]
+ },
+ "stock_picking_type": {
+  "kind": "Table",
+  "flag": "Native",
+  "title": "Table: stock_picking_type [Native]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char translated",
+    "pg": "JSONB",
+    "cons": "NOT NULL",
+    "notes": "Odoo 17 stores translations as JSONB"
+   },
+   {
+    "name": "sequence_code [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "NH / KC / CK / GH / TR / BPL / XSX / NTP — the key the code branches on"
+   },
+   {
+    "name": "code [Native]",
+    "type": "Selection required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "incoming / outgoing / internal"
+   },
+   {
+    "name": "warehouse_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_warehouse, ON DELETE CASCADE",
+    "notes": "—"
+   },
+   {
+    "name": "sequence_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → ir_sequence",
+    "notes": "Produces the picking number DL/KC/00001"
+   },
+   {
+    "name": "default_location_src_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location",
+    "notes": "—"
+   },
+   {
+    "name": "default_location_dest_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location",
+    "notes": "—"
+   },
+   {
+    "name": "return_picking_type_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_picking_type",
+    "notes": "Self-reference — reverse operation type"
+   },
+   {
+    "name": "use_create_lots [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "TRUE on NH: lot numbers are generated by Đại Linh, not copied from the vendor's document"
+   },
+   {
+    "name": "active [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "DEFAULT TRUE",
+    "notes": "—"
+   }
+  ]
+ },
+ "stock_picking": {
+  "kind": "Table",
+  "flag": "Inherit",
+  "title": "Table: stock_picking [Inherit]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Document number, e.g. DL/KC/00001"
+   },
+   {
+    "name": "origin [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Source document reference"
+   },
+   {
+    "name": "state [Native]",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "draft / waiting / confirmed / assigned / done / cancel"
+   },
+   {
+    "name": "picking_type_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → stock_picking_type, NOT NULL, INDEX",
+    "notes": "Determines the document kind"
+   },
+   {
+    "name": "partner_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_partner",
+    "notes": "Customer on delivery, vendor on receipt"
+   },
+   {
+    "name": "location_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location, NOT NULL",
+    "notes": "Source"
+   },
+   {
+    "name": "location_dest_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location, NOT NULL",
+    "notes": "Destination"
+   },
+   {
+    "name": "backorder_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_picking",
+    "notes": "Self-reference — partial-delivery remainder"
+   },
+   {
+    "name": "group_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → procurement_group",
+    "notes": "Chains the 2 legs of the receipt route"
+   },
+   {
+    "name": "scheduled_date [Native]",
+    "type": "Datetime",
+    "pg": "TIMESTAMP",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "date_done [Native]",
+    "type": "Datetime",
+    "pg": "TIMESTAMP",
+    "cons": "—",
+    "notes": "Set when the document is validated"
+   },
+   {
+    "name": "company_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_company",
+    "notes": "—"
+   },
+   {
+    "name": "dlm_origin_picking_id",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_picking, ON DELETE SET NULL, INDEX",
+    "notes": "Vendor-return document → the inspection document it came from"
+   },
+   {
+    "name": "dlm_sale_order_id",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → dl_sale_order, ON DELETE RESTRICT, INDEX",
+    "notes": "Delivery document → sales order. RESTRICT: an order that has already shipped must not be deletable"
+   },
+   {
+    "name": "dlm_qty_rejected_total",
+    "type": "Float computed stored",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Total rejected quantity; stored so the list view can sort and group on it"
+   },
+   {
+    "name": "dlm_qc_state",
+    "type": "Selection computed stored",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "none / pending / passed / has_reject — see §3.3"
+   }
+  ]
+ },
+ "stock_move": {
+  "kind": "Table",
+  "flag": "Inherit",
+  "title": "Table: stock_move [Inherit]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "product_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → product_product, NOT NULL, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "product_uom [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → uom_uom, NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "product_uom_qty [Native]",
+    "type": "Float required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Demand"
+   },
+   {
+    "name": "quantity [Native]",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Quantity actually done"
+   },
+   {
+    "name": "picked [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Odoo 17 replacement for the old “quantity_done”"
+   },
+   {
+    "name": "state [Native]",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "draft / confirmed / assigned / done / cancel"
+   },
+   {
+    "name": "date [Native]",
+    "type": "Datetime required",
+    "pg": "TIMESTAMP",
+    "cons": "NOT NULL",
+    "notes": "Period key of the scrap report (date_trunc('month', date))"
+   },
+   {
+    "name": "picking_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_picking, INDEX",
+    "notes": "NULLABLE — inventory-adjustment moves have no parent document"
+   },
+   {
+    "name": "location_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location, NOT NULL, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "location_dest_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location, NOT NULL, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "is_inventory [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "TRUE = stock-count adjustment line"
+   },
+   {
+    "name": "company_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → res_company, NOT NULL, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "dlm_qty_rejected",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "DEFAULT 0.0",
+    "notes": "Quantity failing inspection; moves to the “Chờ trả NCC” zone"
+   },
+   {
+    "name": "dlm_reject_reason",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "defect / wrong_spec / wrong_item / other — see §3.3"
+   },
+   {
+    "name": "dlm_reject_note",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Free-text detail of the rejection"
+   }
+  ]
+ },
+ "stock_move_line": {
+  "kind": "Table",
+  "flag": "Native",
+  "title": "Table: stock_move_line [Native]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "move_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_move, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "picking_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_picking, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "product_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → product_product, ON DELETE CASCADE, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "lot_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_lot",
+    "notes": "The lot actually picked / received"
+   },
+   {
+    "name": "lot_name [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Lot number typed on the document before the lot record exists"
+   },
+   {
+    "name": "quantity [Native]",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "—"
+   },
+   {
+    "name": "location_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location, NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "location_dest_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location, NOT NULL",
+    "notes": "—"
+   },
+   {
+    "name": "company_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → res_company, NOT NULL, INDEX",
+    "notes": "—"
+   }
+  ]
+ },
+ "stock_quant": {
+  "kind": "Table",
+  "flag": "Native",
+  "title": "Table: stock_quant [Native]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "product_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → product_product, ON DELETE RESTRICT, NOT NULL, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "location_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location, ON DELETE RESTRICT, NOT NULL, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "lot_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_lot, ON DELETE RESTRICT, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "quantity [Native]",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "On hand"
+   },
+   {
+    "name": "reserved_quantity [Native]",
+    "type": "Float required",
+    "pg": "NUMERIC",
+    "cons": "NOT NULL",
+    "notes": "Reserved for open documents"
+   },
+   {
+    "name": "inventory_quantity [Native]",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Counted quantity (stock count)"
+   },
+   {
+    "name": "inventory_diff_quantity [Native]",
+    "type": "Float",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Counted − on hand"
+   },
+   {
+    "name": "inventory_quantity_set [Native]",
+    "type": "Boolean",
+    "pg": "BOOL",
+    "cons": "—",
+    "notes": "Distinguishes “counted 0” from “not counted”"
+   },
+   {
+    "name": "in_date [Native]",
+    "type": "Datetime required",
+    "pg": "TIMESTAMP",
+    "cons": "NOT NULL",
+    "notes": "Entry date — drives FIFO removal"
+   },
+   {
+    "name": "company_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_company",
+    "notes": "—"
+   }
+  ]
+ },
+ "stock_lot": {
+  "kind": "Table",
+  "flag": "Inherit",
+  "title": "Table: stock_lot [Inherit]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Lot number LO/2026/00001"
+   },
+   {
+    "name": "ref [Native]",
+    "type": "Char",
+    "pg": "VARCHAR",
+    "cons": "—",
+    "notes": "Vendor's own lot number, if any"
+   },
+   {
+    "name": "product_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → product_product, NOT NULL, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "product_uom_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → uom_uom",
+    "notes": "—"
+   },
+   {
+    "name": "location_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → stock_location",
+    "notes": "—"
+   },
+   {
+    "name": "company_id [Native]",
+    "type": "Many2one required",
+    "pg": "INTEGER",
+    "cons": "FK → res_company, NOT NULL, INDEX",
+    "notes": "—"
+   },
+   {
+    "name": "dlm_supplier_id",
+    "type": "Many2one readonly",
+    "pg": "INTEGER",
+    "cons": "FK → res_partner, ON DELETE SET NULL, INDEX",
+    "notes": "Which vendor this lot came from — the traceability anchor"
+   },
+   {
+    "name": "dlm_receipt_date",
+    "type": "Date readonly",
+    "pg": "DATE",
+    "cons": "INDEX",
+    "notes": "Receipt date; indexed because ageing reports filter on it"
+   },
+   {
+    "name": "dlm_receipt_picking_id",
+    "type": "Many2one readonly",
+    "pg": "INTEGER",
+    "cons": "FK → stock_picking, ON DELETE SET NULL",
+    "notes": "The receipt document that created the lot"
+   }
+  ]
+ },
+ "procurement_group": {
+  "kind": "Table",
+  "flag": "Native",
+  "title": "Table: procurement_group [Native]",
+  "cols": [
+   {
+    "name": "id [Native]",
+    "type": "—",
+    "pg": "SERIAL",
+    "cons": "PK",
+    "notes": "Auto-increment"
+   },
+   {
+    "name": "name [Native]",
+    "type": "Char required",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "Thường là số chứng từ nguồn"
+   },
+   {
+    "name": "move_type [Native]",
+    "type": "Selection",
+    "pg": "VARCHAR",
+    "cons": "NOT NULL",
+    "notes": "direct = giao từng phần · one = giao đủ mới xuất"
+   },
+   {
+    "name": "partner_id [Native]",
+    "type": "Many2one",
+    "pg": "INTEGER",
+    "cons": "FK → res_partner",
+    "notes": "Địa chỉ giao"
+   }
+  ]
+ },
+ "dl_scrap_recovery_report": {
+  "kind": "View",
+  "flag": "SQL VIEW",
+  "title": "View: dl_scrap_recovery_report [SQL VIEW]",
+  "cols": [
+   {
+    "name": "id",
+    "type": "Integer readonly",
+    "pg": "INTEGER",
+    "cons": "synthetic",
+    "notes": "YEAR*100 + MONTH — deterministic surrogate key required by the ORM"
+   },
+   {
+    "name": "period",
+    "type": "Date readonly",
+    "pg": "DATE",
+    "cons": "—",
+    "notes": "First day of the month, date_trunc('month', move.date)"
+   },
+   {
+    "name": "qty_in",
+    "type": "Float readonly",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Scrap weighed INTO DL/XUONG/PL during the month"
+   },
+   {
+    "name": "qty_sold",
+    "type": "Float readonly",
+    "pg": "NUMERIC",
+    "cons": "—",
+    "notes": "Scrap moved OUT of DL/XUONG/PL to a customer location"
+   }
+  ]
+ }
+}

@@ -1,0 +1,225 @@
+P <Heading 1> 3. Data Model
+P <normal> Toàn bộ dữ liệu nằm trên PostgreSQL 16 và được khai báo qua ORM của Odoo 17 — không có DDL viết tay. Mục này l
+P <normal> Cơ chế kế thừa Odoo áp dụng trong dự án:
+  TABLE 7x4 :: Cơ chế | Khai báo trong c | Hệ quả ở tầng DB | Dùng ở đâu trong
+  TABLE 1x1 :: Quy ước chung ch
+P <normal> Bảng tổng hợp 53 entity trên 7 module (32 bảng nghiệp vụ mới + 5 bảng wizard tạm + 5 mixin không bảng + 11 lượ
+  TABLE 62x5 :: ID | Model | Cơ chế | Bảng vật lý | Mô tả
+P <Heading 2> 3.1 Entity Definitions
+P <Heading 3> A. Module dl_base — nền tảng & phân quyền
+P <normal> Module gốc của hệ thống. Định nghĩa 6 nhóm quyền (res.groups) bằng data XML — dl_group_ceo, dl_group_admin, dl
+P <Heading 4> A1. dl.rbac.feature [Model mới]
+P <normal> Danh mục CHỨC NĂNG dùng để dựng ma trận phân quyền trên UI. Mỗi bản ghi gắn với một model dữ liệu và một nhóm 
+P <normal> _order = 'sequence, category, name'   ·   _sql_constraints: code_uniq = unique(code)
+  TABLE 9x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> A2. dl.rbac.operation [Model mới]
+P <normal> THAO TÁC ĐẶC BIỆT của một chức năng (ngoài 4 quyền CRUD chuẩn), mỗi thao tác ánh xạ sang đúng 1 nhóm quyền kỹ 
+P <normal> _order = 'feature_id, sequence, name'
+  TABLE 6x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 3> B. Module dl_partner — đối tác
+P <normal> Chỉ mở rộng res.partner. KHÔNG tạo bảng mới — Khách hàng và Nhà cung cấp dùng CHUNG một bảng res_partner, phân
+P <Heading 4> B1. res.partner [Mở rộng — _inherit]
+P <normal> ĐỐI TÁC của Công ty Đại Linh. Tận dụng toàn bộ hạ tầng địa chỉ, liên lạc, ngôn ngữ, ảnh đại diện của Odoo. Các
+P <normal> Native dùng lại: name, vat, phone, mobile, email, street/city/country_id, image_1920, category_id (tags), cust
+  TABLE 1x1 :: Lưu ý
+partner_ro
+  TABLE 11x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc mức ứng dụng (@api.constrains, KHÔNG phải CHECK trong DB): _check_partner_type, _check_company_tax_c
+P <Heading 3> C. Module dl_product — sản phẩm, vật tư, bảng giá NCC
+P <normal> Mở rộng 3 bảng native của Odoo và tạo 3 bảng mới cho hệ đo lường. Điểm cốt lõi: SẢN PHẨM là bảng HỢP NHẤT — cả
+P <Heading 4> C1. product.product [Mở rộng + mail.thread]
+P <normal> SẢN PHẨM — bảng hợp nhất cho cả 4 loại nghiệp vụ. Kế thừa MỞ RỘNG THUẦN nên mọi bản ghi nằm trực tiếp trong pr
+P <normal> _name = 'product.product'   ·   _inherit = ['product.product', 'mail.thread', 'mail.activity.mixin']
+Native dù
+  TABLE 1x1 :: Quyết định kiến 
+  TABLE 10x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc mức ứng dụng: _check_default_code (default_code khớp ^[A-Z0-9\-]+$ và duy nhất — kiểm bằng search, K
+P <Heading 4> C2. product.category [Mở rộng — _inherit]
+P <normal> Nhóm sản phẩm cơ khí. dl_branch KHÔNG do người dùng nhập — nó được SUY RA từ vị trí của nhóm trong cây (nằm dư
+P <normal> Native dùng lại: name, complete_name, parent_id, parent_path, product_count.
+  TABLE 4x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_branch_products — chặn kéo nhóm sang nhánh khác khi trong nhóm đã có sản phẩm sai loại; bỏ q
+P <Heading 4> C3. product.supplierinfo [Mở rộng — _inherit]
+P <normal> Bảng giá vật tư / SP thương mại theo NHÀ CUNG CẤP + THỜI ĐIỂM. Dùng bảng native thay vì tự chế — thay thế hoàn
+P <normal> Native dùng lại: product_tmpl_id, partner_id, price, min_qty, date_end, currency_id, company_id, delay.
+  TABLE 6x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc mức ứng dụng: _check_price_positive (price > 0 — kiểm ở Python, KHÔNG có CHECK constraint trong DB);
+P <Heading 4> C4. dl.measurement.type [Model mới]
+P <normal> ĐẠI LƯỢNG đo lường (Diện tích / Chiều dài / Khối lượng / Thể tích). Thay cho cơ chế công thức lưu-trong-DB cũ 
+P <normal> _order = 'name'
+  TABLE 6x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> C5. dl.measurement.shape [Model mới]
+P <normal> HÌNH DẠNG đo lường (tấm phẳng, ống vuông rỗng, tròn…) thuộc một đại lượng.
+P <normal> _order = 'measurement_type_id, name'
+  TABLE 1x1 :: Nơi lưu công thứ
+  TABLE 8x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> C6. dl.measurement.shape.param [Model mới]
+P <normal> Định nghĩa TÊN các tham số kích thước theo từng hình dạng (chiều dài, chiều rộng, độ dày, cạnh ngoài…). Model 
+P <normal> _order = 'shape_id, name'
+  TABLE 5x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 3> D. Module dl_config — cấu hình giá & phê duyệt
+P <normal> Toàn bộ tham số dùng để tính giá và toàn bộ luồng phê duyệt nằm ở đây. Đặc điểm chung: các quy tắc đều có HIỆU
+P <Heading 4> D1. dl.pricing.rule.mixin [AbstractModel — không có bảng]
+P <normal> Thuộc tính chung của MỌI quy tắc cấu hình báo giá. Là AbstractModel nên không có bảng riêng: 6 field bên dưới 
+P <normal> _inherit = ['mail.thread']   ·   _order = 'valid_from desc, id desc'
+  TABLE 7x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_valid_range (valid_from ≤ valid_to).
+P <Heading 4> D2. dl.pricing.commercial.mixin [AbstractModel — không có bảng]
+P <normal> Kế thừa D1 và bổ sung LUỒNG BẮT BUỘC PHÊ DUYỆT cho các cấu hình mang tính thương mại (lợi nhuận, chiết khấu): 
+P <normal> _inherit = ['dl.pricing.rule.mixin']
+P <Heading 4> D3. dl.pricing.profit.rule [Model mới]
+P <normal> Chính sách lợi nhuận và giá sàn. Báo giá có markup thực thấp hơn min_markup sẽ bị đánh dấu below_floor và phải
+P <normal> _inherit = ['dl.pricing.commercial.mixin']   ·   _rec_name = 'name'
+  TABLE 6x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_markup (min_markup ≤ target_markup).
+P <Heading 4> D4. dl.pricing.discount.rule [Model mới]
+P <normal> Chính sách chiết khấu theo NHÓM KHÁCH HÀNG. Có kiểm tra thang bậc: khách gắn bó lâu hơn phải được chiết khấu K
+P <normal> _inherit = ['dl.pricing.commercial.mixin']   ·   _order = 'group_rank asc, state, valid_from desc, id desc'
+  TABLE 8x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_rates (default_rate ≤ max_rate); _check_group_ladder (giữ thang bậc giữa các nhóm khách tron
+P <Heading 4> D5. dl.pricing.cost.adjustment.rule [Model mới]
+P <normal> Chi phí chung và hệ số điều chỉnh — chi phí xưởng, đóng gói, vận chuyển, đơn hàng nhỏ, giao gấp, độ phức tạp, 
+P <normal> _inherit = ['dl.pricing.rule.mixin']
+  TABLE 10x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_value (giá trị hợp lệ theo method — vd method dạng % phải trong khoảng cho phép).
+P <Heading 4> D6. dl.pricing.operation [Model mới]
+P <normal> Danh mục CÔNG ĐOẠN gia công dùng chung (cắt, hàn, sơn…). Tách khỏi bảng đơn giá để 1 công đoạn có thể có nhiều
+P <normal> _order = 'sequence, name'   ·   _sql_constraints: code_uniq = unique(code)
+  TABLE 5x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> D7. dl.pricing.operation.rule [Model mới]
+P <normal> Đơn giá / tỷ lệ cho từng công đoạn, có hiệu lực theo thời gian.
+P <normal> _inherit = ['dl.pricing.rule.mixin']   ·   _rec_name = 'operation_id'
+  TABLE 7x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_values (price_rate / setup_fee hợp lệ theo method).
+P <Heading 4> D8. dl.pricing.waste.rule [Model mới]
+P <normal> Quy tắc hao hụt & thu hồi MẶC ĐỊNH, áp theo nhóm sản phẩm hoặc theo đúng 1 vật tư. Đây chỉ là NGUỒN GỢI Ý: khi
+P <normal> _inherit = ['dl.pricing.rule.mixin']   ·   _rec_name = 'target_label'
+  TABLE 11x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_target (đúng 1 trong category_id / product_id theo target_type); _check_rates.
+P <Heading 4> D9. dl.pricing.complexity.level [Model mới]
+P <normal> Hệ số phức tạp dùng chung. Chọn trên từng dòng BOM và NHÂN vào tỷ lệ hao hụt cơ sở của vật tư khi tính giá.
+P <normal> _order = 'sequence, factor'
+  TABLE 6x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_factor.
+P <Heading 4> D10. dl.pricing.approval.matrix [Model mới]
+P <normal> MA TRẬN PHÊ DUYỆT báo giá theo ngưỡng giá trị: từ mốc value_from trở lên thì cần cấp duyệt nào. Thay thế entit
+P <normal> _inherit = ['dl.pricing.rule.mixin']   ·   _order = 'value_from asc, revision desc, id desc'
+  TABLE 11x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_value_from; _check_approver_in_role (người duyệt phải thuộc đúng nhóm quyền của cấp duyệt); 
+P <Heading 4> D11. dl.pricing.approval.setting [Model mới]
+P <normal> Người duyệt mặc định theo TỪNG LOẠI yêu cầu.
+P <normal> _order = 'request_type'   ·   _sql_constraints: type_company_uniq = unique(request_type, company_id)
+  TABLE 5x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> D12. dl.pricing.approval.request [Model mới + mail.thread]
+P <normal> YÊU CẦU PHÊ DUYỆT — mỗi lần xin duyệt (đổi cấu hình thương mại, hoặc báo giá vượt ngưỡng/chiết khấu/dưới giá s
+P <normal> _inherit = ['mail.thread', 'mail.activity.mixin']   ·   _order = 'create_date desc, id desc'   ·   _rec_name =
+  TABLE 22x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> D13. dl.pricing.config [Model mới]
+P <normal> Tham số báo giá tổng thể (cơ cấu giá thành, VAT, làm tròn, hiệu lực báo giá) và cấu hình SLA phê duyệt. Là bản
+  TABLE 12x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> D14. dl.pricing.waste [Model mới]
+P <normal> Dòng hao hụt mặc định theo TÊN nhóm vật tư, thuộc D13. Khác D8 ở chỗ đây chỉ là bảng nhập liệu dạng text trên 
+P <normal> _order = 'id'
+  TABLE 4x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> D15. dl.approval.level [Model mới]
+P <normal> Cấp duyệt trong ma trận phê duyệt trên màn Cấu hình, thuộc D13.
+P <normal> _order = 'sequence, id'
+  TABLE 15x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> D16. dl.config.audit.log [Model mới]
+P <normal> Nhật ký thay đổi cấu hình hệ thống. Thay thế entity dl.audit.log của thiết kế cũ. Ghi ở dạng mô tả text, KHÔNG
+P <normal> _order = 'id desc'
+  TABLE 5x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> D17. dl.pricing.ui [TransientModel]
+P <normal> Model bootstrap dữ liệu cho màn Cấu hình Báo giá (OWL). KHÔNG khai field nào — chỉ có phương thức trả dữ liệu 
+P <Heading 4> D18. res.users [Mở rộng — _inherit]
+P <normal> Mở rộng người dùng Odoo. Lưu ý: 6 nhóm quyền của dự án là BẢN GHI res.groups khai bằng XML ở dl_base, không ph
+  TABLE 2x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 3> E. Module dl_technical — RFQ, bản vẽ, BOM
+P <normal> Module kỹ thuật: tiếp nhận yêu cầu báo giá, quản lý bản vẽ và dựng BOM. Điểm khác biệt lớn nhất so với thiết k
+P <Heading 4> E1. dl.quotation.request [Model mới + mail.thread]
+P <normal> YÊU CẦU BÁO GIÁ (RFQ) — bước tiếp nhận đầu tiên trước khi có BOM. requested_date là mốc đo cycle time. Tách kh
+P <normal> _inherit = ['mail.thread', 'mail.activity.mixin']   ·   _order = 'id desc'   ·   _sql_constraints: name_uniq =
+  TABLE 15x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_deadline (deadline không sớm hơn requested_date).
+P <Heading 4> E2. dl.quotation.request.line [Model mới]
+P <normal> 1 dòng RFQ = 1 sản phẩm khách yêu cầu. Kỹ thuật viên xử lý từng dòng: chọn/tạo sản phẩm thật (resolved_product
+P <normal> _order = 'id'
+  TABLE 16x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_quantity; _check_resolved_bom; _check_product_type_required; _check_resolution (resolved_pro
+P <Heading 4> E3. dl.quotation.request.line.image [Model mới]
+P <normal> Ảnh minh hoạ Sales đính kèm cho từng dòng RFQ.
+P <normal> _order = 'sequence, id'
+  TABLE 5x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> E4. dl.drawing [Model mới + mail.thread]
+P <normal> Bản vẽ kỹ thuật của sản phẩm, có versioning. File thật nằm ở ir.attachment.
+P <normal> _inherit = ['mail.thread', 'mail.activity.mixin']   ·   _order = 'drawing_code'   ·   _sql_constraints: drawin
+  TABLE 9x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> E5. dl.bom.header.mixin [AbstractModel — không có bảng]
+P <normal> Trường & workflow phần ĐẦU BOM dùng chung cho BOM thật (E7) và BOM mẫu (E9). 3 field bên dưới được vật chất ho
+  TABLE 4x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> E6. dl.bom.line.mixin [AbstractModel — không có bảng]
+P <normal> Trường & logic tính ĐỊNH MỨC dùng chung cho dòng BOM thật (E8) và dòng BOM mẫu (E10). Đây là nơi hệ đo lường (
+  TABLE 14x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_quantity; _check_waste_rate; _check_override_reason.
+P <Heading 4> E7. dl.bom [Model mới + mail.thread]
+P <normal> BOM — danh sách vật tư để làm ra 1 sản phẩm. Dùng chung cho SP gia công và bán thành phẩm (cả hai đều nằm tron
+P <normal> _inherit = ['mail.thread', 'mail.activity.mixin', 'dl.bom.header.mixin']   ·   _order = 'id desc'   ·   _sql_c
+  TABLE 1x1 :: Khác biệt so với
+  TABLE 10x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <normal> Ràng buộc: _check_product_qty.
+P <Heading 4> E8. dl.bom.line [Model mới]
+P <normal> Dòng vật tư trong BOM. price_snapshot CHỐT đơn giá tại thời điểm tính — lấy từ bảng giá NCC (C3) có is_applied
+P <normal> _inherit = ['dl.bom.line.mixin']   ·   _order = 'id'
+  TABLE 7x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> E9. dl.bom.template [Model mới + mail.thread]
+P <normal> BOM MẪU tái sử dụng theo nhóm sản phẩm. Độc lập với BOM thật — KTV áp mẫu lên 1 BOM mới để pre-fill danh sách 
+P <normal> _inherit = ['mail.thread', 'mail.activity.mixin', 'dl.bom.header.mixin']   ·   _order = 'name'   ·   _sql_cons
+  TABLE 5x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> E10. dl.bom.template.line [Model mới]
+P <normal> Dòng gợi ý trong BOM mẫu. Dùng chung mixin dòng BOM (E6) nên cấu trúc kích thước / định mức giống hệt dòng BOM
+P <normal> _inherit = ['dl.bom.line.mixin']   ·   _order = 'id'
+  TABLE 4x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> E11–E13. Các lượt mở rộng model của module khác
+P <normal> dl_technical bổ sung field/ràng buộc vào 3 model đã tồn tại, theo đúng chiều phụ thuộc (module trên bổ sung ch
+  TABLE 4x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> E14–E17. Wizard [TransientModel]
+P <normal> 4 model tạm phục vụ thao tác trên UI. Có bảng vật lý nhưng bản ghi bị ir.autovacuum dọn định kỳ — không tính l
+  TABLE 5x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 3> F. Module dl_sale — báo giá & đơn bán hàng
+P <normal> Module đỉnh của chuỗi phụ thuộc. Chứa báo giá, đơn bán hàng và cơ chế SNAPSHOT cấu phần giá — điểm thay thế ch
+P <Heading 4> F1. dl.quotation [Model mới + mail.thread]
+P <normal> BÁO GIÁ — entity trung tâm. Gom giá trị từ các dòng, áp chiết khấu và VAT, đối chiếu với chính sách lợi nhuận 
+P <normal> _inherit = ['mail.thread', 'mail.activity.mixin']   ·   _order = 'date_order desc, id desc'
+Số báo giá sinh từ
+  TABLE 22x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> F2. dl.quotation.line [Model mới]
+P <normal> Dòng hạng mục trong báo giá. Nối ngược về dòng RFQ, sản phẩm và BOM đã dùng.
+  TABLE 12x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> F3. dl.quotation.price.component [Model mới]
+P <normal> CẤU PHẦN GIÁ dạng SNAPSHOT. Mỗi bản ghi = 1 thành phần đã cấu thành nên giá (vật tư, thu hồi, markup, chiết kh
+P <normal> _order = 'quotation_line_id, id'
+  TABLE 11x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> F4. dl.sale.order [Model mới + mail.thread]
+P <normal> ĐƠN BÁN HÀNG, sinh từ báo giá khách đã chấp nhận. Khi đơn được xác nhận, hệ thống tự nâng SP gia công còn nháp
+P <normal> _inherit = ['mail.thread', 'mail.activity.mixin']   ·   _order = 'date_order desc, id desc'
+Số đơn sinh từ ir.
+  TABLE 12x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> F5. dl.sale.order.line [Model mới]
+P <normal> Dòng chi tiết đơn bán hàng.
+  TABLE 9x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 4> F6–F9. Mixin dịch vụ và các lượt mở rộng
+P <normal> Phần còn lại của dl_sale không tạo bảng mới.
+  TABLE 5x4 :: Cột | Kiểu PostgreSQL | Ràng buộc | Ghi chú
+P <Heading 3> G. Module dl_inventory — kho (placeholder)
+P <normal> Module đã được khai báo trong __manifest__.py (depends: dl_base, dl_product, dl_partner, stock) và cài đặt đượ
+P <Heading 2> 3.2 Entity Relationships
+P <normal> Bảng dưới liệt kê MỌI quan hệ có lưu trữ giữa các model của dự án — đây là dữ liệu để vẽ ERD. Quy ước: M2O = M
+  TABLE 94x5 :: Từ (model.field) | Loại | Tới | ON DELETE | Ý nghĩa
+  TABLE 1x1 :: Tham chiếu mềm (
+P <Heading 2> 3.3 Enum / Lookup Values
+P <normal> Mọi enum bên dưới là fields.Selection của Odoo — lưu xuống PostgreSQL dưới dạng VARCHAR, KHÔNG dùng kiểu ENUM 
+  TABLE 36x4 :: Model | Cột | Giá trị hợp lệ | Ghi chú
+P <Heading 2> 3.4 Indexing Strategy
+P <normal> Odoo tự tạo BTREE index cho khoá chính và cho MỌI cột Many2one có lưu trữ — bảng dưới chỉ liệt kê các index/rà
+  TABLE 21x5 :: Bảng | Cột | Loại | Khai báo trong c | Lý do
+  TABLE 1x1 :: Cảnh báo: các qu

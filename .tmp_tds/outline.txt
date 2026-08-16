@@ -1,0 +1,300 @@
+[0] P <normal> x1Technical Design Specification
+[1] P <normal> {{Project Name (CODE)}} – Report 4
+[3] TABLE 2x2 :: Version | {{VERSION}}
+[4] P <Heading 1> Change Log
+[5] TABLE 2x4 :: Version | Date | Author | Summary
+[7] P <Heading 1> Table of Contents
+[9] P <Heading 1> 1. Tech Stack
+[10] P <Heading 2> 1.1 Technology Choices
+[11] TABLE 15x4 :: Layer | Technology | Version | Notes
+[13] P <Heading 2> 1.2 External Integrations
+[14] TABLE 2x4 :: Service | Purpose | Protocol | Notes
+[16] P <Heading 2> 1.3 Decision Rationale
+[17] TABLE 5x4 :: Decision | Chosen | Alternatives | Reason
+[19] P <Heading 1> 2. Architecture Overview
+[20] TABLE 1x1 :: Guidance
+Draw the laye
+[22] P <Heading 2> 2.1 High-Level Architecture
+[23] P <normal> Của thầy
+[26] P <Heading 2> 2.2 Layer Responsibilities
+[27] TABLE 9x3 :: Layer | Package | Responsibility
+[29] P <Heading 2> 2.3 Package Convention (Package Diagram)
+[31] P <normal> ├── __manifest__.py
+[32] P <normal> ├── models/
+[33] P <normal> ├── views/
+[34] P <normal> ├── security/
+[35] P <normal> │   ├── ir.model.access.csv
+[36] P <normal> │   └── dl_security.xml
+[37] P <normal> ├── data/
+[38] P <normal> ├── wizard/
+[39] P <normal> ├── report/
+[43] P <Heading 2> 2.4 Request Lifecycle (Sequence Diagram)
+[44] P <Heading 3> UI request (authenticated user):
+[53] P <Heading 3> External API request (machine-to-machine):
+[55] P <normal> Nếu mở rộng ở version sau (VD: đồng bộ kế toán ngoài), khuyến nghị:
+[70] P <Heading 1> 3. Data Model
+[71] P <normal> Cơ chế kế thừa Odoo áp dụng trong dự án:
+[76] P <normal> Bảng tổng hợp {N} entities:
+[78] TABLE 35x5 :: ID | Model | Mô tả | — | Odoo native base
+[79] P <Heading 2> 3.1 Entity Definitions
+[80] P <Heading 3> A1. dl.partner [kế thừa res.partner]
+[81] P <normal> ĐỐI TÁC của Công ty Đại Linh — gồm cả Khách hàng và Nhà cung cấp — tận dụng toàn bộ hạ tầng địa chỉ, liên lạc, ngôn ngữ của Odoo — kế thừa res.partner, không tạ
+[82] P <normal> Cơ chế kế thừa Odoo: _inherit = ‘res.partner’ — không tạo bảng mới, field bổ sung nằm trong bảng res_partner.
+[83] TABLE 1x1 :: Note
+partner_role KHÔN
+[85] TABLE 9x4 :: Column | Type | Constraints | Notes
+[87] P <Heading 3> A2. dl.product.category [kế thừa product.category]
+[88] P <normal> Nhóm sản phẩm cơ khí — kế thừa product.category để giữ tương thích với toàn bộ hệ sinh thái Odoo (Inventory, Accounting) — gắn BOM mẫu mặc định qua bom_template
+[89] P <normal> Cơ chế kế thừa Odoo: *_inherit = ‘product.category’ — không tạo bảng mới.
+[90] TABLE 3x4 :: Column | Type | Constraints | Notes
+[92] P <Heading 3> A3. dl.product [kế thừa product.template]
+[93] P <normal> SẢN PHẨM — bảng hợp nhất cho CẢ 4 loại nghiệp vụ, phân biệt qua product_kind: (1) manufactured — SP gia công theo yêu cầu, đi qua BOM (B2); (2) trading — SP thư
+[94] P <normal> Cơ chế kế thừa Odoo: _inherit = ‘product.product’ — không tạo bảng mới. type=’product’ (storable) để Inventory theo dõi tồn kho ở module sau.
+[95] TABLE 1x1 :: Note
+Quyết định kiến t
+[96] P <normal> Một điều kiện kỹ thuật cần lưu ý: giá trị 'product' trong selection type không nằm trong module product gốc — nó được module stock extend vào (selection_add). N
+[97] P <normal> ●      Module dl_product/ của nhóm phải khai depends: ['stock'] trong manifest ngay từ IP-01, kể cả khi chưa build UI Kho — nếu không, gán type='product' sẽ báo
+[98] P <normal> ●      Việc này không bắt buộc phải bật tính năng Kho cho người dùng — chỉ là cài đặt module nền, Sales/Kỹ thuật vẫn không thấy menu Inventory nếu nhóm chưa cấp
+[99] TABLE 5x4 :: Column | Type | Constraints | Notes
+[100] P <Heading 3> A4. product.supplierinfo [kế thừa product.supplierinfo]
+[101] P <normal> Bảng giá vật tư/SP thương mại theo NHÀ CUNG CẤP + THỜI ĐIỂM — dùng native product.supplierinfo (đã có sẵn partner_id, price, date_start, date_end, min_qty) thay
+[102] TABLE 10x4 :: Column | Type | Constraints | Notes
+[104] P <Heading 3> A5. dl.measurement.type
+[105] P <normal> Các loại đo lường
+[106] P <Heading 3> A5. dl.measurement.shape
+[107] P <normal> Các loại hình dạng đo lường
+[108] P <Heading 3> A5. dl.measurement.shape.param
+[109] P <normal> Các loại hình dạng đo lường
+[112] P <Heading 3> B1. dl.drawing [Model mới]
+[113] P <normal> Quản lý bản vẽ kỹ thuật của Sản phẩm gia công
+[115] P <Heading 3> B2. dl.bom [Kế thừa mrp.bom]
+[116] P <normal> Bill of Materials — dùng native mrp.bom thay vì bảng riêng, dùng chung cho SP product_kind=manufactured VÀ material_processed (cả 2 giờ đã cùng nằm trong A3/dl.
+[117] P <normal> Không hiện giá ở đây chỉ hiện số liệu / BOM LINE
+[120] P <Heading 3> B3. dl.bom.line [kế thừa mrp.bom.line]
+[121] P <normal> Dòng component trong BOM — product_id (native) trỏ về BẤT KỲ dl.product nào có product_kind=material hoặc material_processed — không còn đa hình component_type/
+[122] P <normal> Không hiện giá ở đây chỉ hiện số liệu
+[125] P <Heading 3> B4. dl.bom.template [Tạo mới]
+[126] P <normal> Mẫu BOM tái sử dụng theo nhóm sản phẩm (category) — Odoo native không có sẵn khái niệm này. KTV chọn mẫu phù hợp khi tạo B2 (mrp.bom) mới cho SP cùng category đ
+[128] P <Heading 3> B4. dl.bom.template.line [Tạo mới]
+[129] P <normal> Dòng mẫu trong B4 — mỗi dòng gợi ý 1 component (theo category hoặc theo đúng 1 sản phẩm cụ thể) kèm số lượng mặc định. Khi KTV áp dụng mẫu lên 1 B2 (mrp.bom) th
+[132] P <Heading 3> C2. dl.cost.parameter [Model mới]
+[133] P <normal> Bộ tham số chi phí toàn hệ thống — CEO quản lý. Chỉ 1 bản ghi is_active=True tại mọi thời điểm.
+[136] P <Heading 3> D1. dl.quotation.request [Model mới]
+[137] P <normal> Yêu cầu báo giá (RFQ) — bước tiếp nhận đầu tiên trước khi có BOM/kỹ thuật và cuộc request_date là mốc đo cycle time (AC-35): thời gian từ nhận yêu cầu đến gửi b
+[138] P <normal> Vòng đời status: new (chưa xử lý) → processing (đang có dòng D2 được KTV xử lý) → confirmed (TẤT CẢ dòng D2 đã resolved_product_id hoặc is_infeasible) → quoted 
+[139] P <Heading 3> D2. dl.quotation.request.line [Model mới]
+[140] TABLE 10x4 :: Column | Type | Constraints | Notes
+[142] P <Heading 3> D3. dl.quotation [Model mới]
+[143] P <normal> ENTITY TRUNG TÂM — header báo giá. Tổng hợp toàn bộ chi phí từ D3. status=pending_approval khi E1 rule engine phát hiện vi phạm ngưỡng.
+[145] P <Heading 3> D4. dl.quotation.line [Model mới]
+[146] P <normal> Dòng hạng mục trong báo giá. Tổng hợp 5 thành phần chi phí: material, labor, outsource, overhead, contingency . Được nhập các trường từ quotation.request
+[148] P <Heading 3> D5. dl.quotation.oursource.line [Model mới]
+[149] P <normal> Dòng gia công ngoài (thầu phụ) như sơn tĩnh điện, mạ kẽm... Hiển thị riêng trên màn duyệt.
+[151] P <Heading 3> D6. dl.discount.policy [Model mới]
+[154] P <Heading 3> E1. dl.approval.rule [Model mới]
+[155] P <normal> Rule phê duyệt động — CEO tự thêm/sửa không cần deploy lại. Chạy theo priority ASC, rule đầu tiên trigger sẽ set status.
+[157] P <Heading 3> E2. dl.quotation.approval [Model mới]
+[158] P <normal> Lịch sử phê duyệt — mỗi lần approve/reject/request_revision tạo 1 bản ghi mới, không xoá.
+[160] P <Heading 3> E3. dl.approval.threshold.config [Model mới]
+[161] P <normal> Ngưỡng phê duyệt do CEO cấu hình — APPEND-ONLY, không cho sửa/xoá bản ghi đã tạo.
+[162] P <Heading 3> F1. dl.system.config [Mở rộng res.config.settings]
+[163] P <normal> Tham số kỹ thuật hệ thống lưu qua ir.config_parameter (key-value native Odoo) — không tạo bảng DB mới.
+[165] P <Heading 3> G1. dl.audit.log [Model mới]
+[166] P <normal> Nhật ký thay đổi cho bảng cấu hình quan trọng (E3, C2, C3). IMMUTABLE — override _write()/_unlink() raise UserError.
+[168] P <Heading 3> G2. dl.quotation.history [Model mới]
+[169] P <normal> Snapshot toàn bộ báo giá (D1+D3+D4+D5+giá vật tư) tại các mốc: submitted, approved, sent. IMMUTABLE, quotation_id KHÔNG có FK (intentional).
+[171] P <Heading 3> G2. dl.user [Kế thừa res.users]
+[172] P <normal> Mở rộng res.users — 5 nhóm quyền triển khai qua res.groups (XML): dl_group_sale / sales_manager / ceo / technician / accountant / admin.
+[174] P <Heading 2> 3.2 Entity Relationships
+[177] P <Heading 2> 3.3 Enum / Lookup Values
+[178] TABLE 16x4 :: Table | Column | Allowed Values | Notes
+[180] P <Heading 2> 3.4 Indexing Strategy
+[181] TABLE 20x4 :: Table | Index Column(s) | Type | Reason
+[183] P <Heading 2> 3.5 Migration Strategy
+[184] TABLE 7x2 :: Setting | Value
+[186] P <Heading 2> 3.6 Seed Data
+[187] TABLE 1x1 :: Purpose
+Dữ liệu tối th
+[189] P <Heading 3> Minimum accounts required:
+[190] TABLE 7x3 :: — | Nhóm quyền (groups_id) | Mục đích test
+[192] P <Heading 3> Minimum domain data required:
+[193] TABLE 14x3 :: Entity | Count | States needed
+[195] P <normal> Ví dụ nạp seed data qua Odoo data file (dl_sale/data/dl_demo_data.xml — không dùng raw SQL INSERT như Flyway):
+[196] P <normal> <?xml version="1.0" encoding="utf-8"?>
+[197] P <normal> <odoo>
+[198] P <normal> <data noupdate="1">
+[199] P <normal> <record id="demo_customer_thienlong" model="res.partner">
+[200] P <normal> <field name="name">Cong ty TNHH Co khi Thien Long</field>
+[201] P <normal> <field name="customer_type">company</field>
+[202] P <normal> <field name="category_id" eval="[(4, ref('dl_sale.tag_khach_quen'))]"/>
+[203] P <normal> </record>
+[204] P <normal> <record id="demo_material_thepcuon" model="dl.material">
+[205] P <normal> <field name="name">Thep cuon CT3</field>
+[206] P <normal> <field name="material_code">VT-001</field>
+[207] P <normal> <field name="uom_id" ref="uom.product_uom_kgm"/>
+[208] P <normal> </record>
+[209] P <normal> <!-- ... tiep tuc cho cac record con lai theo bang domain data phia tren ... -->
+[210] P <normal> </data>
+[211] P <normal> </odoo>
+[213] P <Heading 1> 4. Security Design
+[214] TABLE 1x1 :: Purpose
+Technical secu
+[216] P <Heading 2> 4.1 UI Authentication
+[217] TABLE 7x2 :: Setting | Value
+[219] P <Heading 2> 4.2 Authorization Layer
+[220] P <normal> Primary enforcement: Service layer — all ownership and role checks happen here
+[221] P <normal> Controller role guard: quick pre-filter — rejects obviously wrong roles early
+[222] P <normal> Rule: Service must re-validate even if Controller already checked — future API additions may skip Controller guards
+[224] P <Heading 3> Spring Security path rules:
+[225] P <normal> Public (no session required):
+[226] P <normal> GET  /login,  POST /login
+[227] P <normal> GET  /register,  POST /register
+[228] P <normal> GET  /jobs,  GET /jobs/{id}
+[230] P <normal> Secured (session required):
+[236] P <Heading 2> 4.3 Password Policy
+[237] TABLE 6x2 :: Setting | Value
+[239] P <Heading 2> 4.4 Account Lockout Policy
+[240] TABLE 6x2 :: Setting | Value
+[242] P <Heading 2> 4.5 Secrets Management
+[243] P <normal> All secrets (DB password, API keys) stored in environment variables — never hardcoded
+[244] P <normal> Local dev: copy .env.example to .env  (.env is git-ignored)
+[245] P <normal> Production: environment variables injected by deployment platform (or AWS Secrets Manager / HashiCorp Vault)
+[247] P <Heading 2> 4.6 OWASP Top 10 Mitigation Checklist
+[248] TABLE 7x2 :: Risk | Mitigation
+[250] P <Heading 2> 4.7 Security Filter Chain Configuration
+[251] P <normal> @Bean
+[252] P <normal> public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+[253] P <normal> http
+[254] P <normal> .authorizeHttpRequests(auth -> auth
+[255] P <normal> .requestMatchers("/login", "/register", "/jobs", "/jobs/**",
+[256] P <normal> "/css/**", "/js/**").permitAll()
+[257] P <normal> .requestMatchers("/admin/**").hasRole("ADMIN")
+[258] P <normal> .requestMatchers("/hr/**").hasAnyRole("HR_MANAGER", "ADMIN")
+[259] P <normal> .requestMatchers("/candidate/**").hasRole("CANDIDATE")
+[260] P <normal> .requestMatchers("/api/**").permitAll()  // ApiKeyFilter handles /api/**
+[261] P <normal> .anyRequest().authenticated()
+[262] P <normal> )
+[263] P <normal> .formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/dashboard"))
+[264] P <normal> .logout(logout -> logout.logoutUrl("/logout").invalidateHttpSession(true))
+[265] P <normal> .sessionManagement(s -> s.maximumSessions(1));
+[266] P <normal> return http.build();
+[267] P <normal> }
+[269] P <Heading 2> 4.8 External API Authentication (API-type UCs)
+[270] TABLE 1x1 :: Note
+Fill this section
+[272] TABLE 8x2 :: Setting | Value
+[274] P <Heading 3> api_keys table:
+[275] TABLE 8x3 :: Column | Type | Notes
+[277] P <Heading 1> 5. UI/UX Conventions
+[278] TABLE 1x1 :: Note
+Áp dụng Backend U
+[279] P <Heading 2> 5.1 Design Reference
+[280] TABLE 6x2 :: Setting | Value
+[281] P <Heading 2> 5.2 Standard Page Layout
+[282] P <normal> ┌─────────────────────────────────────────────────────────┐
+[283] P <normal> │  Header: [Logo]  [Project Name]  [Username ▼] [Sign Out]│
+[284] P <normal> ├──────────────┬──────────────────────────────────────────┤
+[285] P <normal> │  Sidebar     │  Main Content Area                       │
+[286] P <normal> │  (nav links  │  (loaded from Thymeleaf fragment)        │
+[287] P <normal> │   per role)  │                                          │
+[288] P <normal> └──────────────┴──────────────────────────────────────────┘
+[290] TABLE 4x2 :: Setting | Value
+[292] P <Heading 2> 5.3 Component Conventions
+[293] TABLE 11x3 :: Component | CSS Class | Notes
+[295] P <Heading 2> 5.4 Partial Update Pattern (OWL Reactivity)
+[296] TABLE 7x2 :: Setting | Value
+[297] P <Heading 2> 5.5 Flash Message Convention
+[298] P <normal> Model method trả về action client để hiển thị notification (không cần redirect):
+[299] P <normal> return {"type": "ir.actions.client", "tag": "display_notification",
+[300] P <normal> "params": {"title": "Thành công", "message": "Báo giá đã được tạo", "type": "success"}}
+[305] P <Heading 2> 5.6 Responsive Breakpoints
+[306] TABLE 4x3 :: Breakpoint | Width | Behaviour
+[308] P <Heading 2> 5.7 Accessibility
+[309] P <normal> Target level: WCAG 2.1 AA
+[310] P <normal> Every form input must have an associated <label> element
+[311] P <normal> Status is communicated by both colour AND text/icon (not colour alone)
+[312] P <normal> Keyboard navigation must work for all interactive elements
+[313] P <normal> Focus indicators must be visible (do not override :focus outline)
+[315] P <Heading 1> 6. Configuration & Environment
+[316] TABLE 1x1 :: Critical
+Fill ALL {{pl
+[318] P <Heading 2> 6.1 Application Configuration
+[320] P <normal> [options]
+[321] P <normal> addons_path = /opt/odoo/addons,/opt/odoo/custom-addons/dl_sale
+[322] P <normal> db_host = ${DB_HOST}
+[323] P <normal> db_port = 5432
+[324] P <normal> db_user = ${DB_USER}
+[325] P <normal> db_password = ${DB_PASSWORD}
+[326] P <normal> db_name = dlm_erp
+[327] P <normal> xmlrpc_port = 8069
+[328] P <normal> workers = 2
+[329] P <normal> limit_time_cpu = 600
+[330] P <normal> limit_time_real = 1200
+[331] P <normal> max_cron_threads = 2
+[332] P <normal> list_db = False
+[333] P <normal> proxy_mode = True
+[336] P <normal> [options]
+[337] P <normal> addons_path = ./addons,./custom-addons
+[338] P <normal> db_host = localhost
+[339] P <normal> db_name = dlm_erp_dev
+[340] P <normal> dev_mode = all
+[341] P <normal> log_level = debug
+[342] P <normal> list_db = True
+[343] P <normal> admin_passwd = ${ODOO_ADMIN_PASSWD}
+[346] P <Heading 2> 6.2 Environment Variables
+[347] TABLE 5x4 :: Variable | Description | Example | Required In
+[348] P <normal> Local dev: cấu hình qua odoo-dev.conf (không dùng .env); Prod: biến môi trường inject qua Docker secrets hoặc systemd EnvironmentFile. Biến khác cần cân nhắc: D
+[350] P <Heading 2> 6.3 Build Dependencies (pom.xml)
+[351] P <normal> # requirements.txt (bổ sung — Odoo 17 base đã kèm phần lớn thư viện core)
+[352] P <normal> psycopg2-binary==2.9.9
+[353] P <normal> Pillow>=10.0
+[354] P <normal> python-dateutil
+[355] P <normal> simpleeval          # sandbox cho C3 custom_expression
+[356] P <normal> coverage>=7.0        # coverage.py cho CI
+[358] P <normal> # __manifest__.py — dl_sale
+[359] P <normal> 'depends': ['base', 'product', 'mail', 'contacts', 'uom'],
+[360] P <normal> 'data': [
+[361] P <normal> 'security/ir.model.access.csv',
+[362] P <normal> 'security/dl_security.xml',
+[363] P <normal> 'views/dl_quotation_views.xml',
+[364] P <normal> 'data/dl_sequence_data.xml',
+[366] P <normal> ],
+[368] P <normal> PostgreSQL 16 — cài đặt qua hệ điều hành / Docker, không qua pip
+[372] P <normal> # Coverage
+[373] P <normal> coverage run --source=dl_sale odoo-bin -c odoo-dev.conf --test-enable -i dl_sale --stop-after-init
+[374] P <normal> coverage report -m
+[375] P <Heading 2> 6.4 Deployment Notes
+[376] TABLE 7x2 :: Setting | Value
+[378] P <Heading 1> 7. File & Storage Conventions
+[379] TABLE 1x1 :: Note
+Áp dụng đầy đủ — 
+[381] P <Heading 2> 7.1 Upload Path Structure
+[382] P <normal> filestore/<db_name>/  (mặc định: /var/lib/odoo/filestore/dlm_erp/)
+[383] P <normal> └── <2 ký tự đầu checksum>/
+[384] P <normal> └── <checksum SHA1 đầy đủ>  (tên file vật lý, không phải tên gốc)
+[388] P <normal> File bản vẽ (B1.attachment_id) trỏ tới ir.attachment với res_model='dl.drawing', res_id=<id của bản vẽ>. Odoo tự dedup theo checksum — 2 file giống hệt chỉ lưu 
+[390] P <Heading 2> 7.2 File Validation Rules
+[391] TABLE 6x2 :: Rule | Value
+[393] P <Heading 2> 7.3 Serving Strategy
+[394] TABLE 6x2 :: Setting | Value
+[396] P <Heading 2> 7.4 Retention & Cleanup Policy
+[397] TABLE 5x2 :: Setting | Value
+[399] P <Heading 1> 8. Error Handling & Logging
+[400] TABLE 1x1 :: Guidance
+Không hiển th
+[402] P <Heading 2> 8.1 Global Error Handling
+[403] TABLE 5x3 :: HTTP Status | Handler | Message Shown to User
+[405] P <Heading 2> 8.2 Logging Configuration
+[406] TABLE 5x3 :: Setting | Development | Production
+[408] P <Heading 2> 8.3 Audit Trail
+[409] TABLE 9x3 :: Event | Logged | Fields Captured
+[410] P <normal> G1 (dl.audit.log) và G2 (dl.quotation.history) là APPEND-ONLY/IMMUTABLE — override _write()/_unlink() raise UserError. Retention: vô thời hạn ở v1.
+[411] P <Heading 1> 9. Performance Constraints
+[412] TABLE 1x1 :: Guidance
+Giá trị ở đây
+[413] P <Heading 2> 9.1 Targets
+[414] TABLE 5x3 :: Metric | Target | Condition
+[415] P <Heading 2> 9.2 Caching Strategy
+[416] TABLE 4x3 :: Layer | Strategy | Notes
+[417] P <Heading 2> 9.3 Known N+1 Risk Points
+[418] TABLE 4x3 :: Scenario | Risk | Resolution

@@ -1,0 +1,1821 @@
+{
+ "tables": [
+  {
+   "model": "dl.approval.level",
+   "table": "dl_approval_level",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_config.py:138"
+   ],
+   "ncols": 2,
+   "cols": [
+    "sequence",
+    "name"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.bom",
+   "table": "dl_bom",
+   "cat": "NEW",
+   "modules": [
+    "dl_sale",
+    "dl_technical"
+   ],
+   "files": [
+    "dl_sale/models/dl_bom_ext.py:5",
+    "dl_technical/models/dl_bom.py:12"
+   ],
+   "ncols": 14,
+   "cols": [
+    "is_rfq_provisional",
+    "rfq_source_line_id",
+    "name",
+    "category_id",
+    "product_id",
+    "bom_type",
+    "source_template_id",
+    "source_template_version",
+    "param_values",
+    "param_signature",
+    "has_deviation",
+    "deviation_note",
+    "total_material_cost",
+    "note"
+   ],
+   "mixins": [
+    "mail.activity.mixin",
+    "mail.thread"
+   ],
+   "inherits": null,
+   "sql": [
+    [
+     "product_version_type_uniq",
+     "unique(product_id,version,bom_type)",
+     "Phiên bản BOM của sản phẩm đã tồn tại."
+    ]
+   ]
+  },
+  {
+   "model": "dl.bom.create.btp.wizard",
+   "table": "dl_bom_create_btp_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/dl_bom_create_btp_wizard.py:5"
+   ],
+   "ncols": 8,
+   "cols": [
+    "bom_id",
+    "name",
+    "category_id",
+    "quantity",
+    "will_be_stocked",
+    "init_mode",
+    "copy_from_bom_id",
+    "confirm_similar_name"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.bom.from.template.wizard",
+   "table": "dl_bom_from_template_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/bom_from_template_wizard.py:5"
+   ],
+   "ncols": 2,
+   "cols": [
+    "bom_id",
+    "template_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.bom.header.mixin",
+   "table": "dl_bom_header_mixin",
+   "cat": "ABS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_bom_header_mixin.py:5"
+   ],
+   "ncols": 6,
+   "cols": [
+    "version",
+    "product_qty",
+    "status",
+    "approved_by",
+    "approved_date",
+    "is_current"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.bom.line",
+   "table": "dl_bom_line",
+   "cat": "NEW",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_bom_line.py:5"
+   ],
+   "ncols": 4,
+   "cols": [
+    "bom_id",
+    "price_snapshot",
+    "recovery_value",
+    "subtotal"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.bom.line.mixin",
+   "table": "dl_bom_line_mixin",
+   "cat": "ABS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_bom_line_mixin.py:17"
+   ],
+   "ncols": 11,
+   "cols": [
+    "material_id",
+    "dim_length",
+    "dim_width",
+    "piece_count",
+    "quantity",
+    "complexity_id",
+    "waste_rate",
+    "effective_qty",
+    "is_override",
+    "override_reason",
+    "uom_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.bom.operation.line",
+   "table": "dl_bom_operation_line",
+   "cat": "NEW",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_bom_operation_line.py:35"
+   ],
+   "ncols": 8,
+   "cols": [
+    "bom_id",
+    "sequence",
+    "operation_id",
+    "base_qty",
+    "material_scope",
+    "is_outsourced",
+    "partner_id",
+    "note"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.bom.template",
+   "table": "dl_bom_template",
+   "cat": "NEW",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_bom_template.py:5"
+   ],
+   "ncols": 4,
+   "cols": [
+    "name",
+    "product_category_id",
+    "is_parametric",
+    "generic_product_id"
+   ],
+   "mixins": [
+    "mail.activity.mixin",
+    "mail.thread"
+   ],
+   "inherits": null,
+   "sql": [
+    [
+     "category_version_uniq",
+     "unique(product_category_id,version)",
+     "Phiên bản BOM mẫu của nhóm sản phẩm đã tồn tại."
+    ]
+   ]
+  },
+  {
+   "model": "dl.bom.template.line",
+   "table": "dl_bom_template_line",
+   "cat": "NEW",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_bom_template.py:240"
+   ],
+   "ncols": 2,
+   "cols": [
+    "bom_template_id",
+    "note"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.bom.template.line.param.map",
+   "table": "dl_bom_template_line_param_map",
+   "cat": "NEW",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_bom_template_param.py:74"
+   ],
+   "ncols": 6,
+   "cols": [
+    "template_line_id",
+    "bom_template_id",
+    "target_field",
+    "param_id",
+    "factor",
+    "offset"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.bom.template.param",
+   "table": "dl_bom_template_param",
+   "cat": "NEW",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_bom_template_param.py:21"
+   ],
+   "ncols": 9,
+   "cols": [
+    "bom_template_id",
+    "sequence",
+    "code",
+    "name",
+    "dim_role",
+    "default_value",
+    "value_min",
+    "value_max",
+    "required"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": [
+    [
+     "code_uniq",
+     "unique(bom_template_id, code)",
+     "Mã tham số đã tồn tại trong BOM mẫu này."
+    ]
+   ]
+  },
+  {
+   "model": "dl.config.audit.log",
+   "table": "dl_config_audit_log",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_config.py:151"
+   ],
+   "ncols": 4,
+   "cols": [
+    "config_tab",
+    "param_label",
+    "detail",
+    "user_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.drawing",
+   "table": "dl_drawing",
+   "cat": "NEW",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_drawing.py:9"
+   ],
+   "ncols": 9,
+   "cols": [
+    "name",
+    "product_id",
+    "is_current",
+    "drawing_code",
+    "version",
+    "status",
+    "attachment_id",
+    "confirmed_date",
+    "created_by"
+   ],
+   "mixins": [
+    "mail.activity.mixin",
+    "mail.thread"
+   ],
+   "inherits": null,
+   "sql": [
+    [
+     "drawing_code_uniq",
+     "unique(drawing_code)",
+     "Mã bản vẽ đã tồn tại."
+    ],
+    [
+     "product_version_uniq",
+     "unique(product_id, version)",
+     "Phiên bản bản vẽ của sản phẩm đã tồn tại."
+    ]
+   ]
+  },
+  {
+   "model": "dl.measurement.shape",
+   "table": "dl_measurement_shape",
+   "cat": "NEW",
+   "modules": [
+    "dl_product"
+   ],
+   "files": [
+    "dl_product/models/dl_measurement.py:38"
+   ],
+   "ncols": 6,
+   "cols": [
+    "measurement_type_id",
+    "name",
+    "code",
+    "default_coefficient",
+    "coefficient_label",
+    "active"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.measurement.shape.param",
+   "table": "dl_measurement_shape_param",
+   "cat": "NEW",
+   "modules": [
+    "dl_product"
+   ],
+   "files": [
+    "dl_product/models/dl_measurement.py:80"
+   ],
+   "ncols": 4,
+   "cols": [
+    "shape_id",
+    "name",
+    "code",
+    "active"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.measurement.type",
+   "table": "dl_measurement_type",
+   "cat": "NEW",
+   "modules": [
+    "dl_product"
+   ],
+   "files": [
+    "dl_product/models/dl_measurement.py:4"
+   ],
+   "ncols": 4,
+   "cols": [
+    "name",
+    "description",
+    "active",
+    "formula_uom_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.approval.matrix",
+   "table": "dl_pricing_approval_matrix",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_matrix.py:47"
+   ],
+   "ncols": 9,
+   "cols": [
+    "name",
+    "value_from",
+    "currency_id",
+    "approval_level",
+    "level_rank",
+    "approver_user_id",
+    "note",
+    "state",
+    "revised_from_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.approval.reject.wizard",
+   "table": "dl_pricing_approval_reject_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/wizard/pricing_approval_reject_wizard.py:5"
+   ],
+   "ncols": 2,
+   "cols": [
+    "request_id",
+    "reject_comment"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.approval.request",
+   "table": "dl_pricing_approval_request",
+   "cat": "NEW",
+   "modules": [
+    "dl_config",
+    "dl_sale"
+   ],
+   "files": [
+    "dl_config/models/pricing_approval.py:91",
+    "dl_sale/models/pricing_approval_ext.py:7"
+   ],
+   "ncols": 22,
+   "cols": [
+    "title",
+    "request_type",
+    "res_model",
+    "res_id",
+    "object_label",
+    "old_value",
+    "new_value",
+    "impact",
+    "requester_id",
+    "requester_role",
+    "reason",
+    "resolved_by_id",
+    "resolved_at",
+    "reject_comment",
+    "is_self_approval",
+    "approval_level",
+    "matrix_row_id",
+    "matrix_revision",
+    "trigger_reasons",
+    "state",
+    "company_id",
+    "quotation_id"
+   ],
+   "mixins": [
+    "mail.activity.mixin",
+    "mail.thread"
+   ],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.approval.setting",
+   "table": "dl_pricing_approval_setting",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_approval.py:48"
+   ],
+   "ncols": 4,
+   "cols": [
+    "request_type",
+    "approver_role",
+    "approver_user_id",
+    "company_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": [
+    [
+     "type_company_uniq",
+     "unique(request_type, company_id)",
+     "Mỗi loại yêu cầu chỉ có một cấu hình người duyệt trong công ty."
+    ]
+   ]
+  },
+  {
+   "model": "dl.pricing.commercial.mixin",
+   "table": "dl_pricing_commercial_mixin",
+   "cat": "ABS",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_commercial.py:27"
+   ],
+   "ncols": 0,
+   "cols": [],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.complexity.level",
+   "table": "dl_pricing_complexity_level",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_waste.py:15"
+   ],
+   "ncols": 5,
+   "cols": [
+    "name",
+    "factor",
+    "note",
+    "sequence",
+    "active"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.config",
+   "table": "dl_pricing_config",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_config.py:37"
+   ],
+   "ncols": 3,
+   "cols": [
+    "name",
+    "vat_pct",
+    "rounding_to"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.cost.adjustment.rule",
+   "table": "dl_pricing_cost_adjustment_rule",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_cost.py:53"
+   ],
+   "ncols": 8,
+   "cols": [
+    "name",
+    "rule_type",
+    "method",
+    "value",
+    "condition_days",
+    "condition_amount",
+    "no_discount",
+    "state"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.discount.rule",
+   "table": "dl_pricing_discount_rule",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_commercial.py:154"
+   ],
+   "ncols": 6,
+   "cols": [
+    "name",
+    "customer_group",
+    "group_rank",
+    "default_rate",
+    "max_rate",
+    "state"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.operation",
+   "table": "dl_pricing_operation",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_operation.py:25"
+   ],
+   "ncols": 4,
+   "cols": [
+    "name",
+    "code",
+    "sequence",
+    "active"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": [
+    [
+     "code_uniq",
+     "unique(code)",
+     "Mã công đoạn đã tồn tại."
+    ]
+   ]
+  },
+  {
+   "model": "dl.pricing.operation.rule",
+   "table": "dl_pricing_operation_rule",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_operation.py:40"
+   ],
+   "ncols": 5,
+   "cols": [
+    "operation_id",
+    "method",
+    "price_rate",
+    "setup_fee",
+    "state"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.profit.rule",
+   "table": "dl_pricing_profit_rule",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_commercial.py:100"
+   ],
+   "ncols": 4,
+   "cols": [
+    "name",
+    "target_markup",
+    "min_markup",
+    "state"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.rule.mixin",
+   "table": "dl_pricing_rule_mixin",
+   "cat": "ABS",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_rule.py:40"
+   ],
+   "ncols": 6,
+   "cols": [
+    "company_id",
+    "revision",
+    "valid_from",
+    "valid_to",
+    "change_reason",
+    "used_in_snapshot"
+   ],
+   "mixins": [
+    "mail.thread"
+   ],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.ui",
+   "table": "dl_pricing_ui",
+   "cat": "TRANS",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_ui.py:13"
+   ],
+   "ncols": 0,
+   "cols": [],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.waste",
+   "table": "dl_pricing_waste",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_config.py:125"
+   ],
+   "ncols": 2,
+   "cols": [
+    "group_name",
+    "waste_pct"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.pricing.waste.rule",
+   "table": "dl_pricing_waste_rule",
+   "cat": "NEW",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/pricing_waste.py:39"
+   ],
+   "ncols": 9,
+   "cols": [
+    "target_type",
+    "category_id",
+    "product_id",
+    "target_label",
+    "waste_rate",
+    "has_recovery",
+    "recovery_rate",
+    "scrap_product_id",
+    "state"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.quotation",
+   "table": "dl_quotation",
+   "cat": "NEW",
+   "modules": [
+    "dl_sale"
+   ],
+   "files": [
+    "dl_sale/models/dl_quotation.py:18",
+    "dl_sale/models/quotation_document.py:25"
+   ],
+   "ncols": 40,
+   "cols": [
+    "name",
+    "partner_id",
+    "date_order",
+    "state",
+    "note",
+    "payment_terms",
+    "delivery_terms",
+    "warranty_terms",
+    "validity_date",
+    "reject_reason",
+    "reject_reason_note",
+    "revision_request_type",
+    "revision_request_note",
+    "revision",
+    "origin_quotation_id",
+    "currency_id",
+    "quotation_request_id",
+    "company_id",
+    "pricing_date",
+    "discount_pct",
+    "vat_pct",
+    "amount_untaxed",
+    "discount_amount",
+    "amount_before_vat",
+    "vat_amount",
+    "amount_total",
+    "total_cost",
+    "effective_markup",
+    "floor_amount",
+    "target_markup",
+    "discount_default_rate",
+    "discount_max_rate",
+    "approval_required",
+    "approval_state",
+    "approval_level",
+    "approval_reasons",
+    "approval_request_id",
+    "below_floor",
+    "discount_above_default",
+    "discount_above_max"
+   ],
+   "mixins": [
+    "mail.activity.mixin",
+    "mail.thread"
+   ],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.quotation.export.wizard",
+   "table": "dl_quotation_export_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_sale"
+   ],
+   "files": [
+    "dl_sale/wizard/quotation_export_wizard.py:11"
+   ],
+   "ncols": 2,
+   "cols": [
+    "quotation_id",
+    "doc_format"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.quotation.line",
+   "table": "dl_quotation_line",
+   "cat": "NEW",
+   "modules": [
+    "dl_sale"
+   ],
+   "files": [
+    "dl_sale/models/dl_quotation.py:1231"
+   ],
+   "ncols": 18,
+   "cols": [
+    "quotation_id",
+    "name",
+    "qty",
+    "price_unit",
+    "price_subtotal",
+    "rfq_line_id",
+    "product_id",
+    "bom_id",
+    "bom_version",
+    "bom_approved_by",
+    "bom_confirmed_date",
+    "line_type",
+    "base_price",
+    "material_cost",
+    "operation_cost",
+    "adjustment_cost",
+    "total_cost",
+    "floor_price"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.quotation.price.component",
+   "table": "dl_quotation_price_component",
+   "cat": "NEW",
+   "modules": [
+    "dl_sale"
+   ],
+   "files": [
+    "dl_sale/models/quotation_price_component.py:13"
+   ],
+   "ncols": 12,
+   "cols": [
+    "quotation_id",
+    "quotation_line_id",
+    "component_type",
+    "source_model",
+    "source_id",
+    "source_revision",
+    "material_id",
+    "qty",
+    "unit_price",
+    "rate",
+    "amount",
+    "no_discount"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.quotation.pricing.service",
+   "table": "dl_quotation_pricing_service",
+   "cat": "ABS",
+   "modules": [
+    "dl_sale"
+   ],
+   "files": [
+    "dl_sale/models/quotation_pricing_service.py:35"
+   ],
+   "ncols": 0,
+   "cols": [],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.quotation.reject.wizard",
+   "table": "dl_quotation_reject_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_sale"
+   ],
+   "files": [
+    "dl_sale/wizard/quotation_reject_wizard.py:5"
+   ],
+   "ncols": 3,
+   "cols": [
+    "quotation_id",
+    "reason",
+    "note"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.quotation.request",
+   "table": "dl_quotation_request",
+   "cat": "NEW",
+   "modules": [
+    "dl_sale",
+    "dl_technical"
+   ],
+   "files": [
+    "dl_sale/models/quotation_pricing_service.py:874",
+    "dl_technical/models/dl_quotation_request.py:61"
+   ],
+   "ncols": 18,
+   "cols": [
+    "auto_quote_error",
+    "auto_quote_failed_at",
+    "name",
+    "customer_id",
+    "description",
+    "requested_date",
+    "deadline",
+    "status",
+    "return_reason",
+    "created_by",
+    "received_by",
+    "received_date",
+    "note",
+    "supplement_count",
+    "supplement_ready_count",
+    "sales_priority",
+    "tech_priority",
+    "tech_queue_since"
+   ],
+   "mixins": [
+    "mail.activity.mixin",
+    "mail.thread"
+   ],
+   "inherits": null,
+   "sql": [
+    [
+     "name_uniq",
+     "unique(name)",
+     "Mã yêu cầu báo giá đã tồn tại."
+    ]
+   ]
+  },
+  {
+   "model": "dl.quotation.request.line",
+   "table": "dl_quotation_request_line",
+   "cat": "NEW",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_quotation_request.py:738"
+   ],
+   "ncols": 14,
+   "cols": [
+    "quotation_request_id",
+    "product_type",
+    "product_name",
+    "product_category_id",
+    "reference_product_id",
+    "quantity",
+    "dimension_note",
+    "resolved_product_id",
+    "resolved_bom_id",
+    "is_infeasible",
+    "infeasible_reason",
+    "supplement_note",
+    "supplement_done",
+    "needs_review"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.quotation.request.line.image",
+   "table": "dl_quotation_request_line_image",
+   "cat": "NEW",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/models/dl_quotation_request.py:1798"
+   ],
+   "ncols": 4,
+   "cols": [
+    "line_id",
+    "sequence",
+    "name",
+    "image"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.quotation.revision.wizard",
+   "table": "dl_quotation_revision_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_sale"
+   ],
+   "files": [
+    "dl_sale/wizard/quotation_revision_wizard.py:5"
+   ],
+   "ncols": 3,
+   "cols": [
+    "quotation_id",
+    "adjust_type",
+    "note"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.rbac.feature",
+   "table": "dl_rbac_feature",
+   "cat": "NEW",
+   "modules": [
+    "dl_base"
+   ],
+   "files": [
+    "dl_base/models/dl_rbac.py:27"
+   ],
+   "ncols": 7,
+   "cols": [
+    "name",
+    "code",
+    "model_id",
+    "model_name",
+    "category",
+    "sequence",
+    "active"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": [
+    [
+     "code_uniq",
+     "unique(code)",
+     "Mã chức năng phải là duy nhất."
+    ]
+   ]
+  },
+  {
+   "model": "dl.rbac.operation",
+   "table": "dl_rbac_operation",
+   "cat": "NEW",
+   "modules": [
+    "dl_base"
+   ],
+   "files": [
+    "dl_base/models/dl_rbac.py:283"
+   ],
+   "ncols": 5,
+   "cols": [
+    "feature_id",
+    "name",
+    "code",
+    "sequence",
+    "group_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.rfq.history.wizard",
+   "table": "dl_rfq_history_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/rfq_history_wizard.py:7"
+   ],
+   "ncols": 1,
+   "cols": [
+    "request_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.rfq.line.infeasible.wizard",
+   "table": "dl_rfq_line_infeasible_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/rfq_line_quick_wizard.py:68"
+   ],
+   "ncols": 1,
+   "cols": [
+    "infeasible_reason"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.rfq.line.quick.wizard.base",
+   "table": "dl_rfq_line_quick_wizard_base",
+   "cat": "ABS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/rfq_line_quick_wizard.py:4"
+   ],
+   "ncols": 1,
+   "cols": [
+    "rfq_line_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.rfq.line.supplement.wizard",
+   "table": "dl_rfq_line_supplement_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/rfq_line_quick_wizard.py:44"
+   ],
+   "ncols": 1,
+   "cols": [
+    "supplement_note"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.rfq.resolve.param",
+   "table": "dl_rfq_resolve_param",
+   "cat": "TRANS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/rfq_resolve_wizard.py:7"
+   ],
+   "ncols": 9,
+   "cols": [
+    "wizard_id",
+    "template_param_id",
+    "sequence",
+    "code",
+    "name",
+    "value",
+    "value_min",
+    "value_max",
+    "required"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.rfq.resolve.wizard",
+   "table": "dl_rfq_resolve_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/rfq_resolve_wizard.py:37"
+   ],
+   "ncols": 16,
+   "cols": [
+    "rfq_line_id",
+    "show_bom_picker",
+    "is_infeasible",
+    "infeasible_reason",
+    "has_existing_supplement",
+    "mode",
+    "product_id",
+    "search_outside_category",
+    "auto_selected",
+    "new_product_name",
+    "new_product_category_id",
+    "confirm_not_just_size",
+    "confirm_similar_name",
+    "manual_bom_id",
+    "show_param_panel",
+    "param_reused_bom"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.rfq.return.wizard",
+   "table": "dl_rfq_return_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/rfq_return_wizard.py:6"
+   ],
+   "ncols": 2,
+   "cols": [
+    "request_id",
+    "reason"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.rfq.return.wizard.line",
+   "table": "dl_rfq_return_wizard_line",
+   "cat": "TRANS",
+   "modules": [
+    "dl_technical"
+   ],
+   "files": [
+    "dl_technical/wizard/rfq_return_wizard.py:102"
+   ],
+   "ncols": 4,
+   "cols": [
+    "wizard_id",
+    "rfq_line_id",
+    "selected",
+    "note"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.sale.order",
+   "table": "dl_sale_order",
+   "cat": "NEW",
+   "modules": [
+    "dl_inventory",
+    "dl_sale"
+   ],
+   "files": [
+    "dl_inventory/models/dl_sale_order.py:29",
+    "dl_sale/models/dl_sale_order.py:7"
+   ],
+   "ncols": 20,
+   "cols": [
+    "dlm_delivery_state",
+    "dlm_has_deliverable",
+    "name",
+    "partner_id",
+    "quotation_id",
+    "date_order",
+    "state",
+    "note",
+    "reset_draft_reason",
+    "reset_draft_by",
+    "reset_draft_at",
+    "currency_id",
+    "company_id",
+    "discount_pct",
+    "vat_pct",
+    "amount_untaxed",
+    "discount_amount",
+    "amount_before_vat",
+    "vat_amount",
+    "amount_total"
+   ],
+   "mixins": [
+    "mail.activity.mixin",
+    "mail.thread"
+   ],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.sale.order.line",
+   "table": "dl_sale_order_line",
+   "cat": "NEW",
+   "modules": [
+    "dl_sale"
+   ],
+   "files": [
+    "dl_sale/models/dl_sale_order.py:272"
+   ],
+   "ncols": 11,
+   "cols": [
+    "order_id",
+    "name",
+    "qty",
+    "price_unit",
+    "price_subtotal",
+    "product_id",
+    "bom_id",
+    "bom_version",
+    "bom_approved_by",
+    "bom_confirmed_date",
+    "line_type"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.sale.order.reset.draft.wizard",
+   "table": "dl_sale_order_reset_draft_wizard",
+   "cat": "TRANS",
+   "modules": [
+    "dl_sale"
+   ],
+   "files": [
+    "dl_sale/wizard/sale_order_reset_draft_wizard.py:5"
+   ],
+   "ncols": 2,
+   "cols": [
+    "order_id",
+    "reason"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "dl.scrap.recovery.report",
+   "table": "dl_scrap_recovery_report",
+   "cat": "NEW",
+   "modules": [
+    "dl_inventory"
+   ],
+   "files": [
+    "dl_inventory/models/dl_scrap_recovery_report.py:28"
+   ],
+   "ncols": 3,
+   "cols": [
+    "period",
+    "qty_in",
+    "qty_sold"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "product.category",
+   "table": "product_category",
+   "cat": "EXT",
+   "modules": [
+    "dl_product",
+    "dl_technical"
+   ],
+   "files": [
+    "dl_product/models/dl_product_category.py:5",
+    "dl_technical/models/dl_product.py:14"
+   ],
+   "ncols": 3,
+   "cols": [
+    "active",
+    "dl_branch",
+    "bom_template_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "product.product",
+   "table": "product_product",
+   "cat": "EXT",
+   "modules": [
+    "dl_product",
+    "dl_technical"
+   ],
+   "files": [
+    "dl_product/models/dl_product.py:57",
+    "dl_technical/models/dl_product.py:45"
+   ],
+   "ncols": 23,
+   "cols": [
+    "product_kind",
+    "dlm_lifecycle_state",
+    "dlm_supplier_price_state",
+    "dlm_calc_kind",
+    "dlm_stock_length",
+    "dlm_sheet_w",
+    "dlm_sheet_h",
+    "dlm_mass_per_unit",
+    "dlm_mass_per_meter",
+    "dlm_mass_per_sqm",
+    "dlm_waste_rate",
+    "dlm_has_recovery",
+    "dlm_recovery_rate",
+    "dlm_scrap_product_id",
+    "is_rfq_provisional",
+    "rfq_source_line_id",
+    "dlm_dim_length",
+    "dlm_dim_width",
+    "dlm_dim_height",
+    "dlm_thickness",
+    "dlm_main_material_id",
+    "dlm_finish",
+    "dlm_est_weight"
+   ],
+   "mixins": [
+    "mail.activity.mixin",
+    "mail.thread"
+   ],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "product.supplierinfo",
+   "table": "product_supplierinfo",
+   "cat": "EXT",
+   "modules": [
+    "dl_product"
+   ],
+   "files": [
+    "dl_product/models/product_supplierinfo.py:7"
+   ],
+   "ncols": 11,
+   "cols": [
+    "date_start",
+    "dl_product_kind",
+    "approval_state",
+    "is_applied",
+    "dlm_approved_uid",
+    "dlm_approved_date",
+    "dlm_applied_uid",
+    "dlm_applied_date",
+    "dlm_unapplied_uid",
+    "dlm_unapplied_date",
+    "display_state"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "res.company",
+   "table": "res_company",
+   "cat": "EXT",
+   "modules": [
+    "dl_base"
+   ],
+   "files": [
+    "dl_base/models/res_company.py:9"
+   ],
+   "ncols": 0,
+   "cols": [],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "res.country",
+   "table": "res_country",
+   "cat": "EXT",
+   "modules": [
+    "dl_partner"
+   ],
+   "files": [
+    "dl_partner/models/res_country.py:4"
+   ],
+   "ncols": 0,
+   "cols": [],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "res.partner",
+   "table": "res_partner",
+   "cat": "EXT",
+   "modules": [
+    "dl_partner",
+    "dl_sale"
+   ],
+   "files": [
+    "dl_partner/models/res_partner.py:14",
+    "dl_sale/models/res_partner.py:27"
+   ],
+   "ncols": 7,
+   "cols": [
+    "partner_role",
+    "pending_link_partner_id",
+    "dlm_code",
+    "partner_type",
+    "dlm_allow_dup_tax",
+    "dlm_has_photo",
+    "dlm_customer_group"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "res.users",
+   "table": "res_users",
+   "cat": "EXT",
+   "modules": [
+    "dl_config"
+   ],
+   "files": [
+    "dl_config/models/res_users.py:16"
+   ],
+   "ncols": 1,
+   "cols": [
+    "dl_backup_approver_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "stock.location",
+   "table": "stock_location",
+   "cat": "EXT",
+   "modules": [
+    "dl_inventory"
+   ],
+   "files": [
+    "dl_inventory/models/stock_warehouse.py:315"
+   ],
+   "ncols": 1,
+   "cols": [
+    "dlm_no_inventory"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "stock.lot",
+   "table": "stock_lot",
+   "cat": "EXT",
+   "modules": [
+    "dl_inventory"
+   ],
+   "files": [
+    "dl_inventory/models/stock_lot.py:21"
+   ],
+   "ncols": 3,
+   "cols": [
+    "dlm_supplier_id",
+    "dlm_receipt_date",
+    "dlm_receipt_picking_id"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "stock.move",
+   "table": "stock_move",
+   "cat": "EXT",
+   "modules": [
+    "dl_inventory"
+   ],
+   "files": [
+    "dl_inventory/models/stock_move.py:26"
+   ],
+   "ncols": 3,
+   "cols": [
+    "dlm_qty_rejected",
+    "dlm_reject_reason",
+    "dlm_reject_note"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "stock.picking",
+   "table": "stock_picking",
+   "cat": "EXT",
+   "modules": [
+    "dl_inventory"
+   ],
+   "files": [
+    "dl_inventory/models/stock_picking.py:63"
+   ],
+   "ncols": 4,
+   "cols": [
+    "dlm_origin_picking_id",
+    "dlm_sale_order_id",
+    "dlm_qty_rejected_total",
+    "dlm_qc_state"
+   ],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "stock.quant",
+   "table": "stock_quant",
+   "cat": "EXT",
+   "modules": [
+    "dl_inventory"
+   ],
+   "files": [
+    "dl_inventory/models/stock_quant.py:16"
+   ],
+   "ncols": 0,
+   "cols": [],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  },
+  {
+   "model": "stock.warehouse",
+   "table": "stock_warehouse",
+   "cat": "EXT",
+   "modules": [
+    "dl_inventory"
+   ],
+   "files": [
+    "dl_inventory/models/stock_warehouse.py:78"
+   ],
+   "ncols": 0,
+   "cols": [],
+   "mixins": [],
+   "inherits": null,
+   "sql": []
+  }
+ ],
+ "m2m": {
+  "dl_bom_line_dl_bom_operation_line_rel": [
+   "dl.bom.operation.line",
+   "dl.bom.line",
+   "material_line_ids",
+   "dl_technical/models/dl_bom_operation_line.py"
+  ],
+  "dl_rfq_line_ir_attachment_rel": [
+   "dl.quotation.request.line",
+   "ir.attachment",
+   "attachment_ids",
+   "dl_technical/models/dl_quotation_request.py"
+  ]
+ },
+ "core_ref": {
+  "ir.model": [
+   "dl.rbac.feature"
+  ],
+  "res.groups": [
+   "dl.rbac.operation"
+  ],
+  "res.users": [
+   "dl.bom.header.mixin",
+   "dl.config.audit.log",
+   "dl.drawing",
+   "dl.pricing.approval.matrix",
+   "dl.pricing.approval.request",
+   "dl.pricing.approval.setting",
+   "dl.quotation.line",
+   "dl.quotation.request",
+   "dl.sale.order",
+   "dl.sale.order.line",
+   "product.supplierinfo",
+   "res.users"
+  ],
+  "res.company": [
+   "dl.pricing.approval.request",
+   "dl.pricing.approval.setting",
+   "dl.pricing.rule.mixin",
+   "dl.quotation",
+   "dl.sale.order"
+  ],
+  "res.currency": [
+   "dl.pricing.approval.matrix",
+   "dl.quotation",
+   "dl.quotation.request.line",
+   "dl.sale.order",
+   "res.partner"
+  ],
+  "product.category": [
+   "dl.bom",
+   "dl.bom.create.btp.wizard",
+   "dl.bom.template",
+   "dl.pricing.waste.rule",
+   "dl.quotation.request.line",
+   "dl.rfq.resolve.wizard"
+  ],
+  "product.product": [
+   "dl.bom",
+   "dl.bom.create.btp.wizard",
+   "dl.bom.line.mixin",
+   "dl.bom.template",
+   "dl.drawing",
+   "dl.pricing.waste.rule",
+   "dl.quotation.line",
+   "dl.quotation.price.component",
+   "dl.quotation.request",
+   "dl.quotation.request.line",
+   "dl.rfq.resolve.wizard",
+   "dl.sale.order.line",
+   "product.product",
+   "stock.picking"
+  ],
+  "res.partner": [
+   "dl.bom.operation.line",
+   "dl.quotation",
+   "dl.quotation.request",
+   "dl.sale.order",
+   "res.partner",
+   "stock.lot"
+  ],
+  "stock.picking": [
+   "stock.lot",
+   "stock.picking"
+  ],
+  "uom.uom": [
+   "dl.bom.line.mixin",
+   "dl.measurement.type"
+  ],
+  "ir.attachment": [
+   "dl.bom",
+   "dl.drawing",
+   "dl.quotation.request.line"
+  ]
+ }
+}

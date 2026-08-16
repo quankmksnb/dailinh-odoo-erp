@@ -1,0 +1,137 @@
+<mxfile host="app.diagrams.net" agent="DLM-ERP conceptual ERD generator" version="24.7.17" type="device">
+  <diagram name="A. Doi tac &amp; Nguoi dung" id="page-1">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2320" pageHeight="1340" math="0" shadow="0">
+      <root>
+        <mxCell id="p1-0"/>
+        <mxCell id="p1-1" parent="p1-0"/>
+        <mxCell id="p1-ti1" value="Sub-ERD A &amp;#8212; Partners &amp;amp; Users" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=20;fontStyle=1;fontColor=#333333;" vertex="1" parent="p1-1">
+          <mxGeometry x="40" y="30" width="1400" height="34" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-ti2" value="S&amp;#7903; h&amp;#7919;u: PARTNER &amp;#183; CUSTOMER &amp;#183; SUPPLIER &amp;#183; USER &amp;#183; ROLE &amp;#183; COMPANY &amp;#160;&amp;#8212;&amp;#160; k&amp;#253; hi&amp;#7879;u Chen/EER (Elmasri)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontColor=#666666;" vertex="1" parent="p1-1">
+          <mxGeometry x="40" y="62" width="1400" height="24" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-partner" value="PARTNER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="400" y="150" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-isa_p" value="o" style="ellipse;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=16;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="482" y="252" width="46" height="46" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-cust" value="CUSTOMER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="150" y="360" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-supp" value="SUPPLIER /&#10;SUBCONTRACTOR" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="660" y="360" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e3" value="" style="endArrow=none;html=1;rounded=0;fontSize=14;strokeColor=#9673a6;strokeWidth=2;labelBackgroundColor=#ffffff;" edge="1" parent="p1-1" source="p1-partner" target="p1-isa_p">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e4" value="⊂" style="endArrow=none;html=1;rounded=0;fontSize=14;strokeColor=#9673a6;strokeWidth=2;labelBackgroundColor=#ffffff;" edge="1" parent="p1-1" source="p1-isa_p" target="p1-cust">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e5" value="⊂" style="endArrow=none;html=1;rounded=0;fontSize=14;strokeColor=#9673a6;strokeWidth=2;labelBackgroundColor=#ffffff;" edge="1" parent="p1-1" source="p1-isa_p" target="p1-supp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-r_contact" value="has_contact" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="690" y="142" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e6" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;" edge="1" parent="p1-1" source="p1-partner" target="p1-r_contact">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e7" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=1;entryY=0.7;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p1-1" source="p1-r_contact" target="p1-partner">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="90"/>
+              <mxPoint x="400" y="90"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1-a_partner" value="&lt;b&gt;PARTNER&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Tax code&lt;/u&gt; (legal identity)&lt;br/&gt;&amp;#8226; Partner name&lt;br/&gt;&amp;#8226; Partner role &amp;#8212; &lt;i&gt;discriminator&lt;/i&gt;&lt;br/&gt;&amp;#8226; Phone &amp;#183; Mobile &amp;#183; Email&lt;br/&gt;&amp;#8226; Address (street / city / country)&lt;br/&gt;&amp;#8226; Duplicate-tax-code exemption flag&lt;br/&gt;&amp;#8226; Cooperation status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p1-1">
+          <mxGeometry x="60" y="130" width="300" height="146" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e8" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p1-1" source="p1-partner" target="p1-a_partner">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-a_cust" value="&lt;b&gt;CUSTOMER&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Customer code&lt;/u&gt; (KH-0001)&lt;br/&gt;&amp;#8226; &lt;u&gt;Tax code&lt;/u&gt; (unique / customers)&lt;br/&gt;&amp;#8226; Customer type (Individual / Company / Dealer)&lt;br/&gt;&amp;#8226; Contact persons&lt;br/&gt;&amp;#8226; Customer group (auto-computed)&lt;br/&gt;&amp;#8226; Quotation count &amp;#183; Win rate &amp;#183; Revenue&lt;br/&gt;&amp;#8226; Order-splitting warning" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p1-1">
+          <mxGeometry x="60" y="470" width="300" height="146" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e9" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p1-1" source="p1-cust" target="p1-a_cust">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-a_supp" value="&lt;b&gt;SUPPLIER / SUBCONTRACTOR&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Supplier name + Tax code&lt;/u&gt;&lt;br/&gt;&amp;#8226; Phone &amp;#183; Email (purchasing)&lt;br/&gt;&amp;#8226; Delivery / pickup address&lt;br/&gt;&amp;#8226; Cooperation status&lt;br/&gt;&amp;#8226; &lt;i&gt;no auto-generated code&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p1-1">
+          <mxGeometry x="620" y="470" width="300" height="114" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e10" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p1-1" source="p1-supp" target="p1-a_supp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-company" value="COMPANY" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="1520" y="150" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-r_employs" value="employs" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="1555" y="302" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-user" value="USER" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="1520" y="450" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-r_assigns" value="assigns" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="1555" y="602" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-role" value="ROLE" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="1520" y="750" width="210" height="58" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e11" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p1-1" source="p1-company" target="p1-r_employs">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e12" value="N" style="shape=link;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;width=3;" edge="1" parent="p1-1" source="p1-r_employs" target="p1-user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e13" value="M" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p1-1" source="p1-user" target="p1-r_assigns">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e14" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;" edge="1" parent="p1-1" source="p1-r_assigns" target="p1-role">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-r_backup" value="backs_up" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;verticalAlign=middle;align=center;" vertex="1" parent="p1-1">
+          <mxGeometry x="1240" y="442" width="140" height="74" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e15" value="1" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;exitX=0;exitY=0.3;exitDx=0;exitDy=0;" edge="1" parent="p1-1" source="p1-user" target="p1-r_backup">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e16" value="N" style="endArrow=none;html=1;rounded=0;fontSize=12;fontStyle=1;strokeColor=#333333;labelBackgroundColor=#ffffff;exitPerimeter=1;entryX=0;entryY=0.7;entryDx=0;entryDy=0;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="p1-1" source="p1-r_backup" target="p1-user">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1180" y="560"/>
+              <mxPoint x="1450" y="560"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1-a_company" value="&lt;b&gt;COMPANY&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Company name + Tax code&lt;/u&gt;&lt;br/&gt;&amp;#8226; Currency (&lt;b&gt;must be VND&lt;/b&gt;)&lt;br/&gt;&amp;#8226; Address &amp;#183; Contact details&lt;br/&gt;&amp;#8226; Logo printed on documents" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p1-1">
+          <mxGeometry x="1830" y="130" width="300" height="98" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e17" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p1-1" source="p1-company" target="p1-a_company">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-a_user" value="&lt;b&gt;USER&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Username&lt;/u&gt; &amp;#183; &lt;u&gt;Email&lt;/u&gt;&lt;br/&gt;&amp;#8226; Full name (shown on documents)&lt;br/&gt;&amp;#8226; Internal phone&lt;br/&gt;&amp;#8226; Assigned roles (may hold several)&lt;br/&gt;&amp;#8226; Backup approver&lt;br/&gt;&amp;#8226; Last sign-in &amp;#183; Account status" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p1-1">
+          <mxGeometry x="1830" y="430" width="300" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e18" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p1-1" source="p1-user" target="p1-a_user">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-a_role" value="&lt;b&gt;ROLE&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#8226; &lt;u&gt;Role name&lt;/u&gt;&lt;br/&gt;&amp;#8226; Description of responsibilities&lt;br/&gt;&amp;#8226; System-role flag&lt;br/&gt;&amp;#8226; Number of accounts holding it&lt;br/&gt;&amp;#8226; Granted features &amp;amp; operations" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b3b3b3;align=left;verticalAlign=top;fontSize=10;spacing=4;spacingLeft=6;" vertex="1" parent="p1-1">
+          <mxGeometry x="1830" y="730" width="300" height="114" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-e19" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#b3b3b3;dashed=1;dashPattern=3 3;" edge="1" parent="p1-1" source="p1-role" target="p1-a_role">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-nt20" value="&lt;b&gt;Chuy&amp;#234;n bi&amp;#7879;t ho&amp;#225; PARTNER: b&amp;#7897; ph&amp;#7853;n, ch&amp;#7891;ng l&amp;#7845;n (partial, overlapping)&lt;/b&gt;&lt;br/&gt;M&amp;#7897;t &amp;#273;&amp;#7889;i t&amp;#225;c c&amp;#243; th&amp;#7875; v&amp;#7915;a l&amp;#224; Kh&amp;#225;ch h&amp;#224;ng v&amp;#7915;a l&amp;#224; Nh&amp;#224; cung c&amp;#7845;p (vai tr&amp;#242; &lt;i&gt;Both&lt;/i&gt;) &amp;#8658; v&amp;#242;ng tr&amp;#242;n mang &lt;b&gt;o&lt;/b&gt;, &amp;#273;&amp;#432;&amp;#7901;ng n&amp;#7889;i l&amp;#7899;p cha l&amp;#224; &amp;#273;&amp;#432;&amp;#7901;ng &amp;#273;&amp;#417;n.&lt;br/&gt;Hai chuy&amp;#234;n bi&amp;#7879;t ho&amp;#225; c&amp;#242;n l&amp;#7841;i (ITEM &amp;#8212; sub-ERD B, BOM &amp;#8212; sub-ERD C) l&amp;#224; &lt;b&gt;to&amp;#224;n ph&amp;#7847;n, lo&amp;#7841;i tr&amp;#7915;&lt;/b&gt;." style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p1-1">
+          <mxGeometry x="660" y="900" width="430" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-nt21" value="&lt;b&gt;Quan h&amp;#7879; v&amp;#7899;i ch&amp;#7913;ng t&amp;#7915; v&amp;#7869; &amp;#7903; sub-ERD kh&amp;#225;c&lt;/b&gt; (quy &amp;#432;&amp;#7899;c &amp;#167;4.0-2)&lt;br/&gt;CUSTOMER &amp;#8594; RFQ / B&amp;#225;o gi&amp;#225; / &amp;#272;&amp;#417;n h&amp;#224;ng: sub-ERD D&lt;br/&gt;SUPPLIER &amp;#8594; B&amp;#7843;ng gi&amp;#225; NCC: sub-ERD B&lt;br/&gt;SUPPLIER &amp;#8594; D&amp;#242;ng c&amp;#244;ng &amp;#273;o&amp;#7841;n (thu&amp;#234; ngo&amp;#224;i): sub-ERD C&lt;br/&gt;USER &amp;#8594; duy&amp;#7879;t BOM / b&amp;#7843;n v&amp;#7869; / y&amp;#234;u c&amp;#7847;u ph&amp;#234; duy&amp;#7879;t: sub-ERD B, C, E&lt;br/&gt;COMPANY &amp;#8594; ph&amp;#225;t h&amp;#224;nh b&amp;#225;o gi&amp;#225; / &amp;#273;&amp;#417;n, ph&amp;#7841;m vi c&amp;#7845;u h&amp;#236;nh gi&amp;#225;: sub-ERD D, E" style="shape=note;whiteSpace=wrap;html=1;size=16;fillColor=#fff9e6;strokeColor=#d6b656;align=left;verticalAlign=top;fontSize=11;" vertex="1" parent="p1-1">
+          <mxGeometry x="1130" y="900" width="430" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1-lg22" value="&lt;b&gt;CH&amp;#218; GI&amp;#7842;I K&amp;#221; HI&amp;#7878;U &amp;#8212; Chen / EER (Elmasri &amp;amp; Navathe)&lt;/b&gt;&lt;hr size=&quot;1&quot;/&gt;&amp;#9633; H&amp;#7897;p &amp;#273;&amp;#417;n &amp;#8212; ki&amp;#7875;u th&amp;#7921;c th&amp;#7875;&lt;br/&gt;&amp;#9636; H&amp;#7897;p k&amp;#233;p (cam) &amp;#8212; th&amp;#7921;c th&amp;#7875; y&amp;#7871;u (weak entity)&lt;br/&gt;&amp;#9633; H&amp;#7897;p n&amp;#233;t &amp;#273;&amp;#7913;t x&amp;#225;m &amp;#8212; entity bi&amp;#234;n (thu&amp;#7897;c sub-ERD kh&amp;#225;c, kh&amp;#244;ng v&amp;#7869; thu&amp;#7897;c t&amp;#237;nh)&lt;br/&gt;&amp;#9671; H&amp;#236;nh thoi &amp;#8212; ki&amp;#7875;u quan h&amp;#7879;&lt;br/&gt;&amp;#9671; H&amp;#236;nh thoi k&amp;#233;p &amp;#8212; quan h&amp;#7879; &amp;#273;&amp;#7883;nh danh (identifying relationship)&lt;br/&gt;&amp;#8212; &amp;#272;&amp;#432;&amp;#7901;ng &amp;#273;&amp;#417;n &amp;#8212; tham gia b&amp;#7897; ph&amp;#7853;n (partial)&lt;br/&gt;&amp;#8801; &amp;#272;&amp;#432;&amp;#7901;ng k&amp;#233;p &amp;#8212; tham gia to&amp;#224;n b&amp;#7897; (total)&lt;br/&gt;&lt;b&gt;1 / M / N&lt;/b&gt; tr&amp;#234;n c&amp;#7841;nh &amp;#8212; l&amp;#7921;c l&amp;#432;&amp;#7907;ng (cardinality ratio)&lt;br/&gt;&amp;#9711; V&amp;#242;ng tr&amp;#242;n &lt;b&gt;d&lt;/b&gt; / &lt;b&gt;o&lt;/b&gt; &amp;#8212; chuy&amp;#234;n bi&amp;#7879;t ho&amp;#225; disjoint / overlapping; cung mang &lt;b&gt;&amp;#8834;&lt;/b&gt; tr&amp;#7887; v&amp;#7873; l&amp;#7899;p con&lt;br/&gt;&amp;#8943; &amp;#272;&amp;#432;&amp;#7901;ng ch&amp;#7845;m t&amp;#237;m &amp;#8212; tham chi&amp;#7871;u m&amp;#7873;m (snapshot, c&amp;#7889; &amp;#253; kh&amp;#244;ng c&amp;#243; kho&amp;#225; ngo&amp;#7841;i)&lt;br/&gt;&amp;#9642; H&amp;#7897;p tr&amp;#7855;ng c&amp;#7841;nh entity &amp;#8212; thu&amp;#7897;c t&amp;#237;nh nghi&amp;#7879;p v&amp;#7909; ch&amp;#237;nh; &lt;u&gt;g&amp;#7841;ch ch&amp;#226;n&lt;/u&gt; = &amp;#273;&amp;#7883;nh danh nghi&amp;#7879;p v&amp;#7909;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;align=left;verticalAlign=top;fontSize=11;spacing=6;" vertex="1" parent="p1-1">
+          <mxGeometry x="60" y="900" width="560" height="340" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

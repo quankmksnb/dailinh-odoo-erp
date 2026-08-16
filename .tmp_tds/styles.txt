@@ -1,0 +1,220 @@
+=== PARAGRAPH STYLES ===
+  TABLE (3) :: 'TableNormal'  (styleId=TableNormal)
+  PARAGRAPH (1) :: 'normal'  (styleId=Normal)
+  PARAGRAPH (1) :: 'Heading 1'  (styleId=Heading1)
+  PARAGRAPH (1) :: 'Heading 2'  (styleId=Heading2)
+  PARAGRAPH (1) :: 'Heading 3'  (styleId=Heading3)
+  PARAGRAPH (1) :: 'Heading 4'  (styleId=Heading4)
+  PARAGRAPH (1) :: 'Heading 5'  (styleId=Heading5)
+  PARAGRAPH (1) :: 'Heading 6'  (styleId=Heading6)
+  PARAGRAPH (1) :: 'Title'  (styleId=Title)
+  PARAGRAPH (1) :: 'Subtitle'  (styleId=Subtitle)
+  TABLE (3) :: None  (styleId=Table1)
+  TABLE (3) :: None  (styleId=Table2)
+  TABLE (3) :: None  (styleId=Table3)
+  TABLE (3) :: None  (styleId=Table4)
+  TABLE (3) :: None  (styleId=Table5)
+  TABLE (3) :: None  (styleId=Table6)
+  TABLE (3) :: None  (styleId=Table7)
+  TABLE (3) :: None  (styleId=Table8)
+  TABLE (3) :: None  (styleId=Table9)
+  TABLE (3) :: None  (styleId=Table10)
+  TABLE (3) :: None  (styleId=Table11)
+  TABLE (3) :: None  (styleId=Table12)
+  TABLE (3) :: None  (styleId=Table13)
+  TABLE (3) :: None  (styleId=Table14)
+  TABLE (3) :: None  (styleId=Table15)
+  TABLE (3) :: None  (styleId=Table16)
+  TABLE (3) :: None  (styleId=Table17)
+  TABLE (3) :: None  (styleId=Table18)
+  TABLE (3) :: None  (styleId=Table19)
+  TABLE (3) :: None  (styleId=Table20)
+  TABLE (3) :: None  (styleId=Table21)
+  TABLE (3) :: None  (styleId=Table22)
+  TABLE (3) :: None  (styleId=Table23)
+  TABLE (3) :: None  (styleId=Table24)
+  TABLE (3) :: None  (styleId=Table25)
+  TABLE (3) :: None  (styleId=Table26)
+  TABLE (3) :: None  (styleId=Table27)
+  TABLE (3) :: None  (styleId=Table28)
+  TABLE (3) :: None  (styleId=Table29)
+  TABLE (3) :: None  (styleId=Table30)
+  TABLE (3) :: None  (styleId=Table31)
+  TABLE (3) :: None  (styleId=Table32)
+  TABLE (3) :: None  (styleId=Table33)
+  TABLE (3) :: None  (styleId=Table34)
+  TABLE (3) :: None  (styleId=Table35)
+  TABLE (3) :: None  (styleId=Table36)
+  TABLE (3) :: None  (styleId=Table37)
+  TABLE (3) :: None  (styleId=Table38)
+  TABLE (3) :: None  (styleId=Table39)
+  TABLE (3) :: None  (styleId=Table40)
+  TABLE (3) :: None  (styleId=Table41)
+  TABLE (3) :: None  (styleId=Table42)
+  TABLE (3) :: None  (styleId=Table43)
+  TABLE (3) :: None  (styleId=Table44)
+  TABLE (3) :: None  (styleId=Table45)
+  TABLE (3) :: None  (styleId=Table46)
+  TABLE (3) :: None  (styleId=Table47)
+  TABLE (3) :: None  (styleId=Table48)
+  TABLE (3) :: None  (styleId=Table49)
+  TABLE (3) :: None  (styleId=Table50)
+  TABLE (3) :: None  (styleId=Table51)
+  TABLE (3) :: None  (styleId=Table52)
+  TABLE (3) :: None  (styleId=Table53)
+  TABLE (3) :: None  (styleId=Table54)
+  TABLE (3) :: None  (styleId=Table55)
+  TABLE (3) :: None  (styleId=Table56)
+  TABLE (3) :: None  (styleId=Table57)
+  TABLE (3) :: None  (styleId=Table58)
+  TABLE (3) :: None  (styleId=Table59)
+  TABLE (3) :: None  (styleId=Table60)
+  TABLE (3) :: None  (styleId=Table61)
+  TABLE (3) :: None  (styleId=Table62)
+  TABLE (3) :: None  (styleId=Table63)
+  TABLE (3) :: None  (styleId=Table64)
+  TABLE (3) :: None  (styleId=Table65)
+  TABLE (3) :: None  (styleId=Table66)
+  TABLE (3) :: None  (styleId=Table67)
+  TABLE (3) :: None  (styleId=Table68)
+  TABLE (3) :: None  (styleId=Table69)
+  TABLE (3) :: None  (styleId=Table70)
+  TABLE (3) :: None  (styleId=Table71)
+  TABLE (3) :: None  (styleId=Table72)
+  TABLE (3) :: None  (styleId=Table73)
+
+=== TABLE STYLES USED IN BODY ===
+  style=None                                2x2  Version | {{VERSION}}
+  style=None                                2x4  Version | Date | Author | Summary
+  style=None                                15x4  Layer | Technology | Version | Notes
+  style=None                                2x4  Service | Purpose | Protocol | Notes
+  style=None                                5x4  Decision | Chosen | Alternatives | Reason
+  style=None                                1x1  Guidance
+Draw the 
+  style=None                                9x3  Layer | Package | Responsibility
+  style=None                                35x5  ID | Model | Mô tả | — | Odoo native base
+  style=None                                1x1  Note
+partner_role 
+  style=None                                9x4  Column | Type | Constraints | Notes
+  style=None                                3x4  Column | Type | Constraints | Notes
+  style=None                                1x1  Note
+Quyết định ki
+  style=None                                5x4  Column | Type | Constraints | Notes
+  style=None                                10x4  Column | Type | Constraints | Notes
+  style=None                                10x4  Column | Type | Constraints | Notes
+  style=None                                16x4  Table | Column | Allowed Values | Notes
+  style=None                                20x4  Table | Index Column(s) | Type | Reason
+  style=None                                7x2  Setting | Value
+  style=None                                1x1  Purpose
+Dữ liệu tố
+  style=None                                7x3  — | Nhóm quyền (groups | Mục đích test
+  style=None                                14x3  Entity | Count | States needed
+  style=None                                1x1  Purpose
+Technical 
+  style=None                                7x2  Setting | Value
+  style=None                                6x2  Setting | Value
+  style=None                                6x2  Setting | Value
+  style=None                                7x2  Risk | Mitigation
+  style=None                                1x1  Note
+Fill this sec
+  style=None                                8x2  Setting | Value
+  style=None                                8x3  Column | Type | Notes
+  style=None                                1x1  Note
+Áp dụng Backe
+  style=None                                6x2  Setting | Value
+  style=None                                4x2  Setting | Value
+  style=None                                11x3  Component | CSS Class | Notes
+  style=None                                7x2  Setting | Value
+  style=None                                4x3  Breakpoint | Width | Behaviour
+  style=None                                1x1  Critical
+Fill ALL 
+  style=None                                5x4  Variable | Description | Example | Required In
+  style=None                                7x2  Setting | Value
+  style=None                                1x1  Note
+Áp dụng đầy đ
+  style=None                                6x2  Rule | Value
+  style=None                                6x2  Setting | Value
+  style=None                                5x2  Setting | Value
+  style=None                                1x1  Guidance
+Không hiể
+  style=None                                5x3  HTTP Status | Handler | Message Shown to U
+  style=None                                5x3  Setting | Development | Production
+  style=None                                9x3  Event | Logged | Fields Captured
+  style=None                                1x1  Guidance
+Giá trị ở
+  style=None                                5x3  Metric | Target | Condition
+  style=None                                4x3  Layer | Strategy | Notes
+  style=None                                4x3  Scenario | Risk | Resolution
+
+=== SAMPLE TABLE XML (first data table, tblPr + first row) ===
+<w:tbl xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" xmlns:lc="http://schemas.openxmlformats.org/drawingml/2006/lockedCanvas" xmlns:dgm="http://schemas.openxmlformats.org/drawingml/2006/diagram" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns="http://schemas.microsoft.com/office/tasks/2019/documenttasks" xmlns:cr="http://schemas.microsoft.com/office/comments/2020/reactions">
+  <w:tblPr>
+    <w:tblStyle w:val="Table4"/>
+    <w:tblW w:w="9360.0" w:type="dxa"/>
+    <w:jc w:val="left"/>
+    <w:tblBorders>
+      <w:top w:color="000000" w:space="0" w:sz="4" w:val="single"/>
+      <w:left w:color="000000" w:space="0" w:sz="4" w:val="single"/>
+      <w:bottom w:color="000000" w:space="0" w:sz="4" w:val="single"/>
+      <w:right w:color="000000" w:space="0" w:sz="4" w:val="single"/>
+      <w:insideH w:color="000000" w:space="0" w:sz="4" w:val="single"/>
+      <w:insideV w:color="000000" w:space="0" w:sz="4" w:val="single"/>
+    </w:tblBorders>
+    <w:tblLayout w:type="fixed"/>
+    <w:tblLook w:val="0400"/>
+  </w:tblPr>
+  <w:tblGrid>
+    <w:gridCol w:w="2126"/>
+    <w:gridCol w:w="1275"/>
+    <w:gridCol w:w="1418"/>
+    <w:gridCol w:w="4541"/>
+    <w:tblGridChange w:id="0">
+      <w:tblGrid>
+        <w:gridCol w:w="2126"/>
+        <w:gridCol w:w="1275"/>
+        <w:gridCol w:w="1418"/>
+        <w:gridCol w:w="4541"/>
+      </w:tblGrid>
+    </w:tblGridChange>
+  </w:tblGrid>
+  <w:tr>
+    <w:trPr>
+      <w:cantSplit w:val="0"/>
+      <w:tblHeader w:val="1"/>
+    </w:trPr>
+    <w:tc>
+      <w:tcPr>
+        <w:tcBorders>
+          <w:top w:color="0f6e56" w:space="0" w:sz="4" w:val="single"/>
+          <w:left w:color="0f6e56" w:space="0" w:sz="4" w:val="single"/>
+          <w:bottom w:color="0f6e56" w:space="0" w:sz="4" w:val="single"/>
+          <w:right w:color="0f6e56" w:space="0" w:sz="4" w:val="single"/>
+        </w:tcBorders>
+        <w:shd w:fill="0f6e56" w:val="clear"/>
+        <w:tcMar>
+          <w:top w:w="80.0" w:type="dxa"/>
+          <w:left w:w="120.0" w:type="dxa"/>
+          <w:bottom w:w="80.0" w:type="dxa"/>
+          <w:right w:w="120.0" w:type="dxa"/>
+        </w:tcMar>
+        <w:vAlign w:val="center"/>
+      </w:tcPr>
+      <w:p w:rsidR="00000000" w:rsidDel="00000000" w:rsidP="00000000" w:rsidRDefault="00000000" w:rsidRPr="00000000" w14:paraId="00000093">
+        <w:pPr>
+          <w:rPr/>
+        </w:pPr>
+        <w:r w:rsidDel="00000000" w:rsidR="00000000" w:rsidRPr="00000000">
+          <w:rPr>
+            <w:b w:val="1"/>
+            <w:bCs w:val="1"/>
+            <w:color w:val="ffffff"/>
+            <w:sz w:val="20"/>
+            <w:szCs w:val="20"/>
+            <w:rtl w:val="0"/>
+          </w:rPr>
+          <w:t xml:space="preserve">Service</w:t>
+        </w:r>
+        <w:r w:rsidDel="
+
+=== SECTION PAGE WIDTH ===
+  page_width=7560310 left=914400 right=914400 usable=5731510
