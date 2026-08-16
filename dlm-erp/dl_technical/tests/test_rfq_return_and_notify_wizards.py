@@ -15,7 +15,7 @@ class TestRfqReturnWizard(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.customer = cls.env["res.partner"].create({
-            "name": "Khách test return wizard", "partner_role": "customer"})
+            "name": "Khách test return wizard", "partner_role": "customer", "mobile": "0900001005"})
 
     def _make_rfq(self):
         request = self.env["dl.quotation.request"].create({
@@ -30,9 +30,9 @@ class TestRfqReturnWizard(TransactionCase):
         return request, request.line_ids[0]
 
     def test_no_line_selected_and_no_reason_raises(self):
-        """TC-INT-TestUntestedWizards-009: wizard trả yêu cầu về với dòng
-        vật tư selected=False và reason chung để trống thì action_confirm
-        báo lỗi UserError."""
+        """TC-INT-TestUntestedWizards-009: wizard trả yêu cầu về với dòng vật tư
+        selected=False và reason chung để trống thì action_confirm báo lỗi UserError.
+        """
         request, line = self._make_rfq()
         wizard = self.env["dl.rfq.return.wizard"].create({
             "request_id": request.id, "reason": "",
@@ -42,11 +42,11 @@ class TestRfqReturnWizard(TransactionCase):
             wizard.action_confirm()
 
     def test_happy_marks_selected_lines_and_returns_request(self):
-        """TC-INT-TestUntestedWizards-010: wizard trả yêu cầu về với dòng
-        vật tư được chọn (selected=True) kèm ghi chú thì action_confirm
-        chuyển request sang status "returned", ghi ghi chú vào return_reason
-        của request và supplement_note của dòng, còn supplement_done vẫn
-        false."""
+        """TC-INT-TestUntestedWizards-010: wizard trả yêu cầu về với dòng vật tư được chọn
+        (selected=True) kèm ghi chú thì action_confirm chuyển request sang status
+        "returned", ghi ghi chú vào return_reason của request và supplement_note của
+        dòng, còn supplement_done vẫn false.
+        """
         request, line = self._make_rfq()
         wizard = self.env["dl.rfq.return.wizard"].create({
             "request_id": request.id, "reason": "",
@@ -77,7 +77,7 @@ class TestRfqResolveWizardNotifyPurchasing(TransactionCase):
             "name": "Thép hộp NP (test, chưa có giá NCC)", "product_kind": "material",
         })
         cls.customer = cls.env["res.partner"].create({
-            "name": "Khách test notify purchasing", "partner_role": "customer"})
+            "name": "Khách test notify purchasing", "partner_role": "customer", "mobile": "0900001006"})
 
     def _make_wizard(self):
         request = self.env["dl.quotation.request"].create({
@@ -86,6 +86,7 @@ class TestRfqResolveWizardNotifyPurchasing(TransactionCase):
                 "product_type": "manufactured",
                 "product_name": "Bàn thép NP (test)",
                 "quantity": 1.0,
+                "dimension_note": "1200x800x750",
             })],
         })
         line = request.line_ids[0]
@@ -103,10 +104,10 @@ class TestRfqResolveWizardNotifyPurchasing(TransactionCase):
         return wizard, bom
 
     def test_notifies_purchasing_once_no_duplicate_activity(self):
-        """TC-INT-TestUntestedWizards-011: BOM có vật tư chưa có giá NCC áp
-        dụng, gọi action_notify_purchasing hai lần liên tiếp thì không lỗi
-        và lần gọi thứ hai không tạo thêm activity trùng lặp cho cùng một
-        vật tư trên product.product."""
+        """TC-INT-TestUntestedWizards-011: BOM có vật tư chưa có giá NCC áp dụng, gọi
+        action_notify_purchasing hai lần liên tiếp thì không lỗi và lần gọi thứ hai
+        không tạo thêm activity trùng lặp cho cùng một vật tư trên product.product.
+        """
         wizard, bom = self._make_wizard()
         self.assertTrue(
             bom._dlm_unpriced_raw_materials(),

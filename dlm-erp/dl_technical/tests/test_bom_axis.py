@@ -45,7 +45,9 @@ class TestBomAxisSeparation(TransactionCase):
 
     # I7: instance không bao giờ là phiên bản hiện hành
     def test_quotation_bom_never_becomes_current(self):
-        """RC05: xác nhận BOM báo giá không bật cờ hiện hành."""
+        """TC-INT-TestBomAxisSeparation-001: RC05: xác nhận BOM báo giá không bật cờ hiện
+        hành.
+        """
         quotation_bom = self._make_bom("quotation", 1)
         quotation_bom.action_confirm()
 
@@ -56,7 +58,9 @@ class TestBomAxisSeparation(TransactionCase):
         )
 
     def test_standard_bom_still_becomes_current(self):
-        """Không hồi quy: BOM chuẩn vẫn phải nhận cờ hiện hành như trước."""
+        """TC-INT-TestBomAxisSeparation-002: Không hồi quy: BOM chuẩn vẫn phải nhận cờ hiện
+        hành như trước.
+        """
         standard = self._make_bom("template", 1)
         standard.action_confirm()
 
@@ -66,10 +70,11 @@ class TestBomAxisSeparation(TransactionCase):
         )
 
     def test_quotation_boms_do_not_steal_current_from_standard(self):
-        """RC05 (trọng tâm): ba đơn khác kích thước không được đụng vào định mức chuẩn.
+        """TC-INT-TestBomAxisSeparation-003: RC05 (trọng tâm): ba đơn khác kích thước không
+        được đụng vào định mức chuẩn.
 
-        Đây là kịch bản đã từng hỏng: mỗi lần hoàn tất một dòng RFQ, BOM riêng
-        của đơn đó lại thành "phiên bản hiện hành" của sản phẩm.
+        Đây là kịch bản đã từng hỏng: mỗi lần hoàn tất một dòng RFQ, BOM riêng của đơn
+        đó lại thành "phiên bản hiện hành" của sản phẩm.
         """
         standard = self._make_bom("template", 1)
         standard.action_confirm()
@@ -88,9 +93,10 @@ class TestBomAxisSeparation(TransactionCase):
 
     # I9: mỗi sản phẩm tối đa một bản hiện hành, và phải là BOM chuẩn
     def test_at_most_one_current_bom_per_product_and_it_is_standard(self):
-        """I9: xác nhận 2 BOM chuẩn (version 1, 2) rồi thêm 1 BOM báo giá cùng
-        sản phẩm. Tìm theo is_current=True chỉ trả về đúng 1 bản ghi, kiểu
-        template, và đó là bản chuẩn mới nhất (version 2)."""
+        """TC-INT-TestBomAxisSeparation-004: I9: xác nhận 2 BOM chuẩn (version 1, 2) rồi
+        thêm 1 BOM báo giá cùng sản phẩm. Tìm theo is_current=True chỉ trả về đúng 1 bản
+        ghi, kiểu template, và đó là bản chuẩn mới nhất (version 2).
+        """
         first = self._make_bom("template", 1)
         first.action_confirm()
         second = self._make_bom("template", 2)
@@ -109,16 +115,18 @@ class TestBomAxisSeparation(TransactionCase):
 
     # Chỉnh định mức cho một đơn phải ra BOM báo giá, không phải BOM mẫu
     def test_editing_standard_bom_for_an_order_creates_quotation_bom(self):
-        """copy() kế thừa bom_type, nên nếu không ghi đè thì chỉnh một BOM mẫu
-        cho một đơn lại đẻ thêm một BOM mẫu khác: định mức của đơn đó chiếm số
-        phiên bản trong dòng dõi định mức chuẩn của sản phẩm, sai nhãn, và có
-        thể bị lấy làm giá vốn chuẩn nếu sản phẩm là bán thành phẩm."""
+        """TC-INT-TestBomAxisSeparation-005: copy() kế thừa bom_type, nên nếu không ghi đè
+        thì chỉnh một BOM mẫu cho một đơn lại đẻ thêm một BOM mẫu khác: định mức của đơn
+        đó chiếm số phiên bản trong dòng dõi định mức chuẩn của sản phẩm, sai nhãn, và
+        có thể bị lấy làm giá vốn chuẩn nếu sản phẩm là bán thành phẩm.
+        """
         standard = self._make_bom("template", 1)
         standard.action_confirm()
 
         customer = self.env["res.partner"].create({
             "name": "Khách test copy BOM",
             "partner_role": "customer",
+            "mobile": "0900001001",
         })
         request = self.env["dl.quotation.request"].create({
             "customer_id": customer.id,
@@ -153,7 +161,7 @@ class TestBomAxisSeparation(TransactionCase):
         )
 
     def test_version_numbering_untouched(self):
-        """C3: không đụng đến _version_domain().
+        """TC-INT-TestBomAxisSeparation-006: C3: không đụng đến _version_domain().
 
         Đánh số vẫn theo (product, bom_type) để giữ nguyên SQL constraint
         unique(product_id, version, bom_type). Chỉ cờ hiện hành bị chặn.

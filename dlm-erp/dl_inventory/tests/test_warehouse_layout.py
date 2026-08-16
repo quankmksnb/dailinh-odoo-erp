@@ -18,10 +18,11 @@ from .common import DlInventoryCase
 class TestWarehouseLayout(DlInventoryCase):
 
     def test_chi_mot_kho(self):
-        """§3.1: Đại Linh chỉ có một nhà xưởng, nên phải đúng một stock.warehouse.
+        """TC-INT-TestWarehouseLayout-001: §3.1: Đại Linh chỉ có một nhà xưởng, nên phải
+        đúng một stock.warehouse.
 
-        Kho thứ hai biến mọi luân chuyển nội bộ thành liên kho: thêm phiếu
-        chuyển, thêm ô bắt buộc chọn kho, báo cáo tồn phải cộng thủ công.
+        Kho thứ hai biến mọi luân chuyển nội bộ thành liên kho: thêm phiếu chuyển, thêm
+        ô bắt buộc chọn kho, báo cáo tồn phải cộng thủ công.
         """
         self.assertEqual(
             self.env["stock.warehouse"].search_count([]), 1,
@@ -29,16 +30,17 @@ class TestWarehouseLayout(DlInventoryCase):
         self.assertEqual(self.warehouse.code, "DL")
 
     def test_cay_vi_tri_bon_khu(self):
-        """§4.1 — Bốn khu dưới kho DL, vị trí con nằm đúng khu của nó.
+        """TC-INT-TestWarehouseLayout-002: §4.1 — Bốn khu dưới kho DL, vị trí con nằm đúng
+        khu của nó.
 
-        🔴 K15 tách CHỖ CẤT khỏi CHỖ LÀM. Chuỗi hiển thị là thứ thủ kho đọc
-        trong dropdown, nên nó phải khẳng định được đúng cái phân biệt đó — chứ
-        không chỉ khẳng định cây có đủ số tầng.
+        K15 tách chỗ cất khỏi chỗ làm. Chuỗi hiển thị là thứ thủ kho đọc trong dropdown,
+        nên nó phải khẳng định được đúng cái phân biệt đó — chứ không chỉ khẳng định cây
+        có đủ số tầng.
         """
         expected = {
             self.loc_qc: "DL/Khu nhập hàng/Chờ kiểm hàng",
             self.loc_tra: "DL/Khu nhập hàng/Chờ trả nhà cung cấp",
-            # Đường đi của ô này: DL/NHAN (K2) → DL/XUONG (K10) → DL/KHOSX (K15).
+            # Đường đi của ô này: DL/NHAN (K2) thì DL/XUONG (K10) thì DL/KHOSX (K15).
             self.loc_kho: "DL/Kho nhà máy sản xuất/Kho nguyên vật liệu",
             self.loc_xuong_pl: "DL/Kho nhà máy sản xuất/Phế liệu chờ bán",
             self.loc_khosx: "DL/Kho nhà máy sản xuất",
@@ -49,12 +51,12 @@ class TestWarehouseLayout(DlInventoryCase):
             self.assertEqual(location.complete_name, complete_name)
 
     def test_xuong_la_o_la_khong_con_vai_tro_kep(self):
-        """🔴 K15 — Xưởng sản xuất KHÔNG được có con.
+        """TC-INT-TestWarehouseLayout-006: K15 — Xưởng sản xuất không được có con.
 
-        Đây là bất biến sinh ra cả thay đổi này. Khi Xưởng còn là khu cha, chọn
-        nó làm nguồn phiếu là với tay được vào Kho nguyên vật liệu qua `child_of`
-        — lỗ mà K11 phải vá bằng luật. Cho nó một ô con trở lại là mở lại lỗ đó,
-        và KHÔNG lỗi nào khác sẽ nổ.
+        Đây là bất biến sinh ra cả thay đổi này. Khi Xưởng còn là khu cha, chọn nó làm
+        nguồn phiếu là với tay được vào Kho nguyên vật liệu qua `child_of` — lỗ mà K11
+        phải vá bằng luật. Cho nó một ô con trở lại là mở lại lỗ đó, và không lỗi nào
+        khác sẽ nổ.
         """
         con = self.env["stock.location"].with_context(
             active_test=False).search([("location_id", "=", self.loc_xuong.id)])
@@ -65,11 +67,12 @@ class TestWarehouseLayout(DlInventoryCase):
                          "Xưởng sản xuất phải nằm thẳng dưới kho DL.")
 
     def test_khu_gom_nhom_cam_chon_tay(self):
-        """§4.1.1 + K15 — khu gom nhóm không được chọn tay trên phiếu.
+        """TC-INT-TestWarehouseLayout-007: §4.1.1 + K15 — khu gom nhóm không được chọn tay
+        trên phiếu.
 
-        Khu nhập hàng và Kho nhà máy sản xuất đều là container: chọn chúng làm
-        nguồn là rút được từ MỌI ô con. Xưởng sản xuất thì ngược lại — nó chứa
-        hàng thật, phải chọn được.
+        Khu nhập hàng và Kho nhà máy sản xuất đều là container: chọn chúng làm nguồn là
+        rút được từ mọi ô con. Xưởng sản xuất thì ngược lại — nó chứa hàng thật, phải
+        chọn được.
         """
         self.assertTrue(self.loc_khosx.dlm_no_inventory,
                         "Kho nhà máy sản xuất là khu gom nhóm, phải cấm chọn tay.")
@@ -81,18 +84,20 @@ class TestWarehouseLayout(DlInventoryCase):
         self.assertFalse(self.loc_kho.dlm_no_inventory)
 
     def test_khu_gom_nhom_khong_duoc_la_view(self):
-        """🔴 §4.1: khu phải là 'internal', không được là 'view'.
+        """TC-INT-TestWarehouseLayout-003: §4.1: khu phải là 'internal', không được là
+        'view'.
 
-        _compute_complete_name của Odoo bỏ tiền tố cha với vị trí 'view'. Khu để
-        'view' sẽ hiện "Khu nhập hàng/Chờ kiểm hàng", mất luôn "DL/" và lệch hẳn
-        với hai khu còn lại. Đã vấp thật khi thực thi K2.
+        _compute_complete_name của Odoo bỏ tiền tố cha với vị trí 'view'. Khu để 'view'
+        sẽ hiện "Khu nhập hàng/Chờ kiểm hàng", mất luôn "DL/" và lệch hẳn với hai khu
+        còn lại. Đã vấp thật khi thực thi K2.
         """
         nhan = self.env.ref("dl_inventory.stock_location_nhan")
         self.assertEqual(nhan.usage, "internal")
         self.assertTrue(nhan.complete_name.startswith("DL/"))
 
     def test_loai_hoat_dong_dung_nguon_dich(self):
-        """§5.1 — Chín loại hoạt động, mỗi loại nối đúng hai đầu của nó.
+        """TC-INT-TestWarehouseLayout-004: §5.1 — Chín loại hoạt động, mỗi loại nối đúng
+        hai đầu của nó.
 
         3 loại native (NH/GH/CK) + 6 loại tự tạo (KC/TR/BPL/HPL/XSX/NTP).
         """
@@ -115,11 +120,11 @@ class TestWarehouseLayout(DlInventoryCase):
             self.warehouse.out_type_id.default_location_src_id, self.loc_tp)
 
     def test_nhan_hang_hai_buoc_tu_sinh_phieu_kiem(self):
-        """§3.2/§5.2: xác nhận phiếu nhận thì hàng vào khu Chờ kiểm và hệ thống
-        phải tự sinh phiếu "Kiểm & cất hàng".
+        """TC-INT-TestWarehouseLayout-005: §3.2/§5.2: xác nhận phiếu nhận thì hàng vào khu
+        Chờ kiểm và hệ thống phải tự sinh phiếu "Kiểm & cất hàng".
 
-        Đây là mắt xích làm bước QC (K5) khả thi: không có phiếu tự sinh thì thủ
-        kho phải nhớ tự tạo, và bước kiểm sẽ bị bỏ qua trong thực tế.
+        Đây là mắt xích làm bước QC (K5) khả thi: không có phiếu tự sinh thì thủ kho
+        phải nhớ tự tạo, và bước kiểm sẽ bị bỏ qua trong thực tế.
         """
         picking = self._receive(self._make_receipt())
         self.assertEqual(picking.state, "done")

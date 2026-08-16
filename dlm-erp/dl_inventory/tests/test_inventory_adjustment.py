@@ -50,11 +50,11 @@ class TestInventoryAdjustment(DlInventoryCase):
 
     # Tiêu chí verify K8: kiểm kê lệch -3 thì phải sinh move điều chỉnh, tồn khớp
     def test_kiem_ke_lech_am_3_sinh_move_dieu_chinh_va_ton_khop(self):
-        """§12.1: đếm được 97 trên tồn hệ thống 100, áp xong thì tồn về 97, có
-        phiếu điều chỉnh cho 3 đơn vị hụt.
+        """TC-INT-TestInventoryAdjustment-001: §12.1: đếm được 97 trên tồn hệ thống 100, áp
+        xong thì tồn về 97, có phiếu điều chỉnh cho 3 đơn vị hụt.
 
-        🔴 Áp dưới quyền Thủ kho: đây là chỗ duy nhất chứng minh quyết định K8
-        (Thủ kho áp được mà không cần manager) chạy thật.
+        Áp dưới quyền Thủ kho: đây là chỗ duy nhất chứng minh quyết định K8 (Thủ kho áp
+        được mà không cần manager) chạy thật.
         """
         self._seed_stock(100.0)
         quant = self.env["stock.quant"].search([
@@ -85,8 +85,9 @@ class TestInventoryAdjustment(DlInventoryCase):
             "Phần điều chỉnh phải đúng bằng chênh lệch đếm được.")
 
     def test_thu_kho_ap_duoc_du_khong_co_group_manager(self):
-        """🔴 §8.3 vs native: Thủ kho không có group_stock_manager nhưng vẫn áp
-        được kiểm kê nhờ _apply_inventory nâng quyền có kiểm vai trò.
+        """TC-INT-TestInventoryAdjustment-002: §8.3 vs native: Thủ kho không có
+        group_stock_manager nhưng vẫn áp được kiểm kê nhờ _apply_inventory nâng quyền có
+        kiểm vai trò.
 
         Không có override này, native ném "Only a stock manager can validate".
         """
@@ -107,8 +108,10 @@ class TestInventoryAdjustment(DlInventoryCase):
 
     # Định tuyến hàng đợi
     def test_picking_kind_suy_dung_tung_loai(self):
-        """§11.11: `dlm_picking_kind` phải phân biệt được các loại đi chung
-        `internal` (KC vs CK) và chung `outgoing` (GH vs TR vs BPL)."""
+        """TC-INT-TestInventoryAdjustment-003: §11.11: `dlm_picking_kind` phải phân biệt
+        được các loại đi chung `internal` (KC vs CK) và chung `outgoing` (GH vs TR vs
+        BPL).
+        """
         cases = [
             (self.warehouse.in_type_id, "receipt"),
             (self.env.ref("dl_inventory.picking_type_qc"), "qc"),
@@ -128,10 +131,11 @@ class TestInventoryAdjustment(DlInventoryCase):
                 % (picking_type.name, expected))
 
     def test_hang_doi_chi_gom_phieu_assigned_cua_thu_kho(self):
-        """§11.11: hàng đợi là phiếu `assigned` của loại thủ kho phụ trách.
+        """TC-INT-TestInventoryAdjustment-004: §11.11: hàng đợi là phiếu `assigned` của
+        loại thủ kho phụ trách.
 
-        Phiếu nháp chưa sẵn sàng nên không vào hàng đợi. Phiếu Trả NCC là việc
-        Mua hàng nên cũng không vào, dù có thể ở assigned.
+        Phiếu nháp chưa sẵn sàng nên không vào hàng đợi. Phiếu Trả NCC là việc Mua hàng
+        nên cũng không vào, dù có thể ở assigned.
         """
         domain = safe_eval(
             self.env.ref("dl_inventory.action_dl_picking_todo").domain)

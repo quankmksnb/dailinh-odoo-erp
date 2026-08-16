@@ -18,7 +18,7 @@ class TestBomResetDraftGuard(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.customer = cls.env["res.partner"].create({
-            "name": "KH test reset draft guard", "partner_role": "customer"})
+            "name": "KH test reset draft guard", "partner_role": "customer", "mobile": "0900001008"})
         cls.product = cls.env["product.product"].create({
             "name": "SP test reset draft guard", "product_kind": "manufactured"})
         cls.material = cls.env["product.product"].create({

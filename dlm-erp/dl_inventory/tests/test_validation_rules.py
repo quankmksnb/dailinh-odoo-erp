@@ -27,28 +27,34 @@ class TestQcEntryEase(DlInventoryCase):
         return self._qc_picking(receipt)
 
     def test_go_loai_tu_ha_dat(self):
-        """Ca bẫy trong ảnh chụp: "Đạt tất cả" rồi mới phát hiện 2 cái lỗi."""
+        """TC-INT-TestValidationRules-001: Ca bẫy trong ảnh chụp: "Đạt tất cả" rồi mới phát
+        hiện 2 cái lỗi.
+        """
         qc = self._qc()
         move = qc.move_ids.filtered(lambda m: m.product_id == self.material)[:1]
         move.quantity = 198.0
         move.dlm_qty_rejected = 2.0
         move._onchange_dlm_qty_rejected()
         self.assertEqual(move.quantity, 196.0,
-                         "Gõ Loại 2 trên 198 nhận ⇒ Đạt phải tự về 196.")
+                         "Gõ Loại 2 trên 198 nhận thì Đạt phải tự về 196.")
         self.assertFalse(move.dlm_qc_over, "QC-02 không được còn nổ đỏ.")
 
     def test_khong_ha_khi_chua_vuot(self):
-        """Chỉ can thiệp khi vượt, không được sửa số người dùng đã gõ vô cớ."""
+        """TC-INT-TestValidationRules-002: Chỉ can thiệp khi vượt, không được sửa số người
+        dùng đã gõ vô cớ.
+        """
         qc = self._qc()
         move = qc.move_ids.filtered(lambda m: m.product_id == self.material)[:1]
         move.quantity = 100.0
         move.dlm_qty_rejected = 2.0
         move._onchange_dlm_qty_rejected()
         self.assertEqual(move.quantity, 100.0,
-                         "100 + 2 chưa vượt 198 ⇒ giữ nguyên số đã gõ.")
+                         "100 + 2 chưa vượt 198 thì giữ nguyên số đã gõ.")
 
     def test_loai_vuot_ca_so_nhan_thi_dat_ve_0_va_van_bi_chan(self):
-        """Lưới an toàn QC-02 vẫn phải bắt ca gõ Loại lớn hơn số NCC giao."""
+        """TC-INT-TestValidationRules-003: Lưới an toàn QC-02 vẫn phải bắt ca gõ Loại lớn
+        hơn số NCC giao.
+        """
         qc = self._qc()
         move = qc.move_ids.filtered(lambda m: m.product_id == self.material)[:1]
         move.quantity = 198.0
@@ -59,11 +65,11 @@ class TestQcEntryEase(DlInventoryCase):
                         "Loại 250 trên 198 nhận vẫn phải bị chặn.")
 
     def test_onchange_duoc_noi_vao_form_kiem_hang(self):
-        """Method đúng chưa đủ, client phải thật sự gọi nó khi gõ.
+        """TC-INT-TestValidationRules-004: Method đúng chưa đủ, client phải thật sự gọi nó
+        khi gõ.
 
-        Hai điều kiện: onchange có trong registry của model, và ô Loại có mặt
-        trên bảng dòng của form Kiểm hàng (client chỉ kích hoạt onchange cho
-        field nó nhìn thấy).
+        Hai điều kiện: onchange có trong registry của model, và ô Loại có mặt trên bảng
+        dòng của form Kiểm hàng (client chỉ kích hoạt onchange cho field nó nhìn thấy).
         """
         self.assertIn(
             "dlm_qty_rejected", self.env["stock.move"]._onchange_methods,
@@ -78,20 +84,25 @@ class TestTransitZoneInventory(DlInventoryCase):
     """RS-07: khu quá cảnh, tồn chỉ đổi qua phiếu."""
 
     def test_hai_khu_qua_canh_bi_danh_dau(self):
-        """Khu Chờ kiểm và khu Chờ trả NCC là khu quá cảnh, kỳ vọng cả hai
-        đều bị đánh dấu dlm_no_inventory=True (cấm kiểm kê tay)."""
+        """TC-INT-TestValidationRules-005: Khu Chờ kiểm và khu Chờ trả NCC là khu quá cảnh,
+        kỳ vọng cả hai đều bị đánh dấu dlm_no_inventory=True (cấm kiểm kê tay).
+        """
         self.assertTrue(self.loc_qc.dlm_no_inventory,
                         "Khu Chờ kiểm phải bị cấm kiểm kê tay.")
         self.assertTrue(self.loc_tra.dlm_no_inventory,
                         "Khu Chờ trả nhà cung cấp phải bị cấm kiểm kê tay.")
 
     def test_kho_vat_tu_van_kiem_ke_duoc(self):
-        """Cấm đúng 2 khu quá cảnh, không cấm lan sang kho thật."""
+        """TC-INT-TestValidationRules-006: Cấm đúng 2 khu quá cảnh, không cấm lan sang kho
+        thật.
+        """
         self.assertFalse(self.loc_kho.dlm_no_inventory)
         self.assertFalse(self.loc_tp.dlm_no_inventory)
 
     def test_khong_ap_duoc_kiem_ke_o_khu_cho_tra(self):
-        """🔴 Đếm về 0 ở đây là xoá mất hàng mà phiếu trả NCC đang trỏ tới."""
+        """TC-INT-TestValidationRules-007: Đếm về 0 ở đây là xoá mất hàng mà phiếu trả NCC
+        đang trỏ tới.
+        """
         receipt = self._receive(self._make_receipt(qty=100.0), qty=100.0)
         qc = self._qc_picking(receipt)
         move = qc.move_ids.filtered(lambda m: m.product_id == self.material)[:1]
@@ -110,9 +121,10 @@ class TestTransitZoneInventory(DlInventoryCase):
             quant._apply_inventory()
 
     def test_man_kiem_ke_khong_liet_ke_khu_qua_canh(self):
-        """Domain của action kiểm kê không được liệt kê khu Chờ trả NCC và
-        khu Chờ kiểm, kỳ vọng cả hai khu đều không nằm trong locations trả
-        về."""
+        """TC-INT-TestValidationRules-008: Domain của action kiểm kê không được liệt kê khu
+        Chờ trả NCC và khu Chờ kiểm, kỳ vọng cả hai khu đều không nằm trong locations
+        trả về.
+        """
         from odoo.tools.safe_eval import safe_eval
         domain = safe_eval(
             self.env.ref("dl_inventory.action_dl_stock_inventory").domain)
@@ -142,29 +154,32 @@ class TestConfirmValidation(DlInventoryCase):
         })
 
     def test_chuyen_kho_nguon_trung_dich_bi_chan(self):
-        """Phiếu chuyển kho có vị trí nguồn trùng vị trí đích thì bị chặn
-        (dlm_blocked=True, banner danger) và action_confirm() phải raise
-        UserError."""
+        """TC-INT-TestValidationRules-009: Phiếu chuyển kho có vị trí nguồn trùng vị trí
+        đích thì bị chặn (dlm_blocked=True, banner danger) và action_confirm() phải
+        raise UserError.
+        """
         picking = self._transfer(self.loc_kho, self.loc_kho)
         self.assertTrue(picking.dlm_blocked,
-                        "Nguồn trùng đích ⇒ phải chặn xác nhận.")
+                        "Nguồn trùng đích thì phải chặn xác nhận.")
         self.assertEqual(picking.dlm_banner_level, "danger")
         self.assertIn("cùng một chỗ", picking.dlm_banner_message)
         with self.assertRaises(UserError):
             picking.action_confirm()
 
     def test_chuyen_kho_hop_le_khong_bi_chan(self):
-        """Phiếu chuyển kho có nguồn khác đích (hợp lệ) thì không bị chặn,
-        action_confirm() chạy được và đổi state khỏi draft."""
+        """TC-INT-TestValidationRules-010: Phiếu chuyển kho có nguồn khác đích (hợp lệ) thì
+        không bị chặn, action_confirm() chạy được và đổi state khỏi draft.
+        """
         picking = self._transfer(self.loc_kho, self.loc_xuong)
         self.assertFalse(picking.dlm_blocked)
         picking.action_confirm()
         self.assertNotEqual(picking.state, "draft")
 
     def test_dong_so_luong_0_bi_chan_va_neu_ten(self):
-        """Dòng chuyển kho có số lượng 0 thì bị chặn, banner phải nêu đích
-        danh tên vật tư sai chứ không nói chung chung, và action_confirm()
-        phải raise UserError."""
+        """TC-INT-TestValidationRules-011: Dòng chuyển kho có số lượng 0 thì bị chặn,
+        banner phải nêu đích danh tên vật tư sai chứ không nói chung chung, và
+        action_confirm() phải raise UserError.
+        """
         picking = self._transfer(self.loc_kho, self.loc_xuong, qty=0.0)
         self.assertTrue(picking.dlm_blocked)
         self.assertIn(self.material.display_name, picking.dlm_banner_message,
@@ -173,8 +188,9 @@ class TestConfirmValidation(DlInventoryCase):
             picking.action_confirm()
 
     def test_phieu_nhan_dong_so_luong_0_bi_chan(self):
-        """Phiếu nhận hàng từ NCC cũng áp dụng cùng quy tắc: dòng số lượng
-        0 phải bị chặn."""
+        """TC-INT-TestValidationRules-012: Phiếu nhận hàng từ NCC cũng áp dụng cùng quy
+        tắc: dòng số lượng 0 phải bị chặn.
+        """
         picking = self.env["stock.picking"].create({
             "picking_type_id": self.warehouse.in_type_id.id,
             "partner_id": self.vendor.id,
@@ -192,10 +208,11 @@ class TestConfirmValidation(DlInventoryCase):
         self.assertTrue(picking.dlm_blocked)
 
     def test_kiem_hang_chua_nhap_gi_bi_chan_bang_tieng_viet(self):
-        """Xoá sạch số rồi bấm xác nhận: trước đây rơi xuống lỗi native.
+        """TC-INT-TestValidationRules-013: Xoá sạch số rồi bấm xác nhận: trước đây rơi
+        xuống lỗi native.
 
-        Phải xoá tay: bước giữ chỗ đã điền sẵn số Đạt bằng số giữ được, nên ca
-        "0 hết" chỉ xảy ra khi thủ kho tự xoá (hoặc chưa giữ chỗ được gì).
+        Phải xoá tay: bước giữ chỗ đã điền sẵn số Đạt bằng số giữ được, nên ca "0 hết"
+        chỉ xảy ra khi thủ kho tự xoá (hoặc chưa giữ chỗ được gì).
         """
         receipt = self._receive(self._make_receipt(qty=100.0), qty=100.0)
         qc = self._qc_picking(receipt)
@@ -206,7 +223,8 @@ class TestConfirmValidation(DlInventoryCase):
             qc.action_dlm_validate_qc()
 
     def test_chuyen_kho_thieu_ton_canh_bao_chu_khong_chan(self):
-        """Thiếu tồn là cảnh báo, không chặn, cùng lệ với màn Bán phế liệu.
+        """TC-INT-TestValidationRules-014: Thiếu tồn là cảnh báo, không chặn, cùng lệ với
+        màn Bán phế liệu.
 
         Chặn cứng ở đây là chặn luôn ca hợp lệ "lập phiếu trước, hàng về sau".
         """
@@ -216,7 +234,9 @@ class TestConfirmValidation(DlInventoryCase):
         picking.action_confirm()
 
     def test_dai_giao_hang_doc_theo_vi_tri_that(self):
-        """Đổi "Lấy hàng từ" thì dải phải nói đúng khu đó, không viết cứng."""
+        """TC-INT-TestValidationRules-015: Đổi "Lấy hàng từ" thì dải phải nói đúng khu đó,
+        không viết cứng.
+        """
         picking = self.env["stock.picking"].create({
             "picking_type_id": self.warehouse.out_type_id.id,
             "location_id": self.loc_kho.id,
@@ -274,7 +294,8 @@ class TestTransferShortage(DlInventoryCase):
         })
 
     def test_go_vuot_ton_thi_canh_bao_kem_con_so(self):
-        """Cảnh báo phải nêu đích danh mặt hàng và số còn thực tế.
+        """TC-INT-TestValidationRules-016: Cảnh báo phải nêu đích danh mặt hàng và số còn
+        thực tế.
 
         "Không đủ hàng" chung chung thì thủ kho vẫn phải tự đi tra tồn.
         """
@@ -288,7 +309,9 @@ class TestTransferShortage(DlInventoryCase):
                       "Dải phải gọi tên khu nguồn thật, không viết cứng.")
 
     def test_du_ton_thi_khong_canh_bao(self):
-        """Không được kêu oan: đủ hàng thì dải quay về hướng dẫn bình thường."""
+        """TC-INT-TestValidationRules-017: Không được kêu oan: đủ hàng thì dải quay về
+        hướng dẫn bình thường.
+        """
         self._stock(self.loc_kho, 10.0)
         picking = self._transfer(self.loc_kho, self.loc_xuong, qty=5.0)
 
@@ -296,7 +319,8 @@ class TestTransferShortage(DlInventoryCase):
         self.assertNotIn("không đủ hàng", picking.dlm_banner_message)
 
     def test_cong_gop_nhieu_dong_cung_mat_hang(self):
-        """Tồn 5, hai dòng mỗi dòng 3: từng dòng đều "đủ" mà cả phiếu thì không.
+        """TC-INT-TestValidationRules-018: Tồn 5, hai dòng mỗi dòng 3: từng dòng đều "đủ"
+        mà cả phiếu thì không.
 
         Xét lẻ từng dòng là bỏ lọt đúng ca này.
         """
@@ -307,7 +331,8 @@ class TestTransferShortage(DlInventoryCase):
         self.assertIn("cần chuyển 6", picking.dlm_banner_message)
 
     def test_doi_khu_nguon_thi_tinh_lai(self):
-        """Đổi "Từ vị trí" phải tính lại ngay, nếu không dải đứng hình nói sai.
+        """TC-INT-TestValidationRules-019: Đổi "Từ vị trí" phải tính lại ngay, nếu không
+        dải đứng hình nói sai.
 
         Chính là ca `location_id` chưa có trong @api.depends của dải thông báo.
         """
@@ -320,20 +345,22 @@ class TestTransferShortage(DlInventoryCase):
         self._stock(self.loc_xuong_pl, 10.0)
         picking = self._transfer(self.loc_kho, self.loc_xuong, qty=5.0)
         self.assertEqual(picking.dlm_banner_level, "warning",
-                         "Kho vật tư không có hàng ⇒ phải cảnh báo.")
+                         "Kho vật tư không có hàng thì phải cảnh báo.")
 
         picking.location_id = self.loc_xuong_pl
         self.assertEqual(picking.dlm_banner_level, "info",
                          "Đổi sang khu đang có 10 mà dải vẫn kêu thiếu.")
 
     def test_dong_da_xong_khong_bi_tinh_la_thieu(self):
-        """Phiếu đã chuyển xong: hàng rời khu nguồn là đúng, không phải thiếu."""
+        """TC-INT-TestValidationRules-020: Phiếu đã chuyển xong: hàng rời khu nguồn là
+        đúng, không phải thiếu.
+        """
         self._stock(self.loc_kho, 5.0)
         picking = self._transfer(self.loc_kho, self.loc_xuong, qty=5.0)
         picking.action_confirm()
         picking.action_assign()
         picking.move_ids.picked = True
-        # K15 — đích là Xưởng ⇒ phải qua hai chữ ký mới xong. Xem
+        # K15 — đích là Xưởng thì phải qua hai chữ ký mới xong. Xem
         # test_workshop_handover.py cho chính luồng này.
         picking.action_dlm_handover()
         picking.action_dlm_confirm_receipt()
@@ -400,12 +427,13 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
     # chứa hàng gì" (§4.2) ở CẢ HAI đầu phiếu — hết hàng ở nơi lấy KHÔNG còn là
     # lý do để ẩn mặt hàng (xem test_smart_domains).
     def test_dropdown_sang_kho_thanh_pham_bo_vat_tu(self):
-        """Vật tư không được mời vào Kho thành phẩm; hàng gia công thì được.
+        """TC-INT-TestValidationRules-021: Vật tư không được mời vào Kho thành phẩm; hàng
+        gia công thì được.
 
-        Nguồn là XƯỞNG chứ không phải Kho vật tư: từ 2026-08-12 Kho vật tư chỉ
-        còn chứa vật tư nên tuyến Kho vật tư → Kho thành phẩm không còn loại
-        chung nào (hàng TM đã vào TP thẳng ở bước kiểm). Xưởng ∩ Kho thành phẩm
-        = {gia công} — đúng thứ Kho thành phẩm sinh ra để chứa.
+        Nguồn là xưởng chứ không phải Kho vật tư: từ 2026-08-12 Kho vật tư chỉ còn chứa
+        vật tư nên tuyến Kho vật tư thì Kho thành phẩm không còn loại chung nào (hàng TM
+        đã vào TP thẳng ở bước kiểm). Xưởng ∩ Kho thành phẩm = {gia công} — đúng thứ Kho
+        thành phẩm sinh ra để chứa.
         """
         picking = self._transfer(self.loc_tp)
         picking.location_id = self.loc_xuong
@@ -417,16 +445,16 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
                          "Hàng gia công hoàn chỉnh là thứ Kho thành phẩm chứa.")
 
     def test_tuyen_vat_tu_ra_xuong_chi_con_vat_tu_va_btp(self):
-        """🔴 Ca người dùng báo: "vật tư ra xưởng mà" — danh sách chỉ được có
-        thứ ĐƯA VÀO SẢN XUẤT, không kèm hàng thương mại, không kèm cả danh mục.
+        """TC-INT-TestValidationRules-022: Ca người dùng báo: "vật tư ra xưởng mà" — danh
+        sách chỉ được có thứ đưa vào sản xuất, không kèm hàng thương mại, không kèm cả
+        danh mục.
 
-        Rơi ra từ giao hai luật, không phải từ cái nút vừa bấm:
-        Kho nguyên vật liệu {vật tư, BTP} ∩ Xưởng {vật tư, BTP, gia công}
-        = {vật tư, BTP}.
+        Rơi ra từ giao hai luật, không phải từ cái nút vừa bấm: Kho nguyên vật liệu {vật
+        tư, BTP} ∩ Xưởng {vật tư, BTP, gia công} = {vật tư, BTP}.
 
-        K15 — BTP nay ĐƯỢC (trước đây bị cấm). Nó nằm chung ô với vật tư từ khi
-        hai ô gộp lại, và người dùng chốt tuyến này chở "vật tư hoặc bán thành
-        phẩm đến xưởng để đội công nhân làm".
+        K15 — BTP nay được (trước đây bị cấm). Nó nằm chung ô với vật tư từ khi hai ô
+        gộp lại, và người dùng chốt tuyến này chở "vật tư hoặc bán thành phẩm đến xưởng
+        để đội công nhân làm".
         """
         picking = self._transfer(self.loc_xuong)
         blocked = picking.dlm_blocked_product_ids
@@ -442,10 +470,10 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
                       "Sản phẩm gia công không nằm ở Kho nguyên vật liệu.")
 
     def test_hang_gia_cong_van_quay_lai_xuong_de_sua(self):
-        """Siết xưởng không được chặn nhầm luồng SỬA HÀNG.
+        """TC-INT-TestValidationRules-031: Siết xưởng không được chặn nhầm luồng sửa hàng.
 
-        Kho thành phẩm {thương mại, gia công} ∩ xưởng {vật tư, BTP, gia công}
-        = {gia công} — đúng thứ cần mang đi sửa.
+        Kho thành phẩm {thương mại, gia công} ∩ xưởng {vật tư, BTP, gia công} = {gia
+        công} — đúng thứ cần mang đi sửa.
         """
         picking = self._transfer(self.loc_xuong)
         picking.location_id = self.loc_tp
@@ -455,8 +483,10 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
         self.assertIn(self.trading, blocked)
 
     def test_dua_hang_thuong_mai_vao_xuong_bi_chan_dung_ly_do(self):
-        """Câu chặn phải nói đúng khu — không được bê nguyên câu của Kho thành
-        phẩm ("thứ lọt vào đây sớm muộn cũng bị giao cho khách") sang xưởng."""
+        """TC-INT-TestValidationRules-032: Câu chặn phải nói đúng khu — không được bê
+        nguyên câu của Kho thành phẩm ("thứ lọt vào đây sớm muộn cũng bị giao cho
+        khách") sang xưởng.
+        """
         picking = self._transfer(self.loc_xuong, product=self.trading)
         self.assertTrue(picking.dlm_blocked)
         message = picking.dlm_banner_message
@@ -466,7 +496,9 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
         self.assertNotIn("giao cho khách", message)
 
     def test_doi_dich_thi_loc_lai(self):
-        """Sửa tay ô "Đến vị trí" sau khi bấm lối tắt: danh sách phải theo kịp."""
+        """TC-INT-TestValidationRules-023: Sửa tay ô "Đến vị trí" sau khi bấm lối tắt: danh
+        sách phải theo kịp.
+        """
         self._stock(self.material, self.loc_kho, 197.0)
         picking = self._transfer(self.loc_xuong)
         self.assertNotIn(self.material, picking.dlm_blocked_product_ids)
@@ -476,10 +508,11 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
                       "Đổi đích sang Kho thành phẩm mà danh sách đứng hình.")
 
     def test_khu_con_cua_kho_thanh_pham_cung_bi_rang(self):
-        """Luật theo cây vị trí, không phải đúng một bản ghi.
+        """TC-INT-TestValidationRules-024: Luật theo cây vị trí, không phải đúng một bản
+        ghi.
 
-        Hôm nay DL/TP chưa có khu con; ngày ai đó chia "DL/TP/Khu A" mà luật chỉ
-        khớp đúng DL/TP thì vật tư lại vào được, không lỗi nào nổ.
+        Hôm nay DL/TP chưa có khu con; ngày ai đó chia "DL/TP/Khu A" mà luật chỉ khớp
+        đúng DL/TP thì vật tư lại vào được, không lỗi nào nổ.
         """
         khu_con = self.env["stock.location"].create({
             "name": "Khu A (test)",
@@ -494,12 +527,11 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
 
     # ── Lớp 2: chặn thật khi xác nhận ────────────────────────────────────────
     def test_vat_tu_bi_day_sang_kho_thanh_pham_van_bi_chan(self):
-        """🔴 Lá chắn CHẶN không dựa vào dropdown.
+        """TC-INT-TestValidationRules-025: Lá chắn chặn không dựa vào dropdown.
 
-        Dropdown chỉ lọc dòng THÊM MỚI. Thêm dòng vật tư theo tuyến hợp lệ (ra
-        xưởng) rồi sửa TAY ô "Đến vị trí" thành Kho thành phẩm: đích áp cho cả
-        dòng đã có, vật tư âm thầm sai chỗ mà không ô nào đổi màu — guard xác
-        nhận phải bắt.
+        Dropdown chỉ lọc dòng thêm mới. Thêm dòng vật tư theo tuyến hợp lệ (ra xưởng)
+        rồi sửa TAY ô "Đến vị trí" thành Kho thành phẩm: đích áp cho cả dòng đã có, vật
+        tư âm thầm sai chỗ mà không ô nào đổi màu — guard xác nhận phải bắt.
         """
         self._stock(self.material, self.loc_kho, 197.0)
         picking = self._transfer(self.loc_xuong)
@@ -516,13 +548,14 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
             picking.action_confirm()
 
     def test_sp_thuong_mai_sang_kho_thanh_pham_van_chay(self):
-        """Kho thành phẩm NHẬN được hàng thương mại — guard đích không chặn oan.
+        """TC-INT-TestValidationRules-026: Kho thành phẩm nhận được hàng thương mại — guard
+        đích không chặn oan.
 
-        Luồng thường ngày, hàng TM vào TP thẳng ở bước kiểm (không qua phiếu
-        này). Nhưng tuyến chuyển tay Kho vật tư → TP vẫn phải thông cho hàng TM:
-        đó là đường dọn tồn TM cũ còn kẹt ở Kho vật tư sau khi rút gọn luồng
-        (migration 17.0.3.0.0 chỉ LOG, thủ kho tự chuyển). Guard xác nhận neo
-        vào loại hàng ở ĐÍCH, mà TP chứa được hàng thương mại nên không chặn.
+        Luồng thường ngày, hàng TM vào TP thẳng ở bước kiểm (không qua phiếu này). Nhưng
+        tuyến chuyển tay Kho vật tư thì TP vẫn phải thông cho hàng TM: đó là đường dọn
+        tồn TM cũ còn kẹt ở Kho vật tư sau khi rút gọn luồng (migration 17.0.3.0.0 chỉ
+        LOG, thủ kho tự chuyển). Guard xác nhận neo vào loại hàng ở đích, mà TP chứa
+        được hàng thương mại nên không chặn.
         """
         self._stock(self.trading, self.loc_kho, 10.0)
         picking = self._transfer(self.loc_tp, product=self.trading)
@@ -532,12 +565,13 @@ class TestFinishedGoodsWarehouseKinds(DlInventoryCase):
         self.assertNotEqual(picking.state, "draft")
 
     def test_dai_nhap_noi_ro_vi_sao_danh_sach_ngan_di(self):
-        """Dropdown thiếu món mà không giải thích thì thành bí ẩn.
+        """TC-INT-TestValidationRules-027: Dropdown thiếu món mà không giải thích thì thành
+        bí ẩn.
 
-        Nơi lấy (Kho nguyên vật liệu: vật tư + BTP) giao nơi nhận (Xưởng sản
-        xuất: vật tư + BTP + gia công) ⇒ còn ĐÚNG vật tư + BTP. Dải phải nói ra
-        kết quả GIAO đó, không phải luật của riêng một đầu — ghép hai luật lại
-        sẽ lòi ra "Gia công", thứ tuyến này không chuyển được.
+        Nơi lấy (Kho nguyên vật liệu: vật tư + BTP) giao nơi nhận (Xưởng sản xuất: vật
+        tư + BTP + gia công) thì còn đúng vật tư + BTP. Dải phải nói ra kết quả GIAO đó,
+        không phải luật của riêng một đầu — ghép hai luật lại sẽ lòi ra "Gia công", thứ
+        tuyến này không chuyển được.
         """
         self._stock(self.material, self.loc_kho, 10.0)
         picking = self._transfer(self.loc_xuong)
@@ -558,21 +592,24 @@ class TestTransferFormWording(DlInventoryCase):
         return self.env.ref("dl_inventory.view_dl_transfer_form").arch
 
     def test_nut_loi_tat_khong_viet_tat(self):
-        """Nhãn nút lối tắt phải nói đủ chữ — thủ kho mới vào không đoán được các
-        viết tắt kiểu TM/TP là gì."""
+        """TC-INT-TestValidationRules-028: Nhãn nút lối tắt phải nói đủ chữ — thủ kho mới
+        vào không đoán được các viết tắt kiểu TM/TP là gì.
+        """
         arch = self._arch()
         self.assertIn("Vật tư ra xưởng", arch)
         self.assertIn("Gom phế liệu", arch)
         self.assertNotIn("Hàng TM sang kho TP", arch)
 
     def test_cot_thuc_chuyen_an_khi_con_nhap(self):
-        """Lúc nháp "Thực chuyển" luôn 0 (chưa giữ chỗ), hiện ra chỉ gây hiểu
-        nhầm là phải tự điền."""
+        """TC-INT-TestValidationRules-029: Lúc nháp "Thực chuyển" luôn 0 (chưa giữ chỗ),
+        hiện ra chỉ gây hiểu nhầm là phải tự điền.
+        """
         self.assertIn(
             """column_invisible="parent.state == 'draft'\"""", self._arch(),
             "Cột Thực chuyển vẫn hiện lúc nháp.")
 
     def test_nhan_cot_nhu_cau_dong_bo_voi_man_giao_hang(self):
-        """"Số lượng" quá mơ hồ cạnh "Thực chuyển". Màn Giao hàng đã dùng cặp
-        "Cần giao"/"Thực giao", chuyển kho phải cùng một lối nói."""
+        """TC-INT-TestValidationRules-030: "Số lượng" quá mơ hồ cạnh "Thực chuyển". Màn
+        Giao hàng đã dùng cặp "Cần giao"/"Thực giao", chuyển kho phải cùng một lối nói.
+        """
         self.assertIn('string="Cần chuyển"', self._arch())

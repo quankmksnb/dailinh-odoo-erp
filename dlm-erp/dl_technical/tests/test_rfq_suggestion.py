@@ -35,6 +35,7 @@ class TestRfqSuggestion(TransactionCase):
         cls.customer = cls.env["res.partner"].create({
             "name": "Cty khớp gợi ý (test)",
             "partner_role": "customer",
+            "mobile": "0900001007",
         })
 
     def _rfq(self, **line_vals):
@@ -54,8 +55,9 @@ class TestRfqSuggestion(TransactionCase):
 
     # reference_product_id là tín hiệu mạnh nhất
     def test_reference_plus_category_reaches_auto(self):
-        """Sales chọn SP tham khảo (+50), cùng nhóm (+10), tổng 60 thì tự
-        chọn (auto)."""
+        """TC-INT-TestRfqSuggestion-001: Sales chọn SP tham khảo (+50), cùng nhóm (+10),
+        tổng 60 thì tự chọn (auto).
+        """
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
             product_category_id=self.categ.id,
@@ -70,8 +72,9 @@ class TestRfqSuggestion(TransactionCase):
 
     # Tên trùng hệt thì gợi ý (suggest), chưa đủ auto nếu đứng một mình
     def test_exact_name_only_is_suggest(self):
-        """Tên trùng hệt (+40) đứng một mình được 40 điểm, chỉ gợi ý, chưa
-        tự chọn."""
+        """TC-INT-TestRfqSuggestion-002: Tên trùng hệt (+40) đứng một mình được 40 điểm,
+        chỉ gợi ý, chưa tự chọn.
+        """
         _req, line = self._rfq(
             product_name="  khung   sắt v5 1200x800 (TEST) ",  # khác hoa/thường + thừa cách
         )
@@ -79,9 +82,10 @@ class TestRfqSuggestion(TransactionCase):
         self.assertEqual(line.suggested_product_id, self.existing)
 
     def test_exact_name_plus_category_reaches_auto(self):
-        """Tên trùng hệt (+40) và cùng nhóm (+10) được 50 điểm, vẫn chỉ
-        suggest. Thêm khách từng đặt (+10) mới đủ 60 để lên auto; ở đây chỉ
-        có tên và nhóm nên vẫn suggest."""
+        """TC-INT-TestRfqSuggestion-003: Tên trùng hệt (+40) và cùng nhóm (+10) được 50
+        điểm, vẫn chỉ suggest. Thêm khách từng đặt (+10) mới đủ 60 để lên auto; ở đây
+        chỉ có tên và nhóm nên vẫn suggest.
+        """
         _req, line = self._rfq(
             product_name="khung sắt v5 1200x800 (test)",
             product_category_id=self.categ.id,
@@ -90,8 +94,9 @@ class TestRfqSuggestion(TransactionCase):
 
     # Khách từng đặt cộng điểm
     def test_same_customer_history_adds_score(self):
-        """Tên trùng hệt (+40), cùng nhóm (+10), khách từng đặt (+10), tổng
-        60 điểm thì lên auto."""
+        """TC-INT-TestRfqSuggestion-004: Tên trùng hệt (+40), cùng nhóm (+10), khách từng
+        đặt (+10), tổng 60 điểm thì lên auto.
+        """
         # Đơn cũ của cùng khách đã chốt sản phẩm existing.
         prev_req, prev_line = self._rfq(product_name="Đơn cũ")
         prev_line.resolved_product_id = self.existing.id
@@ -107,9 +112,10 @@ class TestRfqSuggestion(TransactionCase):
 
     # Sản phẩm Ngừng sử dụng bị phạt điểm
     def test_obsolete_product_penalised(self):
-        """Sản phẩm tham khảo đã ngừng sử dụng bị trừ điểm mạnh (điểm cuối
-        dưới ngưỡng 30), kỳ vọng suggestion_state=none và không có candidate
-        nào được gợi ý."""
+        """TC-INT-TestRfqSuggestion-005: Sản phẩm tham khảo đã ngừng sử dụng bị trừ điểm
+        mạnh (điểm cuối dưới ngưỡng 30), kỳ vọng suggestion_state=none và không có
+        candidate nào được gợi ý.
+        """
         self.existing.dlm_lifecycle_state = "obsolete"
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
@@ -122,16 +128,18 @@ class TestRfqSuggestion(TransactionCase):
 
     # Không có tín hiệu thì không gợi ý
     def test_no_signal_no_suggestion(self):
-        """Không có tín hiệu nào khớp (tên hoàn toàn mới lạ), kỳ vọng
-        suggestion_state=none và suggested_product_id trống."""
+        """TC-INT-TestRfqSuggestion-006: Không có tín hiệu nào khớp (tên hoàn toàn mới lạ),
+        kỳ vọng suggestion_state=none và suggested_product_id trống.
+        """
         _req, line = self._rfq(product_name="Tên hoàn toàn mới lạ ZZZ (test)")
         self.assertEqual(line.suggestion_state, "none")
         self.assertFalse(line.suggested_product_id)
 
     def test_trading_line_never_suggests(self):
-        """Dòng product_type='trading' (hàng thương mại) không bao giờ
-        gợi ý sản phẩm dù tên khớp, kỳ vọng suggestion_state=none và
-        _dlm_suggest_candidates() rỗng."""
+        """TC-INT-TestRfqSuggestion-007: Dòng product_type='trading' (hàng thương mại)
+        không bao giờ gợi ý sản phẩm dù tên khớp, kỳ vọng suggestion_state=none và
+        _dlm_suggest_candidates() rỗng.
+        """
         _req, line = self._rfq(
             product_type="trading",
             product_name="khung sắt v5 1200x800 (test)",
@@ -140,19 +148,22 @@ class TestRfqSuggestion(TransactionCase):
         self.assertFalse(line._dlm_suggest_candidates())
 
     def test_resolved_line_stops_suggesting(self):
-        """Dòng đang được gợi ý (suggestion_state=suggest), sau khi gán
-        resolved_product_id thì suggestion_state phải chuyển về none (đã
-        xác định sản phẩm thì không cần gợi ý nữa)."""
+        """TC-INT-TestRfqSuggestion-008: Dòng đang được gợi ý (suggestion_state=suggest),
+        sau khi gán resolved_product_id thì suggestion_state phải chuyển về none (đã xác
+        định sản phẩm thì không cần gợi ý nữa).
+        """
         _req, line = self._rfq(product_name="khung sắt v5 1200x800 (test)")
         self.assertEqual(line.suggestion_state, "suggest")
         line.resolved_product_id = self.existing.id
         self.assertEqual(
             line.suggestion_state, "none",
-            "Dòng đã xác định SP thì không cần 💡 nữa")
+            "Dòng đã xác định SP thì không cần nữa")
 
     # §3.6: khổ kích thước khớp thuộc tính kỹ thuật sản phẩm
     def test_parse_dimensions_patterns(self):
-        """Parser trích D/R/C/độ dày từ mô tả tự do (mẫu AxB và từ khóa)."""
+        """TC-INT-TestRfqSuggestion-009: Parser trích D/R/C/độ dày từ mô tả tự do (mẫu AxB
+        và từ khóa).
+        """
         Line = self.env["dl.quotation.request.line"]
         self.assertEqual(
             Line._dlm_parse_dimensions("1400x830, cao 750"),
@@ -171,8 +182,9 @@ class TestRfqSuggestion(TransactionCase):
         self.assertEqual(Line._dlm_parse_dimensions(None, ""), {})
 
     def test_dimension_boosts_reference_to_auto(self):
-        """Ref (+50) một mình chỉ suggest; khổ khớp thuộc tính sản phẩm (+30)
-        cộng thêm thành 80 điểm thì lên auto."""
+        """TC-INT-TestRfqSuggestion-010: Ref (+50) một mình chỉ suggest; khổ khớp thuộc
+        tính sản phẩm (+30) cộng thêm thành 80 điểm thì lên auto.
+        """
         self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
@@ -185,8 +197,9 @@ class TestRfqSuggestion(TransactionCase):
         self.assertEqual(line.suggestion_state, "auto")
 
     def test_dimension_orientation_independent(self):
-        """Khổ khớp không phân biệt chiều: sản phẩm 1200x800 khớp mô tả
-        '800 x 1200'."""
+        """TC-INT-TestRfqSuggestion-011: Khổ khớp không phân biệt chiều: sản phẩm 1200x800
+        khớp mô tả '800 x 1200'.
+        """
         self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
@@ -198,7 +211,9 @@ class TestRfqSuggestion(TransactionCase):
         self.assertEqual(line.suggestion_state, "auto")
 
     def test_dimension_mismatch_no_boost(self):
-        """Khổ khác (1400x900) không cộng điểm, ref một mình vẫn chỉ suggest."""
+        """TC-INT-TestRfqSuggestion-012: Khổ khác (1400x900) không cộng điểm, ref một mình
+        vẫn chỉ suggest.
+        """
         self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
@@ -211,7 +226,9 @@ class TestRfqSuggestion(TransactionCase):
         self.assertEqual(line.suggestion_state, "suggest")
 
     def test_dimension_height_disqualifies(self):
-        """Khổ D×R khớp nhưng chiều cao lệch (750 so với 900) thì không tính khớp."""
+        """TC-INT-TestRfqSuggestion-013: Khổ D×R khớp nhưng chiều cao lệch (750 so với 900)
+        thì không tính khớp.
+        """
         self.existing.write({
             "dlm_dim_length": 1200, "dlm_dim_width": 800, "dlm_dim_height": 750})
         _req, line = self._rfq(
@@ -224,8 +241,9 @@ class TestRfqSuggestion(TransactionCase):
         self.assertNotIn("Khớp kích thước", ranked[0]["reasons"])
 
     def test_name_plus_dimension_reaches_auto(self):
-        """Tên trùng hệt (+40) và khổ khớp (+30) được 70 điểm thì lên auto
-        (khổ đọc ngay từ tên)."""
+        """TC-INT-TestRfqSuggestion-014: Tên trùng hệt (+40) và khổ khớp (+30) được 70 điểm
+        thì lên auto (khổ đọc ngay từ tên).
+        """
         self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
         _req, line = self._rfq(
             product_name="khung sắt v5 1200x800 (test)",
@@ -235,8 +253,10 @@ class TestRfqSuggestion(TransactionCase):
         self.assertEqual(line.suggestion_state, "auto")
 
     def test_dimension_needs_other_signal(self):
-        """Khổ trùng nhưng không có tín hiệu nào khác thì không tự phát hiện
-        sản phẩm mới (dấu vân kích thước chỉ củng cố, không đứng một mình)."""
+        """TC-INT-TestRfqSuggestion-015: Khổ trùng nhưng không có tín hiệu nào khác thì
+        không tự phát hiện sản phẩm mới (dấu vân kích thước chỉ củng cố, không đứng một
+        mình).
+        """
         self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
         _req, line = self._rfq(
             product_name="Tên hoàn toàn khác ZZZ",
@@ -248,8 +268,9 @@ class TestRfqSuggestion(TransactionCase):
 
     # Tích hợp workspace: đường A tự chọn khi mở
     def test_workspace_auto_selects_on_open(self):
-        """Mở workspace cho dòng đạt ngưỡng auto thì product_id tự điền và
-        bật cờ auto_selected (ca lặp lại chỉ còn bấm Hoàn tất)."""
+        """TC-INT-TestRfqSuggestion-016: Mở workspace cho dòng đạt ngưỡng auto thì
+        product_id tự điền và bật cờ auto_selected (ca lặp lại chỉ còn bấm Hoàn tất).
+        """
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
             product_category_id=self.categ.id,
@@ -262,8 +283,9 @@ class TestRfqSuggestion(TransactionCase):
         self.assertTrue(wizard.auto_selected)
 
     def test_workspace_suggest_does_not_auto_select(self):
-        """Chỉ đạt ngưỡng suggest thì không tự chọn, nhưng phơi thẻ gợi ý và
-        nút Dùng sản phẩm này chọn được."""
+        """TC-INT-TestRfqSuggestion-017: Chỉ đạt ngưỡng suggest thì không tự chọn, nhưng
+        phơi thẻ gợi ý và nút Dùng sản phẩm này chọn được.
+        """
         _req, line = self._rfq(product_name="khung sắt v5 1200x800 (test)")
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
             default_rfq_line_id=line.id).create({"rfq_line_id": line.id})

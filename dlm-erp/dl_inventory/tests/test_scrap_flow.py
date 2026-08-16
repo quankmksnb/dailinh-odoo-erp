@@ -45,7 +45,9 @@ class TestScrapFlow(DlInventoryCase):
         return quant
 
     def test_can_thuc_te_50kg_ban_het_thi_ton_ve_0(self):
-        """Tiêu chí verify K7: nhập tay 50kg, bán 50kg, tồn phải về 0."""
+        """TC-INT-TestScrapFlow-001: Tiêu chí verify K7: nhập tay 50kg, bán 50kg, tồn phải
+        về 0.
+        """
         self._weigh_in(50.0)
         self.assertEqual(self._qty_at(self.loc_scrap, self.scrap), 50.0)
 
@@ -73,24 +75,28 @@ class TestScrapFlow(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_scrap, self.scrap), 0.0)
 
     def test_khong_chon_dong_nao_thi_bao_loi_ro(self):
-        """Bấm Bán phế liệu khi chưa chọn dòng thì phải nói rõ cần làm gì."""
+        """TC-INT-TestScrapFlow-002: Bấm Bán phế liệu khi chưa chọn dòng thì phải nói rõ
+        cần làm gì.
+        """
         from odoo.exceptions import UserError
         with self.assertRaises(UserError) as caught:
             self.env["stock.quant"].browse().action_dlm_sell_scrap()
         self.assertIn("Chọn ít nhất một dòng", str(caught.exception))
 
     def test_thanh_tien_bang_so_luong_nhan_don_gia(self):
-        """§11.8: cột Thành tiền là thứ người dùng dùng để mặc cả với bên mua.
+        """TC-INT-TestScrapFlow-003: §11.8: cột Thành tiền là thứ người dùng dùng để mặc cả
+        với bên mua.
 
-        Đơn giá ở đây là giá bán phế liệu, không phải giá vốn, nên không vi
-        phạm §8.3 ("Thủ kho không thấy giá").
+        Đơn giá ở đây là giá bán phế liệu, không phải giá vốn, nên không vi phạm §8.3
+        ("Thủ kho không thấy giá").
         """
         quant = self._weigh_in(12.5)
         self.assertEqual(quant.dlm_scrap_unit_price, 8000.0)
         self.assertEqual(quant.dlm_scrap_value, 100000.0)
 
     def test_dai_chu_thich_luon_hien_va_khong_dong_duoc(self):
-        """🔴 §7.2: dải "không phải lợi nhuận tăng thêm" là bắt buộc.
+        """TC-INT-TestScrapFlow-004: §7.2: dải "không phải lợi nhuận tăng thêm" là bắt
+        buộc.
 
         Kiểm hai điều: route trả về nội dung, và nội dung không mang
         `data-o-hide-banner` (thứ duy nhất làm banner của Odoo đóng được).
@@ -106,6 +112,6 @@ class TestScrapFlow(DlInventoryCase):
         self.assertIn("/dl_inventory/scrap_banner", arch,
                       "Màn Phế liệu phải gắn dải chú thích.")
 
-    # 🔴 K16 — hai test của màn "Đối chiếu thu hồi" đã gỡ cùng chính màn đó:
+    # K16 — hai test của màn "Đối chiếu thu hồi" đã gỡ cùng chính màn đó:
     # bỏ cách tính % thu hồi thì không còn DỰ TOÁN để đối chiếu với số cân được.
     # Vòng phản hồi thay thế nằm ở test_workshop_batch (định mức vs thực cấp).

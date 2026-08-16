@@ -41,7 +41,7 @@ class TestFgReceipt(DlInventoryCase):
         })
 
     # ── Tiện ích ─────────────────────────────────────────────────────────────
-    # 🔴 K16 — KHÔNG khai `location_id`/`location_dest_id` cho dòng: đó chính là
+    # K16 — không khai `location_id`/`location_dest_id` cho dòng: đó chính là
     # bất biến đang test. Vị trí suy từ `dlm_move_kind` + mặt hàng, và `create`
     # đóng dấu chúng. Test mà tự điền vị trí là test một thứ khác.
     def _fg_picking(self, product=None, qty=10.0, order=None, materials=None):
@@ -103,10 +103,10 @@ class TestFgReceipt(DlInventoryCase):
 
     # ── Loại việc & định tuyến form ──────────────────────────────────────────
     def test_nhan_dung_loai_viec_va_form_rieng(self):
-        """RS-02 — phiếu [8] KHÔNG được rơi vào form Chuyển kho.
+        """TC-INT-TestFgReceipt-001: RS-02 — phiếu [8] không được rơi vào form Chuyển kho.
 
-        Cả hai đều `internal`; nhận nhầm là mở ra form cho sửa tự do hai ô vị trí
-        và mất luôn dải "không trừ vật tư".
+        Cả hai đều `internal`; nhận nhầm là mở ra form cho sửa tự do hai ô vị trí và mất
+        luôn dải "không trừ vật tư".
         """
         picking = self._fg_picking()
         self.assertEqual(picking.dlm_picking_kind, "fg_receipt")
@@ -116,17 +116,20 @@ class TestFgReceipt(DlInventoryCase):
 
     # ── Luồng chính: hàng làm xong vào kho ───────────────────────────────────
     def test_nhap_thanh_pham_vao_kho_thanh_pham(self):
-        """Đầu ra của nhánh gia công: xưởng báo xong ⇒ Kho thành phẩm có hàng."""
+        """TC-INT-TestFgReceipt-002: Đầu ra của nhánh gia công: xưởng báo xong thì Kho
+        thành phẩm có hàng.
+        """
         picking = self._validate(self._fg_picking(qty=10.0))
 
         self.assertEqual(picking.state, "done")
         self.assertEqual(self._qty_at(self.loc_tp, self.finished), 10.0)
 
     def test_btp_vao_kho_nguyen_vat_lieu_va_tu_sinh_so_lo(self):
-        """BTP theo lô: không tự sinh số lô thì màn này là ngõ cụt.
+        """TC-INT-TestFgReceipt-003: BTP theo lô: không tự sinh số lô thì màn này là ngõ
+        cụt.
 
-        Hàng chưa từng tồn tại trước phiếu này nên không có lô nào để tra ra —
-        mà Odoo bắt buộc số lô lúc validate. Số do Đại Linh tự sinh (chốt K3).
+        Hàng chưa từng tồn tại trước phiếu này nên không có lô nào để tra ra — mà Odoo
+        bắt buộc số lô lúc validate. Số do Đại Linh tự sinh (chốt K3).
         """
         self.assertEqual(self.btp.tracking, "lot", "Bối cảnh §3.4.")
         picking = self._validate(self._fg_picking(product=self.btp, qty=4.0))
@@ -141,12 +144,13 @@ class TestFgReceipt(DlInventoryCase):
         self.assertTrue(lot.name.startswith("LO/"),
                         "Số lô phải theo dải LO/ của Đại Linh: %s" % lot.name)
 
-    # ── 🔴 Ca sai im lặng: nhập ≠ giao ───────────────────────────────────────
+    # ── Ca sai im lặng: nhập ≠ giao ───────────────────────────────────────
     def test_phieu_nhap_tp_khong_bi_dem_la_da_giao(self):
-        """🔴 Phiếu [8] gắn đơn KHÔNG được tính vào số đã giao của đơn đó.
+        """TC-INT-TestFgReceipt-004: Phiếu [8] gắn đơn không được tính vào số đã giao của
+        đơn đó.
 
-        Nếu tính chung, đơn nhảy sang "Đã giao đủ" ngay khi hàng vừa vào kho —
-        Sales gọi khách báo đã giao, kho thì chưa ai chở đi.
+        Nếu tính chung, đơn nhảy sang "Đã giao đủ" ngay khi hàng vừa vào kho — Sales gọi
+        khách báo đã giao, kho thì chưa ai chở đi.
         """
         order = self._order(qty=10.0)
         self._validate(self._fg_picking(qty=10.0, order=order))
@@ -161,7 +165,9 @@ class TestFgReceipt(DlInventoryCase):
             "Smart button 'Phiếu giao hàng' chỉ đếm phiếu GIAO.")
 
     def test_nhap_xong_roi_giao_thi_don_moi_bao_da_giao(self):
-        """Chiều thuận của test trên — chặn tất là cách dễ nhất để 'pass'."""
+        """TC-INT-TestFgReceipt-005: Chiều thuận của test trên — chặn tất là cách dễ nhất
+        để 'pass'.
+        """
         order = self._order(qty=10.0)
         self._validate(self._fg_picking(qty=10.0, order=order))
 
@@ -175,8 +181,9 @@ class TestFgReceipt(DlInventoryCase):
 
     # ── Lá chắn: chỉ thứ xưởng làm ra, chỉ vào hai chỗ ───────────────────────
     def test_vat_tu_khong_nhap_vao_kho_thanh_pham_duoc(self):
-        """Luật §4.2 vẫn áp cho phiếu [8]: Kho thành phẩm là nơi phiếu Giao lấy
-        hàng, thứ lọt vào đó sớm muộn cũng bị giao cho khách."""
+        """TC-INT-TestFgReceipt-006: Luật §4.2 vẫn áp cho phiếu [8]: Kho thành phẩm là nơi
+        phiếu Giao lấy hàng, thứ lọt vào đó sớm muộn cũng bị giao cho khách.
+        """
         picking = self.env["stock.picking"].create({
             "picking_type_id": self.fg_type.id,
             "location_id": self.loc_production.id,
@@ -194,10 +201,10 @@ class TestFgReceipt(DlInventoryCase):
         self.assertIn("Kho thành phẩm", str(caught.exception))
 
     def test_danh_sach_mat_hang_thu_hep_theo_don(self):
-        """§11.13 — gắn đơn ⇒ chỉ mời chọn thứ đơn đó đặt.
+        """TC-INT-TestFgReceipt-007: §11.13 — gắn đơn thì chỉ mời chọn thứ đơn đó đặt.
 
-        Nhập nhầm thành phẩm của đơn khác vào phiếu đã gắn đơn làm
-        `dlm_delivery_state` của CẢ HAI đơn nói sai.
+        Nhập nhầm thành phẩm của đơn khác vào phiếu đã gắn đơn làm `dlm_delivery_state`
+        của cả hai đơn nói sai.
         """
         khac = self.env["product.product"].create({
             "name": "Kệ thép 5 tầng (K13)", "product_kind": "manufactured",
@@ -216,9 +223,10 @@ class TestFgReceipt(DlInventoryCase):
 
     # ── Dải thông báo ────────────────────────────────────────────────────────
     def test_dai_noi_ro_hang_a_khong_vao_ton(self):
-        """§11.13 — Hạng A ghi nhận được nhưng KHÔNG sinh tồn, và màn phải nói
-        ra: người dùng xác nhận xong, sang màn Tồn kho không thấy gì, rồi kết
-        luận phiếu vừa rồi không ăn thua."""
+        """TC-INT-TestFgReceipt-008: §11.13 — Hạng A ghi nhận được nhưng không sinh tồn, và
+        màn phải nói ra: người dùng xác nhận xong, sang màn Tồn kho không thấy gì, rồi
+        kết luận phiếu vừa rồi không ăn thua.
+        """
         categ = self.env["product.category"].create({"name": "Bàn thép (K13)"})
         generic = self.env["product.product"].create({
             "name": "Bàn thép khung hộp (K13)",
@@ -243,9 +251,10 @@ class TestFgReceipt(DlInventoryCase):
         self.assertFalse(picking.dlm_blocked)
 
     def test_dai_khong_bao_thieu_hang_o_vi_tri_ao(self):
-        """🔴 Nguồn của phiếu [8] là vị trí ẢO Sản xuất — nơi không bao giờ có
-        tồn. Rơi vào dải Chuyển kho thì MỌI phiếu nhập thành phẩm đều bị bêu
-        "không đủ hàng để chuyển", và người dùng học cách bỏ qua dải cảnh báo."""
+        """TC-INT-TestFgReceipt-009: Nguồn của phiếu [8] là vị trí ảo Sản xuất — nơi không
+        bao giờ có tồn. Rơi vào dải Chuyển kho thì mọi phiếu nhập thành phẩm đều bị bêu
+        "không đủ hàng để chuyển", và người dùng học cách bỏ qua dải cảnh báo.
+        """
         picking = self._fg_picking(qty=10.0)
         self.assertNotEqual(picking.dlm_banner_level, "warning")
         self.assertFalse(picking.dlm_blocked)

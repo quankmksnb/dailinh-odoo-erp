@@ -6,7 +6,9 @@ from odoo.tests.common import TransactionCase
 class TestRfqViews(TransactionCase):
 
     def test_sales_form_uses_real_quotation_actions(self):
-        """The saved create-RFQ action keeps this view id across a reload."""
+        """TC-INT-TestRfqViews-001: The saved create-RFQ action keeps this view id across a
+        reload.
+        """
         view = self.env.ref(
             "dl_technical.view_dl_quotation_request_sales_form"
         )

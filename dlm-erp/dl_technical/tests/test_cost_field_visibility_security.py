@@ -50,48 +50,55 @@ class TestCostFieldVisibilitySecurity(TransactionCase):
 
     # dl.bom.line: price_snapshot / recovery_value / subtotal
     def test_sales_staff_cannot_see_bom_line_cost_fields(self):
-        """NV kinh doanh gọi fields_get() trên 3 field chi phí dòng BOM,
-        kỳ vọng không field nào được trả về (bị che hoàn toàn)."""
+        """TC-SEC-GB06-001: NV kinh doanh gọi fields_get() trên 3 field chi phí dòng BOM,
+        kỳ vọng không field nào được trả về (bị che hoàn toàn).
+        """
         sales = self._user("dl_base.dl_group_ba", "sales_gb06")
         visible = self.line.with_user(sales).fields_get(list(COST_LINE_FIELDS))
         self.assertEqual(visible, {}, "NV Kinh doanh không được thấy field chi phí (GB-06)")
 
     def test_technician_cannot_see_bom_line_cost_fields(self):
-        """Kỹ thuật viên cũng bị che 3 field chi phí dòng BOM, tương tự
-        NV kinh doanh."""
+        """TC-SEC-GB06-002: Kỹ thuật viên cũng bị che 3 field chi phí dòng BOM, tương tự NV
+        kinh doanh.
+        """
         tech = self._user("dl_base.dl_group_tech", "ktv_gb06")
         visible = self.line.with_user(tech).fields_get(list(COST_LINE_FIELDS))
         self.assertEqual(visible, {}, "Kỹ thuật viên không được thấy field chi phí (GB-06)")
 
     def test_sales_manager_can_see_bom_line_cost_fields(self):
-        """Trưởng phòng kinh doanh được phép xem đủ cả 3 field chi phí
-        dòng BOM."""
+        """TC-SEC-GB06-003: Trưởng phòng kinh doanh được phép xem đủ cả 3 field chi phí
+        dòng BOM.
+        """
         mgr = self._user("dl_base.dl_group_sales_manager", "tpkd_gb06")
         visible = self.line.with_user(mgr).fields_get(list(COST_LINE_FIELDS))
         self.assertEqual(set(visible.keys()), set(COST_LINE_FIELDS))
 
     def test_accountant_can_see_bom_line_cost_fields(self):
-        """Kế toán được phép xem đủ cả 3 field chi phí dòng BOM."""
+        """TC-SEC-GB06-004: Kế toán được phép xem đủ cả 3 field chi phí dòng BOM.
+        """
         acc = self._user("dl_base.dl_group_accountant", "ketoan_gb06")
         visible = self.line.with_user(acc).fields_get(list(COST_LINE_FIELDS))
         self.assertEqual(set(visible.keys()), set(COST_LINE_FIELDS))
 
     def test_ceo_can_see_bom_line_cost_fields(self):
-        """CEO được phép xem đủ cả 3 field chi phí dòng BOM."""
+        """TC-SEC-GB06-005: CEO được phép xem đủ cả 3 field chi phí dòng BOM.
+        """
         ceo = self._user("dl_base.dl_group_ceo", "ceo_gb06")
         visible = self.line.with_user(ceo).fields_get(list(COST_LINE_FIELDS))
         self.assertEqual(set(visible.keys()), set(COST_LINE_FIELDS))
 
     # dl.bom: total_operation_cost_est (ước tính chi phí công đoạn/đơn vị)
     def test_technician_cannot_see_bom_operation_cost_est(self):
-        """Kỹ thuật viên gọi fields_get() trên total_operation_cost_est của
-        BOM, kỳ vọng field bị che hoàn toàn."""
+        """TC-SEC-GB06-006: Kỹ thuật viên gọi fields_get() trên total_operation_cost_est
+        của BOM, kỳ vọng field bị che hoàn toàn.
+        """
         tech = self._user("dl_base.dl_group_tech", "ktv_gb06_op")
         visible = self.bom.with_user(tech).fields_get(["total_operation_cost_est"])
         self.assertEqual(visible, {}, "Kỹ thuật viên không được thấy ước tính chi phí công đoạn (GB-06)")
 
     def test_ceo_can_see_bom_operation_cost_est(self):
-        """CEO được phép xem total_operation_cost_est của BOM."""
+        """TC-SEC-GB06-007: CEO được phép xem total_operation_cost_est của BOM.
+        """
         ceo = self._user("dl_base.dl_group_ceo", "ceo_gb06_op")
         visible = self.bom.with_user(ceo).fields_get(["total_operation_cost_est"])
         self.assertEqual(set(visible.keys()), {"total_operation_cost_est"})

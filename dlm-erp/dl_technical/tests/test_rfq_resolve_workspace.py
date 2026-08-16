@@ -33,6 +33,7 @@ class TestRfqResolveWorkspace(TransactionCase):
         cls.customer = cls.env["res.partner"].create({
             "name": "Khách test workspace",
             "partner_role": "customer",
+            "mobile": "0900001003",
         })
 
     def _make_rfq_line(self):
@@ -70,9 +71,10 @@ class TestRfqResolveWorkspace(TransactionCase):
 
     # §19.7: Hoàn tất dòng tự xác nhận định mức Nháp (một cú bấm)
     def test_hoan_tat_auto_confirms_draft_bom(self):
-        """Bấm Hoàn tất dòng khi định mức đang chọn còn ở Nháp thì
-        action_confirm() phải tự xác nhận định mức đó luôn (không bắt bấm
-        2 lần), rồi ghi resolved_product_id/resolved_bom_id về dòng RFQ."""
+        """TC-INT-TestRfqResolveWorkspace-001: Bấm Hoàn tất dòng khi định mức đang chọn còn
+        ở Nháp thì action_confirm() phải tự xác nhận định mức đó luôn (không bắt bấm 2
+        lần), rồi ghi resolved_product_id/resolved_bom_id về dòng RFQ.
+        """
         request, line = self._make_rfq_line()
         bom = self._make_draft_bom(line)
         wizard = self._wizard(line, product_id=self.product.id, manual_bom_id=bom.id)
@@ -90,8 +92,10 @@ class TestRfqResolveWorkspace(TransactionCase):
         self.assertEqual(line.resolved_bom_id, bom)
 
     def test_confirm_bom_inline_does_not_complete_line(self):
-        """Nút [Xác nhận định mức ngay] trong checklist chỉ chốt định mức,
-        không ghi kết quả về dòng, dành cho ai muốn chốt trước rồi bàn giao."""
+        """TC-INT-TestRfqResolveWorkspace-002: Nút [Xác nhận định mức ngay] trong checklist
+        chỉ chốt định mức, không ghi kết quả về dòng, dành cho ai muốn chốt trước rồi
+        bàn giao.
+        """
         request, line = self._make_rfq_line()
         bom = self._make_draft_bom(line)
         wizard = self._wizard(line, product_id=self.product.id, manual_bom_id=bom.id)
@@ -103,8 +107,9 @@ class TestRfqResolveWorkspace(TransactionCase):
 
     # §9.4: can_confirm / confirm_blocker gác nút Hoàn tất (disable, không modal)
     def test_can_confirm_requires_product(self):
-        """Wizard chưa chọn sản phẩm thì can_confirm=False và
-        confirm_blocker phải nêu lý do liên quan tới sản phẩm."""
+        """TC-INT-TestRfqResolveWorkspace-003: Wizard chưa chọn sản phẩm thì
+        can_confirm=False và confirm_blocker phải nêu lý do liên quan tới sản phẩm.
+        """
         request, line = self._make_rfq_line()
         wizard = self._wizard(line)
 
@@ -113,8 +118,9 @@ class TestRfqResolveWorkspace(TransactionCase):
         self.assertIn("sản phẩm", (wizard.confirm_blocker or "").lower())
 
     def test_can_confirm_requires_bom_lines(self):
-        """RES-009: định mức rỗng thì nút disable và nêu lý do, thay vì để
-        action_confirm nổ modal."""
+        """TC-INT-TestRfqResolveWorkspace-004: RES-009: định mức rỗng thì nút disable và
+        nêu lý do, thay vì để action_confirm nổ modal.
+        """
         request, line = self._make_rfq_line()
         empty_bom = self._make_draft_bom(line, with_lines=False)
         wizard = self._wizard(line, product_id=self.product.id,
@@ -125,7 +131,9 @@ class TestRfqResolveWorkspace(TransactionCase):
         self.assertIn("dòng vật tư", (wizard.confirm_blocker or "").lower())
 
     def test_can_confirm_true_even_when_bom_draft(self):
-        """Định mức Nháp không chặn Hoàn tất (Hoàn tất sẽ tự xác nhận, §19.7)."""
+        """TC-INT-TestRfqResolveWorkspace-005: Định mức Nháp không chặn Hoàn tất (Hoàn tất
+        sẽ tự xác nhận, §19.7).
+        """
         request, line = self._make_rfq_line()
         bom = self._make_draft_bom(line)
         wizard = self._wizard(line, product_id=self.product.id, manual_bom_id=bom.id)
@@ -137,25 +145,27 @@ class TestRfqResolveWorkspace(TransactionCase):
 
     # Trục tiến độ suy từ dữ liệu
     def test_step_computed_from_data(self):
-        """step của wizard phải suy đúng theo dữ liệu đã có: chưa có sản
-        phẩm thì step=product, có sản phẩm chưa có định mức thì step=bom,
-        đủ cả hai thì step=confirm."""
+        """TC-INT-TestRfqResolveWorkspace-006: step của wizard phải suy đúng theo dữ liệu
+        đã có: chưa có sản phẩm thì step=product, có sản phẩm chưa có định mức thì
+        step=bom, đủ cả hai thì step=confirm.
+        """
         request, line = self._make_rfq_line()
         wizard = self._wizard(line)
-        self.assertEqual(wizard.step, "product", "Chưa có sản phẩm thì ở khối ⑴")
+        self.assertEqual(wizard.step, "product", "Chưa có sản phẩm thì ở khối (1)")
 
         wizard.product_id = self.product.id
-        self.assertEqual(wizard.step, "bom", "Có sản phẩm, chưa có định mức thì ở khối ⑵")
+        self.assertEqual(wizard.step, "bom", "Có sản phẩm, chưa có định mức thì ở khối (2)")
 
         bom = self._make_draft_bom(line)
         wizard.manual_bom_id = bom.id
-        self.assertEqual(wizard.step, "confirm", "Đủ sản phẩm và định mức thì ở khối ⑶")
+        self.assertEqual(wizard.step, "confirm", "Đủ sản phẩm và định mức thì ở khối (3)")
 
     # Lối thoát "Cần bổ sung" / "Không khả thi" mở trong modal (không xổ dock)
     def test_exit_buttons_open_modal(self):
-        """Nút "Cần bổ sung" và "Không khả thi" phải mở wizard tương ứng
-        trong modal (target=new), truyền đúng rfq_line_id vào context, chứ
-        không xổ dock/chuyển trang."""
+        """TC-INT-TestRfqResolveWorkspace-007: Nút "Cần bổ sung" và "Không khả thi" phải mở
+        wizard tương ứng trong modal (target=new), truyền đúng rfq_line_id vào context,
+        chứ không xổ dock/chuyển trang.
+        """
         request, line = self._make_rfq_line()
         wizard = self._wizard(line, product_id=self.product.id)
 
@@ -170,9 +180,10 @@ class TestRfqResolveWorkspace(TransactionCase):
         self.assertEqual(act["context"].get("default_rfq_line_id"), line.id)
 
     def test_reopen_infeasible_line_blocks_then_reprocesses(self):
-        """Dòng đã kết luận Không khả thi thì can_confirm=False cho tới khi
-        bấm "Xử lý lại dòng này" (action_reopen_feasible), lúc đó
-        is_infeasible tắt và can_confirm mới bật lại."""
+        """TC-INT-TestRfqResolveWorkspace-008: Dòng đã kết luận Không khả thi thì
+        can_confirm=False cho tới khi bấm "Xử lý lại dòng này" (action_reopen_feasible),
+        lúc đó is_infeasible tắt và can_confirm mới bật lại.
+        """
         request, line = self._make_rfq_line()
         line.write({"is_infeasible": True, "infeasible_reason": "Vượt năng lực máy"})
         bom = self._make_draft_bom(line)
@@ -186,8 +197,10 @@ class TestRfqResolveWorkspace(TransactionCase):
         self.assertTrue(wizard.can_confirm)
 
     def test_change_product_reopens_block(self):
-        """Bấm "Đổi sản phẩm" (action_change_product) phải xoá product_id
-        và manual_bom_id đang chọn, đưa wizard quay lại step=product."""
+        """TC-INT-TestRfqResolveWorkspace-009: Bấm "Đổi sản phẩm" (action_change_product)
+        phải xoá product_id và manual_bom_id đang chọn, đưa wizard quay lại
+        step=product.
+        """
         request, line = self._make_rfq_line()
         bom = self._make_draft_bom(line)
         wizard = self._wizard(line, product_id=self.product.id, manual_bom_id=bom.id)

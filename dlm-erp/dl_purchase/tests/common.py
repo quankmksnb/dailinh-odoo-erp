@@ -63,10 +63,10 @@ class DlPurchaseCase(TransactionCase):
         })
 
     def _receive_po(self, order):
-        """Chốt đơn → nhận đủ hàng → kiểm đạt hết ⇒ hàng nằm ở Kho vật tư.
+        """Chốt đơn thì nhận đủ hàng thì kiểm đạt hết thì hàng nằm ở Kho vật tư.
 
-        Đi TRỌN luồng thật (không dựng tồn bằng kiểm kê) vì chính chỗ nối giữa
-        đơn mua và phiếu nhận là thứ đang được đo.
+        Đi trọn luồng thật (không dựng tồn bằng kiểm kê) vì chính chỗ nối giữa đơn mua
+        và phiếu nhận là thứ đang được đo.
         """
         order.action_dlm_confirm()
         receipt = order.dlm_picking_ids[:1]

@@ -29,7 +29,8 @@ class TestPricingApprovalRejectWizard(TransactionCase):
 
     def test_empty_reject_comment_raises(self):
         """TC-INT-TestUntestedWizards-001: reject_comment chỉ có khoảng trắng thì
-        action_confirm() báo lỗi ValidationError."""
+        action_confirm() báo lỗi ValidationError.
+        """
         req = self._pending_request()
         wizard = self.env["dl.pricing.approval.reject.wizard"].with_user(
             self.admin_user).create({"request_id": req.id, "reject_comment": "   "})
@@ -38,7 +39,8 @@ class TestPricingApprovalRejectWizard(TransactionCase):
 
     def test_happy_writes_comment_and_delegates_to_action_reject(self):
         """TC-INT-TestUntestedWizards-002: reject_comment hợp lệ thì action_confirm()
-        chuyển request sang trạng thái rejected và ghi lại đúng nội dung comment."""
+        chuyển request sang trạng thái rejected và ghi lại đúng nội dung comment.
+        """
         req = self._pending_request()
         wizard = self.env["dl.pricing.approval.reject.wizard"].with_user(
             self.admin_user).create({

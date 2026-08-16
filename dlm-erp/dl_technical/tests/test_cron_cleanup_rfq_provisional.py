@@ -25,8 +25,9 @@ class TestCronCleanupRfqProvisional(TransactionCase):
         self.env[model_name].browse(record_id).invalidate_recordset(["write_date"])
 
     def test_orphan_provisional_bom_older_than_threshold_is_cleaned(self):
-        """TC-SCH-CRON-RFQPROV-001: BOM tạm (is_rfq_provisional=True) không
-        còn được dòng RFQ nào tham chiếu, bỏ dở quá 7 ngày thì bị dọn."""
+        """TC-SCH-CRON-RFQPROV-001: BOM tạm (is_rfq_provisional=True) không còn được dòng
+        RFQ nào tham chiếu, bỏ dở quá 7 ngày thì bị dọn.
+        """
         product = self.env["product.product"].create({
             "name": "SP tạm RFQ mồ côi (test cron)",
             "product_kind": "manufactured",
@@ -48,8 +49,9 @@ class TestCronCleanupRfqProvisional(TransactionCase):
             "BOM tạm mồ côi bỏ dở quá 7 ngày phải bị dọn")
 
     def test_recent_provisional_bom_within_threshold_kept(self):
-        """TC-SCH-CRON-RFQPROV-002: BOM tạm mới được sửa 2 ngày trước, chưa
-        qua ngưỡng 7 ngày, thì không bị dọn (biên dưới)."""
+        """TC-SCH-CRON-RFQPROV-002: BOM tạm mới được sửa 2 ngày trước, chưa qua ngưỡng 7
+        ngày, thì không bị dọn (biên dưới).
+        """
         product = self.env["product.product"].create({
             "name": "SP tạm RFQ mới (test cron)",
             "product_kind": "manufactured",
@@ -71,9 +73,9 @@ class TestCronCleanupRfqProvisional(TransactionCase):
             "BOM tạm chưa quá ngưỡng ngày thì chưa bị dọn")
 
     def test_non_provisional_bom_never_touched(self):
-        """TC-SCH-CRON-RFQPROV-003: BOM không phải tạm RFQ
-        (is_rfq_provisional=False), dù cũ đến đâu, cũng không nằm trong
-        phạm vi cron này."""
+        """TC-SCH-CRON-RFQPROV-003: BOM không phải tạm RFQ (is_rfq_provisional=False), dù
+        cũ đến đâu, cũng không nằm trong phạm vi cron này.
+        """
         product = self.env["product.product"].create({
             "name": "SP chuẩn (test cron, không phải tạm)",
             "product_kind": "manufactured",
@@ -90,8 +92,8 @@ class TestCronCleanupRfqProvisional(TransactionCase):
         self.assertTrue(self.env["dl.bom"].browse(bom_id).exists())
 
     def test_no_provisional_records_runs_without_error(self):
-        """TC-SCH-CRON-RFQPROV-004: không có bản ghi tạm nào thì cron vẫn
-        chạy không lỗi."""
+        """TC-SCH-CRON-RFQPROV-004: không có bản ghi tạm nào thì cron vẫn chạy không lỗi.
+        """
         result = self.env[
             "dl.quotation.request.line"]._cron_cleanup_rfq_provisional_records()
         self.assertTrue(result)

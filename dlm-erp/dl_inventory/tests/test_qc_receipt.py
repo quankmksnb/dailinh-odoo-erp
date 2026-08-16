@@ -68,10 +68,11 @@ class TestQcReceipt(DlInventoryCase):
 
     # Luồng chính
     def test_dat_92_loai_8_hang_di_dung_hai_noi(self):
-        """§6.4: kiểm 92 đạt, 8 loại thì kho phải nhận đủ 92, khu chờ trả NCC có 8, khu kiểm sạch.
+        """TC-INT-TestQcReceipt-001: §6.4: kiểm 92 đạt, 8 loại thì kho phải nhận đủ 92, khu
+        chờ trả NCC có 8, khu kiểm sạch.
 
-        Nếu fail: hàng loại bị lẫn vào kho vật tư và có thể bị cắt vào sản phẩm giao khách,
-        đây là lỗi tốn kém nhất của phân hệ này.
+        Nếu fail: hàng loại bị lẫn vào kho vật tư và có thể bị cắt vào sản phẩm giao
+        khách, đây là lỗi tốn kém nhất của phân hệ này.
         """
         _receipt, qc = self._qc_ready()
         self._fill_qc(qc, passed=92.0, rejected=8.0)
@@ -85,12 +86,12 @@ class TestQcReceipt(DlInventoryCase):
                          "Khu Chờ kiểm phải sạch: không được để hàng lửng lơ.")
 
     def test_hang_thuong_mai_dat_vao_thang_kho_thanh_pham(self):
-        """§5.3 — Đạt + hàng thương mại đi THẲNG vào Kho thành phẩm.
+        """TC-INT-TestQcReceipt-027: §5.3 — Đạt + hàng thương mại đi thẳng vào Kho thành
+        phẩm.
 
-        Hàng thương mại mua về là để bán, kiểm đạt xong là sẵn sàng giao. Nếu
-        đỏ: nó rơi vào Kho vật tư (khu chỉ chứa vật tư) và phải làm thêm một
-        phiếu chuyển kho tay mà người ta hay quên — đúng bước thừa mà rút gọn
-        luồng 2026-08-12 đã bỏ.
+        Hàng thương mại mua về là để bán, kiểm đạt xong là sẵn sàng giao. Nếu đỏ: nó rơi
+        vào Kho vật tư (khu chỉ chứa vật tư) và phải làm thêm một phiếu chuyển kho tay
+        mà người ta hay quên — đúng bước thừa mà rút gọn luồng 2026-08-12 đã bỏ.
         """
         trading = self.env["product.product"].create({
             "name": "Bản lề inox nhập (test)", "product_kind": "trading"})
@@ -109,7 +110,9 @@ class TestQcReceipt(DlInventoryCase):
                          "Không được dừng ở Kho vật tư — khu đó chỉ chứa vật tư.")
 
     def test_hang_thuong_mai_dat_va_loai_tach_ba_nga(self):
-        """Ngả 3 và ngả 2 cùng một phiếu: TM Đạt → TP, TM Loại → Chờ trả nhà cung cấp."""
+        """TC-INT-TestQcReceipt-028: Ngả 3 và ngả 2 cùng một phiếu: TM Đạt thì TP, TM Loại
+        thì Chờ trả nhà cung cấp.
+        """
         trading = self.env["product.product"].create({
             "name": "Ổ khoá nhập (test)", "product_kind": "trading"})
         receipt = self._receive(
@@ -126,11 +129,12 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_kho, product=trading), 0.0)
 
     def test_kiem_du_khong_de_ra_phieu_kiem_thua(self):
-        """🔴 Kiểm hết 100 (92+8) thì không được sinh phiếu kiểm chờ tiếp.
+        """TC-INT-TestQcReceipt-002: Kiểm hết 100 (92+8) thì không được sinh phiếu kiểm chờ
+        tiếp.
 
-        Đây là cái bẫy của cách tách dòng: nhu cầu dòng gốc vẫn là 100 trong khi
-        thực hiện chỉ 92, nên Odoo đẻ ra một phiếu kiểm chờ 8 đơn vị đã sang khu
-        trả hàng rồi. Thủ kho sẽ thấy một phiếu "chờ kiểm" không bao giờ làm được.
+        Đây là cái bẫy của cách tách dòng: nhu cầu dòng gốc vẫn là 100 trong khi thực
+        hiện chỉ 92, nên Odoo đẻ ra một phiếu kiểm chờ 8 đơn vị đã sang khu trả hàng
+        rồi. Thủ kho sẽ thấy một phiếu "chờ kiểm" không bao giờ làm được.
         """
         receipt, qc = self._qc_ready()
         self._fill_qc(qc, passed=92.0, rejected=8.0)
@@ -145,10 +149,11 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(receipt.state, "done")
 
     def test_kiem_do_dang_thi_tach_phan_chua_kiem(self):
-        """Kiểm 90 đạt và 8 loại trên 100 thì 2 đơn vị chưa kiểm phải sang phiếu mới.
+        """TC-INT-TestQcReceipt-003: Kiểm 90 đạt và 8 loại trên 100 thì 2 đơn vị chưa kiểm
+        phải sang phiếu mới.
 
-        Ngược với ca trên: ở đây phần dư là hàng thật chưa ai nhìn tới. Nuốt mất
-        nó là 2 cây thép biến khỏi sổ sách mà không lỗi nào nổ.
+        Ngược với ca trên: ở đây phần dư là hàng thật chưa ai nhìn tới. Nuốt mất nó là 2
+        cây thép biến khỏi sổ sách mà không lỗi nào nổ.
         """
         _receipt, qc = self._qc_ready()
         self._fill_qc(qc, passed=90.0, rejected=8.0)
@@ -162,7 +167,9 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_qc), 2.0)
 
     def test_ca_dong_bi_loai(self):
-        """Loại sạch 100/100 thì không có gì vào kho, tất cả sang khu chờ trả."""
+        """TC-INT-TestQcReceipt-004: Loại sạch 100/100 thì không có gì vào kho, tất cả sang
+        khu chờ trả.
+        """
         _receipt, qc = self._qc_ready()
         self._fill_qc(qc, passed=0.0, rejected=100.0, reason="wrong_item")
         qc.action_dlm_validate_qc()
@@ -171,10 +178,10 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_tra), 100.0)
 
     def test_hang_loai_giu_nguyen_lo(self):
-        """§6.4: hàng loại vẫn thuộc lô đã nhận.
+        """TC-INT-TestQcReceipt-005: §6.4: hàng loại vẫn thuộc lô đã nhận.
 
-        Mất lô ở đây là mất bằng chứng "lô LO/2026/xxxxx của NCC này có 8 cây
-        gỉ", khiếu nại NCC tụt xuống thành lời nói suông.
+        Mất lô ở đây là mất bằng chứng "lô LO/2026/xxxxx của NCC này có 8 cây gỉ", khiếu
+        nại NCC tụt xuống thành lời nói suông.
         """
         receipt, qc = self._qc_ready()
         lot = receipt.move_line_ids.lot_id
@@ -192,10 +199,11 @@ class TestQcReceipt(DlInventoryCase):
 
     # RS-01: nhóm cung ứng tách phiếu kiểm theo từng NCC
     def test_hai_ncc_ra_hai_phieu_kiem_rieng(self):
-        """🔴 RS-01: hai phiếu nhận của hai NCC phải ra hai phiếu kiểm riêng.
+        """TC-INT-TestQcReceipt-006: RS-01: hai phiếu nhận của hai NCC phải ra hai phiếu
+        kiểm riêng.
 
-        Nếu fail: phiếu kiểm gộp hàng nhiều NCC, ô Nhà cung cấp trống, đúng như
-        ảnh chụp DL/KC/00463 gom 3 NCC. Đây là gốc của việc trả nhầm NCC.
+        Nếu fail: phiếu kiểm gộp hàng nhiều NCC, ô Nhà cung cấp trống, đúng như ảnh chụp
+        DL/KC/00463 gom 3 NCC. Đây là gốc của việc trả nhầm NCC.
         """
         vendor_b = self.env["res.partner"].create({"name": "NCC Sơn (test)"})
         product_b = self.env["product.product"].create({
@@ -218,10 +226,11 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(qc_b.move_ids.product_id, product_b)
 
     def test_hai_lan_nhan_cung_mot_ncc_van_hai_phieu_kiem(self):
-        """🔴 RS-01: đơn vị tách là lần nhận, không phải nhà cung cấp.
+        """TC-INT-TestQcReceipt-007: RS-01: đơn vị tách là lần nhận, không phải nhà cung
+        cấp.
 
-        Cùng một NCC giao hai chuyến trong ngày vẫn phải ra hai phiếu kiểm: hàng
-        lỗi ở chuyến nào thì khiếu nại theo chứng từ của chuyến đó.
+        Cùng một NCC giao hai chuyến trong ngày vẫn phải ra hai phiếu kiểm: hàng lỗi ở
+        chuyến nào thì khiếu nại theo chứng từ của chuyến đó.
         """
         receipt_1 = self._receive(self._make_receipt(qty=100.0), qty=100.0)
         receipt_2 = self._receive(self._make_receipt(qty=30.0), qty=30.0)
@@ -235,13 +244,13 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(qc_2.origin, receipt_2.name)
 
     def test_khong_gop_phieu_kiem_ngay_ca_khi_thieu_nhom_cung_ung(self):
-        """🔴 RS-01: mất nhóm cung ứng cũng không được gộp hai phiếu nhận.
+        """TC-INT-TestQcReceipt-008: RS-01: mất nhóm cung ứng cũng không được gộp hai phiếu
+        nhận.
 
-        Nhóm cung ứng là cơ chế chuẩn của Odoo nhưng vẫn là một ô có thể trống:
-        dữ liệu cũ, phiếu tạo tay, hoặc một đường xác nhận khác ghi đè. Chính ca
-        này đã xảy ra thật trên dlm_dev (DL/KC/00003 gom DL/NH/00003 và
-        DL/NH/00004). Bất biến "một phiếu nhận = một phiếu kiểm" phải đứng vững
-        cả khi nhóm biến mất.
+        Nhóm cung ứng là cơ chế chuẩn của Odoo nhưng vẫn là một ô có thể trống: dữ liệu
+        cũ, phiếu tạo tay, hoặc một đường xác nhận khác ghi đè. Chính ca này đã xảy ra
+        thật trên dlm_dev (DL/KC/00003 gom DL/NH/00003 và DL/NH/00004). Bất biến "một
+        phiếu nhận = một phiếu kiểm" phải đứng vững cả khi nhóm biến mất.
         """
         vendor_b = self.env["res.partner"].create({"name": "NCC Sơn (test)"})
         product_b = self.env["product.product"].create({
@@ -266,11 +275,12 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(qc_b.move_ids.product_id, product_b)
 
     def test_tra_hang_ghi_dung_ncc_khi_nhieu_ncc_cho_kiem(self):
-        """🔴 RS-01 + RS-08: loại hàng NCC B thì phiếu trả phải ghi đúng NCC B.
+        """TC-INT-TestQcReceipt-009: RS-01 + RS-08: loại hàng NCC b thì phiếu trả phải ghi
+        đúng NCC B.
 
-        Ca tốn tiền nhất: hàng của nhiều NCC cùng nằm khu Chờ kiểm. Loại hàng
-        NCC nào thì phiếu trả phải về đúng NCC đó, và trỏ về phiếu nhận gốc
-        (không phải phiếu kiểm, RS-08).
+        Ca tốn tiền nhất: hàng của nhiều NCC cùng nằm khu Chờ kiểm. Loại hàng NCC nào
+        thì phiếu trả phải về đúng NCC đó, và trỏ về phiếu nhận gốc (không phải phiếu
+        kiểm, RS-08).
         """
         vendor_b = self.env["res.partner"].create({"name": "NCC Sơn (test)"})
         product_b = self.env["product.product"].create({
@@ -296,10 +306,11 @@ class TestQcReceipt(DlInventoryCase):
 
     # Phiếu trả NCC
     def test_sinh_phieu_tra_ncc_o_trang_thai_nhap(self):
-        """§6.4: có hàng loại thì sinh phiếu trả NCC, để nháp cho Mua hàng.
+        """TC-INT-TestQcReceipt-010: §6.4: có hàng loại thì sinh phiếu trả NCC, để nháp cho
+        Mua hàng.
 
-        Để nháp là cố ý: trả hàng là việc đối ngoại (đổi hàng, giảm trừ công
-        nợ...). Tự xác nhận là thủ kho vô tình quyết thay Mua hàng.
+        Để nháp là cố ý: trả hàng là việc đối ngoại (đổi hàng, giảm trừ công nợ...). Tự
+        xác nhận là thủ kho vô tình quyết thay Mua hàng.
         """
         receipt, qc = self._qc_ready()
         self._fill_qc(qc, passed=92.0, rejected=8.0)
@@ -315,7 +326,9 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(returns.location_id, self.loc_tra)
 
     def test_phieu_tra_tra_duoc_tu_ca_hai_chang(self):
-        """Đứng ở phiếu nhận hay phiếu kiểm đều mở được phiếu trả."""
+        """TC-INT-TestQcReceipt-011: Đứng ở phiếu nhận hay phiếu kiểm đều mở được phiếu
+        trả.
+        """
         receipt, qc = self._qc_ready()
         self._fill_qc(qc, passed=92.0, rejected=8.0)
         qc.action_dlm_validate_qc()
@@ -326,7 +339,9 @@ class TestQcReceipt(DlInventoryCase):
             qc.action_dlm_open_returns()["res_model"], "stock.picking")
 
     def test_giao_viec_cho_mua_hang(self):
-        """§6.4: phiếu trả nháp không ai biết thì sẽ nằm im mãi, nên phải giao việc."""
+        """TC-INT-TestQcReceipt-012: §6.4: phiếu trả nháp không ai biết thì sẽ nằm im mãi,
+        nên phải giao việc.
+        """
         purchasing = self.env.ref("dl_base.dl_group_purchasing")
         buyer = self.env["res.users"].create({
             "name": "muahang_k5", "login": "muahang_k5",
@@ -343,7 +358,9 @@ class TestQcReceipt(DlInventoryCase):
 
     # Ràng buộc QC-01..04: báo inline, chặn ở server
     def test_qc02_dat_cong_loai_vuot_so_ncc_giao(self):
-        """QC-02: 95 đạt cộng 8 loại trên 100 giao là con số không tồn tại."""
+        """TC-INT-TestQcReceipt-013: QC-02: 95 đạt cộng 8 loại trên 100 giao là con số
+        không tồn tại.
+        """
         _receipt, qc = self._qc_ready()
         move = self._fill_qc(qc, passed=95.0, rejected=8.0)
 
@@ -354,7 +371,9 @@ class TestQcReceipt(DlInventoryCase):
             qc.action_dlm_validate_qc()
 
     def test_qc03_co_hang_loai_ma_khong_ly_do(self):
-        """QC-03: "8 cây loại" không kèm lý do thì không đàm phán được với NCC."""
+        """TC-INT-TestQcReceipt-014: QC-03: "8 cây loại" không kèm lý do thì không đàm phán
+        được với NCC.
+        """
         _receipt, qc = self._qc_ready()
         self._fill_qc(qc, passed=92.0, rejected=8.0, reason=False)
 
@@ -363,7 +382,9 @@ class TestQcReceipt(DlInventoryCase):
             qc.action_dlm_validate_qc()
 
     def test_qc04_ly_do_khac_phai_ghi_ro(self):
-        """QC-04: lý do "Khác" mà bỏ trống ghi chú là không ghi gì cả."""
+        """TC-INT-TestQcReceipt-015: QC-04: lý do "Khác" mà bỏ trống ghi chú là không ghi
+        gì cả.
+        """
         _receipt, qc = self._qc_ready()
         self._fill_qc(qc, passed=92.0, rejected=8.0, reason="other")
 
@@ -376,7 +397,8 @@ class TestQcReceipt(DlInventoryCase):
         self.assertFalse(qc.dlm_blocked)
 
     def test_dai_thong_bao_neu_ro_dong_nao_sai(self):
-        """§11.4: dải đỏ phải gọi tên dòng cụ thể, không nói chung chung.
+        """TC-INT-TestQcReceipt-016: §11.4: dải đỏ phải gọi tên dòng cụ thể, không nói
+        chung chung.
 
         "Thiếu lý do loại" trên phiếu 20 dòng buộc thủ kho tự dò từng dòng.
         """
@@ -387,10 +409,11 @@ class TestQcReceipt(DlInventoryCase):
 
     # Ranh giới giữa "giao thiếu" và "hàng lỗi"
     def test_giao_thieu_khong_bien_thanh_hang_loai(self):
-        """🔴 §6.1: NCC giao 95/100 là giao thiếu, không phải hàng lỗi.
+        """TC-INT-TestQcReceipt-017: §6.1: NCC giao 95/100 là giao thiếu, không phải hàng
+        lỗi.
 
-        Nếu fail: hệ thống ghi NCC giao hàng kém trong khi thật ra họ chỉ giao
-        thiếu, đây là hai vấn đề khác nhau, hai cách xử lý khác nhau.
+        Nếu fail: hệ thống ghi NCC giao hàng kém trong khi thật ra họ chỉ giao thiếu,
+        đây là hai vấn đề khác nhau, hai cách xử lý khác nhau.
         """
         receipt = self._make_receipt(qty=100.0)
         receipt.move_ids.quantity = 95.0
@@ -408,7 +431,9 @@ class TestQcReceipt(DlInventoryCase):
         self.assertTrue(backorder, "Phần giao thiếu phải thành phiếu chờ giao tiếp.")
 
     def test_dai_canh_bao_giao_thieu_neu_he_qua(self):
-        """§11.3: dải cảnh báo phải nói hệ quả, không chỉ nêu sự kiện."""
+        """TC-INT-TestQcReceipt-018: §11.3: dải cảnh báo phải nói hệ quả, không chỉ nêu sự
+        kiện.
+        """
         receipt = self._make_receipt(qty=100.0)
         receipt.move_ids.quantity = 95.0
 
@@ -417,7 +442,9 @@ class TestQcReceipt(DlInventoryCase):
 
     # Nút phụ và trạng thái hiển thị
     def test_dat_tat_ca(self):
-        """§11.4: ca phổ biến nhất (hàng về đủ và tốt) chỉ tốn một cú bấm."""
+        """TC-INT-TestQcReceipt-019: §11.4: ca phổ biến nhất (hàng về đủ và tốt) chỉ tốn
+        một cú bấm.
+        """
         _receipt, qc = self._qc_ready()
         qc.action_dlm_pass_all()
 
@@ -430,7 +457,9 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(qc.dlm_qc_state, "passed")
 
     def test_chip_ket_qua_kiem(self):
-        """Chip trên list: đọc được chất lượng hàng mà không phải mở phiếu."""
+        """TC-INT-TestQcReceipt-020: Chip trên list: đọc được chất lượng hàng mà không phải
+        mở phiếu.
+        """
         _receipt, qc = self._qc_ready()
         self.assertEqual(qc.dlm_qc_state, "pending")
 
@@ -439,8 +468,9 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(qc.dlm_qty_rejected_total, 8.0)
 
     def test_phieu_xong_khong_con_dai_do(self):
-        """Sau khi xác nhận, dòng gốc bị thu hẹp nhu cầu nên phép so QC-02 hết
-        nghĩa. Không tắt thì phiếu đã xong lại hiện dải đỏ vô cớ."""
+        """TC-INT-TestQcReceipt-021: Sau khi xác nhận, dòng gốc bị thu hẹp nhu cầu nên phép
+        so QC-02 hết nghĩa. Không tắt thì phiếu đã xong lại hiện dải đỏ vô cớ.
+        """
         _receipt, qc = self._qc_ready()
         self._fill_qc(qc, passed=92.0, rejected=8.0)
         qc.action_dlm_validate_qc()
@@ -451,7 +481,8 @@ class TestQcReceipt(DlInventoryCase):
 
     # Quyền và giao diện
     def test_man_kiem_hang_khong_lo_gia(self):
-        """🔴 §8.3: Thủ kho đếm hàng, không định giá."""
+        """TC-INT-TestQcReceipt-022: §8.3: Thủ kho đếm hàng, không định giá.
+        """
         view = self.env.ref("dl_inventory.view_dl_qc_form")
         for token in ("standard_price", "price_unit", "value", "amount"):
             self.assertNotIn(
@@ -459,7 +490,9 @@ class TestQcReceipt(DlInventoryCase):
                 "Màn Kiểm hàng không được có ô liên quan tới giá ('%s')." % token)
 
     def test_thu_kho_kiem_duoc_hang(self):
-        """Vai trò Thủ kho phải thực sự chạy được luồng kiểm, không chỉ xem."""
+        """TC-INT-TestQcReceipt-023: Vai trò Thủ kho phải thực sự chạy được luồng kiểm,
+        không chỉ xem.
+        """
         user = self.env["res.users"].create({
             "name": "thukho_k5", "login": "thukho_k5",
             "groups_id": [(6, 0, [self.env.ref("dl_base.dl_group_warehouse").id])],
@@ -472,14 +505,15 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_tra), 8.0)
 
     def test_man_nhan_hang_tao_duoc_phieu(self):
-        """Màn Nhận hàng phải có nút Tạo, màn Kiểm hàng thì không.
+        """TC-INT-TestQcReceipt-024: Màn Nhận hàng phải có nút Tạo, màn Kiểm hàng thì
+        không.
 
-        Đã vấp thật: một tree dùng chung cho cả hai màn, để create="0" là màn
-        Nhận hàng mất nút Tạo, trong khi ô trạng thái rỗng của chính nó vẫn mời
-        "tạo một phiếu nhận". Không lỗi nào nổ, chỉ là ngõ cụt.
+        Đã vấp thật: một tree dùng chung cho cả hai màn, để create="0" là màn Nhận hàng
+        mất nút Tạo, trong khi ô trạng thái rỗng của chính nó vẫn mời "tạo một phiếu
+        nhận". Không lỗi nào nổ, chỉ là ngõ cụt.
 
-        Lưu ý: `context="{'create': False}"` trên act_window không thay được vì
-        Odoo 17 chỉ đọc `create` từ thuộc tính trên arch (web/views/utils.getActiveActions).
+        Lưu ý: `context="{'create': False}"` trên act_window không thay được vì Odoo 17
+        chỉ đọc `create` từ thuộc tính trên arch (web/views/utils.getActiveActions).
         """
         cases = [
             ("dl_inventory.action_dl_picking_receipt", True,
@@ -497,7 +531,9 @@ class TestQcReceipt(DlInventoryCase):
             self.assertEqual('create="0"' not in arch, can_create, message)
 
     def test_man_nhan_hang_dien_san_loai_phieu(self):
-        """Bấm Tạo là loại phiếu đã sẵn "Nhận hàng nhà cung cấp", không phải tự chọn."""
+        """TC-INT-TestQcReceipt-025: Bấm Tạo là loại phiếu đã sẵn "Nhận hàng nhà cung cấp",
+        không phải tự chọn.
+        """
         action = self.env.ref("dl_inventory.action_dl_picking_receipt")
         self.assertIn("restricted_picking_type_code", action.context)
 
@@ -506,10 +542,12 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(picking.picking_type_id.code, "incoming")
 
     def test_menu_moi_co_action(self):
-        """Bẫy CLAUDE.md: menu lá rỗng action biến mất khỏi rail, không lỗi nào nổ."""
+        """TC-INT-TestQcReceipt-026: Bẫy CLAUDE.md: menu lá rỗng action biến mất khỏi rail,
+        không lỗi nào nổ.
+        """
         for xml_id in ("dl_inventory.menu_dl_picking_receipt",
                        "dl_inventory.menu_dl_picking_qc"):
             menu = self.env.ref(xml_id)
-            self.assertTrue(menu.action, "%s thiếu action ⇒ mất khỏi rail." % xml_id)
+            self.assertTrue(menu.action, "%s thiếu action thì mất khỏi rail." % xml_id)
             self.assertEqual(menu.parent_id,
                              self.env.ref("dl_base.menu_dl_inventory"))

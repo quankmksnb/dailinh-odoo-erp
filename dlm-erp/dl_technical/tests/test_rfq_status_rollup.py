@@ -47,10 +47,11 @@ class TestRfqStatusRollup(TransactionCase):
         }
 
     def test_mixed_rfq_stays_new_for_technician(self):
-        """RFQ vừa tạo có cả dòng thương mại lẫn gia công → Kỹ thuật thấy "Chưa nhận".
+        """TC-INT-TestRfqStatusRollup-001: RFQ vừa tạo có cả dòng thương mại lẫn gia công
+        thì Kỹ thuật thấy "Chưa nhận".
 
-        Tạo qua đúng 2 field của form Sales (mỗi field là một lượt create dòng
-        riêng) để bám sát đường ghi thật.
+        Tạo qua đúng 2 field của form Sales (mỗi field là một lượt create dòng riêng) để
+        bám sát đường ghi thật.
         """
         request = self.env["dl.quotation.request"].create({
             "customer_id": self.customer.id,
@@ -62,7 +63,9 @@ class TestRfqStatusRollup(TransactionCase):
         self.assertEqual(request.tech_stage, "pending")
 
     def test_trading_only_rfq_is_ready_to_quote(self):
-        """RFQ toàn hàng thương mại không có việc gì cho Kỹ thuật → chờ tạo báo giá."""
+        """TC-INT-TestRfqStatusRollup-002: RFQ toàn hàng thương mại không có việc gì cho Kỹ
+        thuật thì chờ tạo báo giá.
+        """
         request = self.env["dl.quotation.request"].create({
             "customer_id": self.customer.id,
             "trading_line_ids": [(0, 0, self._trading_vals())],
@@ -71,7 +74,9 @@ class TestRfqStatusRollup(TransactionCase):
         self.assertEqual(request.status, "confirmed")
 
     def test_technical_result_still_moves_to_processing(self):
-        """Không hồi quy: có kết quả kỹ thuật trên dòng GIA CÔNG thì vẫn "Đang xử lý"."""
+        """TC-INT-TestRfqStatusRollup-003: Không hồi quy: có kết quả kỹ thuật trên dòng gia
+        công thì vẫn "Đang xử lý".
+        """
         request = self.env["dl.quotation.request"].create({
             "customer_id": self.customer.id,
             "trading_line_ids": [(0, 0, self._trading_vals())],
@@ -90,8 +95,10 @@ class TestRfqStatusRollup(TransactionCase):
         self.assertEqual(request.tech_stage, "processing")
 
     def test_new_manufactured_line_reopens_confirmed_rfq(self):
-        """RFQ toàn thương mại (đang "Chờ tạo báo giá") mà Sales thêm dòng gia
-        công → phải quay lại hàng đợi Kỹ thuật, không được đứng ở "Chờ tạo báo giá"."""
+        """TC-INT-TestRfqStatusRollup-004: RFQ toàn thương mại (đang "Chờ tạo báo giá") mà
+        Sales thêm dòng gia công thì phải quay lại hàng đợi Kỹ thuật, không được đứng ở
+        "Chờ tạo báo giá".
+        """
         request = self.env["dl.quotation.request"].create({
             "customer_id": self.customer.id,
             "trading_line_ids": [(0, 0, self._trading_vals())],

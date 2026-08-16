@@ -35,11 +35,11 @@ class TestWorkshopHandover(DlInventoryCase):
 
     # ── Tiện ích ─────────────────────────────────────────────────────────────
     def _stock(self, location, qty=10.0):
-        """Đặt sẵn tồn ở một khu, KÈM LÔ.
+        """Đặt sẵn tồn ở một khu, kèm lô.
 
-        Vật tư của dự án là `tracking='lot'` ⇒ quant không lô thì `action_assign`
-        không giữ chỗ được, phiếu dừng ở `confirmed` và mọi test dưới đây hỏng vì
-        lý do chẳng liên quan gì tới chữ ký.
+        Vật tư của dự án là `tracking='lot'` thì quant không lô thì `action_assign`
+        không giữ chỗ được, phiếu dừng ở `confirmed` và mọi test dưới đây hỏng vì lý do
+        chẳng liên quan gì tới chữ ký.
         """
         lot = self.env["stock.lot"].create({
             "name": "LO-K15-%s" % location.id,
@@ -71,8 +71,10 @@ class TestWorkshopHandover(DlInventoryCase):
 
     # ── Phạm vi: tuyến nào cần ký, tuyến nào không ───────────────────────────
     def test_chi_tuyen_ra_xuong_moi_can_ky(self):
-        """Chữ ký chỉ gắn với tuyến ra Xưởng — dán nó lên MỌI phiếu chuyển kho
-        là bắt trưởng KT ký cả những chuyến gom phế liệu họ không dính tới."""
+        """TC-INT-TestWorkshopHandover-001: Chữ ký chỉ gắn với tuyến ra Xưởng — dán nó lên
+        mọi phiếu chuyển kho là bắt trưởng KT ký cả những chuyến gom phế liệu họ không
+        dính tới.
+        """
         self._stock(self.loc_kho)
         ra_xuong = self._transfer(self.loc_xuong)
         self.assertTrue(ra_xuong.dlm_needs_receipt)
@@ -89,7 +91,8 @@ class TestWorkshopHandover(DlInventoryCase):
 
     # ── Chặn cứng: đường tắt phải đóng ───────────────────────────────────────
     def test_khong_ky_thi_khong_xac_nhan_duoc(self):
-        """🔴 Bất biến lõi: `button_validate` native KHÔNG đi vòng qua được.
+        """TC-INT-TestWorkshopHandover-002: Bất biến lõi: `button_validate` native không đi
+        vòng qua được.
 
         Đây là cả lý do guard nằm ở model chứ không chỉ ở `invisible` của nút.
         """
@@ -106,7 +109,9 @@ class TestWorkshopHandover(DlInventoryCase):
                          "Hàng đã rời Kho nguyên vật liệu dù chưa ai ký nhận.")
 
     def test_ban_giao_roi_van_chua_du(self):
-        """Một chữ ký không thành hai: bàn giao xong vẫn phải chờ bên nhận."""
+        """TC-INT-TestWorkshopHandover-003: Một chữ ký không thành hai: bàn giao xong vẫn
+        phải chờ bên nhận.
+        """
         self._stock(self.loc_kho)
         picking = self._transfer()
         picking.action_dlm_handover()
@@ -117,18 +122,20 @@ class TestWorkshopHandover(DlInventoryCase):
             picking.button_validate()
 
     def test_chua_ban_giao_thi_khong_ky_nhan_duoc(self):
-        """Thứ tự hai chữ ký không đảo được — ký nhận thứ chưa ai giao là ký
-        khống."""
+        """TC-INT-TestWorkshopHandover-004: Thứ tự hai chữ ký không đảo được — ký nhận thứ
+        chưa ai giao là ký khống.
+        """
         self._stock(self.loc_kho)
         picking = self._transfer()
         with self.assertRaises(UserError) as ctx:
             picking.action_dlm_confirm_receipt()
         self.assertIn("chưa bàn giao", str(ctx.exception))
 
-    # ── Luồng đủ: hai chữ ký ⇒ hàng chuyển ───────────────────────────────────
+    # ── Luồng đủ: hai chữ ký thì hàng chuyển ───────────────────────────────────
     def test_du_hai_chu_ky_thi_hang_di(self):
-        """Chiều thuận — không có nó thì mọi test trên vẫn xanh khi tính năng
-        chết hẳn (chặn tất là cách dễ nhất để 'pass')."""
+        """TC-INT-TestWorkshopHandover-005: Chiều thuận — không có nó thì mọi test trên vẫn
+        xanh khi tính năng chết hẳn (chặn tất là cách dễ nhất để 'pass').
+        """
         self._stock(self.loc_kho)
         picking = self._transfer(qty=5.0)
         picking.action_dlm_handover()
@@ -143,6 +150,8 @@ class TestWorkshopHandover(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_kho), 5.0)
 
     def test_ky_hai_lan_bi_chan(self):
+        """TC-INT-TestWorkshopHandover-006.
+        """
         self._stock(self.loc_kho)
         picking = self._transfer()
         picking.action_dlm_handover()
@@ -152,9 +161,9 @@ class TestWorkshopHandover(DlInventoryCase):
 
     # ── Truy cứu: ai giao, ai nhận ───────────────────────────────────────────
     def test_thu_kho_khong_tu_ky_nhan_duoc(self):
-        """🔴 Đúng lý do tính năng này tồn tại. Nếu thủ kho ký được cả hai đầu
-        thì sáu tháng sau truy "ai nhận đống thép" lại ra chính người xuất —
-        chữ ký có mặt trên màn hình nhưng không trả lời được gì.
+        """TC-INT-TestWorkshopHandover-007: Đúng lý do tính năng này tồn tại. Nếu thủ kho
+        ký được cả hai đầu thì sáu tháng sau truy "ai nhận đống thép" lại ra chính người
+        xuất — chữ ký có mặt trên màn hình nhưng không trả lời được gì.
         """
         self._stock(self.loc_kho)
         picking = self._transfer()
@@ -166,11 +175,12 @@ class TestWorkshopHandover(DlInventoryCase):
         self.assertIn("bên NHẬN", str(ctx.exception))
 
     def test_ky_thuat_ky_duoc_du_chi_co_quyen_doc(self):
-        """Chiều ngược của test trên — và là chỗ dễ hỏng nhất.
+        """TC-INT-TestWorkshopHandover-008: Chiều ngược của test trên — và là chỗ dễ hỏng
+        nhất.
 
-        Nhóm Kỹ thuật chỉ có ACL `1,0,0,0` trên stock.picking. Nút ký nhận chạy
-        sudo SAU khi kiểm vai trò; bỏ sudo thì test này nổ AccessError, còn nới
-        ACL ghi cho cả nhóm thì họ sửa được mọi phiếu kho.
+        Nhóm Kỹ thuật chỉ có ACL `1,0,0,0` trên stock.picking. Nút ký nhận chạy sudo SAU
+        khi kiểm vai trò; bỏ sudo thì test này nổ AccessError, còn nới ACL ghi cho cả
+        nhóm thì họ sửa được mọi phiếu kho.
         """
         self._stock(self.loc_kho)
         picking = self._transfer()
@@ -183,8 +193,9 @@ class TestWorkshopHandover(DlInventoryCase):
         self.assertEqual(picking.dlm_handover_uid, self.user_warehouse)
 
     def test_chu_ky_khong_theo_ban_sao(self):
-        """Nhân bản phiếu mà kéo theo chữ ký cũ là chế ra bằng chứng một lần
-        nhận hàng chưa từng xảy ra."""
+        """TC-INT-TestWorkshopHandover-009: Nhân bản phiếu mà kéo theo chữ ký cũ là chế ra
+        bằng chứng một lần nhận hàng chưa từng xảy ra.
+        """
         self._stock(self.loc_kho)
         picking = self._transfer()
         picking.action_dlm_handover()

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Vòng đời SP thương mại: TPKD tạo → Mua hàng nhập giá vốn → TPKD chốt giá bán.
+"""Vòng đời SP thương mại: TPKD tạo thì Mua hàng nhập giá vốn thì TPKD chốt giá bán.
 
-Chỗ dễ vỡ nhất ở đây là RANH GIỚI VAI TRÒ: quyền tạo SP thương mại và chốt Giá
-bán vừa chuyển hẳn từ Sales (BA) lên Trưởng phòng kinh doanh (2026-08-15).
+Chỗ dễ vỡ nhất ở đây là ranh giới vai trò: quyền tạo SP thương mại và chốt Giá bán vừa
+chuyển hẳn từ Sales (BA) lên Trưởng phòng kinh doanh (2026-08-15).
 
-🔴 Mọi thao tác đi qua `with_user` THẬT. `self.env` của TransactionCase là
-superuser (`env.su` = True) nên các guard `if not self.env.su` sẽ bị bỏ qua —
-test viết bằng env mặc định sẽ XANH GIẢ, kể cả khi phân quyền hỏng hoàn toàn.
+Mọi thao tác đi qua `with_user` thật. `self.env` của TransactionCase là superuser
+(`env.su` = True) nên các guard `if not self.env.su` sẽ bị bỏ qua — test viết bằng env
+mặc định sẽ xanh giả, kể cả khi phân quyền hỏng hoàn toàn.
 """
 
 from odoo import fields
@@ -55,7 +55,8 @@ class TestTradingOwnership(TransactionCase):
         })
 
     def _apply_vendor_price(self, product, price=100000.0):
-        """Mua hàng nhập giá NCC rồi Duyệt — duyệt tự áp dụng ⇒ sinh Giá vốn."""
+        """Mua hàng nhập giá NCC rồi Duyệt — duyệt tự áp dụng thì sinh Giá vốn.
+        """
         seller = self.env["product.supplierinfo"].with_user(self.mua_hang).create({
             "partner_id": self.vendor.id,
             "product_tmpl_id": product.product_tmpl_id.id,
@@ -68,8 +69,9 @@ class TestTradingOwnership(TransactionCase):
         return seller
 
     def _raise_vendor_price(self, product, price):
-        """NCC tăng giá: thêm bảng giá mới, duyệt rồi ÁP DỤNG (tự bỏ áp dụng bảng
-        giá cũ) ⇒ giá vốn tham chiếu nhảy theo."""
+        """NCC tăng giá: thêm bảng giá mới, duyệt rồi áp dụng (tự bỏ áp dụng bảng giá cũ)
+        thì giá vốn tham chiếu nhảy theo.
+        """
         seller = self.env["product.supplierinfo"].with_user(self.mua_hang).create({
             "partner_id": self.vendor.id,
             "product_tmpl_id": product.product_tmpl_id.id,
@@ -91,13 +93,16 @@ class TestTradingOwnership(TransactionCase):
 
     # ── Ai được tạo SP thương mại ──────────────────────────────────────
     def test_tpkd_tao_duoc_sp_thuong_mai(self):
+        """TC-INT-TestTradingOwnership-001.
+        """
         product = self._new_trading(self.tpkd)
 
         self.assertEqual(product.product_kind, "trading")
         self.assertTrue(product.default_code.startswith("TM-"))
 
     def test_sales_khong_con_tao_duoc_sp_thuong_mai(self):
-        """🔴 Ranh giới vừa đổi: BA chỉ còn XEM sản phẩm để làm RFQ/báo giá.
+        """TC-INT-TestTradingOwnership-002: Ranh giới vừa đổi: BA chỉ còn XEM sản phẩm để
+        làm RFQ/báo giá.
 
         Đỏ = ai cũng đẻ được hàng thương mại, TPKD hết là chủ sở hữu danh mục.
         """
@@ -105,7 +110,9 @@ class TestTradingOwnership(TransactionCase):
             self._new_trading(self.sales)
 
     def test_sales_van_doc_duoc_san_pham(self):
-        """Chặn ghi nhưng KHÔNG được chặn đọc — BA cần chọn SP khi làm báo giá."""
+        """TC-INT-TestTradingOwnership-003: Chặn ghi nhưng không được chặn đọc — BA cần
+        chọn SP khi làm báo giá.
+        """
         product = self._new_trading(self.tpkd)
         self.env.invalidate_all()
 
@@ -115,16 +122,19 @@ class TestTradingOwnership(TransactionCase):
 
     # ── Báo việc hai chiều với Mua hàng ────────────────────────────────
     def test_tao_sp_bao_viec_cho_mua_hang(self):
+        """TC-INT-TestTradingOwnership-004.
+        """
         product = self._new_trading(self.tpkd)
 
         todos = self._todos(product, _ACT_SUPPLIER_PRICE)
         self.assertIn(self.mua_hang, todos.mapped("user_id"))
 
     def test_ap_gia_ncc_dong_viec_mua_hang_va_bao_tpkd(self):
-        """Khép vòng: Mua hàng xong việc thì việc của họ đóng, TPKD được gọi tên.
+        """TC-INT-TestTradingOwnership-005: Khép vòng: Mua hàng xong việc thì việc của họ
+        đóng, TPKD được gọi tên.
 
-        Đỏ = TPKD phải tự mò xem Mua hàng đã nhập giá chưa, còn hòm việc Mua hàng
-        thì treo mãi một dòng đã làm xong.
+        Đỏ = TPKD phải tự mò xem Mua hàng đã nhập giá chưa, còn hòm việc Mua hàng thì
+        treo mãi một dòng đã làm xong.
         """
         product = self._new_trading(self.tpkd)
         self._apply_vendor_price(product)
@@ -134,7 +144,9 @@ class TestTradingOwnership(TransactionCase):
         self.assertIn(self.tpkd, self._todos(product, _ACT_SALE_PRICE).mapped("user_id"))
 
     def test_khong_bao_trung_khi_ap_gia_lai(self):
-        """Bỏ áp dụng rồi áp dụng lại KHÔNG được đẻ thêm việc thứ hai cho TPKD."""
+        """TC-INT-TestTradingOwnership-006: Bỏ áp dụng rồi áp dụng lại không được đẻ thêm
+        việc thứ hai cho TPKD.
+        """
         product = self._new_trading(self.tpkd)
         seller = self._apply_vendor_price(product)
 
@@ -146,8 +158,10 @@ class TestTradingOwnership(TransactionCase):
             len(self._todos(product, _ACT_SALE_PRICE).filtered(
                 lambda a: a.user_id == self.tpkd)), 1)
 
-    # ── Mua trước → bán sau ────────────────────────────────────────────
+    # ── Mua trước thì bán sau ────────────────────────────────────────────
     def test_gia_ban_khoa_toi_khi_co_gia_von(self):
+        """TC-INT-TestTradingOwnership-007.
+        """
         product = self._new_trading(self.tpkd)
         as_tpkd = product.with_user(self.tpkd)
         as_tpkd.invalidate_recordset()
@@ -160,7 +174,9 @@ class TestTradingOwnership(TransactionCase):
         self.assertTrue(as_tpkd.dlm_can_edit_sale_price)
 
     def test_sales_khong_chot_duoc_gia_ban(self):
-        """🔴 Trọng tâm của thay đổi: giá niêm yết là quyết định của TPKD."""
+        """TC-INT-TestTradingOwnership-008: Trọng tâm của thay đổi: giá niêm yết là quyết
+        định của TPKD.
+        """
         product = self._new_trading(self.tpkd)
         self._apply_vendor_price(product)
 
@@ -168,7 +184,9 @@ class TestTradingOwnership(TransactionCase):
             product.with_user(self.sales).write({"list_price": 150000.0})
 
     def test_tpkd_chot_gia_ban_va_kich_hoat(self):
-        """Trọn vòng: tạo → Mua hàng áp giá → TPKD chốt giá bán → kích hoạt."""
+        """TC-INT-TestTradingOwnership-009: Trọn vòng: tạo thì Mua hàng áp giá thì TPKD
+        chốt giá bán thì kích hoạt.
+        """
         product = self._new_trading(self.tpkd)
         self._apply_vendor_price(product)
 
@@ -178,7 +196,7 @@ class TestTradingOwnership(TransactionCase):
         product.invalidate_recordset()
 
         self.assertEqual(product.dlm_lifecycle_state, "active")
-        # Việc "Chốt giá bán" đã xong ⇒ hòm việc TPKD phải sạch.
+        # Việc "Chốt giá bán" đã xong thì hòm việc TPKD phải sạch.
         self.assertFalse(self._todos(product, _ACT_SALE_PRICE))
 
     # ── Giá bán phải CAO HƠN giá vốn (ràng buộc tầng server) ───────────
@@ -193,8 +211,9 @@ class TestTradingOwnership(TransactionCase):
         return product
 
     def test_gia_ban_duoi_gia_von_bi_chan_o_server(self):
-        """🔴 Đường ghi KHÔNG qua form (import/API/code) trước đây lọt hết —
-        controller JS chỉ sống trong form Sản phẩm."""
+        """TC-INT-TestTradingOwnership-010: Đường ghi không qua form (import/API/code)
+        trước đây lọt hết — controller JS chỉ sống trong form Sản phẩm.
+        """
         product = self._new_trading(self.tpkd)
         self._apply_vendor_price(product, 100000.0)
 
@@ -206,7 +225,9 @@ class TestTradingOwnership(TransactionCase):
         self.assertIn("phải CAO HƠN Giá vốn tham chiếu", str(err.exception))
 
     def test_gia_ban_bang_gia_von_bi_chan(self):
-        """Bán ngang giá vốn (lãi 0) cũng không hợp lệ — luật chốt 2026-08-15."""
+        """TC-INT-TestTradingOwnership-011: Bán ngang giá vốn (lãi 0) cũng không hợp lệ —
+        luật chốt 2026-08-15.
+        """
         product = self._new_trading(self.tpkd)
         self._apply_vendor_price(product, 100000.0)
 
@@ -216,9 +237,10 @@ class TestTradingOwnership(TransactionCase):
         self.assertIn("bán ngang giá vốn", str(err.exception))
 
     def test_chua_co_gia_von_thi_khong_chan_gia_ban(self):
-        """Chưa có giá vốn ⇒ chưa tới lúc so (mua trước → bán sau).
+        """TC-INT-TestTradingOwnership-012: Chưa có giá vốn thì chưa tới lúc so (mua trước
+        thì bán sau).
 
-        Đỏ = ràng buộc bắn ngay lúc tạo SP, TPKD không tạo nổi sản phẩm nào.
+        Đỏ = ràng buộc bắn ngay lúc tạo SP, tpkd không tạo nổi sản phẩm nào.
         """
         product = self._new_trading(self.tpkd)
 
@@ -227,10 +249,11 @@ class TestTradingOwnership(TransactionCase):
         self.assertEqual(product.list_price, 50000.0)
 
     def test_mua_hang_van_ap_duoc_gia_von_vuot_gia_ban(self):
-        """🔴 Cố ý KHÔNG chặn Mua hàng: họ chỉ ghi nhận giá THẬT của NCC.
+        """TC-INT-TestTradingOwnership-013: Cố ý không chặn Mua hàng: họ chỉ ghi nhận giá
+        thật của NCC.
 
-        Đỏ = giá thép lên, Mua hàng bị kẹt không nhập nổi giá mới, phải đi nhắc
-        TPKD thủ công — chặn đúng luật nhưng chặn nhầm người.
+        Đỏ = giá thép lên, Mua hàng bị kẹt không nhập nổi giá mới, phải đi nhắc TPKD thủ
+        công — chặn đúng luật nhưng chặn nhầm người.
         """
         product = self._active_trading(cost=100000.0, price=150000.0)
 
@@ -239,6 +262,8 @@ class TestTradingOwnership(TransactionCase):
         self.assertEqual(product.standard_price, 200000.0)
 
     def test_gia_von_vuot_thi_bao_viec_cho_tpkd(self):
+        """TC-INT-TestTradingOwnership-014.
+        """
         product = self._active_trading(cost=100000.0, price=150000.0)
 
         self._raise_vendor_price(product, 200000.0)
@@ -249,6 +274,8 @@ class TestTradingOwnership(TransactionCase):
             self._todos(product, _ACT_REVIEW_SALE_PRICE).mapped("user_id"))
 
     def test_tpkd_chot_lai_gia_thi_dong_viec(self):
+        """TC-INT-TestTradingOwnership-015.
+        """
         product = self._active_trading(cost=100000.0, price=150000.0)
         self._raise_vendor_price(product, 200000.0)
 
@@ -259,6 +286,8 @@ class TestTradingOwnership(TransactionCase):
         self.assertFalse(self._todos(product, _ACT_REVIEW_SALE_PRICE))
 
     def test_sales_khong_kich_hoat_duoc(self):
+        """TC-INT-TestTradingOwnership-016.
+        """
         product = self._new_trading(self.tpkd)
         self._apply_vendor_price(product)
         product.sudo().write({"list_price": 150000.0})

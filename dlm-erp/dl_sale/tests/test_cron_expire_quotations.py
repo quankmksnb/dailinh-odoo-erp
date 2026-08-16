@@ -16,7 +16,7 @@ class TestCronExpireQuotations(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.customer = cls.env["res.partner"].create({
-            "name": "KH test cron expire", "partner_role": "customer"})
+            "name": "KH test cron expire", "partner_role": "customer", "mobile": "0900001009"})
 
     def _make_quotation(self, state, validity_date, date_order=None):
         vals = {
@@ -29,8 +29,9 @@ class TestCronExpireQuotations(TransactionCase):
         return self.env["dl.quotation"].create(vals)
 
     def test_sent_quotation_past_validity_date_expires(self):
-        """TC-SCH-CRON-QUOTATION-001: báo giá đã gửi khách (sent), hạn hiệu
-        lực đã qua thì tự chuyển sang 'expired'."""
+        """TC-SCH-CRON-QUOTATION-001: báo giá đã gửi khách (sent), hạn hiệu lực đã qua thì
+        tự chuyển sang 'expired'.
+        """
         from odoo import fields
         past = fields.Date.subtract(fields.Date.today(), days=1)
         older = fields.Date.subtract(fields.Date.today(), days=5)
@@ -43,8 +44,9 @@ class TestCronExpireQuotations(TransactionCase):
         self.assertEqual(quo.state, "expired")
 
     def test_sent_quotation_validity_date_today_not_expired(self):
-        """TC-SCH-CRON-QUOTATION-002: hạn hiệu lực đúng bằng hôm nay (biên),
-        so sánh dùng '<' không phải '<=' nên chưa hết hiệu lực."""
+        """TC-SCH-CRON-QUOTATION-002: hạn hiệu lực đúng bằng hôm nay (biên), so sánh dùng
+        '<' không phải '<=' nên chưa hết hiệu lực.
+        """
         from odoo import fields
         today = fields.Date.today()
         quo = self._make_quotation("sent", today)
@@ -54,8 +56,9 @@ class TestCronExpireQuotations(TransactionCase):
         self.assertEqual(quo.state, "sent", "Đúng hạn (chưa qua) thì chưa hết hiệu lực")
 
     def test_sent_quotation_no_validity_date_not_touched(self):
-        """TC-SCH-CRON-QUOTATION-003: báo giá sent nhưng validity_date rỗng
-        thì không đủ điều kiện, cron không đụng tới."""
+        """TC-SCH-CRON-QUOTATION-003: báo giá sent nhưng validity_date rỗng thì không đủ
+        điều kiện, cron không đụng tới.
+        """
         quo = self._make_quotation("sent", False)
 
         self.env["dl.quotation"]._cron_expire_quotations()
@@ -63,8 +66,9 @@ class TestCronExpireQuotations(TransactionCase):
         self.assertEqual(quo.state, "sent")
 
     def test_draft_quotation_past_date_not_touched(self):
-        """TC-SCH-CRON-QUOTATION-004: báo giá nháp (chưa gửi khách) dù hạn đã
-        qua vẫn không bị đụng vì cron chỉ xử lý state='sent'."""
+        """TC-SCH-CRON-QUOTATION-004: báo giá nháp (chưa gửi khách) dù hạn đã qua vẫn không
+        bị đụng vì cron chỉ xử lý state='sent'.
+        """
         from odoo import fields
         past = fields.Date.subtract(fields.Date.today(), days=5)
         older = fields.Date.subtract(fields.Date.today(), days=10)
@@ -75,8 +79,9 @@ class TestCronExpireQuotations(TransactionCase):
         self.assertEqual(quo.state, "draft")
 
     def test_no_stale_quotations_runs_without_error(self):
-        """TC-SCH-CRON-QUOTATION-005: không có báo giá nào quá hạn thì cron
-        vẫn chạy không lỗi."""
+        """TC-SCH-CRON-QUOTATION-005: không có báo giá nào quá hạn thì cron vẫn chạy không
+        lỗi.
+        """
         result = self.env["dl.quotation"]._cron_expire_quotations()
         self.assertTrue(result)
 

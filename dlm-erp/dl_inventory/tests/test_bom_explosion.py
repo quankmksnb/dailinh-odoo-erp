@@ -71,10 +71,11 @@ class TestBomExplosion(TransactionCase):
 
     # ------------------------------------------------------------------ tests
     def test_mot_tang_khong_nhan_them_hao_hut(self):
-        """Nhu cầu = effective_qty × số lượng, KHÔNG nhân hao hụt lần nữa.
+        """TC-INT-TestBomExplosion-001: Nhu cầu = effective_qty × số lượng, không nhân hao
+        hụt lần nữa.
 
-        Đỏ = tính hao hụt hai lần ⇒ mua thừa đúng bằng tỷ lệ hao hụt, mọi đơn,
-        mãi mãi.
+        Đỏ = tính hao hụt hai lần thì mua thừa đúng bằng tỷ lệ hao hụt, mọi đơn, mãi
+        mãi.
         """
         bom = self._mk_bom(self.ban, [(self.thep, 2.5), (self.oc, 20.0)])
         bom.line_ids.filtered(
@@ -82,16 +83,16 @@ class TestBomExplosion(TransactionCase):
 
         need = bom._dlm_explode_requirements(10.0)
 
-        # 2,5 × 1,1 = 2,75 cho một bộ ⇒ 27,5 cho mười bộ.
+        # 2,5 × 1,1 = 2,75 cho một bộ thì 27,5 cho mười bộ.
         self.assertAlmostEqual(need[self.thep], 27.5, places=2)
         self.assertAlmostEqual(need[self.oc], 200.0, places=2)
 
     def test_chia_so_luong_dau_ra_cua_bom(self):
-        """🔴 BOM khai đầu ra 6 ⇒ dòng của nó là số cho CẢ 6.
+        """TC-INT-TestBomExplosion-002: BOM khai đầu ra 6 thì dòng của nó là số cho cả 6.
 
-        Đỏ = đòi gấp 6 lần vật tư. Sai theo hướng MUA THỪA: tiền đã chi ra rồi
-        mới có người phát hiện. Engine giá đã chia đúng
-        (quotation_pricing_service.py:627) nên báo giá vẫn đúng — chỉ kho sai.
+        Đỏ = đòi gấp 6 lần vật tư. Sai theo hướng mua thừa: tiền đã chi ra rồi mới có
+        người phát hiện. Engine giá đã chia đúng (quotation_pricing_service.py:627) nên
+        báo giá vẫn đúng — chỉ kho sai.
         """
         bom = self._mk_bom(self.ban, [(self.thep, 30.0)], product_qty=6.0)
 
@@ -100,10 +101,11 @@ class TestBomExplosion(TransactionCase):
         self.assertAlmostEqual(need[self.thep], 50.0, places=2)
 
     def test_bu_tru_btp_theo_tang(self):
-        """🔴 BTP tồn 4, cần 10 ⇒ dùng 4 + nổ BOM con cho ĐÚNG 6.
+        """TC-INT-TestBomExplosion-003: BTP tồn 4, cần 10 thì dùng 4 + nổ BOM con cho đúng
+        6.
 
-        Đỏ (nổ cả 10) = mua thừa thép, và 4 khung đã hàn nằm chết trong kho —
-        đúng thứ tiền hai lần: một lần mua thừa, một lần công đã bỏ ra.
+        Đỏ (nổ cả 10) = mua thừa thép, và 4 khung đã hàn nằm chết trong kho — đúng thứ
+        tiền hai lần: một lần mua thừa, một lần công đã bỏ ra.
         """
         self._mk_bom(self.khung, [(self.thep, 2.5), (self.que_han, 0.3)])
         bom = self._mk_bom(self.ban, [(self.khung, 1.0)])
@@ -118,10 +120,11 @@ class TestBomExplosion(TransactionCase):
         self.assertAlmostEqual(report["requirements"][self.que_han], 1.8, places=2)
 
     def test_khong_truyen_vi_tri_thi_no_thang_xuong_day(self):
-        """Không có khu để hỏi ⇒ coi như không có BTP nào sẵn.
+        """TC-INT-TestBomExplosion-004: Không có khu để hỏi thì coi như không có BTP nào
+        sẵn.
 
-        Đỏ = màn nào quên truyền vị trí sẽ âm thầm "thấy đủ" BTP ⇒ nhu cầu vật
-        tư thô biến mất.
+        Đỏ = màn nào quên truyền vị trí sẽ âm thầm "thấy đủ" BTP thì nhu cầu vật tư thô
+        biến mất.
         """
         self._mk_bom(self.khung, [(self.thep, 2.5)])
         bom = self._mk_bom(self.ban, [(self.khung, 1.0)])
@@ -133,10 +136,10 @@ class TestBomExplosion(TransactionCase):
         self.assertNotIn(self.khung, need)
 
     def test_cung_vat_tu_nhieu_dong_nhieu_tang_thi_cong_don(self):
-        """Kết quả là dict cộng dồn, không phải danh sách.
+        """TC-INT-TestBomExplosion-005: Kết quả là dict cộng dồn, không phải danh sách.
 
-        Đỏ = mỗi dòng tự thấy đủ mà tổng thì thiếu — kiểu sai không màn nào bắt
-        được vì từng con số đều đúng.
+        Đỏ = mỗi dòng tự thấy đủ mà tổng thì thiếu — kiểu sai không màn nào bắt được vì
+        từng con số đều đúng.
         """
         self._mk_bom(self.khung, [(self.thep, 2.0)])
         bom = self._mk_bom(
@@ -148,11 +151,12 @@ class TestBomExplosion(TransactionCase):
         self.assertAlmostEqual(need[self.thep], 35.0, places=2)
 
     def test_hai_dong_cung_an_mot_btp_khong_dem_hai_lan_ton(self):
-        """🔴 Hai dòng cùng ăn một BTP: dòng sau KHÔNG được thấy lại tồn đã dùng.
+        """TC-INT-TestBomExplosion-006: Hai dòng cùng ăn một BTP: dòng sau không được thấy
+        lại tồn đã dùng.
 
-        Doc §5.2 bẫy 6 nói "thứ tự chỉ đổi phân bổ, không đổi tổng" — điều đó
-        chỉ đúng nếu có sổ theo dõi. Đỏ = cả hai dòng cùng trừ 4 khung ⇒ tổng
-        nhu cầu thép bị tính THIẾU ⇒ mua thiếu, xưởng đứng giữa chừng.
+        Doc §5.2 bẫy 6 nói "thứ tự chỉ đổi phân bổ, không đổi tổng" — điều đó chỉ đúng
+        nếu có sổ theo dõi. Đỏ = cả hai dòng cùng trừ 4 khung thì tổng nhu cầu thép bị
+        tính thiếu thì mua thiếu, xưởng đứng giữa chừng.
         """
         self._mk_bom(self.khung, [(self.thep, 2.5)])
         bom = self._mk_bom(self.ban, [(self.khung, 1.0), (self.khung, 1.0)])
@@ -160,15 +164,16 @@ class TestBomExplosion(TransactionCase):
 
         report = bom._dlm_explode_report(10.0, location=self.loc_kho)
 
-        # Cần 20 khung, kho có 4 ⇒ phải nổ đúng 16 × 2,5 = 40 cây thép.
+        # Cần 20 khung, kho có 4 thì phải nổ đúng 16 × 2,5 = 40 cây thép.
         self.assertAlmostEqual(report["btp_used"][self.khung], 4.0, places=2)
         self.assertAlmostEqual(report["requirements"][self.thep], 40.0, places=2)
 
     def test_btp_khong_co_dinh_muc_thi_bao_ten(self):
-        """DP-04 — BTP thiếu BOM con ⇒ nhánh vật tư của nó mất hẳn.
+        """TC-INT-TestBomExplosion-007: DP-04 — BTP thiếu BOM con thì nhánh vật tư của nó
+        mất hẳn.
 
-        Đỏ = im lặng bỏ qua: mua thiếu một nhánh nguyên vật liệu mà không ai
-        biết cho tới lúc xưởng dừng.
+        Đỏ = im lặng bỏ qua: mua thiếu một nhánh nguyên vật liệu mà không ai biết cho
+        tới lúc xưởng dừng.
         """
         bom = self._mk_bom(self.ban, [(self.khung, 1.0)])
 
@@ -178,10 +183,10 @@ class TestBomExplosion(TransactionCase):
         self.assertAlmostEqual(report["requirements"][self.khung], 10.0, places=2)
 
     def test_phe_lieu_khong_lot_vao_nhu_cau(self):
-        """DP-09 — vật tư gắn cờ phế liệu không phải nguyên liệu đầu vào.
+        """TC-INT-TestBomExplosion-008: DP-09 — vật tư gắn cờ phế liệu không phải nguyên
+        liệu đầu vào.
 
-        Đỏ = phiếu xuất vật tư giữ chỗ chính đống phế liệu chờ bán để đem đi
-        làm hàng.
+        Đỏ = phiếu xuất vật tư giữ chỗ chính đống phế liệu chờ bán để đem đi làm hàng.
         """
         scrap = self._mk("material", "Phế liệu thép (nổ BOM)")
         scrap.sudo().dlm_is_scrap = True
@@ -193,13 +198,14 @@ class TestBomExplosion(TransactionCase):
         self.assertIn(scrap, report["scrap"])
 
     def test_bom_vong_lap_bao_chuoi_khong_treo(self):
-        """🔴 A cần B, B cần A ⇒ phải raise nêu chuỗi, KHÔNG đệ quy vô hạn.
+        """TC-INT-TestBomExplosion-009: A cần b, b cần A thì phải raise nêu chuỗi, không đệ
+        quy vô hạn.
 
         Đỏ = treo tiến trình Odoo. Không phải lỗi hiển thị — cả server đứng.
 
-        Vòng lặp dựng bằng SQL vì lá chắn `_dlm_check_no_cycle` (LK-01) chặn từ
-        lúc TẠO. Đó chính là ca hàm này tồn tại để đỡ: BOM đã lỡ nằm trong DB
-        **trước khi** lá chắn ra đời — lá chắn không quét lại dữ liệu cũ.
+        Vòng lặp dựng bằng SQL vì lá chắn `_dlm_check_no_cycle` (LK-01) chặn từ lúc tạo.
+        Đó chính là ca hàm này tồn tại để đỡ: BOM đã lỡ nằm trong DB **trước khi** lá
+        chắn ra đời — lá chắn không quét lại dữ liệu cũ.
         """
         btp_a = self._mk("material_processed", "Cụm A (nổ BOM)")
         btp_b = self._mk("material_processed", "Cụm B (nổ BOM)")

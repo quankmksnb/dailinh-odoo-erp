@@ -29,7 +29,9 @@ class TestGenericNotStocked(DlInventoryCase):
         })
 
     def test_gan_lam_generic_thi_thanh_consu(self):
-        """§3.5: vừa gán làm SP dùng chung của BOM mẫu thì hết tồn kho được."""
+        """TC-INT-TestGenericNotStocked-001: §3.5: vừa gán làm SP dùng chung của BOM mẫu
+        thì hết tồn kho được.
+        """
         self.assertEqual(
             self.generic.detailed_type, "product",
             "Bối cảnh: SP gia công mặc định storable (LK-14).")
@@ -47,7 +49,9 @@ class TestGenericNotStocked(DlInventoryCase):
             "hàng khác kích thước rồi báo đủ hàng.")
 
     def test_gan_generic_bang_write_cung_thanh_consu(self):
-        """§3.5: cùng luật khi gán sau (sửa BOM mẫu đã có), không chỉ lúc tạo."""
+        """TC-INT-TestGenericNotStocked-002: §3.5: cùng luật khi gán sau (sửa BOM mẫu đã
+        có), không chỉ lúc tạo.
+        """
         template = self.env["dl.bom.template"].create({
             "name": "Mẫu bàn thép rỗng (test)",
             "product_category_id": self.categ.id,
@@ -58,10 +62,11 @@ class TestGenericNotStocked(DlInventoryCase):
         self.assertEqual(self.generic.detailed_type, "consu")
 
     def test_generic_khong_tao_duoc_ton_kho(self):
-        """§3.5: hệ quả cuối cùng, generic không bao giờ có mặt trong kho.
+        """TC-INT-TestGenericNotStocked-003: §3.5: hệ quả cuối cùng, generic không bao giờ
+        có mặt trong kho.
 
-        Đây mới là điều người dùng thấy: màn Tồn kho sạch, không có hàng trăm mã
-        tồn 0 vĩnh viễn.
+        Đây mới là điều người dùng thấy: màn Tồn kho sạch, không có hàng trăm mã tồn 0
+        vĩnh viễn.
         """
         self.env["dl.bom.template"].create({
             "name": "Mẫu bàn thép (test 2)",

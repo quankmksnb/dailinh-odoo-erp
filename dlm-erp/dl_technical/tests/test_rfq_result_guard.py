@@ -22,6 +22,7 @@ class TestRfqResultGuard(TransactionCase):
         cls.customer = cls.env["res.partner"].create({
             "name": "Khách test guard",
             "partner_role": "customer",
+            "mobile": "0900001004",
         })
 
     def _make_rfq(self):
@@ -38,8 +39,9 @@ class TestRfqResultGuard(TransactionCase):
 
     # RES-002: RFQ đã đóng
     def test_cannot_mark_infeasible_on_cancelled_rfq(self):
-        """RFQ đã hủy thì _mark_infeasible() phải raise UserError, không
-        cho kết luận không khả thi trên RFQ đã đóng."""
+        """TC-INT-TestRfqResultGuard-001: RFQ đã hủy thì _mark_infeasible() phải raise
+        UserError, không cho kết luận không khả thi trên RFQ đã đóng.
+        """
         request, line = self._make_rfq()
         request.action_cancel()
 
@@ -49,8 +51,9 @@ class TestRfqResultGuard(TransactionCase):
         self.assertFalse(line.is_infeasible)
 
     def test_cannot_request_supplement_on_quoted_rfq(self):
-        """RFQ đã ở status='quoted' (đã báo giá) thì _mark_supplement()
-        phải raise UserError, không cho yêu cầu bổ sung nữa."""
+        """TC-INT-TestRfqResultGuard-002: RFQ đã ở status='quoted' (đã báo giá) thì
+        _mark_supplement() phải raise UserError, không cho yêu cầu bổ sung nữa.
+        """
         request, line = self._make_rfq()
         request.status = "quoted"
 
@@ -60,7 +63,9 @@ class TestRfqResultGuard(TransactionCase):
         self.assertFalse(line.supplement_note)
 
     def test_still_works_on_open_rfq(self):
-        """Không hồi quy: RFQ đang mở vẫn kết luận bình thường."""
+        """TC-INT-TestRfqResultGuard-003: Không hồi quy: RFQ đang mở vẫn kết luận bình
+        thường.
+        """
         request, line = self._make_rfq()
 
         line._mark_infeasible("Vượt hành trình máy chấn")
@@ -70,12 +75,13 @@ class TestRfqResultGuard(TransactionCase):
 
     # RES-003: dòng đã bị loại khỏi phạm vi giữa chừng
     def test_line_removal_works_while_workspace_open(self):
-        """EX-20: Sales loại dòng trong lúc KTV đang mở workspace.
+        """TC-INT-TestRfqResultGuard-004: EX-20: Sales loại dòng trong lúc KTV đang mở
+        workspace.
 
-        rfq_line_id của workspace là Many2one bắt buộc. Không khai ondelete
-        thì Odoo mặc định 'restrict', nên thao tác loại dòng của Sales sẽ vỡ
-        khóa ngoại ở DB với thông báo khó hiểu. Khai 'cascade' (giống 2
-        wizard kết luận nhanh) thì bản ghi tạm được dọn theo.
+        rfq_line_id của workspace là Many2one bắt buộc. Không khai ondelete thì Odoo mặc
+        định 'restrict', nên thao tác loại dòng của Sales sẽ vỡ khóa ngoại ở DB với
+        thông báo khó hiểu. Khai 'cascade' (giống 2 wizard kết luận nhanh) thì bản ghi
+        tạm được dọn theo.
         """
         request, line = self._make_rfq()
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
@@ -87,7 +93,9 @@ class TestRfqResultGuard(TransactionCase):
         self.assertFalse(wizard.exists(), "Bản ghi workspace phải được dọn theo dòng")
 
     def test_guard_rejects_missing_line(self):
-        """RES-003: chốt kiểm vẫn bắt được dòng đã biến mất (phòng vệ nhiều lớp)."""
+        """TC-INT-TestRfqResultGuard-005: RES-003: chốt kiểm vẫn bắt được dòng đã biến mất
+        (phòng vệ nhiều lớp).
+        """
         request, line = self._make_rfq()
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
             default_rfq_line_id=line.id).create({"rfq_line_id": line.id})
@@ -103,9 +111,10 @@ class TestRfqResultGuard(TransactionCase):
         self.assertFalse(ghost.exists())
 
     def test_workspace_confirm_blocked_when_rfq_cancelled(self):
-        """RFQ đã hủy sau khi wizard workspace đã tạo, kỳ vọng
-        _check_still_processable() raise UserError, không cho xử lý tiếp
-        trên RFQ đã đóng."""
+        """TC-INT-TestRfqResultGuard-006: RFQ đã hủy sau khi wizard workspace đã tạo, kỳ
+        vọng _check_still_processable() raise UserError, không cho xử lý tiếp trên RFQ
+        đã đóng.
+        """
         request, line = self._make_rfq()
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
             default_rfq_line_id=line.id).create({"rfq_line_id": line.id})
@@ -116,7 +125,9 @@ class TestRfqResultGuard(TransactionCase):
             wizard._check_still_processable()
 
     def test_workspace_confirm_allowed_while_rfq_open(self):
-        """Không hồi quy: RFQ đang xử lý thì chốt kiểm phải im lặng đi qua."""
+        """TC-INT-TestRfqResultGuard-007: Không hồi quy: RFQ đang xử lý thì chốt kiểm phải
+        im lặng đi qua.
+        """
         request, line = self._make_rfq()
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
             default_rfq_line_id=line.id).create({"rfq_line_id": line.id})

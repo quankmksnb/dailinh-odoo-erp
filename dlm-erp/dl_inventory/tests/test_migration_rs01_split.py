@@ -81,9 +81,9 @@ class TestMigrationRs01Split(DlInventoryCase):
         return receipt_a, receipt_b, qc_a, qc_b
 
     def test_phieu_kiem_gop_hai_ncc_duoc_tach_lai_dung(self):
-        """TC-INT-TestMigrationRs01Split-001: migrate() tách phiếu kiểm gộp
-        2 NCC thành 2 phiếu riêng, phiếu gốc trả lại đúng NCC và số phiếu của
-        phiếu nhận đầu tiên."""
+        """TC-INT-TestMigrationRs01Split-001: migrate() tách phiếu kiểm gộp 2 NCC thành 2
+        phiếu riêng, phiếu gốc trả lại đúng NCC và số phiếu của phiếu nhận đầu tiên.
+        """
         receipt_a, receipt_b, qc_a, qc_b = self._broken_merged_qc()
         self.assertEqual(len(qc_a.move_ids), 2,
                           "Tiền điều kiện: qc_a phải đang gộp cả 2 move (mô "
@@ -115,9 +115,10 @@ class TestMigrationRs01Split(DlInventoryCase):
         self.assertEqual(moi.move_ids.product_uom_qty, 30.0)
 
     def test_phieu_kiem_da_done_khong_bi_dong_vao(self):
-        """TC-INT-TestMigrationRs01Split-002: phiếu kiểm đã `done` không bị
-        tách dù đang gộp nhiều NCC. Viết lại lịch sử kho đã ghi nhận còn hại
-        hơn cái sai đang mang (theo đúng comment trong migration script)."""
+        """TC-INT-TestMigrationRs01Split-002: phiếu kiểm đã `done` không bị tách dù đang
+        gộp nhiều NCC. Viết lại lịch sử kho đã ghi nhận còn hại hơn cái sai đang mang
+        (theo đúng comment trong migration script).
+        """
         receipt_a, receipt_b, qc_a, qc_b = self._broken_merged_qc()
         qc_a.action_dlm_pass_all()
         qc_a.action_dlm_validate_qc()
@@ -134,9 +135,9 @@ class TestMigrationRs01Split(DlInventoryCase):
                           "nguyên.")
 
     def test_phieu_kiem_mot_ncc_khong_bi_dong_toi(self):
-        """TC-INT-TestMigrationRs01Split-003: phiếu kiểm chỉ có 1 NCC (đúng
-        RS-01 hiện tại, không phải dữ liệu hỏng) không bị migration đụng
-        tới."""
+        """TC-INT-TestMigrationRs01Split-003: phiếu kiểm chỉ có 1 NCC (đúng RS-01 hiện tại,
+        không phải dữ liệu hỏng) không bị migration đụng tới.
+        """
         receipt = self._make_receipt(qty=20.0)
         qc = self._qc_picking(receipt)
         name_before = qc.name

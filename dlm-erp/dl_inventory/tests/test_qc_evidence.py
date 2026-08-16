@@ -36,7 +36,7 @@ class TestQcEvidence(DlInventoryCase):
     def setUpClass(cls):
         super().setUpClass()
         # Guard khoá bằng chứng bỏ qua `env.su`, mà env của TransactionCase chạy
-        # dưới SUPERUSER_ID (⇒ su=True). Mọi ca kiểm khoá PHẢI đi qua user thật,
+        # dưới SUPERUSER_ID (thì su=True). Mọi ca kiểm khoá phải đi qua user thật,
         # không thì test xanh trong khi lá chắn không hề chạy.
         cls.thukho = cls.env["res.users"].create({
             "name": "thukho_k17", "login": "thukho_k17",
@@ -78,11 +78,12 @@ class TestQcEvidence(DlInventoryCase):
 
     # ── Nhóm 1: ảnh ĐI ĐƯỢC hết chuỗi chứng từ ──────────────────────────────
     def test_anh_duoc_dong_dau_ve_dung_dong(self):
-        """🔴 Bẫy res_id=0 — ảnh phải được neo về dòng kiểm ngay khi ghi.
+        """TC-INT-TestQcEvidence-001: Bẫy res_id=0 — ảnh phải được neo về dòng kiểm ngay
+        khi ghi.
 
-        Nếu đỏ: thủ kho upload xong thấy bình thường, nhưng Mua hàng mở phiếu
-        trả sẽ ăn AccessError — attachment res_id=0 chỉ người tạo và admin đọc
-        được. Hỏng đúng lúc cần ảnh nhất, và không ai đoán ra vì sao.
+        Nếu đỏ: thủ kho upload xong thấy bình thường, nhưng Mua hàng mở phiếu trả sẽ ăn
+        AccessError — attachment res_id=0 chỉ người tạo và admin đọc được. Hỏng đúng lúc
+        cần ảnh nhất, và không ai đoán ra vì sao.
         """
         _receipt, _qc, move, anh = self._qc_co_hang_loai()
 
@@ -90,10 +91,11 @@ class TestQcEvidence(DlInventoryCase):
         self.assertEqual(anh.res_id, move.id)
 
     def test_anh_sang_phieu_tra_ncc(self):
-        """§6.4 — Ảnh phải có mặt trên phiếu [3], nơi Mua hàng thật sự dùng nó.
+        """TC-INT-TestQcEvidence-002: §6.4 — Ảnh phải có mặt trên phiếu [3], nơi Mua hàng
+        thật sự dùng nó.
 
-        Đây là lý do tồn tại của cả tính năng: người chụp (thủ kho) và người
-        đàm phán (Mua hàng) là hai người khác nhau, ngồi hai chỗ khác nhau.
+        Đây là lý do tồn tại của cả tính năng: người chụp (thủ kho) và người đàm phán
+        (Mua hàng) là hai người khác nhau, ngồi hai chỗ khác nhau.
         """
         _receipt, qc, _move, anh = self._qc_co_hang_loai(so_anh=2)
         qc.action_dlm_validate_qc()
@@ -106,11 +108,12 @@ class TestQcEvidence(DlInventoryCase):
         self.assertEqual(dong_tra.dlm_evidence_count, 2)
 
     def test_khong_nhan_ban_file(self):
-        """Ba chặng dùng CHUNG bản ghi ir.attachment, không copy file.
+        """TC-INT-TestQcEvidence-003: Ba chặng dùng CHUNG bản ghi ir.attachment, không copy
+        file.
 
-        Copy thì filestore phình theo mỗi chặng (ảnh điện thoại 3–5MB/tấm), và
-        tệ hơn: xoá một bản không xoá bản kia ⇒ hai chặng nói hai chuyện khác
-        nhau về cùng một lô hàng.
+        Copy thì filestore phình theo mỗi chặng (ảnh điện thoại 3–5MB/tấm), và tệ hơn:
+        xoá một bản không xoá bản kia thì hai chặng nói hai chuyện khác nhau về cùng một
+        lô hàng.
         """
         _receipt, qc, move, anh = self._qc_co_hang_loai()
         qc.action_dlm_validate_qc()
@@ -123,10 +126,11 @@ class TestQcEvidence(DlInventoryCase):
                          "Dòng kiểm gốc vẫn giữ nguyên bằng chứng của nó.")
 
     def test_anh_sang_dong_tach_trong_phieu_kiem(self):
-        """Dòng tách chở hàng sang khu Chờ trả cũng phải mang theo bằng chứng.
+        """TC-INT-TestQcEvidence-004: Dòng tách chở hàng sang khu Chờ trả cũng phải mang
+        theo bằng chứng.
 
-        Cùng lý do đã áp cho lý do/ghi chú: ai nhìn thấy hàng đi đâu thì phải
-        nhìn thấy luôn vì sao nó đi.
+        Cùng lý do đã áp cho lý do/ghi chú: ai nhìn thấy hàng đi đâu thì phải nhìn thấy
+        luôn vì sao nó đi.
         """
         _receipt, qc, _move, anh = self._qc_co_hang_loai()
         qc.action_dlm_validate_qc()
@@ -137,11 +141,12 @@ class TestQcEvidence(DlInventoryCase):
         self.assertEqual(dong_tach.dlm_evidence_ids, anh)
 
     def test_anh_sang_phieu_hoa_phe_lieu(self):
-        """§6.4.1 — Kết cục hay gặp nhất: NCC giảm trừ công nợ, mình giữ hàng.
+        """TC-INT-TestQcEvidence-005: §6.4.1 — Kết cục hay gặp nhất: NCC giảm trừ công nợ,
+        mình giữ hàng.
 
-        Phiếu [9] là chứng từ GHI GIẢM tài sản, và người ký nó không phải người
-        đã cầm 8 cây thép gỉ trên tay. Không kéo ảnh tới đây thì bằng chứng đứt
-        đúng ở chặng cần nó nhất.
+        Phiếu [9] là chứng từ ghi giảm tài sản, và người ký nó không phải người đã cầm 8
+        cây thép gỉ trên tay. Không kéo ảnh tới đây thì bằng chứng đứt đúng ở chặng cần
+        nó nhất.
         """
         scrap = self.env["product.product"].search(
             [("dlm_is_scrap", "=", True)], limit=1)
@@ -166,10 +171,11 @@ class TestQcEvidence(DlInventoryCase):
 
     # ── Nhóm 2: ảnh KHOÁ ĐƯỢC ───────────────────────────────────────────────
     def test_khoa_sau_khi_xac_nhan_kiem(self):
-        """🔴 Xác nhận kiểm xong là bằng chứng đóng băng — chặn ở TẦNG SERVER.
+        """TC-INT-TestQcEvidence-006: Xác nhận kiểm xong là bằng chứng đóng băng — chặn ở
+        tầng SERVER.
 
-        Readonly trên view không đủ: sửa qua RPC vẫn lọt, và lá chắn chỉ còn là
-        trang trí. Bằng chứng sửa được sau khi biết NCC cãi gì thì vô giá trị.
+        Readonly trên view không đủ: sửa qua RPC vẫn lọt, và lá chắn chỉ còn là trang
+        trí. Bằng chứng sửa được sau khi biết NCC cãi gì thì vô giá trị.
         """
         _receipt, qc, move, _anh = self._qc_co_hang_loai()
         qc.action_dlm_validate_qc()
@@ -180,10 +186,11 @@ class TestQcEvidence(DlInventoryCase):
             move_as_wh.write({"dlm_evidence_ids": [(6, 0, self._anh().ids)]})
 
     def test_mua_hang_khong_them_duoc_anh_tren_phieu_tra(self):
-        """Dòng phiếu trả NCC luôn khoá, kể cả khi phiếu còn nháp.
+        """TC-INT-TestQcEvidence-007: Dòng phiếu trả NCC luôn khoá, kể cả khi phiếu còn
+        nháp.
 
-        Ảnh thuộc về THỜI ĐIỂM MỞ HÀNG, không thuộc về lúc thương lượng. Mở cho
-        Mua hàng thêm ảnh là mở đúng cửa mà cả tính năng này sinh ra để đóng.
+        Ảnh thuộc về thời điểm mở hàng, không thuộc về lúc thương lượng. Mở cho Mua hàng
+        thêm ảnh là mở đúng cửa mà cả tính năng này sinh ra để đóng.
         """
         _receipt, qc, _move, _anh = self._qc_co_hang_loai()
         qc.action_dlm_validate_qc()
@@ -198,7 +205,9 @@ class TestQcEvidence(DlInventoryCase):
             dong_tra.write({"dlm_evidence_ids": [(6, 0, self._anh().ids)]})
 
     def test_truoc_khi_xac_nhan_thi_sua_duoc(self):
-        """Mặt còn lại của khoá: đang kiểm thì phải chụp thêm/bớt được thoải mái."""
+        """TC-INT-TestQcEvidence-008: Mặt còn lại của khoá: đang kiểm thì phải chụp
+        thêm/bớt được thoải mái.
+        """
         _receipt, _qc, move, anh = self._qc_co_hang_loai()
         move_as_wh = move.with_user(self.thukho)
 
@@ -209,11 +218,11 @@ class TestQcEvidence(DlInventoryCase):
 
     # ── Nhóm 3: nhắc chứ KHÔNG chặn ─────────────────────────────────────────
     def test_thieu_anh_chi_canh_bao_khong_chan(self):
-        """🔴 Thiếu ảnh KHÔNG được chặn xác nhận kiểm.
+        """TC-INT-TestQcEvidence-009: Thiếu ảnh không được chặn xác nhận kiểm.
 
-        Chặn thì thủ kho ca đêm sẽ chụp bừa cho qua cổng — được một trường bắt
-        buộc chứa rác, tệ hơn trường trống vì nó tạo cảm giác đã có bằng chứng.
-        Dải cảnh báo phải gọi ĐÍCH DANH mặt hàng, không nói chung chung.
+        Chặn thì thủ kho ca đêm sẽ chụp bừa cho qua cổng — được một trường bắt buộc chứa
+        rác, tệ hơn trường trống vì nó tạo cảm giác đã có bằng chứng. Dải cảnh báo phải
+        gọi đích danh mặt hàng, không nói chung chung.
         """
         receipt = self._receive(self._make_receipt(qty=100.0), qty=100.0)
         qc = self._qc_picking(receipt)
@@ -230,7 +239,9 @@ class TestQcEvidence(DlInventoryCase):
         self.assertEqual(qc.state, "done")
 
     def test_co_anh_thi_khong_nhac_nua(self):
-        """Đã chụp rồi mà dải vẫn nhắc là dạy người dùng bỏ qua dải."""
+        """TC-INT-TestQcEvidence-010: Đã chụp rồi mà dải vẫn nhắc là dạy người dùng bỏ qua
+        dải.
+        """
         _receipt, qc, _move, _anh = self._qc_co_hang_loai()
 
         self.assertEqual(qc.dlm_banner_level, "warning")
@@ -238,7 +249,9 @@ class TestQcEvidence(DlInventoryCase):
         self.assertFalse(qc._dlm_evidence_missing_names())
 
     def test_chatter_ghi_co_bao_nhieu_anh(self):
-        """Dấu vết còn lại sau khi phiếu bị lật đi lật lại phải tự nói ra điều đó."""
+        """TC-INT-TestQcEvidence-011: Dấu vết còn lại sau khi phiếu bị lật đi lật lại phải
+        tự nói ra điều đó.
+        """
         _receipt, qc, _move, _anh = self._qc_co_hang_loai(so_anh=2)
         qc.action_dlm_validate_qc()
 
@@ -246,7 +259,9 @@ class TestQcEvidence(DlInventoryCase):
         self.assertIn("2</b> ảnh", body)
 
     def test_chatter_noi_ro_khi_khong_co_anh(self):
-        """Im lặng ở đây bị đọc thành "chắc có ảnh đâu đó" — phải nói thẳng."""
+        """TC-INT-TestQcEvidence-012: Im lặng ở đây bị đọc thành "chắc có ảnh đâu đó" —
+        phải nói thẳng.
+        """
         receipt = self._receive(self._make_receipt(qty=100.0), qty=100.0)
         qc = self._qc_picking(receipt)
         qc.move_ids.filtered(lambda m: m.product_id == self.material).write({
@@ -289,11 +304,10 @@ class TestQcEvidence(DlInventoryCase):
         return qc._dlm_vendor_returns()
 
     def test_bien_ban_khong_co_gia(self):
-        """🔴 Biên bản nói về HÀNG, không phải tiền.
+        """TC-INT-TestQcEvidence-013: Biên bản nói về hàng, không phải tiền.
 
-        In số tiền lên tờ giấy đưa cho NCC TRƯỚC khi đàm phán là tự chốt mức
-        giảm trừ hộ họ. Giá mua lại càng không có lý do gì phải in ra rồi đưa
-        cho chính người bán.
+        In số tiền lên tờ giấy đưa cho NCC trước khi đàm phán là tự chốt mức giảm trừ hộ
+        họ. Giá mua lại càng không có lý do gì phải in ra rồi đưa cho chính người bán.
         """
         tra = self._phieu_tra()
         rows = tra._dlm_reject_report_rows()
@@ -308,11 +322,12 @@ class TestQcEvidence(DlInventoryCase):
                         % key)
 
     def test_bien_ban_lay_duoc_so_lo_khi_con_nhap(self):
-        """🔴 Lô phải ra được lúc phiếu CÒN NHÁP — đó mới là lúc cần in.
+        """TC-INT-TestQcEvidence-014: Lô phải ra được lúc phiếu còn nháp — đó mới là lúc
+        cần in.
 
-        `move.lot_ids` của phiếu trả trống khi chưa giữ chỗ. Không có đường lùi
-        về tồn thật thì biên bản đi đàm phán mà cột Số lô để trắng — mất đúng
-        mắt xích tra ngược về chuyến giao.
+        `move.lot_ids` của phiếu trả trống khi chưa giữ chỗ. Không có đường lùi về tồn
+        thật thì biên bản đi đàm phán mà cột Số lô để trắng — mất đúng mắt xích tra
+        ngược về chuyến giao.
         """
         tra = self._phieu_tra()
         self.assertEqual(tra.state, "draft")
@@ -323,7 +338,8 @@ class TestQcEvidence(DlInventoryCase):
         self.assertTrue(rows[0]["lots"].startswith("LO/"))
 
     def test_dung_duoc_pdf(self):
-        """Biên bản dựng ra phải là PDF thật, có nhúng ảnh."""
+        """TC-INT-TestQcEvidence-015: Biên bản dựng ra phải là PDF thật, có nhúng ảnh.
+        """
         tra = self._phieu_tra(anh=self._anh_that())
         noi_dung = tra._dlm_build_reject_report()
 
@@ -331,10 +347,11 @@ class TestQcEvidence(DlInventoryCase):
         self.assertGreater(len(noi_dung), 1000)
 
     def test_anh_hong_khong_giet_ca_bien_ban(self):
-        """🔴 Một tấm ảnh đọc không được thì bỏ tấm đó, KHÔNG bỏ cả tờ giấy.
+        """TC-INT-TestQcEvidence-016: Một tấm ảnh đọc không được thì bỏ tấm đó, không bỏ cả
+        tờ giấy.
 
-        Mất một tấm vẫn còn biên bản để ký; nổ cả hàm là Mua hàng ra gặp NCC
-        tay không, mà lỗi thì hiện ra đúng lúc sắp đi họp.
+        Mất một tấm vẫn còn biên bản để ký; nổ cả hàm là Mua hàng ra gặp NCC tay không,
+        mà lỗi thì hiện ra đúng lúc sắp đi họp.
         """
         hong = self._anh("anh-hong.jpg")          # bytes rác, mimetype ảnh
         tra = self._phieu_tra(anh=hong + self._anh_that())
@@ -343,7 +360,9 @@ class TestQcEvidence(DlInventoryCase):
         self.assertTrue(noi_dung.startswith(b"%PDF"))
 
     def test_nut_in_luu_dau_vet_va_tra_link_tai_ve(self):
-        """Bản đưa cho NCC là chứng từ đối ngoại ⇒ phải lưu lại được cái đã đưa."""
+        """TC-INT-TestQcEvidence-017: Bản đưa cho NCC là chứng từ đối ngoại thì phải lưu
+        lại được cái đã đưa.
+        """
         tra = self._phieu_tra(anh=self._anh_that())
         so_tin_truoc = len(tra.message_ids)
 
@@ -360,8 +379,9 @@ class TestQcEvidence(DlInventoryCase):
                            "Chatter phải ghi lại lần lập biên bản.")
 
     def test_khong_lap_bien_ban_tu_phieu_khac(self):
-        """Biên bản chỉ có nghĩa trên phiếu trả NCC — phiếu kiểm không có đối tác
-        để gửi, in ra là một tờ giấy nói sai chuyện."""
+        """TC-INT-TestQcEvidence-018: Biên bản chỉ có nghĩa trên phiếu trả NCC — phiếu kiểm
+        không có đối tác để gửi, in ra là một tờ giấy nói sai chuyện.
+        """
         receipt = self._receive(self._make_receipt(qty=100.0), qty=100.0)
         qc = self._qc_picking(receipt)
 
@@ -370,13 +390,12 @@ class TestQcEvidence(DlInventoryCase):
 
     # ── Nhóm 5: xem được ẢNH, không phải xem danh sách file ─────────────────
     def test_anh_nhung_thang_khong_qua_url(self):
-        """🔴 Ảnh phải NHÚNG THẲNG, không trỏ qua /web/image.
+        """TC-INT-TestQcEvidence-019: Ảnh phải nhúng thẳng, không trỏ qua /web/image.
 
-        Bản đầu dùng `<img src="/web/image/ir.attachment/...">` và ảnh vỡ ngay
-        khi thủ kho vừa upload. Truy ngược thì tầng server sạch hết
-        (`check('read')` pass với `res_id=0`, `_find_record` pass, route hợp lệ)
-        ⇒ chỗ gãy nằm ngoài tầm quan sát. Nhúng thẳng thì cả đoạn đường đó không
-        còn tồn tại để mà gãy.
+        Bản đầu dùng `<img src="/web/image/ir.attachment/...">` và ảnh vỡ ngay khi thủ
+        kho vừa upload. Truy ngược thì tầng server sạch hết (`check('read')` pass với
+        `res_id=0`, `_find_record` pass, route hợp lệ) thì chỗ gãy nằm ngoài tầm quan
+        sát. Nhúng thẳng thì cả đoạn đường đó không còn tồn tại để mà gãy.
         """
         _receipt, _qc, move, _anh = self._qc_co_hang_loai(so_anh=2)
         html = move.dlm_evidence_gallery or ""
@@ -389,11 +408,11 @@ class TestQcEvidence(DlInventoryCase):
             "Còn URL /web/image là lỗi ảnh vỡ còn đường quay lại.")
 
     def test_anh_nhung_giai_ma_duoc_that(self):
-        """Chuỗi base64 nhúng vào phải là ẢNH THẬT mở ra được.
+        """TC-INT-TestQcEvidence-020: Chuỗi base64 nhúng vào phải là ảnh thật mở ra được.
 
-        Không có ca này thì `data:image/jpeg;base64,` rỗng hoặc rác vẫn "đúng
-        định dạng" với mọi phép kiểm chuỗi — và trình duyệt lại hiện đúng cái
-        biểu tượng ảnh vỡ mà bản này sinh ra để diệt.
+        Không có ca này thì `data:image/jpeg;base64,` rỗng hoặc rác vẫn "đúng định dạng"
+        với mọi phép kiểm chuỗi — và trình duyệt lại hiện đúng cái biểu tượng ảnh vỡ mà
+        bản này sinh ra để diệt.
         """
         from PIL import Image as PILImage
 
@@ -406,11 +425,12 @@ class TestQcEvidence(DlInventoryCase):
         self.assertLessEqual(max(img.size), 480, "Phải thu nhỏ trước khi nhúng.")
 
     def test_luoi_anh_co_khi_chua_luu(self):
-        """Thấy ảnh NGAY khi vừa chọn file, không phải lưu rồi mở lại.
+        """TC-INT-TestQcEvidence-021: Thấy ảnh NGAY khi vừa chọn file, không phải lưu rồi
+        mở lại.
 
-        `many2many_binary` tạo attachment ngay lúc upload nên id đã có thật —
-        compute chạy được trên bản ghi chưa lưu. Mất tính chất này thì thủ kho
-        up xong nhìn vào khoảng trắng và tưởng hệ thống nuốt ảnh.
+        `many2many_binary` tạo attachment ngay lúc upload nên id đã có thật — compute
+        chạy được trên bản ghi chưa lưu. Mất tính chất này thì thủ kho up xong nhìn vào
+        khoảng trắng và tưởng hệ thống nuốt ảnh.
         """
         anh = self._anh_that()
         nhap = self.env["stock.move"].new({"dlm_evidence_ids": [(6, 0, anh.ids)]})
@@ -418,10 +438,10 @@ class TestQcEvidence(DlInventoryCase):
         self.assertIn("data:image/jpeg;base64,", nhap.dlm_evidence_gallery or "")
 
     def test_anh_res_id_0_van_hien(self):
-        """🔴 Đúng ca thủ kho gặp: ảnh vừa upload còn `res_id=0`.
+        """TC-INT-TestQcEvidence-022: Đúng ca thủ kho gặp: ảnh vừa upload còn `res_id=0`.
 
-        Đây là trạng thái giữa lúc chọn file và lúc bấm Lưu — cũng chính là lúc
-        người ta nhìn vào hộp để kiểm tra mình vừa chụp cái gì.
+        Đây là trạng thái giữa lúc chọn file và lúc bấm Lưu — cũng chính là lúc người ta
+        nhìn vào hộp để kiểm tra mình vừa chụp cái gì.
         """
         mo_coi = self._anh_that("chua-dong-dau.png")
         self.assertFalse(mo_coi.res_id, "Ca test phải chạy với attachment mồ côi.")
@@ -431,7 +451,9 @@ class TestQcEvidence(DlInventoryCase):
         self.assertIn("data:image/jpeg;base64,", nhap.dlm_evidence_gallery or "")
 
     def test_file_khong_phai_anh_van_duoc_neu_ten(self):
-        """PDF/video không xem trực tiếp được, nhưng phải biết là CÓ."""
+        """TC-INT-TestQcEvidence-023: PDF/video không xem trực tiếp được, nhưng phải biết
+        là có.
+        """
         pdf = self.env["ir.attachment"].create({
             "name": "chung-thu-kiem-dinh.pdf",
             "datas": base64.b64encode(b"%PDF-1.4 gia lap"),
@@ -445,10 +467,10 @@ class TestQcEvidence(DlInventoryCase):
         self.assertIn("chung-thu-kiem-dinh.pdf", html)
 
     def test_anh_hong_rot_xuong_link_khong_giet_luoi(self):
-        """Ảnh hỏng (bytes rác, mimetype ảnh) chỉ mất tấm đó.
+        """TC-INT-TestQcEvidence-024: Ảnh hỏng (bytes rác, mimetype ảnh) chỉ mất tấm đó.
 
-        `_anh()` tạo đúng loại này. Không nuốt lỗi thì cả hộp bằng chứng trắng
-        xoá vì một file hỏng — và người dùng mất luôn những tấm còn tốt.
+        `_anh()` tạo đúng loại này. Không nuốt lỗi thì cả hộp bằng chứng trắng xoá vì
+        một file hỏng — và người dùng mất luôn những tấm còn tốt.
         """
         hong = self._anh("anh-hong.jpg")
         tot = self._anh_that()
@@ -460,7 +482,9 @@ class TestQcEvidence(DlInventoryCase):
         self.assertIn("anh-hong.jpg", html, "Tấm hỏng vẫn phải được nêu tên.")
 
     def test_chua_co_anh_thi_noi_thang(self):
-        """Khoảng trắng bị đọc thành "hỏng", phải nói rõ là chưa có."""
+        """TC-INT-TestQcEvidence-025: Khoảng trắng bị đọc thành "hỏng", phải nói rõ là chưa
+        có.
+        """
         receipt = self._receive(self._make_receipt(qty=100.0), qty=100.0)
         qc = self._qc_picking(receipt)
         move = qc.move_ids.filtered(lambda m: m.product_id == self.material)[:1]
@@ -468,10 +492,10 @@ class TestQcEvidence(DlInventoryCase):
         self.assertIn("Chưa có ảnh", move.dlm_evidence_gallery or "")
 
     def test_so_luong_hien_dung_o_moi_chang(self):
-        """🔴 Hộp ảnh trên phiếu trả từng hiện "Số loại 0".
+        """TC-INT-TestQcEvidence-026: Hộp ảnh trên phiếu trả từng hiện "Số loại 0".
 
-        Một con số SAI đặt ngay cạnh bằng chứng là chỗ tệ nhất để đặt nó: người
-        đọc hoặc tin nhầm, hoặc mất tin vào cả tấm ảnh bên cạnh.
+        Một con số SAI đặt ngay cạnh bằng chứng là chỗ tệ nhất để đặt nó: người đọc hoặc
+        tin nhầm, hoặc mất tin vào cả tấm ảnh bên cạnh.
         """
         _receipt, qc, move, _anh = self._qc_co_hang_loai(dat=92.0, loai=8.0)
         self.assertEqual(move.dlm_reject_qty_shown, 8.0,
@@ -484,11 +508,11 @@ class TestQcEvidence(DlInventoryCase):
                          "Ở phiếu trả: nhu cầu của dòng CHÍNH LÀ số hàng lỗi.")
 
     def test_cot_lo_tren_phieu_tra_khong_de_trang(self):
-        """🔴 Cột Lô của phiếu trả phải có số NGAY khi còn nháp.
+        """TC-INT-TestQcEvidence-027: Cột Lô của phiếu trả phải có số NGAY khi còn nháp.
 
-        `lot_ids` chỉ có sau khi giữ chỗ, mà nháp mới là trạng thái người ta
-        nhìn màn này nhiều nhất. Để trắng thì vừa phí một cột, vừa lệch với biên
-        bản PDF — tờ giấy in ra số lô đầy đủ còn màn hình thì không.
+        `lot_ids` chỉ có sau khi giữ chỗ, mà nháp mới là trạng thái người ta nhìn màn
+        này nhiều nhất. Để trắng thì vừa phí một cột, vừa lệch với biên bản PDF — tờ
+        giấy in ra số lô đầy đủ còn màn hình thì không.
         """
         tra = self._phieu_tra()
         self.assertEqual(tra.state, "draft")
@@ -504,11 +528,12 @@ class TestQcEvidence(DlInventoryCase):
 
     # ── Giao diện ───────────────────────────────────────────────────────────
     def test_nut_bang_chung_co_nhan_chu(self):
-        """🔴 Cột nút trong list Odoo có <th> RỖNG (list_renderer.xml).
+        """TC-INT-TestQcEvidence-028: Cột nút trong list Odoo có <th> rỗng
+        (list_renderer.xml).
 
-        Icon máy ảnh trần đứng dưới tiêu đề trắng ⇒ không hover thì không ai
-        đoán được nó làm gì — mà đây là nút cho một tính năng mới, chưa ai có
-        thói quen. Nhãn chữ là thứ duy nhất nói ra được điều đó.
+        Icon máy ảnh trần đứng dưới tiêu đề trắng thì không hover thì không ai đoán được
+        nó làm gì — mà đây là nút cho một tính năng mới, chưa ai có thói quen. Nhãn chữ
+        là thứ duy nhất nói ra được điều đó.
         """
         for xml_id in ("dl_inventory.view_dl_qc_form",
                        "dl_inventory.view_dl_vendor_return_form",
@@ -521,7 +546,9 @@ class TestQcEvidence(DlInventoryCase):
                 "%s: nút bằng chứng thiếu nhãn chữ, chỉ còn icon." % xml_id)
 
     def test_hop_anh_khong_lo_gia(self):
-        """§8.3 — Thủ kho đếm hàng, không định giá. Hộp ảnh cũng vậy."""
+        """TC-INT-TestQcEvidence-029: §8.3 — Thủ kho đếm hàng, không định giá. Hộp ảnh cũng
+        vậy.
+        """
         view = self.env.ref("dl_inventory.view_dl_move_evidence_form")
         for token in ("standard_price", "price_unit", "value", "amount"):
             self.assertNotIn(
@@ -530,10 +557,11 @@ class TestQcEvidence(DlInventoryCase):
                 % token)
 
     def test_nut_mo_hop_anh_tro_dung_view(self):
-        """Nút trên dòng phải mở ĐÚNG hộp ảnh, không rơi về form stock.move gốc.
+        """TC-INT-TestQcEvidence-030: Nút trên dòng phải mở đúng hộp ảnh, không rơi về form
+        stock.move gốc.
 
-        Rơi về form native là bày nguyên bộ ô vị trí/số lượng/giá cho thủ kho
-        sửa tay — cùng loại rò rỉ mà RS-02 dựng bảng `_DLM_FORM_BY_KIND` để bịt.
+        Rơi về form native là bày nguyên bộ ô vị trí/số lượng/giá cho thủ kho sửa tay —
+        cùng loại rò rỉ mà RS-02 dựng bảng `_DLM_FORM_BY_KIND` để bịt.
         """
         _receipt, _qc, move, _anh = self._qc_co_hang_loai()
         action = move.action_dlm_open_evidence()
@@ -547,10 +575,10 @@ class TestQcEvidence(DlInventoryCase):
 
     # ── Nhóm 6: gửi biên bản cho NCC bằng email ─────────────────────────────
     def test_gui_bien_ban_dinh_san_pdf_va_dung_ncc(self):
-        """🔴 Thư mở ra phải ĐÃ có biên bản và ĐÃ điền đúng NCC.
+        """TC-INT-TestQcEvidence-031: Thư mở ra phải đã có biên bản và đã điền đúng NCC.
 
-        Đỏ = Mua hàng vẫn phải tải PDF rồi gõ tay địa chỉ — đúng việc thủ công
-        mà K17 sinh ra để thay thế, và gõ tay là gửi nhầm nhà cung cấp.
+        Đỏ = Mua hàng vẫn phải tải PDF rồi gõ tay địa chỉ — đúng việc thủ công mà K17
+        sinh ra để thay thế, và gõ tay là gửi nhầm nhà cung cấp.
         """
         tra = self._phieu_tra(anh=self._anh_that())
         tra.partner_id.email = "ncc.bienban@test.local"
@@ -570,11 +598,11 @@ class TestQcEvidence(DlInventoryCase):
         self.assertEqual(dinh_kem.res_id, tra.id)
 
     def test_thu_gui_ncc_khong_co_gia(self):
-        """🔴 Cùng luật với tờ biên bản: thư nói về HÀNG, không phải tiền.
+        """TC-INT-TestQcEvidence-032: Cùng luật với tờ biên bản: thư nói về hàng, không
+        phải tiền.
 
-        Số tiền giảm trừ là KẾT QUẢ đàm phán. Viết ra trước là tự chốt mức hộ
-        NCC — sửa "cho đầy đủ" ở thư mà quên luật này là hỏng đúng chỗ tờ giấy
-        đã cẩn thận tránh.
+        Số tiền giảm trừ là kết quả đàm phán. Viết ra trước là tự chốt mức hộ NCC — sửa
+        "cho đầy đủ" ở thư mà quên luật này là hỏng đúng chỗ tờ giấy đã cẩn thận tránh.
         """
         tra = self._phieu_tra(anh=self._anh_that())
         tra.partner_id.email = "ncc.bienban@test.local"
@@ -585,12 +613,11 @@ class TestQcEvidence(DlInventoryCase):
             self.assertNotIn(tu_tien, body)
 
     def test_thu_kho_khong_gui_duoc_bien_ban_cho_ncc(self):
-        """🔴 IN thì thủ kho làm được, GỬI thì không — quan hệ với NCC là của
-        Mua hàng, cùng lằn kiểm soát chéo của đơn mua.
+        """TC-INT-TestQcEvidence-033: IN thì thủ kho làm được, gửi thì không — quan hệ với
+        NCC là của Mua hàng, cùng lằn kiểm soát chéo của đơn mua.
 
-        Lá chắn phải ở TẦNG SERVER: `groups=` trên view chỉ giấu nút, RPC vẫn
-        gọi thẳng được. `env.su` của TransactionCase bỏ qua ACL nên phải chạy
-        bằng vai trò THẬT.
+        Lá chắn phải ở tầng server: `groups=` trên view chỉ giấu nút, RPC vẫn gọi thẳng
+        được. `env.su` của TransactionCase bỏ qua ACL nên phải chạy bằng vai trò thật.
         """
         tra = self._phieu_tra(anh=self._anh_that())
         tra.partner_id.email = "ncc.bienban@test.local"
@@ -609,8 +636,9 @@ class TestQcEvidence(DlInventoryCase):
         tra.with_user(thu_kho).action_dlm_print_reject_report()
 
     def test_ncc_chua_co_email_thi_chan_som(self):
-        """Chặn TRƯỚC khi mở trình soạn thư: composer mở ra với ô người nhận
-        rỗng thì người dùng bấm Gửi rồi tưởng đã gửi — im lặng."""
+        """TC-INT-TestQcEvidence-034: Chặn trước khi mở trình soạn thư: composer mở ra với
+        ô người nhận rỗng thì người dùng bấm Gửi rồi tưởng đã gửi — im lặng.
+        """
         tra = self._phieu_tra(anh=self._anh_that())
         tra.partner_id.email = False
 

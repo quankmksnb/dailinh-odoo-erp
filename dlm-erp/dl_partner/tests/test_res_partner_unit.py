@@ -28,6 +28,10 @@ class _PRS(list):
             ("individual", "Cá nhân"), ("company", "Doanh nghiệp"), ("dealer", "Đại lý"),
         ]),
     }
+    # write() gọi self._dlm_normalize_vals(vals) ở cấp recordset trước khi soi từng
+    # rec — mượn nguyên hằng + method thật, cả hai đều thuần Python (không đụng DB).
+    _DLM_NORMALIZERS = ResPartner._DLM_NORMALIZERS
+    _dlm_normalize_vals = ResPartner._dlm_normalize_vals
 
 
 def _partner(**kw):
@@ -42,6 +46,7 @@ def _partner(**kw):
     # vì nhiều constraint khác gọi qua rec.<method>().
     rec._dl_is_customer_record = lambda: ResPartner._dl_is_customer_record(rec)
     rec._dl_is_customer_contact = lambda: ResPartner._dl_is_customer_contact(rec)
+    rec._dl_is_dlm_partner = lambda: ResPartner._dl_is_dlm_partner(rec)
     return rec
 
 
@@ -193,7 +198,11 @@ class TestCheckCompanyTaxCode(unittest.TestCase):
         MST (vat rỗng) thì báo lỗi ValidationError."""
         p = _partner(partner_role="customer", partner_type="company", vat="")
         with self.assertRaises(ValidationError):
-            ResPartner._check_company_tax_code([p])
+            # _check_company_tax_code() đọc self._fields (không phải rec._fields) để
+            # lấy nhãn hiển thị trong thông báo lỗi — self là recordset thật khi Odoo
+            # gọi, nên list([p]) trần không có _fields. Bọc bằng _PRS (đã có sẵn
+            # _fields ở trên, cùng kỹ thuật với _compute_partner_type_label()).
+            ResPartner._check_company_tax_code(_PRS([p]))
 
     def test_company_customer_with_vat_passes(self):
         """TC-UNIT-ResPartner-020: khách hàng doanh nghiệp có MST hợp lệ thì
@@ -348,6 +357,7 @@ class TestCheckUniqueTaxCode(unittest.TestCase):
         """TC-UNIT-ResPartner-039: search ra một bản ghi khác đã dùng cùng MST,
         dlm_allow_dup_tax False thì báo lỗi ValidationError."""
         dup = SimpleNamespace(name="Công ty A", dlm_code="KH0001")
+        dup._dlm_display_code = lambda: dup.dlm_code
         rec = _partner(id=1, partner_role="customer", partner_type="company",
                         vat="0123456789", dlm_allow_dup_tax=False)
         rs = _TaxCodeRS([rec], dup)
@@ -381,6 +391,10 @@ class TestWriteDeactivateGuard(unittest.TestCase):
         rs.env = SimpleNamespace(
             su=False,
             user=SimpleNamespace(has_group=lambda g: False))
+        # _dlm_check_archive_right() đọc self.env.user ở CẤP TỪNG rec (không phải
+        # rs) — gán riêng cho rec, cùng bộ role giả không thuộc nhóm nào được phép.
+        rec.env = rs.env
+        rec._dlm_check_archive_right = lambda: ResPartner._dlm_check_archive_right(rec)
         with self.assertRaises(AccessError):
             ResPartner.write(rs, {"active": False})
 

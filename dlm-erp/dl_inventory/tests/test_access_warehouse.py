@@ -35,7 +35,9 @@ class TestAccessWarehouse(DlInventoryCase):
 
     # Thủ kho làm được việc của mình
     def test_thu_kho_tao_duoc_phieu_kho(self):
-        """§8.4: Thủ kho là chủ sở hữu phiếu kho, tạo và sửa được."""
+        """TC-INT-TestAccessWarehouse-001: §8.4: Thủ kho là chủ sở hữu phiếu kho, tạo và
+        sửa được.
+        """
         picking = self.env["stock.picking"].with_user(
             self.user_warehouse).create({
                 "picking_type_id": self.warehouse.in_type_id.id,
@@ -47,7 +49,8 @@ class TestAccessWarehouse(DlInventoryCase):
 
     # Thủ kho không đụng tới giá
     def test_thu_kho_khong_thay_gia_von_trong_bom(self):
-        """§8.3: giá vốn trong định mức bị chặn bằng _COST_GROUPS.
+        """TC-INT-TestAccessWarehouse-002: §8.3: giá vốn trong định mức bị chặn bằng
+        _COST_GROUPS.
 
         Thủ kho không có tên trong nhóm đó và cũng không được thêm vào.
         """
@@ -60,10 +63,11 @@ class TestAccessWarehouse(DlInventoryCase):
                 % field_name)
 
     def test_thu_kho_khong_phai_quan_ly_kho_odoo(self):
-        """§8.3: chỉ cấp stock.group_stock_user, không cấp group_stock_manager.
+        """TC-INT-TestAccessWarehouse-003: §8.3: chỉ cấp stock.group_stock_user, không cấp
+        group_stock_manager.
 
-        group_stock_manager mở các field giá trị tồn của Odoo. Cấp nhầm là lộ
-        giá cho người chỉ cần đếm hàng.
+        group_stock_manager mở các field giá trị tồn của Odoo. Cấp nhầm là lộ giá cho
+        người chỉ cần đếm hàng.
         """
         self.assertTrue(
             self.user_warehouse.has_group("stock.group_stock_user"))
@@ -72,11 +76,11 @@ class TestAccessWarehouse(DlInventoryCase):
 
     # Kiểm soát chéo với Mua hàng
     def test_mua_hang_chi_sua_duoc_phieu_tra_ncc(self):
-        """§8.5 — Mua hàng có quyền ghi phiếu kho, nhưng ir.rule bó lại đúng
-        phiếu Trả hàng nhà cung cấp.
+        """TC-INT-TestAccessWarehouse-004: §8.5 — Mua hàng có quyền ghi phiếu kho, nhưng
+        ir.rule bó lại đúng phiếu Trả hàng nhà cung cấp.
 
-        Không có rule này, Mua hàng sửa được mọi phiếu kho, kể cả phiếu giao hàng
-        khách, trong khi việc của họ chỉ là đàm phán trả hàng với NCC.
+        Không có rule này, Mua hàng sửa được mọi phiếu kho, kể cả phiếu giao hàng khách,
+        trong khi việc của họ chỉ là đàm phán trả hàng với NCC.
         """
         receipt = self._make_receipt()
         with self.assertRaises(

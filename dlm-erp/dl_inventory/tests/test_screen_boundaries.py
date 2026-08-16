@@ -52,25 +52,28 @@ class DlScreenCase(DlInventoryCase):
 class TestNavigationOpensDlForm(DlScreenCase):
 
     def test_nut_mo_phieu_kiem_ra_form_kiem_hang(self):
-        """Bấm nút mở phiếu kiểm từ phiếu nhận phải ép về form Đại Linh
-        (view_dl_qc_form), không được rơi về form kiểm hàng gốc của Odoo."""
+        """TC-INT-TestScreenBoundaries-001: Bấm nút mở phiếu kiểm từ phiếu nhận phải ép về
+        form Đại Linh (view_dl_qc_form), không được rơi về form kiểm hàng gốc của Odoo.
+        """
         receipt, qc = self._qc_ready()
         views = self._forced_views(receipt.action_dlm_open_qc_picking())
-        self.assertTrue(views, "Không ép view ⇒ rơi về form gốc Odoo.")
+        self.assertTrue(views, "Không ép view thì rơi về form gốc Odoo.")
         self.assertEqual(views[0], self.env.ref(
             "dl_inventory.view_dl_qc_form").id)
 
     def test_nut_phieu_nhan_goc_ra_form_nhan_hang(self):
-        """Từ phiếu kiểm, bấm nút mở phiếu nhận gốc phải ép về form Đại Linh
-        (view_dl_receipt_form)."""
+        """TC-INT-TestScreenBoundaries-002: Từ phiếu kiểm, bấm nút mở phiếu nhận gốc phải
+        ép về form Đại Linh (view_dl_receipt_form).
+        """
         receipt, qc = self._qc_ready()
         views = self._forced_views(qc.action_dlm_open_source_receipt())
         self.assertEqual(views[:1], [self.env.ref(
             "dl_inventory.view_dl_receipt_form").id])
 
     def test_nut_phieu_tra_ncc_ra_form_tra_hang(self):
-        """Từ phiếu kiểm có hàng bị từ chối, bấm nút mở phiếu trả NCC phải
-        ép về form Đại Linh (view_dl_vendor_return_form)."""
+        """TC-INT-TestScreenBoundaries-003: Từ phiếu kiểm có hàng bị từ chối, bấm nút mở
+        phiếu trả NCC phải ép về form Đại Linh (view_dl_vendor_return_form).
+        """
         receipt, qc = self._qc_ready()
         self._reject_some(qc)
         views = self._forced_views(qc.action_dlm_open_returns())
@@ -78,7 +81,9 @@ class TestNavigationOpensDlForm(DlScreenCase):
             "dl_inventory.view_dl_vendor_return_form").id])
 
     def test_nut_phieu_nhan_cua_lo_ra_form_nhan_hang(self):
-        """Chặng cuối chuỗi truy vết: từ lô đến phiếu nhận rồi đến NCC."""
+        """TC-INT-TestScreenBoundaries-004: Chặng cuối chuỗi truy vết: từ lô đến phiếu nhận
+        rồi đến NCC.
+        """
         receipt, qc = self._qc_ready()
         lot = receipt.move_ids.move_line_ids.lot_id[:1]
         self.assertTrue(lot, "Ca test cần lô tự sinh của K3.")
@@ -87,7 +92,9 @@ class TestNavigationOpensDlForm(DlScreenCase):
             "dl_inventory.view_dl_receipt_form").id])
 
     def test_moi_view_bi_ep_deu_thuoc_dl_inventory(self):
-        """Lưới chặn hồi quy cho trường hợp nút mới quên ép view, hoặc ép nhầm view native."""
+        """TC-INT-TestScreenBoundaries-005: Lưới chặn hồi quy cho trường hợp nút mới quên
+        ép view, hoặc ép nhầm view native.
+        """
         receipt, qc = self._qc_ready()
         self._reject_some(qc)
         actions = [
@@ -110,7 +117,9 @@ class TestNavigationOpensDlForm(DlScreenCase):
 class TestScreenScope(DlScreenCase):
 
     def test_phieu_ban_phe_lieu_khong_lot_vao_man_giao_hang(self):
-        """RS-04: BPL cũng là outgoing, lọc kiểu "trừ TR" sẽ để lọt phiếu này."""
+        """TC-INT-TestScreenBoundaries-006: RS-04: BPL cũng là outgoing, lọc kiểu "trừ TR"
+        sẽ để lọt phiếu này.
+        """
         scrap_type = self._picking_type("BPL")
         self.assertTrue(scrap_type, "Ca test cần loại hoạt động Bán phế liệu.")
         picking = self.env["stock.picking"].create({
@@ -125,7 +134,9 @@ class TestScreenScope(DlScreenCase):
             "Giao hàng khoá bảng dòng tới khi chọn đơn bán.")
 
     def test_phieu_xuat_san_xuat_khong_lot_vao_man_chuyen_kho(self):
-        """RS-05: XSX/NTP của B2 đang active sẵn, lọc kiểu "trừ KC" sẽ để lọt phiếu này."""
+        """TC-INT-TestScreenBoundaries-007: RS-05: XSX/NTP của B2 đang active sẵn, lọc kiểu
+        "trừ KC" sẽ để lọt phiếu này.
+        """
         xsx_type = self._picking_type("XSX")
         self.assertTrue(xsx_type, "Ca test cần loại hoạt động Xuất vật tư SX.")
         picking = self.env["stock.picking"].create({
@@ -138,14 +149,17 @@ class TestScreenScope(DlScreenCase):
             "Phiếu xuất vật tư sản xuất đổ vào màn Chuyển kho của thủ kho.")
 
     def test_phieu_kiem_khong_lot_vao_man_chuyen_kho(self):
-        """Phiếu kiểm hàng NCC không được hiện ở màn Chuyển kho, tránh
-        nhầm lẫn giữa hai loại phiếu."""
+        """TC-INT-TestScreenBoundaries-008: Phiếu kiểm hàng NCC không được hiện ở màn
+        Chuyển kho, tránh nhầm lẫn giữa hai loại phiếu.
+        """
         receipt, qc = self._qc_ready()
         self.assertNotIn(qc, self._pickings_of_screen(
             "dl_inventory.action_dl_picking_transfer"))
 
     def test_whitelist_khong_siet_qua_tay(self):
-        """Phiếu GH thật và phiếu CK thật vẫn phải hiện ở màn của chúng."""
+        """TC-INT-TestScreenBoundaries-009: Phiếu GH thật và phiếu CK thật vẫn phải hiện ở
+        màn của chúng.
+        """
         delivery = self.env["stock.picking"].create({
             "picking_type_id": self.warehouse.out_type_id.id,
             "location_id": self.loc_tp.id,
@@ -186,27 +200,32 @@ class TestVendorReturnDecision(DlScreenCase):
         return self._reject_some(qc)
 
     def test_thu_kho_khong_chot_duoc_phieu_tra(self):
-        """Thủ kho không phải người phụ trách phiếu trả NCC nên chốt
-        (action_confirm) phải bị chặn, báo UserError."""
+        """TC-INT-TestScreenBoundaries-010: Thủ kho không phải người phụ trách phiếu trả
+        NCC nên chốt (action_confirm) phải bị chặn, báo UserError.
+        """
         with self.assertRaises(UserError):
             self._vendor_return().with_user(
                 self.user_warehouse).action_confirm()
 
     def test_thu_kho_khong_huy_duoc_phieu_tra(self):
-        """Tương tự, Thủ kho cũng không được hủy (action_cancel) phiếu trả
-        NCC, phải báo UserError."""
+        """TC-INT-TestScreenBoundaries-011: Tương tự, Thủ kho cũng không được hủy
+        (action_cancel) phiếu trả NCC, phải báo UserError.
+        """
         with self.assertRaises(UserError):
             self._vendor_return().with_user(
                 self.user_warehouse).action_cancel()
 
     def test_mua_hang_chot_duoc_phieu_tra(self):
-        """Guard không được chặn nhầm chính chủ."""
+        """TC-INT-TestScreenBoundaries-012: Guard không được chặn nhầm chính chủ.
+        """
         phieu = self._vendor_return()
         phieu.with_user(self.user_purchasing).action_confirm()
         self.assertNotEqual(phieu.state, "draft")
 
     def test_thu_kho_van_xac_nhan_duoc_phieu_da_chot(self):
-        """Người trao hàng cho xe NCC ở cửa kho là Thủ kho, không phải Mua hàng."""
+        """TC-INT-TestScreenBoundaries-013: Người trao hàng cho xe NCC ở cửa kho là Thủ
+        kho, không phải Mua hàng.
+        """
         phieu = self._vendor_return()
         phieu.with_user(self.user_purchasing).action_confirm()
 
@@ -220,7 +239,9 @@ class TestVendorReturnDecision(DlScreenCase):
                          "Thủ kho phải giao được hàng trả cho xe NCC.")
 
     def test_guard_khong_cham_phieu_nhan(self):
-        """Guard chỉ được chạm phiếu TR, phiếu nhận không được dính vào."""
+        """TC-INT-TestScreenBoundaries-014: Guard chỉ được chạm phiếu TR, phiếu nhận không
+        được dính vào.
+        """
         picking = self.env["stock.picking"].with_user(
             self.user_warehouse).create({
                 "picking_type_id": self.warehouse.in_type_id.id,
@@ -240,7 +261,9 @@ class TestVendorReturnDecision(DlScreenCase):
         self.assertNotEqual(picking.state, "draft")
 
     def test_thu_kho_khong_tao_duoc_phieu_tra(self):
-        """ir.rule chặn tận gốc: không có phiếu TR thì không có gì để chốt."""
+        """TC-INT-TestScreenBoundaries-015: ir.rule chặn tận gốc: không có phiếu TR thì
+        không có gì để chốt.
+        """
         from odoo.exceptions import AccessError
         with self.assertRaises(AccessError):
             self.env["stock.picking"].with_user(self.user_warehouse).create({
@@ -255,17 +278,18 @@ class TestVendorReturnDecision(DlScreenCase):
 class TestRailCoverage(DlInventoryCase):
     """K16 — mọi menu con của nhóm Kho phải có mặt trên rail.
 
-    🔴 Vì sao cần test này: rail KHÔNG tự đọc cây menu — nó lấy từ mảng khai
-    cứng `INVENTORY_CHILDREN` trong `nav_patch.js`. Thêm `<menuitem>` mà quên
-    khai ở mảng đó thì menu vẫn tồn tại, vẫn vào được bằng URL, nhưng **không
-    xuất hiện trên rail** và **không có lỗi nào nổ**. Người dùng chỉ phát hiện
-    bằng cách... không thấy nó.
+    Vì sao cần test này: rail không tự đọc cây menu — nó lấy từ mảng khai cứng
+    `INVENTORY_CHILDREN` trong `nav_patch.js`. Thêm `<menuitem>` mà quên khai ở mảng đó
+    thì menu vẫn tồn tại, vẫn vào được bằng URL, nhưng **không xuất hiện trên rail** và
+    **không có lỗi nào nổ**. Người dùng chỉ phát hiện bằng cách... không thấy nó.
 
-    Đã vấp thật với "Điều phối đơn hàng" (2026-08-14): menu đúng, quyền đúng,
-    action đúng — thủ kho vẫn không có đường vào.
+    Đã vấp thật với "Điều phối đơn hàng" (2026-08-14): menu đúng, quyền đúng, action
+    đúng — thủ kho vẫn không có đường vào.
     """
 
     def test_moi_menu_con_cua_kho_deu_co_tren_rail(self):
+        """TC-INT-TestScreenBoundaries-016.
+        """
         import os
 
         from odoo.modules.module import get_module_path
@@ -277,7 +301,7 @@ class TestRailCoverage(DlInventoryCase):
             source = handle.read()
 
         parent = self.env.ref("dl_base.menu_dl_inventory")
-        # 🔴 `ir.ui.menu.search` LỌC THEO NHÓM của user đang chạy, và `sudo()`
+        # `ir.ui.menu.search` lọc theo nhóm của user đang chạy, và `sudo`
         # KHÔNG gỡ bộ lọc đó (nó là lọc Python, không phải ACL). Superuser
         # không thuộc nhóm DL nào nên thấy **0 menu con** — phép thử sẽ xanh
         # một cách rỗng tuếch. `ir.ui.menu.full_list` là khoá Odoo dùng cho

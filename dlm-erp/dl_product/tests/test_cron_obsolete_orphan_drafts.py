@@ -32,7 +32,8 @@ class TestCronObsoleteOrphanDrafts(TransactionCase):
 
     def test_orphan_draft_older_than_threshold_becomes_obsolete(self):
         """TC-SCH-CRON-PRODUCT-001: nháp mồ côi quá hạn (mặc định 30 ngày, tạo 40 ngày
-        trước, không đơn nào dùng) thì tự chuyển sang 'obsolete'."""
+        trước, không đơn nào dùng) thì tự chuyển sang 'obsolete'.
+        """
         product = self._make_draft("SP nháp mồ côi quá hạn (test)", days_old=40)
 
         self.env["product.product"]._cron_obsolete_orphan_drafts()
@@ -41,7 +42,8 @@ class TestCronObsoleteOrphanDrafts(TransactionCase):
 
     def test_orphan_draft_within_threshold_not_touched(self):
         """TC-SCH-CRON-PRODUCT-002: nháp mồ côi mới tạo 5 ngày, chưa qua ngưỡng 30 ngày,
-        nên không bị đụng."""
+        nên không bị đụng.
+        """
         product = self._make_draft("SP nháp mồ côi mới (test)", days_old=5)
 
         self.env["product.product"]._cron_obsolete_orphan_drafts()
@@ -49,11 +51,12 @@ class TestCronObsoleteOrphanDrafts(TransactionCase):
         self.assertEqual(product.dlm_lifecycle_state, "draft")
 
     def test_draft_used_by_sale_order_line_not_touched(self):
-        """TC-SCH-CRON-PRODUCT-003: nháp quá hạn nhưng đã có dòng đơn bán chưa huỷ
-        tham chiếu nên không phải mồ côi, không bị đụng."""
+        """TC-SCH-CRON-PRODUCT-003: nháp quá hạn nhưng đã có dòng đơn bán chưa huỷ tham
+        chiếu nên không phải mồ côi, không bị đụng.
+        """
         product = self._make_draft("SP nháp có đơn dùng (test)", days_old=40)
         customer = self.env["res.partner"].create({
-            "name": "KH test cron orphan", "partner_role": "customer"})
+            "name": "KH test cron orphan", "partner_role": "customer", "mobile": "0900001011"})
         order = self.env["dl.sale.order"].create({
             "partner_id": customer.id,
             "line_ids": [(0, 0, {
@@ -71,7 +74,8 @@ class TestCronObsoleteOrphanDrafts(TransactionCase):
 
     def test_no_orphan_drafts_runs_without_error(self):
         """TC-SCH-CRON-PRODUCT-004: không có SP nháp mồ côi nào thì cron chạy không lỗi,
-        không đụng dữ liệu khác."""
+        không đụng dữ liệu khác.
+        """
         result = self.env["product.product"]._cron_obsolete_orphan_drafts()
         self.assertTrue(result)
 

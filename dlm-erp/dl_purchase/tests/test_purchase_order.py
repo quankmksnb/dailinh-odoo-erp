@@ -12,10 +12,11 @@ from .common import DlPurchaseCase
 class TestPurchaseOrder(DlPurchaseCase):
 
     def test_chot_don_sinh_phieu_nhan_gan_don_mua(self):
-        """Chốt đơn ⇒ phiếu nhận vào hàng đợi thủ kho, có neo về đơn mua.
+        """TC-INT-TestPurchaseOrder-001: Chốt đơn thì phiếu nhận vào hàng đợi thủ kho, có
+        neo về đơn mua.
 
-        Đỏ = Mua hàng chốt xong nhưng thủ kho không thấy việc gì, hoặc hàng về
-        mà không truy được về giá đã chốt.
+        Đỏ = Mua hàng chốt xong nhưng thủ kho không thấy việc gì, hoặc hàng về mà không
+        truy được về giá đã chốt.
         """
         order = self._mk_po([(self.thep, 30.0, 200000.0)])
 
@@ -30,10 +31,10 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertEqual(picking.origin, order.name)
 
     def test_chot_don_thieu_gia_bi_chan(self):
-        """MH-05 — dòng giá 0 ⇒ lô nhập về mang giá 0.
+        """TC-INT-TestPurchaseOrder-002: MH-05 — dòng giá 0 thì lô nhập về mang giá 0.
 
-        Đỏ = giá vốn thực tế của MỌI đơn bán dùng lô đó sai vĩnh viễn, và không
-        có gì báo động vì 0 cũng là một con số hợp lệ.
+        Đỏ = giá vốn thực tế của mọi đơn bán dùng lô đó sai vĩnh viễn, và không có gì
+        báo động vì 0 cũng là một con số hợp lệ.
         """
         order = self._mk_po([(self.thep, 30.0, 0.0)])
 
@@ -43,10 +44,11 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertIn(self.thep.display_name, err.exception.args[0])
 
     def test_chot_don_thieu_ngay_ve_bi_chan(self):
-        """MH-06 — không có ngày về thì màn Điều phối không tính được "đang về".
+        """TC-INT-TestPurchaseOrder-003: MH-06 — không có ngày về thì màn Điều phối không
+        tính được "đang về".
 
-        Đỏ = đơn bán bị mua chồng: lần điều phối sau vẫn thấy thiếu vì hàng đang
-        trên đường không được đếm.
+        Đỏ = đơn bán bị mua chồng: lần điều phối sau vẫn thấy thiếu vì hàng đang trên
+        đường không được đếm.
         """
         order = self._mk_po([(self.thep, 30.0, 200000.0)], expected=False)
 
@@ -54,7 +56,8 @@ class TestPurchaseOrder(DlPurchaseCase):
             order.action_dlm_confirm()
 
     def test_hai_dong_cung_mat_hang_bi_chan(self):
-        """MH-12 — hai giá cho một mặt hàng thì lúc nhận không biết đóng giá nào.
+        """TC-INT-TestPurchaseOrder-004: MH-12 — hai giá cho một mặt hàng thì lúc nhận
+        không biết đóng giá nào.
 
         Đỏ = lô mang giá của dòng đầu tiên một cách tuỳ tiện.
         """
@@ -69,7 +72,8 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertIn(self.thep.display_name, err.exception.args[0])
 
     def test_khong_dat_mua_phe_lieu(self):
-        """MH-04 — phế liệu là thứ Đại Linh BÁN đi."""
+        """TC-INT-TestPurchaseOrder-005: MH-04 — phế liệu là thứ Đại Linh bán đi.
+        """
         scrap = self.env["product.product"].create({
             "name": "Phế liệu thép (mua hàng)", "product_kind": "material"})
         scrap.sudo().dlm_is_scrap = True
@@ -79,7 +83,8 @@ class TestPurchaseOrder(DlPurchaseCase):
             order.action_dlm_confirm()
 
     def test_huy_don_da_nhan_hang_bi_chan(self):
-        """🔴 MH-10 — hàng đã vào kho mà chứng từ mua biến mất là lỗ hổng đối soát.
+        """TC-INT-TestPurchaseOrder-006: MH-10 — hàng đã vào kho mà chứng từ mua biến mất
+        là lỗ hổng đối soát.
 
         Đỏ = kiểm kê thấy 30 cây thép không giải thích được từ đâu ra.
         """
@@ -92,7 +97,9 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertIn("Trả hàng nhà cung cấp", err.exception.args[0])
 
     def test_huy_don_chua_nhan_thi_huy_luon_phieu(self):
-        """MH-11 — phiếu mồ côi nằm trong hàng đợi thủ kho là việc chết."""
+        """TC-INT-TestPurchaseOrder-007: MH-11 — phiếu mồ côi nằm trong hàng đợi thủ kho là
+        việc chết.
+        """
         order = self._mk_po([(self.thep, 30.0, 200000.0)])
         order.action_dlm_confirm()
         picking = order.dlm_picking_ids
@@ -103,9 +110,10 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertEqual(picking.state, "cancel")
 
     def test_gui_hoi_gia_ghi_moc_thoi_gian(self):
-        """Mốc gửi phải nằm trong hệ thống, dù mail gửi bằng Zalo.
+        """TC-INT-TestPurchaseOrder-008: Mốc gửi phải nằm trong hệ thống, dù mail gửi bằng
+        Zalo.
 
-        Đỏ = không ai trả lời được "gửi NCC lâu chưa" ⇒ đơn nằm chờ vô thời hạn.
+        Đỏ = không ai trả lời được "gửi NCC lâu chưa" thì đơn nằm chờ vô thời hạn.
         """
         order = self._mk_po([(self.thep, 30.0, 200000.0)])
 
@@ -115,7 +123,9 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertTrue(order.date_sent)
 
     def test_tinh_trang_nhan_suy_tu_chung_tu(self):
-        """`dlm_receipt_state` phải đọc phiếu nhận, không phải một ô tick."""
+        """TC-INT-TestPurchaseOrder-009: `dlm_receipt_state` phải đọc phiếu nhận, không
+        phải một ô tick.
+        """
         order = self._mk_po([(self.thep, 30.0, 200000.0)])
         self.assertEqual(order.dlm_receipt_state, "nothing")
 
@@ -125,20 +135,21 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertAlmostEqual(order.line_ids.qty_received, 30.0, places=2)
 
     def test_ncc_giao_thieu_thi_van_treo(self):
-        """🔴 Nhu cầu chỉ đóng khi hàng CÓ MẶT, không phải khi ai đó ký giấy.
+        """TC-INT-TestPurchaseOrder-010: Nhu cầu chỉ đóng khi hàng có mặt, không phải khi
+        ai đó ký giấy.
 
-        Đỏ = đơn mua tự đóng ở lần giao đầu ⇒ 40 cây còn thiếu biến mất khỏi mọi
-        màn hình.
+        Đỏ = đơn mua tự đóng ở lần giao đầu thì 40 cây còn thiếu biến mất khỏi mọi màn
+        hình.
         """
         order = self._mk_po([(self.thep, 100.0, 200000.0)])
         order.action_dlm_confirm()
         receipt = order.dlm_picking_ids[:1]
         receipt.move_ids.quantity = 60.0
         receipt.move_ids.picked = True
-        # NCC giao thiếu ⇒ Odoo MỞ WIZARD hỏi backorder chứ không tự quyết.
+        # NCC giao thiếu thì Odoo mở wizard hỏi backorder chứ không tự quyết.
         # Trả lời "tạo phiếu cho phần còn lại" — đúng điều thủ kho làm thật.
         res = receipt.button_validate()
-        # ⚠️ Action trả về KHÔNG có `res_id` — wizard chưa tồn tại, Odoo chỉ đưa
+        # Action trả về không có `res_id` — wizard chưa tồn tại, Odoo chỉ đưa
         # context chứa mặc định. Phải TẠO wizard từ context rồi mới process;
         # `browse(None).process()` chạy êm ru và không validate gì cả.
         if isinstance(res, dict) and res.get("res_model"):
@@ -149,8 +160,8 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertAlmostEqual(order.line_ids.qty_received, 60.0, places=2)
 
     def test_in_giay_gui_ncc_tu_dang_ky_font(self):
-        """🔴 Tờ giấy phải tự đăng ký font, không sống nhờ việc ai đó đã in báo
-        giá trước trong cùng tiến trình.
+        """TC-INT-TestPurchaseOrder-011: Tờ giấy phải tự đăng ký font, không sống nhờ việc
+        ai đó đã in báo giá trước trong cùng tiến trình.
 
         Đỏ = tiến trình vừa khởi động, Mua hàng bấm [In yêu cầu báo giá] là ăn
         ValueError của reportlab ("Can't map determine family/bold/italic for
@@ -179,10 +190,10 @@ class TestPurchaseOrder(DlPurchaseCase):
 
     # -------------------------------------------- Gửi PDF cho NCC bằng email
     def test_gui_mail_ncc_dinh_san_pdf_va_dung_nguoi_nhan(self):
-        """🔴 Thư phải mở ra ĐÃ có file và ĐÃ điền NCC.
+        """TC-INT-TestPurchaseOrder-012: Thư phải mở ra đã có file và đã điền NCC.
 
-        Đỏ = Mua hàng vẫn phải tự tải PDF rồi tự gõ địa chỉ — đúng việc thủ công
-        mà nút này sinh ra để thay thế, và gõ tay là gửi nhầm NCC.
+        Đỏ = Mua hàng vẫn phải tự tải PDF rồi tự gõ địa chỉ — đúng việc thủ công mà nút
+        này sinh ra để thay thế, và gõ tay là gửi nhầm NCC.
         """
         self.vendor.email = "thanghao@test.local"
         order = self._mk_po([(self.thep, 20.0, 200000.0)])
@@ -195,7 +206,7 @@ class TestPurchaseOrder(DlPurchaseCase):
         attachment = self.env["ir.attachment"].browse(
             ctx["default_attachment_ids"][0][2])
         self.assertEqual(attachment.mimetype, "application/pdf")
-        # Nháp ⇒ tờ HỎI GIÁ, không phải đơn đặt hàng.
+        # Nháp thì tờ hỏi giá, không phải đơn đặt hàng.
         self.assertIn("YeuCauBaoGia", attachment.name)
         self.assertIn("Yêu cầu báo giá", ctx["default_subject"])
         # Đính kèm neo vào chính đơn: ba tháng sau còn tra được đã gửi cái gì.
@@ -203,7 +214,9 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertEqual(attachment.res_id, order.id)
 
     def test_don_da_chot_thi_gui_don_dat_hang_chu_khong_phai_hoi_gia(self):
-        """Một nút, hai tờ giấy — chọn theo trạng thái, không bắt người dùng chọn."""
+        """TC-INT-TestPurchaseOrder-013: Một nút, hai tờ giấy — chọn theo trạng thái, không
+        bắt người dùng chọn.
+        """
         self.vendor.email = "thanghao@test.local"
         order = self._mk_po([(self.thep, 20.0, 200000.0)])
         order.action_dlm_confirm()
@@ -216,10 +229,10 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertIn("Đơn đặt hàng", ctx["default_subject"])
 
     def test_ncc_khong_co_email_thi_chan_som_va_chi_duong_khac(self):
-        """🔴 Chặn TRƯỚC khi mở trình soạn thư.
+        """TC-INT-TestPurchaseOrder-014: Chặn trước khi mở trình soạn thư.
 
-        Đỏ = composer mở ra với ô người nhận rỗng, người dùng bấm Gửi rồi tưởng
-        đã gửi — im lặng, và NCC không bao giờ nhận được gì.
+        Đỏ = composer mở ra với ô người nhận rỗng, người dùng bấm Gửi rồi tưởng đã gửi —
+        im lặng, và NCC không bao giờ nhận được gì.
         """
         self.vendor.email = False
         order = self._mk_po([(self.thep, 20.0, 200000.0)])
@@ -228,10 +241,11 @@ class TestPurchaseOrder(DlPurchaseCase):
             order.action_dlm_email()
 
     def test_mo_thu_khong_tu_danh_dau_da_gui(self):
-        """🔴 Mốc "đã gửi" phải phản ánh việc ĐÃ XẢY RA, không phải ý định.
+        """TC-INT-TestPurchaseOrder-015: Mốc "đã gửi" phải phản ánh việc đã xảy ra, không
+        phải ý định.
 
-        Composer gửi ở một bước SAU; đóng cửa sổ là thư không đi. Tự chuyển
-        trạng thái ở đây thì "đã gửi lâu chưa" trả lời sai ngay từ đầu.
+        Composer gửi ở một bước SAU; đóng cửa sổ là thư không đi. Tự chuyển trạng thái ở
+        đây thì "đã gửi lâu chưa" trả lời sai ngay từ đầu.
         """
         self.vendor.email = "thanghao@test.local"
         order = self._mk_po([(self.thep, 20.0, 200000.0)])
