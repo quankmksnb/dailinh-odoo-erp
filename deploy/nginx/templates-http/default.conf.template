@@ -1,0 +1,42 @@
+# ─────────────────────────────────────────────────────────────
+#  Giai đoạn 1 — HTTP thuần.
+#  Dùng để phục vụ ACME challenge cho certbot lấy cert lần đầu.
+#  init-letsencrypt.sh sẽ thay file này bằng bản SSL sau khi có cert.
+# ─────────────────────────────────────────────────────────────
+
+upstream odoo_web  { server odoo:8069; }
+upstream odoo_chat { server odoo:8072; }
+
+server {
+    listen 80;
+    server_name ${DOMAIN};
+
+    client_max_body_size 200m;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location /websocket {
+        proxy_pass http://odoo_chat;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        proxy_pass http://odoo_web;
+        proxy_redirect off;
+        proxy_read_timeout 720s;
+        proxy_connect_timeout 720s;
+        proxy_send_timeout 720s;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

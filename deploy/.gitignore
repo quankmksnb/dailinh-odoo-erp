@@ -1,0 +1,4 @@
+# Secrets & file sinh ra lúc chạy — KHÔNG commit
+.env
+odoo.conf
+nginx/active/

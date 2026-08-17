@@ -1,0 +1,99 @@
+name: dlm-erp
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    # Tuning cho VPS 8 GB, chừa RAM cho 3 worker Odoo.
+    command: >
+      postgres
+      -c max_connections=100
+      -c shared_buffers=1GB
+      -c effective_cache_size=4GB
+      -c maintenance_work_mem=256MB
+      -c work_mem=16MB
+      -c wal_compression=on
+      -c checkpoint_completion_target=0.9
+      -c random_page_cost=1.1
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    # KHÔNG publish 5432 ra host: chỉ container odoo trong mạng backend truy cập được.
+    networks: [backend]
+
+  odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dlm-erp/odoo:17.0
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on:
+      db:
+        condition: service_healthy
+    # entrypoint của image odoo đọc 4 biến này và truyền thành --db_* khi khởi động,
+    # nhờ vậy odoo.conf không cần chứa mật khẩu DB.
+    environment:
+      HOST: db
+      PORT: 5432
+      USER: ${POSTGRES_USER}
+      PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - odoo-data:/var/lib/odoo          # filestore + sessions
+      - ../dlm-erp:/mnt/extra-addons:ro  # custom addons, lấy thẳng từ repo
+      - ./odoo.conf:/etc/odoo/odoo.conf:ro
+    networks: [backend, frontend]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    depends_on: [odoo]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      # entrypoint của image nginx chạy envsubst trên /etc/nginx/templates/*.template
+      # rồi ghi kết quả sang /etc/nginx/conf.d/ → ${DOMAIN} được thay lúc container start.
+      - ./nginx/active:/etc/nginx/templates:ro
+      - certbot-www:/var/www/certbot:ro
+      - certbot-conf:/etc/letsencrypt:ro
+    networks: [frontend]
+
+  certbot:
+    image: certbot/certbot:latest
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - certbot-www:/var/www/certbot
+      - certbot-conf:/etc/letsencrypt
+    # Vòng lặp tự gia hạn: thử mỗi 12h, certbot tự bỏ qua nếu cert còn >30 ngày.
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'
+
+volumes:
+  pgdata:
+  odoo-data:
+  certbot-www:
+  certbot-conf:
+
+networks:
+  backend:
+  frontend:

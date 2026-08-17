@@ -1,0 +1,58 @@
+[options]
+
+; ═══ Đường dẫn ═══════════════════════════════════════════════
+; Addons core nằm sẵn trong image odoo:17.0, không cần khai lại.
+addons_path = /mnt/extra-addons
+data_dir = /var/lib/odoo
+
+; ═══ Bảo mật ═════════════════════════════════════════════════
+; Thay bằng hash pbkdf2 sinh ở bước 5 của README. KHÔNG để plaintext.
+admin_passwd = THAY_BANG_HASH_SINH_O_BUOC_5
+; Tắt database manager (tạo/xoá/backup DB qua web) — bắt buộc trên prod.
+list_db = False
+; Chỉ phục vụ đúng 1 database, chặn dò tên DB qua subdomain.
+dbfilter = ^dlm_prod$
+db_name = dlm_prod
+; Bắt buộc bật khi đứng sau nginx, nếu không Odoo sinh link http:// và cookie sai.
+proxy_mode = True
+db_template = template0
+
+; Cố ý KHÔNG khai thông tin kết nối DB ở đây.
+; entrypoint image odoo lấy từ biến môi trường HOST/PORT/USER/PASSWORD (xem .env).
+
+; ═══ Hiệu năng — VPS 2 vCPU / 8 GB ═══════════════════════════
+; Công thức Odoo: workers ≈ (2 x cpu) + 1, trừ hao cho cron.
+workers = 3
+max_cron_threads = 2
+db_maxconn = 16
+; 1.0 GB — worker tự recycle sau khi xong request hiện tại
+limit_memory_soft = 1073741824
+; 1.25 GB — worker bị kill ngay
+limit_memory_hard = 1342177280
+limit_request = 8192
+limit_time_cpu = 300
+limit_time_real = 600
+limit_time_real_cron = 900
+
+; ═══ HTTP ════════════════════════════════════════════════════
+; Cổng chỉ lộ trong mạng docker, không publish ra host.
+http_enable = True
+http_interface = 0.0.0.0
+http_port = 8069
+; websocket (chat, thông báo realtime)
+gevent_port = 8072
+
+; ═══ Log ═════════════════════════════════════════════════════
+; Ghi ra stdout để đọc bằng `docker compose logs`, docker tự xoay vòng file.
+logfile = False
+log_level = info
+log_handler = :INFO
+log_db = False
+
+; ═══ Khác ════════════════════════════════════════════════════
+server_wide_modules = base,web
+without_demo = all
+unaccent = False
+
+; SMTP: cấu hình trong UI (Settings → Technical → Outgoing Mail Servers),
+; không nhét credential vào file này.
