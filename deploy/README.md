@@ -115,6 +115,18 @@ Lần đầu nên đặt `STAGING=1` để chạy thử toàn bộ quy trình ce
 docker compose build          # ~2-3 phút
 ```
 
+Kiểm tra nhanh rằng addons core thật sự nằm trong image (repo cố ý **không** chứa
+`odoo-17.0/` — core do image cung cấp):
+
+```bash
+docker compose run --rm --entrypoint bash odoo -c \
+  'ls /usr/lib/python3/dist-packages/odoo/addons | wc -l; \
+   ls -d /usr/lib/python3/dist-packages/odoo/addons/{base,web,mail,product,stock,uom,auth_signup}'
+```
+
+Phải ra vài trăm module và liệt kê đủ 7 thư mục trên. Nếu thiếu bất kỳ cái nào →
+dừng lại, đừng chạy tiếp bước 6.
+
 ---
 
 ## 5. Tạo file cấu hình Odoo
@@ -243,6 +255,7 @@ chặn port 80. Kiểm tra: `dig +short <DOMAIN>` và `ufw status`.
 **Odoo bị OOM-kill (log có `Memory limit exceeded`)** — giảm `workers` xuống 2
 trong `odoo.conf` rồi `docker compose restart odoo`.
 
-**`pip install` lỗi `externally-managed-environment` lúc build** — sửa `Dockerfile`,
-đổi `--break-system-packages` thành cách tạo venv, hoặc dùng
-`pip3 install --no-cache-dir -r ... --root-user-action=ignore`.
+**Build lỗi `no such option: --break-system-packages`** — image `odoo:17.0` dựa trên
+Debian bullseye (pip 20.3), cờ này chỉ có từ pip 23. `Dockerfile` đã xử lý bằng cách
+chạy `pip3 install` thường trước, chỉ fallback sang cờ đó nếu pip chặn vì PEP 668.
+Gặp lỗi này nghĩa là bạn đang dùng bản `Dockerfile` cũ → `git pull` rồi build lại.
