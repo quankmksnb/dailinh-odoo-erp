@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Danh tính doanh nghiệp: thay "My Company" mặc định của Odoo bằng tên
+         pháp lý, địa chỉ, mã số thuế và logo thật của Đại Linh.
+
+         Dùng <function> chứ KHÔNG dùng <record> vì base.main_company mang
+         ir.model.data.noupdate = True — <record> trỏ vào nó chỉ chạy đúng lần
+         cài đầu tiên rồi bị bỏ qua ở mọi lần update (cùng lý do với
+         data/currency_data.xml). <function> chạy ở cả init lẫn update. -->
+    <function model="res.company" name="_dlm_setup_identity"/>
+</odoo>

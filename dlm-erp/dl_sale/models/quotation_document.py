@@ -97,7 +97,14 @@ class DlQuotationDocument(models.Model):
         normal.font.name = "Calibri"
         normal.font.size = Pt(11)
 
-        # --- Đầu trang: công ty ---
+        # --- Đầu trang: logo + công ty ---
+        # Logo chèn ở khổ 4,5 cm ngang; thiếu logo thì bỏ qua, không chặn xuất file.
+        if company.logo:
+            logo_p = doc.add_paragraph()
+            logo_p.paragraph_format.space_after = Pt(2)
+            logo_p.add_run().add_picture(
+                io.BytesIO(base64.b64decode(company.logo)), width=Cm(4.5))
+
         p = doc.add_paragraph()
         run = p.add_run(company.name or "")
         run.bold = True
@@ -308,23 +315,19 @@ class DlQuotationDocument(models.Model):
         right_b = ParagraphStyle(
             "dl_right_b", parent=bold, alignment=TA_RIGHT)
         center = ParagraphStyle("dl_center", parent=base, alignment=TA_CENTER)
+        # `leading` phải khai lại theo `fontSize`: kế thừa từ `base` là 14pt,
+        # chữ 20pt sẽ đè lên dòng ngay dưới.
         title = ParagraphStyle(
-            "dl_title", parent=bold, fontSize=20, alignment=TA_CENTER,
-            spaceBefore=6, spaceAfter=2)
+            "dl_title", parent=bold, fontSize=20, leading=25,
+            alignment=TA_CENTER, spaceBefore=6, spaceAfter=2)
 
         story = []
-        # --- Đầu trang công ty ---
-        story.append(Paragraph(company.name or "", ParagraphStyle(
-            "dl_co", parent=bold, fontSize=14)))
-        addr = ", ".join(filter(None, [company.street, company.city]))
-        for text in filter(None, [
-            ("Địa chỉ: " + addr) if addr else "",
-            ("Mã số thuế: " + company.vat) if company.vat else "",
-            " | ".join(filter(None, [
-                ("ĐT: " + company.phone) if company.phone else "",
-                ("Email: " + company.email) if company.email else ""])),
-        ]):
-            story.append(Paragraph(text, base))
+        # --- Đầu trang công ty (logo + thông tin, dựng ở dl_base để 3 loại
+        #     chứng từ gửi ra ngoài dùng chung một khuôn) ---
+        story += company._dlm_pdf_letterhead(
+            name_style=ParagraphStyle(
+                "dl_co", parent=bold, fontSize=13, leading=17),
+            body_style=base, width=174 * mm)
 
         story.append(Paragraph("BÁO GIÁ", title))
         story.append(Paragraph("Số: %s%s" % (

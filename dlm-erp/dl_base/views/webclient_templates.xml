@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Icon tab trình duyệt + tiêu đề trang: web.layout mặc định trỏ vào
+         favicon và chữ "Odoo" của Odoo. Cả hai đều là chỗ hiện thương hiệu nên
+         đổi về biểu tượng DL và tên hệ thống của Đại Linh.
+
+         Áp cho MỌI trang dựng từ web.layout (backend, đăng nhập, đặt lại mật
+         khẩu), vì thế đặt ở dl_base chứ không ở login_templates.xml. -->
+    <template id="dl_layout_branding" inherit_id="web.layout" name="DLM Branding">
+        <xpath expr="//link[@rel='shortcut icon']" position="attributes">
+            <attribute name="t-att-href">x_icon or '/dl_base/static/img/dai_linh_mark.png'</attribute>
+            <attribute name="type">image/png</attribute>
+        </xpath>
+        <xpath expr="//title" position="attributes">
+            <attribute name="t-esc">title or 'Đại Linh ERP'</attribute>
+        </xpath>
+    </template>
+</odoo>

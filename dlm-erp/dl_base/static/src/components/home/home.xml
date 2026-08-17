@@ -13,8 +13,9 @@
         <nav class="dl-home-navbar">
             <Dropdown class="'dl-home-brand'">
                 <t t-set-slot="toggler">
-                    <div class="dl-home-brand-logo">&#9670;</div>
-                    <span class="dl-home-brand-name">DLM-ERP</span>
+                    <img class="dl-home-brand-logo"
+                         src="/dl_base/static/img/dai_linh_mark.png" alt="Đại Linh"/>
+                    <span class="dl-home-brand-name">Đại Linh</span>
                     <i class="fa fa-angle-down dl-home-brand-caret"/>
                 </t>
                 <DropdownItem t-foreach="apps" t-as="app" t-key="app.id"
@@ -35,8 +36,13 @@
 
         <div class="dl-home-body">
             <div class="dl-home-hero">
-                <h1 class="dl-home-title">DLM ERP &#8212; Phase 1</h1>
-                <p class="dl-home-subtitle">Hệ thống quản lý báo giá &amp; phê duyệt</p>
+                <img class="dl-home-hero-logo"
+                     src="/dl_base/static/img/dai_linh_logo.png"
+                     alt="Công ty TNHH Đầu tư và Sản xuất Đại Linh"/>
+                <!-- Logo đã mang chữ "DAI LINH" nên tiêu đề nói việc, còn tên
+                     pháp lý đầy đủ đặt ở dòng phụ. -->
+                <h1 class="dl-home-title">Hệ thống quản lý báo giá &amp; phê duyệt</h1>
+                <p class="dl-home-subtitle">Công ty TNHH Đầu tư và Sản xuất Đại Linh</p>
             </div>
 
             <div class="dl-home-grid">

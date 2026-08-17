@@ -6,8 +6,10 @@
         <div class="dlm-rail-head">
             <div class="dlm-rail-logo" title="Trang chủ"
                  t-on-click="() => this.openModule('dl_base.action_dl_home')">
-                <span class="dlm-rail-icon">◆</span>
-                <span class="dlm-rail-label">DLM-ERP</span>
+                <span class="dlm-rail-icon">
+                    <img src="/dl_base/static/img/dai_linh_mark.png" alt="Đại Linh"/>
+                </span>
+                <span class="dlm-rail-label">Đại Linh</span>
             </div>
             <button class="dlm-rail-toggle" t-on-click="() => this.toggleSidebar()"
                     t-att-title="sidebar.collapsed ? 'Mở rộng' : 'Thu gọn'">
