@@ -97,6 +97,18 @@ class DlQuotationRequest(models.Model):
         domain=[("partner_role", "in", ("customer", "both"))],
     )
 
+    # Loại RFQ: một RFQ chỉ đi MỘT vòng đời. 
+    request_type = fields.Selection(
+        [
+            ("manufactured", "Sản phẩm gia công"),
+            ("trading", "Sản phẩm thương mại"),
+        ],
+        string="Loại yêu cầu",
+        required=True,
+        default="manufactured",
+        tracking=True,
+    )
+
     description = fields.Text(
         string="Mô tả",
     )
@@ -574,6 +586,40 @@ class DlQuotationRequest(models.Model):
                     "yêu cầu (%(requested)s).",
                     deadline=rec.deadline, requested=requested))
 
+    # Phải khai CẢ BA field trỏ cùng quan hệ: Odoo chỉ chạy constrain của đúng
+    # tên field được ghi, nên ghi qua manufactured_line_ids/trading_line_ids
+    # (đường của form) sẽ lọt nếu chỉ khai line_ids.
+    @api.constrains("request_type", "line_ids",
+                    "manufactured_line_ids", "trading_line_ids")
+    def _check_line_type_matches_header(self):
+        """Mọi dòng phải cùng loại với header.
+
+        Header quyết định RFQ đi vòng đời nào; dòng lệch loại là dòng sẽ không
+        bao giờ được xử lý (hàng đợi Kỹ thuật lọc theo request_type, form Sales
+        chỉ hiện đúng một bảng). Chặn ở đây thay vì tự sửa im lặng: dòng lệch
+        loại luôn là dấu hiệu của import/RPC sai, không phải thao tác hợp lệ."""
+        for rec in self:
+            wrong = rec.line_ids.filtered(
+                lambda l: l.product_type != rec.request_type)
+            if wrong:
+                raise ValidationError(_(
+                    "RFQ loại '%(kind)s' không chứa được dòng khác loại "
+                    "(%(lines)s). Tách thành RFQ riêng cho từng loại.",
+                    kind=dict(self._fields["request_type"].selection)[rec.request_type],
+                    lines=", ".join(wrong.mapped("product_name") or ["?"])))
+
+    @api.onchange("request_type")
+    def _onchange_request_type(self):
+        """Đổi loại lúc TẠO MỚI thì bỏ các dòng đã nhập của loại kia.
+
+        Hai bảng có bộ field khác hẳn nhau nên không chuyển đổi dòng được; để
+        lại thì dòng nằm trong bảng đang bị ẩn và chặn Lưu bằng lỗi khó hiểu.
+        View khóa request_type sau khi Lưu, nên chỗ này chỉ đụng dòng chưa lưu."""
+        if self.request_type == "trading":
+            self.manufactured_line_ids = [(5, 0, 0)]
+        else:
+            self.trading_line_ids = [(5, 0, 0)]
+
     @api.constrains("line_ids", "status")
     def _check_has_lines(self):
         """RFQ phải có ít nhất một dòng.
@@ -618,15 +664,11 @@ class DlQuotationRequest(models.Model):
                 unresolved = lines.filtered(lambda l: not l._is_resolved())
 
                 # Bằng chứng "Kỹ thuật đã bắt tay vào việc": có người tiếp nhận,
-                # hoặc có dòng GIA CÔNG đã ra kết quả kỹ thuật. Dòng thương mại
-                # KHÔNG tính: sản phẩm trên dòng đó do chính Sales chọn lúc tạo
-                # RFQ (§3, đối xứng với technical_status = "Không cần Kỹ thuật")
-                # — tính vào đây thì RFQ vừa bấm Lưu đã hiện "Đang xử lý" bên Kỹ
-                # thuật trong khi chưa ai nhận.
+                # hoặc có dòng đã ra kết quả kỹ thuật. Nhánh này chỉ chạy cho RFQ
+                # GIA CÔNG — RFQ thương mại có mọi dòng resolved sẵn nên không
+                # bao giờ xuống tới đây (chốt 2026-08-18, một RFQ một vòng đời).
                 tech_started = bool(rec.received_by) or any(
-                    l.product_type != "trading"
-                    and (l.resolved_product_id or l.is_infeasible)
-                    for l in lines)
+                    l.resolved_product_id or l.is_infeasible for l in lines)
 
                 if unresolved and all(l.supplement_note for l in unresolved):
                     status = "returned"
@@ -635,10 +677,10 @@ class DlQuotationRequest(models.Model):
                 elif tech_started or rec.status in ("processing", "returned"):
                     status = "processing"
 
-                # Từng đủ điều kiện tạo báo giá mà KHÔNG cần Kỹ thuật (RFQ toàn
-                # hàng thương mại), nay Sales thêm dòng gia công → trả về hàng
-                # đợi Kỹ thuật ở đúng mốc "Chưa nhận", không đứng lại ở "Chờ tạo
-                # báo giá" (Sales sẽ tạo báo giá thiếu dòng chưa xử lý).
+                # Từng đủ điều kiện tạo báo giá, nay lại có dòng chưa xử lý mà
+                # chưa ai đụng vào (Sales xóa hết dòng cũ rồi thêm dòng mới) →
+                # trả về hàng đợi Kỹ thuật ở mốc "Chưa nhận", không đứng lại ở
+                # "Chờ tạo báo giá" (Sales sẽ tạo báo giá thiếu dòng chưa xử lý).
                 elif rec.status == "confirmed":
                     status = "new"
 

@@ -1,12 +1,12 @@
-"""Trạng thái RFQ gộp từ dòng — dòng thương mại KHÔNG phải việc của Kỹ thuật.
+"""Trạng thái RFQ gộp từ dòng — mỗi RFQ đi đúng MỘT vòng đời.
 
-Bối cảnh: form "Tạo RFQ" của Sales có 2 bảng (thương mại / gia công). Bảng
-thương mại bắt Sales chọn thẳng Sản phẩm (resolved_product_id) ngay lúc tạo —
-đó là lựa chọn của Sales, không phải kết quả kỹ thuật. Nếu rollup tính dòng đó
-là "đã có kết quả" thì RFQ vừa bấm Lưu đã nhảy sang "Đang xử lý", trong khi
-bên Kỹ thuật chưa ai nhận (phải là "Chưa nhận").
+Chốt 2026-08-18: loại RFQ nằm ở header (`request_type`), không còn ở từng dòng.
+RFQ thương mại có sẵn sản phẩm + giá nên báo giá được ngay khi Lưu; RFQ gia công
+phải chờ Kỹ thuật xử lý qua BOM. Trước đây hai loại trộn được trong một RFQ, và
+phần thương mại bị giam theo nhịp của phần gia công.
 """
 
+from odoo.exceptions import ValidationError
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -46,35 +46,32 @@ class TestRfqStatusRollup(TransactionCase):
             "dimension_note": "1200x800",
         }
 
-    def test_mixed_rfq_stays_new_for_technician(self):
-        """RFQ vừa tạo có cả dòng thương mại lẫn gia công → Kỹ thuật thấy "Chưa nhận".
-
-        Tạo qua đúng 2 field của form Sales (mỗi field là một lượt create dòng
-        riêng) để bám sát đường ghi thật.
-        """
+    def test_trading_rfq_is_ready_to_quote(self):
+        """RFQ thương mại không có việc gì cho Kỹ thuật → chờ tạo báo giá ngay."""
         request = self.env["dl.quotation.request"].create({
             "customer_id": self.customer.id,
+            "request_type": "trading",
             "trading_line_ids": [(0, 0, self._trading_vals())],
+        })
+
+        self.assertEqual(request.status, "confirmed")
+
+    def test_manufactured_rfq_waits_for_technician(self):
+        """RFQ gia công vừa tạo → Kỹ thuật thấy "Chưa nhận"."""
+        request = self.env["dl.quotation.request"].create({
+            "customer_id": self.customer.id,
+            "request_type": "manufactured",
             "manufactured_line_ids": [(0, 0, self._manufactured_vals())],
         })
 
         self.assertEqual(request.status, "new")
         self.assertEqual(request.tech_stage, "pending")
 
-    def test_trading_only_rfq_is_ready_to_quote(self):
-        """RFQ toàn hàng thương mại không có việc gì cho Kỹ thuật → chờ tạo báo giá."""
-        request = self.env["dl.quotation.request"].create({
-            "customer_id": self.customer.id,
-            "trading_line_ids": [(0, 0, self._trading_vals())],
-        })
-
-        self.assertEqual(request.status, "confirmed")
-
     def test_technical_result_still_moves_to_processing(self):
-        """Không hồi quy: có kết quả kỹ thuật trên dòng GIA CÔNG thì vẫn "Đang xử lý"."""
+        """Không hồi quy: có kết quả kỹ thuật trên dòng gia công thì "Đang xử lý"."""
         request = self.env["dl.quotation.request"].create({
             "customer_id": self.customer.id,
-            "trading_line_ids": [(0, 0, self._trading_vals())],
+            "request_type": "manufactured",
             "manufactured_line_ids": [
                 (0, 0, self._manufactured_vals()),
                 (0, 0, self._manufactured_vals("Giá kệ rollup (test)")),
@@ -89,18 +86,25 @@ class TestRfqStatusRollup(TransactionCase):
         self.assertEqual(request.status, "processing")
         self.assertEqual(request.tech_stage, "processing")
 
-    def test_new_manufactured_line_reopens_confirmed_rfq(self):
-        """RFQ toàn thương mại (đang "Chờ tạo báo giá") mà Sales thêm dòng gia
-        công → phải quay lại hàng đợi Kỹ thuật, không được đứng ở "Chờ tạo báo giá"."""
+    def test_line_type_must_match_header_on_create(self):
+        """RFQ thương mại KHÔNG chứa được dòng gia công — hai vòng đời tách hẳn."""
+        with self.assertRaises(ValidationError):
+            self.env["dl.quotation.request"].create({
+                "customer_id": self.customer.id,
+                "request_type": "trading",
+                "trading_line_ids": [(0, 0, self._trading_vals())],
+                "manufactured_line_ids": [(0, 0, self._manufactured_vals())],
+            })
+
+    def test_line_type_must_match_header_on_write(self):
+        """Chặn cả đường ghi sau: thêm dòng lệch loại vào RFQ đã lưu."""
         request = self.env["dl.quotation.request"].create({
             "customer_id": self.customer.id,
+            "request_type": "trading",
             "trading_line_ids": [(0, 0, self._trading_vals())],
         })
-        self.assertEqual(request.status, "confirmed")
 
-        request.write({
-            "manufactured_line_ids": [(0, 0, self._manufactured_vals())],
-        })
-
-        self.assertEqual(request.status, "new")
-        self.assertEqual(request.tech_stage, "pending")
+        with self.assertRaises(ValidationError):
+            request.write({
+                "manufactured_line_ids": [(0, 0, self._manufactured_vals())],
+            })

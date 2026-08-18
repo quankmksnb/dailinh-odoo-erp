@@ -312,9 +312,12 @@
                                  mại rồi Lưu sẽ bị báo "thiếu dòng" oan. @api.constrains
                                  _check_has_lines vẫn là chốt cuối cho RPC/import. -->
                             <field name="line_ids" invisible="1"/>
+                            <field name="request_type" invisible="1"/>
                             <separator string="Sản phẩm gia công"
+                                       invisible="request_type != 'manufactured'"
                                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
                             <field name="manufactured_line_ids"
+                                   invisible="request_type != 'manufactured'"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <!-- §3a — tree KHÔNG editable: click 1 dòng mở form
                                      con dạng dialog (dễ quan sát/xử lý). -->
@@ -541,8 +544,10 @@
                                  xem & sửa số lượng/giá trước khi tạo báo giá. Cột
                                  giống hệt bảng thương mại màn Tạo RFQ. -->
                             <separator string="Sản phẩm thương mại"
+                                       invisible="request_type != 'trading'"
                                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
                             <field name="trading_line_ids"
+                                   invisible="request_type != 'trading'"
                                    groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Sản phẩm thương mại" editable="bottom">
@@ -603,10 +608,10 @@
     <!-- ================================================================
          TẠO RFQ (Sales) — màn tạo mới, tách riêng khỏi form cũ ở trên (form cũ
          vẫn giữ nguyên cho Kỹ thuật xử lý RFQ, không đổi).
-         Mỗi dòng tự chọn product_type: "Sản phẩm thương mại" (chọn thẳng
-         Product có sẵn, không qua BOM) hoặc "Sản phẩm gia công" (chỉ nhập tên/
-         mô tả/số lượng, Product/Nhóm sản phẩm chỉ tham khảo, Kỹ thuật xử lý
-         sau) — §2-6 màn Tạo RFQ.
+         Loại RFQ chọn ở HEADER (request_type, chốt 2026-08-18) — một RFQ chỉ đi
+         một vòng đời: "Sản phẩm thương mại" (chọn thẳng Product có sẵn, không
+         qua BOM, báo giá được ngay) hoặc "Sản phẩm gia công" (chỉ nhập tên/mô
+         tả/số lượng, Kỹ thuật xử lý qua BOM rồi mới báo giá) — §2-6 màn Tạo RFQ.
     ================================================================ -->
     <record id="view_dl_quotation_request_sales_form" model="ir.ui.view">
         <field name="name">dl.quotation.request.sales.form</field>
@@ -709,6 +714,15 @@
 
                     <group>
                         <group string="Thông tin yêu cầu">
+                            <!-- Loại RFQ quyết định vòng đời: gia công phải qua Kỹ
+                                 thuật (BOM) rồi mới báo giá được, thương mại đã có
+                                 sẵn giá nên báo giá được ngay. CHỈ chọn được lúc
+                                 tạo — đổi loại của RFQ đã lưu đồng nghĩa vứt toàn
+                                 bộ dòng đã nhập (hai bảng khác hẳn bộ field), nên
+                                 tạo RFQ mới sạch hơn là cho sửa. -->
+                            <field name="request_type" widget="radio"
+                                   options="{'horizontal': True}"
+                                   readonly="id"/>
                             <field name="customer_id" readonly="status != 'new'"
                                 options="{'no_quick_create': True}"
                                 context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
@@ -734,15 +748,17 @@
                     <notebook>
                         <page string="Dòng sản phẩm" name="lines">
                             <!-- BẢNG 1: Sản phẩm thương mại (chọn thẳng, có giá) -->
-                            <separator string="Sản phẩm thương mại"/>
-                            <!-- "required chéo": mỗi bảng bắt buộc khi bảng kia
-                                 trống ⇒ RFQ phải có ≥1 dòng (thương mại HOẶC gia
-                                 công). Dùng required client-side của Odoo trên
-                                 one2many (record.js: count===0 → Invalid fields)
-                                 để báo cùng kiểu, cùng lúc Save như customer_id —
-                                 không cảnh báo sớm. @api.constrains vẫn là chốt cuối. -->
+                            <separator string="Sản phẩm thương mại"
+                                       invisible="request_type != 'trading'"/>
+                            <!-- Bảng của loại đang chọn thì BẮT BUỘC có dòng; bảng
+                                 kia bị ẩn hẳn. Dùng required client-side của Odoo
+                                 trên one2many (record.js: count===0 → Invalid
+                                 fields) để báo cùng kiểu, cùng lúc Save như
+                                 customer_id — không cảnh báo sớm. @api.constrains
+                                 vẫn là chốt cuối. -->
                             <field name="trading_line_ids"
-                                   required="not manufactured_line_ids"
+                                   invisible="request_type != 'trading'"
+                                   required="request_type == 'trading'"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Sản phẩm thương mại" editable="bottom">
                                     <field name="currency_id" column_invisible="1"/>
@@ -760,9 +776,11 @@
                             </field>
 
                             <!-- BẢNG 2: Sản phẩm gia công (mô tả + ảnh + file) -->
-                            <separator string="Sản phẩm gia công"/>
+                            <separator string="Sản phẩm gia công"
+                                       invisible="request_type != 'manufactured'"/>
                             <field name="manufactured_line_ids"
-                                   required="not trading_line_ids"
+                                   invisible="request_type != 'manufactured'"
+                                   required="request_type == 'manufactured'"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Sản phẩm gia công">
                                     <field name="product_type" column_invisible="1"/>
@@ -881,7 +899,14 @@
                         domain="[('status', 'in', ('new', 'processing', 'supplemented'))]"/>
                 <filter name="has_supplement" string="Cần bổ sung"
                         domain="[('supplement_count', '&gt;', 0), ('status', 'not in', ('returned', 'quoted', 'cancelled'))]"/>
+                <separator/>
+                <filter name="type_manufactured" string="Hàng gia công"
+                        domain="[('request_type', '=', 'manufactured')]"/>
+                <filter name="type_trading" string="Hàng thương mại"
+                        domain="[('request_type', '=', 'trading')]"/>
                 <group expand="0" string="Nhóm theo">
+                    <filter name="group_request_type" string="Loại yêu cầu"
+                            context="{'group_by': 'request_type'}"/>
                     <filter name="group_status" string="Trạng thái"
                             context="{'group_by': 'status'}"/>
                     <filter name="group_customer" string="Khách hàng"
@@ -912,6 +937,9 @@
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
         <field name="view_id" ref="view_dl_quotation_request_tree_my"/>
+        <!-- RFQ thương mại không đi qua Kỹ thuật (dòng đã có sẵn sản phẩm + giá)
+             ⇒ cắt hẳn khỏi hàng đợi thay vì để KTV tự lọc mắt. -->
+        <field name="domain">[('request_type', '=', 'manufactured')]</field>
         <field name="context">{'search_default_to_process': 1}</field>
     </record>
 
