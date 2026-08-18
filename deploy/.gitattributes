@@ -1,0 +1,4 @@
+# Mọi file trong deploy/ chỉ chạy trên Linux (VPS).
+# Ép LF kể cả khi commit từ Windows — nếu không, script .sh checkout ra với CRLF
+# và bash báo "bad interpreter", còn `git pull` trên VPS thì xung đột với bản đã sed.
+* text=auto eol=lf
