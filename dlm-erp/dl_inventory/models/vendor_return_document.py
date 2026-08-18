@@ -96,9 +96,11 @@ class StockPickingRejectReport(models.Model):
         bold = ParagraphStyle("dl_bold", parent=base, fontName=_PDF_FONT_BOLD)
         center = ParagraphStyle("dl_center", parent=base, alignment=TA_CENTER)
         right = ParagraphStyle("dl_right", parent=base, alignment=TA_RIGHT)
+        # `leading` phải khai lại theo `fontSize`: kế thừa từ `base` là 14pt,
+        # chữ 18pt sẽ đè lên dòng ngay dưới.
         title = ParagraphStyle(
-            "dl_title", parent=bold, fontSize=18, alignment=TA_CENTER,
-            spaceBefore=6, spaceAfter=2)
+            "dl_title", parent=bold, fontSize=18, leading=23,
+            alignment=TA_CENTER, spaceBefore=6, spaceAfter=2)
 
         def th(text, align=TA_CENTER):
             return Paragraph(text, ParagraphStyle(
@@ -106,18 +108,11 @@ class StockPickingRejectReport(models.Model):
 
         story = []
 
-        # --- Đầu trang: công ty lập biên bản ---
-        story.append(Paragraph(company.name or "", ParagraphStyle(
-            "dl_co", parent=bold, fontSize=14)))
-        addr = ", ".join(filter(None, [company.street, company.city]))
-        for text in filter(None, [
-            ("Địa chỉ: " + addr) if addr else "",
-            ("Mã số thuế: " + company.vat) if company.vat else "",
-            " | ".join(filter(None, [
-                ("ĐT: " + company.phone) if company.phone else "",
-                ("Email: " + company.email) if company.email else ""])),
-        ]):
-            story.append(Paragraph(text, base))
+        # --- Đầu trang: công ty lập biên bản (logo + thông tin, khuôn dùng chung ở dl_base) ---
+        story += company._dlm_pdf_letterhead(
+            name_style=ParagraphStyle(
+                "dl_co", parent=bold, fontSize=13, leading=17),
+            body_style=base, width=174 * mm)
 
         story.append(Paragraph("BIÊN BẢN HÀNG KHÔNG ĐẠT", title))
         story.append(Paragraph("Số: %s" % (self.name or ""), center))
