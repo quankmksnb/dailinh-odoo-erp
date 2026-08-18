@@ -92,7 +92,7 @@ class ProductSupplierinfo(models.Model):
         default="draft",
         required=True,
         copy=False,
-        help="Kế toán duyệt giá nhà cung cấp trước khi áp dụng cho báo giá / BOM.",
+        help="Mua hàng duyệt giá nhà cung cấp trước khi áp dụng cho báo giá / BOM.",
     )
 
     # Một vật tư/SP thương mại có thể có nhiều bảng giá (nhiều NCC) đã duyệt

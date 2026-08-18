@@ -22,7 +22,7 @@
         action="action_dl_purchase_order"
         parent="dl_base.menu_dl_purchase"
         sequence="10"
-        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"
     />
 
     <!-- Dời "Trả hàng NCC" từ rail Kho sang đây — trả nợ ghi ở K6 sai lệch (1).

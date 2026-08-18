@@ -53,7 +53,7 @@
                      invisible="status != 'confirmed' or not auto_quote_error">
                     <strong>Chưa tạo được báo giá.</strong>
                     <p class="mb-1">
-                        Kết quả Kỹ thuật vẫn được lưu. Sales/Kế toán bổ sung dữ liệu giá,
+                        Kết quả Kỹ thuật vẫn được lưu. Sales bổ sung dữ liệu giá,
                         sau đó Sales bấm “Thử tạo lại báo giá”.
                     </p>
                     <field name="auto_quote_error" readonly="1" nolabel="1"/>
@@ -115,7 +115,7 @@
                      invisible="status != 'confirmed' or not auto_quote_error">
                     <strong>Chưa tạo được báo giá.</strong>
                     <p class="mb-1">
-                        Kết quả Kỹ thuật vẫn được lưu. Sales/Kế toán bổ sung dữ liệu giá,
+                        Kết quả Kỹ thuật vẫn được lưu. Sales bổ sung dữ liệu giá,
                         sau đó Sales bấm “Thử tạo lại báo giá”.
                     </p>
                     <field name="auto_quote_error" readonly="1" nolabel="1"/>

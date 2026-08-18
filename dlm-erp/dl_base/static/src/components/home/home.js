@@ -115,8 +115,6 @@ const LANDING_RULES = [
     { group: "dl_base.dl_group_warehouse", actionXmlId: "dl_inventory.action_dl_picking_receipt", railKey: "inventory", railChildKey: "receipt" },
     // Mua hàng sở hữu giá NCC → land thẳng Bảng giá Vật tư (bản có quyền sửa).
     { group: "dl_base.dl_group_purchasing", actionXmlId: "dl_product.action_dl_supplierinfo_material_full", railKey: "pricing", railChildKey: "material_price" },
-    // Kế toán không còn sở hữu giá NCC (chuyển cho Mua hàng) → land bản chỉ-xem.
-    { group: "dl_base.dl_group_accountant", actionXmlId: "dl_product.action_dl_supplierinfo_material_view", railKey: "pricing", railChildKey: "material_price" },
     { group: "dl_base.dl_group_tech", actionXmlId: "dl_technical.action_dl_quotation_request_my", railKey: "technical", railChildKey: "rfq" },
     { group: "dl_base.dl_group_admin", actionXmlId: "dl_config.action_dl_user_admin", railKey: "config", railChildKey: "user" },
 ];

@@ -423,15 +423,13 @@ class ResPartner(models.Model):
         if role in _CUSTOMER_ROLES:
             if user.has_group('dl_base.dl_group_sales_manager'):
                 return
-            if role == 'both' and user.has_group('dl_base.dl_group_accountant'):
-                return
         if role in ('supplier', 'both'):
             if user.has_group('dl_base.dl_group_purchasing'):
                 return
         allowed_roles = {
             'customer': _('Trưởng phòng Kinh doanh'),
             'supplier': _('Mua hàng'),
-            'both': _('Trưởng phòng Kinh doanh, Kế toán hoặc Mua hàng'),
+            'both': _('Trưởng phòng Kinh doanh hoặc Mua hàng'),
         }.get(role, _('Admin'))
         raise AccessError(_(
             "Chỉ %s hoặc Admin mới được vô hiệu hóa đối tác '%s'."

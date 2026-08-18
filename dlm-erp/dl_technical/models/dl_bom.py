@@ -173,7 +173,7 @@ class DlBom(models.Model):
         compute="_compute_total_operation_cost_est",
         digits="Product Price",
         groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,"
-               "dl_base.dl_group_accountant,dl_base.dl_group_sales_manager",
+               "dl_base.dl_group_sales_manager",
     )
 
     note = fields.Text(
