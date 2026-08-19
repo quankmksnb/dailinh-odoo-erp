@@ -529,6 +529,10 @@
                                              Kỹ thuật chỉ xem (bản vẽ kỹ thuật nằm ở Product/BOM). -->
                                         <separator string="Ảnh / File đính kèm"
                                                    invisible="product_type == 'trading'"/>
+                                        <!-- Lưới xem trước ảnh (giống màn Kiểm hàng QC):
+                                             many2many_binary chỉ bày thẻ file. -->
+                                        <field name="attachment_gallery" nolabel="1" readonly="1"
+                                               invisible="product_type == 'trading' or not attachment_gallery"/>
                                         <field name="attachment_ids" widget="many2many_binary"
                                                nolabel="1"
                                                readonly="is_technician"
@@ -886,6 +890,10 @@
                                            placeholder="Chi tiết khác: cao ghế, khổ mặt ghế, màu sơn, yêu cầu riêng..."/>
                                     <!-- §1d — Ảnh & file đính kèm gộp chung 1 trường -->
                                     <separator string="Ảnh / File đính kèm"/>
+                                    <!-- Lưới xem trước ảnh: many2many_binary chỉ bày thẻ
+                                         file, không xem được ảnh (giống màn Kiểm hàng QC). -->
+                                    <field name="attachment_gallery" nolabel="1" readonly="1"
+                                           invisible="not attachment_gallery"/>
                                     <field name="attachment_ids" widget="many2many_binary"
                                            required="not dimension_note and not has_parametric_template"
                                            nolabel="1"/>

@@ -86,3 +86,65 @@
         white-space: nowrap;
     }
 }
+
+// Lưới xem trước ảnh đính kèm trên form dòng RFQ (attachment_gallery). Song sinh
+// của .dl-evi-gallery ở màn Kiểm hàng QC nhưng dựng riêng để không lệ thuộc bundle
+// dl_inventory. object-fit: cover giữ khung đều nhau giữa ảnh ngang và ảnh dọc.
+// Selector trực tiếp: form dòng mở trong dialog, nằm ngoài .dl-rfq-form.
+.dl-rfq-evi-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 8px;
+
+    .dl-rfq-evi-item {
+        display: flex;
+        flex-direction: column;
+        width: 200px;
+    }
+
+    // Khung xem trước dùng chung cho ảnh (img) và thẻ file (icon) — cùng cỡ để
+    // lưới đều răng lược dù trộn ảnh với PDF/Word.
+    .dl-rfq-evi-item img,
+    .dl-rfq-evi-thumb {
+        width: 200px;
+        height: 150px;
+        border: 1px solid $dl-border;
+        border-radius: $dl-radius;
+        background: #f4f4f4;
+    }
+
+    .dl-rfq-evi-item img {
+        object-fit: cover;
+    }
+
+    // Thẻ file: icon to giữa khung, cả thẻ là link mở file.
+    .dl-rfq-evi-file {
+        text-decoration: none;
+
+        &:hover .dl-rfq-evi-thumb {
+            border-color: $dl-primary;
+            background: #eef2f7;
+        }
+    }
+
+    .dl-rfq-evi-thumb {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .fa {
+            font-size: 48px;
+            color: $dl-text-muted;
+        }
+    }
+
+    .dl-rfq-evi-name {
+        margin-top: 4px;
+        font-size: 11px;
+        color: $dl-text-muted;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}

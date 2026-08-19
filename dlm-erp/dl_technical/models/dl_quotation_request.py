@@ -1,8 +1,12 @@
+import base64
 import re
+
+from markupsafe import Markup
 
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools import float_compare
+from odoo.tools.image import image_process
 
 # Field-level RBAC (giống dl.material): chỉ Kỹ thuật/Admin được quyết định
 # "sản phẩm xác định" / "không khả thi" — đây là đánh giá kỹ thuật, Sales chỉ
@@ -66,6 +70,51 @@ def _user_is_sales(env):
     return (user.has_group('dl_base.dl_group_ba')
             or user.has_group('dl_base.dl_group_sales_manager')
             or user.has_group('dl_base.dl_group_admin'))
+
+
+class IrAttachment(models.Model):
+    _inherit = "ir.attachment"
+
+    def _dlm_image_thumb(self, size=(480, 480)):
+        """Thumbnail base64 của ảnh đính kèm (thu về ~480px), rỗng nếu không phải ảnh hoặc ảnh hỏng."""
+        # Song sinh của dl_inventory `_dlm_evidence_thumb` (màn Kiểm hàng QC): cùng
+        # bài toán "many2many_binary chỉ bày thẻ file, không xem được ảnh". Hai
+        # module không có tổ tiên nào đã _inherit ir.attachment nên tạm giữ hai
+        # bản; gộp về dl_base khi có lý do đụng cả hai.
+        self.ensure_one()
+        if not (self.mimetype or "").startswith("image/"):
+            return ""
+        try:
+            # sudo: ảnh vừa upload còn res_id=0. Dùng `raw` (bytes thô), không phải `datas`.
+            raw = self.sudo().raw
+            if not raw:
+                return ""
+            thumb = image_process(raw, size=size, output_format="JPEG")
+            return base64.b64encode(thumb or b"").decode()
+        except Exception:  # noqa: BLE001 — ảnh hỏng chỉ mất tấm đó
+            return ""
+
+    def _dlm_file_icon(self):
+        """Icon Font Awesome theo loại file — dùng cho thẻ file không phải ảnh."""
+        self.ensure_one()
+        mt = (self.mimetype or "").lower()
+        name = (self.name or "").lower()
+        if "pdf" in mt or name.endswith(".pdf"):
+            return "fa-file-pdf-o"
+        if "word" in mt or name.endswith((".doc", ".docx")):
+            return "fa-file-word-o"
+        if ("excel" in mt or "spreadsheet" in mt
+                or name.endswith((".xls", ".xlsx", ".csv"))):
+            return "fa-file-excel-o"
+        if ("powerpoint" in mt or "presentation" in mt
+                or name.endswith((".ppt", ".pptx"))):
+            return "fa-file-powerpoint-o"
+        if ("zip" in mt or "compressed" in mt
+                or name.endswith((".zip", ".rar", ".7z"))):
+            return "fa-file-archive-o"
+        if name.endswith((".dwg", ".dxf")):
+            return "fa-file-code-o"
+        return "fa-file-o"
 
 
 class DlQuotationRequest(models.Model):
@@ -1141,6 +1190,41 @@ class DlQuotationRequestLine(models.Model):
             img = rec.attachment_ids.filtered(
                 lambda a: a.mimetype and a.mimetype.startswith("image/"))[:1]
             rec.preview_image = img.datas if img else False
+
+    # Lưới xem trước ảnh ĐÍNH KÈM ngay trên form dòng (widget many2many_binary chỉ
+    # bày thẻ file, không xem được ảnh — giống màn Kiểm hàng QC). Ảnh nhúng thẳng
+    # dạng data URI để né route /web/image lỗi khi ảnh vừa upload còn res_id=0.
+    attachment_gallery = fields.Html(
+        string="Lưới ảnh đính kèm", sanitize=False, readonly=True,
+        compute="_compute_attachment_gallery")
+
+    @api.depends("attachment_ids")
+    def _compute_attachment_gallery(self):
+        for rec in self:
+            items = []
+            for att in rec.attachment_ids:
+                name = att.name or ""
+                thumb = att._dlm_image_thumb()
+                if thumb:
+                    # Ảnh: thumbnail nhúng thẳng data URI (né /web/image lỗi khi res_id=0).
+                    items.append(Markup(
+                        '<div class="dl-rfq-evi-item" title="%s">'
+                        '<img src="data:image/jpeg;base64,%s" alt="%s"/>'
+                        '<span class="dl-rfq-evi-name">%s</span></div>'
+                    ) % (name, thumb, name, name))
+                else:
+                    # File khác: thẻ có icon theo loại, bấm mở/xem trong tab mới
+                    # (PDF render thẳng; loại khác trình duyệt tự mở hoặc tải).
+                    items.append(Markup(
+                        '<a class="dl-rfq-evi-item dl-rfq-evi-file" '
+                        'href="/web/content/%s" target="_blank" '
+                        'rel="noopener" title="%s">'
+                        '<span class="dl-rfq-evi-thumb"><i class="fa %s"></i></span>'
+                        '<span class="dl-rfq-evi-name">%s</span></a>'
+                    ) % (att.id, name, att._dlm_file_icon(), name))
+            rec.attachment_gallery = (
+                Markup('<div class="dl-rfq-evi-gallery">%s</div>')
+                % Markup("").join(items)) if items else False
 
     # Số file đính kèm — cột tín hiệu trên bảng dòng để KTV triage nhanh
     # (dòng gia công không có đính kèm thường là ứng viên "cần bổ sung").
