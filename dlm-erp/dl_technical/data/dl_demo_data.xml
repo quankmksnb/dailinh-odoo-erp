@@ -61,6 +61,9 @@
              workspace nhận ra ngay (generate_instance đòi confirmed/locked). -->
         <record id="demo_bom_tmpl_ban_thep" model="dl.bom.template">
             <field name="name">Bàn thép khung hộp (tham số D×R×C)</field>
+            <!-- Nhóm SUY TỪ sản phẩm dùng chung (2026-08-19): mẫu tham số neo
+                 theo SẢN PHẨM, không theo nhóm — một nhóm thương mại chứa được
+                 nhiều kết cấu, xem kết cấu thứ hai ở cuối file. -->
             <field name="product_category_id" ref="dl_product.categ_ban_ghe_sat"/>
             <field name="product_qty">1</field>
             <field name="version">1</field>
@@ -176,6 +179,106 @@
             <field name="quantity">16</field>
             <field name="note">Bulông liên kết (cố định)</field>
         </record>
+
+        <!-- ================================================================
+             KẾT CẤU THỨ HAI TRONG CÙNG NHÓM "Bàn ghế sắt".
+             Mô hình cũ (mẫu neo theo NHÓM + unique(nhóm, version)) CẤM khai
+             bản này — đó chính là lỗi kiến trúc đã sửa. Sổ đặt hàng thật của
+             doanh nghiệp có ít nhất 5 kết cấu trong nhóm này.
+        ================================================================ -->
+        <record id="demo_product_ghe_bang" model="product.product">
+            <field name="name">Ghế băng khung thép</field>
+            <field name="default_code">GC-GHEBANG</field>
+            <field name="product_kind">manufactured</field>
+            <field name="categ_id" ref="dl_product.categ_ban_ghe_sat"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+        </record>
+
+        <record id="demo_bom_tmpl_ghe_bang" model="dl.bom.template">
+            <field name="name">Ghế băng khung thép (tham số D×C)</field>
+            <field name="product_category_id" ref="dl_product.categ_ban_ghe_sat"/>
+            <field name="generic_product_id" ref="demo_product_ghe_bang"/>
+            <field name="product_qty">1</field>
+            <field name="version">1</field>
+            <field name="status">confirmed</field>
+            <field name="is_current" eval="True"/>
+        </record>
+        <record id="demo_bom_param_ghe_D" model="dl.bom.template.param">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ghe_bang"/>
+            <field name="sequence">10</field>
+            <field name="code">D</field>
+            <field name="name">Chiều dài</field>
+            <field name="dim_role">length</field>
+            <field name="value_min">800</field>
+            <field name="value_max">2400</field>
+        </record>
+        <record id="demo_bom_param_ghe_C" model="dl.bom.template.param">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ghe_bang"/>
+            <field name="sequence">20</field>
+            <field name="code">C</field>
+            <field name="name">Chiều cao</field>
+            <field name="dim_role">height</field>
+            <field name="value_min">300</field>
+            <field name="value_max">500</field>
+        </record>
+        <record id="demo_bom_tmpl_ghe_line_chan" model="dl.bom.template.line">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ghe_bang"/>
+            <field name="material_id" ref="dl_product.demo_product_ong_vuong"/>
+            <field name="piece_count">4</field>
+            <field name="note">4 chân ghế</field>
+        </record>
+        <record id="demo_bom_map_ghe_chan_len" model="dl.bom.template.line.param.map">
+            <field name="template_line_id" ref="demo_bom_tmpl_ghe_line_chan"/>
+            <field name="target_field">dim_length</field>
+            <field name="param_id" ref="demo_bom_param_ghe_C"/>
+            <field name="factor">1</field>
+        </record>
+        <record id="demo_bom_tmpl_ghe_line_mat" model="dl.bom.template.line">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ghe_bang"/>
+            <field name="material_id" ref="dl_product.demo_product_thep_cuon"/>
+            <field name="piece_count">1</field>
+            <field name="note">Mặt ghế</field>
+        </record>
+        <record id="demo_bom_map_ghe_mat_len" model="dl.bom.template.line.param.map">
+            <field name="template_line_id" ref="demo_bom_tmpl_ghe_line_mat"/>
+            <field name="target_field">dim_length</field>
+            <field name="param_id" ref="demo_bom_param_ghe_D"/>
+        </record>
+
+        <!-- ================================================================
+             MẶT HÀNG CỠ CỐ ĐỊNH (Hạng B) — nuôi làn L0-a: Sales chọn Kiểu hàng
+             này là dòng tự chốt, không hỏi kích thước, không qua Kỹ thuật.
+        ================================================================ -->
+        <record id="demo_product_ban_giao_vien" model="product.product">
+            <field name="name">Bàn giáo viên 1200x600x750</field>
+            <field name="default_code">GC-BANGV</field>
+            <field name="product_kind">manufactured</field>
+            <field name="categ_id" ref="dl_product.categ_ban_ghe_sat"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+        </record>
+        <record id="demo_bom_ban_giao_vien" model="dl.bom">
+            <field name="product_id" ref="demo_product_ban_giao_vien"/>
+            <field name="bom_type">template</field>
+            <field name="version">1</field>
+            <field name="product_qty">1</field>
+        </record>
+        <record id="demo_bom_bgv_line_khung" model="dl.bom.line">
+            <field name="bom_id" ref="demo_bom_ban_giao_vien"/>
+            <field name="material_id" ref="dl_product.demo_product_ong_vuong"/>
+            <field name="quantity">2.5</field>
+        </record>
+        <record id="demo_bom_bgv_line_mat" model="dl.bom.line">
+            <field name="bom_id" ref="demo_bom_ban_giao_vien"/>
+            <field name="material_id" ref="dl_product.demo_product_thep_cuon"/>
+            <field name="quantity">1</field>
+        </record>
+        <!-- Xác nhận để thành ĐỊNH MỨC CHUẨN hiện hành — điều kiện của làn L0-a. -->
+        <function model="dl.bom" name="action_confirm"
+                  eval="[[ref('demo_bom_ban_giao_vien')]]"/>
 
     </data>
 </odoo>

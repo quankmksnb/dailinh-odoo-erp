@@ -53,6 +53,11 @@ class TestRfqSuggestion(TransactionCase):
         })
         cls.existing_bom = cls.env["dl.bom"].create({
             "product_id": cls.existing.id,
+            # 🔴 'quotation' chứ KHÔNG phải 'template': BOM chuẩn hiện hành biến
+            # sản phẩm thành mặt hàng catalog ⇒ dòng trỏ vào nó tự chốt qua làn
+            # L0 và `suggestion_state` thành 'none', làm câm cả file test này.
+            # Định mức theo đơn vẫn thoả `_check_product_has_bom`.
+            "bom_type": "quotation",
             "line_ids": [(0, 0, {
                 "material_id": cls.material.id, "quantity": 1.0})],
         })
@@ -289,13 +294,25 @@ class TestRfqSuggestion(TransactionCase):
                          "Đạt ngưỡng auto ⇒ workspace tự chọn SP")
         self.assertTrue(wizard.auto_selected)
 
-    def test_workspace_suggest_does_not_auto_select(self):
-        """Chỉ đạt ngưỡng suggest ⇒ KHÔNG tự chọn, nhưng phơi thẻ gợi ý +
-        nút Dùng sản phẩm này chọn được."""
+    def test_exact_name_resolves_to_existing_product(self):
+        """Tên TRÙNG HỆT ⇒ dùng lại chính sản phẩm đó, không đẻ bản trùng nghĩa.
+
+        Điểm dò khớp chỉ 50 (nằm dải "gợi ý"), nhưng TÊN thì trùng hệt — mà tạo
+        sản phẩm trùng tên vốn đã bị `_check_dlm_name_duplicate` chặn cứng. Nên
+        đây là câu trả lời duy nhất chạy được, không phải phỏng đoán."""
         _req, line = self._rfq(product_name="khung sắt v5 1200x800 (test)")
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
-            default_rfq_line_id=line.id).create({"rfq_line_id": line.id})
-        self.assertFalse(wizard.product_id, "Suggest (30–59) không tự chọn")
+            default_rfq_line_id=line.id).create({})
+        self.assertEqual(wizard.product_origin, "name_match")
+        self.assertEqual(wizard.product_id, self.existing)
+
+    def test_suggested_product_stays_reachable(self):
+        """KTV bấm "Đổi sản phẩm" ⇒ thẻ gợi ý + danh sách chọn vẫn phục vụ được."""
+        _req, line = self._rfq(product_name="khung sắt v5 1200x800 (test)")
+        wizard = self.env["dl.rfq.resolve.wizard"].with_context(
+            default_rfq_line_id=line.id).create({})
+        wizard.action_change_product()
+
         self.assertEqual(wizard.suggestion_state, "suggest")
         self.assertEqual(wizard.suggested_product_id, self.existing)
         # SP gợi ý phải nằm trong danh sách chọn được (kể cả ngoài nhóm).
@@ -303,4 +320,34 @@ class TestRfqSuggestion(TransactionCase):
 
         wizard.action_use_suggested_product()
         self.assertEqual(wizard.product_id, self.existing)
-        self.assertEqual(wizard.mode, "existing")
+
+    # ------------------------------------------------------------------
+    # Làn L0-a — kiểu hàng cỡ cố định thì dòng tự chốt, không qua Kỹ thuật
+    # ------------------------------------------------------------------
+    def test_catalog_item_autoresolves_without_technician(self):
+        """SP có ĐỊNH MỨC CHUẨN hiện hành = mặt hàng catalog ⇒ Sales chọn xong
+        là dòng tự chốt, RFQ lên thẳng "Chờ tạo báo giá"."""
+        catalog = self.env["product.product"].create({
+            "name": "Bàn giáo viên cỡ cố định (test)",
+            "categ_id": self.categ.id,
+            "product_kind": "manufactured",
+            "dlm_lifecycle_state": "active",
+        })
+        std = self.env["dl.bom"].create({
+            "product_id": catalog.id,
+            "bom_type": "template",
+            "line_ids": [(0, 0, {
+                "material_id": self.material.id, "quantity": 1.0})],
+        })
+        std.action_confirm()
+        self.assertTrue(std.is_current, "Tiền đề: đây là định mức chuẩn hiện hành")
+
+        req, line = self._rfq(
+            product_name="Bàn giáo viên khách A đặt",
+            reference_product_id=catalog.id)
+
+        self.assertTrue(line.auto_resolved)
+        self.assertEqual(line.resolved_product_id, catalog)
+        self.assertEqual(line.resolved_bom_id, std)
+        self.assertEqual(req.status, "confirmed",
+                         "RFQ không còn việc gì cho Kỹ thuật")

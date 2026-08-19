@@ -75,10 +75,13 @@ class TestRfqSalesParams(TransactionCase):
     # RFQ luôn phải tạo KÈM dòng: `_check_has_lines` chặn yêu cầu báo giá rỗng,
     # nên không tách được thành hai bước create.
     def _create_line(self, request_type="manufactured", **overrides):
+        # Kiểu hàng (reference_product_id) là thứ quyết định bộ thông số — nhóm
+        # chỉ còn là trục thương mại. Mặc định trỏ vào SP dùng chung có mẫu.
         line_vals = {
             "product_type": "manufactured",
             "product_name": "Bàn bán trú test",
             "product_category_id": self.categ_param.id,
+            "reference_product_id": self.generic.id,
             "quantity": 1.0,
             "dimension_note": "",
         }
@@ -129,6 +132,7 @@ class TestRfqSalesParams(TransactionCase):
         """Nhóm chưa có mẫu ⇒ không hiện ô thông số nào."""
         line = self._create_line(
             product_category_id=self.categ_plain.id,
+            reference_product_id=False,
             dimension_note="Kệ 4 tầng theo bản vẽ")
         self.assertFalse(line.has_parametric_template)
         self.assertFalse(line.param_ids)
@@ -142,14 +146,17 @@ class TestRfqSalesParams(TransactionCase):
             "name": "ban-ve.pdf", "datas": b"MA=="})])
         self.assertEqual(set(line.param_ids.mapped("value")), {0.0})
 
-    def test_switch_to_plain_category_drops_params(self):
-        """Đổi sang nhóm chưa có mẫu ⇒ bộ ô rụng theo (số cũ mất, có chủ ý).
+    def test_clearing_kieu_hang_drops_params(self):
+        """Bỏ Kiểu hàng ⇒ bộ ô rụng theo (số cũ mất, có chủ ý).
 
-        Tham số chỉ có nghĩa trong họ sản phẩm của mẫu; giữ lại số của mẫu cũ
-        khi đã sang nhóm khác là giữ một đề bài không còn ai đọc được."""
+        Tham số chỉ có nghĩa trong họ của MỘT kiểu hàng; giữ số của mẫu cũ khi
+        đã bỏ kiểu hàng là giữ một đề bài không còn ai đọc được.
+
+        🔴 Từ 2026-08-19 khoá là KIỂU HÀNG chứ không phải nhóm: nhóm là trục
+        thương mại, chứa nhiều kết cấu, không quyết định được bộ thông số."""
         line = self._make_line({"D": 1200, "R": 400},
                                dimension_note="Bàn 1200x400 theo mẫu cũ")
-        line.product_category_id = self.categ_plain.id
+        line.reference_product_id = False
         self.assertFalse(line.param_ids)
         self.assertFalse(line.has_parametric_template)
 
@@ -217,7 +224,8 @@ class TestRfqSalesParams(TransactionCase):
         """Nhóm chưa có mẫu giữ nguyên luật cũ — không nới lỏng theo."""
         with self.assertRaises(ValidationError):
             self._create_line(
-                product_category_id=self.categ_plain.id, dimension_note="")
+                product_category_id=self.categ_plain.id,
+            reference_product_id=False, dimension_note="")
 
     def test_out_of_range_is_warning_not_block(self):
         """Cỡ đặc biệt vẫn gửi được — Sales không có quyền phán cỡ nào làm được."""
@@ -243,24 +251,34 @@ class TestRfqSalesParams(TransactionCase):
         self.assertEqual(line.quantity, 100.5)
 
     def test_legacy_line_without_params_stays_valid(self):
-        """Dòng CŨ (nhóm gắn mẫu SAU khi dòng đã tạo) không bị khoá cứng.
+        """Dòng CŨ (kiểu hàng được gắn mẫu SAU khi dòng đã tạo) không bị khoá cứng.
 
         Đây là ca migration: coi "không có ô nào" là "thiếu tất cả" sẽ chặn mọi
         thao tác sửa trên RFQ lịch sử và làm chính migration nổ giữa chừng."""
-        line = self._create_line(
-            product_category_id=self.categ_plain.id,
-            dimension_note="Bàn 1200x400 (đơn cũ)")
-        self.assertFalse(line.param_ids)
-        # Nhóm được gắn mẫu tham số về sau.
-        late_generic = self.env["product.product"].create({
-            "name": "Hàng lẻ dùng chung (test)",
+        legacy_product = self.env["product.product"].create({
+            "name": "Hàng lẻ chưa có mẫu (test)",
             "categ_id": self.categ_plain.id,
             "product_kind": "manufactured",
+            "dlm_lifecycle_state": "active",
         })
+        legacy_bom = self.env["dl.bom"].create({
+            "product_id": legacy_product.id,
+            "line_ids": [(0, 0, {
+                "material_id": self.material.id, "quantity": 1.0})],
+        })
+        legacy_bom.action_confirm()
+
+        line = self._create_line(
+            product_category_id=self.categ_plain.id,
+            reference_product_id=legacy_product.id,
+            dimension_note="Bàn 1200x400 (đơn cũ)")
+        self.assertFalse(line.param_ids, "Lúc tạo, kiểu hàng chưa có mẫu")
+
+        # Kiểu hàng được gắn mẫu tham số VỀ SAU.
         late = self.env["dl.bom.template"].create({
             "name": "Mẫu gắn muộn (test)",
             "product_category_id": self.categ_plain.id,
-            "generic_product_id": late_generic.id,
+            "generic_product_id": legacy_product.id,
             "line_ids": [(0, 0, {
                 "material_id": self.material.id, "quantity": 1.0})],
             "param_ids": [(0, 0, {
@@ -268,6 +286,7 @@ class TestRfqSalesParams(TransactionCase):
         })
         late.action_confirm()
         line.invalidate_recordset()
+
         self.assertTrue(line.has_parametric_template)
         self.assertFalse(line.has_missing_params, "Dòng cũ không bị coi là thiếu")
         line._check_manufactured_spec()      # không nổ
@@ -294,6 +313,7 @@ class TestRfqSalesParams(TransactionCase):
         """Nhóm chưa có mẫu ⇒ vẫn đoán từ mô tả như trước (đường dự phòng)."""
         line = self._create_line(
             product_category_id=self.categ_plain.id,
+            reference_product_id=False,
             dimension_note="Kệ 1400x830, cao 750")
         dims = line._dlm_wanted_dimensions()
         self.assertEqual(dims["length"], 1400)
@@ -351,10 +371,10 @@ class TestRfqSalesParams(TransactionCase):
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
             default_rfq_line_id=line.id).create({"rfq_line_id": line.id})
         defaults = wizard.default_get(
-            ["product_id", "manual_bom_id", "exact_config_match", "mode"])
+            ["product_id", "manual_bom_id", "product_origin"])
         self.assertEqual(defaults.get("product_id"), self.generic.id)
         self.assertEqual(defaults.get("manual_bom_id"), bom.id)
-        self.assertTrue(defaults.get("exact_config_match"))
+        self.assertEqual(defaults.get("product_origin"), "exact_config")
 
     def test_param_panel_seeded_from_sales(self):
         """Panel tham số của KTV mồi sẵn số Sales nhập — hết phải gõ lại."""
@@ -379,7 +399,366 @@ class TestRfqSalesParams(TransactionCase):
             {c[2]["value"] for c in commands if c[0] == 0}, {0.0})
 
     # ==================================================================
-    # 5. Ranh giới vai trò — thông số là ĐỀ BÀI của Sales
+    # 5. Kỹ thuật KHÔNG phải quyết "sản phẩm nào" — hệ thống suy hộ
+    # ==================================================================
+    def _open_workspace(self, line):
+        """Đúng đường Kỹ thuật bấm "Xử lý" — default_get chạy trong create()."""
+        return self.env["dl.rfq.resolve.wizard"].with_context(
+            default_rfq_line_id=line.id).create({})
+
+    def test_sales_pick_routes_to_that_product(self):
+        """Sales chọn Kiểu hàng ⇒ đó CHÍNH LÀ sản phẩm, không đoán tiếp.
+
+        Với họ có mẫu tham số thì kiểu hàng là SP dùng chung, nên mọi cỡ vẫn
+        đổ về một mã — không bao giờ đẻ mã theo từng kích thước."""
+        line = self._make_line({"D": 1500, "R": 600})
+        product, origin = line._dlm_autoresolve_product()
+        self.assertEqual(product, self.generic)
+        self.assertEqual(origin, "sales_pick")
+        wizard = self._open_workspace(line)
+        self.assertEqual(wizard.product_id, self.generic)
+        self.assertTrue(wizard.auto_selected)
+
+    def test_exact_name_reuses_existing_product(self):
+        """Trùng HỆT tên ⇒ dùng lại SP đó, không tạo trùng.
+
+        Luật cũ chặn cứng rồi bảo KTV "quay lại chọn chính sản phẩm này" — nay
+        hệ thống chọn hộ, KTV khỏi đi một vòng."""
+        existing = self.env["product.product"].create({
+            "name": "Kệ kho 4 tầng (test bậc thang)",
+            "categ_id": self.categ_plain.id,
+            "product_kind": "manufactured",
+            "dlm_lifecycle_state": "active",
+        })
+        line = self._create_line(
+            product_category_id=self.categ_plain.id,
+            reference_product_id=False,
+            product_name="  kệ kho 4 TẦNG (test bậc thang)  ",
+            dimension_note="2400x600x2000")
+        product, origin = line._dlm_autoresolve_product()
+        self.assertEqual(product, existing, "Khác hoa-thường/khoảng trắng vẫn là một")
+        self.assertEqual(origin, "name_match")
+
+    def test_brand_new_product_created_from_sales_input(self):
+        """Mới toanh ⇒ tự tạo SP TẠM mang đúng tên + nhóm Sales khai.
+
+        Đây là thứ thay hẳn khối "Tạo sản phẩm mới": KTV mở workspace ra đã có
+        sản phẩm, đi thẳng vào định mức."""
+        line = self._create_line(
+            product_category_id=self.categ_plain.id,
+            reference_product_id=False,
+            product_name="Khung tủ điện hoàn toàn mới",
+            dimension_note="800x600x2000")
+        wizard = self._open_workspace(line)
+        self.assertEqual(wizard.product_origin, "created")
+        product = wizard.product_id
+        self.assertEqual(product.name, "Khung tủ điện hoàn toàn mới",
+                         "Tên lấy đúng của Sales")
+        self.assertEqual(product.categ_id, self.categ_plain,
+                         "Nhóm lấy đúng của Sales")
+        self.assertEqual(product.product_kind, "manufactured")
+        self.assertTrue(product.is_rfq_provisional, "Tạm cho tới khi chốt đơn")
+        self.assertEqual(product.dlm_lifecycle_state, "draft")
+        self.assertEqual(product.rfq_source_line_id, line)
+
+    def test_similar_name_creates_but_keeps_warning_card(self):
+        """Tên GẦN GIỐNG ⇒ vẫn tạo mới, nhưng thẻ nhắc "đã có món tương tự".
+
+        🔴 Đây là chỗ trú mới của lá chắn tên gần giống. Luật cũ chặn cứng và
+        bắt KTV tick xác nhận; luật mới không chặn nữa, nên nếu thẻ này tắt thì
+        hệ thống âm thầm đẻ sản phẩm trùng nghĩa mà không ai biết."""
+        self.env["product.product"].create({
+            "name": "Kệ kho 4 tầng",
+            "categ_id": self.categ_plain.id,
+            "product_kind": "manufactured",
+            "dlm_lifecycle_state": "active",
+        })
+        line = self._create_line(
+            product_category_id=self.categ_plain.id,
+            reference_product_id=False,
+            product_name="Kệ kho 4 tầng loại 2",   # gần giống, KHÔNG trùng hệt
+            dimension_note="2400x600x2000")
+        wizard = self._open_workspace(line)
+        self.assertEqual(wizard.product_origin, "created")
+        self.assertNotEqual(wizard.suggestion_state, "none",
+                            "Phải còn thẻ nhắc dù đã tự tạo sản phẩm")
+        self.assertEqual(wizard.suggested_product_id.name, "Kệ kho 4 tầng")
+
+    def test_use_suggested_cleans_up_auto_created_product(self):
+        """Bấm "Dùng món cũ" ⇒ sản phẩm tạm vừa tự tạo bị dọn ngay."""
+        self.env["product.product"].create({
+            "name": "Giá đỡ máy bơm",
+            "categ_id": self.categ_plain.id,
+            "product_kind": "manufactured",
+            "dlm_lifecycle_state": "active",
+        })
+        line = self._create_line(
+            product_category_id=self.categ_plain.id,
+            reference_product_id=False,
+            product_name="Giá đỡ máy bơm loại 2",
+            dimension_note="500x400")
+        wizard = self._open_workspace(line)
+        provisional = wizard.product_id
+        self.assertTrue(provisional.is_rfq_provisional)
+
+        wizard.action_use_suggested_product()
+
+        self.assertEqual(wizard.product_id.name, "Giá đỡ máy bơm")
+        self.assertFalse(provisional.exists(), "SP tạm phải bị dọn ngay")
+
+    def test_autoresolve_is_idempotent(self):
+        """Mở lại workspace KHÔNG đẻ thêm sản phẩm tạm thứ hai."""
+        line = self._create_line(
+            product_category_id=self.categ_plain.id,
+            reference_product_id=False,
+            product_name="Khung tủ điện mở hai lần",
+            dimension_note="800x600x2000")
+        first = self._open_workspace(line).product_id
+        second = self._open_workspace(line).product_id
+        self.assertEqual(first, second)
+        self.assertEqual(self.env["product.product"].search_count([
+            ("rfq_source_line_id", "=", line.id)]), 1)
+
+    def test_name_clash_with_btp_falls_back_to_manual(self):
+        """Trùng tên với BÁN THÀNH PHẨM ⇒ trả tay cho KTV, không nổ.
+
+        BTP không dùng làm sản phẩm của dòng được (khách không đặt bán thành
+        phẩm) mà tạo mới cũng bị `_check_dlm_name_duplicate` chặn — nếu không
+        có nhánh này thì mở workspace là ném lỗi."""
+        # BTP phải thuộc nhánh VẬT TƯ (nhánh Thành phẩm bị chặn cứng).
+        btp_categ = self.env["product.category"].create({
+            "name": "BTP (test bậc thang)",
+            "parent_id": self.env.ref("dl_product.categ_root_material").id,
+        })
+        self.env["product.product"].create({
+            "name": "Cụm chân bàn hàn sẵn (test)",
+            "categ_id": btp_categ.id,
+            "product_kind": "material_processed",
+        })
+        line = self._create_line(
+            product_category_id=self.categ_plain.id,
+            reference_product_id=False,
+            product_name="Cụm chân bàn hàn sẵn (test)",
+            dimension_note="600x600")
+        product, origin = line._dlm_autoresolve_product()
+        self.assertFalse(product)
+        self.assertFalse(origin)
+        wizard = self._open_workspace(line)   # không nổ
+        self.assertFalse(wizard.product_id, "Để KTV tự gỡ ca hiếm này")
+
+    def test_restore_auto_product_is_not_a_dead_end(self):
+        """Bấm nhầm "Đổi sản phẩm" với món mới toanh ⇒ lấy lại được, KHÔNG đẻ thêm.
+
+        🔴 Từ khi gỡ nút "Tạo sản phẩm mới" khỏi workspace, đây là đường DUY
+        NHẤT để quay về. Không có nó thì KTV kẹt cứng giữa chừng: món chưa từng
+        làm nên không có gì để chọn, mà cũng không còn cách tạo."""
+        line = self._create_line(
+            product_category_id=self.categ_plain.id,
+            reference_product_id=False,
+            product_name="Khung tủ điện quay lại được",
+            dimension_note="800x600x2000")
+        wizard = self._open_workspace(line)
+        original = wizard.product_id
+        self.assertEqual(wizard.product_origin, "created")
+
+        wizard.action_change_product()
+        self.assertFalse(wizard.product_id)
+
+        wizard.action_restore_auto_product()
+        self.assertEqual(wizard.product_id, original, "Phải là ĐÚNG bản cũ")
+        self.assertEqual(wizard.product_origin, "created")
+        self.assertEqual(self.env["product.product"].search_count([
+            ("rfq_source_line_id", "=", line.id)]), 1,
+            "Gọi lại bậc thang không được đẻ sản phẩm thứ hai")
+
+    def test_workspace_has_no_product_creation_surface(self):
+        """Workspace KHÔNG còn bất kỳ đường tạo sản phẩm nào cho Kỹ thuật.
+
+        Khoá lại bằng test vì đây là ranh giới VAI TRÒ, không phải chi tiết kỹ
+        thuật: khai sinh danh mục là việc hành chính, hệ thống làm ngầm từ tên +
+        nhóm Sales khai. Ai thêm lại nút "Tạo sản phẩm" sẽ thấy test này đỏ."""
+        Wizard = self.env["dl.rfq.resolve.wizard"]
+        for gone in ("mode", "new_product_name", "new_product_category_id",
+                     "confirm_not_just_size", "confirm_similar_name",
+                     "name_dup_state", "new_product_blocking_template_id"):
+            self.assertNotIn(gone, Wizard._fields, "Field %s phải bị gỡ" % gone)
+        for gone in ("action_create_product", "action_use_duplicate_product"):
+            self.assertFalse(hasattr(Wizard, gone), "Action %s phải bị gỡ" % gone)
+
+    def test_change_product_clears_origin(self):
+        """Bấm "Đổi sản phẩm" ⇒ xoá cả nhãn lý do (không còn là máy chọn)."""
+        line = self._make_line({"D": 1500, "R": 600})
+        wizard = self._open_workspace(line)
+        self.assertTrue(wizard.product_origin)
+        wizard.action_change_product()
+        self.assertFalse(wizard.product_id)
+        self.assertFalse(wizard.product_origin)
+        self.assertFalse(wizard.auto_selected)
+
+    def test_legacy_line_without_category_left_to_technician(self):
+        """Dòng cũ chưa có nhóm ⇒ không suy được, mở ra vẫn cho chọn tay."""
+        line = self._create_line(
+            product_category_id=self.categ_plain.id,
+            reference_product_id=False,
+            dimension_note="1200x800")
+        line.invalidate_recordset()
+        self.env.cr.execute(
+            "UPDATE dl_quotation_request_line SET product_category_id = NULL "
+            "WHERE id = %s", (line.id,))
+        line.invalidate_recordset()
+        product, origin = line._dlm_autoresolve_product()
+        self.assertFalse(product)
+        self.assertFalse(origin)
+
+    # ==================================================================
+    # 5b. Mẫu neo theo SẢN PHẨM — nhiều kết cấu trong cùng một nhóm
+    # ==================================================================
+    def _second_family(self):
+        """Kết cấu THỨ HAI trong cùng nhóm thương mại `categ_param`."""
+        generic2 = self.env["product.product"].create({
+            "name": "Ghế băng khung thép (test)",
+            "categ_id": self.categ_param.id,
+            "product_kind": "manufactured",
+            "dlm_lifecycle_state": "active",
+        })
+        tmpl2 = self.env["dl.bom.template"].create({
+            "name": "Mẫu Ghế băng (test)",
+            "product_category_id": self.categ_param.id,
+            "generic_product_id": generic2.id,
+            "line_ids": [(0, 0, {
+                "material_id": self.material.id, "quantity": 1.0})],
+            "param_ids": [(0, 0, {
+                "code": "D", "name": "Chiều dài ghế", "dim_role": "length",
+                "value_min": 800, "value_max": 2400, "required": True})],
+        })
+        tmpl2.action_confirm()
+        return generic2, tmpl2
+
+    def test_two_parametric_templates_in_one_category(self):
+        """🔴 Hai kết cấu khác nhau trong CÙNG nhóm, mỗi cái một mẫu.
+
+        Mô hình cũ (mẫu neo theo NHÓM + unique(nhóm, version)) CẤM bản thứ hai —
+        đó là lỗi kiến trúc đã sửa. Sổ đặt hàng thật có ít nhất 5 kết cấu trong
+        nhóm "Bàn ghế học sinh"."""
+        generic2, tmpl2 = self._second_family()
+        self.assertEqual(self.generic._dlm_parametric_template(), self.template)
+        self.assertEqual(generic2._dlm_parametric_template(), tmpl2)
+        self.assertEqual(
+            sorted(self.categ_param._dlm_parametric_generic_ids().ids),
+            sorted((self.generic | generic2).ids))
+
+    def test_params_follow_kieu_hang_not_category(self):
+        """Cùng nhóm, đổi Kiểu hàng ⇒ bộ ô thông số đổi theo mẫu của kiểu đó."""
+        generic2, _tmpl2 = self._second_family()
+        line = self._make_line({"D": 1200, "R": 400})
+        self.assertEqual(sorted(line.param_ids.mapped("code")), ["D", "R"])
+
+        line.reference_product_id = generic2
+        self.assertEqual(line.param_ids.mapped("code"), ["D"],
+                         "Ghế băng chỉ hỏi chiều dài")
+        self.assertEqual(line.param_ids.value, 1200, "Giữ số theo MÃ tham số")
+
+    def test_version_numbering_is_per_product(self):
+        """Hai họ trong cùng nhóm đánh số phiên bản ĐỘC LẬP, không tranh nhau."""
+        generic2, tmpl2 = self._second_family()
+        self.assertEqual(self.template.version, 1)
+        self.assertEqual(tmpl2.version, 1, "Không bị đẩy thành version 2")
+
+    # ==================================================================
+    # 5c. Làn L0 — dòng tự chốt, không qua Kỹ thuật
+    # ==================================================================
+    def test_signature_match_autoresolves_line(self):
+        """Đúng cấu hình đã duyệt ⇒ dòng tự chốt, RFQ lên thẳng Chờ tạo báo giá."""
+        bom = self._generate_instance({"D": 1200, "R": 400})
+        line = self._make_line({"D": 1200, "R": 400})
+
+        self.assertTrue(line.auto_resolved)
+        self.assertEqual(line.resolved_bom_id, bom)
+        self.assertEqual(line.resolved_product_id, self.generic)
+        self.assertEqual(line.quotation_request_id.status, "confirmed")
+
+    def test_new_size_does_not_autoresolve(self):
+        """Cỡ MỚI phải qua Kỹ thuật — chưa ai duyệt định mức cho cỡ này."""
+        self._generate_instance({"D": 1200, "R": 400})
+        line = self._make_line({"D": 1500, "R": 400})
+        self.assertFalse(line.auto_resolved)
+        self.assertFalse(line.resolved_bom_id)
+
+    def test_draft_bom_never_autoresolves(self):
+        """Chỉ định mức ĐÃ DUYỆT mới cho bỏ qua Kỹ thuật."""
+        bom = self.template.generate_instance(self.generic, {"D": 1200, "R": 400})
+        bom.write({"is_rfq_provisional": False, "rfq_source_line_id": False})
+        self.assertEqual(bom.status, "draft")
+        line = self._make_line({"D": 1200, "R": 400})
+        self.assertFalse(line.auto_resolved)
+
+    def test_sales_editing_size_drops_out_of_auto_lane(self):
+        """🔴 Sales sửa kích thước sau khi dòng tự chốt ⇒ RỚT làn, về Kỹ thuật.
+
+        Không có chiều này thì báo giá đi ra mang định mức của một cỡ khác, và
+        không chỗ nào báo động."""
+        self._generate_instance({"D": 1200, "R": 400})
+        line = self._make_line({"D": 1200, "R": 400})
+        self.assertTrue(line.auto_resolved)
+
+        line.param_ids.filtered(lambda p: p.code == "D").value = 1500
+
+        self.assertFalse(line.auto_resolved, "Phải rớt khỏi làn tự động")
+        self.assertFalse(line.resolved_bom_id)
+        self.assertFalse(line.resolved_product_id)
+
+    def test_autoresolve_does_not_override_technician(self):
+        """Kỹ thuật đã chốt tay thì hệ thống KHÔNG ghi đè."""
+        bom = self._generate_instance({"D": 1200, "R": 400})
+        line = self._make_line({"D": 1500, "R": 400})   # cỡ mới, KT phải làm
+        line.write({"resolved_product_id": self.generic.id,
+                    "resolved_bom_id": bom.id})
+        self.assertFalse(line.auto_resolved)
+
+        line.write({"quantity": 9.0})
+
+        self.assertEqual(line.resolved_bom_id, bom, "Kết quả của KTV giữ nguyên")
+        self.assertFalse(line.auto_resolved)
+
+    # ==================================================================
+    # 5d. Danh sách Kiểu hàng cho Sales
+    # ==================================================================
+    def test_kieu_hang_hides_unusable_products(self):
+        """SP không mẫu và không định mức nào là cái bẫy — không được hiện."""
+        trap = self.env["product.product"].create({
+            "name": "SP chưa có định mức nào (test)",
+            "categ_id": self.categ_param.id,
+            "product_kind": "manufactured",
+            "dlm_lifecycle_state": "active",
+        })
+        line = self._make_line({"D": 1200, "R": 400})
+        self.assertIn(self.generic, line.reference_product_ids,
+                      "SP dùng chung của mẫu phải chọn được dù chưa có instance")
+        self.assertNotIn(trap, line.reference_product_ids)
+
+    def test_kieu_hang_label_tells_which_behaviour(self):
+        """Dropdown phải cho biết chọn xong sẽ ra gì."""
+        catalog = self.env["product.product"].create({
+            "name": "Bàn giáo viên cố định (test)",
+            "categ_id": self.categ_param.id,
+            "product_kind": "manufactured",
+            "dlm_lifecycle_state": "active",
+        })
+        std = self.env["dl.bom"].create({
+            "product_id": catalog.id, "bom_type": "template",
+            "line_ids": [(0, 0, {
+                "material_id": self.material.id, "quantity": 1.0})]})
+        std.action_confirm()
+
+        labelled = self.generic.with_context(dlm_show_bom_kind=True)
+        self.assertIn("theo kích thước", labelled.display_name)
+        self.assertIn("cỡ cố định",
+                      catalog.with_context(dlm_show_bom_kind=True).display_name)
+        # Không bật context thì tên giữ nguyên, không rò ra chỗ khác.
+        self.assertNotIn("theo kích thước", self.generic.display_name)
+
+    # ==================================================================
+    # 6. Ranh giới vai trò — thông số là ĐỀ BÀI của Sales
     # ==================================================================
     def test_tech_cannot_edit_sales_params(self):
         """Kỹ thuật sửa được định mức, KHÔNG sửa được yêu cầu của khách."""

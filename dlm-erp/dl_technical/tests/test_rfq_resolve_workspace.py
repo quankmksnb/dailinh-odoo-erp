@@ -110,6 +110,10 @@ class TestRfqResolveWorkspace(TransactionCase):
     def test_can_confirm_requires_product(self):
         request, line = self._make_rfq_line()
         wizard = self._wizard(line)
+        # Workspace nay TỰ quyết sản phẩm khi mở (2026-08-19). Cổng "chưa có sản
+        # phẩm thì chưa Hoàn tất được" vẫn phải đứng — nó gác ca KTV bấm "Đổi
+        # sản phẩm" rồi bỏ dở, nên dựng lại đúng ca đó.
+        wizard.action_change_product()
 
         self.assertFalse(wizard.product_id)
         self.assertFalse(wizard.can_confirm)
@@ -144,6 +148,10 @@ class TestRfqResolveWorkspace(TransactionCase):
     def test_step_computed_from_data(self):
         request, line = self._make_rfq_line()
         wizard = self._wizard(line)
+        # Mở ra là đã có sản phẩm (hệ thống tự quyết) ⇒ đứng ngay ở khối ⑵.
+        self.assertEqual(wizard.step, "bom", "Có sản phẩm sẵn → khối ⑵")
+
+        wizard.action_change_product()
         self.assertEqual(wizard.step, "product", "Chưa có sản phẩm → khối ⑴")
 
         wizard.product_id = self.product.id

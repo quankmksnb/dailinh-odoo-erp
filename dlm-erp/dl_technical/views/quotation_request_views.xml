@@ -392,7 +392,7 @@
                                     <!-- Cột phụ — ẩn mặc định, bật qua menu cột -->
                                     <field name="product_type" optional="hide"/>
                                     <field name="product_category_id" optional="hide"/>
-                                    <field name="reference_product_id" string="Sản phẩm tham khảo"
+                                    <field name="reference_product_id" string="Kiểu hàng"
                                            optional="hide"/>
                                     <field name="resolved_product_id" string="Sản phẩm đã xác định"
                                            readonly="1" optional="hide"/>
@@ -462,7 +462,7 @@
                                                        readonly="is_technician"
                                                        domain="[('id', 'in', selectable_category_ids)]"/>
                                                 <field name="reference_product_id"
-                                                       string="Sản phẩm tham khảo"
+                                                       string="Kiểu hàng"
                                                        readonly="is_technician"
                                                        options="{'no_create': True}"
                                                        domain="[('id', 'in', reference_product_ids)]"
@@ -805,6 +805,7 @@
                                     <field name="has_parametric_template" invisible="1"/>
                                     <field name="has_missing_params" invisible="1"/>
                                     <field name="has_out_of_range_params" invisible="1"/>
+                                    <field name="auto_resolved" invisible="1"/>
                                     <group>
                                         <group string="Thông tin">
                                             <field name="product_name" required="1" widget="dl_min_length_char" options="{'min_length': 2}"/>
@@ -815,9 +816,16 @@
                                                    required="1"
                                                    options="{'no_create': True}"
                                                    domain="[('id', 'in', selectable_category_ids)]"/>
-                                            <!-- §1b — SP tham khảo lọc theo nhóm đã chọn -->
+                                            <!-- KIỂU HÀNG — ô chính, không còn là
+                                                 "tham khảo". Lọc theo nhóm đã chọn;
+                                                 context bật đuôi "theo kích thước /
+                                                 cỡ cố định" để Sales phân biệt được
+                                                 ngay trong danh sách. -->
                                             <field name="reference_product_id"
+                                                   string="Kiểu hàng"
                                                    options="{'no_create': True}"
+                                                   context="{'dlm_show_bom_kind': True}"
+                                                   placeholder="Chọn nếu ta từng làm — để trống nếu là món mới"
                                                    domain="[('id', 'in', reference_product_ids)]"/>
                                             <label for="quantity"/>
                                             <div class="o_row">
@@ -876,6 +884,22 @@
                                             Có thông số nằm ngoài miền thường làm — vẫn
                                             gửi được, Kỹ thuật sẽ xem kỹ cỡ này.
                                         </div>
+                                    </div>
+
+                                    <!-- Tín hiệu tức thời cho Sales: cấu hình này đã
+                                         từng làm chưa. Đây là chỗ Sales thấy được giá
+                                         trị của việc chọn Kiểu hàng + điền số. -->
+                                    <div class="alert alert-success mb-0 py-2" role="status"
+                                         invisible="not auto_resolved">
+                                        <i class="fa fa-check-circle me-1" aria-hidden="true"/>
+                                        <b>Đã có định mức duyệt sẵn cho đúng thứ này</b> —
+                                        dòng này không cần qua Kỹ thuật, báo giá được ngay.
+                                    </div>
+                                    <div class="alert alert-info mb-0 py-2" role="status"
+                                         invisible="auto_resolved or not has_parametric_template or has_missing_params">
+                                        <i class="fa fa-magic me-1" aria-hidden="true"/>
+                                        Cỡ này chưa từng làm — Kỹ thuật sẽ sinh định mức
+                                        theo thông số bạn vừa nhập.
                                     </div>
 
                                     <!-- §1c — ô Yêu cầu/Mô tả để rộng & cao hơn.

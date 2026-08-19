@@ -3,24 +3,48 @@ from odoo.exceptions import UserError, ValidationError
 
 
 class DlBomTemplate(models.Model):
-    """BOM Template — dùng cho Product Group (product_category_id). Một
-    Product Group có thể có nhiều BOM Template (nhiều version). Cấu trúc đầu
-    BOM giống Product BOM (dl.bom): version/status/Output Quantity, cùng
-    workflow xác nhận/khóa/lưu trữ/tạo phiên bản mới — dùng chung qua
-    dl.bom.header.mixin. Độc lập với BOM thật, KHÔNG gắn 1 product cụ thể."""
+    """BOM mẫu — model này gánh HAI loại mẫu khác hẳn nhau, đọc kỹ trước khi sửa.
+
+    ① **Mẫu chép tay** (không tham số, `generic_product_id` trống)
+       "Hàng loại này thường gồm những vật tư gì". KTV mở BOM mới rồi bấm
+       *Tạo từ BOM mẫu* để chép dòng. Neo theo **NHÓM sản phẩm** — đúng bản
+       chất, vì nó chỉ là gợi ý vật tư cho cả một nhóm.
+
+    ② **Mẫu tham số** (có `param_ids` + `generic_product_id`)
+       Nhập D/R/C → ánh xạ tuyến tính tự sinh kích thước cắt từng thanh.
+       Neo theo **SẢN PHẨM DÙNG CHUNG**.
+
+    🔴 Loại ② TỪNG neo theo nhóm và đó là lỗi kiến trúc (sửa 2026-08-19): nhóm
+    sản phẩm là trục THƯƠNG MẠI (Sales sở hữu, để tính doanh số và áp chính
+    sách giá), còn mẫu tham số là trục KẾT CẤU. Ép hai trục làm một thì ràng
+    buộc "một nhóm một mẫu" chặn mất các kết cấu còn lại: nhóm "Bàn ghế học
+    sinh" ngoài đời có ít nhất 5 kết cấu (bàn liền ghế có tựa / không tựa /
+    bàn ghế rời / bàn giáo viên có hộc tủ / bàn vi tính), chỉ một cái khai được
+    mẫu. Nay mỗi kết cấu một sản phẩm dùng chung, mỗi sản phẩm một dòng dõi mẫu.
+    """
 
     _name = "dl.bom.template"
     _description = "BOM mẫu"
     _inherit = ["mail.thread", "mail.activity.mixin", "dl.bom.header.mixin"]
     _order = "name"
 
-    _sql_constraints = [
-        (
-            "category_version_uniq",
-            "unique(product_category_id,version)",
-            "Phiên bản BOM mẫu của nhóm sản phẩm đã tồn tại.",
-        ),
-    ]
+    # Không dùng _sql_constraints: hai loại mẫu đánh số phiên bản trên hai trục
+    # khác nhau, mà UNIQUE thường không kèm được điều kiện. Hai index BỘ PHẬN ở
+    # `init()` bên dưới làm đúng việc đó, vẫn giữ được chốt chặn ở tầng DB.
+
+    def init(self):
+        """Hai dòng dõi phiên bản tách biệt, chốt bằng unique index bộ phận."""
+        super().init()
+        self._cr.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS dl_bom_template_generic_version_uniq
+                ON dl_bom_template (generic_product_id, version)
+             WHERE generic_product_id IS NOT NULL
+        """)
+        self._cr.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS dl_bom_template_categ_version_uniq
+                ON dl_bom_template (product_category_id, version)
+             WHERE generic_product_id IS NULL
+        """)
 
     name = fields.Char(string="Tên BOM mẫu", required=True, tracking=True)
     # Chỉ nhóm thuộc 2 nhánh chuẩn (Thành phẩm cho SP gia công, Vật tư cho
@@ -107,9 +131,12 @@ class DlBomTemplate(models.Model):
 
     @api.constrains("generic_product_id", "product_category_id")
     def _check_generic_product_category(self):
-        """Sản phẩm dùng chung phải nằm ĐÚNG nhóm của mẫu — nếu không, bộ định
-        tuyến ở workspace RFQ (tìm mẫu theo nhóm rồi lấy generic) sẽ trả về sản
-        phẩm của nhóm khác."""
+        """Nhóm của mẫu phải bằng nhóm của sản phẩm dùng chung.
+
+        Nhóm nay là thông tin SUY RA từ sản phẩm (xem `_onchange_category_version`);
+        ràng buộc này giữ cho hai chỗ không trôi khỏi nhau khi ghi qua
+        import/RPC — Sales lọc kiểu hàng theo nhóm, lệch là mất mẫu khỏi danh
+        sách mà không có lỗi nào nổ."""
         for rec in self:
             product = rec.generic_product_id
             if product and product.categ_id != rec.product_category_id:
@@ -120,12 +147,44 @@ class DlBomTemplate(models.Model):
                     pc=product.categ_id.display_name or _("chưa phân nhóm"),
                     c=rec.product_category_id.display_name))
 
-    def _version_domain(self):
-        self.ensure_one()
-        return [("product_category_id", "=", self.product_category_id.id)]
+    @api.constrains("is_parametric", "generic_product_id", "status")
+    def _check_parametric_needs_generic(self):
+        """Mẫu THAM SỐ đã duyệt bắt buộc có sản phẩm dùng chung.
 
-    @api.onchange("product_category_id")
+        Từ 2026-08-19 sản phẩm dùng chung là NEO của mẫu tham số, không còn là
+        tuỳ chọn: nó vừa là đích của mọi kích thước sinh ra, vừa là thứ Sales
+        chọn ở ô "Kiểu hàng". Mẫu tham số không có neo thì không ai tới được
+        nó — duyệt xong nằm im, và `_version_domain` cũng không biết đánh số
+        theo trục nào."""
+        for rec in self:
+            if (rec.is_parametric and not rec.generic_product_id
+                    and rec.status in ("confirmed", "locked")):
+                raise ValidationError(_(
+                    "BOM mẫu “%s” có tham số nhưng chưa gán Sản phẩm dùng chung. "
+                    "Gán sản phẩm đại diện cho họ này rồi xác nhận lại — đó là "
+                    "thứ Sales chọn ở ô Kiểu hàng."
+                ) % rec.name)
+
+    def _version_domain(self):
+        """Đánh số phiên bản theo ĐÚNG trục mà mẫu này neo vào.
+
+        Mẫu tham số nối tiếp nhau theo SẢN PHẨM dùng chung; mẫu chép tay nối
+        tiếp theo NHÓM. Dùng chung một trục thì hai kết cấu trong cùng nhóm sẽ
+        tranh số phiên bản của nhau."""
+        self.ensure_one()
+        if self.generic_product_id:
+            return [("generic_product_id", "=", self.generic_product_id.id)]
+        return [
+            ("product_category_id", "=", self.product_category_id.id),
+            ("generic_product_id", "=", False),
+        ]
+
+    @api.onchange("product_category_id", "generic_product_id")
     def _onchange_category_version(self):
+        # Sản phẩm dùng chung quyết định luôn nhóm — một nguồn sự thật, và khớp
+        # sẵn ràng buộc _check_generic_product_category.
+        if self.generic_product_id:
+            self.product_category_id = self.generic_product_id.categ_id
         if self.product_category_id:
             self.version = self._compute_next_version()
 

@@ -41,27 +41,24 @@ class ProductCategoryTechnical(models.Model):
                     "Xác nhận/Khóa làm mẫu mặc định của nhóm."
                 ) % tmpl.name)
 
-    def _dlm_parametric_template(self):
-        """Mẫu THAM SỐ đã duyệt của nhóm này — nguồn DUY NHẤT để tra.
+    def _dlm_parametric_generic_ids(self):
+        """Các SẢN PHẨM DÙNG CHUNG có mẫu tham số đã duyệt trong nhóm này (và con).
 
-        Ba chỗ cần cùng một câu trả lời: panel tham số ở form Sales, bộ dò khớp
-        LỚP 1, và workspace Kỹ thuật. Trước đây bộ dò khớp tự search inline; tách
-        ra đây để ba chỗ không trôi khỏi nhau (nhóm nào "có mẫu" phải giống hệt
-        nhau ở cả ba, nếu không Sales điền tham số mà workspace lại không nhận).
-
-        KHÔNG đọc `bom_template_id` của nhóm: field đó là mẫu MẶC ĐỊNH nhập tay,
-        có thể trỏ mẫu không tham số hoặc bị bỏ trống. Tra thẳng theo nhóm +
-        đã duyệt + có tham số + có sản phẩm dùng chung — `unique(nhóm, version)`
-        đảm bảo không mơ hồ, `is_current desc` chốt bản hiện hành."""
+        Từ 2026-08-19 mẫu tham số neo theo SẢN PHẨM, không theo nhóm — một nhóm
+        thương mại chứa được nhiều kết cấu, mỗi kết cấu một mẫu. Nhóm vì thế
+        không còn trả về "một mẫu" nữa; nó chỉ trả về TẬP các kiểu hàng cho
+        Sales chọn. Hàm cũ `_dlm_parametric_template()` đã bỏ vì câu hỏi
+        "mẫu của nhóm này là mẫu nào" nay không có câu trả lời đơn nhất."""
         self.ensure_one()
         if not self.id:
-            return self.env["dl.bom.template"]
-        return self.env["dl.bom.template"].search([
-            ("product_category_id", "=", self.id),
+            return self.env["product.product"]
+        templates = self.env["dl.bom.template"].search([
             ("status", "in", ("confirmed", "locked")),
             ("is_parametric", "=", True),
             ("generic_product_id", "!=", False),
-        ], order="is_current desc, version desc", limit=1)
+            ("generic_product_id.categ_id", "child_of", self.id),
+        ])
+        return templates.mapped("generic_product_id")
 
 
 class DlProductTechnical(models.Model):
@@ -148,6 +145,59 @@ class DlProductTechnical(models.Model):
                 lambda b: b.bom_type == "template")
             product.instance_bom_ids = visible.filtered(
                 lambda b: b.bom_type == "quotation")
+
+    def _dlm_parametric_template(self):
+        """Mẫu tham số đã duyệt của CHÍNH sản phẩm này (bản hiện hành).
+
+        Nguồn DUY NHẤT cho ba chỗ phải trả lời giống nhau: bảng thông số ở form
+        Sales, bộ dò khớp, và workspace Kỹ thuật. Neo theo sản phẩm nên câu trả
+        lời là đơn nhất (index bộ phận `unique(generic_product_id, version)`)."""
+        self.ensure_one()
+        if not self.id:
+            return self.env["dl.bom.template"]
+        return self.env["dl.bom.template"].search([
+            ("generic_product_id", "=", self.id),
+            ("status", "in", ("confirmed", "locked")),
+            ("is_parametric", "=", True),
+        ], order="is_current desc, version desc", limit=1)
+
+    def _dlm_standard_bom(self):
+        """Định mức CHUẨN hiện hành của sản phẩm (Hạng B — hàng cỡ cố định).
+
+        Có bản này nghĩa là món đã thành mặt hàng catalog: Sales chọn xong là
+        báo giá được ngay, không cần qua Kỹ thuật (làn L0-a)."""
+        self.ensure_one()
+        if not self.id:
+            return self.env["dl.bom"]
+        return self.env["dl.bom"].search([
+            ("product_id", "=", self.id),
+            ("bom_type", "=", "template"),
+            ("is_current", "=", True),
+            ("status", "in", ("confirmed", "locked")),
+        ], limit=1)
+
+    @api.depends_context("dlm_show_bom_kind")
+    def _compute_display_name(self):
+        """Thêm đuôi "· theo kích thước / · cỡ cố định" khi context bật cờ.
+
+        Chỉ dùng ở ô "Kiểu hàng" của form Sales: hai loại kiểu hàng dẫn tới hai
+        hành vi khác hẳn nhau (một cái hỏi kích thước rồi sinh định mức, một
+        cái vào thẳng làn tự chốt), nên Sales phải phân biệt được NGAY TRONG
+        danh sách chứ không phải chọn xong mới biết.
+
+        Bật bằng context để không đụng mọi chỗ khác đang hiện tên sản phẩm."""
+        super()._compute_display_name()
+        if not self.env.context.get("dlm_show_bom_kind"):
+            return
+        for rec in self:
+            if rec.product_kind != "manufactured":
+                continue
+            if rec._dlm_parametric_template():
+                rec.display_name = "%s · %s" % (
+                    rec.display_name, _("theo kích thước"))
+            elif rec._dlm_standard_bom():
+                rec.display_name = "%s · %s" % (
+                    rec.display_name, _("cỡ cố định"))
 
     def _dlm_is_parametric_generic(self):
         """SP này có phải SẢN PHẨM DÙNG CHUNG của một mẫu tham số không?
