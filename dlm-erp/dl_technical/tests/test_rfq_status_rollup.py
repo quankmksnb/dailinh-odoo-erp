@@ -30,6 +30,13 @@ class TestRfqStatusRollup(TransactionCase):
             "product_kind": "trading",
             "dlm_lifecycle_state": "active",
         })
+        # Dòng gia công bắt buộc có Nhóm SP — nhóm quyết định form hỏi Sales
+        # thông số gì và Kỹ thuật dùng mẫu nào. Nhóm rỗng (chưa gắn BOM mẫu) là
+        # đủ cho bài test này: nó chỉ soi rollup trạng thái, không đụng định mức.
+        cls.categ = cls.env["product.category"].create({
+            "name": "Khung thép (test rollup)",
+            "parent_id": cls.env.ref("dl_product.categ_root_finished").id,
+        })
 
     def _trading_vals(self):
         return {
@@ -42,6 +49,7 @@ class TestRfqStatusRollup(TransactionCase):
         return {
             "product_type": "manufactured",
             "product_name": name,
+            "product_category_id": self.categ.id,
             "quantity": 1.0,
             "dimension_note": "1200x800",
         }

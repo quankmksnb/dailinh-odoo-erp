@@ -34,11 +34,34 @@ class TestRfqSuggestion(TransactionCase):
         cls.customer = cls.env["res.partner"].create({
             "name": "Cty khớp gợi ý (test)",
             "partner_role": "customer",
+            # dl_partner: khách CÁ NHÂN phải có điện thoại, và số KHÔNG được trùng
+            # giữa các khách ⇒ mỗi file test giữ một số riêng.
+            "phone": "0989204716",
         })
+        # Sản phẩm thương mại cho ca "dòng thương mại không bao giờ gợi ý":
+        # dòng loại này bắt buộc có SP xác định (_check_product_type_required).
+        cls.trading_product = cls.env["product.product"].create({
+            "name": "Ốc vít M8 (test gợi ý)",
+            "product_kind": "trading",
+            "dlm_lifecycle_state": "active",
+        })
+        # Định mức đã duyệt cho cls.existing — _check_product_has_bom chặn gán
+        # resolved_product_id cho SP gia công chưa có BOM confirmed/locked.
+        cls.material = cls.env["product.product"].create({
+            "name": "Thép hộp (test gợi ý)",
+            "product_kind": "material",
+        })
+        cls.existing_bom = cls.env["dl.bom"].create({
+            "product_id": cls.existing.id,
+            "line_ids": [(0, 0, {
+                "material_id": cls.material.id, "quantity": 1.0})],
+        })
+        cls.existing_bom.action_confirm()
 
-    def _rfq(self, **line_vals):
+    def _rfq(self, request_type="manufactured", **line_vals):
         vals = {
             "product_type": "manufactured",
+            "product_category_id": self.categ.id,
             "product_name": "Sản phẩm bất kỳ",
             "quantity": 1.0,
             # _check_manufactured_spec đòi mô tả kích thước hoặc đính kèm.
@@ -47,6 +70,7 @@ class TestRfqSuggestion(TransactionCase):
         vals.update(line_vals)
         request = self.env["dl.quotation.request"].create({
             "customer_id": self.customer.id,
+            "request_type": request_type,
             "line_ids": [(0, 0, vals)],
         })
         return request, request.line_ids[0]
@@ -130,8 +154,11 @@ class TestRfqSuggestion(TransactionCase):
 
     def test_trading_line_never_suggests(self):
         _req, line = self._rfq(
+            request_type="trading",
             product_type="trading",
             product_name="khung sắt v5 1200x800 (test)",
+            product_category_id=False,
+            resolved_product_id=self.trading_product.id,
         )
         self.assertEqual(line.suggestion_state, "none")
         self.assertFalse(line._dlm_suggest_candidates())
@@ -197,6 +224,7 @@ class TestRfqSuggestion(TransactionCase):
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
             reference_product_id=self.existing.id,
+            product_category_id=self.other_categ.id,
             dimension_note="1400x900",
         )
         ranked = line._dlm_suggest_candidates()
@@ -211,6 +239,7 @@ class TestRfqSuggestion(TransactionCase):
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
             reference_product_id=self.existing.id,
+            product_category_id=self.other_categ.id,
             dimension_note="1200x800x900",
         )
         ranked = line._dlm_suggest_candidates()
@@ -222,6 +251,9 @@ class TestRfqSuggestion(TransactionCase):
         self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
         _req, line = self._rfq(
             product_name="khung sắt v5 1200x800 (test)",
+            product_category_id=self.other_categ.id,
+            dimension_note=False,
+            attachment_ids=[(0, 0, {"name": "bv.pdf", "datas": b"MA=="})],
         )
         ranked = line._dlm_suggest_candidates()
         self.assertGreaterEqual(ranked[0]["score"], 70)
@@ -233,6 +265,7 @@ class TestRfqSuggestion(TransactionCase):
         self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
         _req, line = self._rfq(
             product_name="Tên hoàn toàn khác ZZZ",
+            product_category_id=self.other_categ.id,
             dimension_note="1200x800",
         )
         # Không ref, không trùng tên, không cùng nhóm, không cùng khách → rỗng.

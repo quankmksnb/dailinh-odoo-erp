@@ -407,7 +407,7 @@
                                     <field name="pricing_block_summary" string="Thiếu giá nhà cung cấp"
                                            readonly="1" optional="hide"/>
                                 </tree>
-                                <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
+                                <form string="Dòng sản phẩm" class="dl-rfq-line-detail dl-rfq-line-form">
                                     <!-- Một cửa: mở dialog chi tiết vẫn xử lý được ngay tại đây
                                          (khỏi phải đóng lại rồi đi tìm nút Xử lý ở dòng). Cùng gọi
                                          action_open_resolve_wizard → tự tiếp nhận RFQ nếu cần. -->
@@ -787,44 +787,107 @@
                                     <field name="product_name" string="Tên sản phẩm" widget="dl_min_length_char" options="{'min_length': 2}"/>
                                     <field name="product_category_id" string="Nhóm sản phẩm"/>
                                     <field name="reference_product_id" string="Sản phẩm tham khảo"/>
-                                    <field name="quantity" string="Số lượng"/>
+                                    <field name="quantity" string="Số lượng" widget="dl_qty"/>
+                                    <field name="uom_id" string="ĐVT"/>
                                     <field name="dimension_note" string="Mô tả"/>
                                     <!-- §2b — hiện thumbnail ảnh thay vì số lượng -->
                                     <field name="preview_image" widget="image"
                                            options="{'size': [40, 40]}" string="Ảnh"/>
                                 </tree>
-                                <form string="Sản phẩm gia công">
+                                <form string="Sản phẩm gia công" class="dl-rfq-line-form">
                                     <field name="product_type" invisible="1"/>
                                     <field name="selectable_category_ids" invisible="1"/>
                                     <field name="reference_product_ids" invisible="1"/>
+                                    <field name="has_parametric_template" invisible="1"/>
+                                    <field name="has_missing_params" invisible="1"/>
+                                    <field name="has_out_of_range_params" invisible="1"/>
                                     <group>
                                         <group string="Thông tin">
                                             <field name="product_name" required="1" widget="dl_min_length_char" options="{'min_length': 2}"/>
-                                            <!-- §1a — chỉ nhóm SP gia công -->
+                                            <!-- §1a — chỉ nhóm SP gia công. BẮT BUỘC:
+                                                 nhóm quyết định hệ thống hỏi thông số
+                                                 gì và Kỹ thuật dùng mẫu nào. -->
                                             <field name="product_category_id"
+                                                   required="1"
                                                    options="{'no_create': True}"
                                                    domain="[('id', 'in', selectable_category_ids)]"/>
                                             <!-- §1b — SP tham khảo lọc theo nhóm đã chọn -->
                                             <field name="reference_product_id"
                                                    options="{'no_create': True}"
                                                    domain="[('id', 'in', reference_product_ids)]"/>
-                                            <field name="quantity"/>
+                                            <label for="quantity"/>
+                                            <div class="o_row">
+                                                <field name="quantity" widget="dl_qty"/>
+                                                <field name="uom_id" options="{'no_create': True}"/>
+                                            </div>
                                         </group>
                                     </group>
+
+                                    <!-- ── Thông số theo mẫu của nhóm ───────────────
+                                         Chỉ hiện khi nhóm Sales chọn CÓ BOM mẫu tham
+                                         số. Ô nào hỏi là do chính mẫu khai (param_ids)
+                                         — cái bàn hỏi Dài/Rộng/Cao, cái máng hỏi
+                                         Dài/Khổ. Thêm loại hàng = dựng thêm BOM mẫu,
+                                         không phải sửa view này. -->
+                                    <div invisible="not has_parametric_template">
+                                        <separator string="Thông số kỹ thuật khách yêu cầu"/>
+                                        <div class="text-muted small mb-2">
+                                            Loại hàng này đã có mẫu định mức sẵn — điền
+                                            thông số để hệ thống nhận ra ngay cấu hình
+                                            đã từng làm. Chưa rõ số thì đính kèm bản vẽ.
+                                        </div>
+                                        <field name="param_ids" nolabel="1"
+                                               class="dl-rfq-params">
+                                            <!-- decoration-warning: tô dòng ngoài miền
+                                                 hợp lệ. Không dùng màu làm tín hiệu DUY
+                                                 nhất — cột "Miền hợp lệ" luôn hiện số và
+                                                 đã có alert chữ bên dưới. -->
+                                            <tree editable="bottom" create="false"
+                                                  delete="false" string="Thông số"
+                                                  decoration-warning="out_of_range">
+                                                <field name="name" string="Thông số" readonly="1"/>
+                                                <field name="value" string="Giá trị" widget="dl_qty"/>
+                                                <field name="range_hint" string="Miền hợp lệ" readonly="1"/>
+                                                <field name="out_of_range" column_invisible="1"/>
+                                            </tree>
+                                        </field>
+                                        <!-- Báo thiếu bằng ALERT nêu đích danh ô còn
+                                             trống, không dùng required trên ô trong
+                                             tree con: ô chỉ bắt buộc khi dòng KHÔNG có
+                                             đính kèm, mà điều kiện đó nằm ở bản ghi
+                                             CHA — modifier lồng hai tầng x2many đọc
+                                             parent rất dễ trượt. Chặn cứng vẫn ở
+                                             _check_manufactured_spec. -->
+                                        <div class="alert alert-danger mb-0 py-1 px-2 small"
+                                             role="alert"
+                                             invisible="not has_missing_params or attachment_ids">
+                                            <i class="fa fa-exclamation-circle me-1" aria-hidden="true"/>
+                                            Còn thiếu: <field name="missing_param_names" class="fw-bold"/>.
+                                            Điền nốt hoặc đính kèm bản vẽ ở dưới.
+                                        </div>
+                                        <div class="alert alert-warning mb-0 py-1 px-2 small"
+                                             role="alert"
+                                             invisible="not has_out_of_range_params">
+                                            <i class="fa fa-info-circle me-1" aria-hidden="true"/>
+                                            Có thông số nằm ngoài miền thường làm — vẫn
+                                            gửi được, Kỹ thuật sẽ xem kỹ cỡ này.
+                                        </div>
+                                    </div>
+
                                     <!-- §1c — ô Yêu cầu/Mô tả để rộng & cao hơn.
-                                         Cần ÍT NHẤT MỘT trong hai: Mô tả HOẶC file
-                                         đính kèm (không bắt buộc cả hai). Dùng
-                                         required chéo ⇒ tô đỏ inline trong dialog
-                                         khi thiếu cả hai; điền một là hết (không modal). -->
-                                    <separator string="Yêu cầu / Mô tả"/>
+                                         Nhóm CHƯA có mẫu: cần Mô tả HOẶC đính kèm.
+                                         Nhóm CÓ mẫu: thông số đã gánh phần bắt buộc,
+                                         ô này còn lại phần bảng không chứa nổi (cao
+                                         ghế, khổ mặt ghế, màu sơn...). -->
+                                    <separator string="Yêu cầu / Mô tả thêm"/>
                                     <field name="dimension_note" nolabel="1"
-                                           required="not attachment_ids"
+                                           required="not attachment_ids and not has_parametric_template"
                                            class="dl-rfq-desc"
-                                           placeholder="Kích thước, yêu cầu kỹ thuật..."/>
+                                           placeholder="Chi tiết khác: cao ghế, khổ mặt ghế, màu sơn, yêu cầu riêng..."/>
                                     <!-- §1d — Ảnh & file đính kèm gộp chung 1 trường -->
                                     <separator string="Ảnh / File đính kèm"/>
                                     <field name="attachment_ids" widget="many2many_binary"
-                                           required="not dimension_note"
+                                           required="not dimension_note and not has_parametric_template"
                                            nolabel="1"/>
                                 </form>
                             </field>

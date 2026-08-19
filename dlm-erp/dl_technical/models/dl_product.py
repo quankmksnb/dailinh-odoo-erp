@@ -41,6 +41,28 @@ class ProductCategoryTechnical(models.Model):
                     "Xác nhận/Khóa làm mẫu mặc định của nhóm."
                 ) % tmpl.name)
 
+    def _dlm_parametric_template(self):
+        """Mẫu THAM SỐ đã duyệt của nhóm này — nguồn DUY NHẤT để tra.
+
+        Ba chỗ cần cùng một câu trả lời: panel tham số ở form Sales, bộ dò khớp
+        LỚP 1, và workspace Kỹ thuật. Trước đây bộ dò khớp tự search inline; tách
+        ra đây để ba chỗ không trôi khỏi nhau (nhóm nào "có mẫu" phải giống hệt
+        nhau ở cả ba, nếu không Sales điền tham số mà workspace lại không nhận).
+
+        KHÔNG đọc `bom_template_id` của nhóm: field đó là mẫu MẶC ĐỊNH nhập tay,
+        có thể trỏ mẫu không tham số hoặc bị bỏ trống. Tra thẳng theo nhóm +
+        đã duyệt + có tham số + có sản phẩm dùng chung — `unique(nhóm, version)`
+        đảm bảo không mơ hồ, `is_current desc` chốt bản hiện hành."""
+        self.ensure_one()
+        if not self.id:
+            return self.env["dl.bom.template"]
+        return self.env["dl.bom.template"].search([
+            ("product_category_id", "=", self.id),
+            ("status", "in", ("confirmed", "locked")),
+            ("is_parametric", "=", True),
+            ("generic_product_id", "!=", False),
+        ], order="is_current desc, version desc", limit=1)
+
 
 class DlProductTechnical(models.Model):
     # Data Model refactor: dl.product = product.product (mở rộng thuần).

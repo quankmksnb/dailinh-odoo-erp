@@ -92,6 +92,16 @@ class DlRfqResolveWizard(models.TransientModel):
         related="rfq_line_id.dimension_note", string="Kích thước / Yêu cầu", readonly=True)
     request_reference_product_id = fields.Many2one(
         related="rfq_line_id.reference_product_id", string="Sản phẩm tham khảo (Sales)", readonly=True)
+    request_uom_id = fields.Many2one(
+        related="rfq_line_id.uom_id", string="Đơn vị tính", readonly=True)
+    # Thông số Sales đã điền theo mẫu của nhóm — hiện ở cột trái để KTV đối chiếu
+    # với panel tham số bên phải (panel đã được mồi sẵn từ chính bộ này).
+    request_param_ids = fields.One2many(
+        related="rfq_line_id.param_ids", string="Thông số (Sales nhập)", readonly=True)
+    request_has_params = fields.Boolean(
+        related="rfq_line_id.has_parametric_template", readonly=True)
+    request_params_out_of_range = fields.Boolean(
+        related="rfq_line_id.has_out_of_range_params", readonly=True)
     # Ảnh / file Sales gửi kèm — cho KTV xem ngay trên màn xử lý (readonly).
     request_attachment_ids = fields.Many2many(
         related="rfq_line_id.attachment_ids", string="Ảnh / File Sales gửi", readonly=True)
@@ -127,12 +137,17 @@ class DlRfqResolveWizard(models.TransientModel):
             rec.next_line_id = nxt
 
     # ── A/B ──────────────────────────────────────────────────────────────
+    # Nhãn cố ý là HÀNH ĐỘNG ("dùng cái đã có" / "tạo mới"), không phải PHÁN
+    # XÉT ("đã từng gia công" / "chưa từng gia công"). Kỹ thuật không có nhiệm
+    # vụ tuyên bố món hàng là mới hay cũ — việc nhận diện đã do bộ dò khớp làm
+    # và hiện ở thẻ gợi ý / badge khớp chính xác phía trên. Ở đây KTV chỉ chọn
+    # sẽ làm gì tiếp. Khoá `existing`/`new` giữ nguyên (nhiều chỗ đang dùng).
     mode = fields.Selection(
         [
-            ("existing", "Sản phẩm đã từng gia công"),
-            ("new", "Sản phẩm chưa từng gia công"),
+            ("existing", "Dùng sản phẩm đã có"),
+            ("new", "Tạo sản phẩm mới"),
         ],
-        string="Trường hợp",
+        string="Cách xử lý",
         default="existing",
         required=True,
     )
@@ -214,6 +229,11 @@ class DlRfqResolveWizard(models.TransientModel):
     # Đánh dấu SP hiện tại do hệ thống TỰ CHỌN (đường A, điểm ≥60) — để hiện
     # nhãn "gợi ý tự chọn" ở khối ⑴ đã thu gọn, nhắc KTV vẫn đang xem thứ máy đoán.
     auto_selected = fields.Boolean(string="Sản phẩm do hệ thống tự chọn")
+    # Phân biệt hai mức chắc chắn khác hẳn nhau, để KTV biết mình đang gật cái
+    # gì: khớp CHỮ KÝ THAM SỐ (cùng mẫu, cùng bộ số ⇒ cùng cấu hình) so với
+    # chấm điểm mờ theo tên/nhóm/khách (máy đoán, phải soi lại).
+    exact_config_match = fields.Boolean(
+        string="Khớp chính xác cấu hình đã làm")
 
     def _suggestion_candidates(self, limit=3):
         """Ứng viên gợi ý cho dòng RFQ đang xử lý (dùng lại matcher ở model
@@ -629,6 +649,25 @@ class DlRfqResolveWizard(models.TransientModel):
                 # _dlm_is_parametric_generic(): nó chỉ được GỢI Ý ở thẻ "Có phải
                 # cái này?", vì điểm của nó là điểm "thuộc họ", đúng như nhau cho
                 # mọi cỡ, nên tự gán chỉ khiến máy trông như đã quyết xong.
+                # LÀN L1 CHÍNH XÁC — chữ ký tham số Sales nhập trùng một định
+                # mức đã chốt. Đặt TRƯỚC đường chấm điểm mờ vì đây không phải
+                # phỏng đoán: cùng mẫu, cùng bộ số, tức cùng cấu hình.
+                #
+                # 🔴 Ở đây generic của mẫu tham số ĐƯỢC phép tự chọn, ngược với
+                # đường mờ bên dưới. Không mâu thuẫn: đường mờ cấm generic vì
+                # điểm nó nhận là điểm "THUỘC HỌ" — đúng như nhau cho mọi cỡ nên
+                # tự gán là quyết hộ. Khớp chữ ký thì đã xuống tới ĐÚNG MỘT CỠ,
+                # và định mức đi kèm cũng là của đúng cỡ đó.
+                if (not res.get("product_id") and not line.is_infeasible
+                        and line.exact_bom_id):
+                    res.update({
+                        "mode": "existing",
+                        "product_id": line.exact_bom_id.product_id.id,
+                        "manual_bom_id": line.exact_bom_id.id,
+                        "auto_selected": True,
+                        "exact_config_match": True,
+                    })
+
                 if (not res.get("product_id") and not line.is_infeasible):
                     ranked = line._dlm_suggest_candidates(limit=1)
                     if (ranked and ranked[0]["score"] >= _MATCH_THRESHOLD_AUTO
@@ -967,14 +1006,29 @@ class DlRfqResolveWizard(models.TransientModel):
 
     # ── Đợt 4 — panel nhập tham số + Sinh định mức ───────────────────────────
     @api.model
-    def _dlm_param_panel_commands(self, tmpl):
-        """Lệnh o2m dựng panel tham số (D/R/C) của một mẫu — LUÔN để TRỐNG.
+    def _dlm_param_panel_commands(self, tmpl, rfq_line=None):
+        """Lệnh o2m dựng panel tham số của một mẫu, mồi sẵn số Sales đã nhập.
 
-        Kích thước là số nuôi thẳng vào định mức rồi vào giá bán, nên chỉ nhận
-        số KTV tự nhập theo yêu cầu/bản vẽ. KHÔNG đọc từ mô tả Sales (văn bản tự
-        do, sai một chữ số là sai cả báo giá) và cũng KHÔNG lấy mặc định của mẫu
-        (mọi dòng thiếu kích thước sẽ ra cùng một định mức). Bỏ trống thì
-        _dlm_validate_param_values chặn ngay khi bấm Sinh định mức."""
+        ⚠️ Luật ở đây ĐÃ ĐỔI, đọc kỹ trước khi "sửa cho nhất quán":
+
+        Bản trước LUÔN để trống, với lý do "không đọc từ mô tả Sales vì đó là
+        văn bản tự do, sai một chữ số là sai cả báo giá". Lý do đó đúng với văn
+        bản tự do và vẫn còn hiệu lực — `_dlm_parse_dimensions` (regex đoán) tới
+        giờ vẫn KHÔNG được phép mồi vào đây.
+
+        Cái đổi là Sales nay nhập thông số vào Ô CÓ NHÃN DO CHÍNH MẪU NÀY ĐỊNH
+        NGHĨA (`dl.quotation.request.line.param`), có miền hợp lệ và cổng chặn
+        lúc gửi. Đó không còn là số đoán từ câu chữ, mà là đề bài khách đưa —
+        thứ KTV vốn phải gõ lại y nguyên từ cột bên trái sang.
+
+        Vẫn KHÔNG lấy `default_value` của mẫu: mặc định là con số của mẫu chứ
+        không của khách; mồi nó vào thì mọi dòng thiếu kích thước cùng ra một
+        định mức mà không ai thấy sai. Ô nào Sales bỏ trống thì để trống, và
+        _dlm_validate_param_values chặn khi bấm Sinh định mức."""
+        sales_values = {}
+        if rfq_line:
+            sales_values = {
+                p.code: p.value for p in rfq_line.param_ids if p.value}
         commands = [(5, 0, 0)]
         for param in tmpl.param_ids:
             commands.append((0, 0, {
@@ -982,6 +1036,7 @@ class DlRfqResolveWizard(models.TransientModel):
                 "sequence": param.sequence,
                 "code": param.code,
                 "name": param.name,
+                "value": sales_values.get(param.code, 0.0),
                 "value_min": param.value_min,
                 "value_max": param.value_max,
                 "required": param.required,
@@ -997,7 +1052,8 @@ class DlRfqResolveWizard(models.TransientModel):
                 "Nhóm sản phẩm này chưa có BOM mẫu tham số đã xác nhận."))
         self.write({
             "show_param_panel": True,
-            "param_line_ids": self._dlm_param_panel_commands(tmpl),
+            "param_line_ids": self._dlm_param_panel_commands(
+                tmpl, self.rfq_line_id),
         })
         return self._action_reload()
 

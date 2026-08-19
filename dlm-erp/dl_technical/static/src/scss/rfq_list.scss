@@ -68,3 +68,21 @@
 .dl-rfq-desc textarea {
     min-height: 120px !important;
 }
+
+// Bảng thông số theo mẫu trong form dòng gia công (dialog "Tạo Sản phẩm gia
+// công"). Bảng chỉ 3 cột ngắn nên để nó giãn hết bề ngang dialog là phí chỗ và
+// khiến ô nhập trôi xa nhãn — kẹp lại theo bề rộng đọc được.
+// Selector trực tiếp: form dòng mở trong dialog, nằm ngoài .dl-rfq-form.
+.dl-rfq-params {
+    max-width: 520px;
+
+    .o_list_table {
+        margin-bottom: 0;
+    }
+
+    // Cột "Miền hợp lệ" chỉ là chú thích — hạ nhấn để mắt rơi vào ô nhập.
+    td[name="range_hint"] {
+        color: $dl-text-muted;
+        white-space: nowrap;
+    }
+}

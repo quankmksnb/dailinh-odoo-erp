@@ -2,6 +2,7 @@ import re
 
 from odoo import api, fields, models, _
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools import float_compare
 
 # Field-level RBAC (giống dl.material): chỉ Kỹ thuật/Admin được quyết định
 # "sản phẩm xác định" / "không khả thi" — đây là đánh giá kỹ thuật, Sales chỉ
@@ -13,7 +14,8 @@ _TECH_ONLY_LINE_FIELDS = {'resolved_product_id', 'resolved_bom_id', 'is_infeasib
 # KHÔNG được sửa nội dung yêu cầu của dòng...
 _SALES_ONLY_LINE_FIELDS = {
     'product_type', 'product_name', 'product_category_id',
-    'reference_product_id', 'quantity', 'dimension_note', 'attachment_ids',
+    'reference_product_id', 'quantity', 'uom_id', 'dimension_note',
+    'attachment_ids', 'param_ids',
 }
 # ...cũng như thông tin thương mại ở header (khách hàng, ngày nhận, hạn yêu cầu).
 _SALES_ONLY_HEADER_FIELDS = {'customer_id', 'requested_date', 'deadline'}
@@ -882,9 +884,228 @@ class DlQuotationRequestLine(models.Model):
         default=1.0,
     )
 
+    # Đơn vị tính của thứ khách đặt (bộ / cái / m). Sổ đặt hàng thật của doanh
+    # nghiệp đã có cột "ĐV" từ trước khi có ERP — cùng một con số 100 nghĩa là
+    # 100 bộ bàn ghế hay 100 mét máng điện là hai đơn hàng khác hẳn nhau.
+    # Dùng uom.uom chuẩn Odoo (không phải Selection tự chế) để còn quy đổi được
+    # khi nối sang báo giá và kho.
+    uom_id = fields.Many2one(
+        "uom.uom",
+        string="Đơn vị tính",
+        required=True,
+        default=lambda self: self.env.ref(
+            "uom.product_uom_unit", raise_if_not_found=False),
+    )
+
     dimension_note = fields.Text(
         string="Kích thước / Yêu cầu",
     )
+
+    # ── Tham số theo mẫu của nhóm SP ────────────────────────────────────────
+    # Nhóm sản phẩm là CHÌA KHOÁ ĐỊNH TUYẾN: nhóm nào có BOM mẫu tham số thì form
+    # Sales hiện đúng các ô mẫu ấy hỏi (Dài/Rộng/Cao với cái bàn, Dài/Khổ với
+    # máng điện), nhóm nào chưa có mẫu thì chỉ mô tả + bản vẽ như trước.
+    #
+    # Vì sao KHÔNG làm 3 ô D/R/C cứng: một "bộ bàn ghế" có kích thước bàn + cao
+    # ghế + khổ mặt ghế + khổ tựa, còn cái bảng chỉ có 2 chiều và cái máng bán
+    # theo mét. Ô cứng thì thừa chỗ này thiếu chỗ kia, mà mỗi lần thêm loại hàng
+    # lại phải sửa code. Để mẫu tự khai mình hỏi gì thì thêm loại hàng chỉ là
+    # dựng thêm một BOM mẫu — việc của Kỹ thuật, không phải của lập trình.
+    parametric_template_id = fields.Many2one(
+        "dl.bom.template",
+        string="Mẫu tham số của nhóm",
+        compute="_compute_parametric_template",
+    )
+    has_parametric_template = fields.Boolean(
+        string="Nhóm có mẫu tham số",
+        compute="_compute_parametric_template",
+    )
+
+    @api.depends("product_type", "product_category_id")
+    def _compute_parametric_template(self):
+        for rec in self:
+            tmpl = self.env["dl.bom.template"]
+            if rec.product_type == "manufactured" and rec.product_category_id:
+                tmpl = rec.product_category_id._dlm_parametric_template()
+            rec.parametric_template_id = tmpl
+            rec.has_parametric_template = bool(tmpl)
+
+    param_ids = fields.One2many(
+        "dl.quotation.request.line.param",
+        "line_id",
+        string="Thông số theo mẫu",
+        copy=True,
+    )
+
+    # Tham số bắt buộc còn trống — nuôi cả cổng chặn lúc gửi lẫn nhãn nhắc trên
+    # form. Tách thành field để view hỏi được mà không phải gọi lại vòng lặp.
+    missing_param_names = fields.Char(
+        string="Thông số còn thiếu", compute="_compute_param_state")
+    has_missing_params = fields.Boolean(compute="_compute_param_state")
+    has_out_of_range_params = fields.Boolean(compute="_compute_param_state")
+
+    @api.depends("param_ids.value", "param_ids.required",
+                 "param_ids.out_of_range", "has_parametric_template",
+                 "parametric_template_id")
+    def _compute_param_state(self):
+        for rec in self:
+            # 🔴 Dòng thuộc nhóm có mẫu nhưng KHÔNG có ô nào = "không thiếu gì",
+            # cố ý. Đó là dòng CŨ: tạo từ trước khi có panel thông số, hoặc tạo
+            # khi nhóm chưa gắn mẫu rồi mẫu mới được dựng sau. Coi chúng là
+            # thiếu sẽ khoá cứng mọi thao tác sửa trên RFQ lịch sử, và làm chính
+            # migration nổ giữa chừng.
+            #
+            # Lỗ "import/RPC né được cổng chặn" KHÔNG bịt ở đây mà ở
+            # `_dlm_seed_param_vals`: mọi dòng tạo mới thuộc nhóm có mẫu đều được
+            # dựng sẵn bộ ô, nên tới lượt kiểm là đã có ô để soi.
+            missing = rec.param_ids.filtered(
+                lambda p: p.required and not p.value)
+            rec.has_missing_params = bool(missing)
+            rec.missing_param_names = ", ".join(
+                missing.mapped(lambda p: p.name or p.code))
+            rec.has_out_of_range_params = any(
+                p.out_of_range for p in rec.param_ids)
+
+    @api.model
+    def _dlm_template_param_commands(self, template, keep_values=None):
+        """Lệnh o2m dựng bộ tham số theo ``template``, giữ số cũ theo MÃ.
+
+        Giữ theo `code` chứ không theo id bản ghi: Sales đổi nhóm rồi đổi lại,
+        hoặc mẫu lên phiên bản mới, thì "D=1200" vẫn còn nguyên thay vì bắt gõ
+        lại. Mã nào mẫu mới không còn thì rụng theo — đó là ý muốn, vì tham số
+        đó không còn nghĩa với mẫu mới.
+
+        Ô để TRỐNG, không lấy `default_value` của mẫu: mặc định là con số của
+        mẫu chứ không phải của khách, mà nó chảy thẳng vào định mức rồi vào giá
+        bán. Mọi dòng bỏ trống sẽ cùng ra một định mức mà không ai thấy sai."""
+        keep_values = keep_values or {}
+        commands = [(5, 0, 0)]
+        for param in template.param_ids:
+            commands.append((0, 0, {
+                "template_param_id": param.id,
+                "sequence": param.sequence,
+                "code": param.code,
+                "name": param.name,
+                "dim_role": param.dim_role,
+                "value": keep_values.get(param.code, 0.0),
+                "value_min": param.value_min,
+                "value_max": param.value_max,
+                "required": param.required,
+            }))
+        return commands
+
+    def _dlm_param_commands(self, template):
+        """Bản theo bản ghi: dựng lại bộ tham số, mang theo số dòng này đã có."""
+        self.ensure_one()
+        return self._dlm_template_param_commands(
+            template, {p.code: p.value for p in self.param_ids if p.value})
+
+    @api.onchange("product_type", "product_category_id")
+    def _onchange_category_sync_params(self):
+        """Đổi nhóm SP → dựng lại các ô thông số của mẫu nhóm đó ngay trên form."""
+        for rec in self:
+            if rec.product_type != "manufactured":
+                if rec.param_ids:
+                    rec.param_ids = [(5, 0, 0)]
+                continue
+            template = (rec.product_category_id._dlm_parametric_template()
+                        if rec.product_category_id
+                        else self.env["dl.bom.template"])
+            # Bộ hiện tại đã đúng mẫu này rồi thì đừng đụng vào — onchange chạy
+            # cả khi Sales sửa field khác, dựng lại vô cớ sẽ nháy hết ô đang gõ.
+            current = set(rec.param_ids.mapped("code"))
+            wanted = set(template.param_ids.mapped("code"))
+            if current == wanted and (wanted or not rec.param_ids):
+                continue
+            rec.param_ids = rec._dlm_param_commands(template)
+
+    def _dlm_sync_params(self):
+        """Đồng bộ bộ tham số ở tầng SERVER (import/RPC không chạy onchange).
+
+        Form Sales đã có onchange lo phần nhìn thấy được, nhưng dòng RFQ còn vào
+        hệ thống bằng import Excel và RPC — không có bộ tham số thì cổng chặn
+        lúc gửi không có gì để kiểm, và dòng lặp lại không khớp được chữ ký."""
+        for rec in self:
+            if rec.product_type != "manufactured":
+                if rec.param_ids:
+                    rec.param_ids.unlink()
+                continue
+            template = (rec.product_category_id._dlm_parametric_template()
+                        if rec.product_category_id
+                        else self.env["dl.bom.template"])
+            if set(rec.param_ids.mapped("code")) == set(
+                    template.param_ids.mapped("code")):
+                continue
+            # sudo: đây là đồng bộ của HỆ THỐNG, không phải người sửa yêu cầu —
+            # đi qua cổng _SALES_ONLY_LINE_FIELDS sẽ chặn oan chính nó khi ghi
+            # đệ quy, và trên DB thì param_ids vẫn chỉ đổi theo nhóm Sales chọn.
+            rec.sudo().param_ids = rec._dlm_param_commands(template)
+
+    def _dlm_param_values(self):
+        """Bộ tham số Sales đã nhập, dạng ``{'D': 1200.0, ...}``.
+
+        Chỉ trả về khi ĐỦ tham số bắt buộc — thiếu một ô là chữ ký tham số vô
+        nghĩa (khớp nhầm cấu hình khác chỉ vì hai ô trùng nhau)."""
+        self.ensure_one()
+        if not self.param_ids:
+            return {}
+        if any(p.required and not p.value for p in self.param_ids):
+            return {}
+        return {p.code: p.value for p in self.param_ids if p.value}
+
+    def _dlm_wanted_dimensions(self):
+        """Kích thước để chấm điểm: ĐỌC ô Sales nhập trước, hết cách mới đoán.
+
+        `_dlm_parse_dimensions` (regex trên văn bản tự do) từ đây là ĐƯỜNG DỰ
+        PHÒNG, dùng cho dòng thuộc nhóm chưa có mẫu và dòng cũ nhập trước khi có
+        panel tham số. Không xoá nó: phần lớn RFQ vẫn rơi vào nhóm chưa có mẫu."""
+        self.ensure_one()
+        dims = {}
+        for param in self.param_ids:
+            if param.dim_role and param.dim_role != "none" and param.value:
+                dims[param.dim_role] = param.value
+        if dims.get("length") and dims.get("width"):
+            return dims
+        guessed = self._dlm_parse_dimensions(
+            self.dimension_note, self.product_name)
+        # Số Sales gõ vào ô có nhãn LUÔN thắng số đoán từ câu chữ.
+        guessed.update(dims)
+        return guessed
+
+    # ── Làn L1 chính xác — khớp CHỮ KÝ tham số, không phải chấm điểm mờ ──────
+    # Cùng một cấu hình bàn 1200×400×670 xuất hiện 5 lần trong 4 tháng qua 2
+    # khách (sổ đặt hàng thật). Chấm điểm mờ theo tên chỉ bắt được khi Sales gõ
+    # giống lần trước; chữ ký tham số bắt được kể cả khi tên viết khác hẳn.
+    exact_bom_id = fields.Many2one(
+        "dl.bom",
+        string="Định mức đã có đúng cấu hình này",
+        compute="_compute_exact_bom",
+    )
+
+    @api.depends("product_type", "product_category_id", "param_ids.value",
+                 "resolved_product_id", "is_infeasible")
+    def _compute_exact_bom(self):
+        Bom = self.env["dl.bom"]
+        for rec in self:
+            rec.exact_bom_id = Bom
+            if (rec.product_type != "manufactured" or rec.resolved_product_id
+                    or rec.is_infeasible):
+                continue
+            template = rec.parametric_template_id
+            values = rec._dlm_param_values()
+            if not template or not values:
+                continue
+            # Ngoài miền hợp lệ thì KHÔNG nhận là "đã từng làm": cỡ đặc biệt phải
+            # để Kỹ thuật xem tận nơi, dù chữ ký có tình cờ trùng.
+            if rec.has_out_of_range_params:
+                continue
+            rec.exact_bom_id = Bom.search([
+                ("product_id", "=", template.generic_product_id.id),
+                ("bom_type", "=", "quotation"),
+                ("param_signature", "=", Bom._dlm_param_signature(values)),
+                ("status", "in", ("confirmed", "locked")),
+                ("is_rfq_provisional", "=", False),
+            ], order="id desc", limit=1)
 
     # Ảnh (nhiều) + file đính kèm cho dòng gia công (§ màn Tạo RFQ). Ảnh dùng
     # model con để hiển thị thumbnail; file dùng ir.attachment (many2many_binary).
@@ -1021,7 +1242,7 @@ class DlQuotationRequestLine(models.Model):
 
     @api.depends("product_type", "product_name", "reference_product_id",
                  "product_category_id", "resolved_product_id", "is_infeasible",
-                 "dimension_note")
+                 "dimension_note", "param_ids.value")
     def _compute_suggestion(self):
         for rec in self:
             rec.suggested_product_id = False
@@ -1175,7 +1396,7 @@ class DlQuotationRequestLine(models.Model):
         #      field dlm_dim_* tồn tại. CHỈ cộng điểm cho SP đã lọt vào scores
         #      qua tín hiệu khác — dấu vân kích thước củng cố, không tự phát hiện
         #      SP mới (khổ trùng nhưng khác hẳn tên/nhóm thường là món khác).
-        wanted = self._dlm_parse_dimensions(self.dimension_note, self.product_name)
+        wanted = self._dlm_wanted_dimensions()
         if wanted.get("length") and wanted.get("width"):
             for entry in scores.values():
                 if self._dlm_dimensions_match(wanted, entry["product"]):
@@ -1187,22 +1408,20 @@ class DlQuotationRequestLine(models.Model):
         # quá yếu — cộng +50 cho mọi dòng trong nhóm thì "Giá đỡ đặc biệt" cũng
         # được +50+10(cùng nhóm) = 60, chạm ngưỡng tự chọn, và bị gán nhầm thành
         # sản phẩm dùng chung. Có khổ mới nghĩa là dòng thật sự là một cấu hình.
-        template = self.env["dl.bom.template"].search([
-            ("product_category_id", "=", self.product_category_id.id),
-            ("status", "in", ("confirmed", "locked")),
-            ("is_parametric", "=", True),
-            ("generic_product_id", "!=", False),
-        ], order="is_current desc, version desc", limit=1)
+        template = self.parametric_template_id
         if template and wanted.get("length") and wanted.get("width"):
             generic = template.generic_product_id
             add(generic, _MATCH_SCORE_TEMPLATE_FAMILY,
                 _("Thuộc họ có mẫu tham số"))
-            # Dựng bộ tham số y như panel workspace (đọc từ mô tả, thiếu thì lấy
-            # mặc định của mẫu) để chữ ký so được với instance đã sinh.
-            values = {}
-            for param in template.param_ids:
-                got = wanted.get(param.dim_role) if param.dim_role else None
-                values[param.code] = got or param.default_value
+            # Bộ tham số để so chữ ký: LẤY THẲNG số Sales đã nhập vào ô có nhãn.
+            # Chỉ khi dòng chưa có ô nào (nhóm mới gắn mẫu sau khi RFQ đã tạo)
+            # mới quay về cách cũ — suy từ mô tả, thiếu thì lấy mặc định của mẫu.
+            values = self._dlm_param_values()
+            if not values:
+                values = {}
+                for param in template.param_ids:
+                    got = wanted.get(param.dim_role) if param.dim_role else None
+                    values[param.code] = got or param.default_value
             if all(values.values()):
                 Bom = self.env["dl.bom"]
                 signature = Bom._dlm_param_signature(values)
@@ -1452,6 +1671,23 @@ class DlQuotationRequestLine(models.Model):
                     _("Số lượng phải lớn hơn 0.")
                 )
 
+    @api.onchange("quantity")
+    def _onchange_quantity_positive(self):
+        """Bắt số lượng ≤ 0 ngay khi rời ô trong dialog dòng — trước lúc lưu.
+
+        _check_quantity chỉ nổ khi ghi xuống DB (bấm Lưu cả hồ sơ); dòng x2many
+        sửa trong dialog chỉ nằm trong bộ nhớ nên số âm lọt vào bảng mà chưa bị
+        chặn. Onchange chạy lúc blur: đưa về 1 và cảnh báo tại chỗ."""
+        for rec in self:
+            if rec.quantity <= 0:
+                rec.quantity = 1.0
+                return {
+                    "warning": {
+                        "title": _("Số lượng không hợp lệ"),
+                        "message": _("Số lượng phải lớn hơn 0. Đã đặt lại về 1."),
+                    }
+                }
+
     @api.constrains("product_type", "resolved_bom_id", "resolved_product_id")
     def _check_resolved_bom(self):
         for rec in self:
@@ -1483,29 +1719,80 @@ class DlQuotationRequestLine(models.Model):
                     _("Vui lòng nhập Tên sản phẩm cho dòng Sản phẩm gia công.")
                 )
 
-    @api.constrains("product_type", "dimension_note", "attachment_ids")
-    def _check_manufactured_spec(self):
-        """Dòng gia công phải có Mô tả kích thước HOẶC Đính kèm.
+    @api.constrains("product_type", "product_category_id")
+    def _check_category_required(self):
+        """Dòng gia công BẮT BUỘC có Nhóm sản phẩm.
 
-        Đây là dữ liệu tối thiểu để Kỹ thuật bắt đầu làm được việc: không có
-        kích thước cũng không có bản vẽ thì dòng đó chỉ là một cái tên, và Kỹ
-        thuật buộc phải trả lại ngay — mất một vòng qua lại.
+        Nhóm là chìa khoá định tuyến của cả luồng: nó quyết định form hỏi Sales
+        thông số gì, bộ dò khớp so với họ sản phẩm nào, và Kỹ thuật mở ra thấy
+        mẫu nào. Dòng không nhóm thì Sales không được hỏi thông số, mà Kỹ thuật
+        cũng không có mẫu để sinh định mức — rơi thẳng xuống làm tay.
 
-        Trước đây luật chỉ nằm ở form "Tạo RFQ" của Sales (required chéo giữa
-        dimension_note và attachment_ids), nên mọi đường ghi khác đều lọt, kể cả
-        form RFQ chung. Ghi chú cũ nói tránh @api.constrains vì bung modal — lý
-        do đó không còn sau khi lỗi nghiệp vụ chuyển sang toast.
-
-        Chỉ nghe ba field trên: dòng cũ thiếu dữ liệu vẫn sửa được các field
-        khác (vd Kỹ thuật ghi supplement_note) mà không bị chặn oan."""
+        Không dùng `required=True` ở field vì `product_category_id` dùng chung
+        với dòng THƯƠNG MẠI (đã định danh bằng Product cụ thể, không cần nhóm) —
+        đặt required ở tầng field sẽ chặn oan cả dòng thương mại lẫn dòng cũ."""
         for rec in self:
             if rec.product_type != "manufactured":
                 continue
-            if not (rec.dimension_note or "").strip() and not rec.attachment_ids:
+            if not rec.product_category_id:
+                raise ValidationError(_(
+                    "Dòng gia công \"%s\" chưa chọn Nhóm sản phẩm. Nhóm quyết "
+                    "định hệ thống hỏi thông số gì và Kỹ thuật dùng mẫu nào."
+                ) % (rec.product_name or ""))
+
+    @api.constrains("product_type", "dimension_note", "attachment_ids",
+                    "param_ids", "product_category_id")
+    def _check_manufactured_spec(self):
+        """Dòng gia công phải mang đủ ĐỀ BÀI cho Kỹ thuật — hai nhánh theo nhóm.
+
+        Nhóm CÓ mẫu tham số: phải điền đủ thông số bắt buộc, HOẶC đính kèm bản
+        vẽ. Bản vẽ vẫn được chấp nhận thay vì bắt gõ số, vì khách gửi bản vẽ đầy
+        đủ là ca hợp lệ và Sales không phải người đọc bản vẽ ra số.
+
+        Nhóm CHƯA có mẫu: giữ luật cũ — Mô tả HOẶC Đính kèm.
+
+        Chung một lý do: không có gì đo được thì dòng đó chỉ là một cái tên, Kỹ
+        thuật buộc phải trả lại ngay — mất một vòng qua lại.
+
+        Luật nằm ở constrains chứ không chỉ ở form Sales: import Excel và RPC
+        đều lọt qua required chéo của view."""
+        for rec in self:
+            if rec.product_type != "manufactured":
+                continue
+            if rec.attachment_ids:
+                continue
+            if rec.has_parametric_template:
+                if rec.has_missing_params:
+                    raise ValidationError(_(
+                        "Dòng gia công \"%(name)s\" còn thiếu thông số: "
+                        "%(missing)s. Điền đủ hoặc đính kèm bản vẽ.",
+                        name=rec.product_name or "",
+                        missing=rec.missing_param_names))
+            elif not (rec.dimension_note or "").strip():
                 raise ValidationError(_(
                     "Dòng gia công \"%s\" phải có Mô tả kích thước hoặc Đính "
                     "kèm bản vẽ. Kỹ thuật không xử lý được dòng chỉ có mỗi tên."
                 ) % (rec.product_name or ""))
+
+    @api.constrains("uom_id", "quantity")
+    def _check_uom_integer(self):
+        """Đơn vị đếm được (bộ/cái) thì số lượng phải nguyên.
+
+        "2,5 bộ bàn ghế" là lỗi gõ, nhưng nó đi thẳng vào báo giá rồi xuống lệnh
+        làm hàng mà không chỗ nào chặn. Đơn vị đo được (mét, kg) thì để nguyên —
+        100,5 mét máng điện là con số hợp lệ."""
+        for rec in self:
+            uom = rec.uom_id
+            if not uom or uom.category_id != self.env.ref(
+                    "uom.product_uom_categ_unit", raise_if_not_found=False):
+                continue
+            if float_compare(rec.quantity, round(rec.quantity),
+                             precision_digits=3) != 0:
+                raise ValidationError(_(
+                    "Số lượng của \"%(name)s\" là %(qty)s %(uom)s — đơn vị đếm "
+                    "được thì số lượng phải là số nguyên.",
+                    name=rec.product_name or "",
+                    qty=rec.quantity, uom=uom.name))
 
     @api.constrains("product_type", "product_name")
     def _check_unique_name_in_request(self):
@@ -1609,10 +1896,35 @@ class DlQuotationRequestLine(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             self._dlm_normalize_line_vals(vals)
+            self._dlm_seed_param_vals(vals)
         records = super().create(vals_list)
         records.mapped("quotation_request_id")._recompute_status_from_lines()
         records._stamp_attachments()
         return records
+
+    @api.model
+    def _dlm_seed_param_vals(self, vals):
+        """Dựng sẵn ô thông số vào ``vals`` khi người gọi chưa truyền.
+
+        🔴 Phải làm ở ĐÂY, trước `super().create()`, không phải sau. Bộ tham số
+        là thứ `_check_manufactured_spec` soi; dựng sau khi bản ghi đã tạo thì
+        Odoo validate lúc ô chưa tồn tại (lọt cổng), rồi lệnh ghi ô rỗng ngay
+        sau đó lại kích constrain lần nữa và nổ — dòng hợp lệ cũng không tạo nổi.
+
+        Dòng vào bằng import/RPC không chạy onchange nên không tự có ô; dựng ở
+        đây để chúng chịu đúng một luật với dòng nhập trên form."""
+        if vals.get("product_type", "manufactured") != "manufactured":
+            return vals
+        # `vals.get` chứ không `in vals`: người gọi truyền param_ids RỖNG cũng
+        # phải được dựng ô, nếu không đó lại thành đường né cổng chặn.
+        if vals.get("param_ids") or not vals.get("product_category_id"):
+            return vals
+        category = self.env["product.category"].browse(
+            vals["product_category_id"])
+        template = category._dlm_parametric_template()
+        if template:
+            vals["param_ids"] = self._dlm_template_param_commands(template)
+        return vals
 
     def write(self, vals):
         self._dlm_normalize_line_vals(vals)
@@ -1650,8 +1962,12 @@ class DlQuotationRequestLine(models.Model):
         auto_supplement_done = self.browse()
         auto_needs_review = self.browse()
         if not self.env.su and sales_gated and _user_is_sales(self.env):
+            # param_ids nằm trong danh sách này vì thông số là ĐỀ BÀI ĐO ĐƯỢC:
+            # Sales sửa "Dài 1200 → 1500" sau khi Kỹ thuật đã chốt định mức thì
+            # định mức cũ sai hẳn, còn nặng hơn sửa câu mô tả.
             tech_relevant = bool(
-                {"quantity", "dimension_note", "attachment_ids"} & vals.keys())
+                {"quantity", "uom_id", "dimension_note", "attachment_ids",
+                 "param_ids"} & vals.keys())
             for rec in self:
                 if rec.supplement_note and not rec.supplement_done:
                     auto_supplement_done |= rec
@@ -1663,6 +1979,11 @@ class DlQuotationRequestLine(models.Model):
                     auto_needs_review |= rec
 
         res = super().write(vals)
+
+        # Đổi nhóm SP (hoặc loại dòng) → bộ ô thông số phải theo mẫu của nhóm
+        # mới. Onchange chỉ lo được form; đây là đường cho import/RPC/ghi từ code.
+        if {"product_category_id", "product_type"} & vals.keys():
+            self._dlm_sync_params()
 
         if "attachment_ids" in vals:
             self._stamp_attachments()
@@ -1952,3 +2273,98 @@ class DlQuotationRequestLineImage(models.Model):
     sequence = fields.Integer(string="Thứ tự", default=10)
     name = fields.Char(string="Mô tả ảnh")
     image = fields.Image(string="Ảnh", required=True, max_width=1920, max_height=1920)
+
+
+class DlQuotationRequestLineParam(models.Model):
+    """Giá trị tham số Sales nhập cho một dòng RFQ gia công.
+
+    Song sinh BỀN của `dl.rfq.resolve.param` (bản tạm trong workspace Kỹ thuật).
+    Tồn tại vì đề bài phải đi cùng yêu cầu: Sales gõ "Dài 1200 / Rộng 400 /
+    Cao 670" vào ô có nhãn do chính BOM mẫu định nghĩa, thay vì viết vào văn bản
+    tự do rồi để hệ thống regex đoán lại.
+
+    Các field mô tả (`code`, `name`, `dim_role`, miền hợp lệ) được CHÉP từ
+    `dl.bom.template.param` chứ không related: mẫu có thể lên phiên bản mới hoặc
+    đổi miền hợp lệ sau khi Sales đã gửi RFQ, và khi đó đề bài khách đưa vẫn
+    phải đọc được nguyên trạng như lúc nhận."""
+
+    _name = "dl.quotation.request.line.param"
+    _description = "Tham số dòng yêu cầu báo giá"
+    _order = "sequence, id"
+
+    _sql_constraints = [
+        ("line_code_uniq", "unique(line_id, code)",
+         "Mỗi tham số chỉ được khai một lần trên cùng một dòng yêu cầu."),
+    ]
+
+    line_id = fields.Many2one(
+        "dl.quotation.request.line",
+        string="Dòng RFQ",
+        required=True,
+        ondelete="cascade",
+        index=True,
+    )
+    template_param_id = fields.Many2one(
+        "dl.bom.template.param",
+        string="Tham số mẫu",
+        ondelete="set null",
+    )
+    sequence = fields.Integer(string="Thứ tự", default=10)
+    code = fields.Char(string="Mã", required=True)
+    name = fields.Char(string="Tham số")
+    # Chép từ mẫu để bộ dò khớp đọc được kích thước mà không phải join ngược lên
+    # template_param_id (bản ghi mẫu có thể đã bị đổi/xoá sau khi RFQ gửi đi).
+    dim_role = fields.Selection(
+        [
+            ("length", "Chiều dài"),
+            ("width", "Chiều rộng"),
+            ("height", "Chiều cao"),
+            ("thickness", "Độ dày"),
+            ("side", "Cạnh"),
+            ("none", "— (không tự đọc)"),
+        ],
+        string="Vai trò kích thước", default="none",
+    )
+    value = fields.Float(string="Giá trị")
+    value_min = fields.Float(string="Tối thiểu")
+    value_max = fields.Float(string="Tối đa")
+    required = fields.Boolean(string="Bắt buộc", default=True)
+
+    range_hint = fields.Char(string="Miền hợp lệ", compute="_compute_range_hint")
+
+    @api.depends("value_min", "value_max")
+    def _compute_range_hint(self):
+        for rec in self:
+            if rec.value_min and rec.value_max:
+                rec.range_hint = "%g – %g" % (rec.value_min, rec.value_max)
+            elif rec.value_min:
+                rec.range_hint = "≥ %g" % rec.value_min
+            elif rec.value_max:
+                rec.range_hint = "≤ %g" % rec.value_max
+            else:
+                rec.range_hint = ""
+
+    # Ngoài miền hợp lệ là CẢNH BÁO MỀM, không phải lỗi: khách đặt cỡ đặc biệt
+    # là chuyện có thật, và Sales không được quyền phán cỡ nào làm được. Dòng
+    # ngoài miền tự rớt xuống làn "chưa từng làm" để Kỹ thuật xem tận nơi.
+    out_of_range = fields.Boolean(
+        string="Ngoài miền hợp lệ", compute="_compute_out_of_range")
+
+    @api.depends("value", "value_min", "value_max")
+    def _compute_out_of_range(self):
+        for rec in self:
+            if not rec.value:
+                rec.out_of_range = False
+                continue
+            below = rec.value_min and rec.value < rec.value_min
+            above = rec.value_max and rec.value > rec.value_max
+            rec.out_of_range = bool(below or above)
+
+    @api.constrains("value")
+    def _check_value_not_negative(self):
+        """Kích thước âm không có nghĩa gì, và nếu lọt xuống bộ sinh định mức thì
+        ra định mức âm — báo giá âm tiền mà không chỗ nào nổ."""
+        for rec in self:
+            if rec.value < 0:
+                raise ValidationError(_(
+                    "Tham số \"%s\" không được là số âm.") % (rec.name or rec.code))

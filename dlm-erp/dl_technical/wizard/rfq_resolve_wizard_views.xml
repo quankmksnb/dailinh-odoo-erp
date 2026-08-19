@@ -106,12 +106,40 @@
                             <div class="dl-rfq-section-title">
                                 <i class="fa fa-file-text-o me-1"/>Yêu cầu từ Sales
                             </div>
+                            <field name="request_has_params" invisible="1"/>
+                            <field name="request_params_out_of_range" invisible="1"/>
                             <group>
                                 <field name="request_category_id" readonly="1"/>
-                                <field name="request_quantity" readonly="1"/>
+                                <label for="request_quantity"/>
+                                <div class="o_row">
+                                    <field name="request_quantity" readonly="1" widget="dl_qty"/>
+                                    <field name="request_uom_id" readonly="1" nolabel="1"/>
+                                </div>
                                 <field name="request_reference_product_id" readonly="1"/>
                                 <field name="request_dimension_note" readonly="1"/>
                             </group>
+                            <!-- Thông số Sales đã điền theo mẫu của nhóm. Panel tham
+                                 số ở cột phải được mồi sẵn từ chính bộ này, nên KTV
+                                 đối chiếu được thay vì phải gõ lại từ cột trái. -->
+                            <div invisible="not request_has_params">
+                                <div class="dl-rfq-section-title mt-2">
+                                    <i class="fa fa-sliders me-1"/>Thông số Sales nhập
+                                </div>
+                                <field name="request_param_ids" readonly="1" nolabel="1">
+                                    <tree create="false" delete="false" edit="false"
+                                          string="Thông số Sales nhập">
+                                        <field name="name" string="Thông số"/>
+                                        <field name="value" string="Giá trị" widget="dl_qty"/>
+                                    </tree>
+                                </field>
+                                <div class="alert alert-warning mt-1 mb-0 py-1 px-2 small"
+                                     role="alert"
+                                     invisible="not request_params_out_of_range">
+                                    <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>
+                                    Có thông số ngoài miền thường làm — xem kỹ trước
+                                    khi dùng lại định mức cũ.
+                                </div>
+                            </div>
                             <div class="dl-rfq-attachments"
                                  invisible="not request_attachment_ids">
                                 <div class="dl-rfq-section-title mt-2">
@@ -138,9 +166,19 @@
                                            class="dl-rfq-inline-field"/>
                                     <span class="badge text-bg-warning ms-1"
                                           invisible="not product_is_rfq_provisional">tạm</span>
+                                    <!-- HAI mức chắc chắn, cố ý KHÔNG gộp thành một nhãn:
+                                         khớp chữ ký tham số là "cùng cấu hình" (gật được
+                                         ngay), còn chấm điểm mờ chỉ là máy đoán theo
+                                         tên/nhóm/khách (phải soi lại). Gộp lại thì KTV
+                                         mất căn cứ để biết mình đang gật cái gì. -->
+                                    <field name="exact_config_match" invisible="1"/>
+                                    <span class="badge text-bg-success ms-1"
+                                          invisible="not exact_config_match"
+                                          title="Trùng chữ ký tham số với một định mức đã chốt — cùng mẫu, cùng bộ số">
+                                        <i class="fa fa-check me-1" aria-hidden="true"/>khớp chính xác cấu hình</span>
                                     <!-- §3.6 — nhắc KTV đây là SP máy tự đoán (đường A), vẫn kiểm lại được. -->
                                     <span class="badge text-bg-info ms-1"
-                                          invisible="not auto_selected"
+                                          invisible="not auto_selected or exact_config_match"
                                           title="Hệ thống tự chọn từ yêu cầu của Sales — kiểm tra lại giúp">
                                         <i class="fa fa-lightbulb-o me-1"/>gợi ý tự chọn</span>
                                     <button name="action_change_product" type="object"
