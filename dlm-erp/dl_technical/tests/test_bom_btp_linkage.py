@@ -34,7 +34,9 @@ class TestBomBtpLinkage(TransactionCase):
             "parent_id": cls.finished_root.id,
         })
         cls.supplier = cls.env["res.partner"].create({
-            "name": "NCC test LKT", "partner_role": "supplier", "mobile": "0900001002"})
+            "name": "NCC test LKT", "partner_role": "supplier",
+            # dl_partner: NCC CÁ NHÂN phải có điện thoại, và số không được trùng.
+            "phone": "0989204712"})
         # Vật tư thô "trung tính" cho các dòng không quan tâm giá.
         cls.raw_plain = cls.env["product.product"].create({
             "name": "Thép hộp trơn (LKT)", "product_kind": "material"})

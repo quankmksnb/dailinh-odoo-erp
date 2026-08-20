@@ -28,6 +28,16 @@
         padding: 26px 24px;
     }
 
+    // Logo công ty (`/web/binary/company_logo`, do res.company.logo cấp). Ảnh
+    // gốc là lockup NGANG nên chặn theo bề ngang chứ không theo chiều cao —
+    // style inline của Odoo chỉ giới hạn max-height 120px, để nguyên thì logo
+    // tràn hết bề rộng card.
+    .card-body > .text-center > img[alt="Logo"] {
+        max-width: 210px;
+        max-height: 70px !important;
+        object-fit: contain;
+    }
+
     // Sau khi bỏ link "Đăng ký", dòng chỉ còn "Quên mật khẩu?" — không dồn
     // hai mép nữa mà căn giữa cho cân.
     .justify-content-between {

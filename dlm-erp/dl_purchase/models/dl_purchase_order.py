@@ -9,8 +9,7 @@ from odoo.tools.float_utils import float_compare
 _DLM_BUY_PRICE_GROUPS = (
     "dl_base.dl_group_purchasing,"
     "dl_base.dl_group_ceo,"
-    "dl_base.dl_group_admin,"
-    "dl_base.dl_group_accountant"
+    "dl_base.dl_group_admin"
 )
 
 # Vai trò được TẠO/SỬA đơn mua. Thủ kho không có — kiểm soát chéo đặt hàng vs nhận hàng.

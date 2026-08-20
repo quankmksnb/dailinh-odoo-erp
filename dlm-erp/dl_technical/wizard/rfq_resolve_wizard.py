@@ -35,13 +35,13 @@ class DlRfqResolveParam(models.TransientModel):
 
 
 class DlRfqResolveWizard(models.TransientModel):
-    """Màn 'Nhận RFQ' (Kỹ thuật) — chọn/tạo Product + BOM cho 1 dòng RFQ.
+    """Màn xử lý một dòng RFQ (Kỹ thuật) — làm ĐỊNH MỨC, không làm danh mục.
 
-    A. Product đã từng gia công: tìm/chọn product.product có sẵn, xem danh
-       sách BOM Version của product đó, chọn hoặc tạo phiên bản mới để sửa
-       theo yêu cầu khách (không đụng BOM gốc — action_create_new_version).
-    B. Product chưa từng gia công: tạo product mới (chọn Nhóm sản phẩm) rồi
-       tạo BOM mới cho nó.
+    Sản phẩm đã được quyết TRƯỚC khi màn này mở (xem `default_get` →
+    `dl.quotation.request.line._dlm_autoresolve_product`): Sales chọn Kiểu
+    hàng, hoặc hệ thống suy từ tên + nhóm Sales khai. Kỹ thuật không tạo sản
+    phẩm ở đây — chỉ NHẬN DIỆN lại nếu máy trỏ sai, rồi chọn/sinh/dựng định mức.
+
     Xác nhận sẽ ghi resolved_product_id/resolved_bom_id lên dòng RFQ.
     """
 
@@ -91,7 +91,17 @@ class DlRfqResolveWizard(models.TransientModel):
     request_dimension_note = fields.Text(
         related="rfq_line_id.dimension_note", string="Kích thước / Yêu cầu", readonly=True)
     request_reference_product_id = fields.Many2one(
-        related="rfq_line_id.reference_product_id", string="Sản phẩm tham khảo (Sales)", readonly=True)
+        related="rfq_line_id.reference_product_id", string="Kiểu hàng (Sales chọn)", readonly=True)
+    request_uom_id = fields.Many2one(
+        related="rfq_line_id.uom_id", string="Đơn vị tính", readonly=True)
+    # Thông số Sales đã điền theo mẫu của nhóm — hiện ở cột trái để KTV đối chiếu
+    # với panel tham số bên phải (panel đã được mồi sẵn từ chính bộ này).
+    request_param_ids = fields.One2many(
+        related="rfq_line_id.param_ids", string="Thông số (Sales nhập)", readonly=True)
+    request_has_params = fields.Boolean(
+        related="rfq_line_id.has_parametric_template", readonly=True)
+    request_params_out_of_range = fields.Boolean(
+        related="rfq_line_id.has_out_of_range_params", readonly=True)
     # Ảnh / file Sales gửi kèm — cho KTV xem ngay trên màn xử lý (readonly).
     request_attachment_ids = fields.Many2many(
         related="rfq_line_id.attachment_ids", string="Ảnh / File Sales gửi", readonly=True)
@@ -126,17 +136,9 @@ class DlRfqResolveWizard(models.TransientModel):
                     and not l._is_resolved())[:1]
             rec.next_line_id = nxt
 
-    # ── A/B ──────────────────────────────────────────────────────────────
-    mode = fields.Selection(
-        [
-            ("existing", "Sản phẩm đã từng gia công"),
-            ("new", "Sản phẩm chưa từng gia công"),
-        ],
-        string="Trường hợp",
-        default="existing",
-        required=True,
-    )
-
+    # ── Sản phẩm của dòng ────────────────────────────────────────────────
+    # Được điền SẴN khi mở workspace. KTV chỉ đổi khi máy trỏ sai, và chỉ đổi
+    # sang sản phẩm ĐÃ CÓ — không có đường tạo mới ở màn này.
     product_id = fields.Many2one(
         "product.product",
         string="Sản phẩm",
@@ -213,17 +215,52 @@ class DlRfqResolveWizard(models.TransientModel):
         string="Số ứng viên gợi ý", compute="_compute_suggestions")
     # Đánh dấu SP hiện tại do hệ thống TỰ CHỌN (đường A, điểm ≥60) — để hiện
     # nhãn "gợi ý tự chọn" ở khối ⑴ đã thu gọn, nhắc KTV vẫn đang xem thứ máy đoán.
-    auto_selected = fields.Boolean(string="Sản phẩm do hệ thống tự chọn")
+    # MỘT field cho mọi lý do, thay vì mỗi lý do một boolean: workspace nay tự
+    # quyết sản phẩm ở 5 đường khác nhau, mà mức chắc chắn của chúng khác hẳn
+    # nhau — KTV cần biết mình đang gật cái gì. Gộp lại còn để chỗ ghi lý do
+    # không phình theo mỗi lần thêm đường.
+    product_origin = fields.Selection(
+        [
+            ("exact_config", "Khớp chính xác cấu hình đã làm"),
+            ("suggested", "Hệ thống gợi ý theo tên / nhóm / khách"),
+            ("sales_pick", "Sales đã chọn Kiểu hàng"),
+            ("name_match", "Trùng tên sản phẩm đã có"),
+            ("created", "Tạo từ yêu cầu của Sales"),
+        ],
+        string="Vì sao là sản phẩm này", copy=False)
+    # Có phải máy chọn hộ không (mọi origin đều là máy chọn) — dùng cho các chỗ
+    # chỉ cần biết "KTV có tự tay chọn không".
+    auto_selected = fields.Boolean(
+        string="Sản phẩm do hệ thống tự chọn",
+        compute="_compute_auto_selected")
+
+    @api.depends("product_origin")
+    def _compute_auto_selected(self):
+        for rec in self:
+            rec.auto_selected = bool(rec.product_origin)
 
     def _suggestion_candidates(self, limit=3):
-        """Ứng viên gợi ý cho dòng RFQ đang xử lý (dùng lại matcher ở model
-        dòng). Chỉ chạy khi CHƯA chọn sản phẩm — đã chọn thì khối ⑴ thu gọn."""
+        """Ứng viên gợi ý cho dòng RFQ đang xử lý (dùng lại matcher ở model dòng).
+
+        Chạy khi CHƯA chọn sản phẩm, VÀ trong ca `product_origin='created'`.
+
+        🔴 Vế thứ hai là bắt buộc, đừng rút gọn lại thành "chỉ khi chưa chọn".
+        Từ khi workspace tự quyết sản phẩm, dòng nào cũng có `product_id` ngay
+        lúc mở — nếu gợi ý tắt theo thì thẻ "Có phải sản phẩm này?" không bao
+        giờ hiện nữa. Mà đó chính là chỗ trú của lá chắn TÊN GẦN GIỐNG: luật cũ
+        bắt KTV tick xác nhận mới cho tạo, luật mới tạo luôn rồi để thẻ này nhắc
+        "hay là dùng cái đã có?". Tắt thẻ = âm thầm đẻ sản phẩm trùng nghĩa.
+
+        Các origin khác không cần: chúng đã trỏ vào một sản phẩm CÓ SẴN, thẻ gợi
+        ý thêm chỉ gây nhiễu."""
         self.ensure_one()
-        if self.product_id or not self.rfq_line_id:
+        if not self.rfq_line_id:
+            return []
+        if self.product_id and self.product_origin != "created":
             return []
         return self.rfq_line_id._dlm_suggest_candidates(limit=limit)
 
-    @api.depends("rfq_line_id", "product_id")
+    @api.depends("rfq_line_id", "product_id", "product_origin")
     def _compute_suggestions(self):
         for rec in self:
             rec.suggestion_state = "none"
@@ -241,87 +278,6 @@ class DlRfqResolveWizard(models.TransientModel):
             rec.suggestion_count = len(ranked)
             rec.suggestion_state = (
                 "auto" if best["score"] >= _MATCH_THRESHOLD_AUTO else "suggest")
-
-    new_product_name = fields.Char(string="Tên sản phẩm mới")
-    # SP tạo mới từ resolve là manufactured → chỉ nhóm nhánh Thành phẩm.
-    new_product_category_id = fields.Many2one(
-        "product.category", string="Nhóm sản phẩm",
-        domain=[("dl_branch", "=", "finished")])
-    # §8.1 — nhóm đã có mẫu tham số thì các cỡ khác nhau DÙNG CHUNG một sản phẩm;
-    # tạo mã sản phẩm mới ở đây gần như luôn là nhầm "khác cỡ" thành "khác món".
-    confirm_not_just_size = fields.Boolean(
-        string="Đây là sản phẩm khác kết cấu, không phải chỉ khác kích thước")
-    # 🔴 Mẫu tham số CHẶN việc tạo SP mới — đọc nhóm KTV đang chọn ở ô "Nhóm sản
-    # phẩm" của Case B. Cố ý TÁCH khỏi parametric_template_id: hai field trả lời
-    # hai câu hỏi khác nhau trên hai ô nhóm khác nhau ("nhóm của SP đang xử lý có
-    # mẫu để SINH định mức?" vs "tạo SP mới ở nhóm này có bị CHẶN?"). Trước đây
-    # cảnh báo lấy nhóm của dòng RFQ còn nút lấy nhóm KTV chọn ⇒ chọn nhóm khác
-    # nhóm Sales ghi thì alert + ô tick không hiện nhưng nút vẫn nổ lỗi, KTV kẹt
-    # cứng không có gì để tick. Nay nút và cảnh báo dùng CHUNG field này.
-    new_product_blocking_template_id = fields.Many2one(
-        "dl.bom.template", string="Mẫu tham số chặn tạo sản phẩm mới",
-        compute="_compute_new_product_blocking_template")
-
-    @api.depends("new_product_category_id")
-    def _compute_new_product_blocking_template(self):
-        Template = self.env["dl.bom.template"]
-        for rec in self:
-            tmpl = Template.browse()
-            if rec.new_product_category_id:
-                tmpl = Template.search([
-                    ("product_category_id", "=", rec.new_product_category_id.id),
-                    ("status", "in", ("confirmed", "locked")),
-                    ("is_parametric", "=", True),
-                    ("generic_product_id", "!=", False),
-                ], order="is_current desc, version desc", limit=1)
-            rec.new_product_blocking_template_id = tmpl
-
-    # ── Soi trùng/gần giống tên khi tạo SP mới (Case B) ───────────────────
-    # exact → chặn cứng (chọn lại SP có sẵn); similar → cảnh báo mềm, KTV tick
-    # xác nhận mới tạo được. Soi trên toàn bộ SP gia công/BTP chính thức.
-    name_dup_state = fields.Selection(
-        [("none", "Không trùng"), ("exact", "Trùng hệt"), ("similar", "Gần giống")],
-        string="Kết quả soi trùng tên", compute="_compute_name_dup")
-    name_dup_message = fields.Char(
-        string="Cảnh báo trùng tên", compute="_compute_name_dup")
-    name_dup_exact_id = fields.Many2one(
-        "product.product", string="Sản phẩm trùng hệt", compute="_compute_name_dup")
-    name_dup_similar_ids = fields.Many2many(
-        "product.product", string="Sản phẩm gần giống", compute="_compute_name_dup")
-    confirm_similar_name = fields.Boolean(
-        string="Xác nhận đây thực sự là sản phẩm khác")
-
-    @api.depends("new_product_name", "mode")
-    def _compute_name_dup(self):
-        Product = self.env["product.product"]
-        for rec in self:
-            rec.name_dup_state = "none"
-            rec.name_dup_message = False
-            rec.name_dup_exact_id = False
-            rec.name_dup_similar_ids = Product.browse()
-            if rec.mode != "new" or not rec.new_product_name:
-                continue
-            matches = Product._dlm_find_name_matches(
-                rec.new_product_name,
-                kinds=("manufactured", "material_processed"),
-                extra_domain=[("is_rfq_provisional", "=", False)],
-            )
-            if matches["exact"]:
-                dup = matches["exact"][0]
-                rec.name_dup_state = "exact"
-                rec.name_dup_exact_id = dup.id
-                rec.name_dup_message = _(
-                    "Đã có sản phẩm “%(name)s” (nhóm %(categ)s). Không tạo trùng "
-                    "— hãy chọn lại sản phẩm này.",
-                    name=dup.display_name,
-                    categ=dup.categ_id.display_name or _("chưa phân nhóm"))
-            elif matches["similar"]:
-                rec.name_dup_state = "similar"
-                rec.name_dup_similar_ids = matches["similar"]
-                names = ", ".join(matches["similar"][:5].mapped("display_name"))
-                rec.name_dup_message = _(
-                    "Có sản phẩm gần giống: %s. Nếu đây thực sự là sản phẩm "
-                    "khác, tick xác nhận bên dưới rồi bấm Tạo sản phẩm.") % names
 
     bom_ids = fields.Many2many(
         "dl.bom", compute="_compute_bom_ids", string="Phiên bản BOM")
@@ -517,11 +473,11 @@ class DlRfqResolveWizard(models.TransientModel):
             else:
                 rec.step = "confirm"
 
-    @api.depends("product_id", "mode")
+    @api.depends("product_id")
     def _compute_bom_ids(self):
         Bom = self.env["dl.bom"]
         for rec in self:
-            if rec.mode == "existing" and rec.product_id:
+            if rec.product_id:
                 domain = [("product_id", "=", rec.product_id.id)]
                 if rec.rfq_line_id:
                     domain.extend([
@@ -535,7 +491,7 @@ class DlRfqResolveWizard(models.TransientModel):
             else:
                 rec.bom_ids = Bom.browse()
 
-    @api.depends("bom_ids", "manual_bom_id", "mode", "product_id")
+    @api.depends("bom_ids", "manual_bom_id", "product_id")
     def _compute_selected_bom_id(self):
         # selected_bom_id KHÔNG lưu → được tính lại mỗi lần đọc/nạp lại form.
         # Nhờ vậy khi KTV mở 1 BOM Nháp ra Xác nhận rồi quay lại workspace, giá
@@ -543,7 +499,7 @@ class DlRfqResolveWizard(models.TransientModel):
         # sản phẩm mới lấy được — đây là lỗi trước đây do onchange chỉ chạy khi
         # đổi product_id, còn quay lại workspace là reload phía client).
         for rec in self:
-            if rec.mode != "existing" or not rec.product_id:
+            if not rec.product_id:
                 rec.selected_bom_id = False
                 continue
             # Ưu tiên giữ đúng BOM KTV đã chỉ định (nếu còn hợp lệ với SP hiện tại).
@@ -583,8 +539,6 @@ class DlRfqResolveWizard(models.TransientModel):
         if line_id:
             line = self.env["dl.quotation.request.line"].browse(line_id)
             if line.exists():
-                if line.product_name and not res.get("new_product_name"):
-                    res["new_product_name"] = line.product_name
                 if line.supplement_note:
                     res["has_existing_supplement"] = True
                 if line.is_infeasible:
@@ -598,9 +552,12 @@ class DlRfqResolveWizard(models.TransientModel):
                 else:
                     if line.resolved_product_id:
                         res.update({
-                            "mode": "existing",
                             "product_id": line.resolved_product_id.id,
                         })
+                        # Dòng tự chốt qua làn L0: KTV mở ra xem lại thì phải
+                        # thấy NGAY vì sao đã có sẵn kết quả mà mình chưa làm gì.
+                        if line.auto_resolved:
+                            res["product_origin"] = "exact_config"
                     if line.resolved_bom_id:
                         res["manual_bom_id"] = line.resolved_bom_id.id
                     if not line.resolved_product_id:
@@ -616,28 +573,54 @@ class DlRfqResolveWizard(models.TransientModel):
                             ], order="write_date desc, id desc", limit=1)
                         if provisional_product:
                             res.update({
-                                "mode": "existing",
-                                "product_id": provisional_product.id,
+                                    "product_id": provisional_product.id,
                             })
                         if provisional_bom:
                             res["manual_bom_id"] = provisional_bom.id
-                # §3.6 đường A — chưa có SP nào được khôi phục (không kết quả cũ,
-                # không bản tạm) ⇒ chạy bộ dò khớp; nếu ứng viên tốt nhất đạt
-                # ngưỡng tự động (≥60) thì TỰ CHỌN sẵn để ca lặp lại chỉ còn bấm
-                # Hoàn tất. KTV vẫn "Đổi sản phẩm" được (khối ⑴ vẫn cho mở lại).
-                # NGOẠI TRỪ sản phẩm dùng chung của mẫu tham số — xem
-                # _dlm_is_parametric_generic(): nó chỉ được GỢI Ý ở thẻ "Có phải
-                # cái này?", vì điểm của nó là điểm "thuộc họ", đúng như nhau cho
-                # mọi cỡ, nên tự gán chỉ khiến máy trông như đã quyết xong.
-                if (not res.get("product_id") and not line.is_infeasible):
-                    ranked = line._dlm_suggest_candidates(limit=1)
-                    if (ranked and ranked[0]["score"] >= _MATCH_THRESHOLD_AUTO
-                            and not ranked[0]["product"]._dlm_is_parametric_generic()):
+                # ── Chưa khôi phục được sản phẩm nào ⇒ HỆ THỐNG TỰ QUYẾT ──────
+                # Kỹ thuật mở workspace ra là để làm ĐỊNH MỨC. Việc "món này mới
+                # hay cũ, có phải đẻ thêm mã sản phẩm không" suy được từ dữ liệu
+                # Sales đã khai, nên trả lời xong trước khi màn hình hiện ra.
+                # KTV vẫn lật lại được bằng nút "Đổi sản phẩm".
+                if not res.get("product_id") and not line.is_infeasible:
+
+                    # (1) Khớp CHỮ KÝ THAM SỐ — cùng mẫu, cùng bộ số, tức cùng
+                    # cấu hình. Đứng đầu vì đây không phải phỏng đoán.
+                    #
+                    # 🔴 Ở đây generic của mẫu tham số ĐƯỢC tự chọn, ngược với
+                    # đường mờ (2). Không mâu thuẫn: (2) cấm generic vì điểm nó
+                    # nhận là điểm "THUỘC HỌ" — đúng như nhau cho mọi cỡ nên tự
+                    # gán là quyết hộ. Khớp chữ ký thì đã xuống tới ĐÚNG MỘT CỠ,
+                    # và định mức đi kèm cũng là của đúng cỡ đó.
+                    if line.exact_bom_id:
                         res.update({
-                            "mode": "existing",
-                            "product_id": ranked[0]["product"].id,
-                            "auto_selected": True,
+                            "product_id": line.exact_bom_id.product_id.id,
+                            "manual_bom_id": line.exact_bom_id.id,
+                            "product_origin": "exact_config",
                         })
+
+                    # (2) §3.6 đường A — bộ dò khớp đạt ngưỡng tự động (≥60).
+                    # Đặt TRƯỚC bậc thang (3) vì tín hiệu mạnh nhất của nó là
+                    # `reference_product_id`: Sales chỉ tận tay "giống cái này".
+                    if not res.get("product_id"):
+                        ranked = line._dlm_suggest_candidates(limit=1)
+                        if (ranked and ranked[0]["score"] >= _MATCH_THRESHOLD_AUTO
+                                and not ranked[0]["product"]._dlm_is_parametric_generic()):
+                            res.update({
+                                    "product_id": ranked[0]["product"].id,
+                                "product_origin": "suggested",
+                            })
+
+                    # (3) Bậc thang suy sản phẩm: dùng chung của mẫu → trùng hệt
+                    # tên → tạo mới từ tên + nhóm Sales khai. Đây là phần thay
+                    # cho khối "Tạo sản phẩm mới" mà KTV từng phải tự điền.
+                    if not res.get("product_id"):
+                        product, origin = line._dlm_autoresolve_product()
+                        if product:
+                            res.update({
+                                    "product_id": product.id,
+                                "product_origin": origin,
+                            })
         return res
 
     def _action_reload(self):
@@ -679,11 +662,9 @@ class DlRfqResolveWizard(models.TransientModel):
     def _validate_product_step(self):
         self.ensure_one()
         if not self.product_id:
-            if self.mode == "new":
-                raise UserError(_(
-                    "Vui lòng tạo sản phẩm mới trước khi sang bước Định mức BOM."))
             raise UserError(_(
-                "Vui lòng chọn sản phẩm trước khi sang bước Định mức BOM."))
+                "Chưa xác định được sản phẩm cho dòng này. Chọn một sản phẩm đã "
+                "từng gia công, hoặc bấm Cần bổ sung để Sales làm rõ yêu cầu."))
 
     def _validate_bom_step(self):
         self.ensure_one()
@@ -698,16 +679,36 @@ class DlRfqResolveWizard(models.TransientModel):
 
     # ── Điều khiển accordion / lối thoát trên MỘT màn ────────────────────────
     def action_change_product(self):
-        """Khối ⑴ đang thu gọn → bấm 'Đổi sản phẩm' để mở lại: xoá lựa chọn hiện
-        tại (cả BOM đã chọn tay) để KTV chọn/tạo sản phẩm khác."""
+        """Khối ⑴ đang thu gọn → mở lại để KTV trỏ sang MỘT SẢN PHẨM ĐÃ CÓ khác.
+
+        Không còn đường "tạo sản phẩm mới" ở đây: khai sinh danh mục là việc
+        hành chính, hệ thống làm ngầm từ tên + nhóm Sales khai. Cái KTV làm ở
+        đây là NHẬN DIỆN — "món này chính là thứ ta từng gia công" — và hệ quả
+        của nó là kéo theo bộ định mức của sản phẩm đó."""
         self.ensure_one()
         self.write({
             "product_id": False,
             "manual_bom_id": False,
             "show_bom_picker": False,
-            "auto_selected": False,
+            "product_origin": False,
             "param_reused_bom": False,
         })
+        return self._action_reload()
+
+    def action_restore_auto_product(self):
+        """Quay lại sản phẩm hệ thống đã đề xuất (sau khi bấm nhầm Đổi sản phẩm).
+
+        Bắt buộc phải có từ khi gỡ nút "Tạo sản phẩm mới": với một món thật sự
+        mới, KTV bấm Đổi sản phẩm là mất luôn sản phẩm vừa được dựng ngầm mà
+        không còn cách nào lấy lại — kẹt cứng giữa chừng. `_dlm_autoresolve_product`
+        nhận lại bản tạm cũ nên gọi lại không đẻ thêm sản phẩm."""
+        self.ensure_one()
+        product, origin = self.rfq_line_id._dlm_autoresolve_product()
+        if not product:
+            raise UserError(_(
+                "Không suy được sản phẩm từ yêu cầu của Sales. Hãy chọn một sản "
+                "phẩm đã từng gia công, hoặc bấm Cần bổ sung để Sales làm rõ."))
+        self.write({"product_id": product.id, "product_origin": origin})
         return self._action_reload()
 
     def action_use_suggested_product(self):
@@ -716,12 +717,17 @@ class DlRfqResolveWizard(models.TransientModel):
         self.ensure_one()
         if not self.suggested_product_id:
             raise UserError(_("Không có sản phẩm gợi ý để chọn."))
+        chosen = self.suggested_product_id
         self.write({
-            "mode": "existing",
-            "product_id": self.suggested_product_id.id,
+            "product_id": chosen.id,
             "manual_bom_id": False,
-            "auto_selected": False,
+            "product_origin": False,
         })
+        # KTV vừa nói "dùng món cũ" ⇒ sản phẩm tạm mà hệ thống tự tạo cho dòng
+        # này là rác, dọn ngay thay vì để cron 7 ngày sau mới gom. Không dọn thì
+        # nó còn nằm trong danh mục Nháp và lọt vào ô chọn của người khác.
+        self.rfq_line_id._cleanup_rfq_provisional_records(
+            keep_product_ids=chosen.ids)
         return self._action_reload()
 
     def action_toggle_bom_picker(self):
@@ -739,7 +745,7 @@ class DlRfqResolveWizard(models.TransientModel):
             "search_outside_category": not self.search_outside_category,
             "product_id": False,
             "manual_bom_id": False,
-            "auto_selected": False,
+            "product_origin": False,
         })
         return self._action_reload()
 
@@ -874,84 +880,11 @@ class DlRfqResolveWizard(models.TransientModel):
             "target": "current",
         }
 
-    def action_create_product(self):
-        """Case B — tạo Product mới (không tạo trùng: dùng chính product_id
-        làm kết quả, chuyển sang chế độ 'existing' để chọn/tạo BOM tiếp)."""
-        self.ensure_one()
-        if not self.new_product_name:
-            raise UserError(_("Vui lòng nhập Tên sản phẩm mới."))
-        if not self.new_product_category_id:
-            raise UserError(_("Vui lòng chọn Nhóm sản phẩm."))
-        # §8.1 — nhóm này có mẫu tham số ⇒ mọi kích thước dùng CHUNG sản phẩm dùng
-        # chung, chỉ định mức là riêng. Chặn mềm để KTV không đẻ mã cho từng cỡ.
-        # Đọc field computed (không search lại tại chỗ) để điều kiện chặn LUÔN
-        # trùng điều kiện hiện cảnh báo + ô tick trên form.
-        parametric = self.new_product_blocking_template_id
-        if parametric and not self.confirm_not_just_size:
-            raise UserError(_(
-                "Nhóm “%(categ)s” đã có mẫu tham số “%(tmpl)s”: các kích thước "
-                "khác nhau DÙNG CHUNG sản phẩm “%(generic)s”, chỉ định mức là "
-                "riêng cho từng đơn.\n\n"
-                "• Chỉ khác kích thước ⇒ quay lại, chọn sản phẩm dùng chung rồi "
-                "nhập kích thước ở panel tham số.\n"
-                "• Thật sự khác kết cấu ⇒ tick “Đây là sản phẩm khác kết cấu” "
-                "rồi tạo lại.",
-                categ=self.new_product_category_id.display_name,
-                tmpl=parametric.display_name,
-                generic=parametric.generic_product_id.display_name))
-        # Soi trùng LẠI ngay lúc bấm (không tin state đã compute) — chặn tạo SP
-        # trùng hệt, và đòi xác nhận nếu chỉ gần giống.
-        matches = self.env["product.product"]._dlm_find_name_matches(
-            self.new_product_name,
-            kinds=("manufactured", "material_processed"),
-            extra_domain=[("is_rfq_provisional", "=", False)],
-        )
-        if matches["exact"]:
-            dup = matches["exact"][0]
-            raise UserError(_(
-                "Đã tồn tại sản phẩm “%(name)s” (nhóm %(categ)s). Không tạo "
-                "trùng — chuyển sang “Sản phẩm đã từng gia công” và chọn lại "
-                "sản phẩm này (nút “Dùng sản phẩm này”).",
-                name=dup.display_name,
-                categ=dup.categ_id.display_name or _("chưa phân nhóm")))
-        if matches["similar"] and not self.confirm_similar_name:
-            names = ", ".join(matches["similar"][:5].mapped("display_name"))
-            raise UserError(_(
-                "Có sản phẩm gần giống: %s.\nNếu đây thực sự là sản phẩm khác, "
-                "hãy tick “Xác nhận đây thực sự là sản phẩm khác” rồi tạo lại.")
-                % names)
-        self.rfq_line_id._cleanup_rfq_provisional_records()
-        product = self.env["product.product"].create({
-            "name": self.new_product_name,
-            "categ_id": self.new_product_category_id.id,
-            "product_kind": "manufactured",
-            # Case B "hoàn toàn mới": SP nằm ở Nháp cho tới khi đơn chốt/duyệt.
-            "dlm_lifecycle_state": "draft",
-            "is_rfq_provisional": True,
-            "rfq_source_line_id": self.rfq_line_id.id,
-        })
-        self.product_id = product.id
-        self.mode = "existing"
-        return self._action_reload()
-
-    def action_use_duplicate_product(self):
-        """Từ cảnh báo trùng hệt: chọn lại SP có sẵn thay vì tạo bản trùng."""
-        self.ensure_one()
-        if not self.name_dup_exact_id:
-            raise UserError(_("Không xác định được sản phẩm trùng để chọn lại."))
-        self.write({
-            "mode": "existing",
-            "product_id": self.name_dup_exact_id.id,
-            "new_product_name": False,
-            "confirm_similar_name": False,
-        })
-        return self._action_reload()
-
     def action_create_bom(self):
         """Tạo BOM nháp rồi mở form BOM full-page trên breadcrumb workspace."""
         self.ensure_one()
         if not self.product_id:
-            raise UserError(_("Vui lòng chọn hoặc tạo sản phẩm trước."))
+            raise UserError(_("Chưa xác định được sản phẩm cho dòng này."))
         self.rfq_line_id._cleanup_rfq_provisional_records(
             keep_product_ids=self.product_id.ids)
         bom = self.env["dl.bom"].create({
@@ -967,14 +900,29 @@ class DlRfqResolveWizard(models.TransientModel):
 
     # ── Đợt 4 — panel nhập tham số + Sinh định mức ───────────────────────────
     @api.model
-    def _dlm_param_panel_commands(self, tmpl):
-        """Lệnh o2m dựng panel tham số (D/R/C) của một mẫu — LUÔN để TRỐNG.
+    def _dlm_param_panel_commands(self, tmpl, rfq_line=None):
+        """Lệnh o2m dựng panel tham số của một mẫu, mồi sẵn số Sales đã nhập.
 
-        Kích thước là số nuôi thẳng vào định mức rồi vào giá bán, nên chỉ nhận
-        số KTV tự nhập theo yêu cầu/bản vẽ. KHÔNG đọc từ mô tả Sales (văn bản tự
-        do, sai một chữ số là sai cả báo giá) và cũng KHÔNG lấy mặc định của mẫu
-        (mọi dòng thiếu kích thước sẽ ra cùng một định mức). Bỏ trống thì
-        _dlm_validate_param_values chặn ngay khi bấm Sinh định mức."""
+        ⚠️ Luật ở đây ĐÃ ĐỔI, đọc kỹ trước khi "sửa cho nhất quán":
+
+        Bản trước LUÔN để trống, với lý do "không đọc từ mô tả Sales vì đó là
+        văn bản tự do, sai một chữ số là sai cả báo giá". Lý do đó đúng với văn
+        bản tự do và vẫn còn hiệu lực — `_dlm_parse_dimensions` (regex đoán) tới
+        giờ vẫn KHÔNG được phép mồi vào đây.
+
+        Cái đổi là Sales nay nhập thông số vào Ô CÓ NHÃN DO CHÍNH MẪU NÀY ĐỊNH
+        NGHĨA (`dl.quotation.request.line.param`), có miền hợp lệ và cổng chặn
+        lúc gửi. Đó không còn là số đoán từ câu chữ, mà là đề bài khách đưa —
+        thứ KTV vốn phải gõ lại y nguyên từ cột bên trái sang.
+
+        Vẫn KHÔNG lấy `default_value` của mẫu: mặc định là con số của mẫu chứ
+        không của khách; mồi nó vào thì mọi dòng thiếu kích thước cùng ra một
+        định mức mà không ai thấy sai. Ô nào Sales bỏ trống thì để trống, và
+        _dlm_validate_param_values chặn khi bấm Sinh định mức."""
+        sales_values = {}
+        if rfq_line:
+            sales_values = {
+                p.code: p.value for p in rfq_line.param_ids if p.value}
         commands = [(5, 0, 0)]
         for param in tmpl.param_ids:
             commands.append((0, 0, {
@@ -982,6 +930,7 @@ class DlRfqResolveWizard(models.TransientModel):
                 "sequence": param.sequence,
                 "code": param.code,
                 "name": param.name,
+                "value": sales_values.get(param.code, 0.0),
                 "value_min": param.value_min,
                 "value_max": param.value_max,
                 "required": param.required,
@@ -997,7 +946,8 @@ class DlRfqResolveWizard(models.TransientModel):
                 "Nhóm sản phẩm này chưa có BOM mẫu tham số đã xác nhận."))
         self.write({
             "show_param_panel": True,
-            "param_line_ids": self._dlm_param_panel_commands(tmpl),
+            "param_line_ids": self._dlm_param_panel_commands(
+                tmpl, self.rfq_line_id),
         })
         return self._action_reload()
 

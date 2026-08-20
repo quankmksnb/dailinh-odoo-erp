@@ -31,7 +31,6 @@ class DlBomLine(models.Model):
         digits="Product Price",
         groups="dl_base.dl_group_ceo,"
                "dl_base.dl_group_admin,"
-               "dl_base.dl_group_accountant,"
                "dl_base.dl_group_sales_manager",
     )
 
@@ -42,7 +41,6 @@ class DlBomLine(models.Model):
         digits="Product Price",
         groups="dl_base.dl_group_ceo,"
                "dl_base.dl_group_admin,"
-               "dl_base.dl_group_accountant,"
                "dl_base.dl_group_sales_manager",
     )
 
@@ -53,7 +51,6 @@ class DlBomLine(models.Model):
         digits="Product Price",
         groups="dl_base.dl_group_ceo,"
                "dl_base.dl_group_admin,"
-               "dl_base.dl_group_accountant,"
                "dl_base.dl_group_sales_manager",
     )
 

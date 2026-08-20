@@ -36,8 +36,6 @@
                     <field name="check_bom_has_lines" invisible="1"/>
                     <field name="check_bom_confirmed" invisible="1"/>
                     <field name="check_request_unchanged" invisible="1"/>
-                    <field name="name_dup_state" invisible="1"/>
-                    <field name="name_dup_exact_id" invisible="1"/>
                     <field name="allowed_product_ids" invisible="1"/>
                     <field name="next_line_id" invisible="1"/>
                     <field name="search_outside_category" invisible="1"/>
@@ -49,7 +47,6 @@
                     <field name="suggestion_count" invisible="1"/>
                     <field name="auto_selected" invisible="1"/>
                     <field name="has_parametric_template" invisible="1"/>
-                    <field name="new_product_blocking_template_id" invisible="1"/>
                     <field name="show_param_panel" invisible="1"/>
                     <field name="param_reused_bom" invisible="1"/>
 
@@ -106,12 +103,40 @@
                             <div class="dl-rfq-section-title">
                                 <i class="fa fa-file-text-o me-1"/>Yêu cầu từ Sales
                             </div>
+                            <field name="request_has_params" invisible="1"/>
+                            <field name="request_params_out_of_range" invisible="1"/>
                             <group>
                                 <field name="request_category_id" readonly="1"/>
-                                <field name="request_quantity" readonly="1"/>
+                                <label for="request_quantity"/>
+                                <div class="o_row">
+                                    <field name="request_quantity" readonly="1" widget="dl_qty"/>
+                                    <field name="request_uom_id" readonly="1" nolabel="1"/>
+                                </div>
                                 <field name="request_reference_product_id" readonly="1"/>
                                 <field name="request_dimension_note" readonly="1"/>
                             </group>
+                            <!-- Thông số Sales đã điền theo mẫu của nhóm. Panel tham
+                                 số ở cột phải được mồi sẵn từ chính bộ này, nên KTV
+                                 đối chiếu được thay vì phải gõ lại từ cột trái. -->
+                            <div invisible="not request_has_params">
+                                <div class="dl-rfq-section-title mt-2">
+                                    <i class="fa fa-sliders me-1"/>Thông số Sales nhập
+                                </div>
+                                <field name="request_param_ids" readonly="1" nolabel="1">
+                                    <tree create="false" delete="false" edit="false"
+                                          string="Thông số Sales nhập">
+                                        <field name="name" string="Thông số"/>
+                                        <field name="value" string="Giá trị" widget="dl_qty"/>
+                                    </tree>
+                                </field>
+                                <div class="alert alert-warning mt-1 mb-0 py-1 px-2 small"
+                                     role="alert"
+                                     invisible="not request_params_out_of_range">
+                                    <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>
+                                    Có thông số ngoài miền thường làm — xem kỹ trước
+                                    khi dùng lại định mức cũ.
+                                </div>
+                            </div>
                             <div class="dl-rfq-attachments"
                                  invisible="not request_attachment_ids">
                                 <div class="dl-rfq-section-title mt-2">
@@ -138,24 +163,78 @@
                                            class="dl-rfq-inline-field"/>
                                     <span class="badge text-bg-warning ms-1"
                                           invisible="not product_is_rfq_provisional">tạm</span>
-                                    <!-- §3.6 — nhắc KTV đây là SP máy tự đoán (đường A), vẫn kiểm lại được. -->
+                                    <!-- Mỗi đường tự quyết một nhãn RIÊNG, cố ý không gộp:
+                                         mức chắc chắn của chúng khác hẳn nhau nên KTV cần
+                                         biết mình đang gật cái gì. Nhãn nào cũng có CHỮ +
+                                         icon + title, không dựa vào màu làm tín hiệu duy
+                                         nhất. -->
+                                    <field name="product_origin" invisible="1"/>
+                                    <span class="badge text-bg-success ms-1"
+                                          invisible="product_origin != 'exact_config'"
+                                          title="Trùng chữ ký tham số với một định mức đã chốt — cùng mẫu, cùng bộ số">
+                                        <i class="fa fa-check me-1" aria-hidden="true"/>khớp chính xác cấu hình</span>
                                     <span class="badge text-bg-info ms-1"
-                                          invisible="not auto_selected"
-                                          title="Hệ thống tự chọn từ yêu cầu của Sales — kiểm tra lại giúp">
-                                        <i class="fa fa-lightbulb-o me-1"/>gợi ý tự chọn</span>
+                                          invisible="product_origin != 'sales_pick'"
+                                          title="Sales đã chỉ đích danh Kiểu hàng này trên yêu cầu báo giá">
+                                        <i class="fa fa-hand-o-right me-1" aria-hidden="true"/>Sales chọn kiểu hàng</span>
+                                    <span class="badge text-bg-info ms-1"
+                                          invisible="product_origin != 'name_match'"
+                                          title="Đã có sản phẩm trùng hệt tên Sales gõ — dùng lại thay vì tạo trùng">
+                                        <i class="fa fa-link me-1" aria-hidden="true"/>trùng tên đã có</span>
+                                    <!-- §3.6 — nhắc KTV đây là SP máy ĐOÁN (đường A). -->
+                                    <span class="badge text-bg-warning ms-1"
+                                          invisible="product_origin != 'suggested'"
+                                          title="Hệ thống đoán theo tên / nhóm / khách từng đặt — kiểm tra lại giúp">
+                                        <i class="fa fa-lightbulb-o me-1" aria-hidden="true"/>máy đoán, kiểm lại</span>
+                                    <span class="badge text-bg-secondary ms-1"
+                                          invisible="product_origin != 'created'"
+                                          title="Chưa từng gia công — hệ thống tạo sản phẩm theo đúng tên và nhóm Sales khai">
+                                        <i class="fa fa-plus me-1" aria-hidden="true"/>tạo từ yêu cầu Sales</span>
                                     <button name="action_change_product" type="object"
                                             string="Đổi sản phẩm" class="btn-link btn-sm ms-auto"/>
                                 </div>
+
+                                <!-- 🔴 Lá chắn TÊN GẦN GIỐNG sống ở đây.
+                                     Hệ thống vừa tạo một sản phẩm mới, nhưng bộ dò
+                                     khớp thấy có món cũ na ná. Luật cũ chặn cứng và
+                                     bắt KTV tick xác nhận; luật mới không chặn nữa
+                                     nên PHẢI nhắc ở đúng chỗ này, không thì âm thầm
+                                     đẻ sản phẩm trùng nghĩa. -->
+                                <div class="alert alert-warning mt-2 mb-0 py-2" role="status"
+                                     invisible="product_origin != 'created' or suggestion_state == 'none'">
+                                    <div class="d-flex align-items-center flex-wrap">
+                                        <span>
+                                            <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"/>
+                                            Đã có món tương tự:
+                                        </span>
+                                        <field name="suggested_product_id" readonly="1" nolabel="1"
+                                               class="dl-rfq-inline-field ms-1 fw-bold"/>
+                                        <span class="text-muted ms-2">·
+                                            <field name="suggestion_reason" readonly="1" nolabel="1"
+                                                   class="dl-rfq-inline-field"/></span>
+                                        <button name="action_use_suggested_product" type="object"
+                                                string="Dùng món cũ thay vì tạo mới"
+                                                class="btn-secondary btn-sm ms-auto"/>
+                                    </div>
+                                </div>
                             </div>
 
-                            <!-- Mở khi chưa chọn sản phẩm. -->
+                            <!-- Mở khi chưa chọn sản phẩm.
+
+                                 Từ đợt 2026-08-19 đây KHÔNG còn là bước mở màn:
+                                 hệ thống đã tự quyết sản phẩm trước khi màn hình
+                                 hiện ra (xem default_get), nên khối này chỉ bung
+                                 ra khi KTV bấm "Đổi sản phẩm" — tức đường LẬT
+                                 LẠI thủ công — hoặc khi dòng cũ chưa có nhóm SP
+                                 nên không suy được. -->
                             <div class="dl-rfq-block dl-rfq-block--active"
                                  invisible="product_id">
                                 <h2 class="dl-rfq-block-title">
-                                    <span class="dl-rfq-block-no">⑴</span> Xác định sản phẩm
+                                    <span class="dl-rfq-block-no">⑴</span> Chọn lại sản phẩm
                                 </h2>
                                 <p class="text-muted mb-2">
-                                    Chọn sản phẩm đã từng gia công hoặc tạo sản phẩm mới từ yêu cầu của Sales.
+                                    Hệ thống chọn chưa đúng? Chọn sản phẩm khác đã từng gia
+                                    công, hoặc tạo sản phẩm mới ở đây.
                                 </p>
 
                                 <!-- §3.6 — thẻ "Có phải cái này?": bộ dò khớp gợi ý SP đã
@@ -189,11 +268,7 @@
                                     </div>
                                 </div>
 
-                                <group>
-                                    <field name="mode" widget="radio"/>
-                                </group>
-
-                                <group invisible="mode != 'existing'" string="Chọn sản phẩm có sẵn">
+                                <group string="Sản phẩm đã từng gia công">
                                     <field name="product_id" placeholder="Tìm theo tên sản phẩm..."
                                            nolabel="1"
                                            domain="[('id', 'in', allowed_product_ids)]"
@@ -217,60 +292,21 @@
                                     </div>
                                 </group>
 
-                                <group invisible="mode != 'new'" string="Tạo sản phẩm mới">
-                                    <field name="new_product_name" required="mode == 'new'"/>
-                                    <field name="new_product_category_id" required="mode == 'new'"/>
-
-                                    <div class="alert alert-danger" colspan="2" role="alert"
-                                         invisible="name_dup_state != 'exact'">
-                                        <i class="fa fa-ban me-1" title="Trùng"/>
-                                        <field name="name_dup_message" nolabel="1" readonly="1"/>
-                                        <div class="mt-2">
-                                            <button name="action_use_duplicate_product" type="object"
-                                                    string="Dùng sản phẩm này"
-                                                    class="btn-primary btn-sm"/>
-                                        </div>
-                                    </div>
-
-                                    <div class="alert alert-warning" colspan="2" role="alert"
-                                         invisible="name_dup_state != 'similar'">
-                                        <i class="fa fa-exclamation-triangle me-1" title="Gần giống"/>
-                                        <field name="name_dup_message" nolabel="1" readonly="1"/>
-                                        <div class="mt-2">
-                                            <field name="confirm_similar_name"
-                                                   class="d-inline-block me-1"/>
-                                            <label for="confirm_similar_name"
-                                                   string="Xác nhận đây thực sự là sản phẩm khác"
-                                                   class="fw-normal"/>
-                                        </div>
-                                    </div>
-
-                                    <!-- Nhóm có mẫu tham số: khác kích thước KHÔNG phải
-                                         lý do đẻ mã sản phẩm mới. Cảnh báo + bắt tick,
-                                         và hạ nút tạo xuống thứ cấp. -->
-                                    <div class="alert alert-warning" colspan="2" role="alert"
-                                         invisible="not new_product_blocking_template_id">
-                                        <i class="fa fa-magic me-1" title="Có mẫu tham số"/>
-                                        Nhóm này có <b>mẫu tham số</b>: các kích thước khác nhau
-                                        <b>dùng chung một sản phẩm</b>, chỉ định mức là riêng cho
-                                        từng đơn. Chỉ tạo sản phẩm mới khi <b>khác kết cấu</b>
-                                        (thêm/bớt bộ phận), không phải khi khác cỡ.
-                                        <div class="mt-2">
-                                            <field name="confirm_not_just_size"
-                                                   class="d-inline-block me-1"/>
-                                            <label for="confirm_not_just_size"
-                                                   string="Đây là sản phẩm khác kết cấu, không phải chỉ khác kích thước"
-                                                   class="fw-normal"/>
-                                        </div>
-                                    </div>
-
-                                    <button name="action_create_product" type="object"
-                                            string="Tạo sản phẩm" class="btn-primary"
-                                            invisible="name_dup_state == 'exact' or new_product_blocking_template_id"/>
-                                    <button name="action_create_product" type="object"
-                                            string="Tạo sản phẩm" class="btn-secondary"
-                                            invisible="name_dup_state == 'exact' or not new_product_blocking_template_id"/>
-                                </group>
+                                <!-- Không còn nút "Tạo sản phẩm mới" ở đây.
+                                     Khai sinh danh mục là việc hành chính: hệ thống
+                                     dựng ngầm sản phẩm theo TÊN và NHÓM Sales khai
+                                     (xem _dlm_autoresolve_product). Việc của Kỹ thuật
+                                     ở khối này chỉ là NHẬN DIỆN — trỏ vào món đã từng
+                                     gia công nếu máy chọn chưa đúng. -->
+                                <div class="alert alert-info py-2 mt-2" role="status">
+                                    <i class="fa fa-info-circle me-1" aria-hidden="true"/>
+                                    Đây thật sự là món <b>chưa từng gia công</b>?
+                                    <button name="action_restore_auto_product" type="object"
+                                            string="Quay lại sản phẩm hệ thống dựng sẵn"
+                                            class="btn-link btn-sm p-0 align-baseline"/>
+                                    · Yêu cầu của Sales chưa đủ rõ để nhận diện?
+                                    Bấm <b>Cần bổ sung</b> ở thanh dưới.
+                                </div>
                             </div>
 
                             <!-- ⑵ ĐỊNH MỨC VẬT TƯ ──────────────────────────── -->

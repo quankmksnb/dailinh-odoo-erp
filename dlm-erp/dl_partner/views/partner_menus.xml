@@ -28,7 +28,7 @@
         parent="dl_base.menu_dl_sale"
         sequence="21"
         action="action_dl_supplier_readonly"
-        groups="dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_sales_manager"
     />
 
 </odoo>

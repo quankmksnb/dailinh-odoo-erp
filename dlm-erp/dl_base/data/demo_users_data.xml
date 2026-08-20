@@ -50,15 +50,6 @@
             <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_tech')])]" />
         </record>
 
-        <record id="demo_user_accountant" model="res.users">
-            <field name="name">Kế toán nội bộ</field>
-            <field name="login">ketoan@gmail.com</field>
-            <field name="email">ketoan@gmail.com</field>
-            <field name="lang">vi_VN</field>
-            <field name="password">123456</field>
-            <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_accountant')])]" />
-        </record>
-
         <record id="demo_user_purchasing" model="res.users">
             <field name="name">Mua hàng</field>
             <field name="login">muahang@gmail.com</field>

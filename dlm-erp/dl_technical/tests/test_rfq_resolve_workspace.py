@@ -33,7 +33,9 @@ class TestRfqResolveWorkspace(TransactionCase):
         cls.customer = cls.env["res.partner"].create({
             "name": "Khách test workspace",
             "partner_role": "customer",
-            "mobile": "0900001003",
+            # dl_partner: khách CÁ NHÂN phải có điện thoại, và số KHÔNG được trùng
+            # giữa các khách ⇒ mỗi file test giữ một số riêng.
+            "phone": "0989204713",
         })
 
     def _make_rfq_line(self):
@@ -41,6 +43,7 @@ class TestRfqResolveWorkspace(TransactionCase):
             "customer_id": self.customer.id,
             "line_ids": [(0, 0, {
                 "product_type": "manufactured",
+                "product_category_id": self.categ.id,
                 "product_name": "Bàn thép WS",
                 "quantity": 2.0,
                 "dimension_note": "1400x830",
@@ -112,6 +115,10 @@ class TestRfqResolveWorkspace(TransactionCase):
         """
         request, line = self._make_rfq_line()
         wizard = self._wizard(line)
+        # Workspace nay TỰ quyết sản phẩm khi mở (2026-08-19). Cổng "chưa có sản
+        # phẩm thì chưa Hoàn tất được" vẫn phải đứng — nó gác ca KTV bấm "Đổi
+        # sản phẩm" rồi bỏ dở, nên dựng lại đúng ca đó.
+        wizard.action_change_product()
 
         self.assertFalse(wizard.product_id)
         self.assertFalse(wizard.can_confirm)
@@ -151,14 +158,22 @@ class TestRfqResolveWorkspace(TransactionCase):
         """
         request, line = self._make_rfq_line()
         wizard = self._wizard(line)
-        self.assertEqual(wizard.step, "product", "Chưa có sản phẩm thì ở khối (1)")
+        # Mở ra là đã có sản phẩm (hệ thống tự quyết) ⇒ đứng ngay ở khối ⑵.
+        self.assertEqual(wizard.step, "bom", "Có sản phẩm sẵn → khối ⑵")
+
+        wizard.action_change_product()
+        self.assertEqual(wizard.step, "product", "Chưa có sản phẩm → khối ⑴")
 
         wizard.product_id = self.product.id
         self.assertEqual(wizard.step, "bom", "Có sản phẩm, chưa có định mức thì ở khối (2)")
 
         bom = self._make_draft_bom(line)
         wizard.manual_bom_id = bom.id
-        self.assertEqual(wizard.step, "confirm", "Đủ sản phẩm và định mức thì ở khối (3)")
+        # bom_ids là compute KHÔNG lưu, chỉ phụ thuộc product_id/mode — BOM vừa
+        # tạo không tự lọt vào danh sách đã tính trước đó. Ngoài đời workspace
+        # tính lại mỗi lần nạp; ở đây phải xoá cache thì mới đo đúng.
+        wizard.invalidate_recordset()
+        self.assertEqual(wizard.step, "confirm", "Đủ sản phẩm + định mức → khối ⑶")
 
     # Lối thoát "Cần bổ sung" / "Không khả thi" mở trong modal (không xổ dock)
     def test_exit_buttons_open_modal(self):

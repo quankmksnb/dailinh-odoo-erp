@@ -47,17 +47,6 @@
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]" />
         </record>
 
-        <!-- ============================================================
-             Bổ sung cho module dl_product (Bảng giá Vật tư)
-        ============================================================ -->
-
-        <record id="dl_group_accountant" model="res.groups">
-            <field name="name">Kế toán nội bộ</field>
-            <field name="comment">Chủ sở hữu Bảng giá Vật tư: cập nhật đơn giá, nhà cung cấp, ngày hiệu lực, đánh dấu giá không hợp lệ</field>
-            <field name="category_id" ref="module_category_dl_rbac"/>
-            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
-        </record>
-
         <record id="dl_group_sales_manager" model="res.groups">
             <field name="name">Trưởng phòng Kinh doanh</field>
             <field name="comment">Xem (Restricted) danh mục vật tư/giá tham khảo phục vụ quản lý kinh doanh</field>
@@ -66,8 +55,8 @@
         </record>
 
         <!-- Mua hàng: sở hữu "giá MUA" — Nhà cung cấp, giá NCC (supplierinfo),
-             giá vốn. Tách khỏi Kế toán (Kế toán giữ giá bán? KHÔNG — giá bán
-             chuyển cho Sales; Kế toán chỉ còn xem giá). -->
+             giá vốn. -->
+
         <record id="dl_group_purchasing" model="res.groups">
             <field name="name">Mua hàng</field>
             <field name="comment">Chủ sở hữu giá MUA: Nhà cung cấp, đơn giá nhà cung cấp (duyệt/áp dụng), giá vốn</field>

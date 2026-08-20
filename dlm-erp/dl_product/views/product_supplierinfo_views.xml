@@ -247,7 +247,6 @@
         <field name="groups_id" eval="[(6, 0, [
             ref('dl_base.dl_group_ceo'),
             ref('dl_base.dl_group_sales_manager'),
-            ref('dl_base.dl_group_accountant'),
         ])]" />
     </record>
 

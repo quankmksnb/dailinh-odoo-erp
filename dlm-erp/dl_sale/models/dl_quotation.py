@@ -4,13 +4,12 @@ from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import format_date
 
-# Ai được nhìn thấy giá vốn trên form Báo giá: Kế toán, Trưởng KD, CEO, Admin.
+# Ai được nhìn thấy giá vốn trên form Báo giá: Trưởng KD, CEO, Admin.
 # Sales (BA) mở cùng form nhưng chỉ thấy giá bán/chiết khấu — mọi field gắn
 # groups=_COST_GROUPS sẽ biến mất khỏi màn của họ.
 _COST_GROUPS = (
     "dl_base.dl_group_ceo,"
     "dl_base.dl_group_admin,"
-    "dl_base.dl_group_accountant,"
     "dl_base.dl_group_sales_manager"
 )
 

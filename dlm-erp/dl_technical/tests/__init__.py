@@ -12,3 +12,4 @@ from . import test_cron_cleanup_rfq_provisional
 from . import test_cost_field_visibility_security
 from . import test_material_calc_kind
 from . import test_rfq_return_and_notify_wizards
+from . import test_rfq_sales_params

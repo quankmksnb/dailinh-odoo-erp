@@ -886,14 +886,13 @@ class ProductProduct(models.Model):
 
     def set_dlm_waste(self, vals):
         """Cập nhật hao hụt vật tư từ màn Cấu hình (sửa inline). Guard quyền
-        (Kỹ thuật/Kế toán/Admin) rồi sudo-ghi để không phụ thuộc quyền write
+        (Kỹ thuật/Admin) rồi sudo-ghi để không phụ thuộc quyền write
         product.product của từng role."""
         user = self.env.user
         if not self.env.su and not (
                 user.has_group("dl_base.dl_group_tech")
-                or user.has_group("dl_base.dl_group_accountant")
                 or user.has_group("dl_base.dl_group_admin")):
-            raise AccessError(_("Chỉ Kỹ thuật/Kế toán/Admin được sửa hao hụt vật tư."))
+            raise AccessError(_("Chỉ Kỹ thuật/Admin được sửa hao hụt vật tư."))
         # K16 — bỏ `dlm_has_recovery`/`dlm_recovery_rate` khỏi whitelist: màn
         # Cấu hình không gửi chúng nữa, và để lại là mở một đường ghi vào hai
         # field đã ngưng dùng.

@@ -27,7 +27,6 @@ from odoo.addons.dl_config.models.pricing_operation import (
 _COST_GROUPS = (
     "dl_base.dl_group_ceo,"
     "dl_base.dl_group_admin,"
-    "dl_base.dl_group_accountant,"
     "dl_base.dl_group_sales_manager"
 )
 

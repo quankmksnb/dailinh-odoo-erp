@@ -36,9 +36,12 @@ class TestParametricGenerator(TransactionCase):
         })
 
     def _make_template(self, status="confirmed"):
+        # generic_product_id là NEO của mẫu tham số từ 2026-08-19 — mẫu có tham
+        # số mà chưa gán thì không duyệt được (_check_parametric_needs_generic).
         template = self.env["dl.bom.template"].create({
             "name": "Mẫu Bàn thép (test)",
             "product_category_id": self.categ.id,
+            "generic_product_id": self.product.id,
             "line_ids": [(0, 0, {
                 "material_id": self.material.id,
                 "quantity": 1.0,

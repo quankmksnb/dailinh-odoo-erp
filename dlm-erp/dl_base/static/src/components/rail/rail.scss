@@ -144,15 +144,18 @@ $dl-rail-bg:      $dl-nav-bg;
         cursor: pointer;
         min-width: 0;
 
+        // Ô biểu tượng thương hiệu: nay là ảnh logo thật nên KHÔNG tô nền —
+        // nền xanh cũ chỉ để làm bệ cho ký tự ◆ thời chưa có logo.
         .dlm-rail-icon {
             width: 32px;
             height: 32px;
             margin: 0 3px;
-            border-radius: $dl-radius-sm;
-            background: $dl-primary;
-            color: #fff;
-            font-size: 15px;
-            font-weight: 700;
+
+            img {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }
         }
 
         .dlm-rail-label {

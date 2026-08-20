@@ -118,8 +118,15 @@ class DlPurchaseOrderDocument(models.Model):
         nho = ParagraphStyle(
             "dl_small", fontName=_PDF_FONT, fontSize=8.5, leading=12,
             textColor=colors.HexColor("#666666"))
+        ten_cty = ParagraphStyle(
+            "dl_company", fontName=_PDF_FONT_BOLD, fontSize=13, leading=17)
 
-        story = [
+        # Đầu trang có logo + pháp nhân: NCC nhận tờ giấy này qua email và phải
+        # nhận ra ngay ai đặt hàng (trước đây tờ giấy vào thẳng tiêu đề).
+        company = self.company_id or self.env.company
+        story = company._dlm_pdf_letterhead(
+            name_style=ten_cty, body_style=thuong, width=174 * mm)
+        story += [
             Paragraph(
                 _("ĐƠN ĐẶT HÀNG") if is_order else _("YÊU CẦU BÁO GIÁ"),
                 tieu_de),
