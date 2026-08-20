@@ -464,16 +464,58 @@ class TestVongGia(DlPurchaseCase):
         with self.assertRaises(UserError):
             po.action_dlm_record_vendor_price()
 
+    def _ghi_nhan(self, po):
+        """Bấm [Ghi nhận giá NCC báo] rồi Xác nhận trên modal — như người dùng."""
+        act = po.action_dlm_record_vendor_price()
+        wiz = self.env["dl.purchase.price.update.wizard"].browse(act["res_id"])
+        wiz.action_confirm()
+        return wiz
+
     def test_ghi_nhan_gia_KHONG_cam_ket_mua(self):
         """🔴 Ghi nhận giá ≠ đặt hàng. Báo giá chưa chắc thắng."""
         quo = self._quo_thieu()
         quo.action_dlm_request_vendor_quote()
         po = self.env["dl.purchase.order"].search([("dlm_quotation_id", "=", quo.id)])
         po.line_ids.price_unit = 210000
-        po.action_dlm_record_vendor_price()
+        self._ghi_nhan(po)
 
         self.assertEqual(po.state, "sent", "đơn KHÔNG được tự chốt")
         self.assertFalse(po.dlm_picking_ids, "KHÔNG được sinh phiếu nhận")
-        # Lệch 5% < ngưỡng ⇒ bảng giá tự theo.
         self.assertAlmostEqual(
             self.thep.seller_ids.filtered("is_applied").price, 210000.0, places=2)
+
+    def test_ghi_nhan_gia_lech_lon_van_vao_bang_gia(self):
+        """🔴 Lệch lớn KHÔNG được rơi vào nhánh "chỉ lưu Nháp".
+
+        Đó là ca cần nhất: giá nằm Nháp ⇒ `_dlm_buy_price_moved` không thấy gì
+        đổi (nó chỉ soi dòng đang áp dụng) ⇒ cổng gửi khách vẫn mở, và báo giá
+        đi ra bằng giá CŨ trong khi NCC vừa báo giá gấp nhiều lần."""
+        quo = self._quo_thieu()
+        quo.action_dlm_request_vendor_quote()
+        po = self.env["dl.purchase.order"].search([("dlm_quotation_id", "=", quo.id)])
+        po.line_ids.price_unit = 900000        # lệch >> ngưỡng 10%
+        self._ghi_nhan(po)
+
+        ap = self.thep.seller_ids.filtered("is_applied")
+        self.assertAlmostEqual(ap.price, 900000.0, places=2,
+                               msg="giá NCC vừa báo phải thành giá đang áp dụng")
+        self.assertEqual(ap.dlm_source_note, po._dlm_price_source_note())
+
+    def test_ghi_nhan_hai_lan_khong_de_dong_bang_gia_thu_hai(self):
+        """Bấm ghi nhận lần hai là SỬA con số của đơn này, không đẻ dòng bản sao."""
+        quo = self._quo_thieu()
+        quo.action_dlm_request_vendor_quote()
+        po = self.env["dl.purchase.order"].search([("dlm_quotation_id", "=", quo.id)])
+        po.line_ids.price_unit = 900000
+        self._ghi_nhan(po)
+        po.line_ids.price_unit = 950000        # NCC báo lại
+        self._ghi_nhan(po)
+
+        rows = self.env["product.supplierinfo"].search([
+            ("dlm_source_note", "=", po._dlm_price_source_note()),
+            ("product_id", "=", self.thep.id)])
+        self.assertEqual(len(rows), 1, "một đơn × một mặt hàng = một dòng bảng giá")
+        self.assertAlmostEqual(rows.price, 950000.0, places=2)
+        self.assertTrue(rows.is_applied)
+        # Giá vốn tham chiếu phải theo con số vừa sửa, không kẹt ở lần ghi đầu.
+        self.assertAlmostEqual(self.thep.standard_price, 950000.0, places=2)
