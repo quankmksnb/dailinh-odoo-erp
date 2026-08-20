@@ -326,6 +326,44 @@ class ProductSupplierinfo(models.Model):
             ])
             others._dlm_unapply()
             rec._dlm_apply()
+            rec._dlm_close_superseded()
+
+    # Nguồn gốc của một dòng giá. Khai lỏng (Char + Integer) vì `dl_product`
+    # đứng TRƯỚC `dl_purchase` trong đồ thị phụ thuộc nên không trỏ Many2one
+    # sang `dl.purchase.order` được. `dl_purchase` sẽ thêm Many2one thật.
+    dlm_source_note = fields.Char(
+        string="Nguồn giá", readonly=True, copy=False,
+        help="Giá này ở đâu ra: nhập tay, hay chốt từ một đơn mua cụ thể. "
+             "Không có nó thì bảng giá là một danh sách con số vô chủ.")
+
+    def _dlm_close_superseded(self):
+        """Đóng `Đến ngày` cho các bảng giá CŨ của cùng vật tư + cùng nhà cung cấp.
+
+        Giá cũ bị thay thế thì đúng nghĩa là ĐÃ HẾT HIỆU LỰC — cột "Đến ngày" bỏ
+        trống chính là chỗ nói dối: màn hình ghi "Còn hiệu lực / Đã duyệt" cho một
+        dòng đã chết 8 tháng, và người dùng bỏ áp dụng dòng hiện hành rồi áp nhầm
+        dòng đó là mọi báo giá mới tính theo giá cũ, không một cảnh báo nào.
+
+        Đóng ngày xong thì `_ensure_currently_valid` sẵn có TỰ chặn ca áp nhầm —
+        không phải viết thêm lá chắn nào.
+
+        🔴 Chỉ đụng CÙNG nhà cung cấp. Giá của NCC khác là chào giá song song
+        (Hoà Phát 215.000 đang áp dụng vs Phú Thịnh 275.000 chờ) — đóng nó là
+        xoá mất lựa chọn thay thế."""
+        for rec in self:
+            moc = rec.date_start or fields.Date.context_today(rec)
+            cu = self.sudo().search([
+                ("product_tmpl_id", "=", rec.product_tmpl_id.id),
+                ("partner_id", "=", rec.partner_id.id),
+                ("id", "!=", rec.id),
+                ("date_end", "=", False),
+                ("date_start", "<=", moc),
+            ])
+            for dong in cu:
+                # max(...) để không bao giờ đẻ ra date_end < date_start — thép
+                # đổi giá hai lần trong một ngày là chuyện có thật.
+                dong.date_end = max(dong.date_start, moc - relativedelta(days=1))
+        return True
 
     def action_unset_applied(self):
         self._check_price_manager()

@@ -26,6 +26,7 @@
                 <field name="product_uom" string="Đơn vị" />
                 <field name="date_start" string="Từ ngày" />
                 <field name="date_end" string="Đến ngày" />
+                <field name="dlm_source_note" string="Nguồn giá" optional="show" />
                 <field name="validity_state" widget="badge"
                     decoration-success="validity_state == 'active'"
                     decoration-warning="validity_state in ('upcoming', 'expiring')"
@@ -138,7 +139,19 @@
                     domain="[('approval_state', '=', 'approved')]" />
                 <filter name="applied" string="Đang áp dụng"
                     domain="[('is_applied', '=', True)]" />
+                <separator />
+                <!-- Giá bị thay thế thì `date_end` được đóng tự động
+                     (_dlm_close_superseded). Lọc này là thứ giữ cho màn hình
+                     nói HIỆN TRẠNG thay vì đổ cả sổ lịch sử ra. -->
+                <filter name="con_hieu_luc" string="Còn hiệu lực"
+                    domain="['|', ('date_end', '=', False),
+                             ('date_end', '&gt;=', context_today().strftime('%Y-%m-%d'))]" />
+                <filter name="het_hieu_luc" string="Đã hết hiệu lực (lịch sử giá)"
+                    domain="[('date_end', '!=', False),
+                             ('date_end', '&lt;', context_today().strftime('%Y-%m-%d'))]" />
                 <group expand="0" string="Nhóm theo">
+                    <filter name="group_product" string="Vật tư"
+                        context="{'group_by': 'product_tmpl_id'}" />
                     <filter name="group_partner" string="Nhà cung cấp"
                         context="{'group_by': 'partner_id'}" />
                     <filter name="group_state" string="Trạng thái"
@@ -220,7 +233,11 @@
         ]" />
         <field name="search_view_id" ref="view_dl_supplierinfo_search" />
         <field name="domain">[('dl_product_kind', '=', 'material')]</field>
-        <field name="context">{'delete': False}</field>
+        <!-- Mặc định chỉ hiện giá CÒN hiệu lực + gom theo vật tư: màn này là
+             "giá hiện hành", không phải sổ lịch sử. Lịch sử vẫn xem được bằng
+             bộ lọc "Đã hết hiệu lực". -->
+        <field name="context">{'delete': False, 'search_default_con_hieu_luc': 1,
+                               'search_default_group_product': 1}</field>
         <field name="groups_id" eval="[(6, 0, [
             ref('dl_base.dl_group_admin'),
             ref('dl_base.dl_group_purchasing'),
