@@ -17,6 +17,13 @@
     ============================================================ -->
 
     <menuitem
+        id="menu_dl_purchase_rfq_queue"
+        name="Hỏi giá chờ trả lời"
+        parent="dl_base.menu_dl_purchase"
+        action="action_dl_purchase_rfq_queue"
+        sequence="5"/>
+
+    <menuitem
         id="menu_dl_purchase_order"
         name="Đơn mua hàng"
         action="action_dl_purchase_order"
