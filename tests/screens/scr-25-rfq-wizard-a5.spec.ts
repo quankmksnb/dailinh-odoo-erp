@@ -29,9 +29,11 @@ test('BF-01 A5: Kỹ thuật chọn "Cần bổ sung" → RFQ trả lại Sales,
   await salesPage.getByRole('button', { name: 'Lưu thủ công' }).click();
 
   await expect(salesPage.getByRole('heading', { level: 1 })).not.toHaveText('New', { timeout: 10000 });
-  const url = salesPage.url();
-  const idMatch = url.match(/[?&#]id=(\d+)/);
-  expect(idMatch).not.toBeNull();
+  // URL hash chỉ được web client cập nhật id SAU khi save xong — chờ bằng
+  // expect.poll thay vì đọc url() một lần (tránh race, hay gặp khi lưu qua
+  // "Lưu thủ công" mất thêm 1 tick để đẩy vào history state).
+  await expect.poll(() => salesPage.url(), { timeout: 15000 }).toMatch(/[?&#]id=\d+/);
+  const idMatch = salesPage.url().match(/[?&#]id=(\d+)/);
   const rfqId = idMatch![1];
   await salesCtx.close();
 
@@ -60,5 +62,27 @@ test('BF-01 A5: Kỹ thuật chọn "Cần bổ sung" → RFQ trả lại Sales,
   const salesPage2 = await salesCtx2.newPage();
   await salesPage2.goto(`/web#action=323&id=${rfqId}&cids=1&model=dl.quotation.request&view_type=form`);
   await expect(salesPage2.getByText(/Trả lại bổ sung|cần bổ sung/i).first()).toBeVisible({ timeout: 15000 });
+
+  // Đóng vòng lặp A5: Sales sửa nội dung dòng đang "Chờ bổ sung" (kích thước) —
+  // theo dl_quotation_request.py write(): sửa field Sales sở hữu trên dòng có
+  // supplement_note tự set supplement_done=True. Sau đó bấm "Gửi lại (đã bổ sung)"
+  // (action_resubmit) để đẩy RFQ trở lại cho Kỹ thuật.
+  // Trên list "Dòng sản phẩm" (không phải form Tạo RFQ ban đầu), click vào dòng
+  // sản phẩm mở dialog "Mở: Sản phẩm gia công" (form edit riêng, không sửa inline).
+  const line = salesPage2.locator('tr', { hasText: productName });
+  await expect(line).toBeVisible({ timeout: 15000 });
+  await line.getByRole('cell').filter({ hasText: 'sơ sài' }).click();
+  const lineDialog = salesPage2.getByRole('dialog').filter({ hasText: 'Mở: Sản phẩm gia công' });
+  await expect(lineDialog).toBeVisible({ timeout: 10000 });
+  const dimensionBox = lineDialog.locator('textarea').first();
+  await expect(dimensionBox).toHaveValue(/sơ sài/, { timeout: 10000 });
+  await dimensionBox.fill('Đã bổ sung: kích thước 500x300x200mm, thép CT3 dày 3mm');
+  await lineDialog.getByRole('button', { name: 'Lưu' }).click();
+  await salesPage2.getByRole('button', { name: 'Lưu thủ công' }).click();
+
+  await salesPage2.getByRole('button', { name: 'Gửi lại (đã bổ sung)' }).click();
+
+  // RFQ chuyển "Đã bổ sung" (status=supplemented) — vòng A5 hoàn tất, KTV nhận lại RFQ.
+  await expect(salesPage2.getByText('Đã bổ sung', { exact: false }).first()).toBeVisible({ timeout: 15000 });
   await salesCtx2.close();
 });

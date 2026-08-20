@@ -42,6 +42,9 @@ ENV/
 *.pem
 *.cert
 *.crt
+.env.staging
+tests/fixtures/roles.staging.ts
+tests/.auth-staging/
 dbpw.txt
 secrets.json
 .secrets/

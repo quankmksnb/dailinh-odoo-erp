@@ -15,17 +15,17 @@
       "value": "en_US",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1818071781.620252,
+      "expires": 1818486617.816128,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "session_id",
-      "value": "c7bb5dd5476f07d9215015ead6820efb0d36cc90",
+      "value": "3d0ed984193b6b47e6adc7024a18bb5dfe7b8077",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1787140582.972403,
+      "expires": 1787555420.940646,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
@@ -35,7 +35,7 @@
       "value": "1",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1818071782.859325,
+      "expires": 1818486620.851042,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -46,8 +46,28 @@
       "origin": "http://127.0.0.1:8069",
       "localStorage": [
         {
+          "name": "dlm.sidebar.activeChildKey",
+          "value": "user"
+        },
+        {
+          "name": "multi_tab.http_127.0.0.1_8069.heartbeat",
+          "value": "1786950620839"
+        },
+        {
+          "name": "presence.focus",
+          "value": "true"
+        },
+        {
           "name": "presence.lastPresence",
-          "value": "1786535781804"
+          "value": "1786950617832"
+        },
+        {
+          "name": "multi_tab.http_127.0.0.1_8069.last_notification_id",
+          "value": "2958"
+        },
+        {
+          "name": "dlm.sidebar.activeKey",
+          "value": "config"
         },
         {
           "name": "multi_tab.http_127.0.0.1_8069.lastPresenceByTab",
@@ -55,14 +75,6 @@
         },
         {
           "name": "multi_tab.http_127.0.0.1_8069.main",
-          "value": "true"
-        },
-        {
-          "name": "multi_tab.http_127.0.0.1_8069.heartbeat",
-          "value": "1786535782845"
-        },
-        {
-          "name": "presence.focus",
           "value": "true"
         }
       ]

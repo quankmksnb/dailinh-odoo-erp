@@ -1,0 +1,19 @@
+[run]
+source =
+    odoo.addons.dl_base
+    odoo.addons.dl_bom
+    odoo.addons.dl_config
+    odoo.addons.dl_inventory
+    odoo.addons.dl_partner
+    odoo.addons.dl_product
+    odoo.addons.dl_purchase
+    odoo.addons.dl_sale
+    odoo.addons.dl_technical
+omit =
+    */tests/*
+    */migrations/*
+    */__manifest__.py
+
+[report]
+skip_empty = True
+precision = 1

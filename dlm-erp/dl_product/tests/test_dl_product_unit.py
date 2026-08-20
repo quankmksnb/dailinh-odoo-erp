@@ -254,12 +254,12 @@ class TestDlmTradingBlockers(unittest.TestCase):
         with patch("odoo.fields.Date.context_today", return_value=self._TODAY):
             reasons = ProductProduct._dlm_trading_blockers(rec)
         self.assertEqual(len(reasons), 1)
-        self.assertIn("Nhập Giá bán", reasons[0])
+        self.assertIn("Chốt Giá bán", reasons[0])
 
     def test_list_price_below_standard_price_warns(self):
         """TC-UNIT-ProductProduct-021: list_price (40000) thấp hơn
         standard_price (50000) thì _dlm_trading_blockers() trả về đúng 1
-        cảnh báo có chữ "THẤP HƠN"."""
+        cảnh báo có chữ "CAO HƠN"."""
         seller = SimpleNamespace(is_applied=True, approval_state="approved",
                                  _is_valid_on=lambda d: True, price=100.0,
                                  partner_id=SimpleNamespace(active=True))
@@ -267,7 +267,7 @@ class TestDlmTradingBlockers(unittest.TestCase):
         with patch("odoo.fields.Date.context_today", return_value=self._TODAY):
             reasons = ProductProduct._dlm_trading_blockers(rec)
         self.assertEqual(len(reasons), 1)
-        self.assertIn("THẤP HƠN", reasons[0])
+        self.assertIn("CAO HƠN", reasons[0])
 
     def test_fully_ready_no_blockers(self):
         """TC-UNIT-ProductProduct-022: seller đã duyệt, còn hiệu lực, nhà
