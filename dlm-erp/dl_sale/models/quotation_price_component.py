@@ -78,3 +78,20 @@ class DlQuotationPriceComponent(models.Model):
         default=False,
         help="Khoản không bị trừ chiết khấu (để dành cho phase sau).",
     )
+
+    # --- Nguồn hàng của cấu phần vật tư (lớp trộn giá kho ở dl_purchase) ---
+    # Ghi lại BẰNG SỐ vì sao đơn giá ra như vậy: bao nhiêu lấy từ lô đang có
+    # (giá đã cố định) và bao nhiêu phải mua mới (giá còn trượt). Không có hai
+    # con số này thì "giá thành 21.400.000" là một con số không giải trình được.
+    dlm_qty_from_stock = fields.Float(
+        string="Lấy từ kho", digits="Product Unit of Measure",
+        groups=_COST_GROUPS)
+    dlm_qty_to_buy = fields.Float(
+        string="Phải mua thêm", digits="Product Unit of Measure",
+        groups=_COST_GROUPS)
+    dlm_buy_price = fields.Float(
+        string="Giá mua đã dùng", digits="Product Price", groups=_COST_GROUPS,
+        help="Đơn giá đã dùng cho phần PHẢI MUA. Là mốc để biết bảng giá "
+             "nhà cung cấp có nhúc nhích sau khi Mua hàng xác nhận không — "
+             "không lưu số này thì xác nhận chỉ là một con dấu rỗng.")
+    dlm_price_note = fields.Char(string="Diễn giải giá", groups=_COST_GROUPS)

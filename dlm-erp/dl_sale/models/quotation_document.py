@@ -504,6 +504,15 @@ class DlQuotationDocument(models.Model):
         self.ensure_one()
         if not self.line_ids:
             raise UserError(_("Báo giá chưa có dòng nào để xuất."))
+        # 🔴 Cổng chặn gửi khách phải bịt CẢ đường này. Xuất được file rồi gửi
+        # tay cho khách là đi vòng qua cổng — cổng còn lại chỉ là hình thức.
+        if self.dlm_send_blocked:
+            raise UserError(_(
+                "Chưa xuất được file gửi khách: giá phần vật tư phải mua thêm "
+                "chưa được Mua hàng xác nhận. Con số trên báo giá lúc này là "
+                "TẠM TÍNH theo bảng giá nhà cung cấp; xuất ra rồi gửi tay cho "
+                "khách thì vẫn là cam kết trên một con số chưa ai kiểm. Bấm "
+                "“Hỏi giá nhà cung cấp” trước."))
         return {
             "type": "ir.actions.act_window",
             "name": _("Xuất / Gửi báo giá"),

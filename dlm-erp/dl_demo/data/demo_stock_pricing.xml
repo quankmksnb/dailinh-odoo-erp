@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Chạy cả khi `-u dl_demo` (post_init_hook chỉ chạy lúc `-i`), nên hàm
+         tự chặn chạy lại bằng cách tra vật tư mốc trước khi tạo. -->
+    <function model="dl.demo.seed" name="seed_stock_pricing"/>
+
+</odoo>
