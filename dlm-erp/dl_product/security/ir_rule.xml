@@ -77,6 +77,22 @@
             <field name="perm_unlink">0</field>
         </record>
 
+        <!-- Đối xứng rule KTV bên trên: Trưởng phòng KD tạo/sửa nhóm nhánh
+             THÀNH PHẨM — họ sở hữu danh mục SP thương mại nên phải tự dựng được
+             nhóm cho hàng mới. Không đụng nhánh Vật tư (việc của Kỹ thuật) và
+             không đụng nhóm hệ thống của Odoo (dl_branch='other').
+             perm_read=0 ⇒ vẫn đọc toàn bộ cây nhóm như trước. -->
+        <record id="rule_category_sm_finished" model="ir.rule">
+            <field name="name">Trưởng phòng KD tạo/sửa nhóm nhánh Thành phẩm</field>
+            <field name="model_id" ref="product.model_product_category" />
+            <field name="groups" eval="[(4, ref('dl_base.dl_group_sales_manager'))]" />
+            <field name="domain_force">[('dl_branch', '=', 'finished')]</field>
+            <field name="perm_read">0</field>
+            <field name="perm_write">1</field>
+            <field name="perm_create">1</field>
+            <field name="perm_unlink">0</field>
+        </record>
+
 
     </data>
 

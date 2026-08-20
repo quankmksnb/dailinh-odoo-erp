@@ -29,24 +29,47 @@
     <!-- ================================================================
          BẢN VẼ
     ================================================================ -->
+    <!-- Trưởng phòng KD CỐ Ý không có mục này: họ không có ACL `dl.drawing`, mở
+         menu là AccessError. Ranh giới đã có sẵn ở form BOM (khối "Bản vẽ kỹ
+         thuật" và ô xem trước gán groups tech/admin/ceo) — chỉ menu này lệch.
+         Muốn mở cho họ thì phải cấp ACL đọc dl.drawing trước, không sửa mỗi đây. -->
     <menuitem id="menu_drawing"
               name="Bản vẽ kỹ thuật"
               parent="dl_base.menu_dl_technical"
               action="action_dl_drawing"
-              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
+              groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo"
               sequence="30"/>
+    <!-- menuitem groups= chỉ CỘNG DỒN ⇒ bỏ vai khỏi thuộc tính KHÔNG gỡ được vai
+         cũ trên DB đã nâng cấp. Chốt cứng bằng (6,0,...). -->
+    <record id="menu_drawing" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_tech'),
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_ceo'),
+        ])]"/>
+    </record>
 
     <!-- ================================================================
          TẠO RFQ — sidebar riêng cho Sales, dưới menu gốc "CRM &amp; Báo giá"
          (dl_base.menu_dl_sale). Thay thế màn tạo RFQ cũ cho Sales; menu
          "Yêu cầu báo giá" bên dưới vẫn giữ nguyên cho Kỹ thuật xử lý.
     ================================================================ -->
+    <!-- Giám đốc CỐ Ý không có mục này: ACL dl.quotation.request của CEO là
+         chỉ-đọc, mà action mở thẳng form tạo ⇒ họ vào được nhưng không lưu nổi.
+         CEO theo dõi RFQ qua mục "Tất cả RFQ" bên dưới. -->
     <menuitem id="menu_rfq_create"
               name="Tạo RFQ"
               parent="dl_base.menu_dl_sale"
               action="action_dl_quotation_request_create"
-              groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+              groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_admin"
               sequence="20"/>
+    <record id="menu_rfq_create" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_ba'),
+            ref('dl_base.dl_group_sales_manager'),
+            ref('dl_base.dl_group_admin'),
+        ])]"/>
+    </record>
 
     <!-- ================================================================
          YÊU CẦU BÁO GIÁ (RFQ) — dưới menu gốc "CRM &amp; Báo giá" (dl_base.menu_dl_sale)

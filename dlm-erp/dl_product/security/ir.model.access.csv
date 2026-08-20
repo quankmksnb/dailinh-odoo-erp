@@ -12,6 +12,8 @@ access_dl_product_prod_ba,product.product BA,product.model_product_product,dl_ba
 access_dl_product_prod_ceo,product.product CEO,product.model_product_product,dl_base.dl_group_ceo,1,0,0,0
 access_dl_product_prod_pur,product.product Purchasing,product.model_product_product,dl_base.dl_group_purchasing,1,1,0,0
 access_dl_category_tech,product.category Tech,product.model_product_category,dl_base.dl_group_tech,1,1,1,0
+access_dl_category_admin,product.category Admin,product.model_product_category,dl_base.dl_group_admin,1,1,1,1
+access_dl_category_sm,product.category Truong phong KD,product.model_product_category,dl_base.dl_group_sales_manager,1,1,1,0
 access_dl_supplierinfo_admin,product.supplierinfo Admin,product.model_product_supplierinfo,dl_base.dl_group_admin,1,1,1,1
 access_dl_supplierinfo_pur,product.supplierinfo Purchasing,product.model_product_supplierinfo,dl_base.dl_group_purchasing,1,1,1,1
 access_dl_supplierinfo_sm,product.supplierinfo SM,product.model_product_supplierinfo,dl_base.dl_group_sales_manager,1,0,0,0
