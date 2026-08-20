@@ -38,19 +38,19 @@
                                    nolabel="1" readonly="1" class="dl-cost-val"/>
                         </div>
                         <div class="dl-cost-cell"
-                             groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                             groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
                             <span class="dl-cost-lbl">Lãi gộp</span>
                             <field name="q_gross_profit" widget="dl_money"
                                    nolabel="1" readonly="1" class="dl-cost-val"/>
                         </div>
                         <div class="dl-cost-cell"
-                             groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                             groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
                             <span class="dl-cost-lbl">Tổng giá thành</span>
                             <field name="q_total_cost" widget="dl_money"
                                    nolabel="1" readonly="1" class="dl-cost-val2"/>
                         </div>
                         <div class="dl-cost-cell"
-                             groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                             groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
                             <span class="dl-cost-lbl">Markup niêm yết → thực thu (sau chiết khấu)</span>
                             <span class="dl-cost-val2">
                                 <field name="q_list_markup" readonly="1" nolabel="1" class="oe_inline"/>% →
@@ -68,7 +68,7 @@
                         <span class="badge text-bg-danger" invisible="not q_discount_above_max">Vượt trần chiết khấu</span>
                         <span class="badge text-bg-warning" invisible="q_discount_above_max or not q_discount_above_default">Cao hơn chiết khấu mặc định</span>
                         <span class="badge text-bg-danger" invisible="not q_below_floor"
-                              groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">Dưới giá sàn</span>
+                              groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">Dưới giá sàn</span>
                         <span class="badge text-bg-success" invisible="not q_in_safe_range">Trong ngưỡng an toàn</span>
                     </div>
                 </div>
@@ -83,7 +83,7 @@
                 <field name="q_discount_above_default" invisible="1"/>
                 <field name="q_discount_above_max" invisible="1"/>
                 <field name="q_below_floor" invisible="1"
-                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager"/>
                 <group invisible="not quotation_id">
                     <group string="Báo giá được duyệt">
                         <field name="q_partner_id" readonly="1"/>
@@ -97,7 +97,7 @@
                      mở lại báo giá đầy đủ mới xem được giá cấu thành từ đâu. -->
                 <notebook invisible="not quotation_id">
                     <page string="Phân tích giá thành"
-                          groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                          groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
                         <div class="dl-cost-cols">
                             <div class="dl-cost-box">
                                 <div class="dl-cost-box-title">Cơ cấu giá thành</div>
@@ -146,13 +146,13 @@
                                 <field name="name"/>
                                 <field name="qty" widget="dl_money" digits="[16, 0]"/>
                                 <field name="material_cost" widget="dl_money" digits="[16, 0]" string="Chi phí vật tư/đơn vị" optional="hide"
-                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager"/>
                                 <field name="operation_cost" widget="dl_money" digits="[16, 0]" string="Chi phí công đoạn/đơn vị" optional="hide"
-                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager"/>
                                 <field name="total_cost" widget="dl_money" digits="[16, 0]" string="Giá thành/đơn vị"
-                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager"/>
                                 <field name="floor_price" widget="dl_money" digits="[16, 0]" string="Giá sàn/đơn vị"
-                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager"/>
                                 <field name="price_unit" widget="dl_money" digits="[16, 0]"/>
                                 <field name="price_subtotal" widget="dl_money" digits="[16, 0]"/>
                             </tree>
@@ -197,7 +197,7 @@
                 <!-- Cột lý do vượt ngưỡng ngay trên dòng, khỏi mở từng bản ghi.
                      Gắn groups vì có gộp cả "Dưới giá sàn" (số giá vốn). -->
                 <field name="risk_summary" string="Rủi ro"
-                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager"/>
                 <field name="requester_id" string="Người gửi" widget="many2one_avatar_user"/>
                 <field name="activity_ids" widget="list_activity" optional="hide"/>
                 <field name="state" string="Trạng thái" widget="badge"

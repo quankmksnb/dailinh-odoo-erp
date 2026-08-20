@@ -1,11 +1,10 @@
 from odoo import fields, models
 
-# Ai được xem số tiền của từng cấu phần giá: Kế toán/Trưởng KD/CEO/Admin.
+# Ai được xem số tiền của từng cấu phần giá: Trưởng KD/CEO/Admin.
 # Sales chỉ thấy giá bán, không thấy giá vốn cấu thành.
 _COST_GROUPS = (
     "dl_base.dl_group_ceo,"
     "dl_base.dl_group_admin,"
-    "dl_base.dl_group_accountant,"
     "dl_base.dl_group_sales_manager"
 )
 

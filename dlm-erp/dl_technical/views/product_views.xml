@@ -75,7 +75,7 @@
                                string="Hiện hành" readonly="1"/>
                         <field name="status" widget="badge"/>
                         <field name="total_material_cost"
-                               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
+                               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
                     </tree>
                 </field>
 
@@ -93,7 +93,7 @@
                         <field name="param_display" string="Tham số"/>
                         <field name="status" widget="badge"/>
                         <field name="total_material_cost"
-                               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
+                               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
                     </tree>
                 </field>
             </xpath>

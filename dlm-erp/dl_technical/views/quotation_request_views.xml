@@ -312,9 +312,12 @@
                                  mại rồi Lưu sẽ bị báo "thiếu dòng" oan. @api.constrains
                                  _check_has_lines vẫn là chốt cuối cho RPC/import. -->
                             <field name="line_ids" invisible="1"/>
+                            <field name="request_type" invisible="1"/>
                             <separator string="Sản phẩm gia công"
+                                       invisible="request_type != 'manufactured'"
                                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
                             <field name="manufactured_line_ids"
+                                   invisible="request_type != 'manufactured'"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <!-- §3a — tree KHÔNG editable: click 1 dòng mở form
                                      con dạng dialog (dễ quan sát/xử lý). -->
@@ -389,7 +392,7 @@
                                     <!-- Cột phụ — ẩn mặc định, bật qua menu cột -->
                                     <field name="product_type" optional="hide"/>
                                     <field name="product_category_id" optional="hide"/>
-                                    <field name="reference_product_id" string="Sản phẩm tham khảo"
+                                    <field name="reference_product_id" string="Kiểu hàng"
                                            optional="hide"/>
                                     <field name="resolved_product_id" string="Sản phẩm đã xác định"
                                            readonly="1" optional="hide"/>
@@ -404,7 +407,7 @@
                                     <field name="pricing_block_summary" string="Thiếu giá nhà cung cấp"
                                            readonly="1" optional="hide"/>
                                 </tree>
-                                <form string="Dòng sản phẩm" class="dl-rfq-line-detail">
+                                <form string="Dòng sản phẩm" class="dl-rfq-line-detail dl-rfq-line-form">
                                     <!-- Một cửa: mở dialog chi tiết vẫn xử lý được ngay tại đây
                                          (khỏi phải đóng lại rồi đi tìm nút Xử lý ở dòng). Cùng gọi
                                          action_open_resolve_wizard → tự tiếp nhận RFQ nếu cần. -->
@@ -459,7 +462,7 @@
                                                        readonly="is_technician"
                                                        domain="[('id', 'in', selectable_category_ids)]"/>
                                                 <field name="reference_product_id"
-                                                       string="Sản phẩm tham khảo"
+                                                       string="Kiểu hàng"
                                                        readonly="is_technician"
                                                        options="{'no_create': True}"
                                                        domain="[('id', 'in', reference_product_ids)]"
@@ -526,6 +529,10 @@
                                              Kỹ thuật chỉ xem (bản vẽ kỹ thuật nằm ở Product/BOM). -->
                                         <separator string="Ảnh / File đính kèm"
                                                    invisible="product_type == 'trading'"/>
+                                        <!-- Lưới xem trước ảnh (giống màn Kiểm hàng QC):
+                                             many2many_binary chỉ bày thẻ file. -->
+                                        <field name="attachment_gallery" nolabel="1" readonly="1"
+                                               invisible="product_type == 'trading' or not attachment_gallery"/>
                                         <field name="attachment_ids" widget="many2many_binary"
                                                nolabel="1"
                                                readonly="is_technician"
@@ -541,8 +548,10 @@
                                  xem & sửa số lượng/giá trước khi tạo báo giá. Cột
                                  giống hệt bảng thương mại màn Tạo RFQ. -->
                             <separator string="Sản phẩm thương mại"
+                                       invisible="request_type != 'trading'"
                                        groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
                             <field name="trading_line_ids"
+                                   invisible="request_type != 'trading'"
                                    groups="dl_base.dl_group_ba,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo,dl_base.dl_group_admin"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Sản phẩm thương mại" editable="bottom">
@@ -603,10 +612,10 @@
     <!-- ================================================================
          TẠO RFQ (Sales) — màn tạo mới, tách riêng khỏi form cũ ở trên (form cũ
          vẫn giữ nguyên cho Kỹ thuật xử lý RFQ, không đổi).
-         Mỗi dòng tự chọn product_type: "Sản phẩm thương mại" (chọn thẳng
-         Product có sẵn, không qua BOM) hoặc "Sản phẩm gia công" (chỉ nhập tên/
-         mô tả/số lượng, Product/Nhóm sản phẩm chỉ tham khảo, Kỹ thuật xử lý
-         sau) — §2-6 màn Tạo RFQ.
+         Loại RFQ chọn ở HEADER (request_type, chốt 2026-08-18) — một RFQ chỉ đi
+         một vòng đời: "Sản phẩm thương mại" (chọn thẳng Product có sẵn, không
+         qua BOM, báo giá được ngay) hoặc "Sản phẩm gia công" (chỉ nhập tên/mô
+         tả/số lượng, Kỹ thuật xử lý qua BOM rồi mới báo giá) — §2-6 màn Tạo RFQ.
     ================================================================ -->
     <record id="view_dl_quotation_request_sales_form" model="ir.ui.view">
         <field name="name">dl.quotation.request.sales.form</field>
@@ -709,6 +718,15 @@
 
                     <group>
                         <group string="Thông tin yêu cầu">
+                            <!-- Loại RFQ quyết định vòng đời: gia công phải qua Kỹ
+                                 thuật (BOM) rồi mới báo giá được, thương mại đã có
+                                 sẵn giá nên báo giá được ngay. CHỈ chọn được lúc
+                                 tạo — đổi loại của RFQ đã lưu đồng nghĩa vứt toàn
+                                 bộ dòng đã nhập (hai bảng khác hẳn bộ field), nên
+                                 tạo RFQ mới sạch hơn là cho sửa. -->
+                            <field name="request_type" widget="radio"
+                                   options="{'horizontal': True}"
+                                   readonly="id"/>
                             <field name="customer_id" readonly="status != 'new'"
                                 options="{'no_quick_create': True}"
                                 context="{'default_partner_role': 'customer', 'default_partner_type': 'company', 'form_view_ref': 'dl_partner.view_dl_customer_form'}"/>
@@ -734,15 +752,17 @@
                     <notebook>
                         <page string="Dòng sản phẩm" name="lines">
                             <!-- BẢNG 1: Sản phẩm thương mại (chọn thẳng, có giá) -->
-                            <separator string="Sản phẩm thương mại"/>
-                            <!-- "required chéo": mỗi bảng bắt buộc khi bảng kia
-                                 trống ⇒ RFQ phải có ≥1 dòng (thương mại HOẶC gia
-                                 công). Dùng required client-side của Odoo trên
-                                 one2many (record.js: count===0 → Invalid fields)
-                                 để báo cùng kiểu, cùng lúc Save như customer_id —
-                                 không cảnh báo sớm. @api.constrains vẫn là chốt cuối. -->
+                            <separator string="Sản phẩm thương mại"
+                                       invisible="request_type != 'trading'"/>
+                            <!-- Bảng của loại đang chọn thì BẮT BUỘC có dòng; bảng
+                                 kia bị ẩn hẳn. Dùng required client-side của Odoo
+                                 trên one2many (record.js: count===0 → Invalid
+                                 fields) để báo cùng kiểu, cùng lúc Save như
+                                 customer_id — không cảnh báo sớm. @api.constrains
+                                 vẫn là chốt cuối. -->
                             <field name="trading_line_ids"
-                                   required="not manufactured_line_ids"
+                                   invisible="request_type != 'trading'"
+                                   required="request_type == 'trading'"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Sản phẩm thương mại" editable="bottom">
                                     <field name="currency_id" column_invisible="1"/>
@@ -760,53 +780,146 @@
                             </field>
 
                             <!-- BẢNG 2: Sản phẩm gia công (mô tả + ảnh + file) -->
-                            <separator string="Sản phẩm gia công"/>
+                            <separator string="Sản phẩm gia công"
+                                       invisible="request_type != 'manufactured'"/>
                             <field name="manufactured_line_ids"
-                                   required="not trading_line_ids"
+                                   invisible="request_type != 'manufactured'"
+                                   required="request_type == 'manufactured'"
                                    readonly="status in ('quoted', 'cancelled')">
                                 <tree string="Sản phẩm gia công">
                                     <field name="product_type" column_invisible="1"/>
                                     <field name="product_name" string="Tên sản phẩm" widget="dl_min_length_char" options="{'min_length': 2}"/>
                                     <field name="product_category_id" string="Nhóm sản phẩm"/>
                                     <field name="reference_product_id" string="Sản phẩm tham khảo"/>
-                                    <field name="quantity" string="Số lượng"/>
+                                    <field name="quantity" string="Số lượng" widget="dl_qty"/>
+                                    <field name="uom_id" string="ĐVT"/>
                                     <field name="dimension_note" string="Mô tả"/>
                                     <!-- §2b — hiện thumbnail ảnh thay vì số lượng -->
                                     <field name="preview_image" widget="image"
                                            options="{'size': [40, 40]}" string="Ảnh"/>
                                 </tree>
-                                <form string="Sản phẩm gia công">
+                                <form string="Sản phẩm gia công" class="dl-rfq-line-form">
                                     <field name="product_type" invisible="1"/>
                                     <field name="selectable_category_ids" invisible="1"/>
                                     <field name="reference_product_ids" invisible="1"/>
+                                    <field name="has_parametric_template" invisible="1"/>
+                                    <field name="has_missing_params" invisible="1"/>
+                                    <field name="has_out_of_range_params" invisible="1"/>
+                                    <field name="auto_resolved" invisible="1"/>
                                     <group>
                                         <group string="Thông tin">
                                             <field name="product_name" required="1" widget="dl_min_length_char" options="{'min_length': 2}"/>
-                                            <!-- §1a — chỉ nhóm SP gia công -->
+                                            <!-- §1a — chỉ nhóm SP gia công. BẮT BUỘC:
+                                                 nhóm quyết định hệ thống hỏi thông số
+                                                 gì và Kỹ thuật dùng mẫu nào. -->
                                             <field name="product_category_id"
+                                                   required="1"
                                                    options="{'no_create': True}"
                                                    domain="[('id', 'in', selectable_category_ids)]"/>
-                                            <!-- §1b — SP tham khảo lọc theo nhóm đã chọn -->
+                                            <!-- KIỂU HÀNG — ô chính, không còn là
+                                                 "tham khảo". Lọc theo nhóm đã chọn;
+                                                 context bật đuôi "theo kích thước /
+                                                 cỡ cố định" để Sales phân biệt được
+                                                 ngay trong danh sách. -->
                                             <field name="reference_product_id"
+                                                   string="Kiểu hàng"
                                                    options="{'no_create': True}"
+                                                   context="{'dlm_show_bom_kind': True}"
+                                                   placeholder="Chọn nếu ta từng làm — để trống nếu là món mới"
                                                    domain="[('id', 'in', reference_product_ids)]"/>
-                                            <field name="quantity"/>
+                                            <label for="quantity"/>
+                                            <div class="o_row">
+                                                <field name="quantity" widget="dl_qty"/>
+                                                <field name="uom_id" options="{'no_create': True}"/>
+                                            </div>
                                         </group>
                                     </group>
+
+                                    <!-- ── Thông số theo mẫu của nhóm ───────────────
+                                         Chỉ hiện khi nhóm Sales chọn CÓ BOM mẫu tham
+                                         số. Ô nào hỏi là do chính mẫu khai (param_ids)
+                                         — cái bàn hỏi Dài/Rộng/Cao, cái máng hỏi
+                                         Dài/Khổ. Thêm loại hàng = dựng thêm BOM mẫu,
+                                         không phải sửa view này. -->
+                                    <div invisible="not has_parametric_template">
+                                        <separator string="Thông số kỹ thuật khách yêu cầu"/>
+                                        <div class="text-muted small mb-2">
+                                            Loại hàng này đã có mẫu định mức sẵn — điền
+                                            thông số để hệ thống nhận ra ngay cấu hình
+                                            đã từng làm. Chưa rõ số thì đính kèm bản vẽ.
+                                        </div>
+                                        <field name="param_ids" nolabel="1"
+                                               class="dl-rfq-params">
+                                            <!-- decoration-warning: tô dòng ngoài miền
+                                                 hợp lệ. Không dùng màu làm tín hiệu DUY
+                                                 nhất — cột "Miền hợp lệ" luôn hiện số và
+                                                 đã có alert chữ bên dưới. -->
+                                            <tree editable="bottom" create="false"
+                                                  delete="false" string="Thông số"
+                                                  decoration-warning="out_of_range">
+                                                <field name="name" string="Thông số" readonly="1"/>
+                                                <field name="value" string="Giá trị" widget="dl_qty"/>
+                                                <field name="range_hint" string="Miền hợp lệ" readonly="1"/>
+                                                <field name="out_of_range" column_invisible="1"/>
+                                            </tree>
+                                        </field>
+                                        <!-- Báo thiếu bằng ALERT nêu đích danh ô còn
+                                             trống, không dùng required trên ô trong
+                                             tree con: ô chỉ bắt buộc khi dòng KHÔNG có
+                                             đính kèm, mà điều kiện đó nằm ở bản ghi
+                                             CHA — modifier lồng hai tầng x2many đọc
+                                             parent rất dễ trượt. Chặn cứng vẫn ở
+                                             _check_manufactured_spec. -->
+                                        <div class="alert alert-danger mb-0 py-1 px-2 small"
+                                             role="alert"
+                                             invisible="not has_missing_params or attachment_ids">
+                                            <i class="fa fa-exclamation-circle me-1" aria-hidden="true"/>
+                                            Còn thiếu: <field name="missing_param_names" class="fw-bold"/>.
+                                            Điền nốt hoặc đính kèm bản vẽ ở dưới.
+                                        </div>
+                                        <div class="alert alert-warning mb-0 py-1 px-2 small"
+                                             role="alert"
+                                             invisible="not has_out_of_range_params">
+                                            <i class="fa fa-info-circle me-1" aria-hidden="true"/>
+                                            Có thông số nằm ngoài miền thường làm — vẫn
+                                            gửi được, Kỹ thuật sẽ xem kỹ cỡ này.
+                                        </div>
+                                    </div>
+
+                                    <!-- Tín hiệu tức thời cho Sales: cấu hình này đã
+                                         từng làm chưa. Đây là chỗ Sales thấy được giá
+                                         trị của việc chọn Kiểu hàng + điền số. -->
+                                    <div class="alert alert-success mb-0 py-2" role="status"
+                                         invisible="not auto_resolved">
+                                        <i class="fa fa-check-circle me-1" aria-hidden="true"/>
+                                        <b>Đã có định mức duyệt sẵn cho đúng thứ này</b> —
+                                        dòng này không cần qua Kỹ thuật, báo giá được ngay.
+                                    </div>
+                                    <div class="alert alert-info mb-0 py-2" role="status"
+                                         invisible="auto_resolved or not has_parametric_template or has_missing_params">
+                                        <i class="fa fa-magic me-1" aria-hidden="true"/>
+                                        Cỡ này chưa từng làm — Kỹ thuật sẽ sinh định mức
+                                        theo thông số bạn vừa nhập.
+                                    </div>
+
                                     <!-- §1c — ô Yêu cầu/Mô tả để rộng & cao hơn.
-                                         Cần ÍT NHẤT MỘT trong hai: Mô tả HOẶC file
-                                         đính kèm (không bắt buộc cả hai). Dùng
-                                         required chéo ⇒ tô đỏ inline trong dialog
-                                         khi thiếu cả hai; điền một là hết (không modal). -->
-                                    <separator string="Yêu cầu / Mô tả"/>
+                                         Nhóm CHƯA có mẫu: cần Mô tả HOẶC đính kèm.
+                                         Nhóm CÓ mẫu: thông số đã gánh phần bắt buộc,
+                                         ô này còn lại phần bảng không chứa nổi (cao
+                                         ghế, khổ mặt ghế, màu sơn...). -->
+                                    <separator string="Yêu cầu / Mô tả thêm"/>
                                     <field name="dimension_note" nolabel="1"
-                                           required="not attachment_ids"
+                                           required="not attachment_ids and not has_parametric_template"
                                            class="dl-rfq-desc"
-                                           placeholder="Kích thước, yêu cầu kỹ thuật..."/>
+                                           placeholder="Chi tiết khác: cao ghế, khổ mặt ghế, màu sơn, yêu cầu riêng..."/>
                                     <!-- §1d — Ảnh & file đính kèm gộp chung 1 trường -->
                                     <separator string="Ảnh / File đính kèm"/>
+                                    <!-- Lưới xem trước ảnh: many2many_binary chỉ bày thẻ
+                                         file, không xem được ảnh (giống màn Kiểm hàng QC). -->
+                                    <field name="attachment_gallery" nolabel="1" readonly="1"
+                                           invisible="not attachment_gallery"/>
                                     <field name="attachment_ids" widget="many2many_binary"
-                                           required="not dimension_note"
+                                           required="not dimension_note and not has_parametric_template"
                                            nolabel="1"/>
                                 </form>
                             </field>
@@ -881,7 +994,14 @@
                         domain="[('status', 'in', ('new', 'processing', 'supplemented'))]"/>
                 <filter name="has_supplement" string="Cần bổ sung"
                         domain="[('supplement_count', '&gt;', 0), ('status', 'not in', ('returned', 'quoted', 'cancelled'))]"/>
+                <separator/>
+                <filter name="type_manufactured" string="Hàng gia công"
+                        domain="[('request_type', '=', 'manufactured')]"/>
+                <filter name="type_trading" string="Hàng thương mại"
+                        domain="[('request_type', '=', 'trading')]"/>
                 <group expand="0" string="Nhóm theo">
+                    <filter name="group_request_type" string="Loại yêu cầu"
+                            context="{'group_by': 'request_type'}"/>
                     <filter name="group_status" string="Trạng thái"
                             context="{'group_by': 'status'}"/>
                     <filter name="group_customer" string="Khách hàng"
@@ -912,6 +1032,9 @@
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
         <field name="view_id" ref="view_dl_quotation_request_tree_my"/>
+        <!-- RFQ thương mại không đi qua Kỹ thuật (dòng đã có sẵn sản phẩm + giá)
+             ⇒ cắt hẳn khỏi hàng đợi thay vì để KTV tự lọc mắt. -->
+        <field name="domain">[('request_type', '=', 'manufactured')]</field>
         <field name="context">{'search_default_to_process': 1}</field>
     </record>
 

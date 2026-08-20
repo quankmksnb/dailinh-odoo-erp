@@ -38,8 +38,14 @@ export class DlRfqFormController extends FormController {
     // ổn định ở form này. record.save() vẫn tự lo hiển thị toast + focus lỗi đầu.
     async _dlMarkLinePresence(record) {
         const data = record.data;
+        // Bảng của loại RFQ KIA vẫn nằm trong data dù đang bị `invisible` cắt
+        // khỏi màn (chốt 2026-08-18: một RFQ một loại). Tô đỏ nó thì người dùng
+        // nhận toast "Trường không hợp lệ" mà không thấy ô nào sai để sửa.
+        const hidden = data.request_type === "trading" ? "manufactured_line_ids"
+            : data.request_type === "manufactured" ? "trading_line_ids" : null;
         // Chỉ xét field bảng dòng thực sự có trên view hiện tại.
-        const present = DL_LINE_FIELDS.filter((f) => f in data && data[f]);
+        const present = DL_LINE_FIELDS.filter(
+            (f) => f in data && data[f] && f !== hidden);
         if (!present.length) {
             return; // không có bảng dòng nào → không phải form RFQ có dòng
         }

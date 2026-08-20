@@ -6,7 +6,6 @@ access_dl_stock_picking_tech,stock.picking Tech,stock.model_stock_picking,dl_bas
 access_dl_stock_picking_ba,stock.picking BA,stock.model_stock_picking,dl_base.dl_group_ba,1,0,0,0
 access_dl_stock_picking_ceo,stock.picking CEO,stock.model_stock_picking,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_picking_sm,stock.picking SM,stock.model_stock_picking,dl_base.dl_group_sales_manager,1,0,0,0
-access_dl_stock_picking_acc,stock.picking Acc,stock.model_stock_picking,dl_base.dl_group_accountant,1,0,0,0
 access_dl_stock_move_wh,stock.move Warehouse,stock.model_stock_move,dl_base.dl_group_warehouse,1,1,1,1
 access_dl_stock_move_admin,stock.move Admin,stock.model_stock_move,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_move_pur,stock.move Purchasing,stock.model_stock_move,dl_base.dl_group_purchasing,1,1,1,1
@@ -14,7 +13,6 @@ access_dl_stock_move_tech,stock.move Tech,stock.model_stock_move,dl_base.dl_grou
 access_dl_stock_move_ba,stock.move BA,stock.model_stock_move,dl_base.dl_group_ba,1,0,0,0
 access_dl_stock_move_ceo,stock.move CEO,stock.model_stock_move,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_move_sm,stock.move SM,stock.model_stock_move,dl_base.dl_group_sales_manager,1,0,0,0
-access_dl_stock_move_acc,stock.move Acc,stock.model_stock_move,dl_base.dl_group_accountant,1,0,0,0
 access_dl_stock_move_line_wh,stock.move.line Warehouse,stock.model_stock_move_line,dl_base.dl_group_warehouse,1,1,1,1
 access_dl_stock_move_line_admin,stock.move.line Admin,stock.model_stock_move_line,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_move_line_pur,stock.move.line Purchasing,stock.model_stock_move_line,dl_base.dl_group_purchasing,1,1,1,1
@@ -22,21 +20,18 @@ access_dl_stock_move_line_tech,stock.move.line Tech,stock.model_stock_move_line,
 access_dl_stock_move_line_ba,stock.move.line BA,stock.model_stock_move_line,dl_base.dl_group_ba,1,0,0,0
 access_dl_stock_move_line_ceo,stock.move.line CEO,stock.model_stock_move_line,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_move_line_sm,stock.move.line SM,stock.model_stock_move_line,dl_base.dl_group_sales_manager,1,0,0,0
-access_dl_stock_move_line_acc,stock.move.line Acc,stock.model_stock_move_line,dl_base.dl_group_accountant,1,0,0,0
 access_dl_stock_quant_wh,stock.quant Warehouse,stock.model_stock_quant,dl_base.dl_group_warehouse,1,1,1,0
 access_dl_stock_quant_admin,stock.quant Admin,stock.model_stock_quant,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_quant_pur,stock.quant Purchasing,stock.model_stock_quant,dl_base.dl_group_purchasing,1,0,0,0
 access_dl_stock_quant_tech,stock.quant Tech,stock.model_stock_quant,dl_base.dl_group_tech,1,0,0,0
 access_dl_stock_quant_ceo,stock.quant CEO,stock.model_stock_quant,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_quant_sm,stock.quant SM,stock.model_stock_quant,dl_base.dl_group_sales_manager,1,0,0,0
-access_dl_stock_quant_acc,stock.quant Acc,stock.model_stock_quant,dl_base.dl_group_accountant,1,0,0,0
 access_dl_stock_lot_wh,stock.lot Warehouse,stock.model_stock_lot,dl_base.dl_group_warehouse,1,1,1,0
 access_dl_stock_lot_admin,stock.lot Admin,stock.model_stock_lot,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_lot_pur,stock.lot Purchasing,stock.model_stock_lot,dl_base.dl_group_purchasing,1,0,0,0
 access_dl_stock_lot_tech,stock.lot Tech,stock.model_stock_lot,dl_base.dl_group_tech,1,0,0,0
 access_dl_stock_lot_ceo,stock.lot CEO,stock.model_stock_lot,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_lot_sm,stock.lot SM,stock.model_stock_lot,dl_base.dl_group_sales_manager,1,0,0,0
-access_dl_stock_lot_acc,stock.lot Acc,stock.model_stock_lot,dl_base.dl_group_accountant,1,0,0,0
 access_dl_stock_location_wh,stock.location Warehouse,stock.model_stock_location,dl_base.dl_group_warehouse,1,0,0,0
 access_dl_stock_location_admin,stock.location Admin,stock.model_stock_location,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_location_pur,stock.location Purchasing,stock.model_stock_location,dl_base.dl_group_purchasing,1,0,0,0
@@ -44,7 +39,6 @@ access_dl_stock_location_tech,stock.location Tech,stock.model_stock_location,dl_
 access_dl_stock_location_ba,stock.location BA,stock.model_stock_location,dl_base.dl_group_ba,1,0,0,0
 access_dl_stock_location_ceo,stock.location CEO,stock.model_stock_location,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_location_sm,stock.location SM,stock.model_stock_location,dl_base.dl_group_sales_manager,1,0,0,0
-access_dl_stock_location_acc,stock.location Acc,stock.model_stock_location,dl_base.dl_group_accountant,1,0,0,0
 access_dl_stock_picking_type_wh,stock.picking.type Warehouse,stock.model_stock_picking_type,dl_base.dl_group_warehouse,1,0,0,0
 access_dl_stock_picking_type_admin,stock.picking.type Admin,stock.model_stock_picking_type,dl_base.dl_group_admin,1,1,1,1
 access_dl_stock_picking_type_pur,stock.picking.type Purchasing,stock.model_stock_picking_type,dl_base.dl_group_purchasing,1,0,0,0
@@ -52,7 +46,6 @@ access_dl_stock_picking_type_tech,stock.picking.type Tech,stock.model_stock_pick
 access_dl_stock_picking_type_ba,stock.picking.type BA,stock.model_stock_picking_type,dl_base.dl_group_ba,1,0,0,0
 access_dl_stock_picking_type_ceo,stock.picking.type CEO,stock.model_stock_picking_type,dl_base.dl_group_ceo,1,0,0,0
 access_dl_stock_picking_type_sm,stock.picking.type SM,stock.model_stock_picking_type,dl_base.dl_group_sales_manager,1,0,0,0
-access_dl_stock_picking_type_acc,stock.picking.type Acc,stock.model_stock_picking_type,dl_base.dl_group_accountant,1,0,0,0
 access_dl_orderpoint_pur,stock.warehouse.orderpoint Purchasing,stock.model_stock_warehouse_orderpoint,dl_base.dl_group_purchasing,1,0,0,0
 access_dl_orderpoint_tech,stock.warehouse.orderpoint Tech,stock.model_stock_warehouse_orderpoint,dl_base.dl_group_tech,1,0,0,0
 access_dl_stock_warehouse_wh,stock.warehouse Warehouse,stock.model_stock_warehouse,dl_base.dl_group_warehouse,1,0,0,0

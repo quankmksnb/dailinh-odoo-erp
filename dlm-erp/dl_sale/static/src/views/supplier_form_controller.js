@@ -31,19 +31,18 @@ export class DlSupplierFormController extends FormController {
         this.dlNotification = useService("notification");
         this.dlDialog = useService("dialog");
         // Trưởng KD chỉ được XEM chi tiết NCC (S04) — không Sửa/Thêm/Xoá.
-        // Bảo mật thật do ir.rule; đây chỉ khoá form ở UI. Kế toán/Admin full CRUD.
+        // Bảo mật thật do ir.rule; đây chỉ khoá form ở UI. Admin full CRUD.
         this._dlGroupReadonly = false;
         // Chỉ coi là "có thay đổi thật" khi người dùng thực sự tương tác input —
         // fill tự động từ onchange KHÔNG bật cờ này.
         this._dlUserTouched = false;
 
         onWillStart(async () => {
-            const [isSM, isAdmin, isAcc] = await Promise.all([
+            const [isSM, isAdmin] = await Promise.all([
                 this.userService.hasGroup("dl_base.dl_group_sales_manager"),
                 this.userService.hasGroup("dl_base.dl_group_admin"),
-                this.userService.hasGroup("dl_base.dl_group_accountant"),
             ]);
-            this._dlGroupReadonly = isSM && !isAdmin && !isAcc;
+            this._dlGroupReadonly = isSM && !isAdmin;
             if (this._dlGroupReadonly) {
                 this.canEdit = false;
                 const aa = this.archInfo && this.archInfo.activeActions;

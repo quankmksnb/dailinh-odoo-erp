@@ -25,7 +25,7 @@
                 <field name="version_label" string="Phiên bản / Lần sinh"/>
                 <field name="product_qty" string="Số lượng thành phẩm"/>
                 <field name="total_material_cost" string="Chi phí vật tư"
-                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant"/>
+                       groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"/>
                 <field name="status" widget="badge"
                        decoration-info="status == 'draft'"
                        decoration-success="status == 'confirmed'"
@@ -140,10 +140,10 @@
                     <field name="dlm_has_unpriced_operation" invisible="1"/>
                     <div class="alert alert-warning" role="alert"
                          invisible="not dlm_has_unpriced_operation"
-                         groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant">
+                         groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ceo">
                         <i class="fa fa-exclamation-triangle me-1"/>
                         <strong>Công đoạn chưa có đơn giá.</strong>
-                        Báo giá dùng định mức này sẽ lỗi cho tới khi Kế toán định giá:
+                        Báo giá dùng định mức này sẽ lỗi cho tới khi công đoạn được định giá:
                         <field name="dlm_unpriced_operation_names" nolabel="1" readonly="1"
                                class="d-inline"/>.
                     </div>
@@ -353,7 +353,7 @@
                             </field>
 
                             <group class="oe_subtotal_footer oe_right"
-                                   groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                                   groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
                                 <field name="total_material_cost"
                                        class="oe_subtotal_footer_separator"/>
                             </group>
@@ -361,15 +361,15 @@
 
                         <!-- Công đoạn (RV-01/RV-04) — Kỹ thuật chọn công đoạn +
                              nhập MỘT con số cơ sở khi cách tính cần (kg/m/m²).
-                             Đơn giá/tỷ lệ/setup do Kế toán giá thành cấu hình;
+                             Đơn giá/tỷ lệ/setup cấu hình ở màn Cấu hình báo giá;
                              KTV không nhập, không thấy giá (cột ước tính gated). -->
                         <page string="Công đoạn" name="bom_operations">
                             <div class="text-muted mb-2" style="font-size:12px;">
                                 <i class="fa fa-info-circle me-1"/>
                                 Chọn công đoạn sản phẩm phải đi qua (cắt, hàn, sơn,
                                 thuê ngoài…). Chỉ nhập <strong>định mức cơ sở</strong>
-                                khi cách tính theo kg/mét/m². Đơn giá và phí setup do
-                                Kế toán giá thành cấu hình ở màn Cấu hình báo giá.
+                                khi cách tính theo kg/mét/m². Đơn giá và phí setup
+                                cấu hình ở màn Cấu hình báo giá.
                             </div>
                             <field name="operation_line_ids"
                                    readonly="status in ('locked', 'archived')">
@@ -383,7 +383,7 @@
                                     <field name="is_outsourced" optional="show"/>
                                     <field name="partner_id" optional="show"/>
                                     <field name="estimated_unit_cost" optional="show"
-                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager"/>
+                                           groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager"/>
                                     <field name="note" optional="hide"/>
                                 </tree>
                                 <form string="Công đoạn">
@@ -398,8 +398,8 @@
                                                  invisible="has_active_rule">
                                                 <i class="fa fa-exclamation-triangle me-1"/>
                                                 Công đoạn này chưa có đơn giá đang áp
-                                                dụng — Kế toán giá thành cần cấu hình
-                                                trước khi tạo báo giá.
+                                                dụng — cần cấu hình ở màn Cấu hình
+                                                báo giá trước khi tạo báo giá.
                                             </div>
                                             <field name="base_qty"/>
                                             <div colspan="2" class="text-muted"
@@ -432,7 +432,7 @@
                             </field>
 
                             <group class="oe_subtotal_footer oe_right"
-                                   groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager">
+                                   groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
                                 <field name="total_operation_cost_est"
                                        class="oe_subtotal_footer_separator"/>
                             </group>

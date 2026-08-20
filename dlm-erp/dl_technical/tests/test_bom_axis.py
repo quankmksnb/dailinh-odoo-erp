@@ -122,11 +122,21 @@ class TestBomAxisSeparation(TransactionCase):
         customer = self.env["res.partner"].create({
             "name": "Khách test copy BOM",
             "partner_role": "customer",
+            # dl_partner: khách CÁ NHÂN phải có điện thoại, và số KHÔNG được trùng
+            # giữa các khách ⇒ mỗi file test giữ một số riêng.
+            "phone": "0989204711",
+        })
+        # Dòng gia công bắt buộc có Nhóm SP — nhóm định tuyến form Sales và mẫu
+        # định mức. Bài test này chỉ soi trục BOM nên nhóm rỗng là đủ.
+        categ = self.env["product.category"].create({
+            "name": "Bàn thép (test copy BOM)",
+            "parent_id": self.env.ref("dl_product.categ_root_finished").id,
         })
         request = self.env["dl.quotation.request"].create({
             "customer_id": customer.id,
             "line_ids": [(0, 0, {
                 "product_type": "manufactured",
+                "product_category_id": categ.id,
                 "product_name": "Bàn thép UAT copy",
                 "quantity": 1.0,
                 "dimension_note": "1400x830",

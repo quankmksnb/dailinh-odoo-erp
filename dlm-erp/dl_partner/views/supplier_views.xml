@@ -206,7 +206,7 @@
                      phải đọc được lịch sử thay đổi của chính đối tác họ quản lý;
                      thiếu nhóm này là sót từ trước. -->
                 <div class="oe_chatter"
-                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_accountant,dl_base.dl_group_purchasing">
+                     groups="dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_admin,dl_base.dl_group_purchasing">
                     <field name="message_follower_ids"/>
                     <field name="activity_ids"/>
                     <field name="message_ids"/>

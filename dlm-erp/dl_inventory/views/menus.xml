@@ -47,7 +47,7 @@
         action="action_dl_stock_quant"
         parent="dl_base.menu_dl_inventory"
         sequence="10"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
 
     <menuitem
@@ -56,7 +56,7 @@
         action="action_dl_picking_receipt"
         parent="dl_base.menu_dl_inventory"
         sequence="20"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_ceo"
     />
 
     <menuitem
@@ -65,7 +65,7 @@
         action="action_dl_picking_qc"
         parent="dl_base.menu_dl_inventory"
         sequence="30"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_ceo"
     />
 
     <!-- K13 — Đầu ra của nhánh gia công.
@@ -95,7 +95,7 @@
         action="action_dl_picking_transfer"
         parent="dl_base.menu_dl_inventory"
         sequence="40"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant,dl_base.dl_group_tech"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_tech"
     />
 
     <menuitem
@@ -104,7 +104,7 @@
         action="action_dl_picking_delivery"
         parent="dl_base.menu_dl_inventory"
         sequence="50"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
 
     <!-- Chủ sở hữu là Mua hàng; Thủ kho CỐ Ý không có mục này — họ đã ghi nhận
@@ -124,7 +124,7 @@
         action="action_dl_scrap_quant"
         parent="dl_base.menu_dl_inventory"
         sequence="65"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_ceo"
     />
 
     <!-- 🔴 K16 — mục "Đối chiếu thu hồi" ĐÃ GỠ cùng với cách tính % thu hồi phế
@@ -139,7 +139,7 @@
         action="action_dl_stock_lot"
         parent="dl_base.menu_dl_inventory"
         sequence="70"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
 
 </odoo>

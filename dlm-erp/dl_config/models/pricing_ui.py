@@ -78,9 +78,9 @@ class DlPricingUi(models.TransientModel):
 
         return {
             "perms": {
-                "waste": self._has("tech", "accountant", "admin"),
-                "operation": self._has("tech", "accountant", "admin"),
-                "cost": self._has("accountant", "tech", "admin"),
+                "waste": self._has("tech", "admin"),
+                "operation": self._has("tech", "admin"),
+                "cost": self._has("tech", "admin"),
                 "profit": self._has("ceo", "admin"),
                 "discount": self._has("sales_manager", "ceo", "admin"),
                 # Được "Áp dụng ngay (tự duyệt)" cấu hình thương mại: chỉ Giám
@@ -91,7 +91,7 @@ class DlPricingUi(models.TransientModel):
                 # Trưởng KD được ĐỀ XUẤT (tạo/sửa bản Nháp) — guard ở model.
                 "matrix": self._has("ceo", "admin"),
                 "matrix_propose": self._has("sales_manager", "ceo", "admin"),
-                "master": self._has("tech", "accountant", "admin"),
+                "master": self._has("tech", "admin"),
             },
             "options": {
                 "categories": [

@@ -74,3 +74,8 @@ access_dl_rfq_resolve_param_admin,dl.rfq.resolve.param Admin,model_dl_rfq_resolv
 access_dl_rfq_resolve_param_tech,dl.rfq.resolve.param Tech,model_dl_rfq_resolve_param,dl_base.dl_group_tech,1,1,1,1
 access_dl_bom_create_btp_wizard_admin,dl.bom.create.btp.wizard Admin,model_dl_bom_create_btp_wizard,dl_base.dl_group_admin,1,1,1,1
 access_dl_bom_create_btp_wizard_tech,dl.bom.create.btp.wizard Tech,model_dl_bom_create_btp_wizard,dl_base.dl_group_tech,1,1,1,1
+access_dl_rfq_line_param_ceo,dl.quotation.request.line.param CEO,model_dl_quotation_request_line_param,dl_base.dl_group_ceo,1,0,0,0
+access_dl_rfq_line_param_admin,dl.quotation.request.line.param Admin,model_dl_quotation_request_line_param,dl_base.dl_group_admin,1,1,1,1
+access_dl_rfq_line_param_ba,dl.quotation.request.line.param BA,model_dl_quotation_request_line_param,dl_base.dl_group_ba,1,1,1,1
+access_dl_rfq_line_param_sm,dl.quotation.request.line.param SM,model_dl_quotation_request_line_param,dl_base.dl_group_sales_manager,1,1,1,1
+access_dl_rfq_line_param_tech,dl.quotation.request.line.param Tech,model_dl_quotation_request_line_param,dl_base.dl_group_tech,1,0,0,0

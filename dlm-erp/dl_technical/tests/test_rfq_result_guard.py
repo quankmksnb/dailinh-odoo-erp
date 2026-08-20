@@ -22,6 +22,17 @@ class TestRfqResultGuard(TransactionCase):
         cls.customer = cls.env["res.partner"].create({
             "name": "Khách test guard",
             "partner_role": "customer",
+            # dl_partner: khách CÁ NHÂN phải có điện thoại, và số KHÔNG được trùng
+            # giữa các khách ⇒ mỗi file test giữ một số riêng.
+            "phone": "0989204714",
+        })
+
+        # Dòng gia công bắt buộc có Nhóm SP (nhóm định tuyến form Sales + mẫu
+        # định mức). Nhóm RIÊNG cho bài test này: nhóm dùng chung sẽ kéo theo
+        # sản phẩm của test khác và làm lệch điểm "Cùng nhóm" của bộ dò khớp.
+        cls.categ = cls.env["product.category"].create({
+            "name": "Khung thép (test guard)",
+            "parent_id": cls.env.ref("dl_product.categ_root_finished").id,
         })
 
     def _make_rfq(self):
@@ -29,6 +40,7 @@ class TestRfqResultGuard(TransactionCase):
             "customer_id": self.customer.id,
             "line_ids": [(0, 0, {
                 "product_type": "manufactured",
+                "product_category_id": self.categ.id,
                 "product_name": "Khung thép test guard",
                 "quantity": 1.0,
                 "dimension_note": "1200x800",

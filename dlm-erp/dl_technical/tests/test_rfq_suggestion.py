@@ -34,11 +34,39 @@ class TestRfqSuggestion(TransactionCase):
         cls.customer = cls.env["res.partner"].create({
             "name": "Cty khớp gợi ý (test)",
             "partner_role": "customer",
+            # dl_partner: khách CÁ NHÂN phải có điện thoại, và số KHÔNG được trùng
+            # giữa các khách ⇒ mỗi file test giữ một số riêng.
+            "phone": "0989204716",
         })
+        # Sản phẩm thương mại cho ca "dòng thương mại không bao giờ gợi ý":
+        # dòng loại này bắt buộc có SP xác định (_check_product_type_required).
+        cls.trading_product = cls.env["product.product"].create({
+            "name": "Ốc vít M8 (test gợi ý)",
+            "product_kind": "trading",
+            "dlm_lifecycle_state": "active",
+        })
+        # Định mức đã duyệt cho cls.existing — _check_product_has_bom chặn gán
+        # resolved_product_id cho SP gia công chưa có BOM confirmed/locked.
+        cls.material = cls.env["product.product"].create({
+            "name": "Thép hộp (test gợi ý)",
+            "product_kind": "material",
+        })
+        cls.existing_bom = cls.env["dl.bom"].create({
+            "product_id": cls.existing.id,
+            # 🔴 'quotation' chứ KHÔNG phải 'template': BOM chuẩn hiện hành biến
+            # sản phẩm thành mặt hàng catalog ⇒ dòng trỏ vào nó tự chốt qua làn
+            # L0 và `suggestion_state` thành 'none', làm câm cả file test này.
+            # Định mức theo đơn vẫn thoả `_check_product_has_bom`.
+            "bom_type": "quotation",
+            "line_ids": [(0, 0, {
+                "material_id": cls.material.id, "quantity": 1.0})],
+        })
+        cls.existing_bom.action_confirm()
 
-    def _rfq(self, **line_vals):
+    def _rfq(self, request_type="manufactured", **line_vals):
         vals = {
             "product_type": "manufactured",
+            "product_category_id": self.categ.id,
             "product_name": "Sản phẩm bất kỳ",
             "quantity": 1.0,
             # _check_manufactured_spec đòi mô tả kích thước hoặc đính kèm.
@@ -47,6 +75,7 @@ class TestRfqSuggestion(TransactionCase):
         vals.update(line_vals)
         request = self.env["dl.quotation.request"].create({
             "customer_id": self.customer.id,
+            "request_type": request_type,
             "line_ids": [(0, 0, vals)],
         })
         return request, request.line_ids[0]
@@ -130,8 +159,11 @@ class TestRfqSuggestion(TransactionCase):
 
     def test_trading_line_never_suggests(self):
         _req, line = self._rfq(
+            request_type="trading",
             product_type="trading",
             product_name="khung sắt v5 1200x800 (test)",
+            product_category_id=False,
+            resolved_product_id=self.trading_product.id,
         )
         self.assertEqual(line.suggestion_state, "none")
         self.assertFalse(line._dlm_suggest_candidates())
@@ -197,6 +229,7 @@ class TestRfqSuggestion(TransactionCase):
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
             reference_product_id=self.existing.id,
+            product_category_id=self.other_categ.id,
             dimension_note="1400x900",
         )
         ranked = line._dlm_suggest_candidates()
@@ -211,6 +244,7 @@ class TestRfqSuggestion(TransactionCase):
         _req, line = self._rfq(
             product_name="Một tên khác hẳn",
             reference_product_id=self.existing.id,
+            product_category_id=self.other_categ.id,
             dimension_note="1200x800x900",
         )
         ranked = line._dlm_suggest_candidates()
@@ -222,6 +256,9 @@ class TestRfqSuggestion(TransactionCase):
         self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
         _req, line = self._rfq(
             product_name="khung sắt v5 1200x800 (test)",
+            product_category_id=self.other_categ.id,
+            dimension_note=False,
+            attachment_ids=[(0, 0, {"name": "bv.pdf", "datas": b"MA=="})],
         )
         ranked = line._dlm_suggest_candidates()
         self.assertGreaterEqual(ranked[0]["score"], 70)
@@ -233,6 +270,7 @@ class TestRfqSuggestion(TransactionCase):
         self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
         _req, line = self._rfq(
             product_name="Tên hoàn toàn khác ZZZ",
+            product_category_id=self.other_categ.id,
             dimension_note="1200x800",
         )
         # Không ref, không trùng tên, không cùng nhóm, không cùng khách → rỗng.
@@ -256,13 +294,25 @@ class TestRfqSuggestion(TransactionCase):
                          "Đạt ngưỡng auto ⇒ workspace tự chọn SP")
         self.assertTrue(wizard.auto_selected)
 
-    def test_workspace_suggest_does_not_auto_select(self):
-        """Chỉ đạt ngưỡng suggest ⇒ KHÔNG tự chọn, nhưng phơi thẻ gợi ý +
-        nút Dùng sản phẩm này chọn được."""
+    def test_exact_name_resolves_to_existing_product(self):
+        """Tên TRÙNG HỆT ⇒ dùng lại chính sản phẩm đó, không đẻ bản trùng nghĩa.
+
+        Điểm dò khớp chỉ 50 (nằm dải "gợi ý"), nhưng TÊN thì trùng hệt — mà tạo
+        sản phẩm trùng tên vốn đã bị `_check_dlm_name_duplicate` chặn cứng. Nên
+        đây là câu trả lời duy nhất chạy được, không phải phỏng đoán."""
         _req, line = self._rfq(product_name="khung sắt v5 1200x800 (test)")
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
-            default_rfq_line_id=line.id).create({"rfq_line_id": line.id})
-        self.assertFalse(wizard.product_id, "Suggest (30–59) không tự chọn")
+            default_rfq_line_id=line.id).create({})
+        self.assertEqual(wizard.product_origin, "name_match")
+        self.assertEqual(wizard.product_id, self.existing)
+
+    def test_suggested_product_stays_reachable(self):
+        """KTV bấm "Đổi sản phẩm" ⇒ thẻ gợi ý + danh sách chọn vẫn phục vụ được."""
+        _req, line = self._rfq(product_name="khung sắt v5 1200x800 (test)")
+        wizard = self.env["dl.rfq.resolve.wizard"].with_context(
+            default_rfq_line_id=line.id).create({})
+        wizard.action_change_product()
+
         self.assertEqual(wizard.suggestion_state, "suggest")
         self.assertEqual(wizard.suggested_product_id, self.existing)
         # SP gợi ý phải nằm trong danh sách chọn được (kể cả ngoài nhóm).
@@ -270,4 +320,34 @@ class TestRfqSuggestion(TransactionCase):
 
         wizard.action_use_suggested_product()
         self.assertEqual(wizard.product_id, self.existing)
-        self.assertEqual(wizard.mode, "existing")
+
+    # ------------------------------------------------------------------
+    # Làn L0-a — kiểu hàng cỡ cố định thì dòng tự chốt, không qua Kỹ thuật
+    # ------------------------------------------------------------------
+    def test_catalog_item_autoresolves_without_technician(self):
+        """SP có ĐỊNH MỨC CHUẨN hiện hành = mặt hàng catalog ⇒ Sales chọn xong
+        là dòng tự chốt, RFQ lên thẳng "Chờ tạo báo giá"."""
+        catalog = self.env["product.product"].create({
+            "name": "Bàn giáo viên cỡ cố định (test)",
+            "categ_id": self.categ.id,
+            "product_kind": "manufactured",
+            "dlm_lifecycle_state": "active",
+        })
+        std = self.env["dl.bom"].create({
+            "product_id": catalog.id,
+            "bom_type": "template",
+            "line_ids": [(0, 0, {
+                "material_id": self.material.id, "quantity": 1.0})],
+        })
+        std.action_confirm()
+        self.assertTrue(std.is_current, "Tiền đề: đây là định mức chuẩn hiện hành")
+
+        req, line = self._rfq(
+            product_name="Bàn giáo viên khách A đặt",
+            reference_product_id=catalog.id)
+
+        self.assertTrue(line.auto_resolved)
+        self.assertEqual(line.resolved_product_id, catalog)
+        self.assertEqual(line.resolved_bom_id, std)
+        self.assertEqual(req.status, "confirmed",
+                         "RFQ không còn việc gì cho Kỹ thuật")

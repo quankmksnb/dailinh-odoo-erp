@@ -19,7 +19,7 @@
                 <button name="action_dlm_open_purchase_orders" type="object"
                         class="oe_stat_button" icon="fa-shopping-cart"
                         invisible="dlm_purchase_count == 0"
-                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant">
+                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_admin">
                     <field name="dlm_purchase_count" widget="statinfo"
                            string="Đơn mua"/>
                 </button>
@@ -29,7 +29,7 @@
                 <!-- Trang gated theo vai trò: giá MUA không phải việc của Sales.
                      Thủ kho không mở form này (họ dùng màn Điều phối riêng). -->
                 <page string="Giá vốn thực tế" name="dlm_actual_cost"
-                      groups="dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_accountant">
+                      groups="dl_base.dl_group_purchasing,dl_base.dl_group_ceo,dl_base.dl_group_admin">
                     <div class="alert alert-warning" role="alert"
                          invisible="not dlm_cost_is_estimated">
                         <i class="fa fa-exclamation-triangle me-1" role="img"

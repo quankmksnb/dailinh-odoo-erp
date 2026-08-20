@@ -271,6 +271,8 @@ class DemoBuilder:
                 rfq = self.env["dl.quotation.request"].create({
                     "customer_id": customer.id,
                     "requested_date": fields.Datetime.now(),
+                    # Một RFQ chỉ một loại gia công haocwj thương mại
+                    "request_type": lines[0].get("product_type", "manufactured"),
                     "line_ids": [(0, 0, l) for l in lines],
                 })
                 rfq._recompute_status_from_lines()

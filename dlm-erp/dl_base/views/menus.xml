@@ -7,7 +7,7 @@
         sequence="1"
         web_icon="dl_base,static/description/icon.png"
         action="action_dl_home"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_purchasing,dl_base.dl_group_warehouse"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_sales_manager,dl_base.dl_group_purchasing,dl_base.dl_group_warehouse"
     />
     <!-- ⚠️ THÊM VAI TRÒ MỚI thì phải thêm vào ĐÂY nữa, không chỉ ở menu nghiệp
          vụ: Odoo bắt pass groups CẢ TỔ TIÊN. Thiếu ở menu gốc ⇒ user đăng nhập
@@ -31,7 +31,7 @@
         name="Sản phẩm &amp; Vật tư"
         parent="menu_dl_root"
         sequence="20"
-        groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant,dl_base.dl_group_purchasing"
+        groups="dl_base.dl_group_tech,dl_base.dl_group_admin,dl_base.dl_group_ba,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_purchasing"
     />
 
     <menuitem
@@ -52,7 +52,7 @@
         name="Kho"
         parent="menu_dl_root"
         sequence="30"
-        groups="dl_base.dl_group_warehouse,dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_warehouse,dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_tech,dl_base.dl_group_ceo,dl_base.dl_group_sales_manager"
     />
 
     <!-- Menu CONTAINER của phân hệ Mua hàng (menu con khai ở dl_purchase).
@@ -67,7 +67,7 @@
         name="Mua hàng"
         parent="menu_dl_root"
         sequence="25"
-        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo,dl_base.dl_group_accountant"
+        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"
     />
 
     <!-- Chưa có màn báo cáo thực tế: ẩn hẳn để người dùng không mở vào ngõ cụt. -->

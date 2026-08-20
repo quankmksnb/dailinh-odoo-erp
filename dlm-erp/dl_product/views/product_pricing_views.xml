@@ -38,7 +38,7 @@
                 <page
                     string="Nhà cung cấp &amp; Bảng giá"
                     name="sellers"
-                    groups="dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_accountant,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo"
+                    groups="dl_base.dl_group_admin,dl_base.dl_group_purchasing,dl_base.dl_group_sales_manager,dl_base.dl_group_ceo"
                 >
                     <!-- Banner hướng dẫn ngữ cảnh: chỉ hiện khi còn dòng giá Nháp,
                          nhắc người mới bước tiếp theo thay vì bắt họ tự đoán. -->
@@ -200,7 +200,6 @@
             eval="[(6, 0, [
                 ref('dl_base.dl_group_admin'),
                 ref('dl_base.dl_group_purchasing'),
-                ref('dl_base.dl_group_accountant'),
                 ref('dl_base.dl_group_ceo'),
                 ref('dl_base.dl_group_sales_manager'),
             ])]" />
@@ -253,7 +252,6 @@
         <field name="groups_id"
             eval="[(6, 0, [
                 ref('dl_base.dl_group_admin'),
-                ref('dl_base.dl_group_accountant'),
                 ref('dl_base.dl_group_ceo'),
                 ref('dl_base.dl_group_sales_manager'),
             ])]" />
