@@ -64,6 +64,30 @@
                     <button name="action_create_sale_order" string="Tạo đơn bán hàng"
                             type="object" class="btn-primary"
                             invisible="state != 'accepted'"/>
+                    <!-- Cập nhật giá theo thị trường — hai bản cùng một action,
+                         khác nhau ở CẤP nút và ở KHI NÀO được phép bấm.
+                         🔴 Trong hạn hiệu lực, giá đã chào là CAM KẾT với khách:
+                         doanh nghiệp chịu phần trượt giá và đã tính sẵn vào
+                         markup. Vì vậy báo giá đã gửi khách mà CÒN HẠN thì
+                         KHÔNG có nút này — mời bấm là mời sửa giá dưới chân
+                         khách. Chỉ hai ca được phép:
+                           • còn Nháp  → chưa chào ai, sửa thoải mái (secondary)
+                           • QUÁ HẠN   → cam kết hết hiệu lực, đây là việc phải
+                                         làm tiếp (primary; Tạo đơn đang bị chặn)
+                         Odoo không đổi class theo điều kiện nên phải tách hai
+                         nút loại trừ nhau. -->
+                    <field name="dlm_price_stale" invisible="1"/>
+                    <field name="dlm_send_blocked" invisible="1"/>
+                    <button name="action_dlm_refresh_pricing"
+                            string="Cập nhật giá theo thị trường"
+                            type="object" class="btn-primary"
+                            invisible="not dlm_price_stale or state == 'draft'"
+                            confirm="Báo giá đã hết hiệu lực. Tính lại toàn bộ theo giá vật tư hôm nay? Nếu giá đổi, báo giá sẽ quay về Nháp để gửi lại khách."/>
+                    <button name="action_dlm_refresh_pricing"
+                            string="Cập nhật giá theo thị trường"
+                            type="object" class="btn-link"
+                            invisible="not dlm_price_stale or state != 'draft'"
+                            confirm="Tính lại toàn bộ giá theo giá vật tư hôm nay và gia hạn hiệu lực?"/>
                     <!-- Khách đổi ý trước khi lên đơn: rút lại đồng ý, đưa báo
                          giá về Đã gửi khách để mở lại các nhánh phản hồi. -->
                     <button name="action_customer_withdraw" string="Khách rút đồng ý"
@@ -87,22 +111,27 @@
                             type="object" class="btn-danger"
                             invisible="approval_state != 'pending' or not approval_can_resolve"/>
                     <button name="action_open_approval_request" string="Xem yêu cầu duyệt"
-                            type="object" class="btn-secondary"
+                            type="object" class="btn-link"
                             invisible="not approval_request_id"/>
-                    <button name="action_open_reject_wizard" string="Từ chối"
-                            type="object" class="btn-danger"
-                            invisible="state not in ('draft', 'approved', 'sent', 'revision_requested')"/>
+                    <!-- "Từ chối" ở đây là KHÁCH từ chối. Báo giá còn Nháp thì
+                         khách chưa hề nhận được gì để mà từ chối — để nút này ở
+                         Nháp vừa vô nghĩa vừa chiếm chỗ của CTA thật. -->
+                    <button name="action_open_reject_wizard" string="Khách từ chối"
+                            type="object" class="btn-link"
+                            invisible="state not in ('sent', 'revision_requested')"/>
                     <button name="action_expire" string="Hết hiệu lực"
-                            type="object" class="btn-secondary"
+                            type="object" class="btn-link"
                             invisible="state not in ('approved', 'sent', 'revision_requested')"/>
                     <button name="action_reset_draft" string="Về nháp"
                             type="object" class="btn-link"
                             invisible="state not in ('approved', 'sent', 'revision_requested', 'rejected', 'expired')"/>
                     <!-- Xuất file gửi khách: Word/PDF chỉ có giá bán, rồi tải
                          về hoặc gửi email (đọc lại trước khi gửi). -->
+                    <!-- Ẩn khi đang bị chặn gửi khách: server đã chặn, ẩn nút để
+                         người dùng không đâm vào lỗi đỏ. -->
                     <button name="action_open_export_wizard" string="Xuất / Gửi báo giá"
                             type="object" class="btn-secondary"
-                            invisible="not line_ids"/>
+                            invisible="not line_ids or dlm_send_blocked"/>
                     <field name="state" widget="dl_stepper" options="{'preset': 'quotation'}"/>
                 </header>
                 <sheet>
@@ -266,7 +295,9 @@
                                 </div>
                             </div>
                         </page>
-                        <page string="Phân tích giá thành"
+                        <!-- name= để module sau xpath vào được: Odoo 17 cấm
+                             dùng `string` làm selector kế thừa view. -->
+                        <page string="Phân tích giá thành" name="cost_analysis"
                               groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager">
                             <!-- Cờ chỉ dùng cho chip cảnh báo — nạp ẩn. -->
                             <field name="below_floor" invisible="1"/>

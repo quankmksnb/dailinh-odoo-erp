@@ -246,6 +246,18 @@
         }
     }
 
+    // Nguồn hàng của một vật tư ("30 Cây từ lô LO/… @200.000 · 70 Cây phải
+    // mua @220.000"). Là chú giải của dòng ngay trên nó nên thụt vào và nhỏ
+    // hơn — đọc lướt thì bỏ qua được, cần giải trình thì có ngay tại chỗ.
+    .dl-recipe-src {
+        margin: -2px 0 4px 0;
+        font-size: 11px;
+        line-height: 1.4;
+        color: $dl-text-muted;
+        // Chuỗi dài (nhiều lô) phải xuống dòng chứ không được đẩy ngang bảng.
+        overflow-wrap: anywhere;
+    }
+
     // Nhiều vật tư cho 1 sp: hover tô nền cả dòng để mắt bám từ tên → số
     // tiền, khỏi lạc qua khoảng trắng giữa. Dòng "Cộng" (sub) là mốc tổng,
     // không tô. Band thụt vào nhờ margin âm bù padding của .dl-recipe-cat.
