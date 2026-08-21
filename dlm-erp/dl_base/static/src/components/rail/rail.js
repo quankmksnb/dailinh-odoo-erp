@@ -25,7 +25,84 @@ const BADGE_POLL_MS = 60000;
 const DLM_APP_XMLID = "dl_base.menu_dl_root";
 const systrayRegistry = registry.category("systray");
 
+// ─────────────────────────────────────────────────────────────────────────────
+// THỨ TỰ = DÒNG ĐỜI CÔNG VIỆC, KHÔNG PHẢI THỨ TỰ CÀI MODULE.
+//
+// Bản trước xếp theo đồ thị `depends` (dl_partner → dl_sale → dl_product →
+// dl_technical → dl_inventory → dl_purchase), nên hai mục đầu tiên mọi vai trò
+// nhìn thấy là hai cuốn danh bạ, còn hàng đợi việc nằm giữa hoặc cuối.
+//
+// Nay xếp theo mạch chứng từ: hỏi → RFQ → kỹ thuật lập BOM → báo giá → duyệt →
+// đơn bán → mua vật tư → nhập/kiểm → sản xuất → giao. Ba băng:
+//   A. việc đang chờ tôi (có badge)  B. luồng nghiệp vụ  C. tra cứu  D. cấu hình
+//
+// 🔴 Mua hàng phải đứng TRƯỚC Kho. Đây KHÔNG phải sở thích: sau khi lọc RBAC,
+// vai Mua hàng thấy cả hai nhóm — để Kho trước là việc chính của họ (Đơn mua)
+// bị chen xuống #2. Đặt Mua hàng trước là điều kiện duy nhất để MỘT thứ tự
+// toàn cục đưa việc chính của 6/7 vai trò lên vị trí #1, khỏi cần cơ chế
+// sắp-xếp-theo-vai-trò. Đảo lại là hỏng tính chất đó.
+// ─────────────────────────────────────────────────────────────────────────────
 const RAIL_ITEMS = [
+  // ── Băng A: việc đang chờ ──────────────────────────────────────────────────
+  // Phê duyệt — chỉ hiện với user thấy được menu (CEO/Trưởng KD/vai trò duyệt).
+  // menuXmlIds ⇒ rail LỌC RBAC đồng bộ Home; actionXmlId do dl_sale/nav_patch.js gán.
+  {
+    key: "approval",
+    name: "Phê duyệt",
+    icon: "fa-check-square-o",
+    actionXmlId: null,
+    menuXmlIds: ["dl_sale.menu_dl_sale_quote_approval"],
+  },
+  // ── Băng B: luồng nghiệp vụ, theo mạch chứng từ ────────────────────────────
+  {
+    key: "quotation",
+    name: "Báo giá",
+    icon: "fa-file-text-o",
+    actionXmlId: "dl_sale.action_dl_quotation",
+    menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
+  },
+  {
+    key: "technical",
+    name: "Kỹ thuật",
+    icon: "fa-cogs",
+    actionXmlId: null,
+    menuXmlIds: ["dl_base.menu_dl_technical"],
+  },
+  // Mua hàng — mục con do dl_purchase/nav_patch.js gắn (Hỏi giá, Đơn mua, Trả NCC).
+  // An toàn khi CHƯA cài dl_purchase: menu container khai ở dl_base nhưng lúc
+  // đó không có mục con nào có action ⇒ `_hasActionableMenu` lọc cả nhóm ra
+  // khỏi rail, đúng như Kho trước khi dl_inventory tồn tại.
+  {
+    key: "purchase",
+    name: "Mua hàng",
+    icon: "fa-shopping-cart",
+    actionXmlId: null,
+    menuXmlIds: ["dl_base.menu_dl_purchase"],
+  },
+  // Kho — mục con do dl_inventory/nav_patch.js gắn (Hàng đợi, Nhận hàng...).
+  // menuXmlIds trỏ menu container ⇒ rail lọc RBAC đồng bộ với Home.
+  {
+    key: "inventory",
+    name: "Kho",
+    icon: "fa-archive",
+    actionXmlId: null,
+    menuXmlIds: ["dl_base.menu_dl_inventory"],
+  },
+  // ── Băng C: tra cứu & danh mục ─────────────────────────────────────────────
+  {
+    key: "product",
+    name: "Sản phẩm & Vật tư",
+    icon: "fa-cube",
+    actionXmlId: null,
+    menuXmlIds: ["dl_base.menu_dl_product"],
+  },
+  {
+    key: "pricing",
+    name: "Bảng giá",
+    icon: "fa-money",
+    actionXmlId: null,
+    menuXmlIds: ["dl_product.menu_dl_pricing_root"],
+  },
   {
     key: "customer",
     name: "Khách hàng",
@@ -46,69 +123,13 @@ const RAIL_ITEMS = [
     preferMenu: true,
   },
   {
-    key: "quotation",
-    name: "Báo giá",
-    icon: "fa-file-text-o",
-    actionXmlId: "dl_sale.action_dl_quotation",
-    menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
-  },
-  // Phê duyệt — chỉ hiện với user thấy được menu (CEO/Trưởng KD/vai trò duyệt).
-  // menuXmlIds ⇒ rail LỌC RBAC đồng bộ Home; actionXmlId do dl_sale/nav_patch.js gán.
-  {
-    key: "approval",
-    name: "Phê duyệt",
-    icon: "fa-check-square-o",
-    actionXmlId: null,
-    menuXmlIds: ["dl_sale.menu_dl_sale_quote_approval"],
-  },
-  {
-    key: "product",
-    name: "Sản phẩm & Vật tư",
-    icon: "fa-cube",
-    actionXmlId: null,
-    menuXmlIds: ["dl_base.menu_dl_product"],
-  },
-  {
-    key: "technical",
-    name: "Kỹ thuật",
-    icon: "fa-cogs",
-    actionXmlId: null,
-    menuXmlIds: ["dl_base.menu_dl_technical"],
-  },
-  {
-    key: "pricing",
-    name: "Bảng giá",
-    icon: "fa-money",
-    actionXmlId: null,
-    menuXmlIds: ["dl_product.menu_dl_pricing_root"],
-  },
-  // Kho — mục con do dl_inventory/nav_patch.js gắn (Tồn kho, Lô hàng...).
-  // menuXmlIds trỏ menu container ⇒ rail lọc RBAC đồng bộ với Home.
-  {
-    key: "inventory",
-    name: "Kho",
-    icon: "fa-archive",
-    actionXmlId: null,
-    menuXmlIds: ["dl_base.menu_dl_inventory"],
-  },
-  // Mua hàng — mục con do dl_purchase/nav_patch.js gắn (Đơn mua, Trả hàng NCC).
-  // An toàn khi CHƯA cài dl_purchase: menu container khai ở dl_base nhưng lúc
-  // đó không có mục con nào có action ⇒ `_hasActionableMenu` lọc cả nhóm ra
-  // khỏi rail, đúng như Kho trước khi dl_inventory tồn tại.
-  {
-    key: "purchase",
-    name: "Mua hàng",
-    icon: "fa-shopping-cart",
-    actionXmlId: null,
-    menuXmlIds: ["dl_base.menu_dl_purchase"],
-  },
-  {
     key: "report",
     name: "Báo cáo",
     icon: "fa-bar-chart",
     actionXmlId: null,
     menuXmlIds: ["dl_base.menu_dl_report"],
   },
+  // ── Băng D: cấu hình ───────────────────────────────────────────────────────
   {
     key: "config",
     name: "Cấu hình",
@@ -158,6 +179,20 @@ export class DlmRail extends Component {
       }
     }, BADGE_POLL_MS);
     onWillUnmount(() => browser.clearInterval(this._badgeTimer));
+
+    // Tự xổ nhóm đang xem. `state.expanded` không được lưu, nên trước bản này
+    // mỗi lần F5 là rail thu gọn sạch: vệt sáng nhóm vẫn sáng nhưng mục con vô
+    // hình, mọi lần điều hướng mất 2 click. Bám `activeKey` (chứ không xổ một
+    // lần lúc setup) vì DlHome đặt activeKey khi land — sau khi rail đã setup.
+    // User tự thu gọn nhóm đang xem thì activeKey không đổi ⇒ không bị xổ lại.
+    useEffect(
+      (activeKey) => {
+        if (activeKey) {
+          this.state.expanded[activeKey] = true;
+        }
+      },
+      () => [this.sidebar.activeKey],
+    );
 
     // Đồng bộ class trên <body> để CSS ẩn navbar Odoo + chừa chỗ cho rail.
     useEffect(

@@ -55,6 +55,9 @@
             'dl_base/static/src/components/stepper/stepper_field.scss',
             'dl_base/static/src/components/stepper/stepper_field.js',
             'dl_base/static/src/components/stepper/stepper_field.xml',
+            # Bỏ đuôi ",00" cho mọi số nguyên — vá FloatField + formatter
+            # "float" (dòng Tổng của list). Áp cho TOÀN hệ thống.
+            'dl_base/static/src/js/float_trim.js',
             # Field widget dùng chung — tiền (group hàng nghìn LIVE khi gõ).
             # money_format.js là util dùng chung cho cả widget lẫn input OWL.
             'dl_base/static/src/js/money_format.js',

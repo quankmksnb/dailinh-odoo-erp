@@ -94,13 +94,17 @@
     <!-- ============================================================
          NHÓM SẢN PHẨM (product.category)
     ============================================================ -->
+    <!-- 1 menu duy nhất cho mọi vai trò sửa được nhóm: Trưởng KD sở hữu nhánh
+         Thành phẩm, Kỹ thuật sở hữu nhánh Vật tư — record rule
+         (rule_category_sm_finished / rule_category_tech_material) chặn phần
+         không phải của mình, nên không cần tách menu theo nhánh. -->
     <menuitem
         id="menu_dl_category_full"
         name="Nhóm sản phẩm"
         action="action_dl_category_full"
         parent="menu_dl_product_root"
         sequence="30"
-        groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager"
+        groups="dl_base.dl_group_admin,dl_base.dl_group_sales_manager,dl_base.dl_group_tech"
     />
     <menuitem
         id="menu_dl_category_view"
@@ -108,17 +112,17 @@
         action="action_dl_category_view"
         parent="menu_dl_product_root"
         sequence="31"
-        groups="dl_base.dl_group_ba,dl_base.dl_group_tech,dl_base.dl_group_ceo"
+        groups="dl_base.dl_group_ba,dl_base.dl_group_ceo"
     />
-    <!-- LK-12 — KTV tự tạo/sửa nhóm nhánh Vật tư (tách khỏi nhánh Thành phẩm). -->
-    <menuitem
-        id="menu_dl_category_material"
-        name="Nhóm vật tư"
-        action="action_dl_category_material"
-        parent="menu_dl_product_root"
-        sequence="32"
-        groups="dl_base.dl_group_tech,dl_base.dl_group_admin"
-    />
+    <!-- Gỡ Kỹ thuật khỏi bản CHỈ-XEM (họ đã dùng menu_dl_category_full ở trên).
+         Bắt buộc clear tường minh: <menuitem groups=...> chỉ sinh (4, ref) nên
+         bỏ một group khỏi attribute KHÔNG xoá được nó trên DB đã nâng cấp. -->
+    <record id="menu_dl_category_view" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_ba'),
+            ref('dl_base.dl_group_ceo'),
+        ])]" />
+    </record>
 
     <!-- ============================================================
          BẢNG GIÁ (SP thương mại / Vật tư) — chủ sở hữu: Kế toán nội bộ;

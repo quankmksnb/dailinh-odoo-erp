@@ -286,6 +286,11 @@ class DlSaleOrderLine(models.Model):
                                ondelete='cascade', required=True)
     name = fields.Char(string='Mô tả', required=True)
     qty = fields.Float(string='Số lượng', default=1.0)
+    # Chép từ dòng báo giá — xưởng và kho đọc con số này để làm/giao hàng.
+    uom_id = fields.Many2one(
+        'uom.uom', string='ĐVT', required=True,
+        default=lambda self: self.env.ref('uom.product_uom_unit',
+                                          raise_if_not_found=False))
     price_unit = fields.Float(string='Đơn giá', digits='Product Price')
     price_subtotal = fields.Float(string='Thành tiền', compute='_compute_subtotal',
                                   store=True, digits='Product Price')

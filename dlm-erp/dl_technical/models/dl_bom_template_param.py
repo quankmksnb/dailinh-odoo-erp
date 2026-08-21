@@ -18,6 +18,19 @@ _TARGET_FIELDS = [
 ]
 
 
+# Đơn vị của một tham số — SUY từ vai trò kích thước chứ không khai tay: mọi
+# kích thước CẮT trong hệ thống đều tính bằng mm (quy ước dim_* ở
+# dl_bom_line_mixin), còn tham số không phải kích thước (vd số nan) là số đếm
+# nên không có đơn vị. Dùng chung cho cả tham số MẪU lẫn bản chép sang RFQ
+# (dl.quotation.request.line.param) để hai màn không nói hai đơn vị khác nhau.
+DIM_UNIT = "mm"
+
+
+def dim_unit_hint(dim_role):
+    """Đơn vị hiện cạnh ô nhập của một tham số ("mm" hoặc rỗng)."""
+    return DIM_UNIT if dim_role and dim_role != "none" else ""
+
+
 class DlBomTemplateParam(models.Model):
     """Tham số CẤP SẢN PHẨM của một BOM mẫu (Đợt 4 — thiết kế §7.4a).
 
@@ -56,6 +69,13 @@ class DlBomTemplateParam(models.Model):
     value_min = fields.Float(string="Tối thiểu")
     value_max = fields.Float(string="Tối đa")
     required = fields.Boolean(string="Bắt buộc", default=True)
+    # Hiện cạnh Giá trị/Tối thiểu/Tối đa để KTV biết mấy con số này là mm.
+    unit_hint = fields.Char(string="Đơn vị", compute="_compute_unit_hint")
+
+    @api.depends("dim_role")
+    def _compute_unit_hint(self):
+        for rec in self:
+            rec.unit_hint = dim_unit_hint(rec.dim_role)
 
     _sql_constraints = [
         ("code_uniq", "unique(bom_template_id, code)",

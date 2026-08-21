@@ -8,6 +8,8 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tools import float_compare
 from odoo.tools.image import image_process
 
+from .dl_bom_template_param import dim_unit_hint
+
 # Field-level RBAC (giống dl.material): chỉ Kỹ thuật/Admin được quyết định
 # "sản phẩm xác định" / "không khả thi" — đây là đánh giá kỹ thuật, Sales chỉ
 # được nhập yêu cầu (product_name/product_category_id/quantity/dimension_note).
@@ -2602,6 +2604,16 @@ class DlQuotationRequestLineParam(models.Model):
     value_min = fields.Float(string="Tối thiểu")
     value_max = fields.Float(string="Tối đa")
     required = fields.Boolean(string="Bắt buộc", default=True)
+
+    # Ô nhập chỉ có con số trần ("Chiều dài: 1400") thì Sales không đoán được
+    # đang khai mm hay m — hiện đơn vị ngay cạnh. Suy từ dim_role, cùng một hàm
+    # với tham số mẫu để hai màn không nói hai đơn vị khác nhau.
+    unit_hint = fields.Char(string="Đơn vị", compute="_compute_unit_hint")
+
+    @api.depends("dim_role")
+    def _compute_unit_hint(self):
+        for rec in self:
+            rec.unit_hint = dim_unit_hint(rec.dim_role)
 
     range_hint = fields.Char(string="Miền hợp lệ", compute="_compute_range_hint")
 

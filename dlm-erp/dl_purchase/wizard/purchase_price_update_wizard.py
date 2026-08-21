@@ -13,6 +13,14 @@ class DlPurchasePriceUpdateWizard(models.TransientModel):
     order_id = fields.Many2one("dl.purchase.order", required=True, readonly=True)
     line_ids = fields.One2many(
         "dl.purchase.price.update.wizard.line", "wizard_id", string="Mặt hàng")
+    # Hai cửa vào, hai lời dẫn: giá của chuyến hàng ĐÃ MUA khác hẳn giá nhà
+    # cung cấp VỪA BÁO cho một báo giá chưa chắc thắng.
+    is_rfq = fields.Boolean(compute="_compute_is_rfq")
+
+    @api.depends("order_id")
+    def _compute_is_rfq(self):
+        for wiz in self:
+            wiz.is_rfq = bool(wiz.order_id.dlm_quotation_id) and                 wiz.order_id.state == "sent"
 
     def action_confirm(self):
         """Ghi giá vào bảng giá nhà cung cấp theo lựa chọn từng dòng.
@@ -31,15 +39,9 @@ class DlPurchasePriceUpdateWizard(models.TransientModel):
         order = self.order_id
         ap_dung, luu_su = Row, Row
         for line in self.line_ids.filtered("selected"):
-            row = Row.sudo().create({
-                "partner_id": order.partner_id.id,
-                "product_tmpl_id": line.product_id.product_tmpl_id.id,
-                "product_id": line.product_id.id,
-                "price": line.new_price,
-                "date_start": fields.Date.context_today(self),
-                "approval_state": "draft",
-                "dlm_source_note": order._dlm_price_source_note(),
-            })
+            # Upsert theo khoá đơn mua × mặt hàng: bấm modal lần hai là SỬA con
+            # số của chính đơn này, không đẻ thêm một dòng bản sao.
+            row = order._dlm_upsert_price_row(line.product_id, line.new_price)
             if line.apply_now:
                 # Đi qua đúng action thật (kiểm quyền, đóng ngày giá cũ), không
                 # ghi thẳng state — luồng duyệt là chỗ dễ vỡ, đi vòng qua nó thì
@@ -53,6 +55,9 @@ class DlPurchasePriceUpdateWizard(models.TransientModel):
         if not (ap_dung or luu_su):
             raise UserError(_("Chưa chọn mặt hàng nào để cập nhật giá."))
         order.message_post(body=self._ghi_chu(ap_dung, luu_su))
+        # Đơn HỎI GIÁ: giá đã vào bảng rồi mới tính lại báo giá nguồn — ngược
+        # thứ tự thì báo giá tính theo giá cũ mà cổng vẫn mở.
+        order._dlm_after_price_recorded()
         return {"type": "ir.actions.act_window_close"}
 
     def _ghi_chu(self, ap_dung, luu_su):

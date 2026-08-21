@@ -198,8 +198,9 @@
                                                     ('product_kind', 'in', ('material', 'trading'))]"/>
                                     <field name="product_uom_qty" widget="dl_qty" string="Dự kiến"/>
                                     <field name="quantity" widget="dl_qty" string="Thực nhận"/>
-                                    <field name="product_uom" string="Đơn vị tính"
-                                           groups="uom.group_uom"/>
+                                    <!-- ĐVT hiện cho MỌI vai trò — KHÔNG gắn groups="uom.group_uom": không
+                                         user nào ở nhóm đó nên cột sẽ tàng hình. -->
+                                    <field name="product_uom" string="Đơn vị tính"/>
                                     <!-- Lô do hệ thống tự sinh lúc xác nhận nên
                                          cột này trống tới khi phiếu xong — đúng
                                          thực tế, đừng bày ô nhập gây hiểu nhầm. -->
@@ -311,14 +312,14 @@
                             groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <button name="action_dlm_pass_all" string="Đạt tất cả"
                             type="object" class="btn-secondary"
-                            invisible="state in ('done', 'cancel')"
+                            invisible="state in ('done', 'cancel') or dlm_wait_receipt"
                             groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <!-- RS-12 (§11.4) — "Đang chờ / Sẵn sàng / Hoàn tất" là
                          ngôn ngữ Odoo. Thủ kho đọc theo việc: chờ kiểm → đang
                          kiểm → đã cất vào kho. -->
                     <field name="state" widget="dl_stepper"
-                           statusbar_visible="confirmed,assigned,done"
-                           options="{'labels': {'confirmed': 'Chờ kiểm', 'assigned': 'Đang kiểm', 'done': 'Đã cất'}}"/>
+                           statusbar_visible="waiting,confirmed,assigned,done"
+                           options="{'labels': {'waiting': 'Chờ hàng về', 'confirmed': 'Chờ kiểm', 'assigned': 'Đang kiểm', 'done': 'Đã cất'}}"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -338,6 +339,7 @@
                     </div>
 
                     <field name="dlm_blocked" invisible="1"/>
+                    <field name="dlm_wait_receipt" invisible="1"/>
                     <!-- company_id: domain của partner_id/picking_type_id trên
                          stock.picking tham chiếu tới nó ⇒ thiếu là view không nạp được. -->
                     <field name="company_id" invisible="1"/>
@@ -400,6 +402,9 @@
                                     <field name="quantity" widget="dl_qty" string="Đạt" sum="Tổng"/>
                                     <field name="dlm_qty_rejected" widget="dl_qty" string="Loại"
                                            sum="Tổng"/>
+                                    <!-- ĐVT hiện cho MỌI vai trò — KHÔNG gắn groups="uom.group_uom": không
+                                         user nào ở nhóm đó nên cột sẽ tàng hình. -->
+                                    <field name="product_uom" string="Đơn vị tính" readonly="1"/>
                                     <!-- QC-03/04 — required ĐỘNG, báo ngay trên
                                          dòng; không @api.constrains bắn modal. -->
                                     <field name="dlm_reject_reason" string="Lý do loại"
@@ -425,8 +430,6 @@
                                             string="Bằng chứng"
                                             title="Chụp / xem ảnh hàng lỗi của dòng này"
                                             invisible="dlm_qty_rejected &lt;= 0"/>
-                                    <field name="product_uom" string="Đơn vị tính"
-                                           groups="uom.group_uom" readonly="1"/>
                                     <field name="dlm_qc_over" column_invisible="1"/>
                                     <field name="picked" column_invisible="1"/>
                                     <!-- company_id: domain của product_id trên
@@ -524,7 +527,12 @@
                 <field name="origin" string="Từ phiếu"/>
 
                 <filter name="pending" string="Chờ kiểm"
-                        domain="[('state', 'not in', ('done', 'cancel'))]"/>
+                        domain="[('state', 'not in', ('done', 'cancel', 'waiting'))]"/>
+                <!-- `waiting` = phiếu nhận gốc chưa xác nhận: hàng chưa về, chưa
+                     đếm được. Vẫn cho nhìn thấy (việc sắp tới), nhưng KHÔNG trộn
+                     vào "Chờ kiểm" — trộn là mời thủ kho kiểm hàng chưa về. -->
+                <filter name="waiting_receipt" string="Chờ hàng về"
+                        domain="[('state', '=', 'waiting')]"/>
                 <filter name="checked" string="Đã kiểm"
                         domain="[('state', '=', 'done')]"/>
                 <separator/>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!-- Readonly: giá (dòng chính) + đơn vị (dòng phụ). Edit: y hệt dl_money
+         (input group hàng nghìn LIVE + ₫), copy từ dl_base.DlMoneyField để giữ
+         list editable="bottom" nhập được trực tiếp. -->
+    <t t-name="dl_product.DlSupplierPriceField">
+        <div t-if="props.readonly" class="dl-price-cell">
+            <span class="dl-price-val"><t t-esc="formattedValue"/> ₫</span>
+            <span t-if="uomLabel" class="dl-price-uom">/ <t t-esc="uomLabel"/></span>
+        </div>
+        <div t-else="" class="text-nowrap d-inline-flex w-100 align-items-baseline">
+            <input
+                t-on-focusin="onFocusIn"
+                t-on-focusout="onFocusOut"
+                t-on-input="onMoneyInput"
+                t-att-id="props.id"
+                t-ref="numpadDecimal"
+                t-att-placeholder="props.placeholder"
+                type="text"
+                inputmode="numeric"
+                class="o_input flex-grow-1 flex-shrink-1"
+                autocomplete="off"/>
+            <span class="ms-1">₫</span>
+        </div>
+    </t>
+
+</templates>

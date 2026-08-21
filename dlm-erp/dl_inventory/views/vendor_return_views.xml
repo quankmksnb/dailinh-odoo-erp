@@ -182,8 +182,9 @@
                                            string="Lô" readonly="1"/>
                                     <field name="product_uom_qty" widget="dl_qty" string="Số lượng trả"
                                            sum="Tổng"/>
-                                    <field name="product_uom" string="Đơn vị tính"
-                                           groups="uom.group_uom" readonly="1"/>
+                                    <!-- ĐVT hiện cho MỌI vai trò — KHÔNG gắn groups="uom.group_uom": không
+                                         user nào ở nhóm đó nên cột sẽ tàng hình. -->
+                                    <field name="product_uom" string="Đơn vị tính" readonly="1"/>
                                     <field name="dlm_reject_reason" string="Lý do"
                                            readonly="1"/>
                                     <field name="dlm_reject_note" string="Ghi chú"

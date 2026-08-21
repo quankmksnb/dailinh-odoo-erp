@@ -15,37 +15,13 @@ const systrayRegistry = registry.category("systray");
 // Server đã lọc cây menu theo groups ⇒ card không tìm thấy menu nào là user
 // không có quyền → ẨN card (RBAC hiển thị đồng nhất với menu, không cần
 // hasGroup phía client).
+//
+// Thứ tự giữ ĐỒNG BỘ với RAIL_ITEMS trong rail.js (việc chờ → luồng nghiệp vụ →
+// tra cứu → cấu hình). Lưới này là fallback khi không khớp LANDING_RULES nào —
+// hiện cả 7 vai trò đều khớp một rule nên gần như không ai thấy nó; vẫn xếp
+// đúng để hai bề mặt không trôi khỏi nhau.
+// ⚠️ Không có card cho Kho / Mua hàng — chưa từng có, và không thêm ở đợt này.
 const MODULE_CARDS = [
-    {
-        key: "customer",
-        name: "Khách hàng",
-        description: "Danh bạ khách hàng & liên hệ",
-        icon: "fa-users",
-        color: "#7c5caf",
-        menuXmlIds: ["dl_partner.menu_dl_sale_customer"],
-    },
-    {
-        key: "supplier",
-        name: "Nhà cung cấp / Thầu phụ",
-        description: "Nhà cung cấp & thầu phụ",
-        icon: "fa-truck",
-        color: "#2a8c82",
-        // Trưởng KD chỉ có bản chỉ-đọc — menu nào thấy được thì mở menu đó.
-        menuXmlIds: [
-            "dl_partner.menu_dl_sale_supplier",
-            "dl_partner.menu_dl_sale_supplier_readonly",
-        ],
-    },
-    {
-        key: "quotation",
-        name: "Báo giá",
-        description: "Yêu cầu báo giá & Báo giá",
-        icon: "fa-file-text-o",
-        color: "#4a90d9",
-        // Trỏ thẳng menu hub Báo giá — trỏ menu cha "CRM & Báo giá" sẽ mở
-        // nhầm menu con đầu tiên (Khách hàng).
-        menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
-    },
     {
         key: "approval",
         name: "Phê duyệt",
@@ -65,12 +41,14 @@ const MODULE_CARDS = [
         },
     },
     {
-        key: "product",
-        name: "Sản phẩm & Vật tư",
-        description: "Quản lý Sản phẩm và Vật tư",
-        icon: "fa-cube",
-        color: "#1a9e6f",
-        menuXmlIds: ["dl_base.menu_dl_product"],
+        key: "quotation",
+        name: "Báo giá",
+        description: "Yêu cầu báo giá & Báo giá",
+        icon: "fa-file-text-o",
+        color: "#4a90d9",
+        // Trỏ thẳng menu hub Báo giá — trỏ menu cha "CRM & Báo giá" sẽ mở
+        // nhầm menu con đầu tiên (Khách hàng).
+        menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
     },
     {
         key: "technical",
@@ -81,12 +59,40 @@ const MODULE_CARDS = [
         menuXmlIds: ["dl_base.menu_dl_technical"],
     },
     {
+        key: "product",
+        name: "Sản phẩm & Vật tư",
+        description: "Quản lý Sản phẩm và Vật tư",
+        icon: "fa-cube",
+        color: "#1a9e6f",
+        menuXmlIds: ["dl_base.menu_dl_product"],
+    },
+    {
         key: "pricing",
         name: "Bảng giá",
         description: "Bảng giá sản phẩm thương mại / Vật tư",
         icon: "fa-money",
         color: "#c49052",
         menuXmlIds: ["dl_product.menu_dl_pricing_root"],
+    },
+    {
+        key: "customer",
+        name: "Khách hàng",
+        description: "Danh bạ khách hàng & liên hệ",
+        icon: "fa-users",
+        color: "#7c5caf",
+        menuXmlIds: ["dl_partner.menu_dl_sale_customer"],
+    },
+    {
+        key: "supplier",
+        name: "Nhà cung cấp / Thầu phụ",
+        description: "Nhà cung cấp & thầu phụ",
+        icon: "fa-truck",
+        color: "#2a8c82",
+        // Trưởng KD chỉ có bản chỉ-đọc — menu nào thấy được thì mở menu đó.
+        menuXmlIds: [
+            "dl_partner.menu_dl_sale_supplier",
+            "dl_partner.menu_dl_sale_supplier_readonly",
+        ],
     },
     {
         key: "config",
@@ -109,12 +115,20 @@ const LANDING_RULES = [
     { group: "dl_base.dl_group_ceo", actionXmlId: "dl_sale.action_dl_quote_approval", railKey: "approval" },
     { group: "dl_base.dl_group_sales_manager", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation", railChildKey: "quotation_list" },
     { group: "dl_base.dl_group_ba", actionXmlId: "dl_sale.action_dl_quotation", railKey: "quotation", railChildKey: "quotation_list" },
-    // Thủ kho land thẳng vào "Nhận hàng" — cùng mục với vệt sáng rail, hết lệch.
-    // (Land vào Hàng đợi phiếu gây khó chịu: màn "Hàng đợi" nhưng rail tô "Nhận
-    // hàng", vì hàng đợi cố ý không lên rail nên chỉ tô được mục con gần nhất.)
-    { group: "dl_base.dl_group_warehouse", actionXmlId: "dl_inventory.action_dl_picking_receipt", railKey: "inventory", railChildKey: "receipt" },
-    // Mua hàng sở hữu giá NCC → land thẳng Bảng giá Vật tư (bản có quyền sửa).
-    { group: "dl_base.dl_group_purchasing", actionXmlId: "dl_product.action_dl_supplierinfo_material_full", railKey: "pricing", railChildKey: "material_price" },
+    // Thủ kho land vào "Hàng đợi" — con số họ nhìn đầu tiên mỗi sáng.
+    // Lý do cũ của rule này ("hàng đợi cố ý không lên rail nên chỉ tô được mục
+    // con gần nhất là Nhận hàng") ĐÃ HẾT ĐÚNG từ RS-10: `picking_todo` nay là
+    // mục con #1 của nhóm Kho và có badge riêng. Land vào Nhận hàng nữa thì
+    // badge to nhất trên rail lại trỏ vào màn không ai mở.
+    { group: "dl_base.dl_group_warehouse", actionXmlId: "dl_inventory.action_dl_picking_todo", railKey: "inventory", railChildKey: "picking_todo" },
+    // Mua hàng land vào Đơn mua hàng — việc chính của họ. Rule này cũ hơn module
+    // `dl_purchase` (2026-08-14) nên từng trỏ Bảng giá Vật tư: hồi đó Mua hàng
+    // chưa có màn nào của riêng mình. Action đã sẵn `search_default_dang_chay`
+    // ⇒ mở ra là danh sách đơn đang chạy, kể cả đơn nháp điều phối kho đẩy sang.
+    // Cố ý KHÔNG land vào "Hỏi giá chờ trả lời" dù đó là mục con #1: hàng đợi
+    // đó rỗng phần lớn thời gian, land vào màn trống là đón người dùng bằng ngõ
+    // cụt. Vệt sáng vẫn đúng vì cả hai đều là mục con thấy được của nhóm.
+    { group: "dl_base.dl_group_purchasing", actionXmlId: "dl_purchase.action_dl_purchase_order", railKey: "purchase", railChildKey: "purchase_order" },
     { group: "dl_base.dl_group_tech", actionXmlId: "dl_technical.action_dl_quotation_request_my", railKey: "technical", railChildKey: "rfq" },
     { group: "dl_base.dl_group_admin", actionXmlId: "dl_config.action_dl_user_admin", railKey: "config", railChildKey: "user" },
 ];

@@ -193,35 +193,62 @@
                                  no_create: nhóm mới phải tạo ở màn Nhóm sản phẩm
                                  (có chọn nhóm cha) để không sinh nhóm ngoài nhánh. -->
                             <field name="dl_categ_branch" invisible="1" />
+                            <!-- `parent_id != False` = LOẠI hai gốc "Thành phẩm"
+                                 và "Vật tư" khỏi dropdown: chúng là KHUNG CÂY, không
+                                 phải một lựa chọn. Gán sản phẩm thẳng vào gốc là bỏ
+                                 lỡ việc chia nhóm mịn, mà tên gốc lại trùng tên
+                                 nhánh nên nhìn không ra là đã chọn hụt.
+                                 Cố ý KHÔNG hardcode 2 xmlid: nhóm cấp 3 sau này
+                                 (Vật tư/Thép hộp/Mạ kẽm) tự lọt, không phải sửa lại.
+                                 🔴 Dropdown "Nhóm cha" ở form Nhóm sản phẩm thì
+                                 NGƯỢC LẠI — phải giữ 2 gốc, không thì không tạo
+                                 được nhóm con nào. -->
                             <field
                                 name="categ_id"
                                 string="Nhóm sản phẩm"
                                 options="{'no_open': True, 'no_create': True}"
-                                domain="[('dl_branch', '=', dl_categ_branch)]"
+                                domain="[('dl_branch', '=', dl_categ_branch),
+                                         ('parent_id', '!=', False)]"
+                                placeholder="Chọn nhóm chi tiết..."
                             />
                         </group>
+                        <!-- Khối lượng nằm NGAY DƯỚI Đơn vị tính vì nó trả lời
+                             "một đơn vị đó nặng bao nhiêu" — tách ra khối riêng
+                             thì mất mạch, mà lại tốn một tiêu đề mục cho đúng
+                             một ô số. -->
                         <group string="Đơn vị tính">
+                            <field name="dlm_uom_group" invisible="1" />
                             <field name="uom_id" />
-                            <!-- Q1 — MỘT quy tắc đơn vị duy nhất: ô này vừa là
-                                 đơn vị NCC bán, vừa là đơn vị định mức quy về.
-                                 Nói rõ tại chỗ để không ai đi tìm "đơn vị mua"
-                                 thứ hai ở đâu đó. -->
-                            <div
-                                class="text-muted"
-                                colspan="2"
-                                invisible="product_kind not in ('material', 'material_processed')"
-                            >
-                                Đơn vị nhà cung cấp <b>bán</b> vật tư này (Cây ·
-                                Tấm · Cuộn · Túi · kg · Lít). Giá nhà cung cấp là đồng trên
-                                <b>chính đơn vị này</b>, và định mức cũng quy về nó
-                                — không có đơn vị trung gian.
-                            </div>
                             <field name="uom_po_id" groups="uom.group_uom" />
                             <div class="text-muted" colspan="2" groups="uom.group_uom">
                                 Phải giữ <b>trùng</b> với Đơn vị tính. Để lệch thì
                                 engine báo giá chặn cứng (QTE-007) vì giá nhà cung
                                 cấp không còn cùng đơn vị với định mức.
                             </div>
+                            <field
+                                name="dlm_mass_per_unit"
+                                invisible="product_kind not in ('material', 'material_processed') or dlm_uom_group == 'weight'"
+                            />
+                        </group>
+
+                        <!-- 🔴 K16 (2026-08-13) — hai ô "Có thu hồi phế liệu" và
+                             "Tỷ lệ thu hồi (%)" ĐÃ GỠ khỏi màn: người dùng chốt bỏ
+                             cách tính % thu hồi, nên để chúng lại là hiện một con
+                             số không còn ảnh hưởng tới đồng nào — kiểu sai khó
+                             phát hiện nhất. Cột dữ liệu vẫn còn (xem
+                             dl_bom_line_mixin._dlm_recovery_kg).
+                             `dlm_scrap_product_id` thì Ở LẠI và nay LUÔN hiện: nó
+                             trả lời "vật tư này thải ra loại phế liệu nào" — câu
+                             hỏi vẫn sống, vì phiếu Nhập kho từ xưởng bắt khai đúng
+                             mặt hàng phế cân được. -->
+                        <group
+                            name="group_waste_info"
+                            string="Hao hụt &amp; phế liệu"
+                            invisible="product_kind not in ('material', 'material_processed')"
+                        >
+                            <field name="dlm_waste_rate" />
+                            <field name="dlm_scrap_product_id"
+                                options="{'no_create': True}" />
                         </group>
                     </group>
 
@@ -264,178 +291,25 @@
                         </div>
                     </group>
 
-                    <!-- Nhắc MỀM: vật tư khai thiếu thì dòng định mức không tự
-                         tính được, im lặng ra 0. Cổng CỨNG nằm ở lúc Xác nhận
-                         định mức — đây chỉ là lời nhắc sớm ngay nơi sửa được. -->
-                    <div
-                        class="alert alert-warning mb-3"
-                        role="status"
-                        invisible="product_kind not in ('material', 'material_processed') or not dlm_calc_missing_hint"
-                    >
-                        <i class="fa fa-exclamation-triangle me-1" title="Thiếu" />
-                        <b>Chưa dùng được trong định mức</b> — còn thiếu: <field
-                            name="dlm_calc_missing_hint"
-                            readonly="1"
-                            nolabel="1"
-                            class="oe_inline"
-                        />.
-                    </div>
+                    <!-- 🔴 GỠ 2026-08-21 — dải nhắc "chưa dùng được trong định mức"
+                         đi cùng bộ tự tính: không còn mẫu số nào là bắt buộc, nên
+                         không còn gì để nhắc. Cổng cứng lúc Xác nhận định mức cũng
+                         đã gỡ (dl_technical/models/dl_bom.py). -->
 
-                    <!-- Quy cách nằm ở ĐÂY, không gõ lại mỗi dòng BOM: một vật
-                         tư = một quy cách + một đơn vị mua. Kiểu tính quyết định
-                         dòng BOM hỏi gì và định mức quy ra đơn vị nào.
+                    <!-- 🔴 GỠ 2026-08-21 — khối "Cách tính định mức" + các mẫu số
+                         quy đổi (Kiểu tính, Chiều dài cây, Khổ tấm, kg/m, kg/m²) đã rời
+                         khỏi màn cùng bộ tự tính định mức: dòng BOM nay khai thẳng số
+                         lượng theo đơn vị mua của vật tư.
 
-                         KHÔNG đặt string cho group NGOÀI: tiêu đề group ngoài
-                         chiếm trọn một dòng, làm tiêu đề cột phải tụt xuống thấp
-                         hơn ô đầu tiên của cột trái (separator mang mt-4). Đặt
-                         tiêu đề cho CẢ HAI group trong thì hai đầu cột canh
-                         thẳng nhau — đúng khuôn "Phân loại / Đơn vị tính" ở trên. -->
-                    <group
-                        name="group_physical_info"
-                        invisible="product_kind not in ('material', 'material_processed')"
-                    >
-                        <field name="dlm_uom_group" invisible="1" />
-                        <group string="Cách tính định mức">
-                            <field name="dlm_calc_kind" />
-                            <!-- Giải thích ngay tại chỗ chọn: mỗi kiểu tính đổi
-                                 hẳn việc dòng định mức hỏi gì. Nói bằng đúng câu
-                                 người dùng sẽ thấy ở màn Định mức. -->
-                            <div class="text-muted" colspan="2"
-                                invisible="dlm_calc_kind != 'cut_length'">
-                                Dòng định mức sẽ hỏi <b>Chiều dài đoạn</b> ×
-                                <b>Số đoạn</b> (theo <b>mm</b> trên bản vẽ), rồi
-                                chia cho chiều dài cây → ra <b>số cây</b>.
-                                <br />Thanh · ống · hộp · thép cây.
-                            </div>
-                            <div class="text-muted" colspan="2"
-                                invisible="dlm_calc_kind != 'sheet'">
-                                Dòng định mức sẽ hỏi <b>Dài × Rộng</b> và
-                                <b>Số tấm</b> (theo <b>mm</b> trên bản vẽ), rồi
-                                chia cho khổ tấm → ra <b>số tấm</b>.
-                                <br />Tôn · lưới · alu · tấm nhựa.
-                            </div>
-                            <div class="text-muted" colspan="2"
-                                invisible="dlm_calc_kind != 'count'">
-                                Dòng định mức <b>chỉ hỏi Số lượng</b> — không có
-                                kích thước nào để suy ra. <br />Ốc · vít · bản lề ·
-                                tay nắm · đá cắt.
-                            </div>
-                            <div class="text-muted" colspan="2"
-                                invisible="dlm_calc_kind != 'bulk'">
-                                Dòng định mức <b>chỉ hỏi Số lượng</b> theo kg/lít,
-                                kỹ thuật tự ước lượng. <br />Sơn · que hàn · hoá chất.
-                            </div>
+                         Field và dữ liệu GIỮ NGUYÊN trong DB (tiền lệ K16 với
+                         `dlm_recovery_rate`) — xoá cột là mất quy cách đã khai của hơn
+                         20 vật tư, mà quyết định này có thể đảo.
 
-                            <!-- Quy cách hình học (mặt cắt · cạnh · độ dày · khối
-                                 lượng riêng) đã GỠ 2026-08-09: nó chỉ suy ra số
-                                 barem cao hơn thép thật 12-31%, trong khi số cân
-                                 thật đã được khai thẳng ở cột bên. Quy cách vẫn
-                                 đọc được — nó nằm trong TÊN vật tư. -->
-                        </group>
-                        <!-- Vật tư mua theo đơn vị RỜI (cây · tấm · cuộn): khai
-                             xem MỘT đơn vị đó to bằng nào và nặng bao nhiêu. Đây
-                             là mẫu số biến kích thước cắt thành số cây/số tấm. -->
-                        <group
-                            string="Một đơn vị mua lớn cỡ nào"
-                            invisible="dlm_uom_group != 'unit' or dlm_calc_kind not in ('cut_length', 'sheet')"
-                        >
-                            <div class="text-muted" colspan="2"
-                                invisible="dlm_uom_group != 'unit' or dlm_calc_kind not in ('cut_length', 'sheet')">
-                                Một <b>cây</b> dài bao nhiêu, một <b>tấm</b> khổ bao
-                                nhiêu, nặng bao nhiêu — hệ thống lấy đây làm mẫu số
-                                để biến kích thước cắt thành số cây / số tấm.
-                                <br />Khai theo <b>mét</b> (cây 6 m, tôn khổ
-                                1,25 × 2,5 m); kích thước cắt vẫn nhập <b>mm</b>.
-                            </div>
-                            <field
-                                name="dlm_stock_length"
-                                invisible="dlm_calc_kind != 'cut_length' or dlm_uom_group != 'unit'"
-                            />
-                            <field
-                                name="dlm_sheet_w"
-                                invisible="dlm_calc_kind != 'sheet' or dlm_uom_group != 'unit'"
-                            />
-                            <field
-                                name="dlm_sheet_h"
-                                invisible="dlm_calc_kind != 'sheet' or dlm_uom_group != 'unit'"
-                            />
-                            <!-- Hỏi NGAY khi khai vật tư cắt đoạn/tấm, KHÔNG chờ
-                                 tick "Có thu hồi phế liệu": lúc cầm chứng từ NCC
-                                 mới biết số cân thật, tick thu hồi có thể mãi sau
-                                 mới bật. Mua theo kg thì bỏ qua — hao hụt đã là kg,
-                                 hệ số quy đổi là 1. -->
-                            <field
-                                name="dlm_mass_per_unit"
-                                invisible="dlm_uom_group == 'weight' or dlm_calc_kind not in ('cut_length', 'sheet')"
-                            />
-                            <div
-                                class="text-muted"
-                                colspan="2"
-                                invisible="dlm_uom_group == 'weight' or dlm_calc_kind not in ('cut_length', 'sheet')"
-                            >
-                                Số cân thật trên chứng từ nhà cung cấp. Dùng để
-                                đối chiếu khi có nhà cung cấp báo giá theo kg.
-                                <b>Không vào giá vốn.</b>
-                            </div>
-                            <!-- 🔴 K16 — dải "đã bật thu hồi mà chưa khai kg" đã
-                                 gỡ cùng cách tính % thu hồi: không còn tiền phế
-                                 liệu nào để ra 0. -->
-
-                        </group>
-
-                        <!-- Vật tư mua theo KG: không có "một đơn vị" nào để mô tả
-                             (1 kg là 1 kg). Thứ cần khai là TỶ LỆ quy kích thước
-                             ra kg — và ô này vào THẲNG định mức. -->
-                        <group
-                            string="Quy kích thước sang kg"
-                            invisible="dlm_calc_kind not in ('cut_length', 'sheet') or dlm_uom_group != 'weight'"
-                        >
-                            <div class="text-muted" colspan="2"
-                                invisible="dlm_calc_kind != 'cut_length'">
-                                Vật tư này bán theo <b>kg</b> ⇒ định mức = tổng số
-                                <b>mét</b> cắt × kg mỗi mét.
-                            </div>
-                            <div class="text-muted" colspan="2"
-                                invisible="dlm_calc_kind != 'sheet'">
-                                Vật tư này bán theo <b>kg</b> ⇒ định mức = tổng
-                                <b>m²</b> cắt × kg mỗi m².
-                            </div>
-                            <field
-                                name="dlm_mass_per_meter"
-                                invisible="dlm_calc_kind != 'cut_length'"
-                            />
-                            <field
-                                name="dlm_mass_per_sqm"
-                                invisible="dlm_calc_kind != 'sheet'"
-                            />
-                            <div class="text-muted" colspan="2">
-                                <i class="fa fa-exclamation-triangle me-1" title="Lưu ý" />
-                                Ô này <b>vào thẳng tiền</b>. Lấy số <b>cân thật</b>
-                                trên chứng từ, đừng tính từ kích thước danh nghĩa —
-                                cách đó ra số barem, cao hơn thép thật 10–30%.
-                            </div>
-                        </group>
-                    </group>
-
-                    <!-- 🔴 K16 (2026-08-13) — hai ô "Có thu hồi phế liệu" và "Tỷ
-                         lệ thu hồi (%)" ĐÃ GỠ khỏi màn: người dùng chốt bỏ cách
-                         tính % thu hồi, nên để chúng lại là hiện một con số
-                         không còn ảnh hưởng tới đồng nào — kiểu sai khó phát
-                         hiện nhất. Cột dữ liệu vẫn còn (xem
-                         dl_bom_line_mixin._dlm_recovery_kg).
-                         `dlm_scrap_product_id` thì Ở LẠI và nay LUÔN hiện: nó
-                         trả lời "vật tư này thải ra loại phế liệu nào" — câu
-                         hỏi vẫn sống, vì phiếu Nhập kho từ xưởng bắt khai đúng
-                         mặt hàng phế cân được. -->
-                    <group
-                        name="group_waste_info"
-                        string="Hao hụt &amp; phế liệu"
-                        invisible="product_kind not in ('material', 'material_processed')"
-                    >
-                        <field name="dlm_waste_rate" />
-                        <field name="dlm_scrap_product_id"
-                            options="{'no_create': True}" />
-                    </group>
+                         `dlm_mass_per_unit` KHÔNG bị gỡ, chỉ DỜI lên dưới Đơn vị tính:
+                         nó phục vụ Mua hàng đối chiếu giá kg vs cây, không phục vụ tự
+                         tính. `dlm_waste_rate` + `dlm_scrap_product_id` cũng dời vào
+                         cùng lưới trên — trước đây mỗi khối chiếm trọn một hàng nên
+                         nửa phải của form bỏ trống. -->
 
                     <notebook>
                         <page
@@ -611,10 +485,20 @@
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
         <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
-        <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
-            'manufactured', 'default_dlm_lifecycle_state': 'draft',
+        <!-- 🔴 `default_categ_id: False` PHẢI khai tường minh, đừng "dọn" cho gọn.
+             `default_get` kiểm `'default_categ_id' in context` — CÓ MẶT, không phải
+             giá trị (odoo/models.py:1495). Bỏ dòng này đi là rơi về default của
+             Odoo lõi = nhóm "All", tức ô Nhóm lại hiện một giá trị nằm ngoài domain
+             của chính nó. Để trống là cố ý: buộc chọn nhóm chi tiết, vì 2 gốc
+             "Thành phẩm"/"Vật tư" nay không còn trong dropdown. -->
+        <field name="context" eval="{
+            'default_detailed_type': 'product',
+            'default_product_kind': 'manufactured',
+            'default_dlm_lifecycle_state': 'draft',
+            'default_categ_id': False,
             'dl_kind_scope': ['manufactured', 'trading'],
-            'search_default_group_kind': 1}</field>
+            'search_default_group_kind': 1,
+        }"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm sản phẩm đầu tiên!</p>
         </field>
@@ -636,10 +520,15 @@
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
         <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
-        <field name="context">{'default_detailed_type': 'product', 'default_product_kind':
-            'manufactured', 'default_dlm_lifecycle_state': 'draft',
+        <field name="context" eval="{
+            'default_detailed_type': 'product',
+            'default_product_kind': 'manufactured',
+            'default_dlm_lifecycle_state': 'draft',
+            'default_categ_id': False,
             'dl_kind_scope': ['manufactured', 'trading'],
-            'delete': False, 'search_default_group_kind': 1}</field>
+            'delete': False,
+            'search_default_group_kind': 1,
+        }"/>
         <field name="groups_id"
             eval="[(6, 0, [ref('dl_base.dl_group_admin'), ref('dl_base.dl_group_tech')])]" />
     </record>
@@ -690,12 +579,16 @@
         ]" />
         <field name="search_view_id" ref="view_dl_product_search" />
         <field name="domain">[('product_kind', 'in', ['manufactured', 'trading'])]</field>
-        <field name="context">{'default_detailed_type': 'product',
+        <field name="context" eval="{
+            'default_detailed_type': 'product',
             'default_product_kind': 'trading',
             'default_dlm_lifecycle_state': 'draft',
             'default_list_price': 0.0,
+            'default_categ_id': False,
             'dl_kind_scope': ['manufactured', 'trading'],
-            'delete': False, 'search_default_group_kind': 1}</field>
+            'delete': False,
+            'search_default_group_kind': 1,
+        }"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Thêm sản phẩm thương mại đầu tiên!</p>
             <p>Bấm <b>Tạo</b> để thêm sản phẩm thương mại (mua về bán). Hệ thống sẽ

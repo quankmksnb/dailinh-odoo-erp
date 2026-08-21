@@ -10,8 +10,20 @@ import { wireRailChildren } from "@dl_base/js/rail_children";
 
 const PURCHASE_CHILDREN = [
   {
-    // Việc chính của Mua hàng, đứng đầu. Badge đếm đơn NHÁP + CHỜ BÁO GIÁ —
-    // đơn nháp do điều phối kho sinh ra sẽ nằm im nếu không có gì đếm nó.
+    // 🔴 THIẾU TỪ K22 tới 2026-08-21: menu + action đã có từ đầu nhưng không ai
+    // khai vào mảng này ⇒ hàng đợi riêng của Mua hàng KHÔNG hề xuất hiện trên
+    // rail, chỉ vào được bằng URL. Đúng cái bẫy mà comment đầu file nav_patch
+    // của dl_inventory đã cảnh báo (vấp lần đầu với "Điều phối đơn hàng").
+    //
+    // Đứng đầu nhóm vì đây là việc CHẶN NGƯỜI KHÁC: báo giá của Sales không gửi
+    // được cho khách chừng nào Mua hàng chưa ghi nhận giá NCC báo về.
+    key: "purchase_rfq_queue",
+    name: "Hỏi giá chờ trả lời",
+    icon: "fa-hourglass-half",
+    preferMenu: true,
+    menuXmlIds: ["dl_purchase.menu_dl_purchase_rfq_queue"],
+  },
+  {
     key: "purchase_order",
     name: "Đơn mua hàng",
     icon: "fa-shopping-cart",
@@ -33,12 +45,31 @@ patch(DlmRail.prototype, {
     wireRailChildren(this.railItems, "purchase", PURCHASE_CHILDREN);
 
     const orm = useService("orm");
+
+    // Badge hỏi giá — khớp ĐÚNG domain của action_dl_purchase_rfq_queue, để số
+    // trên rail bằng số dòng khi mở màn.
+    this.registerBadge("purchase_rfq_queue", () =>
+      orm.searchCount("dl.purchase.order", [
+        ["state", "=", "sent"],
+        ["dlm_quotation_id", "!=", false],
+      ]),
+    );
+
     // Badge = việc CHƯA XONG của Mua hàng: đơn nháp (điều phối vừa đẩy sang)
     // và đơn đã gửi hỏi giá chưa có hồi âm. Đơn đã chốt không đếm — nó đang
     // nằm ở kho chờ hàng về, không phải việc của Mua hàng nữa.
+    //
+    // 🔴 CỐ Ý TRỪ phần đã tính ở badge hỏi giá. `groupBadgeCount` CỘNG DỒN badge
+    // các mục con lên đầu nhóm khi submenu thu gọn — để nguyên `["draft","sent"]`
+    // thì đơn hỏi giá bị đếm HAI LẦN trên nhãn "Mua hàng". Tổng của hai badge
+    // vẫn đúng bằng draft+sent như trước, chỉ chia lại cho khỏi chồng.
     this.registerBadge("purchase_order", () =>
       orm.searchCount("dl.purchase.order", [
-        ["state", "in", ["draft", "sent"]],
+        "|",
+        ["state", "=", "draft"],
+        "&",
+        ["state", "=", "sent"],
+        ["dlm_quotation_id", "=", false],
       ]),
     );
 
