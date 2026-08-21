@@ -84,9 +84,9 @@
 
     <!-- Ẩn 3 nhóm gốc mặc định của module product lõi (All/Saleable/Expenses) -->
     <!-- khỏi màn hình quản lý Nhóm sản phẩm của dự án (không xóa record, tránh vỡ liên kết ngầm core). -->
-    <!-- Full: Admin, Trưởng KD -->
+    <!-- Sửa được: Admin, Trưởng KD (nhánh Thành phẩm), Kỹ thuật (nhánh Vật tư) -->
     <record id="action_dl_category_full" model="ir.actions.act_window">
-        <field name="name">Danh mục</field>
+        <field name="name">Nhóm sản phẩm</field>
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
@@ -105,7 +105,7 @@
 
     <!-- View-only: others -->
     <record id="action_dl_category_view" model="ir.actions.act_window">
-        <field name="name">Danh mục</field>
+        <field name="name">Nhóm sản phẩm</field>
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
@@ -117,29 +117,6 @@
         ]" />
         <field name="search_view_id" ref="view_product_category_search" />
         <field name="context">{'create': False, 'edit': False, 'delete': False, 'search_default_group_branch': 1}</field>
-    </record>
-
-    <!-- LK-12 (§5.1/§12.5) — Kỹ thuật tự quản NHÓM nhánh Vật tư (nhóm vật tư/BTP
-         + tách nhóm theo kết cấu để làm họ tham số). Chỉ hiện nhánh Vật tư, cho
-         tạo/sửa; record rule rule_category_tech_material siết ghi theo dl_branch. -->
-    <record id="action_dl_category_material" model="ir.actions.act_window">
-        <field name="name">Nhóm vật tư</field>
-        <field name="res_model">product.category</field>
-        <field name="view_mode">tree,form</field>
-        <field name="limit" eval="15"/>
-        <field name="domain">[('dl_branch', '=', 'material')]</field>
-        <field name="context">{'default_dl_branch': 'material'}</field>
-        <field name="view_ids" eval="[
-            (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_product_category_tree')}),
-            (0, 0, {'view_mode': 'form', 'view_id': ref('view_product_category_form')}),
-        ]" />
-        <field name="search_view_id" ref="view_product_category_search" />
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">Tạo nhóm vật tư / bán thành phẩm</p>
-            <p>Nhóm cho vật tư thô và bán thành phẩm. Đặt nhóm con "Họ kết cấu" để
-               gắn BOM mẫu tham số (§18.2). Nhánh Thành phẩm do Trưởng phòng KD quản.</p>
-        </field>
     </record>
 
 </odoo>

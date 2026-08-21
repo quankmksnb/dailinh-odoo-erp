@@ -35,9 +35,9 @@ const PRODUCT_CHILDREN = [
     ],
   },
   {
-    // Đổi tên từ "Danh mục" → "Nhóm sản phẩm": trùng tên menu đích, và để đối
-    // xứng với "Nhóm vật tư" ngay dưới. Một mục tên "Danh mục" đứng cạnh một
-    // mục tên "Nhóm vật tư" thì không đoán được cái nào chứa cái nào.
+    // 1 mục duy nhất cho cả cây nhóm. Mục "Nhóm vật tư" riêng đã gỡ: nó chỉ là
+    // cùng màn này lọc sẵn nhánh Vật tư, còn quyền ghi theo nhánh do record
+    // rule quyết định chứ không do menu.
     key: "categories",
     name: "Nhóm sản phẩm",
     icon: "fa-cubes",
@@ -46,18 +46,6 @@ const PRODUCT_CHILDREN = [
       "dl_product.menu_dl_category_full",
       "dl_product.menu_dl_category_view",
     ],
-  },
-  {
-    // 🟠 THIẾU cho tới 2026-08-21: menu có thật (Kỹ thuật + Admin) nhưng không
-    // khai ở đây ⇒ KTV chỉ tới được "Nhóm sản phẩm" bản CHỈ-XEM, còn nhánh
-    // `material` mà họ ĐƯỢC QUYỀN SỬA thì không có đường vào từ rail.
-    // Mục riêng chứ không gộp vào menuXmlIds của "Nhóm sản phẩm": preferMenu
-    // chỉ lấy menu ĐẦU TIÊN thấy được, gộp vào là giấu mất một trong hai.
-    key: "categories_material",
-    name: "Nhóm vật tư",
-    icon: "fa-industry",
-    preferMenu: true,
-    menuXmlIds: ["dl_product.menu_dl_category_material"],
   },
 ];
 
