@@ -127,6 +127,7 @@
                                           string="Thông số Sales nhập">
                                         <field name="name" string="Thông số"/>
                                         <field name="value" string="Giá trị" widget="dl_qty"/>
+                                        <field name="unit_hint" string="Đơn vị"/>
                                     </tree>
                                 </field>
                                 <div class="alert alert-warning mt-1 mb-0 py-1 px-2 small"

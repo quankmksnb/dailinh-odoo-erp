@@ -253,6 +253,7 @@
                                     <field name="default_value"/>
                                     <field name="value_min"/>
                                     <field name="value_max"/>
+                                    <field name="unit_hint" string="Đơn vị"/>
                                     <field name="required"/>
                                 </tree>
                             </field>

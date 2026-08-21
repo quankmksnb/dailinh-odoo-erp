@@ -74,7 +74,9 @@
 // khiến ô nhập trôi xa nhãn — kẹp lại theo bề rộng đọc được.
 // Selector trực tiếp: form dòng mở trong dialog, nằm ngoài .dl-rfq-form.
 .dl-rfq-params {
-    max-width: 520px;
+    // 620px chứ không 520: bảng có 4 cột từ khi thêm "Đơn vị" (mm) — hẹp hơn
+    // thì cột "Miền hợp lệ" bị bóp mất chữ.
+    max-width: 620px;
 
     .o_list_table {
         margin-bottom: 0;

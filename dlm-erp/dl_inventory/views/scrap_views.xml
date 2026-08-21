@@ -205,8 +205,9 @@
                                     <field name="product_uom_qty" widget="dl_qty" string="Số lượng"
                                            sum="Tổng"/>
                                     <field name="quantity" widget="dl_qty" string="Thực giao"/>
-                                    <field name="product_uom" string="Đơn vị tính"
-                                           groups="uom.group_uom"/>
+                                    <!-- ĐVT hiện cho MỌI vai trò — KHÔNG gắn groups="uom.group_uom": không
+                                         user nào ở nhóm đó nên cột sẽ tàng hình. -->
+                                    <field name="product_uom" string="Đơn vị tính"/>
                                     <field name="picked" column_invisible="1"/>
                                     <!-- name/location_id/dest: trường bắt buộc của
                                          stock.move điền gián tiếp (onchange product_id /

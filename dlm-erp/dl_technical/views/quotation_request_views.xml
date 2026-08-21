@@ -859,6 +859,7 @@
                                                   decoration-warning="out_of_range">
                                                 <field name="name" string="Thông số" readonly="1"/>
                                                 <field name="value" string="Giá trị" widget="dl_qty"/>
+                                                <field name="unit_hint" string="Đơn vị" readonly="1"/>
                                                 <field name="range_hint" string="Miền hợp lệ" readonly="1"/>
                                                 <field name="out_of_range" column_invisible="1"/>
                                             </tree>
