@@ -35,14 +35,29 @@ const PRODUCT_CHILDREN = [
     ],
   },
   {
+    // Đổi tên từ "Danh mục" → "Nhóm sản phẩm": trùng tên menu đích, và để đối
+    // xứng với "Nhóm vật tư" ngay dưới. Một mục tên "Danh mục" đứng cạnh một
+    // mục tên "Nhóm vật tư" thì không đoán được cái nào chứa cái nào.
     key: "categories",
-    name: "Danh mục",
+    name: "Nhóm sản phẩm",
     icon: "fa-cubes",
     preferMenu: true,
     menuXmlIds: [
       "dl_product.menu_dl_category_full",
       "dl_product.menu_dl_category_view",
     ],
+  },
+  {
+    // 🟠 THIẾU cho tới 2026-08-21: menu có thật (Kỹ thuật + Admin) nhưng không
+    // khai ở đây ⇒ KTV chỉ tới được "Nhóm sản phẩm" bản CHỈ-XEM, còn nhánh
+    // `material` mà họ ĐƯỢC QUYỀN SỬA thì không có đường vào từ rail.
+    // Mục riêng chứ không gộp vào menuXmlIds của "Nhóm sản phẩm": preferMenu
+    // chỉ lấy menu ĐẦU TIÊN thấy được, gộp vào là giấu mất một trong hai.
+    key: "categories_material",
+    name: "Nhóm vật tư",
+    icon: "fa-industry",
+    preferMenu: true,
+    menuXmlIds: ["dl_product.menu_dl_category_material"],
   },
 ];
 
@@ -58,15 +73,10 @@ const PRICING_CHILDREN = [
     menuXmlIds: ["dl_product.menu_dl_material_needs_price"],
   },
   {
-    key: "trading_price",
-    name: "Bảng giá sản phẩm thương mại",
-    icon: "fa-tags",
-    preferMenu: true,
-    // 1 màn product-centric duy nhất; action tự lọc quyền theo vai trò
-    // (Mua hàng/Admin sửa, quản lý chỉ xem).
-    menuXmlIds: ["dl_product.menu_dl_pricing_trading"],
-  },
-  {
+    // Ngay sau hòm việc: mạch của Mua hàng là "vật tư nào chưa có giá" → "vào
+    // nhập giá NCC cho nó". Bản trước chen Bảng giá SP thương mại vào giữa hai
+    // bước đó. Đánh đổi: CEO/Trưởng KD chỉ thấy 2 mục ở nhóm này và bảng giá
+    // SP thương mại (giá BÁN — thứ họ chốt) nay là mục thứ 2.
     key: "material_price",
     name: "Bảng giá Vật tư",
     icon: "fa-list-alt",
@@ -75,6 +85,15 @@ const PRICING_CHILDREN = [
       "dl_product.menu_dl_pricing_material",
       "dl_product.menu_dl_pricing_material_view",
     ],
+  },
+  {
+    key: "trading_price",
+    name: "Bảng giá sản phẩm thương mại",
+    icon: "fa-tags",
+    preferMenu: true,
+    // 1 màn product-centric duy nhất; action tự lọc quyền theo vai trò
+    // (Mua hàng/Admin sửa, quản lý chỉ xem).
+    menuXmlIds: ["dl_product.menu_dl_pricing_trading"],
   },
 ];
 

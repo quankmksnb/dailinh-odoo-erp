@@ -16,12 +16,18 @@
          "khi B3 có rail riêng thì chuyển mục này sang đó".
     ============================================================ -->
 
+    <!-- Khai groups TƯỜNG MINH đúng bằng mục anh em bên dưới. Trước 2026-08-21
+         menu này bỏ trống groups và sống nhờ mỗi RBAC của menu cha — chấp nhận
+         được khi nó chưa lên rail, nhưng nay nó là mục con #1 của nhóm Mua hàng
+         nên quyền phải đọc được ngay tại chỗ, không phải suy từ cha. -->
     <menuitem
         id="menu_dl_purchase_rfq_queue"
         name="Hỏi giá chờ trả lời"
         parent="dl_base.menu_dl_purchase"
         action="action_dl_purchase_rfq_queue"
-        sequence="5"/>
+        sequence="5"
+        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"
+    />
 
     <menuitem
         id="menu_dl_purchase_order"
