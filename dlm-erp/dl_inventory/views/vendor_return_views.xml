@@ -64,7 +64,7 @@
         <field name="name">dl.stock.picking.vendor.return.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Trả hàng nhà cung cấp" class="dl-vendor-return-form" create="0">
+            <form string="Trả hàng nhà cung cấp" class="dl-vendor-return-form" create="0" js_class="dl_form">
                 <header>
                     <!-- RS-03 — "Chốt trả hàng" và "Không trả nữa" là QUYẾT ĐỊNH
                          ĐỐI NGOẠI (đổi hàng / giảm công nợ / NCC tự lấy) ⇒ của

@@ -43,7 +43,7 @@
         <field name="name">dl.stock.picking.transfer.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Chuyển kho nội bộ" class="dl-transfer-form">
+            <form string="Chuyển kho nội bộ" class="dl-transfer-form" js_class="dl_form">
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"

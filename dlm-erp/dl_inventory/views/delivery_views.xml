@@ -33,7 +33,7 @@
         <field name="name">dl.stock.picking.delivery.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Giao hàng khách" class="dl-delivery-form">
+            <form string="Giao hàng khách" class="dl-delivery-form" js_class="dl_form">
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"

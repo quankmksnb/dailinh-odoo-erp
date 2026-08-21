@@ -49,7 +49,7 @@
         <field name="name">dl.sale.order.dispatch.form</field>
         <field name="model">dl.sale.order</field>
         <field name="arch" type="xml">
-            <form string="Điều phối đơn hàng" class="dl-dispatch-form"
+            <form string="Điều phối đơn hàng" class="dl-dispatch-form" js_class="dl_form"
                   create="false" edit="false">
                 <header>
                     <!-- MỘT CTA primary cho cả màn (§11.1). Nút tự ẩn khi không

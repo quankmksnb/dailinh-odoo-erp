@@ -68,7 +68,7 @@
         <field name="name">dl.stock.picking.receipt.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Nhận hàng nhà cung cấp" class="dl-receipt-form">
+            <form string="Nhận hàng nhà cung cấp" class="dl-receipt-form" js_class="dl_form">
                 <header>
                     <!-- 1 CTA btn-primary cho mỗi trạng thái; phụ = secondary;
                          phá huỷ = danger (quy ước §11.1). -->
@@ -300,7 +300,7 @@
         <field name="name">dl.stock.picking.qc.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Kiểm &amp; cất hàng" class="dl-qc-form" create="0">
+            <form string="Kiểm &amp; cất hàng" class="dl-qc-form" create="0" js_class="dl_form">
                 <header>
                     <!-- Nút biến mất khi còn lỗi thay vì bày nút bấm-không-được:
                          dải đỏ ngay dưới đã liệt kê đích danh dòng nào sai.

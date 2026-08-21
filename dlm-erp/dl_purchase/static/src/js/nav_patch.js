@@ -46,12 +46,14 @@ patch(DlmRail.prototype, {
 
     const orm = useService("orm");
 
-    // Badge hỏi giá — khớp ĐÚNG domain của action_dl_purchase_rfq_queue, để số
-    // trên rail bằng số dòng khi mở màn.
+    // Badge hỏi giá — khớp ĐÚNG domain + bộ lọc mặc định của
+    // action_dl_purchase_rfq_queue, để số trên rail bằng số dòng khi mở màn.
+    // Đơn đã có giá KHÔNG đếm: việc của Mua hàng ở đó đã xong.
     this.registerBadge("purchase_rfq_queue", () =>
       orm.searchCount("dl.purchase.order", [
         ["state", "=", "sent"],
         ["dlm_quotation_id", "!=", false],
+        ["dlm_vendor_replied_date", "=", false],
       ]),
     );
 

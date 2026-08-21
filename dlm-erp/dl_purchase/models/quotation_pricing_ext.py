@@ -230,6 +230,11 @@ class DlQuotation(models.Model):
                 "partner_id": ncc.id,
                 "dlm_quotation_id": self.id,
                 "state": "sent",
+                # Sinh thẳng ở `sent`, KHÔNG đi qua `action_dlm_send` — nên mốc
+                # gửi phải đóng ở đây. Thiếu nó thì câu "gửi ba ngày rồi nhà cung
+                # cấp chưa báo giá" không trả lời được, mà chính nó là lý do
+                # `date_sent` tồn tại; dải chữ trên form cũng đứt làm đôi.
+                "date_sent": fields.Datetime.now(),
                 "line_ids": [(0, 0, {
                     "product_id": r["product"].id,
                     "qty": r["qty"],

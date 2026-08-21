@@ -23,7 +23,7 @@
         <field name="name">dl.stock.picking.to.scrap.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Chuyển thành phế liệu" class="dl-to-scrap-form"
+            <form string="Chuyển thành phế liệu" class="dl-to-scrap-form" js_class="dl_form"
                   create="0">
                 <header>
                     <button name="button_validate" string="Xác nhận đổi"

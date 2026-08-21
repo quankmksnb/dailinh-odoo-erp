@@ -13,6 +13,10 @@ vòng giá thép tăng lại bào một nấc biên, sổ vẫn lãi mà tiền 
 
 from datetime import timedelta
 
+from lxml import etree
+
+from odoo.tools.safe_eval import safe_eval
+
 from odoo import fields
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
@@ -519,3 +523,287 @@ class TestVongGia(DlPurchaseCase):
         self.assertTrue(rows.is_applied)
         # Giá vốn tham chiếu phải theo con số vừa sửa, không kẹt ở lần ghi đầu.
         self.assertAlmostEqual(self.thep.standard_price, 950000.0, places=2)
+
+    # ------------------------------------------------------------------
+    # Ranh giới HỎI GIÁ ↔ ĐƠN MUA
+    # ------------------------------------------------------------------
+    def _hoi_gia(self):
+        """Báo giá thiếu vật tư ⇒ một đơn hỏi giá ở nấc 'Đã gửi hỏi giá'."""
+        quo = self._quo_thieu()
+        quo.action_dlm_request_vendor_quote()
+        po = self.env["dl.purchase.order"].search(
+            [("dlm_quotation_id", "=", quo.id)])
+        return quo, po
+
+    def _hang_doi_hoi_gia(self):
+        """Đúng những dòng màn 'Hỏi giá chờ trả lời' bày ra ở segment mặc định."""
+        return self.env["dl.purchase.order"].search([
+            ("state", "=", "sent"),
+            ("dlm_quotation_id", "!=", False),
+            ("dlm_vendor_replied_date", "=", False)])
+
+    def test_ghi_nhan_gia_xong_thi_roi_hang_doi_hoi_gia(self):
+        """Đơn đã có giá không được nằm chắn giữa việc đang thật sự chờ.
+
+        Nó cố ý ở lại nấc `sent` (chưa cam kết mua) nên không có trạng thái nào
+        đánh dấu "xong" — trước đây hàng đợi vì thế không bao giờ vơi."""
+        quo, po = self._hoi_gia()
+        self.assertIn(po, self._hang_doi_hoi_gia())
+
+        po.line_ids.price_unit = 210000
+        self._ghi_nhan(po)
+
+        self.assertTrue(po.dlm_vendor_replied_date)
+        self.assertEqual(po.state, "sent", "vẫn chưa cam kết mua")
+        self.assertNotIn(po, self._hang_doi_hoi_gia())
+        # Vẫn tra được: domain của action không đổi, chỉ segment mặc định lọc.
+        self.assertIn(po, self.env["dl.purchase.order"].search([
+            ("state", "=", "sent"), ("dlm_quotation_id", "!=", False)]))
+
+    def test_bao_gia_chua_len_don_thi_khong_chot_mua_duoc(self):
+        """🔴 Cổng: chốt đơn hỏi giá lúc báo giá còn Nháp là mua cho một đơn
+        hàng chưa tồn tại — khách quay xe thì thép nằm kho không ai trả tiền."""
+        quo, po = self._hoi_gia()
+        po.line_ids.price_unit = 210000
+        po.date_expected = fields.Date.today()
+
+        with self.assertRaises(UserError) as bat:
+            po.action_dlm_confirm()
+        self.assertIn(quo.name, str(bat.exception),
+                      "lỗi phải nói RÕ báo giá nào đang chặn")
+        self.assertEqual(po.state, "sent")
+        self.assertFalse(po.dlm_picking_ids, "không được sinh phiếu nhận")
+
+    def test_bao_gia_len_don_roi_thi_chot_mua_duoc(self):
+        quo, po = self._hoi_gia()
+        po.line_ids.price_unit = 210000
+        po.date_expected = fields.Date.today()
+        quo.sudo().state = "ordered"
+
+        po.action_dlm_confirm()
+        self.assertEqual(po.state, "confirmed")
+        self.assertTrue(po.dlm_picking_ids, "chốt xong phải có phiếu nhận")
+
+    def test_mua_chu_dong_khong_bi_cong_nay_rang(self):
+        """Đơn không sinh từ báo giá (nhập thép về sẵn) không đi qua cổng."""
+        po = self._mk_po([(self.thep, 50.0, 200000.0)])
+        po.action_dlm_confirm()
+        self.assertEqual(po.state, "confirmed")
+
+    def test_don_hoi_gia_co_moc_gui(self):
+        """Sinh thẳng ở `sent` thì mốc gửi vẫn phải có — dải chữ trên form đọc nó,
+        và nó là thứ trả lời "gửi mấy ngày rồi mà NCC chưa báo giá"."""
+        quo, po = self._hoi_gia()
+        self.assertTrue(po.date_sent, "đơn hỏi giá phải mang mốc đã gửi")
+
+    def test_co_khach_chot_moi_mo_duong_chot(self):
+        """Cờ nuôi phần ẩn/hiện của [Chốt đơn] — phải khớp đúng cổng phía server,
+        nếu không nút sáng nhất màn hình lại là nút bấm phát nào lỗi phát ấy."""
+        quo, po = self._hoi_gia()
+        self.assertFalse(po.dlm_customer_committed)
+
+        quo.sudo().state = "ordered"
+        po.invalidate_recordset()
+        self.assertTrue(po.dlm_customer_committed)
+
+        # Mua chủ động: không chờ khách nào cả.
+        self.assertTrue(self._mk_po([(self.thep, 5.0, 100.0)]).dlm_customer_committed)
+
+    # ------------------------------------------------------------------
+    # Header: đúng MỘT nút primary cho mỗi trạng thái (§11.1)
+    # ------------------------------------------------------------------
+    def _nut_hien(self, po):
+        """Các nút header thực sự hiện trên form của `po`, đánh dấu nút primary.
+
+        Tự dựng lại phép `invisible` của client: đó là thứ quyết định người dùng
+        nhìn thấy gì, mà không có test nào chạm tới nó thì một điều kiện sai vẫn
+        đi qua toàn bộ bộ test."""
+        arch = etree.fromstring(
+            self.env.ref("dl_purchase.view_dl_purchase_order_form").arch_db)
+        ctx = {
+            "state": po.state,
+            "dlm_needs_approval": po.dlm_needs_approval,
+            "dlm_customer_committed": po.dlm_customer_committed,
+            "dlm_quotation_id": po.dlm_quotation_id.id or False,
+            "line_ids": po.line_ids.ids,
+        }
+        hien = []
+        for b in arch.xpath("//header/button"):
+            inv = b.get("invisible")
+            if inv and safe_eval(" ".join(inv.split()), dict(ctx)):
+                continue
+            hien.append((b.get("string"),
+                         "btn-primary" in (b.get("class") or "")))
+        return hien
+
+    def _primary(self, po):
+        return [ten for ten, la_primary in self._nut_hien(po) if la_primary]
+
+    def test_cta_hoi_gia_nam_o_header(self):
+        """[Ghi nhận giá NCC báo] là CTA của đơn hỏi giá — phải nằm trong
+        <header> cạnh các nút hành động, không lạc giữa sheet."""
+        arch = etree.fromstring(
+            self.env.ref("dl_purchase.view_dl_purchase_order_form").arch_db)
+        nut = arch.xpath("//button[@name='action_dlm_record_vendor_price']")
+        self.assertTrue(nut)
+        for b in nut:
+            self.assertEqual(b.getparent().tag, "header")
+
+    def test_don_hoi_gia_khong_bay_nut_chot_don(self):
+        """Chính cái người dùng thấy: đơn hỏi giá chỉ còn việc ghi nhận giá."""
+        quo, po = self._hoi_gia()
+        ten = [t for t, _p in self._nut_hien(po)]
+
+        self.assertIn("Ghi nhận giá NCC báo", ten)
+        self.assertNotIn("Chốt đơn", ten,
+                         "server đã chặn cứng ca này — để nút sáng là mời bấm vào lỗi")
+        self.assertNotIn("Trình Giám đốc duyệt", ten)
+        self.assertNotIn("Đưa về nháp", ten,
+                         "đưa về nháp làm đơn rơi khỏi hàng đợi hỏi giá")
+
+    def test_khach_chot_roi_thi_chot_don_thanh_viec_chinh(self):
+        quo, po = self._hoi_gia()
+        quo.sudo().state = "ordered"
+        po.invalidate_recordset()
+        self.assertIn("Chốt đơn", [t for t, _p in self._nut_hien(po)])
+
+    def test_moi_trang_thai_dung_MOT_nut_primary(self):
+        """§11.1. Hai nút sáng cùng lúc là bắt người dùng chọn hộ máy.
+
+        Phủ cả nấc `draft` — chỗ từng có hai nút sáng cùng lúc ([Gửi hỏi giá
+        nhà cung cấp] + [Chốt đơn]) cho tới khi nút gửi hỏi giá hạ xuống phụ."""
+        quo, po = self._hoi_gia()
+        self.assertLessEqual(len(self._primary(po)), 1, self._primary(po))
+
+        quo.sudo().state = "ordered"
+        po.invalidate_recordset()
+        self.assertLessEqual(len(self._primary(po)), 1, self._primary(po))
+
+        tu_mua = self._mk_po([(self.thep, 5.0, 100.0)])
+        self.assertLessEqual(len(self._primary(tu_mua)), 1, self._primary(tu_mua))
+        tu_mua.action_dlm_confirm()
+        self.assertLessEqual(len(self._primary(tu_mua)), 1, self._primary(tu_mua))
+
+
+@tagged("post_install", "-at_install", "dl_purchase")
+class TestDonMuaGiaThamChieu(DlPurchaseCase):
+    """Màn Đơn mua hàng lấy giá thẳng từ Bảng giá nhà cung cấp.
+
+    Ba cách hỏng, cả ba đều IM LẶNG — đơn vẫn lưu, vẫn chốt được, chỉ là bằng
+    một con số không phải con số đã thoả thuận. Mà giá chốt thì đóng lên LÔ
+    thành giá vốn thật, nên sai ở đây là sai vĩnh viễn.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.vendor2 = cls.env["res.partner"].create({
+            "name": "Phú Thịnh (mua hàng)", "partner_role": "supplier",
+            "mobile": "0900000003"})
+
+    def _row(self, partner, price, applied=False):
+        return self.env["product.supplierinfo"].create({
+            "partner_id": partner.id,
+            "product_tmpl_id": self.thep.product_tmpl_id.id,
+            "product_id": self.thep.id,
+            "price": price,
+            "date_start": fields.Date.today(),
+            "approval_state": "approved",
+            "is_applied": applied,
+        })
+
+    def _don(self, partner, qty=10.0):
+        """Đơn mua tạo đúng như client gửi lên: KHÔNG có price_list_unit —
+        field đó `readonly` nên trình duyệt không bao giờ gửi nó."""
+        return self.env["dl.purchase.order"].create({
+            "partner_id": partner.id,
+            "date_expected": fields.Date.today(),
+            "line_ids": [(0, 0, {"product_id": self.thep.id, "qty": qty})],
+        })
+
+    # ------------------------------------------------------------------
+    def test_moc_gia_song_sot_sau_khi_luu(self):
+        """🔴 `price_list_unit` khai readonly ⇒ client không gửi lên. Điền bằng
+        onchange thôi là mất trắng, cột hiện 0 đ — và cảnh báo lệch giá lấy đúng
+        ô đó làm mốc nên im luôn."""
+        self._row(self.vendor, 200000.0, applied=True)
+        don = self._don(self.vendor)
+
+        self.assertAlmostEqual(don.line_ids.price_list_unit, 200000.0, places=2)
+        self.assertAlmostEqual(don.line_ids.price_unit, 200000.0, places=2)
+
+    def test_moc_la_gia_cua_CHINH_ncc_tren_don(self):
+        """Đặt hàng Phú Thịnh thì mốc phải là giá Phú Thịnh, dù dòng ĐANG ÁP DỤNG
+        của vật tư lại thuộc về nhà cung cấp khác."""
+        self._row(self.vendor, 200000.0, applied=True)      # đang áp dụng
+        self._row(self.vendor2, 275000.0)                   # đã duyệt, chưa áp dụng
+
+        don = self._don(self.vendor2)
+        self.assertAlmostEqual(don.line_ids.price_list_unit, 275000.0, places=2)
+
+    def test_ncc_chua_co_gia_thi_roi_ve_gia_dang_ap_dung(self):
+        """Có mặt bằng chung còn hơn không có mốc nào."""
+        self._row(self.vendor, 200000.0, applied=True)
+        don = self._don(self.vendor2)
+        self.assertAlmostEqual(don.line_ids.price_list_unit, 200000.0, places=2)
+
+    def test_doi_ncc_thi_gia_di_theo(self):
+        """Thêm dòng trước rồi mới chọn nhà cung cấp — thứ tự thao tác rất thường."""
+        self._row(self.vendor, 200000.0, applied=True)
+        self._row(self.vendor2, 275000.0)
+        don = self._don(self.vendor)
+        self.assertAlmostEqual(don.line_ids.price_unit, 200000.0, places=2)
+
+        don.partner_id = self.vendor2
+        don._onchange_dlm_partner_refresh_price()
+
+        self.assertAlmostEqual(don.line_ids.price_list_unit, 275000.0, places=2)
+        self.assertAlmostEqual(don.line_ids.price_unit, 275000.0, places=2)
+
+    def test_gia_go_tay_khong_bi_de(self):
+        """Người mua thoả thuận qua điện thoại rồi gõ vào — đổi nhà cung cấp
+        KHÔNG được xoá con số đó."""
+        self._row(self.vendor, 200000.0, applied=True)
+        self._row(self.vendor2, 275000.0)
+        don = self._don(self.vendor)
+        don.line_ids.price_unit = 188000.0          # gõ tay
+
+        don.partner_id = self.vendor2
+        don._onchange_dlm_partner_refresh_price()
+
+        self.assertAlmostEqual(don.line_ids.price_unit, 188000.0, places=2,
+                               msg="giá gõ tay bị đè mất")
+        self.assertAlmostEqual(don.line_ids.price_list_unit, 275000.0, places=2,
+                               msg="mốc để so lệch thì vẫn phải theo NCC mới")
+
+    def test_don_hoi_gia_KHONG_duoc_dien_san_gia_chot(self):
+        """🔴 Mốc để so thì có, giá chốt thì không.
+
+        Đơn hỏi giá mở ra mà đã sẵn một con số là mời Mua hàng bấm [Ghi nhận giá
+        NCC báo] luôn — đóng dấu giá CŨ như thể nhà cung cấp vừa báo. Cả luồng
+        hỏi giá sinh ra để chống đúng chuyện đó."""
+        self._row(self.vendor, 200000.0, applied=True)
+        quo = self.env["dl.quotation"].create({
+            "partner_id": self.customer.id, "state": "draft"})
+        don = self.env["dl.purchase.order"].create({
+            "partner_id": self.vendor.id,
+            "dlm_quotation_id": quo.id,
+            "state": "sent",
+            "line_ids": [(0, 0, {"product_id": self.thep.id, "qty": 10.0})],
+        })
+
+        self.assertAlmostEqual(don.line_ids.price_list_unit, 200000.0, places=2,
+                               msg="mốc để so lệch vẫn phải có")
+        self.assertFalse(don.line_ids.price_unit,
+                         "giá chốt phải để trống cho người mua gõ giá NCC báo")
+
+    def test_gia_cu_da_bi_thay_the_khong_duoc_dung_lam_moc(self):
+        """Nối với đợt sửa Bảng giá: dòng `dlm_superseded` là lịch sử, không phải
+        giá của hôm nay."""
+        cu = self._row(self.vendor, 200000.0, applied=True)
+        moi = self._row(self.vendor, 260000.0)
+        moi.action_set_applied()                    # đóng ngày + đánh dấu dòng cũ
+
+        self.assertTrue(cu.dlm_superseded)
+        don = self._don(self.vendor)
+        self.assertAlmostEqual(don.line_ids.price_list_unit, 260000.0, places=2)

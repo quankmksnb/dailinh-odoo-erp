@@ -108,7 +108,7 @@
         <field name="name">dl.stock.picking.scrap.sale.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Bán phế liệu" class="dl-scrap-sale-form">
+            <form string="Bán phế liệu" class="dl-scrap-sale-form" js_class="dl_form">
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
