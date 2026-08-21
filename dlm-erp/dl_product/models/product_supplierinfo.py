@@ -156,19 +156,63 @@ class ProductSupplierinfo(models.Model):
         "bảng giá đó.",
     )
 
+    def _dlm_applied_partner_by_tmpl(self):
+        """{vật tư: nhà cung cấp} của dòng giá ĐANG áp dụng, cho các vật tư trong
+        recordset — dùng để biết một dòng phụ là của CHÍNH nhà cung cấp đó hay
+        của nhà cung cấp khác."""
+        tmpl_ids = self.product_tmpl_id.ids
+        if not tmpl_ids:
+            return {}
+        rows = self.env["product.supplierinfo"].sudo().search(
+            [("product_tmpl_id", "in", tmpl_ids), ("is_applied", "=", True)])
+        return {r.product_tmpl_id.id: r.partner_id.id for r in rows}
+
     @api.depends("is_applied", "product_tmpl_id")
     def _compute_dlm_is_alternative(self):
-        tmpl_ids = self.product_tmpl_id.ids
-        applied_tmpl = set()
-        if tmpl_ids:
-            groups = self.env["product.supplierinfo"].sudo()._read_group(
-                [("product_tmpl_id", "in", tmpl_ids), ("is_applied", "=", True)],
-                groupby=["product_tmpl_id"])
-            applied_tmpl = {tmpl.id for (tmpl,) in groups}
+        applied = self._dlm_applied_partner_by_tmpl()
         for rec in self:
             rec.dlm_is_alternative = (
-                not rec.is_applied and rec.product_tmpl_id.id in applied_tmpl
+                not rec.is_applied and rec.product_tmpl_id.id in applied
             )
+
+    # Chữ in ở cột Vật tư của dòng phụ. Trước đây JS in cứng "Nhà cung cấp khác"
+    # cho MỌI dòng phụ — mà `dlm_is_alternative` chưa bao giờ so `partner_id`,
+    # nên giá mới của CHÍNH nhà cung cấp đang dùng cũng bị gọi là "NCC khác".
+    # Nhãn phải nói đúng dòng đó là gì, vì đó là thứ người dùng đọc để quyết định.
+    dlm_alt_label = fields.Char(
+        string="Vai trò dòng",
+        compute="_compute_dlm_alt_label",
+        help="Dòng phụ này là gì so với giá đang áp dụng ở dòng trên: giá của "
+        "nhà cung cấp khác, giá mới của chính họ, hay giá cũ đã bị thay.",
+    )
+
+    @api.depends("dlm_is_alternative", "dlm_superseded", "partner_id",
+                 "product_tmpl_id")
+    def _compute_dlm_alt_label(self):
+        applied = self._dlm_applied_partner_by_tmpl()
+        for rec in self:
+            if not rec.dlm_is_alternative:
+                rec.dlm_alt_label = False
+            elif rec.dlm_superseded:
+                rec.dlm_alt_label = _("Giá cũ — đã thay")
+            elif applied.get(rec.product_tmpl_id.id) == rec.partner_id.id:
+                rec.dlm_alt_label = _("Giá mới chờ áp dụng")
+            else:
+                rec.dlm_alt_label = _("Nhà cung cấp khác")
+
+    # `date_end` KHÔNG nói nổi "bị thay ngay trong ngày": nó không được nhỏ hơn
+    # `date_start`, nên giá hỏi lại lần hai trong cùng một ngày chỉ đóng được về
+    # đúng hôm nay ⇒ bộ lọc "Còn hiệu lực" vẫn cho lọt, và người dùng thấy hai
+    # dòng của cùng một nhà cung cấp. Cờ này mới là thứ giữ cho màn hình nói
+    # HIỆN TRẠNG. Nó không đụng gì tới giá vốn: giá đã đóng lên LÔ lúc nhận hàng
+    # (`stock.lot.dlm_unit_cost`, bất biến), nên lô cũ vẫn tính bằng giá cũ.
+    dlm_superseded = fields.Boolean(
+        string="Đã bị thay thế",
+        default=False,
+        copy=False,
+        help="Giá này đã bị một giá mới hơn của CHÍNH nhà cung cấp đó thay chỗ. "
+        "Chỉ còn giá trị tra cứu lịch sử, không dùng để tính giá nữa.",
+    )
 
     def _is_valid_on(self, target_date):
         self.ensure_one()
@@ -279,6 +323,7 @@ class ProductSupplierinfo(models.Model):
         when = when or fields.Datetime.now()
         self.write({
             "is_applied": True,
+            "dlm_superseded": False,
             "dlm_applied_uid": self.env.uid,
             "dlm_applied_date": when,
         })
@@ -385,8 +430,13 @@ class ProductSupplierinfo(models.Model):
             ])
             for dong in cu:
                 # max(...) để không bao giờ đẻ ra date_end < date_start — thép
-                # đổi giá hai lần trong một ngày là chuyện có thật.
-                dong.date_end = max(dong.date_start, moc - relativedelta(days=1))
+                # đổi giá hai lần trong một ngày là chuyện có thật. Chính ca đó
+                # làm `date_end` đóng về đúng HÔM NAY và dòng cũ vẫn lọt bộ lọc
+                # "Còn hiệu lực", nên phải đánh dấu thêm bằng cờ.
+                dong.write({
+                    "date_end": max(dong.date_start, moc - relativedelta(days=1)),
+                    "dlm_superseded": True,
+                })
         return True
 
     def action_unset_applied(self):

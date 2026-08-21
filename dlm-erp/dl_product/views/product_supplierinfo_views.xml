@@ -37,6 +37,9 @@
                      decoration-warning của <tree> — dòng SẮP hết hạn mới cần nổi. -->
                 <field name="validity_state" column_invisible="1" />
                 <field name="dlm_is_alternative" column_invisible="1" />
+                <field name="dlm_superseded" column_invisible="1" />
+                <!-- Nuôi widget dl_alt_product: chữ in ở cột Vật tư của dòng phụ. -->
+                <field name="dlm_alt_label" column_invisible="1" />
                 <field name="min_qty" string="Số lượng tối thiểu" optional="hide" />
                 <field
                     name="display_state"
@@ -146,14 +149,19 @@
                 <filter name="applied" string="Đang áp dụng"
                     domain="[('is_applied', '=', True)]" />
                 <separator />
-                <!-- Giá bị thay thế thì `date_end` được đóng tự động
-                     (_dlm_close_superseded). Lọc này là thứ giữ cho màn hình
-                     nói HIỆN TRẠNG thay vì đổ cả sổ lịch sử ra. -->
+                <!-- Giá bị thay thế thì `date_end` được đóng tự động VÀ bật cờ
+                     `dlm_superseded` (_dlm_close_superseded). Phải soi cả cờ vì
+                     giá hỏi lại trong CÙNG MỘT NGÀY chỉ đóng được date_end về
+                     đúng hôm nay — soi mỗi ngày thì dòng cũ của chính nhà cung
+                     cấp đó vẫn nằm lại trên màn suốt hôm nay. Lọc này là thứ
+                     giữ cho màn hình nói HIỆN TRẠNG thay vì đổ cả sổ lịch sử. -->
                 <filter name="con_hieu_luc" string="Còn hiệu lực"
-                    domain="['|', ('date_end', '=', False),
+                    domain="[('dlm_superseded', '=', False),
+                             '|', ('date_end', '=', False),
                              ('date_end', '&gt;=', context_today().strftime('%Y-%m-%d'))]" />
                 <filter name="het_hieu_luc" string="Đã hết hiệu lực (lịch sử giá)"
-                    domain="[('date_end', '!=', False),
+                    domain="['|', ('dlm_superseded', '=', True),
+                             '&amp;', ('date_end', '!=', False),
                              ('date_end', '&lt;', context_today().strftime('%Y-%m-%d'))]" />
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_product" string="Vật tư"
