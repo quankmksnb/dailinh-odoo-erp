@@ -365,6 +365,9 @@ class DlQuotationPricingService(models.AbstractModel):
             quotation_id=quotation.id,
             rfq_line_id=rfq_line.id,
             qty=rfq_line.quantity,
+            # Đơn vị khách đặt hàng theo — đi kèm số lượng, không suy lại từ
+            # sản phẩm: RFQ là chỗ duy nhất biết khách hỏi "bộ" hay "mét".
+            uom_id=rfq_line.uom_id.id,
         )
         line = self.env["dl.quotation.line"].sudo().create(vals)
 

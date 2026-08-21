@@ -226,6 +226,8 @@
                                            decoration-info="line_type == 'manufactured'"/>
                                     <field name="name"/>
                                     <field name="qty" widget="dl_qty"/>
+                                    <field name="uom_id" string="ĐVT"
+                                           options="{'no_create': True}"/>
                                     <field name="material_cost" widget="dl_money" digits="[16, 0]" readonly="1" optional="hide"
                                            groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager"/>
                                     <field name="operation_cost" widget="dl_money" digits="[16, 0]" readonly="1" optional="show"

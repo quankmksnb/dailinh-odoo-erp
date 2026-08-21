@@ -1326,6 +1326,7 @@ class DlQuotation(models.Model):
                 'line_ids': [(0, 0, {
                     'name': line.name,
                     'qty': line.qty,
+                    'uom_id': line.uom_id.id,
                     'price_unit': line.price_unit,
                     'product_id': line.product_id.id,
                     'bom_id': line.bom_id.id,
@@ -1419,6 +1420,14 @@ class DlQuotationLine(models.Model):
     quotation_id = fields.Many2one('dl.quotation', string='Báo giá', ondelete='cascade')
     name = fields.Char(string='Mô tả', required=True)
     qty = fields.Float(string='Số lượng', default=1.0)
+    # Đơn vị tính đi CÙNG số lượng suốt chuỗi RFQ → báo giá → đơn → phiếu giao.
+    # "2" một mình không phải là cam kết bán được: 2 bộ bàn ghế khác hẳn 2 mét
+    # máng điện. Chép từ dòng RFQ lúc engine đẻ dòng báo giá; dòng Sales tự thêm
+    # tay thì mặc định "Đơn vị" để không có dòng nào trống đơn vị.
+    uom_id = fields.Many2one(
+        'uom.uom', string='ĐVT', required=True,
+        default=lambda self: self.env.ref('uom.product_uom_unit',
+                                          raise_if_not_found=False))
     price_unit = fields.Float(string='Đơn giá', digits='Product Price')
     price_subtotal = fields.Float(string='Thành tiền', compute='_compute_subtotal',
                                   store=True, digits='Product Price')
