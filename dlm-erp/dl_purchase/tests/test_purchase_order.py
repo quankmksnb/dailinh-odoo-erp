@@ -148,6 +148,82 @@ class TestPurchaseOrder(DlPurchaseCase):
         self.assertEqual(order.dlm_receipt_state, "partial")
         self.assertAlmostEqual(order.line_ids.qty_received, 60.0, places=2)
 
+    def _receive_short(self, order, got):
+        """Chốt đơn, nhận `got` (< đặt), trả lời wizard tạo backorder.
+
+        Trả (receipt, backorder). Dùng lại đúng cách xử lý wizard ở
+        `test_ncc_giao_thieu_thi_van_treo`.
+        """
+        order.action_dlm_confirm()
+        receipt = order.dlm_picking_ids[:1]
+        receipt.move_ids.quantity = got
+        receipt.move_ids.picked = True
+        res = receipt.button_validate()
+        if isinstance(res, dict) and res.get("res_model"):
+            self.env[res["res_model"]].with_context(
+                **res.get("context", {})).create({}).process()
+        backorder = self.env["stock.picking"].search(
+            [("backorder_id", "=", receipt.id)])
+        return receipt, backorder
+
+    def test_backorder_giao_thieu_gan_don_mua(self):
+        """🔴 G1 — phiếu chờ giao tiếp phải neo về đơn mua.
+
+        Đỏ = `dlm_purchase_order_id` để copy=False nên backorder mồ côi: đơn mua
+        không thấy nó, và không đường nào tính đúng khi NCC giao nốt.
+        """
+        order = self._mk_po([(self.thep, 100.0, 200000.0)])
+
+        _receipt, backorder = self._receive_short(order, 60.0)
+
+        self.assertTrue(backorder, "Nhận thiếu phải sinh phiếu chờ giao tiếp.")
+        self.assertEqual(backorder.dlm_purchase_order_id, order)
+        self.assertIn(backorder, order.dlm_picking_ids)
+
+    def test_giao_not_thi_don_len_du_va_gia_dung(self):
+        """G1 — nhận nốt backorder ⇒ đơn 'đã nhận đủ', lô giao trễ đóng ĐÚNG giá đơn.
+
+        Đỏ = đơn kẹt 'nhận một phần' vĩnh viễn, và lô 40 cây giao trễ mang giá
+        ước tính (cờ estimated) dù giá đã chốt nằm sẵn trên dòng đơn.
+        """
+        order = self._mk_po([(self.thep, 100.0, 200000.0)])
+        _receipt, backorder = self._receive_short(order, 60.0)
+
+        for move in backorder.move_ids:
+            move.quantity = move.product_uom_qty
+            move.picked = True
+        backorder.button_validate()
+
+        self.assertEqual(order.dlm_receipt_state, "done")
+        lot = backorder.move_line_ids.lot_id
+        self.assertTrue(lot, "Phiếu nhận vật tư phải sinh lô.")
+        self.assertFalse(lot.dlm_cost_is_estimated,
+                         "Giá phải đến từ đơn mua, không phải ước tính.")
+        self.assertAlmostEqual(lot.dlm_unit_cost, 200000.0, places=2)
+
+    def test_giao_thieu_bao_viec_cho_mua_hang(self):
+        """🔴 G3 — nhận thiếu phải đẩy việc cho Mua hàng, không nằm im.
+
+        Đỏ = đơn 'nhận một phần' nằm im tới khi tình cờ có ai mở ra; người mua —
+        người duy nhất gọi được NCC — không ai đánh thức.
+        """
+        group = self.env.ref("dl_base.dl_group_purchasing")
+        group.sudo().users = [(4, self.env.user.id)]
+        order = self._mk_po([(self.thep, 100.0, 200000.0)])
+
+        self._receive_short(order, 60.0)
+
+        todo = self.env.ref("mail.mail_activity_data_todo")
+        acts = self.env["mail.activity"].search([
+            ("res_model", "=", "dl.purchase.order"),
+            ("res_id", "=", order.id),
+            ("activity_type_id", "=", todo.id)])
+        self.assertTrue(acts, "Nhận thiếu phải giao việc cho Mua hàng.")
+        self.assertTrue(
+            any("giao thiếu" in (body or "")
+                for body in order.message_ids.mapped("body")),
+            "Phải ghi chatter phần thiếu lên đơn mua.")
+
     def test_in_giay_gui_ncc_tu_dang_ky_font(self):
         """🔴 Tờ giấy phải tự đăng ký font, không sống nhờ việc ai đó đã in báo
         giá trước trong cùng tiến trình.

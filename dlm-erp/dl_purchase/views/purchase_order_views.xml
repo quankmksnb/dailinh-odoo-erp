@@ -237,6 +237,20 @@
                         </div>
                     </div>
 
+                    <!-- Nhận dở dang: NCC còn thiếu hàng. Icon + chữ, không chỉ
+                         màu — người mù màu và bản in vẫn đọc ra ai đang chờ ai. -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'confirmed'
+                                    or dlm_receipt_state != 'partial'">
+                        <i class="fa fa-truck me-1" role="img"
+                           aria-label="Nhận thiếu"/>
+                        Nhà cung cấp giao chưa đủ —
+                        <field name="dlm_receipt_hint" nolabel="1"
+                               class="d-inline"/>.
+                        Theo dõi để họ giao nốt, hoặc huỷ phiếu chờ nếu không giao
+                        nữa.
+                    </div>
+
                     <group>
                         <group>
                             <field name="partner_id"
@@ -266,8 +280,18 @@
                             <field name="line_ids"
                                    readonly="state not in ('draft', 'sent')">
                                 <tree editable="bottom">
+                                    <!-- Chỉ sổ ra mặt hàng của CHÍNH nhà cung cấp
+                                         đang chọn (có dòng trong Bảng giá NCC).
+                                         Vì view domain đè domain khai ở model, phải
+                                         chép lại 3 lọc nền rồi thêm lọc theo NCC.
+                                         parent.partner_id trống ⇒ chưa chọn NCC ⇒
+                                         chưa có mặt hàng nào: chọn nhà cung cấp trước. -->
                                     <field name="product_id" string="Mặt hàng"
-                                           width="300px"/>
+                                           width="300px"
+                                           domain="[('product_kind', 'in', ('material', 'trading')),
+                                                    ('dlm_is_scrap', '=', False),
+                                                    ('dlm_lifecycle_state', '!=', 'obsolete'),
+                                                    ('seller_ids.partner_id', '=', parent.partner_id)]"/>
                                     <field name="uom_id" string="Đơn vị tính"
                                            width="90px"/>
                                     <field name="qty" string="Số lượng"

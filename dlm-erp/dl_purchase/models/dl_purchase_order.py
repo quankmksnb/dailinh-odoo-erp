@@ -86,6 +86,10 @@ class DlPurchaseOrder(models.Model):
         default="nothing",
         help="Suy từ phiếu nhận, KHÔNG phải một ô tick: nhà cung cấp giao ba lần thì có "
              "ba phiếu, và sự thật nằm ở đó.")
+    dlm_receipt_hint = fields.Char(
+        string="Chi tiết nhận thiếu", compute="_compute_dlm_receipt_hint",
+        help="Liệt kê mặt hàng còn thiếu khi nhận dở dang — để dải cảnh báo trên "
+             "đơn nói được CÒN THIẾU BAO NHIÊU, không chỉ 'nhận một phần'.")
 
     # Đường chốt/duyệt của một đơn hỏi giá chỉ mở khi báo giá nguồn đã thành đơn
     # bán (xem `_dlm_check_customer_committed`). View phải BIẾT điều đó, nếu không
@@ -163,6 +167,27 @@ class DlPurchaseOrder(models.Model):
                 continue
             order.dlm_receipt_state = (
                 "done" if order._dlm_is_fully_received(received) else "partial")
+
+    # Non-stored: chỉ để dựng câu cho dải cảnh báo, không ai lọc/sắp theo nó.
+    @api.depends("dlm_receipt_state", "dlm_picking_ids.move_ids.quantity",
+                 "line_ids.qty")
+    def _compute_dlm_receipt_hint(self):
+        for order in self:
+            if order.dlm_receipt_state != "partial":
+                order.dlm_receipt_hint = False
+                continue
+            received = order._dlm_received_qty()
+            parts = []
+            for product, qty in order._dlm_ordered_qty().items():
+                got = received.get(product, 0.0)
+                rounding = product.uom_id.rounding or 0.01
+                if float_compare(got, qty, precision_rounding=rounding) < 0:
+                    parts.append(_("%(name)s: đã nhận %(got)s/%(qty)s %(uom)s") % {
+                        "name": product.display_name,
+                        "got": _dlm_qty(got),
+                        "qty": _dlm_qty(qty),
+                        "uom": product.uom_id.name})
+            order.dlm_receipt_hint = "; ".join(parts) or False
 
     def _dlm_received_qty(self):
         """{mặt hàng: số NCC đã giao} — đếm move đã hoàn tất, KHÔNG trừ phần bị loại ở bước kiểm."""
@@ -896,3 +921,8 @@ class DlPurchaseOrderLine(models.Model):
 def _dlm_money(value):
     """Tiền cho câu thông báo: nhóm hàng nghìn bằng dấu chấm, không lẻ."""
     return "{:,.0f}".format(value or 0.0).replace(",", ".")
+
+
+def _dlm_qty(value):
+    """Số lượng cho câu thông báo: bỏ đuôi 0 thừa (30 chứ không 30,000)."""
+    return ("%.3f" % (value or 0.0)).rstrip("0").rstrip(".") or "0"
