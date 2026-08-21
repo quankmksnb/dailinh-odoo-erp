@@ -146,6 +146,30 @@ class ProductSupplierinfo(models.Model):
             else:
                 rec.display_state = "draft"
 
+    # Trên list Bảng giá, dòng của NCC "phương án khác" được thụt vào làm dòng
+    # phụ dưới giá đang dùng. Điều kiện nói theo BẢN GHI (không phụ thuộc thứ tự
+    # sắp xếp của list) nên giá trị ổn định dù người dùng đổi cách sắp/lọc.
+    dlm_is_alternative = fields.Boolean(
+        string="Giá NCC phương án khác",
+        compute="_compute_dlm_is_alternative",
+        help="Vật tư này đã có một bảng giá đang áp dụng, và dòng này không phải "
+        "bảng giá đó.",
+    )
+
+    @api.depends("is_applied", "product_tmpl_id")
+    def _compute_dlm_is_alternative(self):
+        tmpl_ids = self.product_tmpl_id.ids
+        applied_tmpl = set()
+        if tmpl_ids:
+            groups = self.env["product.supplierinfo"].sudo()._read_group(
+                [("product_tmpl_id", "in", tmpl_ids), ("is_applied", "=", True)],
+                groupby=["product_tmpl_id"])
+            applied_tmpl = {tmpl.id for (tmpl,) in groups}
+        for rec in self:
+            rec.dlm_is_alternative = (
+                not rec.is_applied and rec.product_tmpl_id.id in applied_tmpl
+            )
+
     def _is_valid_on(self, target_date):
         self.ensure_one()
         return bool(
