@@ -24,6 +24,22 @@
         </field>
     </record>
 
+    <!-- Tree riêng màn "Vật tư": chỉ khác class để nút tạo mang nhãn
+         "+ Thêm vật tư" (xem dl_base/global_cp.scss) — dùng lại toàn bộ cột của
+         view Sản phẩm. Giữ cả dl-product-list để không mất bộ width cột. -->
+    <record id="view_dl_material_tree" model="ir.ui.view">
+        <field name="name">dl.material.tree</field>
+        <field name="model">product.product</field>
+        <field name="inherit_id" ref="view_dl_product_tree" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//tree" position="attributes">
+                <attribute name="class">dl-product-list dl-material-list</attribute>
+                <attribute name="string">Vật tư</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <record id="action_dl_material_full" model="ir.actions.act_window">
         <field name="name">Vật tư</field>
         <field name="res_model">product.product</field>
@@ -31,7 +47,7 @@
         <field name="limit" eval="15"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_material_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_material_search" />
@@ -58,7 +74,7 @@
         <field name="limit" eval="15"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_material_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_tech_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_material_search" />
@@ -80,7 +96,7 @@
         <field name="limit" eval="15"/>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_product_tree')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_material_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_product_form')}),
         ]" />
         <field name="search_view_id" ref="view_dl_material_search" />

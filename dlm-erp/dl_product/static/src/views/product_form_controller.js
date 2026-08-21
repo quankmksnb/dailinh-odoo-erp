@@ -15,9 +15,13 @@ export class DlProductFormController extends FormController {
     this.notification = useService("notification");
   }
 
+  // Tiêu đề lúc tạo mới nói đúng thứ đang tạo: màn Vật tư mở form với
+  // default_product_kind = material/material_processed → "Thêm vật tư".
   displayName() {
     if (this.model.root.isNew) {
-      return _t("Thêm sản phẩm");
+      const kind = this.model.root.data.product_kind;
+      const isMaterial = kind === "material" || kind === "material_processed";
+      return isMaterial ? _t("Thêm vật tư") : _t("Thêm sản phẩm");
     }
     return this.model.root.data.display_name?.split("\n")[0] || "";
   }
