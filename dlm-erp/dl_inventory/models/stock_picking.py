@@ -361,6 +361,10 @@ class StockPicking(models.Model):
         ("passed", "Đạt toàn bộ"),
         ("has_reject", "Có hàng loại"),
     ], string="Kết quả kiểm", compute="_compute_dlm_qc_state", store=True)
+    dlm_wait_receipt = fields.Boolean(
+        string="Chờ nhận hàng xong", compute="_compute_dlm_wait_receipt",
+        help="Phiếu kiểm của lô hàng mà thủ kho CHƯA đếm xong: chưa có gì để "
+             "kiểm chất lượng.")
 
     # ── Chặn xác nhận + dải thông báo (INLINE, không modal) ──────────────────
     dlm_blocked = fields.Boolean(
@@ -548,6 +552,17 @@ class StockPicking(models.Model):
             else:
                 picking.dlm_qc_state = "pending"
 
+    @api.depends("picking_type_id", "state", "move_ids.move_orig_ids.state")
+    def _compute_dlm_wait_receipt(self):
+        """Phiếu kiểm chỉ tới lượt sau khi phiếu nhận gốc được xác nhận (số thực nhận đã đếm)."""
+        for picking in self:
+            if not picking.dlm_is_qc or picking.state in ("done", "cancel"):
+                picking.dlm_wait_receipt = False
+                continue
+            receipt = picking._dlm_source_receipt()
+            picking.dlm_wait_receipt = bool(
+                receipt and receipt.state != "done")
+
     @api.depends(
         "state", "picking_type_id", "partner_id", "location_id",
         "location_dest_id", "dlm_qty_rejected_total",
@@ -555,6 +570,7 @@ class StockPicking(models.Model):
         "move_ids.dlm_qty_rejected", "move_ids.dlm_reject_reason",
         "move_ids.dlm_reject_note", "move_ids.product_id", "move_ids.state",
         "move_line_ids.lot_id", "move_line_ids.lot_name",
+        "move_ids.move_orig_ids.state",
         "dlm_handover_uid", "dlm_received_uid",
         # Hai ô của phiếu [8] phải có trong depends, không thì dải không nổ lại khi gõ dòng vào chúng.
         "dlm_fg_move_ids.product_id", "dlm_fg_move_ids.product_uom_qty",
@@ -837,6 +853,13 @@ class StockPicking(models.Model):
                      _(" (phiếu %s)") % returns if returns else ""), False
             return "success", _("Đã kiểm đạt toàn bộ và cất vào kho."), False
 
+        if self.dlm_wait_receipt:
+            # Không phải lỗi của thủ kho — chỉ là chưa tới lượt; dải đỏ ở đây đọc như bị mắng.
+            return "info", _(
+                "Hàng chưa nhận xong. Xác nhận phiếu nhận <b>%s</b> (đếm số "
+                "thực nhận) thì lô hàng mới xuống đây để kiểm chất lượng."
+            ) % self._dlm_source_receipt().name, True
+
         problems = self._dlm_qc_problems()
         if problems:
             return "danger", _(
@@ -976,6 +999,13 @@ class StockPicking(models.Model):
         """Danh sách lỗi cụ thể chặn xác nhận kiểm (nêu đích danh từng dòng)."""
         self.ensure_one()
         problems = []
+        if self.dlm_wait_receipt:
+            # Trả về NGAY: mọi lỗi dòng bên dưới đều vô nghĩa khi hàng chưa về,
+            # và số trên dòng lúc này là số NCC hứa giao chứ không phải số đếm được.
+            return [_(
+                "Phiếu nhận %s chưa xác nhận — đếm số thực nhận ở đó trước, "
+                "kiểm chất lượng làm sau."
+            ) % (self._dlm_source_receipt().name or "")]
         for move in self.move_ids:
             name = move.product_id.display_name
             if move.dlm_qty_rejected < 0:                                # QC-01
