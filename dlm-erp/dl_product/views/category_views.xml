@@ -84,13 +84,22 @@
 
     <!-- Ẩn 3 nhóm gốc mặc định của module product lõi (All/Saleable/Expenses) -->
     <!-- khỏi màn hình quản lý Nhóm sản phẩm của dự án (không xóa record, tránh vỡ liên kết ngầm core). -->
+    <!-- 2026-08-21 — ẩn thêm 2 gốc "Thành phẩm"/"Vật tư": danh sách đã gom theo
+         cột Nhánh mang đúng hai tên đó, nên dòng gốc chỉ là bản sao của tiêu đề
+         nhóm. Bản ghi VẪN TỒN TẠI và vẫn là cha trong cây — `dl_branch` suy từ
+         `parent_path` nên xoá chúng là mọi nhóm rơi về 'other' và không ai chọn
+         được nhóm nào nữa. Chúng vẫn chọn được ở dropdown "Nhóm cha". -->
     <!-- Sửa được: Admin, Trưởng KD (nhánh Thành phẩm), Kỹ thuật (nhánh Vật tư) -->
     <record id="action_dl_category_full" model="ir.actions.act_window">
         <field name="name">Nhóm sản phẩm</field>
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
-        <field name="domain" eval="[('id', 'not in', [ref('product.product_category_all'), ref('product.product_category_1'), ref('product.cat_expense')])]" />
+        <field name="domain" eval="[('id', 'not in', [
+            ref('product.product_category_all'), ref('product.product_category_1'),
+            ref('product.cat_expense'),
+            ref('categ_root_finished'), ref('categ_root_material'),
+        ])]" />
         <field name="context">{'search_default_group_branch': 1}</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
@@ -109,7 +118,11 @@
         <field name="res_model">product.category</field>
         <field name="view_mode">tree,form</field>
         <field name="limit" eval="15"/>
-        <field name="domain" eval="[('id', 'not in', [ref('product.product_category_all'), ref('product.product_category_1'), ref('product.cat_expense')])]" />
+        <field name="domain" eval="[('id', 'not in', [
+            ref('product.product_category_all'), ref('product.product_category_1'),
+            ref('product.cat_expense'),
+            ref('categ_root_finished'), ref('categ_root_material'),
+        ])]" />
         <field name="view_ids" eval="[
             (5, 0, 0),
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_product_category_tree')}),

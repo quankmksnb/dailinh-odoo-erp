@@ -54,11 +54,18 @@
         <field name="domain">
             [('product_kind', 'in', ['material', 'material_processed'])]
         </field>
-        <field name="context">
-            {'default_product_kind': 'material',
+        <!-- 🔴 `default_categ_id: False` PHẢI khai tường minh, đừng "dọn" cho gọn.
+             `default_get` kiểm `'default_categ_id' in context` — CÓ MẶT, không phải
+             giá trị (odoo/models.py:1495). Bỏ dòng này đi là rơi về default của
+             Odoo lõi = nhóm "All", tức ô Nhóm lại hiện một giá trị nằm ngoài domain
+             của chính nó. Để trống là cố ý: buộc chọn nhóm chi tiết, vì 2 gốc
+             "Thành phẩm"/"Vật tư" nay không còn trong dropdown. -->
+        <field name="context" eval="{
+            'default_product_kind': 'material',
+            'default_categ_id': False,
             'dl_kind_scope': ['material', 'material_processed'],
-            'search_default_group_kind': 1}
-        </field>
+            'search_default_group_kind': 1,
+        }"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 Thêm vật tư đầu tiên
@@ -81,11 +88,13 @@
         <field name="domain">
             [('product_kind', 'in', ['material', 'material_processed'])]
         </field>
-        <field name="context">
-            {'default_product_kind': 'material', 'delete': False,
+        <field name="context" eval="{
+            'default_product_kind': 'material',
+            'default_categ_id': False,
+            'delete': False,
             'dl_kind_scope': ['material', 'material_processed'],
-            'search_default_group_kind': 1}
-        </field>
+            'search_default_group_kind': 1,
+        }"/>
         <field name="groups_id" eval="[(6, 0, [ref('dl_base.dl_group_admin'), ref('dl_base.dl_group_tech')])]" />
     </record>
 

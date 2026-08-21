@@ -75,8 +75,20 @@ class DlDemoSeed(models.AbstractModel):
             return
 
         self._bao_dam_cau_hinh_gia()
+        # 🔴 Nhóm là BẮT BUỘC với cả hai, không chỉ sản phẩm: từ 2026-08-21 ô
+        # Nhóm chỉ nhận nhóm CON của "Thành phẩm"/"Vật tư". Bỏ trống là Odoo lõi
+        # gán nhóm "All" — nằm ngoài mọi domain ⇒ hàng demo lọt khỏi mọi dropdown
+        # mà không lỗi nào nổ. Chính là cách hai món này thành mồ côi trước đây.
         nhom = builder.ref("dl_product.categ_khung_thep_han")
-        thep = self._tra_hoac_tao(_MAT_NAME, {"product_kind": "material"})
+        nhom_vt = builder.ref("dl_product.material_categ_steel_box")
+        if not nhom or not nhom_vt:
+            _logger.warning(
+                "dl_demo: thiếu nhóm seed (Khung thép hàn / Thép hộp) — hàng demo "
+                "sẽ rơi vào nhóm 'All' và không chọn được ở đâu.")
+        thep = self._tra_hoac_tao(_MAT_NAME, {
+            "product_kind": "material",
+            "categ_id": nhom_vt.id if nhom_vt else False,
+        })
         san_pham = self._tra_hoac_tao(_PRODUCT_NAME, {
             "product_kind": "manufactured",
             "categ_id": nhom.id if nhom else False,

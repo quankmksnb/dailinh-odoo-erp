@@ -222,30 +222,14 @@ class DlBomLineMixin(models.AbstractModel):
         factor = self.complexity_id.factor if self.complexity_id else 1.0
         self.waste_rate = (self.material_id.dlm_waste_rate or 0.0) * factor
 
-    @api.onchange("material_id", "dim_length", "dim_width", "piece_count")
-    def _onchange_dlm_auto_quantity(self):
-        """Tự điền Số lượng từ kích thước cắt — TRỪ KHI kỹ thuật bật ghi đè.
-
-        Cảnh báo MỀM khi vật tư chưa khai đủ để tự tính: nêu đúng tên field
-        thiếu thay vì để định mức im lặng ra 0."""
-        if self.is_override:
-            return
-        qty = self._dlm_auto_quantity()
-        if qty is not None and qty > 0:
-            self.quantity = qty
-        if not self.material_id:
-            return
-        missing = self.material_id._dlm_calc_missing_fields()
-        if missing:
-            return {"warning": {
-                "title": _("Vật tư chưa khai đủ"),
-                "message": _(
-                    "Vật tư “%(mat)s” còn thiếu: %(fields)s.\n"
-                    "Định mức sẽ không tự tính được — hãy bổ sung ở màn Vật tư, "
-                    "hoặc bật “Ghi đè số lượng” để nhập tay."
-                ) % {"mat": self.material_id.display_name,
-                     "fields": ", ".join(missing)},
-            }}
+    # 🔴 GỠ 2026-08-21 — onchange tự điền Số lượng từ kích thước cắt. Kỹ thuật
+    # nay khai thẳng số lượng theo đơn vị mua của vật tư ("2 cây"), nên không
+    # còn gì để tự điền, và cảnh báo mềm "vật tư chưa khai đủ quy cách" trở
+    # thành nhiễu — nó đòi một mẫu số mà không công thức nào dùng nữa.
+    #
+    # Onchange này CỐ Ý bị gỡ hẳn chứ không để nằm im: nó bám vào `material_id`,
+    # nghĩa là chỉ cần ai đó cho `dim_length` hiện lại trên form là nó âm thầm
+    # sống dậy và đè lên số kỹ thuật vừa gõ.
 
     # ==========================================================
     # THU HỒI PHẾ LIỆU
