@@ -14,6 +14,18 @@ from odoo.addons.dl_sale.models.quotation_document import (
 class DlPurchaseOrderDocument(models.Model):
     _inherit = "dl.purchase.order"
 
+    def action_dlm_open_export_wizard(self):
+        """Nút [Xuất / Gửi đơn]: mở dialog Tải về / Gửi email cho NCC."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Xuất / Gửi đơn"),
+            "res_model": "dl.purchase.order.export.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_order_id": self.id},
+        }
+
     def action_dlm_print(self):
         """Nút [In] trên đơn mua — xuất PDF gửi NCC, lưu thành đính kèm và tải về."""
         self.ensure_one()

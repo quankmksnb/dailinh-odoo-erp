@@ -24,10 +24,17 @@
         // ⚠️ Cột đơn vị nới 4% → 8% từ 2026-08-14: nhãn viết đầy đủ
         // ("Đơn vị tính" thay "ĐVT") không lọt 4% ≈ 55px, bị bẻ ba dòng. Phần
         // bù lấy từ ba cột rộng nhất, tổng vẫn đúng 100%.
-        th[data-name="product_id"] { width: 23% !important; }
+        // ⚠️ "Vị trí" chuyển sang optional="hide": màn gom nhóm theo Vị trí
+        // nên cột đó chỉ in lại tiêu đề nhóm. 19% nó nhả ra chia cho đúng hai
+        // cột trước đó phải cắt cụt chữ — "Hàng hoá" 23→34%, "Nhà cung cấp"
+        // 14→22% ("Thép Hòa Phát — Chi nhánh miền Bắc" không lọt 232px).
+        // Tổng 9 cột đang hiện = 100%.
+        th[data-name="product_id"] { width: 34% !important; }
         th[data-name="lot_id"] { width: 7% !important; }
-        th[data-name="dlm_supplier_id"] { width: 14% !important; }
+        th[data-name="dlm_supplier_id"] { width: 22% !important; }
         th[data-name="dlm_receipt_date"] { width: 6% !important; }
+        // Cột tùy chọn (optional="hide") — vẫn phải khai width, xem ghi chú ở
+        // .dl-stock-lot-list bên dưới.
         th[data-name="location_id"] { width: 19% !important; }
         th[data-name="quantity"] { width: 6% !important; }
         th[data-name="reserved_quantity"] { width: 7% !important; }

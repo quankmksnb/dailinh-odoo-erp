@@ -15,17 +15,17 @@
       "value": "en_US",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1818486617.816128,
+      "expires": 1818963270.001078,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "session_id",
-      "value": "3d0ed984193b6b47e6adc7024a18bb5dfe7b8077",
+      "value": "72cda0ad4804dad2fa993dcdde11dbc9f9d604ff",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1787555420.940646,
+      "expires": 1788032072.635709,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
@@ -35,7 +35,7 @@
       "value": "1",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1818486620.851042,
+      "expires": 1818963272.489336,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -51,7 +51,7 @@
         },
         {
           "name": "multi_tab.http_127.0.0.1_8069.heartbeat",
-          "value": "1786950620839"
+          "value": "1787427272414"
         },
         {
           "name": "presence.focus",
@@ -59,11 +59,11 @@
         },
         {
           "name": "presence.lastPresence",
-          "value": "1786950617832"
+          "value": "1787427271367"
         },
         {
           "name": "multi_tab.http_127.0.0.1_8069.last_notification_id",
-          "value": "2958"
+          "value": "3759"
         },
         {
           "name": "dlm.sidebar.activeKey",

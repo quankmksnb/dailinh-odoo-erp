@@ -39,13 +39,27 @@ class DlQuotationDocument(models.Model):
         def money(value):
             return formatLang(self.env, value or 0.0, currency_obj=currency)
 
+        decimal_point = self.env["res.lang"]._lang_get(
+            self.env.lang or "en_US").decimal_point
+
+        def qty_text(value):
+            """Số lượng gửi khách: "2" chứ không phải "2,00", nhưng 12,5 vẫn đủ.
+
+            Cùng luật với ô số lượng trên màn hình (float_trim.js) — file gửi ra
+            ngoài không được nói khác cái Sales nhìn thấy lúc duyệt."""
+            txt = formatLang(self.env, value or 0.0, digits=3)
+            if decimal_point in txt:
+                txt = txt.rstrip("0").rstrip(decimal_point)
+            return txt
+
         lines = []
         for idx, line in enumerate(self.line_ids, start=1):
             lines.append({
                 "stt": idx,
                 "name": line.name or "",
                 "qty": line.qty,
-                "qty_txt": formatLang(self.env, line.qty or 0.0),
+                "qty_txt": qty_text(line.qty),
+                "uom_txt": line.uom_id.name or "",
                 "price_unit": money(line.price_unit),
                 "subtotal": money(line.price_subtotal),
             })
@@ -166,7 +180,7 @@ class DlQuotationDocument(models.Model):
             "các hạng mục sau:")
 
         # --- Bảng dòng ---
-        headers = ["Số thứ tự", "Nội dung / Hạng mục", "Số lượng",
+        headers = ["Số thứ tự", "Nội dung / Hạng mục", "Số lượng", "ĐVT",
                    "Đơn giá", "Thành tiền"]
         table = doc.add_table(rows=1, cols=len(headers))
         table.style = "Table Grid"
@@ -180,12 +194,14 @@ class DlQuotationDocument(models.Model):
             cells[0].text = str(ln["stt"])
             cells[1].text = ln["name"]
             cells[2].text = ln["qty_txt"]
-            cells[3].text = ln["price_unit"]
-            cells[4].text = ln["subtotal"]
+            cells[3].text = ln["uom_txt"]
+            cells[4].text = ln["price_unit"]
+            cells[5].text = ln["subtotal"]
             cells[0].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             cells[2].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            cells[3].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            cells[3].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             cells[4].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            cells[5].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
         # --- Tổng hợp ---
         money = ctx["money"]
@@ -369,6 +385,7 @@ class DlQuotationDocument(models.Model):
         data = [[Paragraph("Số thứ tự", ParagraphStyle("h", parent=bold, alignment=TA_CENTER, textColor=colors.white)),
                  Paragraph("Nội dung / Hạng mục", ParagraphStyle("h2", parent=bold, textColor=colors.white)),
                  Paragraph("Số lượng", ParagraphStyle("h3", parent=bold, alignment=TA_CENTER, textColor=colors.white)),
+                 Paragraph("ĐVT", ParagraphStyle("h3b", parent=bold, alignment=TA_CENTER, textColor=colors.white)),
                  Paragraph("Đơn giá", ParagraphStyle("h4", parent=bold, alignment=TA_RIGHT, textColor=colors.white)),
                  Paragraph("Thành tiền", ParagraphStyle("h5", parent=bold, alignment=TA_RIGHT, textColor=colors.white))]]
         for ln in ctx["lines"]:
@@ -376,11 +393,13 @@ class DlQuotationDocument(models.Model):
                 Paragraph(str(ln["stt"]), center),
                 Paragraph(ln["name"], base),
                 Paragraph(ln["qty_txt"], center),
+                Paragraph(ln["uom_txt"], center),
                 Paragraph(ln["price_unit"], right),
                 Paragraph(ln["subtotal"], right),
             ])
         line_tbl = Table(
-            data, colWidths=[18 * mm, 70 * mm, 21 * mm, 31 * mm, 31 * mm],
+            data, colWidths=[15 * mm, 60 * mm, 18 * mm, 16 * mm,
+                             31 * mm, 31 * mm],
             repeatRows=1)
         line_tbl.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#34495e")),
@@ -504,6 +523,15 @@ class DlQuotationDocument(models.Model):
         self.ensure_one()
         if not self.line_ids:
             raise UserError(_("Báo giá chưa có dòng nào để xuất."))
+        # 🔴 Cổng chặn gửi khách phải bịt CẢ đường này. Xuất được file rồi gửi
+        # tay cho khách là đi vòng qua cổng — cổng còn lại chỉ là hình thức.
+        if self.dlm_send_blocked:
+            raise UserError(_(
+                "Chưa xuất được file gửi khách: giá phần vật tư phải mua thêm "
+                "chưa được Mua hàng xác nhận. Con số trên báo giá lúc này là "
+                "TẠM TÍNH theo bảng giá nhà cung cấp; xuất ra rồi gửi tay cho "
+                "khách thì vẫn là cam kết trên một con số chưa ai kiểm. Bấm "
+                "“Hỏi giá nhà cung cấp” trước."))
         return {
             "type": "ir.actions.act_window",
             "name": _("Xuất / Gửi báo giá"),

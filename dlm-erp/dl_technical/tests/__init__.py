@@ -19,3 +19,4 @@ from . import test_dl_bom_template_unit
 from . import test_dl_bom_template_param_unit
 from . import test_dl_drawing_unit
 from . import test_product_category_technical_unit
+from . import test_bom_screen_access

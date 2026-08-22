@@ -270,6 +270,7 @@
         <field name="model">product.product</field>
         <field name="arch" type="xml">
             <tree string="Vật tư chờ định giá" create="0" edit="0"
+                  class="dl-material-price-list" js_class="dl_list"
                   decoration-danger="dlm_supplier_price_state == 'none'"
                   decoration-warning="dlm_supplier_price_state == 'pending'">
                 <field name="default_code" string="Mã"/>

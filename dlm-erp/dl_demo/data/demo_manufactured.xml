@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         SẢN PHẨM GIA CÔNG (manufactured) + NHÓM THÀNH PHẨM demo.
+         Mục tiêu: đủ ~10 loại đã gia công tiêu biểu cho xưởng cơ khí sắt
+         thép. BOM THƯỜNG (vật tư cắt theo kích thước + công đoạn) dựng ở
+         post_init_hook để định mức tự tính ra số cây/tấm như luồng UI thật;
+         ở đây chỉ khai SẢN PHẨM + NHÓM + một BOM MẪU THAM SỐ (theo kích thước).
+
+         Cùng với 4 SP đã có (CT-200, Bàn thép khung hộp, Ghế băng khung thép,
+         Bàn giáo viên) → tổng 10 loại gia công.
+         noupdate="1": seed một lần, sau đó cho sửa tự do.
+    ============================================================ -->
+    <data noupdate="1">
+
+        <!-- ============ NHÓM THÀNH PHẨM MỚI (dưới gốc "Thành phẩm") ============ -->
+        <record id="categ_cong_hangrao" model="product.category">
+            <field name="name">Cổng &amp; hàng rào</field>
+            <field name="parent_id" ref="dl_product.categ_root_finished"/>
+        </record>
+        <record id="categ_ke_giado" model="product.category">
+            <field name="name">Kệ &amp; giá đỡ</field>
+            <field name="parent_id" ref="dl_product.categ_root_finished"/>
+        </record>
+        <record id="categ_cauthang_lancan" model="product.category">
+            <field name="name">Cầu thang &amp; lan can</field>
+            <field name="parent_id" ref="dl_product.categ_root_finished"/>
+        </record>
+
+        <!-- ============ SẢN PHẨM GIA CÔNG (BOM thường dựng ở hook) ============ -->
+
+        <!-- (5) Cổng 2 cánh thép hộp -->
+        <record id="demo_product_cong_2canh" model="product.product">
+            <field name="name">Cổng 2 cánh thép hộp 3000×1800</field>
+            <field name="default_code">GC-CONG-2C</field>
+            <field name="product_kind">manufactured</field>
+            <field name="categ_id" ref="categ_cong_hangrao"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+        </record>
+
+        <!-- (6) Hàng rào thép hộp mạ kẽm (một khoang tiêu chuẩn) -->
+        <record id="demo_product_hang_rao" model="product.product">
+            <field name="name">Hàng rào thép hộp mạ kẽm 2400×1500</field>
+            <field name="default_code">GC-HANGRAO</field>
+            <field name="product_kind">manufactured</field>
+            <field name="categ_id" ref="categ_cong_hangrao"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+        </record>
+
+        <!-- (7) Kệ kho 4 tầng — có BOM MẪU THAM SỐ (theo kích thước) bên dưới -->
+        <record id="demo_product_ke_kho" model="product.product">
+            <field name="name">Kệ kho 4 tầng khung thép</field>
+            <field name="default_code">GC-KEKHO</field>
+            <field name="product_kind">manufactured</field>
+            <field name="categ_id" ref="categ_ke_giado"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+        </record>
+
+        <!-- (8) Giá đỡ khuôn thép -->
+        <record id="demo_product_gia_do" model="product.product">
+            <field name="name">Giá đỡ khuôn thép 800×600×1200</field>
+            <field name="default_code">GC-GIADO</field>
+            <field name="product_kind">manufactured</field>
+            <field name="categ_id" ref="categ_ke_giado"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+        </record>
+
+        <!-- (9) Cầu thang sắt xương cá -->
+        <record id="demo_product_cau_thang" model="product.product">
+            <field name="name">Cầu thang sắt xương cá 3200×900</field>
+            <field name="default_code">GC-CAUTHANG</field>
+            <field name="product_kind">manufactured</field>
+            <field name="categ_id" ref="categ_cauthang_lancan"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+        </record>
+
+        <!-- (10) Lan can ban công thép ống -->
+        <record id="demo_product_lan_can" model="product.product">
+            <field name="name">Lan can ban công thép ống Ø34</field>
+            <field name="default_code">GC-LANCAN</field>
+            <field name="product_kind">manufactured</field>
+            <field name="categ_id" ref="categ_cauthang_lancan"/>
+            <field name="detailed_type">product</field>
+            <field name="uom_id" ref="uom.product_uom_unit"/>
+            <field name="uom_po_id" ref="uom.product_uom_unit"/>
+        </record>
+
+        <!-- ================================================================
+             BOM MẪU THAM SỐ cho "Kệ kho 4 tầng" — neo theo SẢN PHẨM (không theo
+             nhóm). KTV nhập Dài × Rộng × Cao một lần, hệ thống suy kích thước cắt
+             từng dòng (chân: 4 đoạn × C · giằng dọc: 4 đoạn × D · giằng ngang:
+             4 đoạn × R · mặt tầng: 4 tấm D×R) rồi quy ra số cây/tấm.
+        ================================================================ -->
+        <record id="demo_bom_tmpl_ke_kho" model="dl.bom.template">
+            <field name="name">Kệ kho 4 tầng (tham số D×R×C)</field>
+            <field name="product_category_id" ref="categ_ke_giado"/>
+            <field name="generic_product_id" ref="demo_product_ke_kho"/>
+            <field name="product_qty">1</field>
+            <field name="version">1</field>
+            <field name="status">confirmed</field>
+            <field name="is_current" eval="True"/>
+        </record>
+
+        <record id="demo_bom_param_ke_D" model="dl.bom.template.param">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ke_kho"/>
+            <field name="sequence">10</field>
+            <field name="code">D</field>
+            <field name="name">Chiều dài</field>
+            <field name="dim_role">length</field>
+            <field name="default_value">2000</field>
+            <field name="value_min">1000</field>
+            <field name="value_max">3000</field>
+        </record>
+        <record id="demo_bom_param_ke_R" model="dl.bom.template.param">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ke_kho"/>
+            <field name="sequence">20</field>
+            <field name="code">R</field>
+            <field name="name">Chiều rộng</field>
+            <field name="dim_role">width</field>
+            <field name="default_value">600</field>
+            <field name="value_min">400</field>
+            <field name="value_max">1000</field>
+        </record>
+        <record id="demo_bom_param_ke_C" model="dl.bom.template.param">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ke_kho"/>
+            <field name="sequence">30</field>
+            <field name="code">C</field>
+            <field name="name">Chiều cao</field>
+            <field name="dim_role">height</field>
+            <field name="default_value">2000</field>
+            <field name="value_min">1500</field>
+            <field name="value_max">2500</field>
+        </record>
+
+        <!-- Dòng 1 — 4 chân đứng: mỗi đoạn dài = C (thép hộp 40). -->
+        <record id="demo_bom_ke_line_chan" model="dl.bom.template.line">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ke_kho"/>
+            <field name="material_id" ref="dl_product.seed_mat_th_40"/>
+            <field name="piece_count">4</field>
+            <field name="note">4 chân đứng</field>
+        </record>
+        <record id="demo_bom_map_ke_chan" model="dl.bom.template.line.param.map">
+            <field name="template_line_id" ref="demo_bom_ke_line_chan"/>
+            <field name="target_field">dim_length</field>
+            <field name="param_id" ref="demo_bom_param_ke_C"/>
+            <field name="factor">1</field>
+        </record>
+
+        <!-- Dòng 2 — giằng dọc: 4 đoạn (2 mỗi bên) dài = D (thép hộp 30×60). -->
+        <record id="demo_bom_ke_line_doc" model="dl.bom.template.line">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ke_kho"/>
+            <field name="material_id" ref="dl_product.seed_mat_th_30x60"/>
+            <field name="piece_count">4</field>
+            <field name="note">Giằng dọc các tầng</field>
+        </record>
+        <record id="demo_bom_map_ke_doc" model="dl.bom.template.line.param.map">
+            <field name="template_line_id" ref="demo_bom_ke_line_doc"/>
+            <field name="target_field">dim_length</field>
+            <field name="param_id" ref="demo_bom_param_ke_D"/>
+            <field name="factor">1</field>
+        </record>
+
+        <!-- Dòng 3 — giằng ngang: 4 đoạn dài = R (thép hộp 30×60). -->
+        <record id="demo_bom_ke_line_ngang" model="dl.bom.template.line">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ke_kho"/>
+            <field name="material_id" ref="dl_product.seed_mat_th_30x60"/>
+            <field name="piece_count">4</field>
+            <field name="note">Giằng ngang các tầng</field>
+        </record>
+        <record id="demo_bom_map_ke_ngang" model="dl.bom.template.line.param.map">
+            <field name="template_line_id" ref="demo_bom_ke_line_ngang"/>
+            <field name="target_field">dim_length</field>
+            <field name="param_id" ref="demo_bom_param_ke_R"/>
+            <field name="factor">1</field>
+        </record>
+
+        <!-- Dòng 4 — mặt tầng: 4 tấm cắt D × R (thép cuộn). -->
+        <record id="demo_bom_ke_line_mat" model="dl.bom.template.line">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ke_kho"/>
+            <field name="material_id" ref="dl_product.demo_product_thep_cuon"/>
+            <field name="piece_count">4</field>
+            <field name="note">4 mặt tầng</field>
+        </record>
+        <record id="demo_bom_map_ke_mat_len" model="dl.bom.template.line.param.map">
+            <field name="template_line_id" ref="demo_bom_ke_line_mat"/>
+            <field name="target_field">dim_length</field>
+            <field name="param_id" ref="demo_bom_param_ke_D"/>
+        </record>
+        <record id="demo_bom_map_ke_mat_wid" model="dl.bom.template.line.param.map">
+            <field name="template_line_id" ref="demo_bom_ke_line_mat"/>
+            <field name="target_field">dim_width</field>
+            <field name="param_id" ref="demo_bom_param_ke_R"/>
+        </record>
+
+        <!-- Dòng 5 — bulông liên kết: số lượng cố định. -->
+        <record id="demo_bom_ke_line_bulong" model="dl.bom.template.line">
+            <field name="bom_template_id" ref="demo_bom_tmpl_ke_kho"/>
+            <field name="material_id" ref="dl_product.seed_mat_ocvit_m8"/>
+            <field name="quantity">32</field>
+            <field name="note">Bulông liên kết (cố định)</field>
+        </record>
+
+    </data>
+</odoo>

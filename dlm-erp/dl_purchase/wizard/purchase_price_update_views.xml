@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_dl_purchase_price_update_wizard" model="ir.ui.view">
+        <field name="name">dl.purchase.price.update.wizard.form</field>
+        <field name="model">dl.purchase.price.update.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Cập nhật bảng giá nhà cung cấp">
+                <field name="is_rfq" invisible="1"/>
+                <div class="alert alert-info mb-2" role="status"
+                     invisible="is_rfq">
+                    Giá dưới đây vừa chốt trên đơn mua này — bằng chứng mạnh nhất
+                    về giá thị trường. Áp dụng thì mọi báo giá mới sẽ dùng nó.
+                    <br/>
+                    <b>Bỏ tick “Áp dụng ngay”</b> nếu chuyến này cá biệt (mua gấp,
+                    mua lẻ, số lượng nhỏ) — giá vẫn được lưu làm lịch sử.
+                </div>
+                <div class="alert alert-info mb-2" role="status"
+                     invisible="not is_rfq">
+                    Giá dưới đây là giá nhà cung cấp VỪA BÁO cho báo giá đang chờ.
+                    Xác nhận thì giá vào bảng và báo giá được tính lại theo đúng
+                    con số này — gửi khách được ngay. Đơn mua vẫn nằm ở nấc
+                    “Đã gửi hỏi giá”, <b>chưa cam kết mua</b>.
+                    <br/>
+                    <b>Bỏ tick “Áp dụng ngay”</b> nếu đây là giá cá biệt — nhưng
+                    khi đó báo giá vẫn chạy giá cũ trong bảng.
+                </div>
+                <field name="order_id" invisible="1"/>
+                <field name="line_ids" nolabel="1">
+                    <tree editable="bottom" create="false" delete="false">
+                        <field name="selected" string="Cập nhật" width="80"/>
+                        <field name="product_id" readonly="1"/>
+                        <field name="qty" readonly="1" width="110"/>
+                        <field name="old_price" readonly="1" widget="dl_money" width="150"/>
+                        <field name="new_price" readonly="1" widget="dl_money" width="150"/>
+                        <field name="gap_pct" readonly="1" width="100"
+                               decoration-danger="gap_pct &gt; 10"
+                               decoration-success="gap_pct &lt; 0"/>
+                        <field name="apply_now" string="Áp dụng ngay" width="120"
+                               readonly="not selected"/>
+                    </tree>
+                </field>
+                <footer>
+                    <button name="action_confirm" string="Xác nhận"
+                            type="object" class="btn-primary"/>
+                    <button string="Huỷ" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

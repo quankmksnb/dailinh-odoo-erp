@@ -130,10 +130,16 @@ class TestPriceManufactured(unittest.TestCase):
                                 resolved_bom_id=bom, product_name="Khung thép A")
 
     @staticmethod
-    def _direct_cost(bom, qty, material_unit, operation_cost=0.0, unit_specs=None, batch_specs=None):
+    def _direct_cost(bom, qty, material_unit, operation_cost=0.0, unit_specs=None,
+                      batch_specs=None, material_unit_repl=None):
+        # material_unit_repl (2026-08-21+): giá vật tư MUA LẠI dùng để tính
+        # floor_price (§5.2, "giá sàn theo giá mua lại, không theo giá vốn lô
+        # cũ"). Mặc định bằng material_unit khi test không cố tình tách 2 giá.
         return {
             "bom": bom, "qty": qty,
-            "material_unit": material_unit, "operation_cost": operation_cost,
+            "material_unit": material_unit,
+            "material_unit_repl": material_unit if material_unit_repl is None else material_unit_repl,
+            "operation_cost": operation_cost,
             "unit_specs": unit_specs or [], "batch_specs": batch_specs or [],
         }
 
@@ -164,10 +170,13 @@ class TestPriceManufactured(unittest.TestCase):
         self.assertEqual(markup_comp["component_type"], "markup")
         self.assertEqual(markup_comp["amount"], 60000.0)
 
-    def test_price_manufactured_rounding_can_cross_below_floor(self):
-        """TC-UNIT-DlQuotationPricingService-009: rounding_to=1000 khiến price_unit
-        sau làm tròn (1000) rơi xuống dưới floor_price (1050), xác nhận việc làm
-        tròn có thể đẩy giá vượt xuống dưới floor."""
+    def test_price_manufactured_rounding_below_floor_is_ceiled_up(self):
+        """TC-UNIT-DlQuotationPricingService-009: đảo chiều 2026-08-21. Trước
+        đây rounding_to=1000 khiến price_unit làm tròn (1000) rơi xuống dưới
+        floor_price (1050) mà hệ thống không tự sửa — đúng lỗ hổng đã chốt
+        vá: nay khi price_unit làm tròn HALF-UP thấp hơn floor, hệ thống phải
+        ceil price_unit lên bội số 1000 gần nhất TỪ floor (2000), không bao
+        giờ chào dưới giá sàn."""
         rfq_line = self._rfq_line(qty=1)
         profit_rule = SimpleNamespace(id=99, revision=1, target_markup=20.0, min_markup=5.0)
         context = {"rounding_to": 1000, "profit_rule": profit_rule}
@@ -175,9 +184,9 @@ class TestPriceManufactured(unittest.TestCase):
         with patch.object(DlQuotationPricingService, "_manufactured_direct_cost",
                            return_value=dc):
             vals, _comps = _svc()._price_manufactured(rfq_line, context)
-        self.assertEqual(vals["price_unit"], 1000.0)
         self.assertEqual(vals["floor_price"], 1050.0)
-        self.assertLess(vals["price_unit"], vals["floor_price"])
+        self.assertEqual(vals["price_unit"], 2000.0)
+        self.assertGreaterEqual(vals["price_unit"], vals["floor_price"])
 
     def test_price_manufactured_no_profit_rule_raises_qte005(self):
         """TC-UNIT-DlQuotationPricingService-010: không có profit_rule (None), kỳ
@@ -236,9 +245,13 @@ class TestBomUnitCost(unittest.TestCase):
         )
         bl = self._bom_line(material, effective_qty=10.0, quantity=10.0, recovery_value=0.0)
         bom = SimpleNamespace(id=1, product_qty=2.0, line_ids=[bl])
-        material_unit, op_var_unit, specs = self._unit_cost_no_operations(
+        # _bom_unit_cost() (2026-08-21+) trả thêm material_unit_repl (giá mua
+        # lại, dùng tính floor_price ở _price_manufactured). Không có seller
+        # nào khác để phân biệt giá mua lại nên bằng đúng material_unit.
+        material_unit, material_unit_repl, op_var_unit, specs = self._unit_cost_no_operations(
             bom, context={"currency": "VND", "pricing_date": "2026-07-01"}, visited=frozenset())
         self.assertEqual(material_unit, 250.0)
+        self.assertEqual(material_unit_repl, 250.0)
         self.assertEqual(op_var_unit, 0.0)
         self.assertEqual(len(specs), 1)
         self.assertEqual(specs[0]["amount"], 250.0)

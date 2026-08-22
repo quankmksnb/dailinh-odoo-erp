@@ -67,7 +67,10 @@ class TestPricingUi(TransactionCase):
     def test_get_bootstrap_perms_differ_by_role(self):
         """TC-UNIT-DlPricingUi-003: get_bootstrap()["perms"] trả về quyền khác nhau
         theo vai trò: KTV chỉ có quyền waste, không có profit/discount; Giám đốc có
-        đủ profit, discount và self_approve."""
+        đủ profit, discount và self_approve; Trưởng KD có discount/approval/
+        matrix_propose nhưng không có profit/matrix/self_approve (không được
+        thấy giá bán cuối/tự duyệt, chỉ được đề xuất); Admin/IT có đủ mọi
+        quyền như Giám đốc."""
         tech_user = self.env["res.users"].create({
             "name": "KTV test DlPricingUi", "login": "ktv_pricingui_test",
             "groups_id": [(6, 0, [
@@ -82,11 +85,45 @@ class TestPricingUi(TransactionCase):
                 self.env.ref("dl_base.dl_group_ceo").id,
             ])],
         })
+        sales_manager_user = self.env["res.users"].create({
+            "name": "Trưởng KD test DlPricingUi", "login": "salesmgr_pricingui_test",
+            "groups_id": [(6, 0, [
+                self.env.ref("base.group_user").id,
+                self.env.ref("dl_base.dl_group_sales_manager").id,
+            ])],
+        })
+        admin_user = self.env["res.users"].create({
+            "name": "Admin test DlPricingUi", "login": "admin_pricingui_test",
+            "groups_id": [(6, 0, [
+                self.env.ref("base.group_user").id,
+                self.env.ref("dl_base.dl_group_admin").id,
+            ])],
+        })
         tech_perms = self.Ui.with_user(tech_user).get_bootstrap()["perms"]
         ceo_perms = self.Ui.with_user(ceo_user).get_bootstrap()["perms"]
+        sales_manager_perms = self.Ui.with_user(sales_manager_user).get_bootstrap()["perms"]
+        admin_perms = self.Ui.with_user(admin_user).get_bootstrap()["perms"]
+
         self.assertTrue(tech_perms["waste"])
         self.assertFalse(tech_perms["profit"])
         self.assertFalse(tech_perms["discount"])
+
         self.assertTrue(ceo_perms["profit"])
         self.assertTrue(ceo_perms["discount"])
         self.assertTrue(ceo_perms["self_approve"])
+        self.assertTrue(ceo_perms["matrix"])
+
+        self.assertFalse(sales_manager_perms["waste"])
+        self.assertFalse(sales_manager_perms["profit"])
+        self.assertTrue(sales_manager_perms["discount"])
+        self.assertTrue(sales_manager_perms["approval"])
+        self.assertTrue(sales_manager_perms["matrix_propose"])
+        self.assertFalse(sales_manager_perms["matrix"],
+                          "Trưởng KD chỉ được ĐỀ XUẤT ma trận duyệt, không được kích hoạt/ngừng")
+        self.assertFalse(sales_manager_perms["self_approve"],
+                          "Trưởng KD không được tự duyệt cấu hình thương mại")
+
+        for key in ("waste", "operation", "cost", "profit", "discount",
+                    "self_approve", "approval", "matrix", "matrix_propose", "master"):
+            self.assertTrue(admin_perms[key],
+                             "Admin/IT phải có đủ mọi quyền cấu hình báo giá (%s)" % key)

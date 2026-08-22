@@ -35,8 +35,11 @@ const PRODUCT_CHILDREN = [
     ],
   },
   {
+    // 1 mục duy nhất cho cả cây nhóm. Mục "Nhóm vật tư" riêng đã gỡ: nó chỉ là
+    // cùng màn này lọc sẵn nhánh Vật tư, còn quyền ghi theo nhánh do record
+    // rule quyết định chứ không do menu.
     key: "categories",
-    name: "Danh mục",
+    name: "Nhóm sản phẩm",
     icon: "fa-cubes",
     preferMenu: true,
     menuXmlIds: [
@@ -58,15 +61,10 @@ const PRICING_CHILDREN = [
     menuXmlIds: ["dl_product.menu_dl_material_needs_price"],
   },
   {
-    key: "trading_price",
-    name: "Bảng giá sản phẩm thương mại",
-    icon: "fa-tags",
-    preferMenu: true,
-    // 1 màn product-centric duy nhất; action tự lọc quyền theo vai trò
-    // (Mua hàng/Admin sửa, quản lý chỉ xem).
-    menuXmlIds: ["dl_product.menu_dl_pricing_trading"],
-  },
-  {
+    // Ngay sau hòm việc: mạch của Mua hàng là "vật tư nào chưa có giá" → "vào
+    // nhập giá NCC cho nó". Bản trước chen Bảng giá SP thương mại vào giữa hai
+    // bước đó. Đánh đổi: CEO/Trưởng KD chỉ thấy 2 mục ở nhóm này và bảng giá
+    // SP thương mại (giá BÁN — thứ họ chốt) nay là mục thứ 2.
     key: "material_price",
     name: "Bảng giá Vật tư",
     icon: "fa-list-alt",
@@ -75,6 +73,15 @@ const PRICING_CHILDREN = [
       "dl_product.menu_dl_pricing_material",
       "dl_product.menu_dl_pricing_material_view",
     ],
+  },
+  {
+    key: "trading_price",
+    name: "Bảng giá sản phẩm thương mại",
+    icon: "fa-tags",
+    preferMenu: true,
+    // 1 màn product-centric duy nhất; action tự lọc quyền theo vai trò
+    // (Mua hàng/Admin sửa, quản lý chỉ xem).
+    menuXmlIds: ["dl_product.menu_dl_pricing_trading"],
   },
 ];
 

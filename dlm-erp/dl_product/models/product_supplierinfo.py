@@ -146,6 +146,74 @@ class ProductSupplierinfo(models.Model):
             else:
                 rec.display_state = "draft"
 
+    # Trên list Bảng giá, dòng của NCC "phương án khác" được thụt vào làm dòng
+    # phụ dưới giá đang dùng. Điều kiện nói theo BẢN GHI (không phụ thuộc thứ tự
+    # sắp xếp của list) nên giá trị ổn định dù người dùng đổi cách sắp/lọc.
+    dlm_is_alternative = fields.Boolean(
+        string="Giá NCC phương án khác",
+        compute="_compute_dlm_is_alternative",
+        help="Vật tư này đã có một bảng giá đang áp dụng, và dòng này không phải "
+        "bảng giá đó.",
+    )
+
+    def _dlm_applied_partner_by_tmpl(self):
+        """{vật tư: nhà cung cấp} của dòng giá ĐANG áp dụng, cho các vật tư trong
+        recordset — dùng để biết một dòng phụ là của CHÍNH nhà cung cấp đó hay
+        của nhà cung cấp khác."""
+        tmpl_ids = self.product_tmpl_id.ids
+        if not tmpl_ids:
+            return {}
+        rows = self.env["product.supplierinfo"].sudo().search(
+            [("product_tmpl_id", "in", tmpl_ids), ("is_applied", "=", True)])
+        return {r.product_tmpl_id.id: r.partner_id.id for r in rows}
+
+    @api.depends("is_applied", "product_tmpl_id")
+    def _compute_dlm_is_alternative(self):
+        applied = self._dlm_applied_partner_by_tmpl()
+        for rec in self:
+            rec.dlm_is_alternative = (
+                not rec.is_applied and rec.product_tmpl_id.id in applied
+            )
+
+    # Chữ in ở cột Vật tư của dòng phụ. Trước đây JS in cứng "Nhà cung cấp khác"
+    # cho MỌI dòng phụ — mà `dlm_is_alternative` chưa bao giờ so `partner_id`,
+    # nên giá mới của CHÍNH nhà cung cấp đang dùng cũng bị gọi là "NCC khác".
+    # Nhãn phải nói đúng dòng đó là gì, vì đó là thứ người dùng đọc để quyết định.
+    dlm_alt_label = fields.Char(
+        string="Vai trò dòng",
+        compute="_compute_dlm_alt_label",
+        help="Dòng phụ này là gì so với giá đang áp dụng ở dòng trên: giá của "
+        "nhà cung cấp khác, giá mới của chính họ, hay giá cũ đã bị thay.",
+    )
+
+    @api.depends("dlm_is_alternative", "dlm_superseded", "partner_id",
+                 "product_tmpl_id")
+    def _compute_dlm_alt_label(self):
+        applied = self._dlm_applied_partner_by_tmpl()
+        for rec in self:
+            if not rec.dlm_is_alternative:
+                rec.dlm_alt_label = False
+            elif rec.dlm_superseded:
+                rec.dlm_alt_label = _("Giá cũ — đã thay")
+            elif applied.get(rec.product_tmpl_id.id) == rec.partner_id.id:
+                rec.dlm_alt_label = _("Giá mới chờ áp dụng")
+            else:
+                rec.dlm_alt_label = _("Nhà cung cấp khác")
+
+    # `date_end` KHÔNG nói nổi "bị thay ngay trong ngày": nó không được nhỏ hơn
+    # `date_start`, nên giá hỏi lại lần hai trong cùng một ngày chỉ đóng được về
+    # đúng hôm nay ⇒ bộ lọc "Còn hiệu lực" vẫn cho lọt, và người dùng thấy hai
+    # dòng của cùng một nhà cung cấp. Cờ này mới là thứ giữ cho màn hình nói
+    # HIỆN TRẠNG. Nó không đụng gì tới giá vốn: giá đã đóng lên LÔ lúc nhận hàng
+    # (`stock.lot.dlm_unit_cost`, bất biến), nên lô cũ vẫn tính bằng giá cũ.
+    dlm_superseded = fields.Boolean(
+        string="Đã bị thay thế",
+        default=False,
+        copy=False,
+        help="Giá này đã bị một giá mới hơn của CHÍNH nhà cung cấp đó thay chỗ. "
+        "Chỉ còn giá trị tra cứu lịch sử, không dùng để tính giá nữa.",
+    )
+
     def _is_valid_on(self, target_date):
         self.ensure_one()
         return bool(
@@ -255,6 +323,7 @@ class ProductSupplierinfo(models.Model):
         when = when or fields.Datetime.now()
         self.write({
             "is_applied": True,
+            "dlm_superseded": False,
             "dlm_applied_uid": self.env.uid,
             "dlm_applied_date": when,
         })
@@ -326,6 +395,49 @@ class ProductSupplierinfo(models.Model):
             ])
             others._dlm_unapply()
             rec._dlm_apply()
+            rec._dlm_close_superseded()
+
+    # Nguồn gốc của một dòng giá. Khai lỏng (Char + Integer) vì `dl_product`
+    # đứng TRƯỚC `dl_purchase` trong đồ thị phụ thuộc nên không trỏ Many2one
+    # sang `dl.purchase.order` được. `dl_purchase` sẽ thêm Many2one thật.
+    dlm_source_note = fields.Char(
+        string="Nguồn giá", readonly=True, copy=False,
+        help="Giá này ở đâu ra: nhập tay, hay chốt từ một đơn mua cụ thể. "
+             "Không có nó thì bảng giá là một danh sách con số vô chủ.")
+
+    def _dlm_close_superseded(self):
+        """Đóng `Đến ngày` cho các bảng giá CŨ của cùng vật tư + cùng nhà cung cấp.
+
+        Giá cũ bị thay thế thì đúng nghĩa là ĐÃ HẾT HIỆU LỰC — cột "Đến ngày" bỏ
+        trống chính là chỗ nói dối: màn hình ghi "Còn hiệu lực / Đã duyệt" cho một
+        dòng đã chết 8 tháng, và người dùng bỏ áp dụng dòng hiện hành rồi áp nhầm
+        dòng đó là mọi báo giá mới tính theo giá cũ, không một cảnh báo nào.
+
+        Đóng ngày xong thì `_ensure_currently_valid` sẵn có TỰ chặn ca áp nhầm —
+        không phải viết thêm lá chắn nào.
+
+        🔴 Chỉ đụng CÙNG nhà cung cấp. Giá của NCC khác là chào giá song song
+        (Hoà Phát 215.000 đang áp dụng vs Phú Thịnh 275.000 chờ) — đóng nó là
+        xoá mất lựa chọn thay thế."""
+        for rec in self:
+            moc = rec.date_start or fields.Date.context_today(rec)
+            cu = self.sudo().search([
+                ("product_tmpl_id", "=", rec.product_tmpl_id.id),
+                ("partner_id", "=", rec.partner_id.id),
+                ("id", "!=", rec.id),
+                ("date_end", "=", False),
+                ("date_start", "<=", moc),
+            ])
+            for dong in cu:
+                # max(...) để không bao giờ đẻ ra date_end < date_start — thép
+                # đổi giá hai lần trong một ngày là chuyện có thật. Chính ca đó
+                # làm `date_end` đóng về đúng HÔM NAY và dòng cũ vẫn lọt bộ lọc
+                # "Còn hiệu lực", nên phải đánh dấu thêm bằng cờ.
+                dong.write({
+                    "date_end": max(dong.date_start, moc - relativedelta(days=1)),
+                    "dlm_superseded": True,
+                })
+        return True
 
     def action_unset_applied(self):
         self._check_price_manager()

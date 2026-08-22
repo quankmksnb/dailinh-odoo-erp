@@ -1,9 +1,11 @@
+from datetime import timedelta
+
 from psycopg2 import IntegrityError
-from markupsafe import escape
+from markupsafe import Markup, escape
 
 from odoo import fields, models, _
 from odoo.exceptions import UserError
-from odoo.tools import float_is_zero, float_round
+from odoo.tools import float_compare, float_is_zero, float_round
 
 # ---------------------------------------------------------------------------
 # Các câu báo lỗi bung ra hộp thoại đỏ khi Sales bấm "Tạo báo giá" trên RFQ —
@@ -254,6 +256,14 @@ class DlQuotationPricingService(models.AbstractModel):
         return float_round(value, precision_rounding=float(rounding_to),
                            rounding_method="HALF-UP")
 
+    @staticmethod
+    def _ceil_price(value, rounding_to):
+        """Làm tròn LÊN bội số cấu hình — dùng khi phải bảo đảm không tụt dưới sàn."""
+        if not rounding_to or rounding_to <= 0:
+            return value
+        return float_round(value, precision_rounding=float(rounding_to),
+                           rounding_method="UP")
+
     def _validate_rfq(self, rfq, context):
         """Soát RFQ trước khi tính: đủ điều kiện thì mới chạy, thiếu gì thì báo
         lỗi nêu đích danh chỗ phải sửa."""
@@ -321,10 +331,27 @@ class DlQuotationPricingService(models.AbstractModel):
             "currency_id": context["currency"].id,
             "pricing_date": context["pricing_date"],
             "date_order": context["pricing_date"],
+            "validity_date": self._validity_date_for(context["pricing_date"]),
             "discount_pct": context["discount_pct"],
             "vat_pct": context["vat_pct"],
             "state": "draft",
         }
+
+    def _validity_date_for(self, pricing_date):
+        """Hạn hiệu lực = ngày báo giá + N ngày (mặc định 7).
+
+        Giá thép trượt theo ngày nên cam kết giá dài là tự nhận rủi ro thị
+        trường. Bảy ngày là hạn mặc định; đổi bằng tham số hệ thống
+        `dl_sale.quotation_validity_days` chứ không sửa code."""
+        return pricing_date + timedelta(days=self._validity_days())
+
+    def _validity_days(self):
+        raw = self.env["ir.config_parameter"].sudo().get_param(
+            "dl_sale.quotation_validity_days")
+        try:
+            return max(1, int(raw)) if raw else 7
+        except (TypeError, ValueError):
+            return 7
 
     def _create_quotation_line(self, quotation, rfq_line, context):
         """Đẻ một dòng báo giá + các cấu phần giá của nó (dữ liệu nuôi bảng
@@ -338,6 +365,9 @@ class DlQuotationPricingService(models.AbstractModel):
             quotation_id=quotation.id,
             rfq_line_id=rfq_line.id,
             qty=rfq_line.quantity,
+            # Đơn vị khách đặt hàng theo — đi kèm số lượng, không suy lại từ
+            # sản phẩm: RFQ là chỗ duy nhất biết khách hỏi "bộ" hay "mét".
+            uom_id=rfq_line.uom_id.id,
         )
         line = self.env["dl.quotation.line"].sudo().create(vals)
 
@@ -391,8 +421,12 @@ class DlQuotationPricingService(models.AbstractModel):
         qty = rfq_line.quantity
         # Vật tư + tiền công tính theo đơn vị. BOM lồng BOM thì đệ quy xuống,
         # tiền công của bán thành phẩm tự nằm trong giá vốn của nó.
-        material_unit, op_var_unit, unit_specs = self._bom_unit_cost(
-            bom, context, visited=frozenset())
+        # order_qty đi xuống tận dòng vật tư: giá vật tư có thể phụ thuộc TỔNG
+        # số phải mua cho cả dòng (phần lấy từ kho theo giá lô, phần thiếu theo
+        # giá mua mới) — tính trên 1 sp thì không biết lấy được bao nhiêu từ kho.
+        material_unit, material_unit_repl, op_var_unit, unit_specs = \
+            self._bom_unit_cost(bom, context, visited=frozenset(),
+                                order_qty=qty)
         # Phí tính theo LÔ (setup máy…): trả một lần cho cả mẻ nên cộng một lần
         # rồi chia đều cho số lượng đặt — đặt càng nhiều càng rẻ trên đầu sp.
         batch_total, batch_specs = self._bom_batch_cost(bom, context)
@@ -401,6 +435,10 @@ class DlQuotationPricingService(models.AbstractModel):
             "bom": bom,
             "qty": qty,
             "material_unit": material_unit,
+            # Tiền vật tư nếu phải MUA LẠI TẤT CẢ theo giá hiện hành — nuôi giá
+            # sàn. Bằng material_unit khi không có lớp trộn giá kho (dl_sale
+            # chạy một mình).
+            "material_unit_repl": material_unit_repl,
             "operation_cost": op_var_unit + op_setup_unit,
             "unit_specs": unit_specs,
             "batch_specs": batch_specs,
@@ -443,8 +481,32 @@ class DlQuotationPricingService(models.AbstractModel):
         target_markup = profit_rule.target_markup
         min_markup = profit_rule.min_markup
         target_price = total_cost * (1 + target_markup / 100.0)
+
+        # 🔴 GIÁ SÀN tính trên giá vật tư MUA LẠI, không trên giá vốn lô cũ.
+        # Giá thành nói "đơn NÀY lãi bao nhiêu"; giá sàn giữ "lần SAU còn làm
+        # được không". Lấy sàn theo lô cũ rẻ là mỗi vòng giá thép tăng lại tụt
+        # một nấc biên, sổ vẫn lãi mà tiền thì hụt dần.
+        direct_cost_repl = dc["material_unit_repl"] + operation_cost
+        adjustment_cost_repl, _repl_specs = self._apply_cost_adjustments(
+            direct_cost_repl, context, qty)
+        total_cost_repl = direct_cost_repl + adjustment_cost_repl
+        floor_price = total_cost_repl * (1 + min_markup / 100.0)
+
+        # 🔴 Giá sàn là SÀN CỨNG, không phải cờ báo động.
+        # Giá thành ăn theo lô cũ rẻ, còn sàn neo giá mua lại: hễ tồn kho rẻ hơn
+        # giá mua lại quá (target − min) markup thì markup mục tiêu KHÔNG với tới
+        # sàn, và mọi báo giá loại này tự động "dưới giá sàn" ⇒ phải xin duyệt.
+        # Với thép trượt giá theo ngày thì đó là gần như mọi báo giá — cảnh báo
+        # nổ liên tục thì thành nhiễu, và nhiễu thì không ai đọc.
+        # Nâng lên đúng sàn là quyết định kinh doanh đúng: không bao giờ chào
+        # dưới mức mua lại được hàng. Phần chênh do giữ hàng giá rẻ vẫn nằm
+        # nguyên trong lãi thật, chỉ là không đem cho khách.
         price_unit = self._round_price(target_price, context["rounding_to"])
-        floor_price = total_cost * (1 + min_markup / 100.0)
+        if float_compare(price_unit, floor_price, precision_digits=2) < 0:
+            # 🔴 Làm tròn phải theo hướng LÊN ở đây. `_round_price` dùng HALF-UP
+            # nên 259.200 → 259.000, tức là nâng lên sàn xong lại rơi xuống dưới
+            # sàn 200đ — sai mà nhìn như đúng. Ca này bắt buộc ceil.
+            price_unit = self._ceil_price(floor_price, context["rounding_to"])
 
         vals = {
             "name": rfq_line.resolved_product_id.display_name or rfq_line.product_name,
@@ -460,6 +522,9 @@ class DlQuotationPricingService(models.AbstractModel):
             "operation_cost": operation_cost,
             "adjustment_cost": adjustment_cost,
             "total_cost": total_cost,
+            # Giá thành nếu phải mua lại toàn bộ vật tư theo giá hiện hành —
+            # hiện lên trang Phân tích giá thành để thấy phần "lãi giữ hàng".
+            "replacement_cost": total_cost_repl,
             "base_price": target_price,
             "price_unit": price_unit,
             "floor_price": floor_price,
@@ -479,6 +544,12 @@ class DlQuotationPricingService(models.AbstractModel):
                 "unit_price": spec["unit_price"],
                 "rate": spec.get("rate", 0.0),
                 "amount": spec["amount"] * qty,
+                # KHÔNG nhân qty: hai con số này tính từ tổng nhu cầu của cả
+                # dòng ngay từ đầu (xem need_factor ở _bom_unit_cost).
+                "dlm_qty_from_stock": spec.get("dlm_qty_from_stock", 0.0),
+                "dlm_qty_to_buy": spec.get("dlm_qty_to_buy", 0.0),
+                "dlm_buy_price": spec.get("dlm_buy_price", 0.0),
+                "dlm_price_note": spec.get("dlm_price_note", ""),
             })
         # Phí theo lô đã là tổng cho cả dòng rồi nên KHÔNG nhân qty nữa; cột
         # đơn giá chỉ để hiển thị phần chia trên đầu sản phẩm.
@@ -571,12 +642,15 @@ class DlQuotationPricingService(models.AbstractModel):
         dòng BOM luôn ra cùng một con số giá vốn."""
         return self.env["dl.bom"].sudo()._standard_child_bom(material)
 
-    def _bom_unit_cost(self, bom, context, visited):
+    def _bom_unit_cost(self, bom, context, visited, order_qty=1.0):
         """Vật tư + tiền công (phần theo đơn vị) cho MỘT sản phẩm của BOM này.
 
-        Trả về (tiền vật tư/sp, tiền công biến đổi/sp, danh sách cấu phần).
-        Phần phí theo LÔ (setup) không tính ở đây mà ở _bom_batch_cost cho BOM
-        ngoài cùng.
+        Trả về (tiền vật tư/sp, tiền vật tư mua-lại/sp, tiền công biến đổi/sp,
+        danh sách cấu phần). Phần phí theo LÔ (setup) không tính ở đây mà ở
+        _bom_batch_cost cho BOM ngoài cùng.
+
+        ``order_qty`` là số sản phẩm của CẢ DÒNG báo giá — cần để biết tổng nhu
+        cầu từng vật tư, vì giá vật tư có thể phụ thuộc lượng lấy được từ kho.
 
         BOM lồng BOM: gặp một bán thành phẩm thì gọi đệ quy xuống, giá vốn bán
         thành phẩm = vật tư + tiền công của chính nó, nên tiền công cắt/hàn/sơn
@@ -591,21 +665,27 @@ class DlQuotationPricingService(models.AbstractModel):
 
         specs = []
         total_output_cost = 0.0  # chi phí vật tư cho product_qty đơn vị đầu ra
+        total_output_repl = 0.0  # nt, nhưng theo giá MUA LẠI (nuôi giá sàn)
         line_net = {}            # bl.id -> chi phí thuần dòng (cho product_qty)
+        # Quy đổi "định mức cho cả mẻ" → "tổng nhu cầu của cả dòng báo giá".
+        need_factor = order_qty / bom.product_qty if bom.product_qty else 0.0
         for bl in bom.line_ids:
             material = bl.material_id
             if not material:
                 raise UserError(QTE_004 % bom.display_name)
 
+            total_need = bl.effective_qty * need_factor
             if material.product_kind == "material_processed":
                 # Dòng này là bán thành phẩm ⇒ đệ quy xuống BOM của nó.
                 child = self._resolve_child_bom(material)
                 if not child:
                     raise UserError(QTE_004 % material.display_name)
-                child_mat, child_op, _child_specs = self._bom_unit_cost(
-                    child, context, visited)
+                child_mat, child_repl, child_op, _child_specs = \
+                    self._bom_unit_cost(child, context, visited,
+                                        order_qty=total_need)
                 # Giá vốn bán thành phẩm = vật tư + tiền công của chính nó.
                 unit_price = child_mat + child_op
+                unit_price_repl = child_repl + child_op
                 spec_base = {
                     "component_type": "processed_material",
                     "source_model": "dl.bom",
@@ -613,22 +693,28 @@ class DlQuotationPricingService(models.AbstractModel):
                     "source_revision": child.version,
                 }
             else:
-                # Vật tư thô mua ngoài ⇒ lấy giá NCC đã duyệt, đang áp dụng.
-                seller = self._active_material_seller(material, context)
-                if not seller or seller.price <= 0:
-                    raise UserError(QTE_003 % material.display_name)
-                self._check_measure_compatibility(bl, material, seller, context)
-                unit_price = seller.price
+                # Vật tư thô mua ngoài. Giá do _material_unit_price quyết định:
+                # bản gốc ở đây là giá NCC đang áp dụng; dl_purchase ghi đè để
+                # trộn giá lô còn trong kho với giá mua mới cho phần thiếu.
+                price_info = self._material_unit_price(
+                    material, total_need, context, bom_line=bl)
+                unit_price = price_info["unit_price"]
+                unit_price_repl = price_info["replacement_price"]
                 spec_base = {
                     "component_type": "material",
-                    "source_model": "product.supplierinfo",
-                    "source_id": seller.id,
+                    "source_model": price_info["source_model"],
+                    "source_id": price_info["source_id"],
                     "source_revision": 0,
+                    "dlm_price_note": price_info.get("note") or "",
+                    "dlm_qty_from_stock": price_info.get("qty_from_stock", 0.0),
+                    "dlm_qty_to_buy": price_info.get("qty_to_buy", 0.0),
+                    "dlm_buy_price": price_info.get("buy_price", 0.0),
                 }
 
             amount = bl.effective_qty * unit_price  # cho cả mẻ product_qty
             net = amount
             total_output_cost += amount
+            total_output_repl += bl.effective_qty * unit_price_repl
             spec_base.update(
                 material_id=material.id,
                 qty=bl.effective_qty,
@@ -644,6 +730,7 @@ class DlQuotationPricingService(models.AbstractModel):
             line_net[bl.id] = net
 
         material_unit = total_output_cost / bom.product_qty
+        material_unit_repl = total_output_repl / bom.product_qty
         # Quy các cấu phần vật tư về một đơn vị đầu ra.
         for spec in specs:
             spec["qty"] /= bom.product_qty
@@ -654,7 +741,32 @@ class DlQuotationPricingService(models.AbstractModel):
         op_var_unit, op_specs = self._bom_operation_variable_cost(
             bom, context, material_unit, line_net)
         specs.extend(op_specs)
-        return material_unit, op_var_unit, specs
+        return material_unit, material_unit_repl, op_var_unit, specs
+
+    def _material_unit_price(self, material, total_need, context, bom_line=None):
+        """Đơn giá một vật tư thô để tính giá thành — điểm nối cho lớp trộn giá kho.
+
+        Bản gốc (dl_sale chạy một mình): giá bảng NCC đang áp dụng, và giá mua
+        lại bằng đúng giá đó. `dl_purchase` ghi đè để lấy giá lô còn trong kho
+        cho phần có sẵn và giá mua mới cho phần thiếu.
+
+        Trả dict: unit_price (nuôi giá thành) · replacement_price (nuôi giá sàn)
+        · source_model/source_id · note · qty_from_stock · qty_to_buy."""
+        seller = self._active_material_seller(material, context)
+        if not seller or seller.price <= 0:
+            raise UserError(QTE_003 % material.display_name)
+        if bom_line is not None:
+            self._check_measure_compatibility(bom_line, material, seller, context)
+        return {
+            "unit_price": seller.price,
+            "replacement_price": seller.price,
+            "buy_price": seller.price,
+            "source_model": "product.supplierinfo",
+            "source_id": seller.id,
+            "note": "",
+            "qty_from_stock": 0.0,
+            "qty_to_buy": total_need,
+        }
 
     def _bom_operation_variable_cost(self, bom, context, material_unit, line_net):
         """Tiền công cắt/hàn/sơn cho MỘT sản phẩm (chưa gồm phí setup theo lô).
@@ -801,6 +913,133 @@ class DlQuotationPricingService(models.AbstractModel):
             quotation,
             reason=_("Báo giá %s phát sinh điều kiện cần phê duyệt.") % quotation.name,
         )
+
+    # ------------------------------------------------------------------
+    # Tính lại giá theo thị trường hôm nay
+    # ------------------------------------------------------------------
+    def recompute_quotation(self, quotation, extend_validity=True, reason=None):
+        """Tính lại toàn bộ tiền của một báo giá theo giá đầu vào HÔM NAY.
+
+        Khác `create_from_rfq`: giữ nguyên bản ghi báo giá (số hiệu, khách,
+        chiết khấu Sales đã nhập, lịch sử chatter) và chỉ dựng lại dòng + cấu
+        phần. Dùng khi báo giá quá hạn mà khách mới chốt, hoặc khi Mua hàng vừa
+        cập nhật giá nhà cung cấp cho vật tư đang thiếu.
+
+        Trả dict chênh lệch để nơi gọi hiện lên màn."""
+        quotation.ensure_one()
+        Quotation = self.env["dl.quotation"]
+        if quotation.state in Quotation._CLOSED_STATES or quotation.state == "ordered":
+            raise UserError(_(
+                "Báo giá %s đã đóng hoặc đã lên đơn — không tính lại được. "
+                "Hãy tạo bản báo giá mới."
+            ) % quotation.name)
+        rfq = quotation.quotation_request_id
+        if not rfq:
+            raise UserError(_(
+                "Báo giá %s không gắn yêu cầu báo giá nào nên không có định "
+                "mức để tính lại."
+            ) % quotation.name)
+
+        quotation = quotation.sudo()
+        truoc_cost = quotation.total_cost
+        truoc_ban = quotation.amount_before_vat
+        truoc_state = quotation.state
+
+        context = self._build_context(rfq)
+        quotable = rfq.line_ids.filtered(lambda l: not l.is_infeasible)
+        if not quotable:
+            raise UserError(QTE_INFEASIBLE)
+        for line in quotable:
+            self._validate_line(line, context)
+
+        # Đo lại đơn to/nhỏ y như lượt tạo đầu — phụ phí "Đơn hàng nhỏ" phụ
+        # thuộc con số này, và giá vật tư vừa đổi thì nó cũng đổi theo.
+        direct_cache = {}
+        order_value = 0.0
+        for rfq_line in quotable:
+            if rfq_line.product_type == "trading":
+                order_value += rfq_line.quantity * (
+                    rfq_line.resolved_product_id.list_price or 0.0)
+            else:
+                dc = self._manufactured_direct_cost(rfq_line, context)
+                direct_cache[rfq_line.id] = dc
+                order_value += rfq_line.quantity * (
+                    dc["material_unit"] + dc["operation_cost"])
+        context["order_value"] = order_value
+        context["direct_cache"] = direct_cache
+
+        # Dọn MỌI cấu phần, kể cả cấu phần chiết khấu/VAT ở đầu báo giá —
+        # chúng không thuộc dòng nào nên unlink dòng không chạm tới, để lại thì
+        # bảng công thức có hai lớp chiết khấu chồng nhau.
+        self.env["dl.quotation.price.component"].sudo().search(
+            [("quotation_id", "=", quotation.id)]).unlink()
+        quotation.line_ids.unlink()
+
+        vals = {"pricing_date": context["pricing_date"]}
+        if extend_validity:
+            vals["validity_date"] = self._validity_date_for(context["pricing_date"])
+        quotation.write(vals)
+        for rfq_line in quotable:
+            self._create_quotation_line(quotation, rfq_line, context)
+        self._apply_commercial_and_approval(quotation, context)
+        quotation.flush_recordset()
+
+        delta = {
+            "cost_before": truoc_cost,
+            "cost_after": quotation.total_cost,
+            "price_before": truoc_ban,
+            "price_after": quotation.amount_before_vat,
+            "cost_pct": ((quotation.total_cost - truoc_cost) / truoc_cost * 100.0
+                         if truoc_cost else 0.0),
+        }
+        # 🔴 Giá ĐỔI trên một báo giá ĐÃ GỬI KHÁCH ⇒ con số mới khách chưa từng
+        # thấy. Giữ nguyên "Đã gửi"/"Khách đồng ý" là ghi nhận một sự đồng ý
+        # không có thật, và cho phép lên đơn ở mức giá chưa ai chào. Đưa về Nháp
+        # để buộc đi lại vòng gửi khách → khách đồng ý.
+        # Giá KHÔNG đổi thì đây chỉ là gia hạn — không đụng trạng thái.
+        delta["must_resend"] = bool(
+            truoc_state in self._DA_GUI_KHACH_STATES
+            and not float_is_zero(delta["price_after"] - truoc_ban,
+                                  precision_digits=2))
+        if delta["must_resend"]:
+            # Chỉ đổi state; lý do đi vào chatter ở _recompute_note. `dl.quotation`
+            # không có field lý-do-về-nháp (đó là field của dl.sale.order).
+            quotation.write({"state": "draft"})
+        # Số "phải mua" vừa đổi ⇒ mọi xác nhận giá mua trước đó hết hiệu lực.
+        if hasattr(quotation, "recompute_quotation_clear_confirm"):
+            quotation.recompute_quotation_clear_confirm()
+        quotation.message_post(body=self._recompute_note(quotation, delta, reason))
+        return delta
+
+    # Trạng thái mà khách ĐÃ nhìn thấy con số. Đổi giá ở những trạng thái này
+    # thì phải chào lại, không được sửa ngầm dưới chân khách.
+    _DA_GUI_KHACH_STATES = ("approved", "sent", "accepted")
+
+    @staticmethod
+    def _fmt_vnd(value):
+        return "{:,.0f}".format(value or 0.0).replace(",", ".")
+
+    def _recompute_note(self, quotation, delta, reason=None):
+        """Câu chatter sau khi tính lại — nói bằng SỐ, không nói "đã cập nhật"."""
+        body = escape(reason or _("Đã tính lại giá theo giá đầu vào hôm nay."))
+        body += Markup(
+            "<ul>"
+            "<li>Giá thành: <b>%(c1)s</b> → <b>%(c2)s</b> (%(pct)+.1f%%)</li>"
+            "<li>Giá trước thuế: <b>%(p1)s</b> → <b>%(p2)s</b></li>"
+            "<li>Hạn hiệu lực mới: <b>%(hh)s</b></li>"
+            "</ul>%(gui_lai)s") % {
+                "gui_lai": Markup(
+                    "<p><b>Báo giá quay về Nháp</b> — khách chưa được chào mức "
+                    "giá mới này. Gửi lại khách rồi mới lên đơn được.</p>"
+                ) if delta.get("must_resend") else Markup(""),
+                "c1": self._fmt_vnd(delta["cost_before"]),
+                "c2": self._fmt_vnd(delta["cost_after"]),
+                "pct": delta["cost_pct"],
+                "p1": self._fmt_vnd(delta["price_before"]),
+                "p2": self._fmt_vnd(delta["price_after"]),
+                "hh": quotation.validity_date or "—",
+            }
+        return body
 
     def reevaluate_quotation(self, quotation, reason=None):
         """Chấm xem báo giá có phải xin phê duyệt không, và ở cấp nào.

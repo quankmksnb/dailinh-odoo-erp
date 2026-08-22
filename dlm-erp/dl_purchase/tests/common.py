@@ -81,6 +81,30 @@ class DlPurchaseCase(TransactionCase):
             qc.action_dlm_validate_qc()
         return receipt
 
+    def _reject_receive_po(self, product, qty=100.0, rejected=20.0):
+        """Nhận đủ hàng nhưng kiểm KHÔNG đạt một phần — sinh phiếu Trả hàng NCC
+        thật (loại `TR`), dùng để test màn Trả hàng NCC.
+
+        Phiếu trả CHỈ sinh được theo đường này (kết quả kiểm), không tạo tay
+        được — đó chính là bất biến `create="0"` của màn đang test.
+        """
+        order = self._mk_po([(product, qty, 200000.0)])
+        order.action_dlm_confirm()
+        receipt = order.dlm_picking_ids[:1]
+        for move in receipt.move_ids:
+            move.quantity = move.product_uom_qty
+            move.picked = True
+        receipt.button_validate()
+        qc = receipt.move_ids.move_dest_ids.picking_id.filtered(
+            lambda p: p.picking_type_id.sequence_code == "KC")[:1]
+        move = qc.move_ids.filtered(lambda m: m.product_id == product)[:1]
+        move.write({
+            "quantity": qty - rejected, "picked": True,
+            "dlm_qty_rejected": rejected, "dlm_reject_reason": "defect",
+        })
+        qc.action_dlm_validate_qc()
+        return qc._dlm_vendor_returns()[:1]
+
     def _lot_of(self, product, location=None):
         quants = self.env["stock.quant"].search([
             ("product_id", "=", product.id),

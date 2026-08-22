@@ -1,6 +1,6 @@
 {
     "name": "DL-Inventory",
-    "version": "17.0.9.0.1",
+    "version": "17.0.9.4.0",
     "summary": "Kho Đại Linh — 1 kho, 4 khu, nhận hàng 2 bước có kiểm hàng",
     "description": """
 Phân hệ Kho (Giai đoạn B1). Đặc tả: docs/Thiet_ke_phan_he_kho.md
@@ -154,6 +154,8 @@ hệ thống, điều hướng đi thẳng qua submenu rail.
         "views/fg_receipt_views.xml",
         "views/delivery_views.xml",
         "views/vendor_return_views.xml",
+        # Dialog gộp Tải về / Gửi biên bản trên phiếu Trả hàng NCC.
+        "wizard/vendor_return_export_wizard_views.xml",
         # K12 — nạp TRƯỚC stock_quant_views.xml: nút [Chuyển thành phế liệu]
         # trên màn Tồn kho gọi action trả về form khai ở đây.
         "views/to_scrap_views.xml",
@@ -175,6 +177,8 @@ hệ thống, điều hướng đi thẳng qua submenu rail.
             "dl_inventory/static/src/js/nav_patch.js",
             # Định tuyến hàng đợi phiếu (K8): mỗi dòng mở đúng form chuyên biệt.
             "dl_inventory/static/src/js/picking_todo.js",
+            # Chipbar trạng thái cho màn Nhận hàng / Kiểm hàng.
+            "dl_inventory/static/src/views/picking_list_controller.js",
         ],
     },
     "installable": True,

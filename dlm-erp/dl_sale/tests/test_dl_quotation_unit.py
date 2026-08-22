@@ -173,6 +173,14 @@ def _quo_rec(**kwargs):
     rec.__dict__.update(kwargs)
     rec.ensure_one = lambda: rec  # action_open_approval_request/action_open_sale_order cần
     rec.write = lambda vals: rec.__dict__.update(vals)  # action_reopen() dùng self.write(...)
+    # action_send() (2026-08-21+) gọi rec._dlm_check_ready_to_send() làm cổng cuối
+    # trước khi gửi khách; bản gốc dl_sale không chặn gì, chỉ dl_purchase override.
+    rec._dlm_check_ready_to_send = lambda: True
+    # action_create_sale_order() (2026-08-21+, hạn hiệu lực) gọi
+    # rec._dlm_check_pricing_fresh() trước khi lên đơn; mặc định còn hạn (không
+    # chặn) — hành vi cổng chặn/không chặn đã có test riêng ở L2
+    # (test_quotation_validity.py::TestQuotationValidity).
+    rec._dlm_check_pricing_fresh = lambda: True
     return rec
 
 
@@ -373,20 +381,29 @@ class TestComputeValidityState(unittest.TestCase):
             DlQuotation._compute_validity_state(_RS([rec]))
         self.assertEqual(rec.validity_state, "overdue")
 
-    def test_soon_when_within_7_days(self):
-        """TC-UNIT-DlQuotation-033: state sent, validity_date còn đúng 7 ngày
-        nữa (biên trong ngưỡng sắp hết hạn). _compute_validity_state() phải
+    def test_soon_when_within_own_threshold(self):
+        """TC-UNIT-DlQuotation-033: đảo chiều 2026-08-21 (ngưỡng "sắp hết
+        hạn" co theo độ dài hạn của chính báo giá, không còn cố định 7
+        ngày, xem _soon_threshold()). Báo giá phát hành 6 ngày trước, hạn
+        gốc 9 ngày (pricing_date -> validity_date), còn đúng 3 ngày nữa
+        (ngưỡng = 9 // 3 = 3, đúng biên). _compute_validity_state() phải
         trả về 'soon'."""
-        rec = SimpleNamespace(state="sent", validity_date=_TODAY + timedelta(days=7))
+        rec = SimpleNamespace(state="sent", pricing_date=_TODAY - timedelta(days=6),
+                              validity_date=_TODAY + timedelta(days=3), create_date=None)
+        rec.ensure_one = lambda: rec
+        rec._soon_threshold = lambda: DlQuotation._soon_threshold(rec)
         with patch("odoo.fields.Date.context_today", return_value=_TODAY):
             DlQuotation._compute_validity_state(_RS([rec]))
         self.assertEqual(rec.validity_state, "soon")
 
-    def test_ok_when_more_than_7_days_left(self):
-        """TC-UNIT-DlQuotation-034: state sent, validity_date còn 8 ngày
-        (ngoài ngưỡng 7 ngày sắp hết hạn). _compute_validity_state() phải
-        trả về 'ok'."""
-        rec = SimpleNamespace(state="sent", validity_date=_TODAY + timedelta(days=8))
+    def test_ok_when_more_than_own_threshold_left(self):
+        """TC-UNIT-DlQuotation-034: đảo chiều 2026-08-21, cùng lý do TC-033.
+        Cùng hạn gốc 9 ngày (ngưỡng = 3) nhưng còn 4 ngày (ngoài ngưỡng).
+        _compute_validity_state() phải trả về 'ok'."""
+        rec = SimpleNamespace(state="sent", pricing_date=_TODAY - timedelta(days=6),
+                              validity_date=_TODAY + timedelta(days=4), create_date=None)
+        rec.ensure_one = lambda: rec
+        rec._soon_threshold = lambda: DlQuotation._soon_threshold(rec)
         with patch("odoo.fields.Date.context_today", return_value=_TODAY):
             DlQuotation._compute_validity_state(_RS([rec]))
         self.assertEqual(rec.validity_state, "ok")
@@ -447,7 +464,10 @@ class _BannerRec(SimpleNamespace):
         base = dict(state="draft", approval_required=False, approval_state="not_required",
                     approval_level="", approval_reasons="", reject_reason=False,
                     reject_reason_note=False, revision_request_type=False,
-                    revision_request_note=False, line_ids=[])
+                    revision_request_note=False, line_ids=[],
+                    # _compute_status_banner() (2026-08-21+) đọc dlm_send_blocked
+                    # (cổng chặn gửi khách chung, mặc định False ở dl_sale gốc).
+                    dlm_send_blocked=False)
         base.update(kw)
         super().__init__(**base)
 

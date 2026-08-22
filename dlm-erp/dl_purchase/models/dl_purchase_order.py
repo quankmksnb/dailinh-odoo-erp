@@ -86,11 +86,34 @@ class DlPurchaseOrder(models.Model):
         default="nothing",
         help="Suy từ phiếu nhận, KHÔNG phải một ô tick: nhà cung cấp giao ba lần thì có "
              "ba phiếu, và sự thật nằm ở đó.")
+    dlm_receipt_hint = fields.Char(
+        string="Chi tiết nhận thiếu", compute="_compute_dlm_receipt_hint",
+        help="Liệt kê mặt hàng còn thiếu khi nhận dở dang — để dải cảnh báo trên "
+             "đơn nói được CÒN THIẾU BAO NHIÊU, không chỉ 'nhận một phần'.")
+
+    # Đường chốt/duyệt của một đơn hỏi giá chỉ mở khi báo giá nguồn đã thành đơn
+    # bán (xem `_dlm_check_customer_committed`). View phải BIẾT điều đó, nếu không
+    # nút [Chốt đơn] vẫn sáng rực trên đơn hỏi giá và bấm phát nào lỗi phát ấy —
+    # nút sáng nhất màn hình mà luôn thất bại còn tệ hơn thiếu hẳn nút.
+    #
+    # 🔴 `compute_sudo`: Mua hàng KHÔNG có quyền đọc `dl.quotation` (cố ý — giá
+    # bán không thuộc về họ), đọc thẳng sẽ ném AccessError ngay lúc mở form.
+    dlm_customer_committed = fields.Boolean(
+        string="Khách đã chốt đơn", compute="_compute_dlm_customer_committed",
+        compute_sudo=True,
+        help="Đơn không sinh từ báo giá thì luôn đúng — mua chủ động không chờ ai.")
+
+    @api.depends("dlm_quotation_id.state")
+    def _compute_dlm_customer_committed(self):
+        for order in self:
+            quo = order.dlm_quotation_id
+            order.dlm_customer_committed = not quo or quo.state == "ordered"
 
     dlm_needs_approval = fields.Boolean(
         string="Vượt ngưỡng duyệt", compute="_compute_dlm_needs_approval")
     dlm_threshold_hint = fields.Char(
-        string="Ngưỡng duyệt", compute="_compute_dlm_needs_approval",
+        string="Ngưỡng cần Giám đốc duyệt",
+        compute="_compute_dlm_needs_approval",
         groups=_DLM_BUY_PRICE_GROUPS)
     dlm_price_warning = fields.Char(
         string="Cảnh báo giá", compute="_compute_dlm_price_warning",
@@ -110,6 +133,17 @@ class DlPurchaseOrder(models.Model):
                 vals["name"] = self.env["ir.sequence"].next_by_code(
                     "dl.purchase.order") or "New"
         return super().create(vals_list)
+
+    @api.onchange("partner_id")
+    def _onchange_dlm_partner_refresh_price(self):
+        """Đổi nhà cung cấp ⇒ tính lại mốc giá của mọi dòng.
+
+        Người mua hay thêm dòng TRƯỚC rồi mới chọn nhà cung cấp. Không có chỗ
+        này thì đơn gửi Phú Thịnh vẫn mang nguyên giá Hoà Phát — sai cả chục
+        lần, im lặng, rồi chốt xong nó đóng lên LÔ thành giá vốn thật."""
+        if self.state not in ("draft", "sent"):
+            return
+        self.line_ids._dlm_fill_reference_price(force=True)
 
     @api.depends("line_ids.price_subtotal")
     def _compute_amount_total(self):
@@ -133,6 +167,27 @@ class DlPurchaseOrder(models.Model):
                 continue
             order.dlm_receipt_state = (
                 "done" if order._dlm_is_fully_received(received) else "partial")
+
+    # Non-stored: chỉ để dựng câu cho dải cảnh báo, không ai lọc/sắp theo nó.
+    @api.depends("dlm_receipt_state", "dlm_picking_ids.move_ids.quantity",
+                 "line_ids.qty")
+    def _compute_dlm_receipt_hint(self):
+        for order in self:
+            if order.dlm_receipt_state != "partial":
+                order.dlm_receipt_hint = False
+                continue
+            received = order._dlm_received_qty()
+            parts = []
+            for product, qty in order._dlm_ordered_qty().items():
+                got = received.get(product, 0.0)
+                rounding = product.uom_id.rounding or 0.01
+                if float_compare(got, qty, precision_rounding=rounding) < 0:
+                    parts.append(_("%(name)s: đã nhận %(got)s/%(qty)s %(uom)s") % {
+                        "name": product.display_name,
+                        "got": _dlm_qty(got),
+                        "qty": _dlm_qty(qty),
+                        "uom": product.uom_id.name})
+            order.dlm_receipt_hint = "; ".join(parts) or False
 
     def _dlm_received_qty(self):
         """{mặt hàng: số NCC đã giao} — đếm move đã hoàn tất, KHÔNG trừ phần bị loại ở bước kiểm."""
@@ -170,8 +225,10 @@ class DlPurchaseOrder(models.Model):
         threshold = self._dlm_approval_threshold()
         for order in self:
             order.dlm_needs_approval = order.amount_total > threshold
-            order.dlm_threshold_hint = _(
-                "Ngưỡng cần Giám đốc duyệt: %s đ") % _dlm_money(threshold)
+            # Chỉ con số: nhãn của field đã nói "Ngưỡng cần Giám đốc duyệt",
+            # nhắc lại trong giá trị thì form đọc thành "Ngưỡng duyệt — Ngưỡng
+            # cần Giám đốc duyệt: 20.000.000 đ".
+            order.dlm_threshold_hint = _("%s đ") % _dlm_money(threshold)
 
     @api.model
     def _dlm_approval_threshold(self):
@@ -249,7 +306,207 @@ class DlPurchaseOrder(models.Model):
         self.message_post(body=_(
             "Đã chốt đơn mua. Phiếu nhận hàng %s đã vào hàng đợi của thủ kho."
         ) % picking.name)
+        self._dlm_sync_price_list()
         return picking._dlm_open_picking(picking, _("Phiếu nhận %s") % picking.name)
+
+    # ------------------------------------------------------------------
+    # Đơn HỎI GIÁ — sinh từ báo giá thiếu vật tư
+    # ------------------------------------------------------------------
+    dlm_quotation_id = fields.Many2one(
+        "dl.quotation", string="Báo giá cần hỏi giá", readonly=True,
+        index=True, copy=False, ondelete="set null",
+        help="Đơn này sinh ra để hỏi giá cho một báo giá đang thiếu vật tư. "
+             "Ghi nhận giá xong thì báo giá đó mới gửi khách được.")
+
+    # Cuộc hỏi giá KHÔNG có nấc trạng thái riêng để kết thúc — nó cố ý nằm lại
+    # `sent` vì chưa cam kết mua. Nhưng thế thì hàng đợi "Hỏi giá chờ trả lời"
+    # không bao giờ vơi: đơn đã có giá vẫn nằm đó lẫn với đơn đang thật sự chờ
+    # nhà cung cấp. Dấu này tách hai thứ đó ra mà không phải đẻ thêm trạng thái.
+    dlm_vendor_replied_date = fields.Datetime(
+        string="NCC đã báo giá lúc", readonly=True, copy=False, index=True,
+        help="Đóng khi Mua hàng bấm [Ghi nhận giá NCC báo]. Đơn có dấu này rời "
+             "hàng đợi chờ trả lời — vẫn tra được bằng bộ lọc trên chính màn đó, "
+             "hoặc smart button “Đơn hỏi giá” trên báo giá.")
+
+    def _dlm_open_orders(self, ten):
+        """Mở danh sách/form các đơn này — dùng sau khi sinh đơn hỏi giá."""
+        act = {
+            "type": "ir.actions.act_window",
+            "name": ten,
+            "res_model": "dl.purchase.order",
+            "target": "current",
+        }
+        if len(self) == 1:
+            act.update(res_id=self.id, views=[(False, "form")], view_mode="form")
+        else:
+            act.update(domain=[("id", "in", self.ids)],
+                       views=[(False, "list"), (False, "form")],
+                       view_mode="list,form")
+        return act
+
+    def action_dlm_open_quotation(self):
+        """Smart button: từ đơn hỏi giá nhìn ngược về báo giá đã sinh ra nó."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Báo giá %s") % self.dlm_quotation_id.name,
+            "res_model": "dl.quotation",
+            "res_id": self.dlm_quotation_id.id,
+            "views": [(False, "form")],
+            "view_mode": "form",
+            "target": "current",
+        }
+
+    def action_dlm_record_vendor_price(self):
+        """Nút [Ghi nhận giá NCC báo] — mở modal chốt giá vừa hỏi được, KHÔNG chốt mua.
+
+        🔴 Không dùng [Chốt đơn] để ghi giá hỏi: chốt đơn sinh phiếu nhận, tức
+        là cam kết MUA THẬT. Hỏi giá cho một báo giá chưa chắc thắng mà đã đặt
+        hàng là mua cho một đơn chưa tồn tại. Hai việc khác nhau, hai nút khác
+        nhau — đơn vẫn nằm ở nấc "Đã gửi hỏi giá" chờ khách chốt.
+
+        🔴 Cố ý KHÔNG đi qua `_dlm_sync_price_list` (luật ngưỡng lệch của lúc
+        chốt đơn). Ngưỡng đó đúng cho [Chốt đơn]: tiền đã cam kết rồi, hỏi thêm
+        một modal là phiền. Nhưng ở đường HỎI GIÁ nó phản tác dụng — lệch càng
+        lớn thì càng rơi vào nhánh "chỉ lưu Nháp", tức là đúng ca cần nhất thì
+        giá KHÔNG vào bảng, báo giá vẫn tính theo giá cũ mà cổng gửi khách vẫn
+        mở (`_dlm_buy_price_moved` chỉ soi dòng đang áp dụng). Người dùng không
+        thấy gì đổi nên bấm lại, mỗi lần bấm đẻ thêm một dòng Nháp y hệt.
+
+        Modal bày giá cũ / giá mới / chênh lệch rồi mới ghi: chênh 1.233% là
+        đúng ca con người phải nhìn, không phải ca hệ thống tự quyết."""
+        self.ensure_one()
+        self._dlm_check_buyer()
+        if self.state != "sent":
+            raise UserError(_(
+                "Chỉ ghi nhận giá trên đơn đang ở nấc “Đã gửi hỏi giá”."))
+        chua = self.line_ids.filtered(lambda l: l.price_unit <= 0)
+        if chua:
+            raise UserError(_(
+                "Chưa nhập giá cho: %s. Nhà cung cấp báo bao nhiêu thì điền vào "
+                "cột Đơn giá chốt.") % ", ".join(chua.mapped("product_id.display_name")))
+        return self._dlm_open_price_wizard(_("Ghi nhận giá nhà cung cấp báo"))
+
+    def _dlm_after_price_recorded(self):
+        """Modal ghi giá xong trên ĐƠN HỎI GIÁ ⇒ tính lại báo giá nguồn, mở cổng.
+
+        Gọi từ wizard chứ không gọi ngay trong nút, vì phải chạy SAU khi giá đã
+        thật sự vào bảng — `_dlm_stamp_price_confirmed` tính lại báo giá theo
+        giá đang áp dụng, chạy trước thì nó tính lại theo giá cũ."""
+        self.ensure_one()
+        if self.state != "sent" or not self.dlm_quotation_id:
+            return False
+        self.dlm_quotation_id.sudo()._dlm_stamp_price_confirmed(self)
+        self.dlm_vendor_replied_date = fields.Datetime.now()
+        self.message_post(body=_(
+            "Đã ghi nhận giá nhà cung cấp báo. Đơn rời hàng đợi chờ trả lời "
+            "nhưng vẫn ở nấc “Đã gửi hỏi giá” — chưa cam kết mua."))
+        return True
+
+    # ------------------------------------------------------------------
+    # Vòng giá: chốt đơn xong bảng giá tự theo
+    # ------------------------------------------------------------------
+    def _dlm_sync_price_list(self, wizard_lines=None):
+        """Đưa giá vừa chốt vào bảng giá nhà cung cấp, theo NGƯỠNG LỆCH.
+
+        Vì sao tự động: chốt đơn ĐÃ LÀ quyết định — Mua hàng tự gõ giá rồi bấm
+        chốt, tức là đã cam kết tiền ở mức đó. Bắt bấm thêm một modal nữa là hỏi
+        đúng một người, đúng một thông tin, đúng một thời điểm, hai lần.
+
+        Vì sao KHÔNG tự động hết: giá một chuyến có thể cá biệt (mua gấp, mua lẻ,
+        số lượng dưới mức sỉ). Để nó thành giá chào khách là lấy một chuyến hàng
+        định giá cho cả doanh nghiệp — đúng thứ §6.6 cảnh báo.
+
+        Nên chia theo mức lệch, dùng lại đúng ngưỡng đã có (`price_gap_limit`,
+        mặc định 10%) vốn đang nuôi dải cảnh báo lệch giá:
+          • giá y hệt          → không làm gì (không đẻ dòng rác)
+          • lệch ≤ ngưỡng      → TỰ áp dụng: trôi giá thị trường bình thường
+          • lệch > ngưỡng      → chỉ lưu lịch sử + báo Mua hàng xem lại
+        """
+        self.ensure_one()
+        Row = self.env["product.supplierinfo"].sudo()
+        limit = self._dlm_price_gap_limit()
+        ap_dung, cho_xem = [], []
+        for line in self.line_ids:
+            if line.price_unit <= 0 or not line.product_id:
+                continue
+            hien = Row.search([
+                ("product_tmpl_id", "=", line.product_id.product_tmpl_id.id),
+                ("is_applied", "=", True)], limit=1)
+            cu = hien.price if hien else 0.0
+            if cu and float_compare(line.price_unit, cu, precision_digits=2) == 0:
+                continue                      # giá không đổi ⇒ không có gì để cập nhật
+            lech = abs(line.price_unit - cu) / cu if cu else 0.0
+            # Chưa có giá nào đang áp dụng thì cứ áp: có giá còn hơn không có.
+            tu_ap = (not cu) or lech <= limit
+            row = self._dlm_upsert_price_row(line.product_id, line.price_unit)
+            if tu_ap:
+                row.sudo().action_approve()
+                if not row.is_applied:
+                    row.sudo().action_set_applied()
+                ap_dung.append((line.product_id, cu, line.price_unit))
+            else:
+                cho_xem.append((line.product_id, cu, line.price_unit, lech))
+        if ap_dung or cho_xem:
+            self.message_post(body=self._dlm_sync_note(ap_dung, cho_xem, limit))
+        return True
+
+    def _dlm_upsert_price_row(self, product, price):
+        """Ghi giá vào bảng giá NCC theo khoá ĐƠN MUA × MẶT HÀNG — có rồi thì SỬA.
+
+        Một đơn mua là MỘT cuộc hỏi giá: cùng đơn, cùng mặt hàng thì chỉ có một
+        con số. Trước đây mỗi lần ghi nhận là một `create` vô điều kiện, nên bấm
+        lại lần hai (giá vẫn lệch quá ngưỡng nên lần nào cũng chỉ nằm Nháp) đẻ
+        thêm một dòng y hệt: bảng giá thành danh sách bản sao của cùng một nhà
+        cung cấp và không ai biết dòng nào là thật.
+
+        Dòng của ĐƠN KHÁC thì tuyệt đối không đụng — đó là lịch sử giá thật, mỗi
+        chuyến hàng một mốc."""
+        self.ensure_one()
+        Row = self.env["product.supplierinfo"].sudo()
+        nguon = self._dlm_price_source_note()
+        vals = {
+            "partner_id": self.partner_id.id,
+            "product_tmpl_id": product.product_tmpl_id.id,
+            "product_id": product.id,
+            "price": price,
+            "date_start": fields.Date.context_today(self),
+            "dlm_source_note": nguon,
+        }
+        row = Row.search([
+            ("dlm_source_note", "=", nguon),
+            ("partner_id", "=", self.partner_id.id),
+            ("product_id", "=", product.id),
+        ], limit=1)
+        if not row:
+            return Row.create(dict(vals, approval_state="draft"))
+        row.write(vals)
+        if row.is_applied:
+            # Sửa giá trên dòng ĐANG áp dụng thì giá vốn tham chiếu phải theo:
+            # đường approve/set_applied phía dưới sẽ không chạm vào nữa vì dòng
+            # đã ở đúng trạng thái, nên gọi thẳng ở đây.
+            row._dlm_apply()
+        return row
+
+    def _dlm_sync_note(self, ap_dung, cho_xem, limit):
+        def tien(v):
+            return "{:,.0f}".format(v or 0.0).replace(",", ".")
+        phan = []
+        if ap_dung:
+            phan.append("<p><b>Bảng giá đã cập nhật</b> theo giá vừa chốt:</p><ul>%s</ul>"
+                        % "".join("<li>%s: %s → <b>%s</b></li>" % (
+                            p.display_name, tien(c) if c else "(chưa có)", tien(m))
+                            for p, c, m in ap_dung))
+        if cho_xem:
+            phan.append(
+                "<p>⚠️ <b>Lệch quá %d%% — KHÔNG tự áp dụng</b>, chỉ lưu vào bảng "
+                "giá làm lịch sử. Chuyến mua gấp/mua lẻ thì để nguyên; nếu đây là "
+                "mặt bằng giá mới thì vào Bảng giá Vật tư áp dụng tay:</p><ul>%s</ul>"
+                % (round(limit * 100), "".join(
+                    "<li>%s: %s → <b>%s</b> (%+.0f%%)</li>" % (
+                        p.display_name, tien(c), tien(m), (m - c) / c * 100.0)
+                    for p, c, m, _l in cho_xem)))
+        return "".join(phan)
 
     def action_dlm_submit_approval(self):
         """Nút [Trình duyệt] — gửi đơn vượt ngưỡng vào hòm duyệt chung của Giám đốc."""
@@ -354,10 +611,35 @@ class DlPurchaseOrder(models.Model):
                     dict.fromkeys(scrap.mapped("product_id.display_name"))))
         return True
 
+    def _dlm_check_customer_committed(self):
+        """Đơn sinh từ báo giá chỉ được chốt mua khi báo giá đó đã thành đơn bán.
+
+        Đơn hỏi giá là một CUỘC HỎI, không phải một cam kết. Chốt nó lúc báo giá
+        còn Nháp là bỏ tiền mua vật tư cho một đơn hàng chưa tồn tại — khách quay
+        xe thì thép nằm trong kho không ai trả tiền. Trước đây không có cổng nào:
+        nút [Chốt đơn] hiện y hệt nút của đơn mua thật.
+
+        Chỉ chặn đơn có `dlm_quotation_id`. Mua chủ động (nhập thép về sẵn) không
+        đi qua đây, và không nên bị luật này ràng."""
+        self.ensure_one()
+        quo = self.dlm_quotation_id.sudo()
+        if not quo or quo.state == "ordered":
+            return True
+        nhan = dict(
+            quo._fields["state"]._description_selection(self.env)
+        ).get(quo.state, quo.state)
+        raise UserError(_(
+            "Báo giá %(bg)s chưa thành đơn bán (đang ở “%(tt)s”), nên chưa "
+            "được chốt mua cho nó — đây mới là một cuộc hỏi giá.\n\n"
+            "Khách đồng ý và báo giá lên đơn xong, Thủ kho điều phối thấy kho "
+            "thiếu hàng thì đơn mua sẽ tự vào hàng đợi của bạn."
+        ) % {"bg": quo.name, "tt": nhan})
+
     def _dlm_check_confirmable(self):
         """Kiểm điều kiện chốt giá: đủ giá, có ngày hàng về, không trùng mặt hàng."""
         self.ensure_one()
         self._dlm_check_lines()
+        self._dlm_check_customer_committed()
         no_price = self.line_ids.filtered(lambda l: l.price_unit <= 0)
         if no_price:
             raise UserError(_(
@@ -414,6 +696,98 @@ class DlPurchaseOrder(models.Model):
         picking.action_assign()
         return picking
 
+    # ------------------------------------------------------------------
+    # Vòng giá: giá chốt THẬT quay về bảng giá nhà cung cấp
+    # ------------------------------------------------------------------
+    dlm_price_row_count = fields.Integer(
+        string="Dòng bảng giá đã tạo", compute="_compute_dlm_price_row_count")
+
+    def _compute_dlm_price_row_count(self):
+        Row = self.env["product.supplierinfo"].sudo()
+        for order in self:
+            order.dlm_price_row_count = Row.search_count([
+                ("dlm_source_note", "=", order._dlm_price_source_note()),
+            ]) if order.id else 0
+
+    def _dlm_price_source_note(self):
+        self.ensure_one()
+        return "PO:%s" % self.name
+
+    def action_dlm_push_price_list(self):
+        """Nút [Cập nhật bảng giá] — mở modal chốt giá vừa mua thành giá hiện hành.
+
+        Đây là mối nối cuối cùng của vòng giá: trước đó Mua hàng chốt 275.000 với
+        nhà cung cấp thì phải TỰ NHỚ sang màn Bảng giá gõ lại; quên thì mọi báo
+        giá vẫn chạy giá cũ mãi mà không gì nổ ra.
+
+        Một bước, không đẻ dòng nháp bắt sang màn khác duyệt: người duyệt bảng
+        giá cũng chính là nhóm Mua hàng (`_check_price_manager`), nên tách ra chỉ
+        là tự duyệt chính mình — thêm thao tác, không thêm kiểm soát. Modal bày
+        giá cũ / giá mới / chênh lệch / số lượng chuyến trước khi ghi, nên vẫn là
+        một quyết định có ý thức chứ không phải ghi ngược âm thầm (§6.6)."""
+        self.ensure_one()
+        self._dlm_check_buyer()
+        if self.state != "confirmed":
+            raise UserError(_(
+                "Chỉ cập nhật giá từ đơn mua ĐÃ CHỐT — giá chưa chốt thì chưa "
+                "phải giá thật."))
+        return self._dlm_open_price_wizard(_("Cập nhật bảng giá nhà cung cấp"))
+
+    def _dlm_open_price_wizard(self, ten):
+        """Dựng modal đối chiếu giá cũ / giá mới cho đơn này rồi mở ra.
+
+        Dùng chung cho hai cửa vào — [Cập nhật bảng giá] (đơn đã chốt) và
+        [Ghi nhận giá NCC báo] (đơn hỏi giá). Cùng một câu hỏi đặt cho cùng một
+        người: giá này có thành giá chào khách không."""
+        self.ensure_one()
+        Row = self.env["product.supplierinfo"].sudo()
+        dong = []
+        for line in self.line_ids:
+            if line.price_unit <= 0 or not line.product_id:
+                continue
+            hien_hanh = Row.search([
+                ("product_tmpl_id", "=", line.product_id.product_tmpl_id.id),
+                ("is_applied", "=", True),
+            ], limit=1)
+            cu = hien_hanh.price if hien_hanh else 0.0
+            dong.append((0, 0, {
+                "product_id": line.product_id.id,
+                "qty": line.qty,
+                "old_price": cu,
+                "new_price": line.price_unit,
+                "gap_pct": ((line.price_unit - cu) / cu * 100.0) if cu else 0.0,
+                # Giá y hệt giá đang áp dụng thì không có gì để cập nhật — bỏ
+                # tick sẵn để người dùng khỏi phải tự nhìn ra.
+                "selected": float_compare(line.price_unit, cu,
+                                          precision_digits=2) != 0,
+            }))
+        if not dong:
+            raise UserError(_(
+                "Đơn này không có dòng nào có giá để cập nhật bảng giá."))
+        wizard = self.env["dl.purchase.price.update.wizard"].create({
+            "order_id": self.id, "line_ids": dong})
+        return {
+            "type": "ir.actions.act_window",
+            "name": ten,
+            "res_model": "dl.purchase.price.update.wizard",
+            "res_id": wizard.id,
+            "view_mode": "form",
+            "target": "new",
+        }
+
+    def action_dlm_open_price_rows(self):
+        """Smart button: mở các dòng bảng giá sinh từ đơn mua này."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Bảng giá tạo từ %s") % self.name,
+            "res_model": "product.supplierinfo",
+            "views": [(False, "list"), (False, "form")],
+            "view_mode": "list,form",
+            "domain": [("dlm_source_note", "=", self._dlm_price_source_note())],
+            "target": "current",
+        }
+
     def action_dlm_open_pickings(self):
         self.ensure_one()
         if not self.dlm_picking_ids:
@@ -467,33 +841,88 @@ class DlPurchaseOrderLine(models.Model):
             received = line.order_id._dlm_received_qty()
             line.qty_received = received.get(line.product_id, 0.0)
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Điền mốc giá ngay lúc tạo dòng — onchange KHÔNG đủ, xem
+        `_dlm_fill_reference_price`."""
+        lines = super().create(vals_list)
+        lines._dlm_fill_reference_price()
+        return lines
+
     @api.onchange("product_id")
     def _onchange_product_id(self):
         """Chọn mặt hàng ⇒ điền sẵn giá gợi ý từ bảng giá NCC (không phải giá chốt)."""
+        self._dlm_fill_reference_price(force=True)
+
+    def _dlm_fill_reference_price(self, force=False):
+        """Điền "Giá bảng nhà cung cấp", và cả giá chốt nếu người mua chưa gõ tay.
+
+        🔴 Phải làm ở TẦNG SERVER chứ không chỉ trong onchange: `price_list_unit`
+        khai `readonly` nên client KHÔNG gửi nó lên lúc lưu — con số onchange vừa
+        điền biến mất sạch, cột hiện 0 đ. Và vì `_compute_dlm_price_warning` lấy
+        đúng ô đó làm mốc, mốc bằng 0 làm cả dải cảnh báo lệch giá im lặng: đơn
+        chốt lệch bao nhiêu cũng không có gì nổ ra."""
         for line in self:
-            if not line.product_id:
+            if not line.product_id or (line.price_list_unit and not force):
                 continue
-            seller = line._dlm_reference_seller()
-            try:
-                base = seller._dlm_reference_unit_cost(line.product_id) \
-                    if seller else line.product_id.standard_price
-            except UserError:
-                # Bảng giá lệch ĐVT/tiền tệ thì raise; ở đây chỉ là gợi ý nên rơi về giá vốn tham chiếu.
-                base = line.product_id.standard_price
-            line.price_list_unit = base
-            if not line.price_unit:
-                line.price_unit = base
+            cu = line.price_list_unit
+            moc = line._dlm_reference_price()
+            line.price_list_unit = moc
+            # 🔴 Đơn HỎI GIÁ thì DỪNG ở đây: chỉ điền mốc để so, tuyệt đối
+            # không điền giá chốt. Điền vào là Mua hàng mở đơn ra đã thấy sẵn
+            # một con số, bấm [Ghi nhận giá NCC báo] là đóng dấu GIÁ CŨ như thể
+            # nhà cung cấp vừa báo — đúng thứ cả luồng hỏi giá sinh ra để chống.
+            # Giá trên đơn hỏi giá phải là chữ người mua gõ vào sau khi hỏi thật.
+            if line.order_id.dlm_quotation_id:
+                continue
+            # Chỉ đè giá chốt khi người mua CHƯA gõ tay — dấu hiệu nhận biết là
+            # nó vẫn đúng bằng mốc cũ (hoặc chưa có gì). Gõ tay rồi mà bị đè là
+            # mất con số họ vừa thoả thuận với nhà cung cấp.
+            if not line.price_unit or line.price_unit == cu:
+                line.price_unit = moc
+
+    def _dlm_reference_price(self):
+        self.ensure_one()
+        seller = self._dlm_reference_seller()
+        if not seller:
+            return self.product_id.standard_price
+        try:
+            return seller._dlm_reference_unit_cost(self.product_id)
+        except UserError:
+            # Bảng giá lệch ĐVT/tiền tệ thì raise; ở đây chỉ là gợi ý nên rơi về
+            # giá vốn tham chiếu thay vì làm hỏng cả form.
+            return self.product_id.standard_price
 
     def _dlm_reference_seller(self):
-        """Bảng giá NCC dùng làm mốc — ưu tiên chính NCC của đơn."""
+        """Bảng giá làm mốc cho dòng này — giá của CHÍNH nhà cung cấp trên đơn.
+
+        🔴 Trước đây chỉ soi dòng ĐANG ÁP DỤNG. Mà mỗi vật tư chỉ có đúng MỘT
+        dòng như thế, thường là của nhà cung cấp khác — nên đặt hàng Phú Thịnh
+        lại lấy mốc là giá Hoà Phát, lệch mấy lần mà không cảnh báo nào nổ.
+
+        Cột này tên là "Giá bảng nhà cung cấp" và sinh ra để SO LỆCH, nên nó phải
+        là giá của người mình đang đặt: đang áp dụng trước, không thì bản mới
+        nhất họ đã báo. Họ chưa có giá nào thì mới rơi về giá đang áp dụng —
+        mặt bằng chung còn hơn không có mốc nào."""
         self.ensure_one()
-        sellers = self.product_id.sudo().seller_ids.filtered(
-            lambda s: s.is_applied)
-        own = sellers.filtered(
-            lambda s: s.partner_id == self.order_id.partner_id)
-        return (own or sellers)[:1]
+        rows = self.product_id.sudo().seller_ids
+        today = fields.Date.context_today(self)
+        cua_ho = rows.filtered(
+            lambda s: s.partner_id == self.order_id.partner_id
+            and s.approval_state == "approved"
+            and not s.dlm_superseded
+            and s._is_valid_on(today))
+        if cua_ho:
+            return (cua_ho.filtered("is_applied")
+                    or cua_ho.sorted("date_start", reverse=True))[:1]
+        return rows.filtered("is_applied")[:1]
 
 
 def _dlm_money(value):
     """Tiền cho câu thông báo: nhóm hàng nghìn bằng dấu chấm, không lẻ."""
     return "{:,.0f}".format(value or 0.0).replace(",", ".")
+
+
+def _dlm_qty(value):
+    """Số lượng cho câu thông báo: bỏ đuôi 0 thừa (30 chứ không 30,000)."""
+    return ("%.3f" % (value or 0.0)).rstrip("0").rstrip(".") or "0"

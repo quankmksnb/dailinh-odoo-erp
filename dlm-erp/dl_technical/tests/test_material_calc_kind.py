@@ -7,7 +7,6 @@ Vì vậy định mức phải ra thẳng số cây (giá là đồng/cây), và
 quy đổi khối lượng là tiền phế liệu thu hồi, phải quy đổi tường minh.
 """
 
-from odoo.exceptions import UserError
 from odoo.tests.common import TransactionCase, tagged
 
 
@@ -133,7 +132,6 @@ class TestMaterialCalcKind(TransactionCase):
         line = self._line(son, dim_length=1200, piece_count=3, quantity=0.4)
         self.assertIsNone(line._dlm_auto_quantity(),
                           "Vật tư định lượng phải để kỹ thuật nhập thẳng")
-        line._onchange_dlm_auto_quantity()
         self.assertEqual(line.quantity, 0.4, "Số kỹ thuật nhập không bị ghi đè")
 
     # T5: bẫy làm tròn đơn vị tính
@@ -199,12 +197,12 @@ class TestMaterialCalcKind(TransactionCase):
                           is_override=True)
         self.assertEqual(line._dlm_recovery_value(), 0.0)
 
-    # T7: cổng cứng lúc xác nhận định mức
-    def test_t7_confirm_blocks_incomplete_material(self):
-        """TC-INT-TestMaterialCalcKind-010: Vật tư cut_length nhưng thiếu dlm_stock_length
-        (chiều dài cây) thì _dlm_calc_missing_fields() báo thiếu, và action_confirm()
-        trên BOM chứa dòng này phải raise UserError nêu rõ field thiếu.
-        """
+    # T7 - quy cách vật tư không còn chặn việc xác nhận định mức
+    def test_t7_confirm_no_longer_blocks_incomplete_material(self):
+        """TC-INT-TestMaterialCalcKind-010: Đảo chiều 2026-08-21: trước đây cổng cứng chặn BOM khi vật tư
+        chưa khai Chiều dài cây. Số lượng nay kỹ thuật khai thẳng theo đơn vị
+        mua nên mẫu số đó không còn ảnh hưởng gì, giữ cổng lại là chặn nhầm
+        đúng những BOM hợp lệ."""
         thieu = self.Product.create({
             "name": "Thép hộp thiếu chiều dài cây (test)",
             "product_kind": "material",
@@ -212,24 +210,7 @@ class TestMaterialCalcKind(TransactionCase):
             "dlm_calc_kind": "cut_length",
             "dlm_stock_length": 0,
         })
-        self.assertIn("Chiều dài cây", thieu._dlm_calc_missing_fields())
-        bom = self._bom(thieu, dim_length=700, piece_count=4, quantity=1)
-        with self.assertRaises(UserError) as ctx:
-            bom.action_confirm()
-        self.assertIn("Chiều dài cây", str(ctx.exception))
-
-    def test_t7b_confirm_passes_for_override_line(self):
-        """TC-INT-TestMaterialCalcKind-011: Dòng đã ghi đè số lượng không cần tự tính nên
-        không bị cổng chặn.
-        """
-        thieu = self.Product.create({
-            "name": "Thép hộp thiếu quy cách nhưng gõ tay (test)",
-            "product_kind": "material",
-            "uom_id": self.uom_cay.id, "uom_po_id": self.uom_cay.id,
-            "dlm_calc_kind": "cut_length", "dlm_stock_length": 0,
-        })
-        bom = self._bom(thieu, quantity=3.5, is_override=True,
-                        override_reason="Xưởng báo cần 3,5 cây")
+        bom = self._bom(thieu, quantity=2)
         bom.action_confirm()
         self.assertEqual(bom.status, "confirmed")
 
@@ -273,28 +254,24 @@ class TestMaterialCalcKind(TransactionCase):
         bom = template.generate_instance(self.product_ban, {"N": 4})
         self.assertEqual(bom.line_ids.piece_count, 4)
 
-    # T9: ghi đè thì không tính lại
-    def test_t9_override_is_not_recomputed(self):
-        """TC-INT-TestMaterialCalcKind-014: Dòng đã is_override=True, đổi dim_length sau đó
-        vẫn không được tự tính lại quantity qua onchange, giá trị ghi đè phải thắng.
-        """
+    # T9 - số kỹ thuật gõ là số cuối cùng, không cơ chế nào đè lên
+    def test_t9_typed_quantity_is_never_overwritten(self):
+        """TC-INT-TestMaterialCalcKind-014: Kỹ thuật khai 2 cây (đã gồm phần thừa do cắt) thì phải giữ nguyên 2,
+        kể cả khi dòng còn mang kích thước cắt cũ từ dữ liệu trước."""
         line = self._line(self.hop_25x50, dim_length=700, piece_count=2,
-                          quantity=3.5, is_override=True)
+                          quantity=2.0)
         line.dim_length = 1500
-        line._onchange_dlm_auto_quantity()
-        self.assertEqual(line.quantity, 3.5, "Ghi đè phải thắng tự tính")
+        self.assertEqual(line.quantity, 2.0)
 
-    def test_t9b_auto_quantity_fills_when_not_override(self):
-        """TC-INT-TestMaterialCalcKind-015: Dòng không override, đổi dim_length/piece_count
-        thì onchange phải tự tính lại quantity theo quy cách (4 chữ số thập phân, đúng
-        precision đã đặt ở T5).
-        """
-        line = self._line(self.hop_25x50, quantity=1.0)
-        line.dim_length = 700
-        line.piece_count = 2
-        line._onchange_dlm_auto_quantity()
-        # 4 chữ số = đúng độ chính xác "Product Unit of Measure" đã đặt ở T5.
-        self.assertAlmostEqual(line.quantity, 0.2333, places=4)
+    def test_t9b_auto_quantity_onchange_is_gone(self):
+        """TC-INT-TestMaterialCalcKind-015: Onchange tự điền phải biến mất, không chỉ ngừng gọi.
+
+        Nó bám vào material_id, nên nếu ai đó cho dim_length hiện lại trên
+        form thì nó âm thầm sống dậy và đè lên số kỹ thuật vừa gõ. Test này nổ
+        ngay lúc hàm được đặt lại, thay vì để giá vốn lệch trong im lặng."""
+        self.assertFalse(
+            hasattr(self.env["dl.bom.line"], "_onchange_dlm_auto_quantity"),
+            "Đã gỡ 2026-08-21, xem chú thích ở dl_bom_line_mixin.py")
 
     # T10: tấm bán theo kg dùng kg/m² khai thẳng, không suy từ quy cách
     def _ton_kg(self, **extra):
@@ -316,16 +293,13 @@ class TestMaterialCalcKind(TransactionCase):
                           piece_count=1)
         self.assertAlmostEqual(line._dlm_auto_quantity(), 0.6 * 15.7, places=6)
 
-    def test_t10b_sheet_by_kg_missing_mass_per_sqm_is_blocked(self):
-        """TC-INT-TestMaterialCalcKind-017: Thiếu kg/m² thì cổng cứng phải nêu đúng tên ô,
-        không im lặng ra 0.
-        """
+    def test_t10b_sheet_by_kg_missing_mass_per_sqm_no_longer_blocks(self):
+        """TC-INT-TestMaterialCalcKind-017: Đảo chiều 2026-08-21, cùng lý do T7: kg/m² chỉ là mẫu số của bộ
+        tự tính, không còn là điều kiện để xác nhận định mức."""
         thieu = self._ton_kg(dlm_mass_per_sqm=0)
-        self.assertIn("kg/m²", thieu._dlm_calc_missing_fields())
-        bom = self._bom(thieu, dim_length=1200, dim_width=500, quantity=1)
-        with self.assertRaises(UserError) as ctx:
-            bom.action_confirm()
-        self.assertIn("kg/m²", str(ctx.exception))
+        bom = self._bom(thieu, quantity=9.42)
+        bom.action_confirm()
+        self.assertEqual(bom.status, "confirmed")
 
     def test_no_geometry_fields_left_on_material(self):
         """TC-INT-TestMaterialCalcKind-018: Quy cách hình học đã bị gỡ khỏi vật tư, mọi mẫu

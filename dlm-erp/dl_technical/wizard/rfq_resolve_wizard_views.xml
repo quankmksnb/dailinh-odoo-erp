@@ -127,6 +127,7 @@
                                           string="Thông số Sales nhập">
                                         <field name="name" string="Thông số"/>
                                         <field name="value" string="Giá trị" widget="dl_qty"/>
+                                        <field name="unit_hint" string="Đơn vị"/>
                                     </tree>
                                 </field>
                                 <div class="alert alert-warning mt-1 mb-0 py-1 px-2 small"
@@ -362,12 +363,10 @@
                                        class="dl-rfq-bom-preview">
                                     <tree>
                                         <field name="material_id"/>
-                                        <field name="dim_length" string="Dài đoạn (mm)"/>
-                                        <field name="piece_count"/>
                                         <field name="quantity"/>
                                         <field name="uom_id" string="Đơn vị tính"/>
-                                        <field name="waste_rate"/>
-                                        <field name="effective_qty"/>
+                                        <field name="waste_rate" string="Hao hụt (%)"/>
+                                        <field name="effective_qty" string="Số lượng thực"/>
                                     </tree>
                                 </field>
                             </div>
@@ -402,11 +401,11 @@
 
                                 <!-- Đợt 4 — Sinh định mức từ BOM mẫu tham số: nhập D/R/C
                                      MỘT LẦN, hệ thống tự suy kích thước từng dòng vật tư
-                                     (không tính tay). Chỉ hiện khi nhóm SP có mẫu tham số. -->
+                                     (không tính tay). Chỉ hiện khi SP có mẫu tham số. -->
                                 <div class="alert alert-info py-2" role="status"
                                      invisible="not has_parametric_template or show_param_panel">
                                     <i class="fa fa-magic me-1" title="Mẫu tham số"/>
-                                    Nhóm sản phẩm này có <b>mẫu tham số</b>
+                                    Sản phẩm này có <b>mẫu tham số</b>
                                     (<field name="parametric_template_id" readonly="1" nolabel="1"
                                             class="dl-rfq-inline-field"/>) —
                                     nhập kích thước, hệ thống tự sinh định mức.

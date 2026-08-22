@@ -30,7 +30,7 @@
         <field name="name">dl.pricing.approval.request.form</field>
         <field name="model">dl.pricing.approval.request</field>
         <field name="arch" type="xml">
-            <form string="Yêu cầu phê duyệt" create="false" delete="false">
+            <form string="Yêu cầu phê duyệt" create="false" delete="false" js_class="dl_form">
                 <header>
                     <field name="can_resolve" invisible="1"/>
                     <button name="action_approve" string="Phê duyệt" type="object"

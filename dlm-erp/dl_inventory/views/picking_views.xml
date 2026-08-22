@@ -61,6 +61,39 @@
         </field>
     </record>
 
+    <!-- Chỉ THÊM chipbar trạng thái (js_class) cho riêng màn Nhận hàng / Kiểm
+         hàng — không đụng bảng cột dùng chung. Kế thừa primary như bản nocreate:
+         js_class là thuộc tính trên <tree>, phải đặt qua từng màn (chip khác
+         nhau) chứ không nhét vào list chung. -->
+    <record id="view_dl_receipt_tree" model="ir.ui.view">
+        <field name="name">dl.stock.picking.tree.receipt</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="view_dl_picking_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <tree position="attributes">
+                <!-- create=0: phiếu nhận sinh TỪ chốt đơn mua, không tạo tay ở
+                     đây (giống màn Kiểm hàng). ORM create vẫn chạy nên đơn mua
+                     tự sinh phiếu bình thường — chỉ ẩn nút Mới trên UI. -->
+                <attribute name="create">0</attribute>
+                <attribute name="js_class">dl_receipt_list</attribute>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_dl_qc_tree" model="ir.ui.view">
+        <field name="name">dl.stock.picking.tree.qc</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="view_dl_picking_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <tree position="attributes">
+                <attribute name="create">0</attribute>
+                <attribute name="js_class">dl_qc_list</attribute>
+            </tree>
+        </field>
+    </record>
+
     <!-- ============================================================
          M2 — Nhận hàng NCC (phiếu [1]: NCC → Chờ kiểm hàng)
     ============================================================ -->
@@ -68,7 +101,7 @@
         <field name="name">dl.stock.picking.receipt.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Nhận hàng nhà cung cấp" class="dl-receipt-form">
+            <form string="Nhận hàng nhà cung cấp" class="dl-receipt-form" create="0" js_class="dl_form">
                 <header>
                     <!-- 1 CTA btn-primary cho mỗi trạng thái; phụ = secondary;
                          phá huỷ = danger (quy ước §11.1). -->
@@ -198,8 +231,9 @@
                                                     ('product_kind', 'in', ('material', 'trading'))]"/>
                                     <field name="product_uom_qty" widget="dl_qty" string="Dự kiến"/>
                                     <field name="quantity" widget="dl_qty" string="Thực nhận"/>
-                                    <field name="product_uom" string="Đơn vị tính"
-                                           groups="uom.group_uom"/>
+                                    <!-- ĐVT hiện cho MỌI vai trò — KHÔNG gắn groups="uom.group_uom": không
+                                         user nào ở nhóm đó nên cột sẽ tàng hình. -->
+                                    <field name="product_uom" string="Đơn vị tính"/>
                                     <!-- Lô do hệ thống tự sinh lúc xác nhận nên
                                          cột này trống tới khi phiếu xong — đúng
                                          thực tế, đừng bày ô nhập gây hiểu nhầm. -->
@@ -278,15 +312,19 @@
         <field name="domain">[('picking_type_id.code', '=', 'incoming')]</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_picking_tree')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_receipt_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_receipt_form')}),
         ]"/>
         <field name="search_view_id" ref="view_dl_receipt_search"/>
-        <field name="context">{'restricted_picking_type_code': 'incoming'}</field>
+        <!-- Mặc định "Cần nhận": hàng đợi = việc CẦN LÀM, không trộn phiếu đã
+             nhận/nháp/huỷ (đối xứng màn Kiểm hàng vốn đã ẩn phiếu đã xong). -->
+        <field name="context">{'restricted_picking_type_code': 'incoming',
+                               'search_default_todo': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Chưa có phiếu nhận hàng nào</p>
-            <p>Mỗi lần nhà cung cấp giao hàng, tạo một phiếu nhận. Hàng vào khu
-               <b>Chờ kiểm hàng</b> trước, kiểm đạt mới cất vào kho.</p>
+            <p>Phiếu nhận sinh ra <b>tự động</b> khi Mua hàng <b>chốt đơn</b> —
+               không tạo tay ở đây. Hàng vào khu <b>Chờ kiểm hàng</b> trước,
+               kiểm đạt mới cất vào kho.</p>
         </field>
     </record>
 
@@ -299,7 +337,7 @@
         <field name="name">dl.stock.picking.qc.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Kiểm &amp; cất hàng" class="dl-qc-form" create="0">
+            <form string="Kiểm &amp; cất hàng" class="dl-qc-form" create="0" js_class="dl_form">
                 <header>
                     <!-- Nút biến mất khi còn lỗi thay vì bày nút bấm-không-được:
                          dải đỏ ngay dưới đã liệt kê đích danh dòng nào sai.
@@ -311,14 +349,20 @@
                             groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <button name="action_dlm_pass_all" string="Đạt tất cả"
                             type="object" class="btn-secondary"
-                            invisible="state in ('done', 'cancel')"
+                            invisible="state in ('done', 'cancel') or dlm_wait_receipt"
+                            groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
+                    <!-- Chỉ hiện khi có dòng vượt số chờ kiểm — gỡ ca kẹt câm khi
+                         số chờ kiểm co lại (tách kiện) sau khi đã nhập số. -->
+                    <button name="action_dlm_fix_qc_counts" string="Khớp lại số"
+                            type="object" class="btn-secondary"
+                            invisible="state in ('done', 'cancel') or not dlm_qc_has_over"
                             groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
                     <!-- RS-12 (§11.4) — "Đang chờ / Sẵn sàng / Hoàn tất" là
                          ngôn ngữ Odoo. Thủ kho đọc theo việc: chờ kiểm → đang
                          kiểm → đã cất vào kho. -->
                     <field name="state" widget="dl_stepper"
-                           statusbar_visible="confirmed,assigned,done"
-                           options="{'labels': {'confirmed': 'Chờ kiểm', 'assigned': 'Đang kiểm', 'done': 'Đã cất'}}"/>
+                           statusbar_visible="waiting,confirmed,assigned,done"
+                           options="{'labels': {'waiting': 'Chờ hàng về', 'confirmed': 'Chờ kiểm', 'assigned': 'Đang kiểm', 'done': 'Đã cất'}}"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
@@ -338,6 +382,8 @@
                     </div>
 
                     <field name="dlm_blocked" invisible="1"/>
+                    <field name="dlm_qc_has_over" invisible="1"/>
+                    <field name="dlm_wait_receipt" invisible="1"/>
                     <!-- company_id: domain của partner_id/picking_type_id trên
                          stock.picking tham chiếu tới nó ⇒ thiếu là view không nạp được. -->
                     <field name="company_id" invisible="1"/>
@@ -400,6 +446,9 @@
                                     <field name="quantity" widget="dl_qty" string="Đạt" sum="Tổng"/>
                                     <field name="dlm_qty_rejected" widget="dl_qty" string="Loại"
                                            sum="Tổng"/>
+                                    <!-- ĐVT hiện cho MỌI vai trò — KHÔNG gắn groups="uom.group_uom": không
+                                         user nào ở nhóm đó nên cột sẽ tàng hình. -->
+                                    <field name="product_uom" string="Đơn vị tính" readonly="1"/>
                                     <!-- QC-03/04 — required ĐỘNG, báo ngay trên
                                          dòng; không @api.constrains bắn modal. -->
                                     <field name="dlm_reject_reason" string="Lý do loại"
@@ -425,8 +474,6 @@
                                             string="Bằng chứng"
                                             title="Chụp / xem ảnh hàng lỗi của dòng này"
                                             invisible="dlm_qty_rejected &lt;= 0"/>
-                                    <field name="product_uom" string="Đơn vị tính"
-                                           groups="uom.group_uom" readonly="1"/>
                                     <field name="dlm_qc_over" column_invisible="1"/>
                                     <field name="picked" column_invisible="1"/>
                                     <!-- company_id: domain của product_id trên
@@ -524,7 +571,12 @@
                 <field name="origin" string="Từ phiếu"/>
 
                 <filter name="pending" string="Chờ kiểm"
-                        domain="[('state', 'not in', ('done', 'cancel'))]"/>
+                        domain="[('state', 'not in', ('done', 'cancel', 'waiting'))]"/>
+                <!-- `waiting` = phiếu nhận gốc chưa xác nhận: hàng chưa về, chưa
+                     đếm được. Vẫn cho nhìn thấy (việc sắp tới), nhưng KHÔNG trộn
+                     vào "Chờ kiểm" — trộn là mời thủ kho kiểm hàng chưa về. -->
+                <filter name="waiting_receipt" string="Chờ hàng về"
+                        domain="[('state', '=', 'waiting')]"/>
                 <filter name="checked" string="Đã kiểm"
                         domain="[('state', '=', 'done')]"/>
                 <separator/>
@@ -549,7 +601,7 @@
         <field name="domain">[('picking_type_id.sequence_code', '=', 'KC')]</field>
         <field name="view_ids" eval="[
             (5, 0, 0),
-            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_picking_tree_nocreate')}),
+            (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_qc_tree')}),
             (0, 0, {'view_mode': 'form', 'view_id': ref('view_dl_qc_form')}),
         ]"/>
         <field name="search_view_id" ref="view_dl_qc_search"/>

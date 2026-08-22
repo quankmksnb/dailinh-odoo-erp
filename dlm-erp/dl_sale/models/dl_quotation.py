@@ -2,7 +2,7 @@ from markupsafe import Markup
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
-from odoo.tools import format_date
+from odoo.tools import format_date, float_is_zero
 
 # Ai được nhìn thấy giá vốn trên form Báo giá: Trưởng KD, CEO, Admin.
 # Sales (BA) mở cùng form nhưng chỉ thấy giá bán/chiết khấu — mọi field gắn
@@ -187,7 +187,7 @@ class DlQuotation(models.Model):
         ('overdue', 'Quá hạn'),
     ], string='Tình trạng hiệu lực', compute='_compute_validity_state')
 
-    @api.depends('validity_date', 'state')
+    @api.depends('validity_date', 'state', 'pricing_date')
     def _compute_validity_state(self):
         today = fields.Date.context_today(self)
         for rec in self:
@@ -195,9 +195,62 @@ class DlQuotation(models.Model):
             if rec.state in self._EXPIRABLE_STATES and rec.validity_date:
                 if rec.validity_date < today:
                     vs = 'overdue'
-                elif (rec.validity_date - today).days <= 7:
+                elif (rec.validity_date - today).days <= rec._soon_threshold():
                     vs = 'soon'
             rec.validity_state = vs
+
+    # Trạng thái báo giá còn SỐNG (chưa lên đơn, chưa đóng) — chỉ ở đây mới có
+    # chuyện "giá quá hạn cam kết".
+    _DLM_ALIVE_STATES = ('draft', 'approved', 'sent', 'accepted')
+
+    dlm_send_blocked = fields.Boolean(
+        string='Đang bị chặn gửi khách', compute='_compute_dlm_send_blocked',
+        help="Có cổng nào đó đang chặn gửi khách. Bản gốc không chặn gì; "
+             "dl_purchase bật khi giá mua phần thiếu chưa được xác nhận.")
+
+    def _compute_dlm_send_blocked(self):
+        for rec in self:
+            rec.dlm_send_blocked = False
+
+    dlm_price_stale = fields.Boolean(
+        string='Giá quá hạn cam kết', compute='_compute_dlm_price_stale',
+        help="Đã qua hạn hiệu lực nhưng báo giá còn sống ⇒ giá đã chào không "
+             "còn ràng buộc, phải tính lại trước khi lên đơn.")
+
+    @api.depends('validity_date', 'state', 'pricing_date')
+    def _compute_dlm_price_stale(self):
+        """Một predicate DUY NHẤT cho 'giá hết hạn cam kết' — dùng chung cho cổng
+        chặn lên đơn, dải cảnh báo và nút Cập nhật giá.
+
+        🔴 KHÔNG dùng `validity_state` cho việc này: nó chỉ tính trên
+        `_EXPIRABLE_STATES` (không có 'accepted', vì cron không được tự cho hết
+        hạn báo giá khách đã đồng ý). Lấy nó gác nút thì đúng ca cần nút nhất —
+        khách đồng ý muộn — lại là ca không có nút, mà cổng vẫn chặn ⇒ người
+        dùng kẹt cứng không có lối ra."""
+        today = fields.Date.context_today(self)
+        for rec in self:
+            if rec.state == 'draft':
+                # Chưa chào ai ⇒ chưa có cam kết nào hết hạn. "Cần tính lại"
+                # ở đây = giá đang mang ngày khác hôm nay.
+                rec.dlm_price_stale = bool(
+                    rec.pricing_date and rec.pricing_date < today)
+            elif rec.state in self._DLM_ALIVE_STATES:
+                rec.dlm_price_stale = bool(
+                    rec.validity_date and rec.validity_date < today)
+            else:
+                rec.dlm_price_stale = False
+
+    def _soon_threshold(self):
+        """Còn mấy ngày thì kêu "sắp hết hạn" — suy từ ĐỘ DÀI hạn của chính báo giá.
+
+        Ngưỡng cứng 7 ngày sai với báo giá thép hạn 7 ngày: nó "sắp hết hạn"
+        ngay từ lúc vừa tạo ⇒ cảnh báo mất nghĩa. Lấy 1/3 hạn (tối thiểu 1,
+        tối đa 7) thì đơn thép kêu ở ngày thứ 5, đơn thương mại 30 ngày kêu ở
+        ngày thứ 23 — cùng một cảm giác "sắp hết"."""
+        self.ensure_one()
+        start = self.pricing_date or self.create_date and self.create_date.date()
+        window = (self.validity_date - start).days if start else 0
+        return max(1, min(7, window // 3))
 
     # Cột "Hạn hiệu lực" trên danh sách: in kèm đếm ngược ("còn 3 ngày") để
     # không bị nhầm với cột Ngày báo giá (cùng định dạng ngày). Non-stored nên
@@ -332,7 +385,8 @@ class DlQuotation(models.Model):
 
     @api.depends('state', 'approval_required', 'approval_state', 'approval_level',
                  'approval_reasons', 'reject_reason', 'reject_reason_note',
-                 'revision_request_type', 'revision_request_note', 'line_ids')
+                 'revision_request_type', 'revision_request_note', 'line_ids',
+                 'dlm_price_stale', 'dlm_send_blocked')
     def _compute_status_banner(self):
         """Chọn dải thông báo cho form Báo giá — xét từ nặng tới nhẹ (bị từ
         chối → chờ duyệt → hết hạn → khách xin sửa → …), gặp cái nào trước thì
@@ -356,6 +410,17 @@ class DlQuotation(models.Model):
                         rec.approval_level or '')
                 if rec.approval_reasons:
                     msg += Markup(" %s") % rec.approval_reasons
+            elif rec.state == 'accepted' and rec.dlm_price_stale:
+                # Khách đồng ý sau khi báo giá đã hết hạn: đây là ca mất tiền
+                # lặng lẽ nhất (giá thép trượt trong lúc chờ), và
+                # action_create_sale_order đang CHẶN — dải phải nói ra vì sao,
+                # không thì người dùng bấm Tạo đơn rồi ngơ ngác vì lỗi đỏ.
+                level = 'danger'
+                msg = Markup(
+                    "Khách đồng ý <strong>sau khi báo giá hết hiệu lực</strong> "
+                    "(%s). Giá vật tư có thể đã đổi — bấm <em>Cập nhật giá theo "
+                    "thị trường</em> để tính lại theo giá hôm nay trước khi lên "
+                    "đơn.") % format_date(rec.env, rec.validity_date)
             elif rec.state == 'expired':
                 level = 'warning'
                 msg = Markup(
@@ -389,11 +454,12 @@ class DlQuotation(models.Model):
                 msg = Markup(
                     "Báo giá này đã được <strong>thay bằng phiên bản mới</strong> "
                     "— chỉ lưu để truy vết.")
-            elif rec.approval_state == 'approved':
+            elif rec.approval_state == 'approved' and not rec.dlm_send_blocked:
                 level = 'success'
                 msg = Markup("Đã được phê duyệt — sẵn sàng gửi khách.")
             elif (rec.state == 'draft' and not rec.approval_required
-                  and rec.approval_state == 'not_required' and rec.line_ids):
+                  and rec.approval_state == 'not_required' and rec.line_ids
+                  and not rec.dlm_send_blocked):
                 level = 'success'
                 msg = Markup(
                     "<strong>Báo giá đã sẵn sàng gửi khách.</strong> Giá trị nằm "
@@ -663,6 +729,12 @@ class DlQuotation(models.Model):
                 '<div class="dl-recipe-row"><span class="n">%s</span>%s'
                 '<span class="a">%s</span></div>') % (
                     label, meta, self._fmt_money(amt_unit)))
+            # Nguồn hàng của vật tư: bao nhiêu lấy từ lô đang có (giá đã cố
+            # định) và bao nhiêu phải mua (giá còn trượt). Không có dòng này thì
+            # đơn giá trộn là một con số không ai giải trình được.
+            if comp.dlm_price_note:
+                rows.append(Markup(
+                    '<div class="dl-recipe-src">%s</div>') % comp.dlm_price_note)
         return Markup(
             '<div class="dl-recipe-cat">'
             '<div class="dl-recipe-cat-title">%s</div>%s'
@@ -836,7 +908,15 @@ class DlQuotation(models.Model):
                     "duyệt nội bộ."))
             if not rec.validity_date:
                 rec.validity_date = rec._default_validity_date()
+            # Cổng cuối trước khi CAM KẾT giá với khách. Bản gốc không làm gì;
+            # dl_purchase chặn khi báo giá có phần vật tư PHẢI MUA mà Mua hàng
+            # chưa xác nhận giá mua — cam kết một con số mình chưa biết.
+            rec._dlm_check_ready_to_send()
         self.write({'state': 'sent'})
+
+    def _dlm_check_ready_to_send(self):
+        """Điểm nối cho các cổng kiểm trước khi gửi khách. Bản gốc: không chặn gì."""
+        return True
         # Kẹp bản PDF vào chatter làm bằng chứng "đã chào khách giá này" — sau
         # này khách thắc mắc thì mở đúng bản đã gửi ra đối chiếu.
         for rec in self:
@@ -1219,6 +1299,11 @@ class DlQuotation(models.Model):
         if self.state != 'accepted':
             raise UserError(_(
                 "Chỉ tạo đơn bán hàng khi khách đã đồng ý báo giá."))
+        # 🔴 CỔNG GIÁ ĐẦU VÀO. Quãng từ lúc gửi khách tới lúc khách ký là chỗ
+        # mất tiền lặng lẽ nhất: thép trượt giá trong lúc chờ, mà trước đây
+        # hàm này chép thẳng giá cũ sang đơn không kiểm gì. Quá hạn ⇒ bắt tính
+        # lại, không cho lên đơn bằng giá của tuần trước.
+        self._dlm_check_pricing_fresh()
         existing = self.env['dl.sale.order'].search([
             ('quotation_id', '=', self.id),
             ('state', '!=', 'cancelled'),
@@ -1241,6 +1326,7 @@ class DlQuotation(models.Model):
                 'line_ids': [(0, 0, {
                     'name': line.name,
                     'qty': line.qty,
+                    'uom_id': line.uom_id.id,
                     'price_unit': line.price_unit,
                     'product_id': line.product_id.id,
                     'bom_id': line.bom_id.id,
@@ -1261,6 +1347,56 @@ class DlQuotation(models.Model):
             'view_mode': 'form',
             'res_id': order.id,
             'target': 'current',
+        }
+
+    def _dlm_check_pricing_fresh(self):
+        """Chặn lên đơn khi báo giá đã quá hạn hiệu lực — bắt cập nhật giá trước.
+
+        Không tự tính lại giùm: đổi giá của một báo giá khách đã đồng ý là một
+        quyết định kinh doanh (báo lại khách, thương lượng, hay chịu biên thấp),
+        không phải một `write()` lặng lẽ."""
+        self.ensure_one()
+        if not self.dlm_price_stale:
+            return True
+        today = fields.Date.context_today(self)
+        raise UserError(_(
+            "Báo giá %(ten)s đã hết hiệu lực ngày %(han)s (quá %(ngay)s ngày).\n\n"
+            "Giá vật tư có thể đã đổi kể từ lúc báo — lên đơn bằng giá cũ là "
+            "nhận chênh lệch vào biên lợi nhuận của mình.\n\n"
+            "Bấm \"Cập nhật giá theo thị trường\" trên báo giá để tính lại theo "
+            "giá hôm nay, rồi xác nhận lại với khách."
+        ) % {"ten": self.name,
+             "han": format_date(self.env, self.validity_date),
+             "ngay": (today - self.validity_date).days})
+
+    def action_dlm_refresh_pricing(self):
+        """Nút "Cập nhật giá theo thị trường" — tính lại tiền theo giá đầu vào hôm nay."""
+        self.ensure_one()
+        delta = self.env["dl.quotation.pricing.service"].sudo().recompute_quotation(
+            self, extend_validity=True,
+            reason=_("Cập nhật giá theo thị trường (%s bấm).") % self.env.user.name)
+        Service = self.env["dl.quotation.pricing.service"]
+        if float_is_zero(delta["cost_pct"], precision_digits=2):
+            msg = _("Giá đầu vào không đổi — chỉ gia hạn hiệu lực tới %s.") % (
+                self.validity_date)
+        else:
+            msg = _(
+                "Giá thành %(pct)+.1f%%. Giá trước thuế: %(p1)s → %(p2)s."
+            ) % {"pct": delta["cost_pct"],
+                 "p1": Service._fmt_vnd(delta["price_before"]),
+                 "p2": Service._fmt_vnd(delta["price_after"])}
+        if delta.get("must_resend"):
+            msg += _(" Báo giá đã quay về Nháp — cần GỬI LẠI khách mức giá mới "
+                     "trước khi lên đơn.")
+        return {
+            "type": "ir.actions.client",
+            "tag": "display_notification",
+            "params": {
+                "title": _("Đã tính lại giá"),
+                "message": msg,
+                "type": "success" if delta["cost_pct"] <= 0 else "warning",
+                "next": {"type": "ir.actions.act_window_close"},
+            },
         }
 
     def action_open_sale_order(self):
@@ -1284,6 +1420,14 @@ class DlQuotationLine(models.Model):
     quotation_id = fields.Many2one('dl.quotation', string='Báo giá', ondelete='cascade')
     name = fields.Char(string='Mô tả', required=True)
     qty = fields.Float(string='Số lượng', default=1.0)
+    # Đơn vị tính đi CÙNG số lượng suốt chuỗi RFQ → báo giá → đơn → phiếu giao.
+    # "2" một mình không phải là cam kết bán được: 2 bộ bàn ghế khác hẳn 2 mét
+    # máng điện. Chép từ dòng RFQ lúc engine đẻ dòng báo giá; dòng Sales tự thêm
+    # tay thì mặc định "Đơn vị" để không có dòng nào trống đơn vị.
+    uom_id = fields.Many2one(
+        'uom.uom', string='ĐVT', required=True,
+        default=lambda self: self.env.ref('uom.product_uom_unit',
+                                          raise_if_not_found=False))
     price_unit = fields.Float(string='Đơn giá', digits='Product Price')
     price_subtotal = fields.Float(string='Thành tiền', compute='_compute_subtotal',
                                   store=True, digits='Product Price')
@@ -1322,6 +1466,12 @@ class DlQuotationLine(models.Model):
                                    readonly=True, groups=_COST_GROUPS)
     total_cost = fields.Float(string='Giá thành/đơn vị', digits='Product Price',
                               readonly=True, groups=_COST_GROUPS)
+    # Giá thành nếu phải MUA LẠI toàn bộ vật tư theo giá hiện hành. Khác
+    # total_cost đúng bằng phần lãi do đang giữ vật tư mua sớm giá thấp.
+    # Đây là nền tính giá sàn — xem _price_manufactured.
+    replacement_cost = fields.Float(string='Giá thành mua lại/đơn vị',
+                                    digits='Product Price',
+                                    readonly=True, groups=_COST_GROUPS)
     floor_price = fields.Float(string='Giá sàn/đơn vị', digits='Product Price',
                                readonly=True, groups=_COST_GROUPS)
 

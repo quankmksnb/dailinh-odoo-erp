@@ -49,7 +49,7 @@
         <field name="name">dl.sale.order.dispatch.form</field>
         <field name="model">dl.sale.order</field>
         <field name="arch" type="xml">
-            <form string="Điều phối đơn hàng" class="dl-dispatch-form"
+            <form string="Điều phối đơn hàng" class="dl-dispatch-form" js_class="dl_form"
                   create="false" edit="false">
                 <header>
                     <!-- MỘT CTA primary cho cả màn (§11.1). Nút tự ẩn khi không
@@ -155,6 +155,8 @@
                                            width="260px"/>
                                     <field name="qty" string="Số lượng"
                                            widget="dl_qty" width="90px"/>
+                                    <field name="uom_id" string="ĐVT"
+                                           width="80px"/>
                                     <field name="line_type" string="Loại dòng"
                                            width="120px"/>
                                 </tree>

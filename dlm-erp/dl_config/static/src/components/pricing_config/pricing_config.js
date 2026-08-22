@@ -101,7 +101,6 @@ export class DlPricingConfig extends Component {
         this.onMoneyInput = onMoneyInput;
         this.parseMoney = parseMoney;
         this.fmtMoneyInput = formatMoney;
-        this.tabs = TABS;
         this.rounding = ROUNDING;
         this.L = L;
         this.opt = {
@@ -121,6 +120,8 @@ export class DlPricingConfig extends Component {
             loading: true,
             health: [], // cảnh báo "chặn báo giá" (thiếu markup / công đoạn chưa định giá)
             perms: {},
+            // Tab được HIỆN (từ get_bootstrap). Rỗng cho tới khi boot xong.
+            tabPerms: {},
             options: { categories: [], products: [], operations: [], complexity: [], approvers: [] },
             rows: {
                 waste: [], operation: [], cost: [], profit: [], discount: [],
@@ -144,6 +145,12 @@ export class DlPricingConfig extends Component {
         onWillStart(async () => {
             const boot = await this.orm.call("dl.pricing.ui", "get_bootstrap", []);
             this.state.perms = boot.perms;
+            this.state.tabPerms = boot.tabs || {};
+            // Tab nhớ trong localStorage có thể là tab vai trò này không
+            // được thấy ⇒ rơi về tab đầu tiên còn hiện.
+            if (!this.tabs.some((t) => t.key === this.state.tab)) {
+                this.setTab(this.tabs[0].key);
+            }
             this.state.options = boot.options;
             await Promise.all([
                 this.load("waste"), this.load("operation"), this.load("cost"),
@@ -154,6 +161,14 @@ export class DlPricingConfig extends Component {
             ]);
             this.state.loading = false;
         });
+    }
+
+    // Tab chưa boot xong thì hiện đủ (state.loading vẫn che nội dung); boot
+    // xong thì lọc theo quyền ĐỌC — tab không đọc được mà vẫn hiện sẽ ra
+    // bảng rỗng, đọc thành "chưa cấu hình gì".
+    get tabs() {
+        const vis = this.state.tabPerms;
+        return TABS.filter((t) => vis[t.key] === undefined || vis[t.key]);
     }
 
     // --- Nạp dữ liệu từng nhóm ---------------------------------------------

@@ -346,7 +346,7 @@ class DlRfqResolveWizard(models.TransientModel):
         "dl.bom.template", string="Mẫu tham số",
         compute="_compute_parametric_template")
     has_parametric_template = fields.Boolean(
-        string="Nhóm sản phẩm có mẫu tham số", compute="_compute_parametric_template")
+        string="Sản phẩm có mẫu tham số", compute="_compute_parametric_template")
     show_param_panel = fields.Boolean(string="Đang mở panel tham số")
     param_line_ids = fields.One2many(
         "dl.rfq.resolve.param", "wizard_id", string="Tham số")
@@ -354,21 +354,27 @@ class DlRfqResolveWizard(models.TransientModel):
     # chốt) chứ không phải bản vừa sinh. Chỉ sống trong phiên xử lý hiện tại.
     param_reused_bom = fields.Boolean(string="Dùng lại định mức đã có")
 
-    @api.depends("product_id", "product_id.categ_id", "request_category_id")
+    @api.depends("product_id", "rfq_line_id.reference_product_id")
     def _compute_parametric_template(self):
-        Template = self.env["dl.bom.template"]
+        """Mẫu tham số của CHÍNH sản phẩm đang chọn — neo theo sản phẩm, không theo nhóm.
+
+        🔴 Bản cũ search theo `product_category_id` và đó là lỗi: một nhóm chứa
+        nhiều KẾT CẤU (bàn thép D×R×C, ghế băng D×C...), nên "mẫu của nhóm này"
+        không có câu trả lời đơn nhất — `limit=1` trả về bản version cao nhất,
+        tức Kỹ thuật bị mồi bộ tham số của một kết cấu KHÁC món Sales đặt.
+        Sinh ra thì còn tệ hơn: `generate_instance` đóng `param_signature` của
+        mẫu lạ lên định mức, mà làn L0 tìm lại theo `generic_product_id` của mẫu
+        ⇒ cấu hình vừa làm không bao giờ được nhận ra ở lần sau.
+
+        Chưa chốt sản phẩm (KTV vừa bấm "Đổi sản phẩm") thì lấy mẫu của KIỂU
+        HÀNG Sales chọn — vẫn neo theo sản phẩm, chỉ là sản phẩm ở đầu bên kia.
+        Chọn sản phẩm rồi mà nó không có mẫu thì KHÔNG có mẫu nào cả: sinh định
+        mức từ mẫu của sản phẩm khác chính là lỗi vừa nêu."""
         for rec in self:
-            tmpl = Template.browse()
-            # Chưa chọn SP thì lấy nhóm của dòng RFQ: nếu đợi có product_id mới
-            # tìm được mẫu thì Kỹ thuật đã đi qua ngã ba "tạo SP mới" từ trước
-            # (gà-và-trứng) — đúng cái khiến mỗi cỡ đẻ một mã sản phẩm.
-            categ = rec.product_id.categ_id or rec.request_category_id
-            if categ:
-                tmpl = Template.search([
-                    ("product_category_id", "=", categ.id),
-                    ("status", "in", ("confirmed", "locked")),
-                    ("is_parametric", "=", True),
-                ], order="is_current desc, version desc", limit=1)
+            if rec.product_id:
+                tmpl = rec.product_id._dlm_parametric_template()
+            else:
+                tmpl = rec.rfq_line_id.parametric_template_id
             rec.parametric_template_id = tmpl
             rec.has_parametric_template = bool(tmpl)
 

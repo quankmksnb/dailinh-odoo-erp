@@ -8,16 +8,16 @@ const APPROVAL_ACTION = "dl_sale.action_dl_quote_approval";
 
 // Rail: nhóm "Báo giá" xổ thành các mục con điều hướng THẲNG (không có màn hub
 // trung chuyển). Điều hướng theo actionXmlId; menuXmlIds chỉ để lọc RBAC (mục nào
-// user không thấy menu thì ẩn). Thứ tự = độ ưu tiên; mục đầu là màn mặc định khi
-// bấm nhãn nhóm.
+// user không thấy menu thì ẩn).
+//
+// Thứ tự = HÀNG ĐỢI TRƯỚC, RỒI ĐẾN DÒNG ĐỜI. Bản trước mở đầu bằng "Danh sách
+// báo giá" rồi mới tới RFQ — ngược mạch: RFQ đẻ ra báo giá, không phải ngược lại.
+// "Quản lý RFQ" đứng đầu vì đó mới là hòm việc thật của Sales (list có cột ưu
+// tiên đẩy RFQ Kỹ thuật vừa trả về lên trên).
+//
+// ⚠️ Bấm NHÃN NHÓM chỉ xổ/thu submenu (`toggleSubmenu`), KHÔNG mở màn nào —
+// nên mục đầu không phải "màn mặc định". Bản trước comment ngược ở chỗ này.
 const QUOTE_CHILDREN = [
-    {
-        key: "quotation_list",
-        name: "Danh sách báo giá",
-        icon: "fa-file-text-o",
-        actionXmlId: "dl_sale.action_dl_quotation",
-        menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
-    },
     {
         key: "rfq_list",
         name: "Quản lý RFQ",
@@ -31,6 +31,13 @@ const QUOTE_CHILDREN = [
         icon: "fa-plus-square",
         actionXmlId: "dl_technical.action_dl_quotation_request_create",
         menuXmlIds: ["dl_technical.menu_rfq_create"],
+    },
+    {
+        key: "quotation_list",
+        name: "Danh sách báo giá",
+        icon: "fa-file-text-o",
+        actionXmlId: "dl_sale.action_dl_quotation",
+        menuXmlIds: ["dl_sale.menu_dl_sale_quotation"],
     },
     {
         key: "sale_order",

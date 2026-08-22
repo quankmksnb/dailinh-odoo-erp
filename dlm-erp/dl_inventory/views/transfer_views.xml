@@ -43,7 +43,7 @@
         <field name="name">dl.stock.picking.transfer.form</field>
         <field name="model">stock.picking</field>
         <field name="arch" type="xml">
-            <form string="Chuyển kho nội bộ" class="dl-transfer-form">
+            <form string="Chuyển kho nội bộ" class="dl-transfer-form" js_class="dl_form">
                 <header>
                     <button name="action_confirm" string="Xác nhận phiếu"
                             type="object" class="btn-primary"
@@ -263,8 +263,9 @@
                                          chuyển ít hơn số cần. -->
                                     <field name="quantity" widget="dl_qty" string="Thực chuyển"
                                            column_invisible="parent.state == 'draft'"/>
-                                    <field name="product_uom" string="Đơn vị tính"
-                                           groups="uom.group_uom"/>
+                                    <!-- ĐVT hiện cho MỌI vai trò — KHÔNG gắn groups="uom.group_uom": không
+                                         user nào ở nhóm đó nên cột sẽ tàng hình. -->
+                                    <field name="product_uom" string="Đơn vị tính"/>
                                     <!-- SM-05: lô của đúng SP + đang nằm ở nguồn. -->
                                     <field name="lot_ids" string="Số lô"
                                            widget="many2many_tags"

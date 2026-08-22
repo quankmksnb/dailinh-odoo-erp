@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_dl_purchase_order_export_wizard_form" model="ir.ui.view">
+        <field name="name">dl.purchase.order.export.wizard.form</field>
+        <field name="model">dl.purchase.order.export.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Xuất / Gửi đơn">
+                <field name="order_id" invisible="1"/>
+                <group>
+                    <field name="doc_label" readonly="1"/>
+                    <field name="partner_email" readonly="1"/>
+                </group>
+                <p class="text-muted">
+                    Bấm <strong>Tải về</strong> để lưu file PDF, hoặc
+                    <strong>Gửi email</strong> để mở trình soạn thư đã đính sẵn
+                    file — đọc lại rồi mới bấm Gửi. Đơn chưa chốt gửi đi là
+                    <strong>Yêu cầu báo giá</strong> (trống giá); đơn đã chốt là
+                    <strong>Đơn đặt hàng</strong> (có giá).
+                </p>
+                <footer>
+                    <button name="action_download" string="Tải về"
+                            type="object" class="btn-primary"/>
+                    <button name="action_email" string="Gửi email cho NCC"
+                            type="object" class="btn-secondary"/>
+                    <button string="Đóng" class="btn-link" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -15,17 +15,17 @@
       "value": "en_US",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1818486623.578898,
+      "expires": 1818963277.307241,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "session_id",
-      "value": "1c3d0f60c9185408ccbaf390040f3e18a369826e",
+      "value": "c103cc7478338e5adfb78088ead87542ef43a4b9",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1787555424.488899,
+      "expires": 1788032078.762643,
       "httpOnly": true,
       "secure": false,
       "sameSite": "Lax"
@@ -35,7 +35,7 @@
       "value": "1",
       "domain": "127.0.0.1",
       "path": "/",
-      "expires": 1818486624.399121,
+      "expires": 1818963278.616614,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -46,8 +46,24 @@
       "origin": "http://127.0.0.1:8069",
       "localStorage": [
         {
+          "name": "dlm.sidebar.activeChildKey",
+          "value": "quotation_list"
+        },
+        {
+          "name": "multi_tab.http_127.0.0.1_8069.heartbeat",
+          "value": "1787427278540"
+        },
+        {
+          "name": "presence.focus",
+          "value": "true"
+        },
+        {
           "name": "presence.lastPresence",
-          "value": "1786950623601"
+          "value": "1787427277488"
+        },
+        {
+          "name": "multi_tab.http_127.0.0.1_8069.last_notification_id",
+          "value": "3763"
         },
         {
           "name": "dlm.sidebar.activeKey",
@@ -58,19 +74,7 @@
           "value": "{}"
         },
         {
-          "name": "dlm.sidebar.activeChildKey",
-          "value": "quotation_list"
-        },
-        {
           "name": "multi_tab.http_127.0.0.1_8069.main",
-          "value": "true"
-        },
-        {
-          "name": "multi_tab.http_127.0.0.1_8069.heartbeat",
-          "value": "1786950624389"
-        },
-        {
-          "name": "presence.focus",
           "value": "true"
         }
       ]

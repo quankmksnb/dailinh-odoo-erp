@@ -6,3 +6,10 @@ access_dl_purchase_line_buy,dl.purchase.order.line Mua hang,model_dl_purchase_or
 access_dl_purchase_line_admin,dl.purchase.order.line Admin,model_dl_purchase_order_line,dl_base.dl_group_admin,1,1,1,1
 access_dl_purchase_line_ceo,dl.purchase.order.line CEO,model_dl_purchase_order_line,dl_base.dl_group_ceo,1,1,1,0
 access_dl_sale_order_buy,dl.sale.order Mua hang,dl_sale.model_dl_sale_order,dl_base.dl_group_purchasing,1,0,0,0
+access_dl_purchase_price_wizard,access_dl_purchase_price_wizard,model_dl_purchase_price_update_wizard,dl_base.dl_group_purchasing,1,1,1,1
+access_dl_purchase_price_wizard_adm,access_dl_purchase_price_wizard_adm,model_dl_purchase_price_update_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_purchase_price_wizard_line,access_dl_purchase_price_wizard_line,model_dl_purchase_price_update_wizard_line,dl_base.dl_group_purchasing,1,1,1,1
+access_dl_purchase_price_wizard_line_adm,access_dl_purchase_price_wizard_line_adm,model_dl_purchase_price_update_wizard_line,dl_base.dl_group_admin,1,1,1,1
+access_dl_purchase_export_wizard_buy,dl.purchase.order.export.wizard Mua hang,model_dl_purchase_order_export_wizard,dl_base.dl_group_purchasing,1,1,1,0
+access_dl_purchase_export_wizard_adm,dl.purchase.order.export.wizard Admin,model_dl_purchase_order_export_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_purchase_export_wizard_ceo,dl.purchase.order.export.wizard CEO,model_dl_purchase_order_export_wizard,dl_base.dl_group_ceo,1,1,1,0

@@ -93,6 +93,16 @@ class DlPricingUi(models.TransientModel):
                 "matrix_propose": self._has("sales_manager", "ceo", "admin"),
                 "master": self._has("tech", "admin"),
             },
+            # Tab nào được HIỆN. Khác `perms` ở trên (perms = được SỬA): tab
+            # thiếu quyền ĐỌC thì `load()` nuốt AccessError và vẽ ra bảng rỗng,
+            # trông y hệt "chưa cấu hình gì" — vai trò đọc xong tưởng hệ thống
+            # trống. Ẩn hẳn thay vì hiện rỗng.
+            "tabs": {
+                # Lợi nhuận & chiết khấu = chính sách GIÁ BÁN. Kỹ thuật cố ý
+                # không thấy (bảng RBAC: "không thấy giá bán cuối") và cũng
+                # không có ACL đọc profit.rule/discount.rule.
+                "commercial": self._has("ceo", "sales_manager", "admin"),
+            },
             "options": {
                 "categories": [
                     {"id": c.id, "name": c.display_name}

@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Vật tư phải mua thêm + cổng xác nhận giá mua trước khi cam kết với khách.
+         Đặt ở dl_purchase vì con số "phải mua" chỉ tính được khi thấy tồn kho
+         (dl_inventory) và giá lô (dl_purchase) — dl_sale đứng trước cả hai. -->
+    <record id="view_dl_quotation_form_shortage" model="ir.ui.view">
+        <field name="name">dl.quotation.form.shortage</field>
+        <field name="model">dl.quotation</field>
+        <field name="inherit_id" ref="dl_sale.view_dl_quotation_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//header" position="inside">
+                <field name="dlm_has_shortage" invisible="1"/>
+                <field name="dlm_need_price_confirm" invisible="1"/>
+                <!-- CTA của Sales khi báo giá có phần phải mua: việc tiếp theo
+                     KHÔNG phải gửi khách mà là lấy giá mua cho chắc. Nút [Gửi
+                     khách hàng] bị ẩn ở đúng lúc này (xem xpath bên dưới) nên
+                     header vẫn chỉ có MỘT nút chính. -->
+                <button name="action_dlm_request_vendor_quote"
+                        string="Hỏi giá nhà cung cấp"
+                        type="object" class="btn-primary"
+                        invisible="not dlm_need_price_confirm or state not in ('draft', 'approved')"
+                        help="Giao việc cho nhóm Mua hàng lấy giá mới cho phần vật tư vượt tồn kho."/>
+
+            </xpath>
+
+            <!-- 🔴 Không cho gửi khách khi giá phần PHẢI MUA chưa ai xác nhận.
+                 Server đã chặn ở _dlm_check_ready_to_send; ẩn nút để người dùng
+                 không đâm vào lỗi đỏ, và để CTA duy nhất là việc làm được. -->
+            <xpath expr="//button[@name='action_send']" position="attributes">
+                <attribute name="invisible">state not in ('draft', 'approved') or (state == 'draft' and (approval_required or approval_state != 'not_required')) or dlm_need_price_confirm</attribute>
+            </xpath>
+
+            <!-- Dải giải thích. PHẢI nằm ngoài tab Phân tích giá thành: tab đó
+                 gated theo nhóm thấy giá vốn, mà người bị chặn gửi khách lại
+                 chính là Sales — họ không mở được tab đó nên sẽ không hiểu vì
+                 sao mất nút. Dải này cố ý KHÔNG có con số tiền nào. -->
+            <xpath expr="//field[@name='status_banner_level']" position="before">
+                <div class="alert alert-warning d-flex align-items-center gap-2 mb-2"
+                     role="status" invisible="not dlm_need_price_confirm">
+                    <i class="fa fa-hourglass-half" title="Chờ xác nhận"/>
+                    <div>
+                        <strong>Giá dưới đây là TẠM TÍNH — chờ Mua hàng xác nhận.</strong>
+                        Báo giá cần mua thêm vật tư ngoài tồn kho; phần đó đang
+                        tính theo bảng giá nhà cung cấp, chưa ai kiểm còn đúng
+                        không. Vẫn xem và sửa được, nhưng <em>chưa gửi khách và
+                        chưa xuất file</em> — gửi ra là cam kết 7 ngày trên một
+                        con số chưa chắc. Bấm <em>Hỏi giá nhà cung cấp</em>.
+                    </div>
+                </div>
+            </xpath>
+
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_dlm_open_vendor_quotes" type="object"
+                        class="oe_stat_button" icon="fa-comments-o"
+                        invisible="dlm_vendor_quote_count == 0">
+                    <field name="dlm_vendor_quote_count" widget="statinfo"
+                           string="Đơn hỏi giá"/>
+                </button>
+            </xpath>
+
+            <!-- Nằm cạnh bảng công thức: người đọc đang xem "vì sao giá thành
+                 thế này" thì câu trả lời "vì 70 cây phải mua" phải ở ngay đó. -->
+            <xpath expr="//page[@name='cost_analysis']" position="inside">
+                <div class="dl-quote-shortage mt-3"
+                     invisible="not dlm_has_shortage">
+                    <div class="alert alert-warning mb-2" role="status">
+                        <strong>Nhu cầu vượt tồn kho.</strong>
+                        Phần dưới đây tạm tính theo bảng giá nhà cung cấp hiện
+                        hành. Giá thép đổi theo ngày — Mua hàng phải xác nhận
+                        trước khi báo giá được gửi khách.
+                    </div>
+                    <field name="dlm_shortage_html" nolabel="1" readonly="1"/>
+                    <group>
+                        <field name="dlm_price_confirm_uid" readonly="1"
+                               invisible="not dlm_price_confirm_uid"/>
+                        <field name="dlm_price_confirm_date" readonly="1"
+                               invisible="not dlm_price_confirm_date"/>
+                    </group>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

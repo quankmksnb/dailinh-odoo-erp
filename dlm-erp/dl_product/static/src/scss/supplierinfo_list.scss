@@ -1,0 +1,109 @@
+// Bảng giá NCC (vật tư / SP thương mại) — list phẳng, 1 dòng = 1 mức giá.
+// table-layout: fixed nên PHẢI khai width cho MỌI cột hiển thị (kể cả cột nút
+// th.o_list_button không có data-name); cột nào không khai bị bóp về ~0 và chữ
+// đè lên nhau. Card/thead/hover chung đã ở dl_base/global_list.scss.
+.dl-supplierinfo-list {
+    .o_list_table {
+        table-layout: fixed !important;
+        width: 100% !important;
+
+        // 5 cột hiện + cột nút. Đơn vị GỘP dưới Giá (widget dl_supplier_price);
+        // validity_state/date_end/dlm_source_note/min_qty ẩn. Tổng = 100%.
+        th[data-name="product_tmpl_id"]  { width: 32% !important; }
+        th[data-name="partner_id"]       { width: 21% !important; }
+        th[data-name="price"]            { width: 14% !important; }
+        th[data-name="date_start"]       { width: 10% !important; }
+        th[data-name="display_state"]    { width: 11% !important; }
+        // Có thể hiện 2 nút cùng lúc ("Áp dụng" + "Hủy duyệt") — cần đủ rộng.
+        th.o_list_button                 { width: 12% !important; }
+
+        // Cột optional bật tay: tổng vượt 100% và trình duyệt co đều (vẫn đọc
+        // được), khác hẳn không khai (co về 0).
+        th[data-name="date_end"]         { width: 11% !important; }
+        th[data-name="dlm_source_note"]  { width: 14% !important; }
+        th[data-name="min_qty"]          { width: 9%  !important; }
+    }
+
+    // Tên vật tư / NCC: cắt đuôi thay vì xuống dòng làm bảng nhấp nhô.
+    td[name="product_tmpl_id"],
+    td[name="partner_id"],
+    td[name="dlm_source_note"] {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    // NCC là phụ — hạ tông để tên vật tư + giá nổi lên.
+    td[name="partner_id"] { color: $dl-text-2; }
+
+    // ── Ô Giá mua (widget dl_supplier_price) — 2 dòng ─────────────────────
+    // Giá là con số người ta vào màn này để xem: đậm, canh phải, chữ số đều để
+    // các dòng thẳng cột khi so giá. Đơn vị là dòng phụ mờ ngay dưới.
+    td[name="price"] {
+        text-align: right;
+        white-space: nowrap;
+    }
+    .dl-price-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        line-height: 1.25;
+    }
+    .dl-price-val {
+        font-weight: 600;
+        color: $dl-heading;
+        font-variant-numeric: tabular-nums;
+    }
+    .dl-price-uom {
+        font-size: 11px;
+        color: $dl-text-muted;
+    }
+
+    // Ô giá cao 2 dòng; các ô 1 dòng canh lên đỉnh để thẳng hàng với dòng giá
+    // thay vì trôi xuống giữa, ngang với dòng đơn vị.
+    td[name="date_start"],
+    td[name="date_end"],
+    td[name="min_qty"] {
+        vertical-align: top;
+        padding-top: 7px;
+        color: $dl-text-2;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    // ── Dòng NCC phương án khác ───────────────────────────────────────────
+    // decoration-muted="dlm_is_alternative" gắn .text-muted lên <tr>. Vật tư đã
+    // có giá đang áp dụng ⇒ dòng này là lựa chọn thay thế: thụt vào + dấu ↳ để
+    // đọc ra ngay "thuộc về vật tư dòng trên", không phải một mặt hàng mới.
+    tbody tr.o_data_row.text-muted {
+        background-color: $dl-table-zebra-bg;
+
+        td[name="product_tmpl_id"] {
+            position: relative;
+            padding-left: 30px;
+            font-weight: 400;
+
+            &::before {
+                content: "↳";
+                position: absolute;
+                left: 12px;
+                color: $dl-text-muted;
+            }
+        }
+        // Giá phương án khác KHÔNG được đậm ngang giá đang dùng.
+        .dl-price-val {
+            font-weight: 500;
+            color: $dl-text-2;
+        }
+    }
+
+    // Cột nút: sát phải, 1 dòng.
+    td.o_list_button { text-align: right; white-space: nowrap; }
+
+    // ── Badge trạng thái ──────────────────────────────────────────────────
+    // display_state ra .badge màu Bootstrap chói; ánh xạ về badge mềm dùng
+    // chung với màn Báo giá. Đây là badge DUY NHẤT còn lại trên dòng.
+    .badge.rounded-pill { font-weight: 500; }
+    .badge.text-bg-warning { background-color: $dl-badge-draft-bg    !important; color: $dl-badge-draft-fg    !important; }
+    .badge.text-bg-info    { background-color: $dl-badge-sent-bg     !important; color: $dl-badge-sent-fg     !important; }
+    .badge.text-bg-success { background-color: $dl-badge-approved-bg !important; color: $dl-badge-approved-fg !important; }
+}

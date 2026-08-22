@@ -549,32 +549,14 @@ class DlBom(models.Model):
                     "vẽ” trên form BOM để thêm bản vẽ cho “%s”."
                 ) % rec.product_id.display_name)
 
-    def _dlm_check_material_spec(self):
-        """§12.4 — CỔNG CỨNG: vật tư khai thiếu quy cách thì định mức không tự
-        tính được, dòng BOM âm thầm giữ số mặc định (1) ⇒ giá vốn sai mà không
-        có tín hiệu nào. Chặn ngay lúc xác nhận và nêu đúng vật tư thiếu gì.
-
-        Dòng đã bật Ghi đè số lượng không cần tự tính (kỹ thuật gõ thẳng số cây)
-        nên chỉ còn bị soi phần khối lượng phục vụ tiền phế liệu."""
-        for rec in self:
-            problems = []
-            for line in rec.line_ids:
-                missing = line.material_id._dlm_calc_missing_fields(
-                    for_auto_calc=not line.is_override)
-                if missing:
-                    problems.append("• %s — thiếu: %s" % (
-                        line.material_id.display_name, ", ".join(missing)))
-            if problems:
-                raise UserError(_(
-                    "Chưa xác nhận được “%(bom)s”: những vật tư sau chưa khai đủ "
-                    "quy cách nên định mức không tự tính được.\n\n%(list)s\n\n"
-                    "Bổ sung ở màn Vật tư — mục “Quy cách & cách tính định mức”."
-                ) % {"bom": rec.display_name,
-                     "list": "\n".join(dict.fromkeys(problems))})
+    # 🔴 GỠ 2026-08-21 — cổng cứng "vật tư phải khai đủ quy cách" (§12.4) đi
+    # cùng bộ tự tính định mức. Số lượng nay kỹ thuật khai thẳng theo đơn vị mua
+    # của vật tư, nên chiều dài cây / khổ tấm không còn là điều kiện để xác nhận
+    # BOM. Giữ cổng lại sẽ chặn đúng những BOM hợp lệ.
+    # `product.product._dlm_calc_missing_fields` vẫn còn — xem chú thích ở đó.
 
     def action_confirm(self):
         self._dlm_check_drawing_policy()      # LK-06 — cổng bản vẽ (nếu bật)
-        self._dlm_check_material_spec()       # §12.4 — cổng quy cách vật tư
         result = super().action_confirm()
         # LK-16 — Xác nhận một BOM (nhất là BOM chuẩn của BTP) đổi kết quả
         # _standard_child_bom ⇒ các dòng BOM cha đang dùng BTP này phải tính lại

@@ -2,15 +2,19 @@
 <odoo>
 
     <!-- Mở menu cha cho MỌI vai trò có ít nhất một menu con bên trong (Odoo
-         yêu cầu pass groups cả tổ tiên): Trưởng KD/KTV/Kế toán/BA được cấp
-         menu "Cấu hình Báo giá" bên dưới nên phải thấy được menu cha; các menu
-         con khác vẫn giữ groups riêng (Quản lý User/Phân quyền chỉ Admin...). -->
+         yêu cầu pass groups cả tổ tiên): Trưởng KD/KTV được cấp menu "Cấu hình
+         Báo giá" bên dưới nên phải thấy được menu cha; các menu con khác vẫn
+         giữ groups riêng (Quản lý User/Phân quyền chỉ Admin...).
+         Dùng (6,0,...) chứ không (4,...): BA đã bị gỡ khỏi "Cấu hình Báo giá"
+         và không còn menu con nào ở đây, mà lệnh (4,...) thì không xoá được
+         vai cũ trên DB đã nâng cấp — BA sẽ còn lại một menu "Cấu hình" rỗng. -->
     <record id="dl_base.menu_dl_config" model="ir.ui.menu">
-        <field name="groups_id" eval="[
-            (4, ref('dl_base.dl_group_sales_manager')),
-            (4, ref('dl_base.dl_group_tech')),
-            (4, ref('dl_base.dl_group_ba')),
-        ]"/>
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_ceo'),
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_sales_manager'),
+            ref('dl_base.dl_group_tech'),
+        ])]"/>
     </record>
 
     <menuitem
@@ -31,15 +35,27 @@
         groups="dl_base.dl_group_admin"
     />
 
-    <!-- Cấu hình Báo giá — một màn OWL nhiều tab (V3 §3.1 cho phép thanh tab). -->
+    <!-- Cấu hình Báo giá — một màn OWL nhiều tab (V3 §3.1 cho phép thanh tab).
+         BA/Sales CỐ Ý không có mục này: `dl.pricing.ui.get_bootstrap` không cấp
+         cho BA quyền sửa BẤT KỲ tab nào, và BA thiếu ACL đọc 7/11 nhóm dữ liệu
+         của màn ⇒ họ mở ra chỉ thấy các tab rỗng câm (load() nuốt AccessError).
+         BA lập báo giá, không đặt chính sách giá. -->
     <menuitem
         id="menu_dl_config_pricing"
         name="Cấu hình Báo giá"
         parent="dl_base.menu_dl_config"
         sequence="7"
         action="action_dl_pricing_config"
-        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager,dl_base.dl_group_tech,dl_base.dl_group_ba"
+        groups="dl_base.dl_group_ceo,dl_base.dl_group_admin,dl_base.dl_group_sales_manager,dl_base.dl_group_tech"
     />
+    <record id="menu_dl_config_pricing" model="ir.ui.menu">
+        <field name="groups_id" eval="[(6, 0, [
+            ref('dl_base.dl_group_ceo'),
+            ref('dl_base.dl_group_admin'),
+            ref('dl_base.dl_group_sales_manager'),
+            ref('dl_base.dl_group_tech'),
+        ])]"/>
+    </record>
 
     <menuitem
         id="menu_dl_config_uom"

@@ -24,3 +24,4 @@ from . import test_fg_receipt
 from . import test_workshop_batch
 from . import test_bom_explosion
 from . import test_dispatch
+from . import test_warehouse_screen_access

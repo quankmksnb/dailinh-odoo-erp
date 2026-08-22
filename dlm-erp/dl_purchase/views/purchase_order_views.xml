@@ -49,48 +49,82 @@
         <field name="name">dl.purchase.order.form</field>
         <field name="model">dl.purchase.order</field>
         <field name="arch" type="xml">
-            <form string="Đơn mua hàng" class="dl-purchase-form">
+            <form string="Đơn mua hàng" class="dl-purchase-form" js_class="dl_form">
                 <header>
                     <!-- MỘT CTA primary cho mỗi trạng thái (§11.1).
                          Nháp: gửi hỏi giá. Đã gửi: chốt HOẶC trình duyệt —
                          hai nút này loại trừ nhau theo ngưỡng, không bao giờ
                          cùng hiện; để cùng hiện là mời người dùng đi đường
-                         tránh ngưỡng. -->
+                         tránh ngưỡng.
+
+                         🔴 Cả cụm chốt/duyệt còn ẩn thêm khi `not
+                         dlm_customer_committed` — tức đơn HỎI GIÁ mà báo giá
+                         nguồn chưa thành đơn bán. Server đã chặn cứng ca này
+                         (`_dlm_check_customer_committed`); để nút sáng ở đây thì
+                         nút primary duy nhất của màn là một nút bấm phát nào lỗi
+                         phát ấy. Đơn hỏi giá có CTA riêng bên dưới. -->
+                    <!-- PHỤ, không phải CTA: đơn mua nháp đã mang sẵn giá lấy
+                         từ Bảng giá nhà cung cấp (`_dlm_fill_reference_price`),
+                         tức là vòng hỏi giá đã xong ở trước. Việc chính ở nấc
+                         này là CHỐT. Nút này dành cho ca "giá cũ rồi, hỏi lại
+                         đã" — và nó cũng là nút duy nhất đóng được `date_sent`.
+                         Để nó primary thì nấc Nháp có HAI nút sáng (§11.1). -->
                     <button name="action_dlm_send" string="Gửi hỏi giá nhà cung cấp"
-                            type="object" class="btn-primary"
+                            type="object" class="btn-secondary"
                             invisible="state != 'draft'"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
+                    <!-- CTA của đơn HỎI GIÁ, thay chỗ [Chốt đơn]. Cố ý KHÔNG
+                         chốt: chốt sinh phiếu nhận = cam kết mua thật, mà báo
+                         giá thì chưa chắc thắng. Ghi nhận giá xong đơn vẫn nằm
+                         chờ, chỉ rời hàng đợi.
+
+                         HAI BẢN của cùng một nút vì Odoo không cho đổi `class`
+                         theo điều kiện. Khách chưa chốt ⇒ đây là việc duy nhất,
+                         nó là primary. Khách chốt rồi ⇒ việc chính chuyển sang
+                         [Chốt đơn], nút này hạ xuống phụ (vẫn phải còn: nhà cung
+                         cấp báo lại giá là chuyện thường, và giá đó phải vào
+                         được bảng giá). Hai bản loại trừ nhau tuyệt đối nên
+                         không bao giờ có hai nút primary cùng lúc — §11.1. -->
+                    <button name="action_dlm_record_vendor_price"
+                            string="Ghi nhận giá NCC báo"
+                            type="object" class="btn-primary"
+                            invisible="state != 'sent' or not dlm_quotation_id
+                                       or dlm_customer_committed"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
+                    <button name="action_dlm_record_vendor_price"
+                            string="Ghi nhận giá NCC báo"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'sent' or not dlm_quotation_id
+                                       or not dlm_customer_committed"
                             groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_confirm" string="Chốt đơn"
                             type="object" class="btn-primary"
                             invisible="state not in ('draft', 'sent')
-                                       or dlm_needs_approval"
+                                       or dlm_needs_approval
+                                       or not dlm_customer_committed"
                                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_submit_approval"
                             string="Trình Giám đốc duyệt"
                             type="object" class="btn-primary"
                             invisible="state not in ('draft', 'sent')
-                                       or not dlm_needs_approval"
+                                       or not dlm_needs_approval
+                                       or not dlm_customer_committed"
                                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
-                    <button name="action_dlm_print"
-                            string="In yêu cầu báo giá"
-                            type="object" class="btn-secondary"
-                            invisible="state not in ('draft', 'sent')"
-                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
-                    <button name="action_dlm_print" string="In đơn đặt hàng"
-                            type="object" class="btn-secondary"
-                            invisible="state != 'confirmed'"
-                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
-                    <!-- MỘT nút cho cả hai biến thể: PDF và mẫu thư đều tự đổi
-                         giọng theo trạng thái, nên tách hai nút chỉ để đổi chữ
-                         trên nhãn là bắt người dùng chọn hộ máy. Ẩn ở đơn đã
-                         huỷ — không gửi cho NCC một đơn không còn hiệu lực. -->
-                    <button name="action_dlm_email" string="Gửi mail cho NCC"
+                    <!-- MỘT nút cho cả Tải về lẫn Gửi, và cho cả hai biến thể
+                         chứng từ: PDF và mẫu thư tự đổi giọng theo trạng thái
+                         (chưa chốt = Yêu cầu báo giá, đã chốt = Đơn đặt hàng),
+                         nên tách nút chỉ để đổi chữ là bắt người dùng chọn hộ
+                         máy. Ẩn ở đơn đã huỷ / chưa có dòng — không gửi cho NCC
+                         một đơn không còn hiệu lực hoặc rỗng. -->
+                    <button name="action_dlm_open_export_wizard"
+                            string="Xuất / Gửi đơn" icon="fa-file-pdf-o"
                             type="object" class="btn-secondary"
                             invisible="state == 'cancelled' or not line_ids"
                             groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_reset_draft" string="Đưa về nháp"
                             type="object" class="btn-link"
-                            invisible="state not in ('sent', 'cancelled')"
+                            invisible="state not in ('sent', 'cancelled')
+                                       or (state == 'sent' and dlm_quotation_id)"
                             groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <button name="action_dlm_cancel" string="Huỷ đơn"
                             type="object" class="btn-danger"
@@ -105,6 +139,16 @@
                             bg_color="text-bg-danger"
                             invisible="state != 'cancelled'"/>
                     <field name="dlm_needs_approval" invisible="1"/>
+                    <field name="dlm_price_row_count" invisible="1"/>
+                    <!-- Phụ, không phải CTA: chốt đơn xong việc chính là chờ
+                         hàng về. Không confirm= vì bản thân nó mở modal — hỏi
+                         hai lần là thừa. -->
+                    <button name="action_dlm_push_price_list"
+                            string="Cập nhật bảng giá"
+                            type="object" class="btn-secondary"
+                            invisible="state != 'confirmed'"/>
+                    <field name="dlm_quotation_id" invisible="1"/>
+                    <field name="dlm_customer_committed" invisible="1"/>
 
                     <div class="oe_button_box" name="dlm_purchase_box">
                         <button name="action_dlm_open_pickings" type="object"
@@ -112,6 +156,31 @@
                                 invisible="dlm_picking_count == 0">
                             <field name="dlm_picking_count" widget="statinfo"
                                    string="Phiếu nhận"/>
+                        </button>
+                        <!-- Vòng giá khép lại ở đây: từ đơn mua nhìn ngược ra
+                             các dòng bảng giá do chính nó đẻ ra. -->
+                        <button name="action_dlm_open_price_rows" type="object"
+                                class="oe_stat_button" icon="fa-tags"
+                                invisible="dlm_price_row_count == 0">
+                            <field name="dlm_price_row_count" widget="statinfo"
+                                   string="Dòng bảng giá"/>
+                        </button>
+                        <!-- 🔴 groups= bắt buộc: Mua hàng KHÔNG có quyền đọc
+                             dl.quotation (cố ý — giá bán không thuộc về họ), nên
+                             bấm nút này sẽ ném AccessError. Chỉ hiện cho vai đọc
+                             được báo giá. Mua hàng vẫn biết đây là đơn hỏi giá
+                             nhờ nút [Ghi nhận giá NCC báo] + chatter.
+                             Chỉ CEO/Admin: đó là giao của hai quyền — đọc được
+                             đơn mua (Mua hàng/Admin/CEO) VÀ đọc được báo giá
+                             (CEO/Admin/BA/Trưởng KD). Trưởng KD không mở nổi
+                             đơn mua nên gate cho họ là vô nghĩa. -->
+                        <button name="action_dlm_open_quotation" type="object"
+                                class="oe_stat_button" icon="fa-file-text-o"
+                                groups="dl_base.dl_group_ceo,dl_base.dl_group_admin"
+                                invisible="not dlm_quotation_id">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Báo giá nguồn</span>
+                            </div>
                         </button>
                     </div>
 
@@ -135,13 +204,45 @@
                         Đơn đang chờ Giám đốc duyệt. Việc đã nằm trong hòm phê
                         duyệt của Giám đốc — không cần gửi lại.
                     </div>
+                    <!-- Hai loại đơn cùng nằm ở nấc `sent` nhưng việc kế tiếp
+                         khác hẳn nhau: đơn HỎI GIÁ thì ghi nhận giá, đơn mua
+                         thật thì chốt. Một dải nói chung "…rồi chốt đơn" cho cả
+                         hai là sai đúng một nửa số lần. -->
                     <div class="alert alert-secondary" role="alert"
                          invisible="state != 'sent'">
                         <i class="fa fa-paper-plane me-1" role="img"
-                           aria-label="Đã gửi"/>
-                        Đã gửi hỏi giá lúc <field name="date_sent" nolabel="1"
-                                                  class="d-inline"/>.
-                        Điền đơn giá nhà cung cấp báo về rồi chốt đơn.
+                           aria-label="Đã gửi hỏi giá"/>
+                        <span invisible="not dlm_quotation_id">
+                            Đang chờ nhà cung cấp báo giá. Điền đơn giá họ báo về
+                            rồi bấm <b>Ghi nhận giá NCC báo</b> — báo giá gửi
+                            khách được ngay. Đơn này <b>chưa cam kết mua</b>:
+                            khách chốt đơn xong mới đến lượt đặt hàng.
+                        </span>
+                        <span invisible="dlm_quotation_id">
+                            Đã gửi hỏi giá cho nhà cung cấp. Điền đơn giá họ báo
+                            về rồi bấm <b>Chốt đơn</b>.
+                        </span>
+                        <!-- Mốc gửi tách hẳn thành dòng riêng: nhét giữa câu thì
+                             đơn chưa có mốc để lại một dấu chấm lơ lửng. -->
+                        <div class="text-muted small mt-1"
+                             invisible="not date_sent">
+                            Đã gửi lúc <field name="date_sent" nolabel="1"
+                                              class="d-inline"/>
+                        </div>
+                    </div>
+
+                    <!-- Nhận dở dang: NCC còn thiếu hàng. Icon + chữ, không chỉ
+                         màu — người mù màu và bản in vẫn đọc ra ai đang chờ ai. -->
+                    <div class="alert alert-warning" role="alert"
+                         invisible="state != 'confirmed'
+                                    or dlm_receipt_state != 'partial'">
+                        <i class="fa fa-truck me-1" role="img"
+                           aria-label="Nhận thiếu"/>
+                        Nhà cung cấp giao chưa đủ —
+                        <field name="dlm_receipt_hint" nolabel="1"
+                               class="d-inline"/>.
+                        Theo dõi để họ giao nốt, hoặc huỷ phiếu chờ nếu không giao
+                        nữa.
                     </div>
 
                     <group>
@@ -160,7 +261,8 @@
                                    decoration-success="dlm_receipt_state == 'done'"
                                    decoration-warning="dlm_receipt_state == 'partial'"
                                    decoration-muted="dlm_receipt_state == 'nothing'"/>
-                            <field name="dlm_threshold_hint" readonly="1"/>
+                            <field name="dlm_threshold_hint" readonly="1"
+                                   invisible="not dlm_customer_committed"/>
                             <field name="dlm_origin_order_ids"
                                    widget="many2many_tags"
                                    invisible="not dlm_origin_order_ids"/>
@@ -172,8 +274,18 @@
                             <field name="line_ids"
                                    readonly="state not in ('draft', 'sent')">
                                 <tree editable="bottom">
+                                    <!-- Chỉ sổ ra mặt hàng của CHÍNH nhà cung cấp
+                                         đang chọn (có dòng trong Bảng giá NCC).
+                                         Vì view domain đè domain khai ở model, phải
+                                         chép lại 3 lọc nền rồi thêm lọc theo NCC.
+                                         parent.partner_id trống ⇒ chưa chọn NCC ⇒
+                                         chưa có mặt hàng nào: chọn nhà cung cấp trước. -->
                                     <field name="product_id" string="Mặt hàng"
-                                           width="300px"/>
+                                           width="300px"
+                                           domain="[('product_kind', 'in', ('material', 'trading')),
+                                                    ('dlm_is_scrap', '=', False),
+                                                    ('dlm_lifecycle_state', '!=', 'obsolete'),
+                                                    ('seller_ids.partner_id', '=', parent.partner_id)]"/>
                                     <field name="uom_id" string="Đơn vị tính"
                                            width="90px"/>
                                     <field name="qty" string="Số lượng"
@@ -231,6 +343,11 @@
                                       ('dlm_receipt_state', '!=', 'done')]"/>
                 <filter name="cho_bao_gia" string="Chờ nhà cung cấp báo giá"
                         domain="[('state', '=', 'sent')]"/>
+                <!-- Dùng làm segment mặc định của hàng đợi Hỏi giá. Là BỘ LỌC
+                     chứ không phải domain cứng: đơn đã có giá vẫn phải mở ra
+                     xem lại được, chỉ là không nằm chắn giữa việc đang chờ. -->
+                <filter name="cho_tra_loi" string="Chưa có hồi âm"
+                        domain="[('dlm_vendor_replied_date', '=', False)]"/>
                 <filter name="cho_duyet" string="Chờ duyệt"
                         domain="[('state', '=', 'to_approve')]"/>
                 <filter name="cho_hang_ve" string="Chờ hàng về"
@@ -246,10 +363,37 @@
         </field>
     </record>
 
+    <!-- Hàng đợi riêng: Mua hàng mở ERP là thấy việc, không phải lục chuông.
+         Đây là vai DUY NHẤT trước đây không có hàng đợi của mình. -->
+    <record id="action_dl_purchase_rfq_queue" model="ir.actions.act_window">
+        <field name="name">Hỏi giá chờ trả lời</field>
+        <field name="res_model">dl.purchase.order</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('state', '=', 'sent'), ('dlm_quotation_id', '!=', False)]</field>
+        <field name="context">{'search_default_cho_tra_loi': 1}</field>
+        <field name="search_view_id" ref="view_dl_purchase_order_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Không có cuộc hỏi giá nào đang chờ</p>
+            <p>Đơn hỏi giá xuất hiện ở đây khi Sales bấm <b>Hỏi giá nhà cung cấp</b>
+               trên một báo giá thiếu vật tư. Nhập giá nhà cung cấp báo rồi bấm
+               <b>Ghi nhận giá NCC báo</b> — báo giá đó mới gửi khách được, và
+               đơn rời hàng đợi này. Bỏ tick <b>Chưa có hồi âm</b> để xem lại
+               những đơn đã có giá.</p>
+        </field>
+    </record>
+
     <record id="action_dl_purchase_order" model="ir.actions.act_window">
         <field name="name">Đơn mua hàng</field>
         <field name="res_model">dl.purchase.order</field>
         <field name="view_mode">tree,form</field>
+        <!-- Đơn HỎI GIÁ chưa phải đơn mua: báo giá chưa chắc thắng, chưa cam kết
+             tiền với ai. Để nó nằm chung ở đây là mời Mua hàng bấm [Chốt đơn]
+             cho một đơn hàng chưa tồn tại. Nó có hàng đợi riêng
+             (action_dl_purchase_rfq_queue); chốt/trình duyệt rồi mới sang đây.
+             Chỉ giấu nấc `sent` — đơn hỏi giá bị "Đưa về nháp" vẫn phải tìm
+             được ở đâu đó, mà hàng đợi hỏi giá thì chỉ nhận `sent`. -->
+        <field name="domain">['|', ('dlm_quotation_id', '=', False),
+                              ('state', '!=', 'sent')]</field>
         <field name="context">{'search_default_dang_chay': 1}</field>
         <field name="search_view_id" ref="view_dl_purchase_order_search"/>
         <field name="help" type="html">

@@ -11,25 +11,35 @@
         <field name="model">product.supplierinfo</field>
         <field name="arch" type="xml">
             <tree string="Bảng giá nhà cung cấp" class="dl-supplierinfo-list" js_class="dl_supplierinfo_list" editable="bottom"
-                decoration-muted="display_state == 'draft'">
+                decoration-warning="validity_state == 'expiring'"
+                decoration-muted="dlm_is_alternative">
                 <field name="company_id" column_invisible="1" />
                 <field name="dl_product_kind" column_invisible="1" />
                 <field name="approval_state" column_invisible="1" />
                 <field name="is_applied" column_invisible="1" />
-                <field name="product_tmpl_id" string="Sản phẩm &amp; Vật tư" />
+                <field name="product_tmpl_id" string="Sản phẩm &amp; Vật tư" widget="dl_alt_product" />
                 <field name="partner_id" string="Nhà cung cấp"
                     domain="[('partner_role', 'in', ['supplier', 'both'])]"
                     context="{'default_partner_role': 'supplier', 'form_view_ref': 'dl_partner.view_dl_supplier_form'}" />
-                <field name="price" string="Giá nhà cung cấp" widget="dl_money"
-                    options="{'currency_field': 'currency_id'}" />
+                <field name="price" string="Giá mua" widget="dl_supplier_price"
+                    options="{'currency_field': 'currency_id', 'digits': [16, 0]}" />
                 <field name="currency_id" column_invisible="1" />
-                <field name="product_uom" string="Đơn vị" />
+                <!-- product_uom KHÔNG khai ở đây: widget dl_supplier_price tự khai
+                     bằng fieldDependencies để lấy được TÊN đơn vị (xem chú thích
+                     trong supplier_price_field.js), rồi in gộp dưới giá. -->
                 <field name="date_start" string="Từ ngày" />
-                <field name="date_end" string="Đến ngày" />
-                <field name="validity_state" widget="badge"
-                    decoration-success="validity_state == 'active'"
-                    decoration-warning="validity_state in ('upcoming', 'expiring')"
-                    decoration-danger="validity_state == 'expired'" />
+                <!-- Trên màn đã lọc "còn hiệu lực" cột này rỗng ở mọi dòng: giá bị
+                     thay thế mới có date_end, mà giá đó thì bộ lọc đã loại ra rồi. -->
+                <field name="date_end" string="Đến ngày" optional="hide" />
+                <field name="dlm_source_note" string="Nguồn giá" optional="hide" />
+                <!-- Không hiện thành cột: bộ lọc mặc định đã là "Còn hiệu lực" nên
+                     cột này lặp lại đúng bộ lọc ở mọi dòng. Giữ field để nuôi
+                     decoration-warning của <tree> — dòng SẮP hết hạn mới cần nổi. -->
+                <field name="validity_state" column_invisible="1" />
+                <field name="dlm_is_alternative" column_invisible="1" />
+                <field name="dlm_superseded" column_invisible="1" />
+                <!-- Nuôi widget dl_alt_product: chữ in ở cột Vật tư của dòng phụ. -->
+                <field name="dlm_alt_label" column_invisible="1" />
                 <field name="min_qty" string="Số lượng tối thiểu" optional="hide" />
                 <field
                     name="display_state"
@@ -138,7 +148,24 @@
                     domain="[('approval_state', '=', 'approved')]" />
                 <filter name="applied" string="Đang áp dụng"
                     domain="[('is_applied', '=', True)]" />
+                <separator />
+                <!-- Giá bị thay thế thì `date_end` được đóng tự động VÀ bật cờ
+                     `dlm_superseded` (_dlm_close_superseded). Phải soi cả cờ vì
+                     giá hỏi lại trong CÙNG MỘT NGÀY chỉ đóng được date_end về
+                     đúng hôm nay — soi mỗi ngày thì dòng cũ của chính nhà cung
+                     cấp đó vẫn nằm lại trên màn suốt hôm nay. Lọc này là thứ
+                     giữ cho màn hình nói HIỆN TRẠNG thay vì đổ cả sổ lịch sử. -->
+                <filter name="con_hieu_luc" string="Còn hiệu lực"
+                    domain="[('dlm_superseded', '=', False),
+                             '|', ('date_end', '=', False),
+                             ('date_end', '&gt;=', context_today().strftime('%Y-%m-%d'))]" />
+                <filter name="het_hieu_luc" string="Đã hết hiệu lực (lịch sử giá)"
+                    domain="['|', ('dlm_superseded', '=', True),
+                             '&amp;', ('date_end', '!=', False),
+                             ('date_end', '&lt;', context_today().strftime('%Y-%m-%d'))]" />
                 <group expand="0" string="Nhóm theo">
+                    <filter name="group_product" string="Vật tư"
+                        context="{'group_by': 'product_tmpl_id'}" />
                     <filter name="group_partner" string="Nhà cung cấp"
                         context="{'group_by': 'partner_id'}" />
                     <filter name="group_state" string="Trạng thái"
@@ -188,6 +215,12 @@
         <field name="inherit_id" ref="view_dl_supplierinfo_tree" />
         <field name="mode">primary</field>
         <field name="arch" type="xml">
+            <!-- List phẳng (không gom nhóm) nên phải tự xếp: các NCC của cùng
+                 một vật tư nằm liền nhau, rẻ trước. _order gốc của
+                 product.supplierinfo là sequence/min_qty/price — xáo trộn vật tư. -->
+            <tree position="attributes">
+                <attribute name="default_order">product_tmpl_id, is_applied desc, price</attribute>
+            </tree>
             <field name="product_tmpl_id" position="attributes">
                 <attribute name="string">Vật tư</attribute>
                 <attribute name="domain">[('product_variant_ids.product_kind', '=', 'material')]</attribute>
@@ -220,7 +253,12 @@
         ]" />
         <field name="search_view_id" ref="view_dl_supplierinfo_search" />
         <field name="domain">[('dl_product_kind', '=', 'material')]</field>
-        <field name="context">{'delete': False}</field>
+        <!-- Mặc định chỉ hiện giá CÒN hiệu lực: màn này là "giá hiện hành",
+             không phải sổ lịch sử. Lịch sử xem bằng bộ lọc "Đã hết hiệu lực".
+             KHÔNG gom nhóm sẵn — giá cũ đã bị _dlm_close_superseded đóng lại nên
+             gần như vật tư nào cũng chỉ còn 1 dòng, gom nhóm chỉ giấu mất cột
+             Giá sau một cú bấm. Ai cần so nhiều NCC vẫn có "Nhóm theo > Vật tư". -->
+        <field name="context">{'delete': False, 'search_default_con_hieu_luc': 1}</field>
         <field name="groups_id" eval="[(6, 0, [
             ref('dl_base.dl_group_admin'),
             ref('dl_base.dl_group_purchasing'),

@@ -85,6 +85,32 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_qc), 0.0,
                          "Khu Chờ kiểm phải sạch: không được để hàng lửng lơ.")
 
+    def test_khop_lai_so_go_ket_phieu_vuot_so_cho_kiem(self):
+        """🔴 Đạt + Loại vượt số chờ kiểm (do tách kiện co số sau khi nhập) ⇒ phải gỡ được.
+
+        Đỏ = phiếu kẹt câm: không xác nhận nổi, nằm ì trong hàng đợi như rác, thủ
+        kho phải tự đoán rằng cần hạ Đạt xuống.
+        """
+        _receipt, qc = self._qc_ready(receipt_qty=100.0)
+        # Mô phỏng ca thật: Đạt 100 + Loại 3 = 103 > 100 đang chờ kiểm.
+        self._fill_qc(qc, passed=100.0, rejected=3.0)
+
+        self.assertTrue(qc.dlm_qc_has_over, "Phải nhận ra dòng đang vượt.")
+        self.assertTrue(qc._dlm_qc_problems(), "Đang vượt thì phải chặn xác nhận.")
+
+        qc.action_dlm_fix_qc_counts()
+
+        move = self._qc_move(qc)
+        self.assertEqual(move.quantity, 97.0, "Đạt phải về (100 − 3).")
+        self.assertEqual(move.dlm_qty_rejected, 3.0, "Số Loại đếm thật, giữ nguyên.")
+        self.assertFalse(qc.dlm_qc_has_over)
+
+        qc.action_dlm_validate_qc()
+
+        self.assertEqual(qc.state, "done")
+        self.assertEqual(self._qty_at(self.loc_kho), 97.0)
+        self.assertEqual(self._qty_at(self.loc_tra), 3.0)
+
     def test_hang_thuong_mai_dat_vao_thang_kho_thanh_pham(self):
         """TC-INT-TestQcReceipt-027: §5.3 — Đạt + hàng thương mại đi thẳng vào Kho thành
         phẩm.
@@ -355,6 +381,42 @@ class TestQcReceipt(DlInventoryCase):
         returns = qc._dlm_vendor_returns()
         self.assertIn(buyer, returns.activity_ids.user_id,
                       "Mua hàng phải nhận được việc xử lý phiếu trả.")
+
+    # Cổng "nhận xong mới kiểm"
+    def test_chua_xac_nhan_nhan_hang_thi_chua_kiem_duoc(self):
+        """TC-INT-TestQcReceipt-029: Hàng chưa đếm xong thì chưa có gì để kiểm.
+
+        Nếu đỏ: thủ kho bấm "Đạt tất cả" trên phiếu kiểm của lô hàng CHƯA VỀ,
+        hàng "đạt" vào kho vật tư trong khi khu Chờ kiểm hàng tụt xuống ÂM,
+        và phiếu nhận vẫn treo, tức là số thực nhận không bao giờ được đếm.
+        """
+        receipt = self._make_receipt(qty=100.0)
+        qc = self._qc_picking(receipt)
+        self._fill_qc(qc, passed=100.0, rejected=0.0)
+
+        self.assertTrue(qc.dlm_wait_receipt)
+        with self.assertRaises(UserError) as err:
+            qc.action_dlm_validate_qc()
+
+        self.assertIn(receipt.name, err.exception.args[0])
+        self.assertNotEqual(qc.state, "done")
+        self.assertEqual(self._qty_at(self.loc_qc), 0.0,
+                         "Khu Chờ kiểm hàng không được âm vì hàng chưa về.")
+
+    def test_nhan_hang_xong_thi_mo_cong_kiem(self):
+        """TC-INT-TestQcReceipt-030: Cùng phiếu kiểm đó, xác nhận nhận hàng xong là kiểm được ngay."""
+        receipt = self._make_receipt(qty=100.0)
+        qc = self._qc_picking(receipt)
+        self.assertTrue(qc.dlm_wait_receipt)
+
+        self._receive(receipt, qty=100.0)
+        qc.invalidate_recordset()
+
+        self.assertFalse(qc.dlm_wait_receipt)
+        self._fill_qc(qc, passed=100.0, rejected=0.0)
+        self.assertFalse(qc.dlm_blocked)
+        qc.action_dlm_validate_qc()
+        self.assertEqual(qc.state, "done")
 
     # Ràng buộc QC-01..04: báo inline, chặn ở server
     def test_qc02_dat_cong_loai_vuot_so_ncc_giao(self):

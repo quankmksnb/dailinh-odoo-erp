@@ -67,6 +67,32 @@
             <field name="city">TP. HCM</field>
         </record>
 
+        <!-- (5) Trường học — khách mua bàn/ghế/kệ số lượng lớn (thân thiết). -->
+        <record id="demo_customer_truong_le_loi" model="res.partner">
+            <field name="name">Trường THPT Lê Lợi</field>
+            <field name="partner_role">customer</field>
+            <field name="partner_type">company</field>
+            <field name="company_type">company</field>
+            <field name="vat">0301567890</field>
+            <field name="phone">024 3856 2020</field>
+            <field name="email">vanthu@thptleloi.edu.vn</field>
+            <field name="street">15 Nguyễn Trãi</field>
+            <field name="city">Hà Nội</field>
+        </record>
+
+        <!-- (6) Công ty nội thất — khách doanh nghiệp mua khung/kệ đều đặn. -->
+        <record id="demo_customer_noithat_an_phat" model="res.partner">
+            <field name="name">Công ty CP Nội thất An Phát</field>
+            <field name="partner_role">customer</field>
+            <field name="partner_type">company</field>
+            <field name="company_type">company</field>
+            <field name="vat">0313344556</field>
+            <field name="phone">028 3620 7799</field>
+            <field name="email">mua.hang@noithatanphat.vn</field>
+            <field name="street">102 Cộng Hòa</field>
+            <field name="city">TP. HCM</field>
+        </record>
+
         <!-- ===================== NHÀ CUNG CẤP ===================== -->
 
         <record id="demo_supplier_hoa_phat" model="res.partner">
@@ -102,6 +128,30 @@
                  (_check_customer_address). -->
             <field name="street">210 Quốc lộ 51</field>
             <field name="city">Đồng Nai</field>
+        </record>
+
+        <!-- NCC thép thứ hai — để một vài vật tư có 2 nguồn giá (so sánh NCC). -->
+        <record id="demo_supplier_viet_nhat" model="res.partner">
+            <field name="name">Thép Việt Nhật</field>
+            <field name="partner_role">supplier</field>
+            <field name="company_type">company</field>
+            <field name="vat">0403778899</field>
+            <field name="phone">0254 3898 555</field>
+            <field name="email">kinhdoanh@thepvietnhat.vn</field>
+            <field name="street">Khu CN Phú Mỹ 1</field>
+            <field name="city">Bà Rịa - Vũng Tàu</field>
+        </record>
+
+        <!-- NCC kim khí — bu lông, que hàn, đá cắt, phụ kiện. -->
+        <record id="demo_supplier_thang_long" model="res.partner">
+            <field name="name">Kim khí Thăng Long</field>
+            <field name="partner_role">supplier</field>
+            <field name="company_type">company</field>
+            <field name="vat">0104556677</field>
+            <field name="phone">024 3765 3434</field>
+            <field name="email">sales@kimkhithanglong.vn</field>
+            <field name="street">88 Nguyễn Văn Cừ</field>
+            <field name="city">Hà Nội</field>
         </record>
 
     </data>

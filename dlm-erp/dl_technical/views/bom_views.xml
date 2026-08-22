@@ -226,13 +226,6 @@
                                 <tree string="Dòng BOM">
                                     <field name="dlm_material_is_btp" column_invisible="1"/>
                                     <field name="material_id"/>
-                                    <!-- Cut list thật của xưởng: đoạn cắt × số đoạn.
-                                         Chiều rộng chỉ có nghĩa với vật tư dạng tấm
-                                         nên để optional, mặc định ẩn. -->
-                                    <field name="dim_length" string="Dài đoạn (mm)"/>
-                                    <field name="dim_width" string="Rộng (mm)" optional="hide"/>
-                                    <field name="piece_count"/>
-                                    <field name="computed_quantity" string="Định mức"/>
                                     <field name="quantity"/>
                                     <field name="uom_id" string="Đơn vị tính"/>
                                     <field name="complexity_id" optional="hide"/>
@@ -244,10 +237,6 @@
                                             invisible="not dlm_material_is_btp"/>
                                 </tree>
                                 <form string="Dòng BOM" class="dl-bom-line-form">
-                                    <!-- Kiểu tính của VẬT TƯ quyết định dòng này hỏi
-                                         gì (§13). Không còn chọn quy tắc/hình dạng
-                                         trên dòng — quy cách đã nằm ở vật tư. -->
-                                    <field name="material_calc_kind" invisible="1"/>
                                     <div class="row">
                                       <!-- Trái: nhập vật tư / kích thước / định mức cho dòng -->
                                       <div class="col-12 col-lg-7">
@@ -262,77 +251,29 @@
                                                    context="{'default_product_kind': 'material',
                                                              'default_is_rfq_provisional': parent.is_rfq_provisional,
                                                              'default_rfq_source_line_id': parent.rfq_source_line_id}"/>
-                                            <field name="uom_id" readonly="1"/>
                                         </group>
                                     </group>
 
-                                    <!-- Vật tư mua-dùng-thẳng (ốc/vít/sơn/que hàn):
-                                         không có kích thước nào để suy — nhập tay
-                                         Số lượng theo đúng đơn vị mua của nó. -->
-                                    <div invisible="material_calc_kind in ('cut_length', 'sheet')">
-                                        <div class="text-muted mb-2" invisible="not material_id">
-                                            <i class="fa fa-info-circle me-1"/>Vật tư này dùng
-                                            thẳng theo đơn vị mua (Cái/Túi/kg/Lít) — nhập trực
-                                            tiếp Số lượng bên dưới.
+                                    <!-- Số lượng khai THẲNG theo đơn vị mua của vật tư
+                                         (2 cây · 13,5 kg · 8 cái). Kỹ thuật tự quy từ
+                                         bản vẽ ra số đó — hệ thống không chia hộ nữa,
+                                         xem chú thích ở dl_bom_line_mixin. -->
+                                    <group string="2. Số lượng">
+                                        <div class="text-muted mb-2" colspan="2"
+                                             invisible="not material_id">
+                                            <i class="fa fa-info-circle me-1"/>Nhập theo đúng
+                                            đơn vị mua của vật tư. Vật tư cắt đoạn thì khai
+                                            số cây <b>thực sự phải dùng</b> — đã gồm phần
+                                            thừa do cắt.
                                         </div>
-                                        <group>
-                                            <label for="quantity" string="Số lượng"/>
-                                            <div class="o_row">
-                                                <field name="quantity" nolabel="1"/>
-                                                <field name="uom_id" readonly="1" nolabel="1"/>
-                                            </div>
-                                        </group>
-                                    </div>
+                                        <label for="quantity" string="Số lượng"/>
+                                        <div class="o_row">
+                                            <field name="quantity" nolabel="1"/>
+                                            <field name="uom_id" readonly="1" nolabel="1"/>
+                                        </div>
+                                    </group>
 
-                                    <div invisible="material_calc_kind not in ('cut_length', 'sheet')">
-                                    <!-- Cắt đoạn: chỉ 2 con số — đúng cách xưởng ghi
-                                         phiếu cắt (chân bàn 700mm × 4 đoạn). -->
-                                    <group string="2. Kích thước cắt"
-                                           invisible="material_calc_kind != 'cut_length'">
-                                        <field name="dim_length"/>
-                                        <field name="piece_count"/>
-                                    </group>
-                                    <group string="2. Kích thước tấm"
-                                           invisible="material_calc_kind != 'sheet'">
-                                        <field name="dim_length" string="Chiều dài (mm)"/>
-                                        <field name="dim_width"/>
-                                        <field name="piece_count" string="Số tấm"/>
-                                    </group>
-                                    <group>
-                                        <group string="Kết quả">
-                                            <label for="computed_quantity" string="Định mức"/>
-                                            <div class="o_row">
-                                                <field name="computed_quantity" nolabel="1"/>
-                                                <field name="uom_id" readonly="1" nolabel="1"/>
-                                            </div>
-                                            <div class="text-muted" style="font-size:11px;"
-                                                 colspan="2"
-                                                 invisible="material_calc_kind != 'cut_length'">
-                                                = (Chiều dài đoạn × Số đoạn) ÷ chiều dài cây
-                                                khai ở vật tư.
-                                            </div>
-                                            <div class="text-muted" style="font-size:11px;"
-                                                 colspan="2"
-                                                 invisible="material_calc_kind != 'sheet'">
-                                                = (Dài × Rộng × Số tấm) ÷ khổ tấm khai ở vật tư.
-                                            </div>
-                                        </group>
-                                        <group string="3. Số lượng (dùng thực tế)">
-                                            <label for="quantity" string="Số lượng"/>
-                                            <div class="o_row">
-                                                <field name="quantity" nolabel="1"
-                                                       readonly="not is_override"/>
-                                                <field name="uom_id" readonly="1" nolabel="1"/>
-                                            </div>
-                                            <field name="is_override"/>
-                                            <field name="override_reason"
-                                                   invisible="not is_override"
-                                                   required="is_override"/>
-                                        </group>
-                                    </group>
-                                    </div>
-
-                                    <group string="4. Hao hụt">
+                                    <group string="3. Hao hụt">
                                         <field name="complexity_id"/>
                                         <field name="waste_rate"/>
                                         <field name="effective_qty" readonly="1"/>

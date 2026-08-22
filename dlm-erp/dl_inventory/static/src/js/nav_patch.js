@@ -31,20 +31,11 @@ const INVENTORY_CHILDREN = [
   },
   {
     // K16 — việc đầu ngày của thủ kho: đơn nào mới chốt, có làm được không.
-    // Đứng ngay sau Hàng đợi và TRƯỚC Tồn kho: xem tồn là tra cứu, còn đây là
-    // việc phải quyết.
     key: "dispatch",
     name: "Điều phối đơn hàng",
     icon: "fa-sitemap",
     preferMenu: true,
     menuXmlIds: ["dl_inventory.menu_dl_dispatch_queue"],
-  },
-  {
-    key: "stock_quant",
-    name: "Tồn kho",
-    icon: "fa-cubes",
-    preferMenu: true,
-    menuXmlIds: ["dl_inventory.menu_dl_stock_quant"],
   },
   {
     key: "receipt",
@@ -90,6 +81,20 @@ const INVENTORY_CHILDREN = [
     icon: "fa-recycle",
     preferMenu: true,
     menuXmlIds: ["dl_inventory.menu_dl_scrap"],
+  },
+  // ── Tra cứu — không phải phiếu phải làm, nên xếp SAU cả mạch chứng từ ──────
+  // Tồn kho từng nằm ở vị trí thứ 3 (ngay sau Điều phối), cắt đôi mạch
+  // Nhận → Kiểm → Nhập TP → Chuyển → Giao. Đánh đổi đã biết: các vai chỉ-xem
+  // (Kỹ thuật / Trưởng KD / Mua hàng) chỉ thấy 3–4 mục trong nhóm này và Tồn
+  // kho là mục họ dùng nhiều nhất — với họ nó tụt xuống áp chót. Chấp nhận vì
+  // submenu của các vai đó ngắn, nhìn hết một lượt; còn Thủ kho có 10 mục thì
+  // mạch phiếu liền lạc mới là thứ đáng tiền.
+  {
+    key: "stock_quant",
+    name: "Tồn kho",
+    icon: "fa-cubes",
+    preferMenu: true,
+    menuXmlIds: ["dl_inventory.menu_dl_stock_quant"],
   },
   {
     key: "stock_lot",

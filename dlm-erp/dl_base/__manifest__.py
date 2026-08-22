@@ -50,11 +50,15 @@
             # tránh phụ thuộc vòng (dl_sale lại depends dl_product).
             'dl_base/static/src/js/actions_menu.js',
             'dl_base/static/src/views/dl_list_controller.js',
+            'dl_base/static/src/views/dl_form_controller.js',
             # Field widget dùng chung — stepper trạng thái (thay statusbar mặc
             # định trên MỌI form dl.*). Đặt ở dl_base vì mọi module con đều dùng.
             'dl_base/static/src/components/stepper/stepper_field.scss',
             'dl_base/static/src/components/stepper/stepper_field.js',
             'dl_base/static/src/components/stepper/stepper_field.xml',
+            # Bỏ đuôi ",00" cho mọi số nguyên — vá FloatField + formatter
+            # "float" (dòng Tổng của list). Áp cho TOÀN hệ thống.
+            'dl_base/static/src/js/float_trim.js',
             # Field widget dùng chung — tiền (group hàng nghìn LIVE khi gõ).
             # money_format.js là util dùng chung cho cả widget lẫn input OWL.
             'dl_base/static/src/js/money_format.js',
