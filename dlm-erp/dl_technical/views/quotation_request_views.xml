@@ -862,6 +862,21 @@
                                                 <field name="unit_hint" string="Đơn vị" readonly="1"/>
                                                 <field name="range_hint" string="Miền hợp lệ" readonly="1"/>
                                                 <field name="out_of_range" column_invisible="1"/>
+                                                <!-- 🔴 Bộ field CHÉP TỪ MẪU phải có mặt
+                                                     trong tree con dù không hiện cột:
+                                                     onchange chỉ trả về field nào view
+                                                     khai, nên thiếu chúng thì dòng thông
+                                                     số dựng ở client mất sạch `code`
+                                                     (required ⇒ nổ ngay lúc Lưu) và mất
+                                                     luôn miền hợp lệ / vai trò kích
+                                                     thước mà bộ dò khớp đọc. -->
+                                                <field name="code" column_invisible="1"/>
+                                                <field name="template_param_id" column_invisible="1"/>
+                                                <field name="sequence" column_invisible="1"/>
+                                                <field name="dim_role" column_invisible="1"/>
+                                                <field name="value_min" column_invisible="1"/>
+                                                <field name="value_max" column_invisible="1"/>
+                                                <field name="required" column_invisible="1"/>
                                             </tree>
                                         </field>
                                         <!-- Báo thiếu bằng ALERT nêu đích danh ô còn

@@ -403,11 +403,11 @@
 
                                 <!-- Đợt 4 — Sinh định mức từ BOM mẫu tham số: nhập D/R/C
                                      MỘT LẦN, hệ thống tự suy kích thước từng dòng vật tư
-                                     (không tính tay). Chỉ hiện khi nhóm SP có mẫu tham số. -->
+                                     (không tính tay). Chỉ hiện khi SP có mẫu tham số. -->
                                 <div class="alert alert-info py-2" role="status"
                                      invisible="not has_parametric_template or show_param_panel">
                                     <i class="fa fa-magic me-1" title="Mẫu tham số"/>
-                                    Nhóm sản phẩm này có <b>mẫu tham số</b>
+                                    Sản phẩm này có <b>mẫu tham số</b>
                                     (<field name="parametric_template_id" readonly="1" nolabel="1"
                                             class="dl-rfq-inline-field"/>) —
                                     nhập kích thước, hệ thống tự sinh định mức.
