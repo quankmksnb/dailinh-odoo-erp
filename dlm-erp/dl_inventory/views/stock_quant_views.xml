@@ -153,7 +153,11 @@
                 <field name="lot_id" string="Lô" optional="show"/>
                 <field name="dlm_supplier_id" string="Nhà cung cấp" optional="show"/>
                 <field name="dlm_receipt_date" string="Ngày nhập" optional="show"/>
-                <field name="location_id" string="Vị trí"/>
+                <!-- Ẩn mặc định: màn này gom nhóm theo Vị trí (context của
+                     action) nên mỗi dòng chỉ in lại y hệt tiêu đề nhóm ngay
+                     trên nó — 19% bề ngang cho một chuỗi vừa đọc xong. Bỏ gom
+                     nhóm thì bật lại cột này. -->
+                <field name="location_id" string="Vị trí" optional="hide"/>
                 <field name="quantity" widget="dl_qty" string="Tồn" sum="Tổng"/>
                 <!-- 🔴 K14 — hai cột này là lá chắn cho ca "hai người cùng bán
                      một lô thép". Trước đó bảng chỉ hiện Tồn = 24 và người thứ
@@ -219,11 +223,31 @@
                 <field name="location_id" string="Vị trí"/>
                 <field name="dlm_supplier_id" string="Nhà cung cấp"/>
 
-                <!-- Chỉ hàng nằm trong kho thật. Không có bộ lọc này thì bảng
-                     lẫn cả vị trí ẢO (Sản xuất, Điều chỉnh tồn) — số âm/dương
-                     đối ứng làm người đọc tưởng dữ liệu sai. -->
-                <filter name="internal" string="Trong kho"
-                        domain="[('location_id.usage', '=', 'internal')]"/>
+                <!-- Hai chip KHU, cùng một nhóm nên bật cả hai là OR = mọi khu
+                     nội bộ. Mặc định chỉ "Kho thật": hàng ở khu quá cảnh chưa
+                     qua kiểm, chưa phải tồn của kho, và Thủ kho cũng không
+                     kiểm kê được ở đó (dlm_no_inventory) — gộp vào cột Tồn là
+                     trả lời câu "kho có gì" bằng cả hàng chưa nhận. Cùng ranh
+                     giới với domain màn Kiểm kê.
+                     Cả hai đều lọc usage='internal': thiếu là bảng lẫn vị trí
+                     ẢO (Sản xuất, Điều chỉnh tồn), số âm/dương đối ứng làm
+                     người đọc tưởng dữ liệu sai. -->
+                <filter name="stock_real" string="Kho thật"
+                        domain="[('location_id.usage', '=', 'internal'),
+                                 ('location_id.dlm_no_inventory', '=', False)]"/>
+                <filter name="stock_transit" string="Khu quá cảnh"
+                        domain="[('location_id.usage', '=', 'internal'),
+                                 ('location_id.dlm_no_inventory', '=', True)]"/>
+
+                <separator/>
+                <!-- Quant rỗng (hàng đã đi hết) Odoo vẫn giữ lại làm bản ghi —
+                     chúng chiếm chỗ mà không trả lời gì.
+                     🔴 Điều kiện phải có vế `reserved_quantity`: dòng tồn 0 mà
+                     còn giữ chỗ là TÍN HIỆU LỖI (giữ chỗ hàng không còn), lọc
+                     thuần theo `quantity` là giấu mất đúng dòng cần thấy. -->
+                <filter name="in_stock" string="Còn hàng"
+                        domain="['|', ('quantity', '!=', 0),
+                                      ('reserved_quantity', '!=', 0)]"/>
 
                 <separator/>
                 <!-- 4 chip theo LOẠI HÀNG — cùng một nhóm nên chọn nhiều là OR
@@ -242,6 +266,11 @@
                      kiểm kê), không phải trạng thái bình thường ⇒ lọc nhanh. -->
                 <filter name="negative" string="Tồn bất thường (≤ 0)"
                         domain="[('quantity', '&lt;=', 0)]"/>
+                <!-- Ca nguy hiểm hơn "tồn ≤ 0": đã hứa cho đơn nhiều hơn số
+                     đang có (Còn lấy được < 0). Trước đó không có lối lọc nào
+                     ra nó — chỉ nhìn thấy nếu tình cờ lướt trúng dòng. -->
+                <filter name="over_reserved" string="Giữ chỗ quá tay"
+                        domain="[('dlm_over_reserved', '=', True)]"/>
 
                 <group expand="0" string="Nhóm theo">
                     <filter name="group_location" string="Vị trí"
@@ -266,7 +295,9 @@
             (0, 0, {'view_mode': 'tree', 'view_id': ref('view_dl_stock_quant_tree')}),
         ]"/>
         <field name="search_view_id" ref="view_dl_stock_quant_search"/>
-        <field name="context">{'search_default_internal': 1, 'search_default_group_location': 1}</field>
+        <!-- stock_real + in_stock nằm ở HAI nhóm filter khác nhau ⇒ AND với
+             nhau (cùng nhóm mới là OR). -->
+        <field name="context">{'search_default_stock_real': 1, 'search_default_in_stock': 1, 'search_default_group_location': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Kho đang trống</p>
             <p>Tồn kho sinh ra từ phiếu <b>Nhận hàng nhà cung cấp</b>. Nhận hàng xong và

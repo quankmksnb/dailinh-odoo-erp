@@ -3,7 +3,7 @@
 
 from odoo import _, api, fields, models, SUPERUSER_ID
 from odoo.exceptions import UserError
-from odoo.tools.float_utils import float_is_zero
+from odoo.tools.float_utils import float_compare, float_is_zero
 
 
 class StockQuant(models.Model):
@@ -59,6 +59,36 @@ class StockQuant(models.Model):
             ("location_id", "child_of", location.id),
             ("product_id", "=", product.id),
         ]).mapped("quantity"))
+
+    # Lọc "Còn lấy được < 0" trong search view. KHÔNG lưu cột: domain Odoo
+    # không so được hai field với nhau nên chỉ cần vế `search`, còn `compute`
+    # có mặt để field đọc được — thêm cột store là đẻ thêm migration cho một
+    # thứ suy ra từ hai số đã có.
+    dlm_over_reserved = fields.Boolean(
+        string="Giữ chỗ quá tay", compute="_compute_dlm_over_reserved",
+        search="_search_dlm_over_reserved")
+
+    @api.depends("quantity", "reserved_quantity")
+    def _compute_dlm_over_reserved(self):
+        """Cờ đã hứa cho đơn nhiều hơn số đang có (màn Tồn kho)."""
+        for quant in self:
+            quant.dlm_over_reserved = float_compare(
+                quant.reserved_quantity, quant.quantity,
+                precision_rounding=quant.product_uom_id.rounding or 0.01) > 0
+
+    def _search_dlm_over_reserved(self, operator, value):
+        """Tìm dòng giữ chỗ vượt tồn — phải truy vấn thẳng vì domain không so được 2 field."""
+        if operator not in ("=", "!="):
+            raise UserError(_(
+                "Bộ lọc <Giữ chỗ quá tay> chỉ nhận phép so sánh = hoặc !=."))
+        # flush trước khi đọc SQL thô: thay đổi còn nằm trong cache của
+        # transaction sẽ không có mặt trong bảng.
+        self.flush_model(["quantity", "reserved_quantity"])
+        self.env.cr.execute(
+            "SELECT id FROM stock_quant WHERE reserved_quantity > quantity")
+        ids = [row[0] for row in self.env.cr.fetchall()]
+        khop = (operator == "=") == bool(value)
+        return [("id", "in" if khop else "not in", ids)]
 
     def action_dlm_open_reservations(self):
         """Màn Tồn kho: mở danh sách phiếu đang giữ chỗ đúng dòng tồn này."""
