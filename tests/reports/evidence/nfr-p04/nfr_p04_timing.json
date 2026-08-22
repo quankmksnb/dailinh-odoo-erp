@@ -1,0 +1,16 @@
+{
+  "order_id": 7,
+  "order_name": "DH/2026/0008",
+  "bom_a_id": 25,
+  "chain_depth": 5,
+  "runs_seconds": [
+    0.17803369998000562,
+    0.16456099995411932,
+    0.18085300002712756
+  ],
+  "dlm_supply_summary": "Giao được ngay 0/1 mặt hàng · thiếu 50 vật tư ([VT-00052] NFR-P04 vật tư A01, [VT-00053] NFR-P04 vật tư A02, [VT-00054] NFR-P04 vật tư A03)",
+  "dlm_supply_level": "warning",
+  "target_seconds": 10,
+  "prd_ref": "PRD §6.1 NFR-P04",
+  "method": "dl.sale.order.read(['dlm_supply_summary']) — màn Điều phối đơn bán hàng, tính sống qua _dlm_supply_check -> dl.bom._dlm_explode_report"
+}

@@ -5,3 +5,4 @@ from . import test_approval
 from . import test_supply_loop
 from . import test_access_purchase
 from . import test_quotation_stock_price
+from . import test_purchase_screen_access

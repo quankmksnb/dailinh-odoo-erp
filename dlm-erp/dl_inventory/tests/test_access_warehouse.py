@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""K1 — Vai trò Thủ kho: làm được việc kho, không đụng tới giá.
+"""K1: vai trò Thủ kho, làm được việc kho nhưng không đụng tới giá.
 
 Thiết kế: docs/Thiet_ke_phan_he_kho.md §8.
 
 Hai bất biến quan trọng nhất:
-  • Thủ kho tách khỏi Mua hàng — người ĐẶT hàng không được đồng thời là người
-    xác nhận ĐÃ NHẬN ĐỦ hàng (kiểm soát chéo cơ bản của nghiệp vụ mua sắm).
-  • Thủ kho đếm hàng, không định giá.
+  - Thủ kho tách khỏi Mua hàng: người đặt hàng không được đồng thời là người
+    xác nhận đã nhận đủ hàng (kiểm soát chéo cơ bản của nghiệp vụ mua sắm).
+  - Thủ kho đếm hàng, không định giá.
 """
 
 from odoo.exceptions import AccessError
@@ -33,9 +33,11 @@ class TestAccessWarehouse(DlInventoryCase):
             "groups_id": [(6, 0, [self.env.ref(group_xml_id).id])],
         })
 
-    # ── Thủ kho làm được việc của mình ───────────────────────────────────────
+    # Thủ kho làm được việc của mình
     def test_thu_kho_tao_duoc_phieu_kho(self):
-        """§8.4 — Thủ kho là chủ sở hữu phiếu kho: tạo/sửa được."""
+        """TC-INT-TestAccessWarehouse-001: §8.4: Thủ kho là chủ sở hữu phiếu kho, tạo và
+        sửa được.
+        """
         picking = self.env["stock.picking"].with_user(
             self.user_warehouse).create({
                 "picking_type_id": self.warehouse.in_type_id.id,
@@ -45,11 +47,12 @@ class TestAccessWarehouse(DlInventoryCase):
             })
         self.assertTrue(picking.id)
 
-    # ── Thủ kho không đụng tới giá ───────────────────────────────────────────
+    # Thủ kho không đụng tới giá
     def test_thu_kho_khong_thay_gia_von_trong_bom(self):
-        """§8.3 — Giá vốn trong định mức bị chặn bằng _COST_GROUPS.
+        """TC-INT-TestAccessWarehouse-002: §8.3: giá vốn trong định mức bị chặn bằng
+        _COST_GROUPS.
 
-        Thủ kho KHÔNG có tên trong nhóm đó, và cũng không được thêm vào.
+        Thủ kho không có tên trong nhóm đó và cũng không được thêm vào.
         """
         bom_fields = self.env["dl.bom.line"].with_user(
             self.user_warehouse).fields_get()
@@ -60,23 +63,24 @@ class TestAccessWarehouse(DlInventoryCase):
                 % field_name)
 
     def test_thu_kho_khong_phai_quan_ly_kho_odoo(self):
-        """§8.3 — Chỉ cấp stock.group_stock_user, KHÔNG cấp group_stock_manager.
+        """TC-INT-TestAccessWarehouse-003: §8.3: chỉ cấp stock.group_stock_user, không cấp
+        group_stock_manager.
 
-        group_stock_manager mở các field giá trị tồn của Odoo. Cấp nhầm là rò
-        giá cho người chỉ cần đếm hàng.
+        group_stock_manager mở các field giá trị tồn của Odoo. Cấp nhầm là lộ giá cho
+        người chỉ cần đếm hàng.
         """
         self.assertTrue(
             self.user_warehouse.has_group("stock.group_stock_user"))
         self.assertFalse(
             self.user_warehouse.has_group("stock.group_stock_manager"))
 
-    # ── Kiểm soát chéo với Mua hàng ──────────────────────────────────────────
+    # Kiểm soát chéo với Mua hàng
     def test_mua_hang_chi_sua_duoc_phieu_tra_ncc(self):
-        """§8.5 — Mua hàng có quyền ghi phiếu kho, nhưng ir.rule bó lại đúng
-        phiếu Trả hàng nhà cung cấp.
+        """TC-INT-TestAccessWarehouse-004: §8.5 — Mua hàng có quyền ghi phiếu kho, nhưng
+        ir.rule bó lại đúng phiếu Trả hàng nhà cung cấp.
 
-        Không có rule này thì Mua hàng sửa được MỌI phiếu kho, kể cả phiếu giao
-        hàng khách — trong khi việc của họ chỉ là đàm phán trả hàng với NCC.
+        Không có rule này, Mua hàng sửa được mọi phiếu kho, kể cả phiếu giao hàng khách,
+        trong khi việc của họ chỉ là đàm phán trả hàng với NCC.
         """
         receipt = self._make_receipt()
         with self.assertRaises(
@@ -91,6 +95,6 @@ class TestAccessWarehouse(DlInventoryCase):
             "location_id": self.loc_tra.id,
             "location_dest_id": self.loc_vendors.id,
         })
-        # note là field Html ⇒ Odoo bọc lại thành <p>...</p>, so bằng 'in'.
+        # note là field Html nên Odoo bọc lại thành <p>...</p>, so bằng 'in'.
         vendor_return.with_user(self.user_purchasing).write({"note": "da bao NCC"})
         self.assertIn("da bao NCC", vendor_return.note)

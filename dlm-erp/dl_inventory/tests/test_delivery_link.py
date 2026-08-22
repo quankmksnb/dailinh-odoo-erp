@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
-"""K6 — Đơn bán hàng ↔ phiếu giao hàng.
+"""K6: liên kết đơn bán hàng và phiếu giao hàng.
 
 Thiết kế: docs/Thiet_ke_phan_he_kho.md §9.1, §11.6, §12.1 (tiêu chí verify K6).
 
 Ba bất biến đắt nhất nếu sai:
 
-  1. Đơn CHƯA chốt không được sinh phiếu giao — phiếu giao giữ chỗ hàng cho một
-     cam kết chưa tồn tại, hàng "biến mất" khỏi tồn khả dụng của đơn thật.
-  2. SP dùng chung (Hạng A, ``consu``) PHẢI lên phiếu giao — 🔴 K13 đảo lại bất
-     biến của K6 (xem `test_sp_dung_chung_van_len_phieu_giao`).
-  3. Đơn đã có phiếu giao KHÔNG đưa về nháp được — sửa lại đơn đã giao là làm
-     lệch chứng từ kho với chứng từ bán.
+1. Đơn chưa chốt không được sinh phiếu giao — phiếu giao giữ chỗ hàng cho một cam kết
+chưa tồn tại, hàng "biến mất" khỏi tồn khả dụng của đơn thật. 2. SP dùng chung (Hạng A,
+``consu``) phải lên phiếu giao — K13 đảo lại bất biến của K6 (xem
+`test_sp_dung_chung_van_len_phieu_giao`). 3. Đơn đã có phiếu giao không đưa về nháp được
+— sửa lại đơn đã giao là làm lệch chứng từ kho với chứng từ bán.
 """
 
 from odoo.exceptions import UserError
@@ -30,15 +29,15 @@ class TestDeliveryLink(DlInventoryCase):
             "partner_role": "customer",
             "mobile": "0900000013",
         })
-        # Hàng thương mại: storable, KHÔNG theo lô (§3.4) — giao thẳng, không
-        # phải khai lô ở mỗi bước, giữ test tập trung vào mối nối đơn ↔ phiếu.
+        # Hàng thương mại: storable, không theo lô (§3.4). Giao thẳng, không
+        # phải khai lô ở mỗi bước, giữ test tập trung vào mối nối đơn - phiếu.
         cls.goods = cls.env["product.product"].create({
             "name": "Bản lề inox (test)",
             "product_kind": "trading",
         })
         cls.goods.tracking = "none"
 
-    # ── Tiện ích ─────────────────────────────────────────────────────────────
+    # Tiện ích
     def _make_order(self, product=None, qty=10.0, state="confirmed"):
         product = product or self.goods
         order = self.env["dl.sale.order"].create({
@@ -54,7 +53,7 @@ class TestDeliveryLink(DlInventoryCase):
         return order
 
     def _stock_up(self, product, qty, location):
-        """Đặt tồn đầu kỳ mà không đi qua phiếu nhận — test này nói về GIAO
+        """Đặt tồn đầu kỳ mà không đi qua phiếu nhận, vì test này nói về giao
         hàng, không phải về nhập hàng (đã có test riêng)."""
         self.env["stock.quant"].with_context(
             inventory_mode=True).create({
@@ -66,9 +65,11 @@ class TestDeliveryLink(DlInventoryCase):
     def _delivery_of(self, order):
         return order.dlm_picking_ids[:1]
 
-    # ── Ca test ──────────────────────────────────────────────────────────────
+    # Ca test
     def test_don_nhap_khong_tao_duoc_phieu_giao(self):
-        """§11.6 — Chặn tạo phiếu giao khi đơn còn Nháp, nêu rõ lý do."""
+        """TC-INT-TestDeliveryLink-001: §11.6: chặn tạo phiếu giao khi đơn còn Nháp, nêu rõ
+        lý do.
+        """
         order = self._make_order(state="draft")
         with self.assertRaises(UserError) as caught:
             order.action_dlm_create_delivery()
@@ -76,7 +77,9 @@ class TestDeliveryLink(DlInventoryCase):
         self.assertFalse(order.dlm_picking_ids)
 
     def test_tao_phieu_giao_tu_don_da_xac_nhan(self):
-        """Đơn confirmed ⇒ [Tạo phiếu giao] ra đúng một phiếu, đúng số lượng."""
+        """TC-INT-TestDeliveryLink-002: Đơn confirmed thì bấm [Tạo phiếu giao] phải ra đúng
+        một phiếu, đúng số lượng.
+        """
         order = self._make_order(qty=10.0)
         order.action_dlm_create_delivery()
 
@@ -92,10 +95,11 @@ class TestDeliveryLink(DlInventoryCase):
             "Phiếu giao lấy hàng từ Kho thành phẩm (§5.3).")
 
     def test_khong_tao_hai_phieu_cho_cung_mot_luong_hang(self):
-        """Bấm nút hai lần KHÔNG được nhân đôi số hàng phải giao.
+        """TC-INT-TestDeliveryLink-003: Bấm nút hai lần không được nhân đôi số hàng phải
+        giao.
 
-        Không chặn thì kho nhận hai phiếu cùng 10 cái và giao 20 — không chứng
-        từ nào cảnh báo, chỉ tồn kho âm mới lộ ra.
+        Không chặn thì kho nhận hai phiếu cùng 10 cái và giao 20, không chứng từ nào
+        cảnh báo, chỉ tồn kho âm mới lộ ra.
         """
         order = self._make_order(qty=10.0)
         order.action_dlm_create_delivery()
@@ -123,15 +127,15 @@ class TestDeliveryLink(DlInventoryCase):
         return generic
 
     def test_sp_dung_chung_van_len_phieu_giao(self):
-        """🔴 K13 ĐẢO bất biến số 2 của K6 (§9.1).
+        """TC-INT-TestDeliveryLink-009: K13 đảo bất biến số 2 của K6 (§9.1).
 
-        K6 loại dòng `consu` ra với lý do "không có tồn nên sẽ treo vĩnh viễn".
-        Lý do đó SAI: `_should_bypass_reservation()` trả True cho SP không
-        storable ⇒ dòng nhảy thẳng sang `assigned`. Test này canh cả hai vế —
-        dòng LÊN được phiếu, VÀ phiếu không treo ở trạng thái chờ hàng.
+        K6 loại dòng `consu` ra với lý do "không có tồn nên sẽ treo vĩnh viễn". Lý do đó
+        SAI: `_should_bypass_reservation()` trả True cho SP không storable thì dòng nhảy
+        thẳng sang `assigned`. Test này canh cả hai vế — dòng lên được phiếu, và phiếu
+        không treo ở trạng thái chờ hàng.
 
-        Cái giá của bản cũ: đơn Hạng A (loại phổ biến nhất) không có chứng từ
-        giao nào để khách ký, và tình trạng giao đứng yên kể cả khi hàng đã lên xe.
+        Cái giá của bản cũ: đơn Hạng A (loại phổ biến nhất) không có chứng từ giao nào
+        để khách ký, và tình trạng giao đứng yên kể cả khi hàng đã lên xe.
         """
         generic = self._generic_product()
         order = self._make_order(product=generic, qty=3.0)
@@ -145,7 +149,7 @@ class TestDeliveryLink(DlInventoryCase):
         self.assertEqual(picking.move_ids.product_uom_qty, 3.0)
         self.assertEqual(
             picking.state, "assigned",
-            "Dòng consu bỏ qua giữ chỗ ⇒ phiếu sẵn sàng ngay, không treo.")
+            "Dòng consu bỏ qua giữ chỗ thì phiếu sẵn sàng ngay, không treo.")
 
         picking.move_ids.quantity = 3.0
         picking.move_ids.picked = True
@@ -154,11 +158,11 @@ class TestDeliveryLink(DlInventoryCase):
         self.assertEqual(order.dlm_delivery_state, "done")
 
     def test_don_toan_dich_vu_khong_tao_duoc_phieu_giao(self):
-        """Vế còn lại của K13: mở cho `consu` KHÔNG có nghĩa là mở cho tất cả.
+        """TC-INT-TestDeliveryLink-004: Vế còn lại của K13: mở cho `consu` không có nghĩa
+        là mở cho tất cả.
 
-        Dịch vụ không có gì để giao và không có gì để khách ký nhận. Bỏ luôn cả
-        điều kiện này là đẻ ra phiếu giao rỗng nghĩa cho mọi đơn có dòng công
-        lắp đặt.
+        Dịch vụ không có gì để giao và không có gì để khách ký nhận. Bỏ luôn cả điều
+        kiện này là đẻ ra phiếu giao rỗng nghĩa cho mọi đơn có dòng công lắp đặt.
         """
         # detailed_type khai ngay trong create: dl_product chỉ ép `product` khi
         # vals CHƯA nói gì (`_STORABLE_KINDS`), khai rồi thì nó tôn trọng.
@@ -175,7 +179,9 @@ class TestDeliveryLink(DlInventoryCase):
         self.assertIn("dịch vụ", str(caught.exception))
 
     def test_giao_du_thi_don_chuyen_sang_da_giao_du(self):
-        """Tiêu chí verify K6: giao xong ⇒ dlm_delivery_state = 'done'."""
+        """TC-INT-TestDeliveryLink-005: Tiêu chí verify K6: giao xong thì
+        dlm_delivery_state phải là 'done'.
+        """
         order = self._make_order(qty=10.0)
         self.assertEqual(order.dlm_delivery_state, "nothing")
 
@@ -192,7 +198,9 @@ class TestDeliveryLink(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_tp, self.goods), 0.0)
 
     def test_giao_mot_phan_thi_don_o_trang_thai_giao_mot_phan(self):
-        """Giao 6/10 ⇒ 'partial' — KHÔNG được báo 'done' khi còn nợ khách 4."""
+        """TC-INT-TestDeliveryLink-006: Giao 6/10 phải là 'partial', không được báo 'done'
+        khi còn nợ khách 4.
+        """
         order = self._make_order(qty=10.0)
         self._stock_up(self.goods, 6.0, self.loc_tp)
         order.action_dlm_create_delivery()
@@ -207,8 +215,10 @@ class TestDeliveryLink(DlInventoryCase):
         self.assertEqual(order.dlm_delivery_state, "partial")
 
     def test_don_da_co_phieu_giao_thi_khong_ve_nhap_duoc(self):
-        """Tiêu chí verify K6 — khoá này do `_reset_draft_blockers` tự dò qua
-        metadata (dl_sale), `dlm_sale_order_id` là thứ kích hoạt nó."""
+        """TC-INT-TestDeliveryLink-007: Tiêu chí verify K6: khoá này do
+        `_reset_draft_blockers` tự dò qua metadata (dl_sale), `dlm_sale_order_id` là thứ
+        kích hoạt nó.
+        """
         order = self._make_order(qty=10.0)
         order.action_dlm_create_delivery()
 
@@ -232,7 +242,9 @@ class TestDeliveryLink(DlInventoryCase):
             view="dl_inventory.view_dl_delivery_form")
 
     def test_chon_don_tu_dien_hang_con_phai_giao(self):
-        """Chọn khách → chọn đơn ⇒ bảng hàng tự có đúng phần còn phải giao."""
+        """TC-INT-TestDeliveryLink-010: Chọn khách thì chọn đơn thì bảng hàng tự có đúng
+        phần còn phải giao.
+        """
         order = self._make_order(qty=10.0)
 
         picking_form = self._delivery_form()
@@ -248,12 +260,12 @@ class TestDeliveryLink(DlInventoryCase):
             "Dòng phải lấy vị trí nguồn của phiếu, không để trống.")
 
     def test_khong_dien_lai_phan_da_nam_tren_phieu_khac(self):
-        """🔴 Bất biến đắt nhất của cửa thứ hai.
+        """TC-INT-TestDeliveryLink-011: Bất biến đắt nhất của cửa thứ hai.
 
         Đơn 10 cái đã có một phiếu giao 10 cái đang chờ. Nếu autofill đọc thẳng
-        `line_ids` của đơn thì phiếu thứ hai lại ra 10 cái nữa — kho giao gấp
-        đôi và không chứng từ nào cảnh báo. Phải đọc `_dlm_remaining_qty()`,
-        đúng phép tính mà nút [Tạo phiếu giao] trên đơn đang dùng.
+        `line_ids` của đơn thì phiếu thứ hai lại ra 10 cái nữa — kho giao gấp đôi và
+        không chứng từ nào cảnh báo. Phải đọc `_dlm_remaining_qty()`, đúng phép tính mà
+        nút [Tạo phiếu giao] trên đơn đang dùng.
         """
         order = self._make_order(qty=10.0)
         order.action_dlm_create_delivery()
@@ -264,13 +276,14 @@ class TestDeliveryLink(DlInventoryCase):
 
         self.assertEqual(
             len(picking_form.move_ids), 0,
-            "Đơn đã lên phiếu đủ ⇒ không được điền thêm dòng nào.")
+            "Đơn đã lên phiếu đủ thì không được điền thêm dòng nào.")
 
     def test_doi_khach_thi_bo_don_va_dong_cua_khach_cu(self):
-        """Đổi khách ⇒ đơn + dòng của khách cũ phải rời khỏi phiếu.
+        """TC-INT-TestDeliveryLink-012: Đổi khách thì đơn + dòng của khách cũ phải rời khỏi
+        phiếu.
 
-        Giữ lại là phiếu ghi "giao cho khách B theo đơn của khách A", và tình
-        trạng giao của đơn A nói sai về một chuyến hàng họ không hề nhận.
+        Giữ lại là phiếu ghi "giao cho khách B theo đơn của khách A", và tình trạng giao
+        của đơn A nói sai về một chuyến hàng họ không hề nhận.
         """
         order = self._make_order(qty=10.0)
         other = self.env["res.partner"].create({
@@ -289,12 +302,13 @@ class TestDeliveryLink(DlInventoryCase):
         self.assertEqual(len(picking_form.move_ids), 0)
 
     def test_doi_don_thi_bang_hang_lay_theo_don_moi(self):
-        """Một khách có nhiều đơn: đổi đơn ⇒ bảng hàng phải theo đơn ĐANG chọn.
+        """TC-INT-TestDeliveryLink-013: Một khách có nhiều đơn: đổi đơn thì bảng hàng phải
+        theo đơn đang chọn.
 
-        Bản đầu chốt "chỉ điền khi bảng trống" để giữ dòng người dùng gõ tay —
-        nhưng bảng dòng khoá tới khi có đơn, nên không có dòng nào gõ được từ
-        đầu. Thứ duy nhất chốt đó giữ lại là dòng của ĐƠN TRƯỚC: phiếu ghi đơn B
-        mà bảng hàng vẫn là của đơn A.
+        Bản đầu chốt "chỉ điền khi bảng trống" để giữ dòng người dùng gõ tay — nhưng
+        bảng dòng khoá tới khi có đơn, nên không có dòng nào gõ được từ đầu. Thứ duy
+        nhất chốt đó giữ lại là dòng của đơn trước: phiếu ghi đơn B mà bảng hàng vẫn là
+        của đơn A.
         """
         order_a = self._make_order(qty=10.0)
         order_b = self._make_order(qty=4.0)
@@ -314,12 +328,12 @@ class TestDeliveryLink(DlInventoryCase):
             "Số lượng phải là của đơn B, không còn sót số của đơn A.")
 
     def test_quay_lai_don_cu_tren_phieu_nhap_da_luu(self):
-        """🔴 Phiếu không được tự trừ mình.
+        """TC-INT-TestDeliveryLink-014: Phiếu không được tự trừ mình.
 
-        Phiếu nháp ĐÃ LƯU vẫn nằm trong `dlm_picking_ids` của đơn. Đổi sang đơn
-        khác rồi đổi ngược về đơn cũ: nếu phép trừ "đang nằm trên phiếu khác"
-        đếm cả chính nó thì remaining = 0 ⇒ bảng trống + cảnh báo "đơn không còn
-        hàng", mất dòng mà không có gì báo là đã mất.
+        Phiếu nháp đã lưu vẫn nằm trong `dlm_picking_ids` của đơn. Đổi sang đơn khác rồi
+        đổi ngược về đơn cũ: nếu phép trừ "đang nằm trên phiếu khác" đếm cả chính nó thì
+        remaining = 0 thì bảng trống + cảnh báo "đơn không còn hàng", mất dòng mà không
+        có gì báo là đã mất.
         """
         order_a = self._make_order(qty=10.0)
         order_b = self._make_order(qty=4.0)
@@ -339,9 +353,10 @@ class TestDeliveryLink(DlInventoryCase):
         self.assertEqual(picking.move_ids.product_uom_qty, 10.0)
 
     def test_phieu_cap_vat_tu_khong_bi_dien_hang_cua_don(self):
-        """Vế chặn của SM-14: `dlm_sale_order_id` còn nằm trên phiếu [3] chuyển
-        kho ("cấp cho đơn hàng"). Điền thành phẩm của đơn vào phiếu cấp vật tư
-        là đưa hàng đi sai tuyến ngay từ dòng đầu tiên."""
+        """TC-INT-TestDeliveryLink-015: Vế chặn của SM-14: `dlm_sale_order_id` còn nằm trên
+        phiếu [3] chuyển kho ("cấp cho đơn hàng"). Điền thành phẩm của đơn vào phiếu cấp
+        vật tư là đưa hàng đi sai tuyến ngay từ dòng đầu tiên.
+        """
         order = self._make_order(qty=10.0)
         picking = self.env["stock.picking"].create({
             "picking_type_id": self.warehouse.int_type_id.id,
@@ -356,10 +371,11 @@ class TestDeliveryLink(DlInventoryCase):
             "Onchange chỉ được chạy cho phiếu Giao hàng.")
 
     def test_preset_chuyen_kho_dat_dung_hai_dau_tuyen(self):
-        """§11.5 — Preset phải đổi vị trí trên CẢ phiếu lẫn dòng hàng.
+        """TC-INT-TestDeliveryLink-008: §11.5: preset phải đổi vị trí trên cả phiếu lẫn
+        dòng hàng.
 
-        Chỉ đổi trên phiếu thì hàng vẫn chạy theo vị trí cũ ghi ở dòng — phiếu
-        nói một đằng, tồn kho đi một nẻo.
+        Chỉ đổi trên phiếu thì hàng vẫn chạy theo vị trí cũ ghi ở dòng, phiếu nói một
+        đằng, tồn kho đi một nẻo.
         """
         picking = self.env["stock.picking"].create({
             "picking_type_id": self.warehouse.int_type_id.id,
@@ -374,7 +390,7 @@ class TestDeliveryLink(DlInventoryCase):
                 "location_dest_id": self.loc_xuong.id,
             })],
         })
-        # 🔴 K16 — preset "Gom phế liệu" ĐÃ GỠ (phế liệu nay khai trên phiếu mẻ,
+        # K16 — preset "Gom phế liệu" đã gỡ (phế liệu nay khai trên phiếu mẻ,
         # xem test_workshop_batch). Preset còn lại vẫn phải kéo dòng đi theo:
         # dòng nhập trước khi bấm nút mà đứng yên thì phiếu nói một đằng, hàng
         # chạy một nẻo — đó mới là bất biến test này canh.

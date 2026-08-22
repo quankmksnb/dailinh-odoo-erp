@@ -1,23 +1,23 @@
 # -*- coding: utf-8 -*-
-"""K14 — Số KHẢ DỤNG: tồn trừ phần đã bị phiếu khác giữ chỗ.
+"""K14 — Số khả dụng: tồn trừ phần đã bị phiếu khác giữ chỗ.
 
-Thiết kế: docs/Thiet_ke_luong_sau_don_hang_check_kho_dieu_phoi.md §4.2–4.3
-(ĐC-07, D-07).
+Thiết kế: docs/Thiet_ke_luong_sau_don_hang_check_kho_dieu_phoi.md §4.2–4.3 (đc-07,
+D-07).
 
-Cái sai đắt nếu hỏng — nguyên văn ca người dùng kể: kho còn đúng 5 tấn thép,
-khách A chốt đơn và hệ thống báo "đủ"; 5 phút sau nhân viên khác mở màn tồn kho,
-CŨNG thấy 5 tấn, và bán thẳng cho khách B. Tới lúc xưởng của khách A chạy máy thì
-thép đã bị bốc đi — trễ tiến độ, đền hợp đồng.
+Cái sai đắt nếu hỏng — nguyên văn ca người dùng kể: kho còn đúng 5 tấn thép, khách A
+chốt đơn và hệ thống báo "đủ"; 5 phút sau nhân viên khác mở màn tồn kho, CŨNG thấy 5
+tấn, và bán thẳng cho khách B. Tới lúc xưởng của khách A chạy máy thì thép đã bị bốc đi
+— trễ tiến độ, đền hợp đồng.
 
-Trước K14 hệ thống đọc `sum(quant.quantity)` nên **đúng là** báo đủ cho cả hai.
-Bộ test này canh hai chiều:
+Trước K14 hệ thống đọc `sum(quant.quantity)` nên **đúng là** báo đủ cho cả hai. Bộ test
+này canh hai chiều:
 
-* trừ THIẾU  ⇒ hai phiếu cùng thấy đủ trên một lô hàng (lỗi cũ);
-* trừ THỪA   ⇒ phiếu vừa giữ chỗ xong lại tự tố mình thiếu hàng, thủ kho không
-  xác nhận nổi phiếu mình vừa tạo.
+* trừ thiếu thì hai phiếu cùng thấy đủ trên một lô hàng (lỗi cũ); * trừ thừa thì phiếu
+vừa giữ chỗ xong lại tự tố mình thiếu hàng, thủ kho không xác nhận nổi phiếu mình vừa
+tạo.
 
-Và canh **phạm vi**: khả dụng phải tính ở ĐÚNG khu mà phiếu sẽ lấy hàng. Cộng
-nhầm hàng đang nằm ở khu Chờ kiểm là hứa giao thứ chưa qua QC.
+Và canh **phạm vi**: khả dụng phải tính ở đúng khu mà phiếu sẽ lấy hàng. Cộng nhầm hàng
+đang nằm ở khu Chờ kiểm là hứa giao thứ chưa qua QC.
 """
 
 from odoo.tests.common import tagged
@@ -84,7 +84,9 @@ class TestAvailability(DlInventoryCase):
 
     # ── Chiều 1: trừ THIẾU — đúng ca người dùng kể ───────────────────────────
     def test_kha_dung_tru_phan_phieu_khac_dang_giu(self):
-        """Tồn 10, phiếu khác giữ 8 ⇒ còn lấy được 2, KHÔNG phải 10."""
+        """TC-INT-TestAvailability-001: Tồn 10, phiếu khác giữ 8 thì còn lấy được 2, không
+        phải 10.
+        """
         self._stock_up(10.0, self.loc_kho)
         self.assertEqual(self._available(), 10.0, "Chưa ai giữ mà đã hụt.")
 
@@ -98,7 +100,9 @@ class TestAvailability(DlInventoryCase):
             "hàng (đây chính là lỗi ĐC-07).")
 
     def test_phieu_thu_hai_bi_bao_thieu(self):
-        """Khách B đòi 5 trong khi chỉ còn 2 khả dụng ⇒ phải có dòng cảnh báo."""
+        """TC-INT-TestAvailability-002: Khách B đòi 5 trong khi chỉ còn 2 khả dụng thì phải
+        có dòng cảnh báo.
+        """
         self._stock_up(10.0, self.loc_kho)
         self._reserve(8.0)
 
@@ -109,8 +113,9 @@ class TestAvailability(DlInventoryCase):
             "Phiếu đòi 5 mà chỉ còn 2 khả dụng lại không cảnh báo gì.")
 
     def test_cot_tren_dong_cung_mot_so_voi_dai_canh_bao(self):
-        """Cột "Còn lấy được" nằm ngay cạnh dải cảnh báo — hai chỗ nói hai số là
-        lỗi người dùng không bao giờ báo, chỉ mất niềm tin vào bảng."""
+        """TC-INT-TestAvailability-003: Cột "Còn lấy được" nằm ngay cạnh dải cảnh báo — hai
+        chỗ nói hai số là lỗi người dùng không bao giờ báo, chỉ mất niềm tin vào bảng.
+        """
         self._stock_up(10.0, self.loc_kho)
         self._reserve(8.0)
 
@@ -120,10 +125,11 @@ class TestAvailability(DlInventoryCase):
 
     # ── Chiều 2: trừ THỪA — phiếu tự tố mình ─────────────────────────────────
     def test_phieu_khong_tu_to_minh_thieu_hang(self):
-        """Phiếu đã giữ chỗ xong phải thấy ĐỦ: phần nó đang giữ là của nó.
+        """TC-INT-TestAvailability-004: Phiếu đã giữ chỗ xong phải thấy đủ: phần nó đang
+        giữ là của nó.
 
-        Không cộng lại thì thủ kho tạo phiếu, giữ chỗ thành công, rồi mở ra thấy
-        dải đỏ "thiếu hàng" — và không dám xác nhận phiếu của chính mình.
+        Không cộng lại thì thủ kho tạo phiếu, giữ chỗ thành công, rồi mở ra thấy dải đỏ
+        "thiếu hàng" — và không dám xác nhận phiếu của chính mình.
         """
         self._stock_up(10.0, self.loc_kho)
         khach_a = self._reserve(8.0)
@@ -137,8 +143,9 @@ class TestAvailability(DlInventoryCase):
         self.assertEqual(khach_a.move_ids.dlm_src_available_qty, 10.0)
 
     def test_ban_phe_lieu_khong_tu_chan_minh(self):
-        """Cùng một lỗi, đường khác: phiếu Bán phế liệu đã giữ chỗ mà dải vẫn
-        báo "bán quá tay" thì không ai giao được phế liệu đi."""
+        """TC-INT-TestAvailability-005: Cùng một lỗi, đường khác: phiếu Bán phế liệu đã giữ
+        chỗ mà dải vẫn báo "bán quá tay" thì không ai giao được phế liệu đi.
+        """
         scrap = self.env["product.product"].create({
             "name": "Phế liệu thép (test K14)", "product_kind": "material"})
         scrap.tracking = "none"
@@ -175,16 +182,17 @@ class TestAvailability(DlInventoryCase):
 
     # ── Phạm vi: đúng khu, không cộng nhầm khu khác ──────────────────────────
     def test_khong_cong_hang_khu_ben_canh(self):
-        """Khả dụng tính ở ĐÚNG khu, và gộp theo CÂY — khớp phạm vi giữ chỗ.
+        """TC-INT-TestAvailability-006: Khả dụng tính ở đúng khu, và gộp theo cây — khớp
+        phạm vi giữ chỗ.
 
-        Kho nguyên vật liệu và khu Phế liệu là hai ô cạnh nhau dưới Kho nhà máy
-        sản xuất. Phiếu lấy nguồn Kho nguyên vật liệu KHÔNG với được sang ô kia,
-        nên số báo cũng không được với theo; ngược lại lấy nguồn khu CHA thì với
-        được cả hai (`child_of`), số báo phải cộng đủ. Lệch hai cái này là màn
-        báo một đằng, phiếu giữ được một nẻo — sai ÂM THẦM, không lỗi nào nổ.
+        Kho nguyên vật liệu và khu Phế liệu là hai ô cạnh nhau dưới Kho nhà máy sản
+        xuất. Phiếu lấy nguồn Kho nguyên vật liệu không với được sang ô kia, nên số báo
+        cũng không được với theo; ngược lại lấy nguồn khu CHA thì với được cả hai
+        (`child_of`), số báo phải cộng đủ. Lệch hai cái này là màn báo một đằng, phiếu
+        giữ được một nẻo — sai âm thầm, không lỗi nào nổ.
 
-        (K15 — khu cha nay là `loc_khosx`, không còn là `loc_xuong`: Xưởng sản
-        xuất đã thành ô lá. Xem test_warehouse_layout.)
+        (K15 — khu cha nay là `loc_khosx`, không còn là `loc_xuong`: Xưởng sản xuất đã
+        thành ô lá. Xem test_warehouse_layout.)
         """
         self._stock_up(10.0, self.loc_kho)
         self._stock_up(30.0, self.loc_ben_canh)
@@ -200,12 +208,13 @@ class TestAvailability(DlInventoryCase):
                          "Khu cha không gộp đủ hai ô con (child_of).")
 
     def test_xuong_khong_voi_duoc_vao_kho(self):
-        """🔴 K15 — Xưởng sản xuất KHÔNG được thấy hàng đang nằm trong kho.
+        """TC-INT-TestAvailability-007: K15 — Xưởng sản xuất không được thấy hàng đang nằm
+        trong kho.
 
-        Đây là nửa còn lại của việc tách chỗ cất khỏi chỗ làm, đo bằng chính
-        con số mà màn hình hiển thị. Trước K15 Xưởng là khu CHA của Kho vật tư
-        ⇒ hỏi "xưởng còn lấy được bao nhiêu" trả về cả đống thép chưa ai bàn
-        giao. Nay phải là 0 cho tới khi có phiếu bàn giao thật.
+        Đây là nửa còn lại của việc tách chỗ cất khỏi chỗ làm, đo bằng chính con số mà
+        màn hình hiển thị. Trước K15 Xưởng là khu CHA của Kho vật tư thì hỏi "xưởng còn
+        lấy được bao nhiêu" trả về cả đống thép chưa ai bàn giao. Nay phải là 0 cho tới
+        khi có phiếu bàn giao thật.
         """
         self._stock_up(10.0, self.loc_kho)
         self.assertEqual(
@@ -214,12 +223,12 @@ class TestAvailability(DlInventoryCase):
             "quay lại rồi.")
 
     def test_hang_chua_qua_kiem_khong_phai_kha_dung(self):
-        """Hàng NCC vừa giao, còn nằm khu Chờ kiểm ⇒ Kho vật tư vẫn là 0.
+        """TC-INT-TestAvailability-008: Hàng NCC vừa giao, còn nằm khu Chờ kiểm thì Kho vật
+        tư vẫn là 0.
 
-        Cộng vào là hứa giao/đưa vào sản xuất thứ CHƯA QUA QC. Dựng tồn ở đây
-        bằng phiếu nhận thật chứ không kiểm kê tay — RS-07 cấm đếm tay ở khu quá
-        cảnh, và chính lệnh cấm đó là lý do khu này không bao giờ được coi là
-        hàng dùng được.
+        Cộng vào là hứa giao/đưa vào sản xuất thứ chưa qua QC. Dựng tồn ở đây bằng phiếu
+        nhận thật chứ không kiểm kê tay — RS-07 cấm đếm tay ở khu quá cảnh, và chính
+        lệnh cấm đó là lý do khu này không bao giờ được coi là hàng dùng được.
         """
         receipt = self._make_receipt(qty=30.0)
         self._receive(receipt, qty=30.0)
@@ -234,7 +243,8 @@ class TestAvailability(DlInventoryCase):
 
     # ── Câu thông báo: ba ca, ba việc phải làm khác nhau ─────────────────────
     def test_bi_giu_het_noi_khac_voi_het_hang(self):
-        """"Hết hàng" ⇒ đi mua. "Bị giữ hết" ⇒ đi nói chuyện với người đang giữ.
+        """TC-INT-TestAvailability-009: "Hết hàng" thì đi mua. "Bị giữ hết" thì đi nói
+        chuyện với người đang giữ.
 
         Gộp hai ca vào một câu là đẩy thủ kho đi mua thứ đang nằm trong kho.
         """
@@ -248,7 +258,9 @@ class TestAvailability(DlInventoryCase):
         self.assertNotIn("tồn 0", canh_bao)
 
     def test_het_sach_thi_van_noi_la_het(self):
-        """Chiều còn lại: tồn thật sự bằng 0 thì đừng đổ cho người khác giữ."""
+        """TC-INT-TestAvailability-010: Chiều còn lại: tồn thật sự bằng 0 thì đừng đổ cho
+        người khác giữ.
+        """
         khach_b = self._transfer(3.0)
         canh_bao = " ".join(khach_b._dlm_shortage_lines())
         self.assertIn("tồn 0", canh_bao)
@@ -256,8 +268,9 @@ class TestAvailability(DlInventoryCase):
 
     # ── Đường tra "ai đang giữ" ──────────────────────────────────────────────
     def test_biet_duoc_hang_dang_giu_cho_ai(self):
-        """Cột "Đang giữ chỗ" trả lời BAO NHIÊU; nút cạnh nó phải trả lời CHO AI
-        — không thì cách đoán rẻ nhất vẫn là bán chồng."""
+        """TC-INT-TestAvailability-011: Cột "Đang giữ chỗ" trả lời bao nhiêu; nút cạnh nó
+        phải trả lời CHO AI — không thì cách đoán rẻ nhất vẫn là bán chồng.
+        """
         self._stock_up(10.0, self.loc_kho)
         khach_a = self._reserve(8.0)
 

@@ -1,0 +1,14 @@
+{
+  "name": "dlm-erp-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright E2E tests cho DLM-ERP (Odoo 17 custom), theo doc/testing/DLM-ERP_Playwright_Test_Prompt_Guide.md",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

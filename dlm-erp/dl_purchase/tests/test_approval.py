@@ -25,7 +25,9 @@ class TestPurchaseApproval(DlPurchaseCase):
             "dl_purchase.approval_threshold", str(value))
 
     def test_duoi_nguong_thi_mua_hang_tu_chot(self):
-        """Mua lặt vặt (que hàn, bulong) không được tạo nút cổ chai."""
+        """TC-INT-TestPurchaseApproval-001: Mua lặt vặt (que hàn, bulong) không được tạo
+        nút cổ chai.
+        """
         self._set_threshold(20000000)
         order = self._mk_po([(self.thep, 10.0, 200000.0)])   # 2 triệu
 
@@ -35,10 +37,10 @@ class TestPurchaseApproval(DlPurchaseCase):
         self.assertEqual(order.state, "confirmed")
 
     def test_vuot_nguong_thi_khong_chot_thang_duoc(self):
-        """🔴 MH-07 — lá chắn tầng SERVER, không chỉ ẩn nút.
+        """TC-INT-TestPurchaseApproval-002: MH-07 — lá chắn tầng server, không chỉ ẩn nút.
 
-        Đỏ = ngưỡng chi tiêu thành trang trí: mọi đường ghi khác (RPC, import,
-        script) vẫn chốt được đơn trăm triệu.
+        Đỏ = ngưỡng chi tiêu thành trang trí: mọi đường ghi khác (RPC, import, script)
+        vẫn chốt được đơn trăm triệu.
         """
         self._set_threshold(20000000)
         order = self._mk_po([(self.thep, 200.0, 220000.0)])  # 44 triệu
@@ -48,9 +50,10 @@ class TestPurchaseApproval(DlPurchaseCase):
             order.action_dlm_confirm()
 
     def test_trinh_duyet_tao_yeu_cau_trong_hom_duyet_san_co(self):
-        """Giám đốc chỉ có MỘT hòm duyệt cho cả báo giá lẫn đơn mua.
+        """TC-INT-TestPurchaseApproval-003: Giám đốc chỉ có một hòm duyệt cho cả báo giá
+        lẫn đơn mua.
 
-        Đỏ = dựng hòm thứ hai ⇒ chỗ thứ hai là chỗ bị quên.
+        Đỏ = dựng hòm thứ hai thì chỗ thứ hai là chỗ bị quên.
         """
         self._set_threshold(20000000)
         order = self._mk_po([(self.thep, 200.0, 220000.0)])
@@ -67,7 +70,8 @@ class TestPurchaseApproval(DlPurchaseCase):
         self.assertEqual(request.state, "pending")
 
     def test_duyet_xong_thi_don_tu_chot_va_sinh_phieu_nhan(self):
-        """Duyệt trong hòm ⇒ đơn đi tiếp, không bắt Mua hàng quay lại bấm lần nữa.
+        """TC-INT-TestPurchaseApproval-004: Duyệt trong hòm thì đơn đi tiếp, không bắt Mua
+        hàng quay lại bấm lần nữa.
 
         Đỏ = đơn nằm mãi ở "Chờ duyệt" dù Giám đốc đã đồng ý.
         """
@@ -83,8 +87,9 @@ class TestPurchaseApproval(DlPurchaseCase):
         self.assertEqual(len(order.dlm_picking_ids), 1)
 
     def test_duoi_nguong_ma_trinh_duyet_thi_bi_chan(self):
-        """Không để Mua hàng đẩy việc lên Giám đốc cho chắc — hòm duyệt loãng
-        là hòm duyệt không ai đọc."""
+        """TC-INT-TestPurchaseApproval-005: Không để Mua hàng đẩy việc lên Giám đốc cho
+        chắc — hòm duyệt loãng là hòm duyệt không ai đọc.
+        """
         self._set_threshold(20000000)
         order = self._mk_po([(self.thep, 10.0, 200000.0)])
 

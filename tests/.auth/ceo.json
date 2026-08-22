@@ -1,0 +1,83 @@
+{
+  "cookies": [
+    {
+      "name": "tz",
+      "value": "Asia/Saigon",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "frontend_lang",
+      "value": "en_US",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1818963274.267816,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "session_id",
+      "value": "c0feaf158d59e4e6c8845affabef0555163de9dd",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1788032075.678334,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "cids",
+      "value": "1",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1818963275.536675,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://127.0.0.1:8069",
+      "localStorage": [
+        {
+          "name": "dlm.sidebar.activeChildKey",
+          "value": ""
+        },
+        {
+          "name": "multi_tab.http_127.0.0.1_8069.heartbeat",
+          "value": "1787427275461"
+        },
+        {
+          "name": "presence.focus",
+          "value": "true"
+        },
+        {
+          "name": "presence.lastPresence",
+          "value": "1787427274441"
+        },
+        {
+          "name": "multi_tab.http_127.0.0.1_8069.last_notification_id",
+          "value": "3761"
+        },
+        {
+          "name": "dlm.sidebar.activeKey",
+          "value": "approval"
+        },
+        {
+          "name": "multi_tab.http_127.0.0.1_8069.lastPresenceByTab",
+          "value": "{}"
+        },
+        {
+          "name": "multi_tab.http_127.0.0.1_8069.main",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}

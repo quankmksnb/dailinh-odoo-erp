@@ -14,6 +14,14 @@ nguyên — KHÔNG đoán bừa một nhóm, vì nhóm sai còn tệ hơn nhóm 
 `_check_manufactured_spec` thấy "thiếu thông số bắt buộc" và ném ValidationError
 NGAY TRONG migration — cả lệnh `-u dl_technical` đổ, trên DB có dữ liệu thật.
 
+🔴 BẪY THỨ HAI (phát hiện sau): `_check_manufactured_spec` có
+`product_category_id` trong danh sách `@api.constrains` của chính nó — nên chỉ
+GHI field này thôi (dù không đụng gì tới dimension_note/attachment) cũng đủ
+kích hoạt lại constraint đó, và dòng cũ thiếu mô tả/bản vẽ vẫn ném lỗi y hệt.
+Ghi thẳng bằng SQL (`cr.execute`) thay vì qua ORM `write()`/field setter để né
+toàn bộ constrains — đúng tinh thần migration backfill dữ liệu cũ, không phải
+đường ghi nghiệp vụ thật.
+
 Dòng cũ không có ô thông số vẫn hợp lệ (xem ghi chú ở `_compute_param_state`) và
 vẫn được bộ dò khớp phục vụ qua đường đọc kích thước từ mô tả. Ô thông số được
 dựng khi Sales mở dòng ra và đổi nhóm — tức khi có người thật đọc và điền được.
@@ -37,7 +45,14 @@ def migrate(cr, version):
     for line in lines:
         source = line.resolved_product_id or line.reference_product_id
         if source and source.categ_id:
-            line.product_category_id = source.categ_id.id
+            # SQL thẳng, không qua ORM write() — tránh kích hoạt lại
+            # _check_manufactured_spec (product_category_id nằm trong
+            # constrains của chính nó, xem chú thích đầu file).
+            cr.execute(
+                "UPDATE dl_quotation_request_line SET product_category_id = %s "
+                "WHERE id = %s",
+                (source.categ_id.id, line.id),
+            )
             filled += 1
 
     env["ir.logging"].sudo().create({

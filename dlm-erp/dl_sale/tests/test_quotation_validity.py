@@ -48,14 +48,16 @@ class TestQuotationValidity(TransactionCase):
 
     # ------------------------------------------------------------------
     def test_han_mac_dinh_7_ngay(self):
-        """Báo giá mới có hạn 7 ngày — không cam kết giá thép dài hơn thế."""
+        """TC-INT-TestQuotationValidity-001: Báo giá mới có hạn 7 ngày, không
+        cam kết giá thép dài hơn thế."""
         hom_nay = fields.Date.today()
         self.assertEqual(
             self.service._validity_date_for(hom_nay),
             hom_nay + timedelta(days=7))
 
     def test_doi_han_bang_tham_so_he_thong(self):
-        """Đổi hạn bằng cấu hình, không phải bằng sửa code."""
+        """TC-INT-TestQuotationValidity-002: Đổi hạn bằng cấu hình, không
+        phải bằng sửa code."""
         self.env["ir.config_parameter"].sudo().set_param(
             "dl_sale.quotation_validity_days", "10")
         hom_nay = fields.Date.today()
@@ -64,14 +66,16 @@ class TestQuotationValidity(TransactionCase):
             hom_nay + timedelta(days=10))
 
     def test_tham_so_rac_thi_ve_mac_dinh(self):
-        """Tham số hỏng không được làm chết luồng tạo báo giá."""
+        """TC-INT-TestQuotationValidity-003: Tham số hỏng không được làm
+        chết luồng tạo báo giá."""
         self.env["ir.config_parameter"].sudo().set_param(
             "dl_sale.quotation_validity_days", "bảy")
         self.assertEqual(self.service._validity_days(), 7)
 
     # ------------------------------------------------------------------
     def test_qua_han_thi_khong_len_don_duoc(self):
-        """Khách ký sau khi hết hạn ⇒ CHẶN, bắt tính lại giá trước."""
+        """TC-INT-TestQuotationValidity-004: Khách ký sau khi hết hạn thì bị
+        chặn, bắt tính lại giá trước."""
         quo = self._mk_quotation(
             validity_date=fields.Date.today() - timedelta(days=1),
             issued_days_ago=8)
@@ -80,20 +84,23 @@ class TestQuotationValidity(TransactionCase):
         self.assertIn("hết hiệu lực", ctx.exception.args[0])
 
     def test_con_han_thi_qua_cong(self):
-        """Còn hạn thì cổng không được cản đường."""
+        """TC-INT-TestQuotationValidity-005: Còn hạn thì cổng không được
+        cản đường."""
         quo = self._mk_quotation(
             validity_date=fields.Date.today() + timedelta(days=3))
         # Chỉ đo cái cổng, không đo cả luồng tạo đơn.
         self.assertTrue(quo._dlm_check_pricing_fresh())
 
     def test_khong_co_han_thi_khong_chan(self):
-        """Báo giá cũ chưa có hạn (trước bản này) không bị khoá cứng."""
+        """TC-INT-TestQuotationValidity-006: Báo giá cũ chưa có hạn (trước
+        bản này) không bị khoá cứng."""
         quo = self._mk_quotation(validity_date=False)
         self.assertTrue(quo._dlm_check_pricing_fresh())
 
     # ------------------------------------------------------------------
     def test_sap_het_han_theo_do_dai_han_cua_chinh_no(self):
-        """Ngưỡng "sắp hết hạn" co theo hạn — báo giá 7 ngày không được kêu ngay ngày đầu."""
+        """TC-INT-TestQuotationValidity-007: Ngưỡng "sắp hết hạn" co theo
+        hạn, báo giá 7 ngày không được kêu ngay ngày đầu."""
         hom_nay = fields.Date.today()
         ngan = self._mk_quotation(
             validity_date=hom_nay + timedelta(days=7), state="sent")
@@ -111,7 +118,8 @@ class TestQuotationValidity(TransactionCase):
         self.assertEqual(gan.validity_state, "soon")
 
     def test_dai_canh_bao_khi_khach_ky_muon(self):
-        """Đã đồng ý mà quá hạn ⇒ dải ĐỎ nói rõ phải bấm gì, không để user đâm vào lỗi."""
+        """TC-INT-TestQuotationValidity-008: Đã đồng ý mà quá hạn thì dải đỏ
+        nói rõ phải bấm gì, không để user đâm vào lỗi."""
         quo = self._mk_quotation(
             validity_date=fields.Date.today() - timedelta(days=2),
             issued_days_ago=9)
@@ -149,7 +157,8 @@ class TestQuotationPriceCommitment(TransactionCase):
         })
 
     def test_con_han_thi_khong_chan_du_gia_dau_vao_da_doi(self):
-        """Còn hạn ⇒ lên đơn được, không hỏi giá vật tư hôm nay là bao nhiêu."""
+        """TC-INT-TestQuotationPriceCommitment-001: Còn hạn thì lên đơn
+        được, không hỏi giá vật tư hôm nay là bao nhiêu."""
         hom_nay = fields.Date.today()
         quo = self.env["dl.quotation"].create({
             "partner_id": self.customer.id,
@@ -162,7 +171,8 @@ class TestQuotationPriceCommitment(TransactionCase):
         self.assertTrue(quo._dlm_check_pricing_fresh())
 
     def test_trang_thai_da_gui_khach_duoc_liet_ke_du(self):
-        """Ba trạng thái khách ĐÃ thấy số phải nằm trong danh sách bắt chào lại.
+        """TC-INT-TestQuotationPriceCommitment-002: Ba trạng thái khách đã
+        thấy số phải nằm trong danh sách bắt chào lại.
 
         Thiếu một cái là lọt đúng ca đang muốn chặn, mà không lỗi nào nổ."""
         service = self.env["dl.quotation.pricing.service"]
@@ -170,7 +180,8 @@ class TestQuotationPriceCommitment(TransactionCase):
                          {"approved", "sent", "accepted"})
 
     def test_khach_dong_y_muon_van_phai_co_loi_ra(self):
-        """Ca 'accepted + quá hạn' PHẢI bật cờ giá-quá-hạn.
+        """TC-INT-TestQuotationPriceCommitment-003: Ca 'accepted + quá hạn'
+        phải bật cờ giá quá hạn.
 
         Đây là bẫy đã dính thật: `validity_state` chỉ tính trên _EXPIRABLE_STATES
         (không có 'accepted'), nên nếu gác nút Cập nhật giá bằng nó thì đúng ca
@@ -183,10 +194,13 @@ class TestQuotationPriceCommitment(TransactionCase):
                         "nhưng cờ giá-quá-hạn thì PHẢI bật, không thì mất nút")
 
     def test_con_han_thi_khong_bat_co(self):
+        """TC-INT-TestQuotationPriceCommitment-004: Còn hạn thì không bật
+        cờ giá quá hạn."""
         quo = self._quo("accepted", 3, -4)   # hạn còn 4 ngày nữa
         self.assertFalse(quo.dlm_price_stale)
 
     def test_da_len_don_thi_khong_bat_co(self):
-        """Đơn đã lên rồi thì giá cũ là chuyện đã rồi — đừng mời tính lại."""
+        """TC-INT-TestQuotationPriceCommitment-005: Đơn đã lên rồi thì giá
+        cũ là chuyện đã rồi, đừng mời tính lại."""
         quo = self._quo("ordered", 20, 13)
         self.assertFalse(quo.dlm_price_stale)

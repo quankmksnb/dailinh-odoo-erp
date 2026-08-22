@@ -37,7 +37,7 @@ class TestDispatch(TransactionCase):
         })
         # Vai trò THẬT để chạy màn này. Test chạy bằng admin không bao giờ
         # chạm vào ACL, mà ACL mới là thứ hỏng ngoài đời.
-        # ⚠️ Phải có `email`: `action_dlm_dispatch` ghi chatter, mà `message_post`
+        # Phải có `email`: `action_dlm_dispatch` ghi chatter, mà `message_post`
         # từ chối khi tác giả không có địa chỉ gửi. User thật của Đại Linh đều
         # có email (xem demo_users_data.xml) — thiếu ô này là lỗi của FIXTURE,
         # không phải của luồng điều phối.
@@ -107,7 +107,7 @@ class TestDispatch(TransactionCase):
 
     # ------------------------------------------------------------------ tests
     def test_du_thanh_pham_thi_chi_ra_phieu_giao(self):
-        """Kho có sẵn thành phẩm ⇒ giao thẳng, KHÔNG cấp vật tư.
+        """TC-INT-TestDispatch-001: Kho có sẵn thành phẩm thì giao thẳng, không cấp vật tư.
 
         Đỏ = xưởng nhận lệnh làm lại món đã có trong kho.
         """
@@ -123,10 +123,10 @@ class TestDispatch(TransactionCase):
         self.assertFalse(self._material_pickings(order))
 
     def test_hang_dat_rieng_khong_tinh_ton_thanh_pham(self):
-        """DP-10 — Hạng A luôn phải làm 100% số đơn, kể cả khi trùng tên hàng
-        đang có trong kho.
+        """TC-INT-TestDispatch-002: DP-10 — Hạng A luôn phải làm 100% số đơn, kể cả khi
+        trùng tên hàng đang có trong kho.
 
-        Đỏ = báo "đủ hàng" cho món khách đặt riêng ⇒ giao nhầm hàng của đơn khác.
+        Đỏ = báo "đủ hàng" cho món khách đặt riêng thì giao nhầm hàng của đơn khác.
         """
         bom = self._mk_bom(self.dat_rieng, [(self.thep, 3.0)])
         order = self._mk_order([(self.dat_rieng, 5.0, "manufactured", bom)])
@@ -142,11 +142,11 @@ class TestDispatch(TransactionCase):
         self.assertAlmostEqual(check["materials"][0]["need"], 15.0, places=2)
 
     def test_thieu_vat_tu_van_giu_phan_dang_co(self):
-        """🔴 Kịch bản C — chờ mua đủ mới giữ chỗ là để đơn khác bốc mất phần
-        đang có.
+        """TC-INT-TestDispatch-003: Kịch bản C — chờ mua đủ mới giữ chỗ là để đơn khác bốc
+        mất phần đang có.
 
-        Đỏ = phiếu cấp vật tư không được tạo, 20 cây thép đang có bị đơn sau lấy,
-        và khi thép mới về thì lại thiếu thứ khác.
+        Đỏ = phiếu cấp vật tư không được tạo, 20 cây thép đang có bị đơn sau lấy, và khi
+        thép mới về thì lại thiếu thứ khác.
         """
         bom = self._mk_bom(self.ban, [(self.thep, 2.0)])
         order = self._mk_order([(self.ban, 30.0, "manufactured", bom)])
@@ -156,10 +156,10 @@ class TestDispatch(TransactionCase):
 
         picking = self._material_pickings(order)
         self.assertEqual(len(picking), 1)
-        # Nhu cầu ĐỦ 60 cây lên phiếu, giữ chỗ được 20 ⇒ phiếu thiếu một phần.
+        # Nhu cầu đủ 60 cây lên phiếu, giữ chỗ được 20 thì phiếu thiếu một phần.
         self.assertAlmostEqual(
             sum(picking.move_ids.mapped("product_uom_qty")), 60.0, places=2)
-        # ⚠️ Odoo 17 KHÔNG còn trạng thái `partially_available` ở tầng phiếu
+        # Odoo 17 không còn trạng thái `partially_available` ở tầng phiếu
         # (doc B1.5 §3.3 viết theo bản cũ): phiếu giữ được một phần vẫn là
         # `assigned`. Bằng chứng "giữ được bao nhiêu" nằm ở số đã giữ, không ở
         # trạng thái — nên đo đúng chỗ đó.
@@ -168,10 +168,10 @@ class TestDispatch(TransactionCase):
             sum(picking.move_ids.mapped("quantity")), 20.0, places=2)
 
     def test_bam_lan_hai_bi_chan(self):
-        """🔴 DP-08 — bấm hai lần là giữ chỗ gấp đôi.
+        """TC-INT-TestDispatch-004: DP-08 — bấm hai lần là giữ chỗ gấp đôi.
 
-        Đỏ = kho báo hết hàng trong khi hàng còn nguyên: nó đang bị chính đơn
-        đó giữ hai lần.
+        Đỏ = kho báo hết hàng trong khi hàng còn nguyên: nó đang bị chính đơn đó giữ hai
+        lần.
         """
         bom = self._mk_bom(self.ban, [(self.thep, 2.0)])
         order = self._mk_order([(self.ban, 10.0, "manufactured", bom)])
@@ -188,10 +188,10 @@ class TestDispatch(TransactionCase):
         self.assertEqual(truoc, sau)
 
     def test_dong_gia_cong_thieu_bom_thi_chan_va_neu_ten(self):
-        """DP-03 — không có định mức thì điều phối vẫn "chạy" nhưng ra kết quả
-        sai mà trông như đúng.
+        """TC-INT-TestDispatch-005: DP-03 — không có định mức thì điều phối vẫn "chạy"
+        nhưng ra kết quả sai mà trông như đúng.
 
-        Đỏ = đơn được điều phối với nhu cầu vật tư = 0 ⇒ xưởng không có gì để làm.
+        Đỏ = đơn được điều phối với nhu cầu vật tư = 0 thì xưởng không có gì để làm.
         """
         order = self._mk_order([(self.ban, 10.0, "manufactured", False)])
 
@@ -203,10 +203,10 @@ class TestDispatch(TransactionCase):
             order.action_dlm_dispatch()
 
     def test_hang_thuong_mai_thieu_thi_phai_mua_chinh_no(self):
-        """U-5 — gần một nửa doanh thu của Đại Linh không có BOM.
+        """TC-INT-TestDispatch-006: U-5 — gần một nửa doanh thu của Đại Linh không có BOM.
 
-        Đỏ = nhánh thương mại rơi khỏi hệ thống: màn báo thiếu nhưng không nói
-        phải mua gì, và Mua hàng không bao giờ nhận được việc.
+        Đỏ = nhánh thương mại rơi khỏi hệ thống: màn báo thiếu nhưng không nói phải mua
+        gì, và Mua hàng không bao giờ nhận được việc.
         """
         order = self._mk_order([(self.hang_tm, 3.0, "trading", False)])
 
@@ -218,10 +218,11 @@ class TestDispatch(TransactionCase):
         self.assertAlmostEqual(check["materials"][0]["missing"], 3.0, places=2)
 
     def test_trang_thai_dieu_phoi_suy_tu_chung_tu(self):
-        """`dlm_dispatch_state` phải đổi theo CHỨNG TỪ, không theo tồn kho.
+        """TC-INT-TestDispatch-007: `dlm_dispatch_state` phải đổi theo chứng từ, không theo
+        tồn kho.
 
-        Đỏ = depends vào stock.quant ⇒ mỗi phiếu kho validate là recompute mọi
-        đơn; hệ thống bò dần và không ai biết vì sao.
+        Đỏ = depends vào stock.quant thì mỗi phiếu kho validate là recompute mọi đơn; hệ
+        thống bò dần và không ai biết vì sao.
         """
         bom = self._mk_bom(self.ban, [(self.thep, 2.0)])
         order = self._mk_order([(self.ban, 5.0, "manufactured", bom)])
@@ -230,14 +231,14 @@ class TestDispatch(TransactionCase):
         self._stock_up(self.thep, 100.0, self.loc_kho)
         order.action_dlm_dispatch()
 
-        # Có phiếu cấp vật tư nhưng hàng chưa giao ⇒ vẫn đang điều phối.
+        # Có phiếu cấp vật tư nhưng hàng chưa giao thì vẫn đang điều phối.
         self.assertEqual(order.dlm_dispatch_state, "dispatching")
 
     def test_sales_khong_bam_duoc_nut_dieu_phoi(self):
-        """U-4 — một chủ sở hữu cho bước điều phối là Thủ kho.
+        """TC-INT-TestDispatch-008: U-4 — một chủ sở hữu cho bước điều phối là Thủ kho.
 
-        Đỏ = hai vai cùng bấm được ⇒ đơn nằm chờ vì "tưởng bên kia làm", hoặc
-        cùng bấm ra hai bộ chứng từ.
+        Đỏ = hai vai cùng bấm được thì đơn nằm chờ vì "tưởng bên kia làm", hoặc cùng bấm
+        ra hai bộ chứng từ.
         """
         bom = self._mk_bom(self.ban, [(self.thep, 2.0)])
         order = self._mk_order([(self.ban, 5.0, "manufactured", bom)])
@@ -251,16 +252,15 @@ class TestDispatch(TransactionCase):
             order.with_user(sales)._dlm_check_dispatch_allowed()
 
     def test_thu_kho_mo_man_dieu_phoi_khong_dinh_loi_quyen(self):
-        """🔴 Chạy bằng ĐÚNG vai trò Thủ kho, không phải admin.
+        """TC-INT-TestDispatch-009: Chạy bằng đúng vai trò Thủ kho, không phải admin.
 
-        Định mức (`dl.bom`) là tài sản của Kỹ thuật — thủ kho KHÔNG có quyền
-        đọc. Mọi đường chạm BOM ở màn này phải đi qua `sudo()` và chỉ để số
-        LƯỢNG đi ra.
+        Định mức (`dl.bom`) là tài sản của Kỹ thuật — thủ kho không có quyền đọc. Mọi
+        đường chạm BOM ở màn này phải đi qua `sudo()` và chỉ để số lượng đi ra.
 
-        Đỏ = thủ kho mở đơn gia công là thấy dải đỏ "bạn không được phép truy
-        cập dữ liệu BOM" — màn Điều phối vô dụng đúng với nhánh hàng chính của
-        Đại Linh. Mọi test khác của file này chạy bằng admin nên KHÔNG bắt được
-        ca này; đã lọt ra tới người dùng thật một lần (2026-08-14).
+        Đỏ = thủ kho mở đơn gia công là thấy dải đỏ "bạn không được phép truy cập dữ
+        liệu BOM" — màn Điều phối vô dụng đúng với nhánh hàng chính của Đại Linh. Mọi
+        test khác của file này chạy bằng admin nên không bắt được ca này; đã lọt ra tới
+        người dùng thật một lần (2026-08-14).
         """
         bom = self._mk_bom(self.ban, [(self.thep, 2.0)])
         order = self._mk_order([(self.ban, 6.0, "manufactured", bom)])
@@ -276,10 +276,11 @@ class TestDispatch(TransactionCase):
         self.assertNotEqual(nhu_thu_kho.dlm_supply_level, "danger")
 
     def test_thu_kho_bam_dieu_phoi_ra_dung_chung_tu(self):
-        """Toàn bộ hành động chạy bằng vai trò Thủ kho, không phải admin.
+        """TC-INT-TestDispatch-010: Toàn bộ hành động chạy bằng vai trò Thủ kho, không phải
+        admin.
 
-        Đỏ = nút bấm được nhưng ném lỗi quyền ở giữa chừng, và đơn nằm lại với
-        một nửa bộ chứng từ.
+        Đỏ = nút bấm được nhưng ném lỗi quyền ở giữa chừng, và đơn nằm lại với một nửa
+        bộ chứng từ.
         """
         bom = self._mk_bom(self.ban, [(self.thep, 2.0)])
         order = self._mk_order([(self.ban, 6.0, "manufactured", bom)])
@@ -293,7 +294,9 @@ class TestDispatch(TransactionCase):
             sum(picking.move_ids.mapped("product_uom_qty")), 12.0, places=2)
 
     def test_don_nhap_khong_dieu_phoi_duoc(self):
-        """DP-01 — điều phối đơn nháp là giữ chỗ cho cam kết chưa tồn tại."""
+        """TC-INT-TestDispatch-011: DP-01 — điều phối đơn nháp là giữ chỗ cho cam kết chưa
+        tồn tại.
+        """
         bom = self._mk_bom(self.ban, [(self.thep, 2.0)])
         order = self._mk_order([(self.ban, 5.0, "manufactured", bom)])
         order.state = "draft"

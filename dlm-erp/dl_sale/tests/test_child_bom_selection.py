@@ -1,12 +1,13 @@
-"""Giá vốn bán thành phẩm phải lấy từ ĐỊNH MỨC CHUẨN, không phải từ đơn khác.
+"""Giá vốn bán thành phẩm phải lấy từ định mức chuẩn, không phải từ đơn khác.
 
 Thiết kế: docs/Thiet_ke_xu_ly_dong_RFQ_ky_thuat.md §17.2 (C4), §15.3 (RC14).
 
 Lỗi được sửa: `_bom_material_cost()` chọn BOM con của bán thành phẩm bằng
-``order="version desc"`` mà KHÔNG lọc `bom_type` ⇒ một BOM **báo giá** (sinh khi
-xử lý RFQ cho một đơn cụ thể) có số version cao hơn sẽ thắng BOM chuẩn của
-chính bán thành phẩm đó. Hệ quả: định mức riêng của đơn A âm thầm trở thành giá
-vốn cho đơn B — sai lệch chỉ hiện ra ở TIỀN nên rất khó phát hiện.
+``order="version desc"`` mà không lọc theo `bom_type`, nên một BOM báo giá
+(sinh ra khi xử lý RFQ cho một đơn cụ thể) có số version cao hơn sẽ thắng
+BOM chuẩn của chính bán thành phẩm đó. Hệ quả là định mức riêng của đơn A
+âm thầm trở thành giá vốn cho đơn B. Sai lệch chỉ hiện ra ở số tiền nên rất
+khó phát hiện.
 """
 
 from odoo.tests.common import TransactionCase, tagged
@@ -44,9 +45,10 @@ class TestChildBomSelection(TransactionCase):
         return bom
 
     def test_standard_bom_wins_over_higher_numbered_quotation_bom(self):
-        """RC14 — BOM chuẩn v2 phải thắng BOM báo giá v5."""
+        """TC-INT-TestChildBomSelection-001: RC14: BOM chuẩn v2 phải thắng BOM báo giá v5.
+        """
         standard = self._make_bom("template", 2)
-        self._make_bom("quotation", 5)   # số sê-ri cao hơn nhưng là của MỘT đơn
+        self._make_bom("quotation", 5)   # số sê-ri cao hơn nhưng là của một đơn cụ thể khác
 
         chosen = self.service._resolve_child_bom(self.semi)
 
@@ -56,16 +58,20 @@ class TestChildBomSelection(TransactionCase):
         )
 
     def test_current_standard_wins_over_newer_draft_standard(self):
-        """Ưu tiên 1: bản chuẩn đang là phiên bản hiện hành."""
+        """TC-INT-TestChildBomSelection-002: Ưu tiên 1: bản chuẩn đang là phiên bản hiện
+        hành.
+        """
         first = self._make_bom("template", 1)
         self.assertTrue(first.is_current)
-        # Bản chuẩn v2 chưa xác nhận ⇒ không được chọn.
+        # Bản chuẩn v2 chưa xác nhận nên không được chọn.
         self._make_bom("template", 2, confirm=False)
 
         self.assertEqual(self.service._resolve_child_bom(self.semi), first)
 
     def test_falls_back_to_quotation_bom_only_when_no_standard_exists(self):
-        """Ưu tiên 3: BTP chưa từng có định mức chuẩn thì mới đành dùng BOM báo giá."""
+        """TC-INT-TestChildBomSelection-003: Ưu tiên 3: BTP chưa từng có định mức chuẩn thì
+        mới đành dùng BOM báo giá.
+        """
         only_quotation = self._make_bom("quotation", 1)
 
         self.assertEqual(
@@ -74,7 +80,9 @@ class TestChildBomSelection(TransactionCase):
         )
 
     def test_returns_empty_when_nothing_confirmed(self):
-        """BOM nháp không được dùng làm giá vốn — trả rỗng để engine raise QTE-004."""
+        """TC-INT-TestChildBomSelection-004: BOM nháp không được dùng làm giá vốn, trả rỗng
+        để engine raise QTE-004.
+        """
         self._make_bom("template", 1, confirm=False)
 
         self.assertFalse(self.service._resolve_child_bom(self.semi))

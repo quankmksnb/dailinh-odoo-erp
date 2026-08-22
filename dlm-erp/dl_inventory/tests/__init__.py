@@ -12,6 +12,11 @@ from . import test_inventory_adjustment
 from . import test_smart_domains
 from . import test_screen_boundaries
 from . import test_validation_rules
+from . import test_stock_picking_pure_unit
+from . import test_dl_sale_order_pure_unit
+from . import test_scrap_banner_pure_unit
+from . import test_migration_rs01_split
+from . import test_rbac_feature_acl_crosscheck
 from . import test_availability
 from . import test_to_scrap
 from . import test_workshop_handover
@@ -19,3 +24,4 @@ from . import test_fg_receipt
 from . import test_workshop_batch
 from . import test_bom_explosion
 from . import test_dispatch
+from . import test_warehouse_screen_access

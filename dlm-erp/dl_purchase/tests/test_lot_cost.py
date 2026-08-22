@@ -99,10 +99,10 @@ class TestLotCost(DlPurchaseCase):
 
     # ------------------------------------------------------------------ tests
     def test_gia_dong_len_lo_khi_nhan_hang(self):
-        """Lô mang giá của chính đơn mua đã chốt.
+        """TC-INT-TestLotCost-001: Lô mang giá của chính đơn mua đã chốt.
 
-        Đỏ = lô truy được về NCC nhưng không truy được về TIỀN ⇒ câu "đơn đó lãi
-        bao nhiêu" chỉ trả lời được bằng giá bảng hôm nay, tức giá của lô khác.
+        Đỏ = lô truy được về NCC nhưng không truy được về tiền thì câu "đơn đó lãi bao
+        nhiêu" chỉ trả lời được bằng giá bảng hôm nay, tức giá của lô khác.
         """
         order = self._mk_po([(self.thep, 30.0, 200000.0)])
         self._receive_po(order)
@@ -114,10 +114,11 @@ class TestLotCost(DlPurchaseCase):
         self.assertFalse(lot.dlm_cost_is_estimated)
 
     def test_nhan_tay_khong_don_mua_thi_gan_co_uoc_tinh(self):
-        """MH-16 — không có đơn mua thì vẫn phải có giá, và phải NÓI là ước tính.
+        """TC-INT-TestLotCost-002: MH-16 — không có đơn mua thì vẫn phải có giá, và phải
+        nói là ước tính.
 
-        Đỏ = báo cáo giá vốn im lặng tính lô đó bằng 0 ⇒ đơn hàng trông lãi hơn
-        thực tế.
+        Đỏ = báo cáo giá vốn im lặng tính lô đó bằng 0 thì đơn hàng trông lãi hơn thực
+        tế.
         """
         self._apply_price(self.thep, self.vendor, 205000.0)
         picking = self.env["stock.picking"].create({
@@ -146,12 +147,12 @@ class TestLotCost(DlPurchaseCase):
         self.assertTrue(lot.dlm_cost_is_estimated)
 
     def test_kho_vat_tu_lay_hang_theo_fifo(self):
-        """🔴 Chiến lược lấy hàng hiệu lực ở Kho vật tư phải là FIFO.
+        """TC-INT-TestLotCost-003: Chiến lược lấy hàng hiệu lực ở Kho vật tư phải là FIFO.
 
         Odoo mặc định 'fifo' nên hôm nay không cần cấu hình gì — nhưng
-        `categ_id.removal_strategy_id` được kiểm TRƯỚC vị trí, nên chỉ cần ai đó
-        đặt chiến lược ở nhóm sản phẩm là toàn bộ giá vốn thực tế đổi nghĩa mà
-        không có màn nào báo. Đây là lá chắn cho đúng ca đó.
+        `categ_id.removal_strategy_id` được kiểm trước vị trí, nên chỉ cần ai đó đặt
+        chiến lược ở nhóm sản phẩm là toàn bộ giá vốn thực tế đổi nghĩa mà không có màn
+        nào báo. Đây là lá chắn cho đúng ca đó.
         """
         method = self.env["stock.quant"]._get_removal_strategy(
             self.thep, self.loc_kho)
@@ -159,13 +160,13 @@ class TestLotCost(DlPurchaseCase):
         self.assertEqual(method, "fifo")
 
     def test_vi_du_fifo_lo_cu_truoc(self):
-        """🔴 ĐÚNG ví dụ §6.4: 30 cây @200k + 90 cây @220k, dùng 100.
+        """TC-INT-TestLotCost-004: đúng ví dụ §6.4: 30 cây @200k + 90 cây @220k, dùng 100.
 
-        30 × 200.000 + 70 × 220.000 = 21.400.000
-        (tính hết theo giá mới sẽ là 22.000.000 ⇒ báo lỗ oan 600.000)
+        30 × 200.000 + 70 × 220.000 = 21.400.000 (tính hết theo giá mới sẽ là 22.000.000
+        thì báo lỗ oan 600.000)
 
-        Đỏ = mọi báo cáo lãi/lỗ theo đơn sai, và sai theo hướng bi quan khi giá
-        đang lên — tức là đúng lúc doanh nghiệp cần con số nhất.
+        Đỏ = mọi báo cáo lãi/lỗ theo đơn sai, và sai theo hướng bi quan khi giá đang lên
+        — tức là đúng lúc doanh nghiệp cần con số nhất.
         """
         cu = self._mk_po([(self.thep, 30.0, 200000.0)])
         self._receive_po(cu)
@@ -181,10 +182,11 @@ class TestLotCost(DlPurchaseCase):
         self.assertFalse(order.dlm_cost_is_estimated)
 
     def test_vat_tu_tra_lai_kho_thi_tru_ra(self):
-        """Vật tư bàn giao thừa trả lại kho không được tính vào giá vốn.
+        """TC-INT-TestLotCost-005: Vật tư bàn giao thừa trả lại kho không được tính vào giá
+        vốn.
 
-        Đỏ = đơn gánh tiền của thép chưa hề dùng tới ⇒ càng trả lại nhiều càng
-        trông lỗ.
+        Đỏ = đơn gánh tiền của thép chưa hề dùng tới thì càng trả lại nhiều càng trông
+        lỗ.
         """
         po = self._mk_po([(self.thep, 50.0, 200000.0)])
         self._receive_po(po)
@@ -219,6 +221,6 @@ class TestLotCost(DlPurchaseCase):
         picking.action_dlm_handover()
         picking.action_dlm_confirm_receipt()
 
-        # Dùng 30, trả lại 10 ⇒ gánh đúng 20 cây × 200.000.
+        # Dùng 30, trả lại 10 thì gánh đúng 20 cây × 200.000.
         self.assertAlmostEqual(
             order.dlm_actual_material_cost, 4000000.0, places=0)

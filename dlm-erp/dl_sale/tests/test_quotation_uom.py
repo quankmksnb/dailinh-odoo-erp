@@ -37,7 +37,8 @@ class TestQuotationUom(TransactionCase):
 
     # ------------------------------------------------------------------
     def test_dong_moi_mac_dinh_co_don_vi(self):
-        """Dòng Sales thêm tay không được để trống ĐVT."""
+        """TC-INT-TestQuotationUom-001: Dòng Sales thêm tay không được để
+        trống ĐVT."""
         line = self.env["dl.quotation.line"].create({
             "name": "Dòng thêm tay",
             "qty": 1.0,
@@ -45,7 +46,8 @@ class TestQuotationUom(TransactionCase):
         self.assertEqual(line.uom_id, self.uom_unit)
 
     def test_don_vi_chep_sang_don_ban_hang(self):
-        """Lên đơn phải mang theo ĐVT — xưởng làm hàng đọc con số này."""
+        """TC-INT-TestQuotationUom-002: Lên đơn phải mang theo ĐVT, xưởng làm
+        hàng đọc con số này."""
         quo = self._mk_quotation()
         quo.action_create_sale_order()
         order = self.env["dl.sale.order"].search([("quotation_id", "=", quo.id)])
@@ -54,14 +56,16 @@ class TestQuotationUom(TransactionCase):
 
     # ------------------------------------------------------------------
     def test_file_gui_khach_co_don_vi_va_bo_duoi_so_0(self):
-        """File gửi khách hiện "2 kg", không phải "2,00" trống đơn vị."""
+        """TC-INT-TestQuotationUom-003: File gửi khách hiện "2 kg", không
+        phải "2,00" trống đơn vị."""
         quo = self._mk_quotation(qty=2.0)
         dong = quo._document_context()["lines"][0]
         self.assertEqual(dong["qty_txt"], "2")
         self.assertEqual(dong["uom_txt"], self.uom_kg.name)
 
     def test_file_gui_khach_giu_phan_le_co_nghia(self):
-        """Bỏ đuôi số 0 KHÔNG được làm tròn: 12,5 kg vẫn là 12,5 kg.
+        """TC-INT-TestQuotationUom-004: Bỏ đuôi số 0 không được làm tròn:
+        12,5 kg vẫn là 12,5 kg.
 
         So theo dấu thập phân của ngôn ngữ đang chạy chứ không viết cứng dấu
         phẩy: test chạy dưới en_US ("12.5"), người dùng thật chạy vi_VN

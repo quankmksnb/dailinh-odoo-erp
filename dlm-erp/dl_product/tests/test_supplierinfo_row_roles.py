@@ -66,7 +66,8 @@ class TestSupplierinfoRowRoles(TransactionCase):
 
     # ------------------------------------------------------------------
     def test_gia_cu_cung_ncc_cung_ngay_roi_khoi_man_hinh(self):
-        """Hòa Phát báo lại giá trong cùng ngày ⇒ chỉ còn MỘT dòng Hòa Phát."""
+        """TC-INT-TestSupplierinfoRowRoles-001: Hòa Phát báo lại giá trong
+        cùng ngày, chỉ còn MỘT dòng Hòa Phát trên màn hình."""
         cu = self._row(self.hoa_phat, 5000.0)
         cu.action_approve()                       # duyệt là tự áp dụng (chưa có ai)
         self.assertTrue(cu.is_applied)
@@ -84,7 +85,8 @@ class TestSupplierinfoRowRoles(TransactionCase):
             "được nó.")
 
     def test_ncc_khac_van_o_lai_lam_phuong_an_thay_the(self):
-        """Giá của NCC khác là chào giá song song — không được biến mất theo."""
+        """TC-INT-TestSupplierinfoRowRoles-002: Giá của NCC khác là chào giá
+        song song, không được biến mất theo."""
         hp = self._row(self.hoa_phat, 5000.0)
         hp.action_approve()
         pt = self._row(self.phu_thinh, 7000.0)
@@ -98,7 +100,8 @@ class TestSupplierinfoRowRoles(TransactionCase):
         self.assertEqual(self._tren_man_hinh(), {moi.id, pt.id})
 
     def test_nhan_dong_phu_noi_dung_ncc(self):
-        """Nhãn phải phân biệt được NCC khác / giá mới của chính họ / giá cũ."""
+        """TC-INT-TestSupplierinfoRowRoles-003: Nhãn phải phân biệt được NCC
+        khác, giá mới của chính họ, giá cũ."""
         hp = self._row(self.hoa_phat, 5000.0)
         hp.action_approve()
         self.assertFalse(hp.dlm_alt_label, "Dòng đang áp dụng không có nhãn phụ")

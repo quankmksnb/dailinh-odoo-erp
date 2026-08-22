@@ -59,6 +59,10 @@ class TestMenuRoleDeclaration(TransactionCase):
         }).search([("id", "child_of", self.root.id), ("id", "!=", self.root.id)])
 
     def test_moi_vai_tro_khai_tren_menu_deu_thuc_su_thay_menu(self):
+        """TC-INT-TestMenuRoleDeclaration-001: mọi menu khai groups= cho 1 vai
+        trò thì vai trò đó phải thực sự thấy menu, không bị Odoo tự ẩn vì
+        thiếu ACL đọc model của action.
+        """
         lies = []
         for menu in self._dl_menus():
             if not menu.action:

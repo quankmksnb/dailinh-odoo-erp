@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-"""K3 — Sản phẩm dùng chung (generic) KHÔNG được tồn kho.
+"""K3: sản phẩm dùng chung (generic) không được tồn kho.
 
 Thiết kế: docs/Thiet_ke_phan_he_kho.md §3.5 (ngoại lệ cho LK-14).
 
-Vì sao đây là lỗi NGHIỆP VỤ chứ không phải báo cáo bẩn: Odoo giữ hàng (reserve)
-theo `product_id`, KHÔNG theo kích thước. Nếu "Bàn thép" là storable và trong
-kho có 5 cái gồm nhiều cỡ, một đơn đặt 1200×800 sẽ được Odoo giữ nhầm một cái
-1000×600 rồi báo "đủ hàng" — tới lúc giao mới lộ. Không chặn được bằng cấu hình.
+Đây là lỗi nghiệp vụ chứ không phải báo cáo bẩn: Odoo giữ hàng (reserve)
+theo `product_id`, không theo kích thước. Nếu "Bàn thép" là storable và
+trong kho có 5 cái gồm nhiều cỡ, một đơn đặt 1200x800 sẽ bị Odoo giữ nhầm
+một cái 1000x600 rồi báo "đủ hàng", tới lúc giao mới lộ ra. Lỗi này không
+chặn được bằng cấu hình.
 """
 
 from odoo.tests.common import tagged
@@ -28,7 +29,9 @@ class TestGenericNotStocked(DlInventoryCase):
         })
 
     def test_gan_lam_generic_thi_thanh_consu(self):
-        """§3.5 — Vừa gán làm SP dùng chung của BOM mẫu ⇒ hết tồn kho được."""
+        """TC-INT-TestGenericNotStocked-001: §3.5: vừa gán làm SP dùng chung của BOM mẫu
+        thì hết tồn kho được.
+        """
         self.assertEqual(
             self.generic.detailed_type, "product",
             "Bối cảnh: SP gia công mặc định storable (LK-14).")
@@ -46,7 +49,9 @@ class TestGenericNotStocked(DlInventoryCase):
             "hàng khác kích thước rồi báo đủ hàng.")
 
     def test_gan_generic_bang_write_cung_thanh_consu(self):
-        """§3.5 — Cùng luật khi gán SAU (sửa BOM mẫu đã có), không chỉ lúc tạo."""
+        """TC-INT-TestGenericNotStocked-002: §3.5: cùng luật khi gán sau (sửa BOM mẫu đã
+        có), không chỉ lúc tạo.
+        """
         template = self.env["dl.bom.template"].create({
             "name": "Mẫu bàn thép rỗng (test)",
             "product_category_id": self.categ.id,
@@ -57,10 +62,11 @@ class TestGenericNotStocked(DlInventoryCase):
         self.assertEqual(self.generic.detailed_type, "consu")
 
     def test_generic_khong_tao_duoc_ton_kho(self):
-        """§3.5 — Hệ quả cuối cùng: generic không bao giờ có mặt trong kho.
+        """TC-INT-TestGenericNotStocked-003: §3.5: hệ quả cuối cùng, generic không bao giờ
+        có mặt trong kho.
 
-        Đây mới là điều người dùng thấy: màn Tồn kho sạch, không có hàng trăm mã
-        tồn 0 vĩnh viễn.
+        Đây mới là điều người dùng thấy: màn Tồn kho sạch, không có hàng trăm mã tồn 0
+        vĩnh viễn.
         """
         self.env["dl.bom.template"].create({
             "name": "Mẫu bàn thép (test 2)",
