@@ -36,6 +36,7 @@ dựng bằng ``post_init_hook`` để đi qua đúng logic nghiệp vụ.
     "data": [
         "data/demo_partners.xml",
         "data/demo_products.xml",
+        "data/demo_manufactured.xml",
         # Nạp CUỐI: <function> cần model + mọi seed master data ở trên.
         "data/demo_stock_pricing.xml",
     ],
