@@ -363,12 +363,10 @@
                                        class="dl-rfq-bom-preview">
                                     <tree>
                                         <field name="material_id"/>
-                                        <field name="dim_length" string="Dài đoạn (mm)"/>
-                                        <field name="piece_count"/>
                                         <field name="quantity"/>
                                         <field name="uom_id" string="Đơn vị tính"/>
-                                        <field name="waste_rate"/>
-                                        <field name="effective_qty"/>
+                                        <field name="waste_rate" string="Hao hụt (%)"/>
+                                        <field name="effective_qty" string="Số lượng thực"/>
                                     </tree>
                                 </field>
                             </div>

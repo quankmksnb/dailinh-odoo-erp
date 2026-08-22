@@ -6,197 +6,241 @@
 // ============================================================================
 
 .o_list_view[class*="dl-"][class*="-list"] {
-    font-family: $dl-font;
+  font-family: $dl-font;
 
-    .o_list_renderer {
-        height: auto !important;
-        max-height: 100%;
-        margin: 4px 16px 16px;
-        border: 1px solid $dl-border;
-        border-radius: $dl-radius;
-        background: #fff;
-        overflow: auto;
-    }
+  .o_list_renderer {
+    height: auto !important;
+    max-height: 100%;
+    margin: 4px 16px 16px;
+    border: 1px solid $dl-border;
+    border-radius: $dl-radius;
+    background: #fff;
+    overflow: auto;
+  }
 
-    .o_list_table thead th {
-        background-color: $dl-table-head-bg;
-        color: $dl-text-2;
-        font-weight: 500;
-        border-bottom: 1px solid $dl-border;
-        padding-top: 6px;
-        padding-bottom: 6px;
-    }
-
-    .o_list_table td.o_data_cell {
-        padding-top: 5px;
-        padding-bottom: 5px;
-        vertical-align: middle;
-    }
-
-    .o_list_table tbody tr.o_data_row td {
-        border-top: 1px solid $dl-divider;
-    }
-    .o_list_table tbody tr.o_data_row:first-child td {
-        border-top: 0;
-    }
-    .o_list_table tbody tr.o_data_row:hover {
-        background-color: $dl-app-bg;
-    }
-
-    // Ẩn checkbox column, cột active, tfoot.
-    // KHÔNG ẩn cột button (th/td.o_list_button — vd nút "Nhận RFQ" trên list
-    // RFQ): cột button không có data-name/name nên phải loại trừ tường minh,
-    // nếu không sẽ bị ẩn oan theo rule checkbox.
-    //
-    // 🔴 Luật `td:not([name])` KHÔNG được chạm dòng NHÓM. Ô tổng của dòng nhóm
-    // (web.ListRenderer.GroupRow) là `<td class="o_list_number">` KHÔNG có
-    // thuộc tính `name` ⇒ rule trên nuốt sạch mọi số tổng khi gom nhóm, dù
-    // `sum=` đã khai trong tree. Không lỗi nào nổ, chỉ là dòng nhóm rỗng bên
-    // phải — đúng thứ người ta mở màn ra để đọc đầu tiên.
+  .o_list_renderer:has(.o_view_nocontent) {
+    border: 0;
+    background: transparent;
     .o_list_table {
-        thead th:not([data-name]):not(.o_list_button) { display: none !important; }
-        tbody tr.o_data_row td:not([name]):not(.o_list_button) { display: none !important; }
-        th[data-name="active"], td[name="active"] { display: none !important; }
-        tfoot { display: none !important; }
-        tbody td { background-color: transparent !important; }
+      display: none;
     }
+  }
 
-    // Cột checkbox: thu về 0px CHỨ KHÔNG display:none.
-    // Odoo tính colspan của ô tên nhóm bằng `getGroupNameCellColSpan`, và nó
-    // CỘNG THÊM 1 cho cột checkbox (list_renderer.js §hasSelectors). Gỡ hẳn ô
-    // đó khỏi layout là dòng nhóm dài hơn thân bảng đúng một cột ⇒ số tổng đáp
-    // xuống nhầm cột bên cạnh. Giữ ô lại với bề rộng 0 thì phép đếm của Odoo
-    // và bảng nhìn thấy khớp nhau, mà mắt vẫn không thấy checkbox nào.
-    .o_list_table thead th.o_list_record_selector,
-    .o_list_table tbody tr.o_data_row td.o_list_record_selector {
-        width: 0 !important;
-        padding: 0 !important;
-        border: 0 !important;
-        overflow: hidden;
+  .o_list_table thead th {
+    background-color: $dl-table-head-bg;
+    color: $dl-text-2;
+    font-weight: 500;
+    border-bottom: 1px solid $dl-border;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  .o_list_table td.o_data_cell {
+    padding-top: 5px;
+    padding-bottom: 5px;
+    vertical-align: middle;
+  }
+
+  .o_list_table tbody tr.o_data_row td {
+    border-top: 1px solid $dl-divider;
+  }
+  .o_list_table tbody tr.o_data_row:first-child td {
+    border-top: 0;
+  }
+  .o_list_table tbody tr.o_data_row:hover {
+    background-color: $dl-app-bg;
+  }
+
+  .o_list_table tbody > tr:not(.o_data_row):not(.o_group_header) {
+    display: none !important;
+  }
+
+  // Ẩn checkbox column, cột active, tfoot.
+  // KHÔNG ẩn cột button (th/td.o_list_button — vd nút "Nhận RFQ" trên list
+  // RFQ): cột button không có data-name/name nên phải loại trừ tường minh,
+  // nếu không sẽ bị ẩn oan theo rule checkbox.
+  //
+  // 🔴 Luật `td:not([name])` KHÔNG được chạm dòng NHÓM. Ô tổng của dòng nhóm
+  // (web.ListRenderer.GroupRow) là `<td class="o_list_number">` KHÔNG có
+  // thuộc tính `name` ⇒ rule trên nuốt sạch mọi số tổng khi gom nhóm, dù
+  // `sum=` đã khai trong tree. Không lỗi nào nổ, chỉ là dòng nhóm rỗng bên
+  // phải — đúng thứ người ta mở màn ra để đọc đầu tiên.
+  .o_list_table {
+    thead th:not([data-name]):not(.o_list_button) {
+      display: none !important;
     }
-    // Giấu chính cái checkbox. Không đủ nếu chỉ `visibility: hidden`: ba list
-    // không đặt `table-layout: fixed` (dl-scrap-list, dl-reservation-list,
-    // dl-inventory-list) chia cột theo bề rộng NỘI DUNG ⇒ checkbox vô hình vẫn
-    // chống ra ~16px lề trái trống.
-    .o_list_table thead th.o_list_record_selector > *,
-    .o_list_table tbody tr.o_data_row td.o_list_record_selector > * {
-        display: none !important;
+    tbody tr.o_data_row td:not([name]):not(.o_list_button) {
+      display: none !important;
     }
-
-    .o_list_table td.o_data_cell[name="name"] {
-        font-weight: 600;
-        color: $dl-heading;
+    th[data-name="active"],
+    td[name="active"] {
+      display: none !important;
     }
-
-    .badge {
-        font-weight: 500;
-        border-radius: $dl-radius-sm;
+    tfoot {
+      display: none !important;
     }
+    tbody td {
+      background-color: transparent !important;
+    }
+  }
 
-    .o_field_email a { color: $dl-primary; }
+  // Cột checkbox: thu về 0px CHỨ KHÔNG display:none.
+  // Odoo tính colspan của ô tên nhóm bằng `getGroupNameCellColSpan`, và nó
+  // CỘNG THÊM 1 cho cột checkbox (list_renderer.js §hasSelectors). Gỡ hẳn ô
+  // đó khỏi layout là dòng nhóm dài hơn thân bảng đúng một cột ⇒ số tổng đáp
+  // xuống nhầm cột bên cạnh. Giữ ô lại với bề rộng 0 thì phép đếm của Odoo
+  // và bảng nhìn thấy khớp nhau, mà mắt vẫn không thấy checkbox nào.
+  .o_list_table thead th.o_list_record_selector,
+  .o_list_table tbody tr.o_data_row td.o_list_record_selector {
+    width: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden;
+  }
+  // Giấu chính cái checkbox. Không đủ nếu chỉ `visibility: hidden`: ba list
+  // không đặt `table-layout: fixed` (dl-scrap-list, dl-reservation-list,
+  // dl-inventory-list) chia cột theo bề rộng NỘI DUNG ⇒ checkbox vô hình vẫn
+  // chống ra ~16px lề trái trống.
+  .o_list_table thead th.o_list_record_selector > *,
+  .o_list_table tbody tr.o_data_row td.o_list_record_selector > * {
+    display: none !important;
+  }
 
-    // Chipbar lọc theo trạng thái (chip có số đếm) — NHÀ CHUNG cho mọi dl-*-list.
-    // Trước đây chép riêng ở quotation_list/customer_list; controller dựng chip
-    // nằm ở dl_base nên style mặc định của nó cũng thuộc về đây (2 bản chép cũ
-    // giờ thành override trùng giá trị, gỡ dần khi đụng tới).
-    .dl-chipbar {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px;
-        padding: 2px 0 0;
+  .o_list_table td.o_data_cell[name="name"] {
+    font-weight: 600;
+    color: $dl-heading;
+  }
 
-        .dl-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 14px;
-            border: 1px solid $dl-border;
-            border-radius: $dl-radius-sm;
-            background: #fff;
-            color: $dl-text-2;
-            font-size: 13px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background .15s, border-color .15s, color .15s;
+  .badge {
+    font-weight: 500;
+    border-radius: $dl-radius-sm;
+  }
 
-            .dl-chip-count { color: $dl-text-muted; font-weight: 400; }
-            &:hover { background: $dl-divider; }
+  .o_field_email a {
+    color: $dl-primary;
+  }
 
-            &.is-active {
-                background: $dl-active;
-                border-color: $dl-primary;
-                color: $dl-primary;
-                .dl-chip-count { color: $dl-primary; }
-            }
+  // Chipbar lọc theo trạng thái (chip có số đếm) — NHÀ CHUNG cho mọi dl-*-list.
+  // Trước đây chép riêng ở quotation_list/customer_list; controller dựng chip
+  // nằm ở dl_base nên style mặc định của nó cũng thuộc về đây (2 bản chép cũ
+  // giờ thành override trùng giá trị, gỡ dần khi đụng tới).
+  .dl-chipbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0 0;
+
+    .dl-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 14px;
+      border: 1px solid $dl-border;
+      border-radius: $dl-radius-sm;
+      background: #fff;
+      color: $dl-text-2;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
+
+      .dl-chip-count {
+        color: $dl-text-muted;
+        font-weight: 400;
+      }
+      &:hover {
+        background: $dl-divider;
+      }
+
+      &.is-active {
+        background: $dl-active;
+        border-color: $dl-primary;
+        color: $dl-primary;
+        .dl-chip-count {
+          color: $dl-primary;
         }
+      }
+    }
+  }
+
+  // Footer đếm + pager (dùng chung mọi list phẳng; các màn dl_sale có thể
+  // bổ sung phần đặc thù như tổng giá trị).
+  .dl-list-footer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    // min-height để dòng phân trang trống (màn <15 bản ghi) cao bằng dòng có
+    // pager — mọi màn cùng một thanh đáy.
+    min-height: 52px;
+    padding: 12px 16px;
+    color: $dl-text-2;
+    font-size: 13px;
+    border-top: 1px solid $dl-divider;
+
+    .dl-list-count {
+      font-weight: 500;
+    }
+  }
+
+  // ── Pager SỐ (thay pager "1-15 / N" mặc định) ──────────────────────────
+  // Dùng cho footer list phẳng và cho header từng nhóm (khi gom nhóm).
+  .dl-pager {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    .dl-pager-btn {
+      min-width: 28px;
+      height: 28px;
+      padding: 0 8px;
+      border: 1px solid $dl-border;
+      border-radius: $dl-radius-sm;
+      background: #fff;
+      color: $dl-text-2;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1;
+      cursor: pointer;
+
+      &:hover:not(:disabled):not(.is-active) {
+        background: $dl-app-bg;
+        border-color: $dl-primary;
+        color: $dl-primary;
+      }
+      &.is-active {
+        background: $dl-primary;
+        border-color: $dl-primary;
+        color: #fff;
+        cursor: default;
+      }
+      &:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      &.dl-pager-nav {
+        font-size: 15px;
+      }
     }
 
-    // Footer đếm + pager (dùng chung mọi list phẳng; các màn dl_sale có thể
-    // bổ sung phần đặc thù như tổng giá trị).
-    .dl-list-footer {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        // min-height để dòng phân trang trống (màn <15 bản ghi) cao bằng dòng có
-        // pager — mọi màn cùng một thanh đáy.
-        min-height: 52px;
-        padding: 12px 16px;
-        color: $dl-text-2;
-        font-size: 13px;
-        border-top: 1px solid $dl-divider;
-
-        .dl-list-count { font-weight: 500; }
+    .dl-pager-ellipsis {
+      padding: 0 2px;
+      color: $dl-text-2;
+      user-select: none;
     }
+  }
 
-    // ── Pager SỐ (thay pager "1-15 / N" mặc định) ──────────────────────────
-    // Dùng cho footer list phẳng và cho header từng nhóm (khi gom nhóm).
-    .dl-pager {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
+  // Pager số ở footer list phẳng: đẩy sát phải.
+  .dl-list-footer .dl-pager {
+    margin-left: auto;
+  }
 
-        .dl-pager-btn {
-            min-width: 28px;
-            height: 28px;
-            padding: 0 8px;
-            border: 1px solid $dl-border;
-            border-radius: $dl-radius-sm;
-            background: #fff;
-            color: $dl-text-2;
-            font-size: 13px;
-            font-weight: 500;
-            line-height: 1;
-            cursor: pointer;
-
-            &:hover:not(:disabled):not(.is-active) {
-                background: $dl-app-bg;
-                border-color: $dl-primary;
-                color: $dl-primary;
-            }
-            &.is-active {
-                background: $dl-primary;
-                border-color: $dl-primary;
-                color: #fff;
-                cursor: default;
-            }
-            &:disabled {
-                opacity: .45;
-                cursor: default;
-            }
-            &.dl-pager-nav { font-size: 15px; }
-        }
-
-        .dl-pager-ellipsis {
-            padding: 0 2px;
-            color: $dl-text-2;
-            user-select: none;
-        }
-    }
-
-    // Pager số ở footer list phẳng: đẩy sát phải.
-    .dl-list-footer .dl-pager { margin-left: auto; }
-
-    // Pager số của nhóm: đẩy sát phải trong dòng tiêu đề nhóm.
-    .o_group_header .dl-group-pager { margin-left: auto; font-weight: 400; }
+  // Pager số của nhóm: đẩy sát phải trong dòng tiêu đề nhóm.
+  .o_group_header .dl-group-pager {
+    margin-left: auto;
+    font-weight: 400;
+  }
 }
