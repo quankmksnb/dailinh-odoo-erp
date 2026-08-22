@@ -71,7 +71,18 @@ test('BF-01: Sales tạo khách hàng + RFQ mới -> Kỹ thuật nhận và x�
     .getByRole('button', { name: 'Thêm một dòng' })
     .click();
   await salesPage.getByRole('textbox', { name: 'Tên sản phẩm' }).fill('Cửa sắt hộp 40x40, sơn tĩnh điện');
-  await salesPage.getByRole('textbox', { name: 'Kích thước, yêu cầu kỹ thuật' })
+  // Nhóm sản phẩm (product_category_id) nay là field bắt buộc trên dòng gia công
+  // (quotation_request_views.xml, required="1") — chưa có lúc file này được viết. Label không
+  // gắn aria-label vào input nên trỏ thẳng theo field name, giống stg-bf01-list-and-a5.spec.ts.
+  const categoryField = salesPage.locator('[name="product_category_id"] input');
+  await categoryField.click({ force: true });
+  await categoryField.fill('Khung thép hàn');
+  const categoryOption = salesPage.locator('.o-autocomplete--dropdown-menu li', { hasText: 'Khung thép hàn' });
+  await categoryOption.first().waitFor({ state: 'visible', timeout: 10000 });
+  await categoryOption.first().click();
+  // Placeholder trường mô tả (field dimension_note) đã đổi thành "Chi tiết khác: cao ghế,
+  // khổ mặt ghế, màu sơn, yêu cầu riêng..." — không còn tên "Kích thước, yêu cầu kỹ thuật" nữa.
+  await salesPage.locator('[name="dimension_note"] textarea, textarea[name="dimension_note"]')
     .fill('Kích thước 1200x2000mm, khung hộp 40x40x1.5mm, sơn tĩnh điện màu ghi');
   // "Lưu & Đóng" khớp cả nút của dialog dòng sản phẩm lẫn nút Lưu chính của form phía sau
   // (dialog đang mở) — chỉ bấm đúng nút bên trong dialog.

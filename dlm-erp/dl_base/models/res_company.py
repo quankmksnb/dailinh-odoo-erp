@@ -38,11 +38,16 @@ class ResCompany(models.Model):
         ``noupdate=True`` nên ``<record>`` trỏ vào nó bị bỏ qua ở chế độ update.
         Hệ thống chỉ phục vụ MỘT doanh nghiệp nên danh tính do code sở hữu, y
         như cây kho ở ``dl_inventory/models/stock_warehouse.py``.
+
+        🔴 Chỉ áp cho công ty ĐẦU TIÊN (main company): nếu DB còn công ty demo
+        thừa (vd 2 công ty mặc định của Odoo lúc chưa dọn), ghi CÙNG một tên
+        pháp lý lên nhiều bản ghi sẽ đụng ``res_company_name_uniq`` — crash cả
+        lần ``-u dl_base``, không phải lỗi có thể bỏ qua bằng UserError.
         """
         logo = self._dlm_logo_binary()
         country = self.env.ref("base.vn", raise_if_not_found=False)
 
-        for company in self.sudo().search([]):
+        for company in self.sudo().search([], order="id asc", limit=1):
             values = {
                 field: value for field, value in _DLM_IDENTITY.items()
                 if company[field] != value

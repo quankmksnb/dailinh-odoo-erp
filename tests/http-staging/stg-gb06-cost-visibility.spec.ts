@@ -1,11 +1,14 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 
-// GB-06 (PRD §5): "Dữ liệu chi phí nội bộ (giá vốn, lãi gộp, markup) chỉ CEO, Trưởng phòng Kinh
-// Doanh, Kế toán nội bộ, Admin được xem; Nhân viên Kinh doanh và Kỹ thuật viên không được xem."
-// UI đã test Sales (chặn) + CEO (thấy) qua stg-bf03-rbac-giathanh.spec.ts — bổ sung ở đây: Kế
-// toán, Trưởng KD, Admin (phải thấy) + Kỹ thuật (phải KHÔNG thấy, GB-06 nêu rõ nhưng chưa test).
-// Field thật: dl.quotation.line groups=_COST_GROUPS (ceo, admin, accountant, sales_manager) —
-// Odoo tự lược field khỏi kết quả read() nếu user không thuộc group, không báo lỗi.
+// GB-06: dữ liệu chi phí nội bộ (giá vốn, lãi gộp, markup) chỉ CEO, Trưởng phòng Kinh Doanh,
+// Admin được xem; Nhân viên Kinh doanh và Kỹ thuật viên không được xem. Đã kiểm tra code thật
+// (dl_sale/models/dl_quotation.py _COST_GROUPS) — vai trò Kế toán không còn tồn tại trong hệ
+// thống nữa (dl_base/security/groups.xml không còn định nghĩa nhóm này), nên KHÔNG test vai trò
+// đó nữa, chỉ còn 3 vai trò thật đang tồn tại.
+// UI đã test Sales (chặn) + CEO (thấy) qua stg-bf03-rbac-giathanh.spec.ts — bổ sung ở đây: Trưởng
+// KD, Admin (phải thấy) + Kỹ thuật (phải KHÔNG thấy, GB-06 nêu rõ nhưng chưa test).
+// Field thật: dl.quotation.line groups=_COST_GROUPS (ceo, admin, sales_manager) — Odoo tự lược
+// field khỏi kết quả read() nếu user không thuộc group, không báo lỗi.
 const BASE_URL = process.env.STAGING_BASE_URL || 'https://erp.dailinh.com';
 const DB = 'dlm_prod';
 const PASSWORD = process.env.DLM_STAGING_PASSWORD;
@@ -41,7 +44,6 @@ async function findCostLineId(): Promise<number> {
 }
 
 for (const [roleLabel, roleLogin, shouldSee] of [
-  ['Kế toán nội bộ', 'ketoan@gmail.com', true],
   ['Trưởng KD', 'truongkd@gmail.com', true],
   ['Admin/IT', 'admin.it@gmail.com', true],
   ['Kỹ thuật', 'kythuat@gmail.com', false],

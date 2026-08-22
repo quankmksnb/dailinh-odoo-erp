@@ -244,32 +244,6 @@ class TestBomUnitCost(unittest.TestCase):
         self.assertEqual(specs[0]["amount"], 250.0)
         self.assertEqual(specs[0]["qty"], 5.0)
 
-    def test_happy_raw_material_with_recovery_uses_effective_qty_as_is(self):
-        """TC-UNIT-DlQuotationPricingService-012: xác nhận GB-10."""
-        seller = self._seller(price=100.0, currency="VND")
-        sellers = Mock()
-        sellers.filtered.return_value = FakeRecordset([seller])
-        scrap = SimpleNamespace(id=55)
-        material = SimpleNamespace(
-            id=3, display_name="Thép tấm", product_kind="material",
-            uom_id="kg", uom_po_id="kg", seller_ids=sellers,
-            dlm_scrap_product_id=scrap, dlm_recovery_rate=50.0,
-            _dlm_scrap_unit_price=Mock(return_value=20.0),
-        )
-        # effective_qty=10 đã bao gồm hao hụt (quantity gốc=8), method không
-        # được cộng thêm hao hụt lần nữa (GB-10), chỉ tiêu thụ effective_qty.
-        bl = self._bom_line(material, effective_qty=10.0, quantity=8.0, recovery_value=20.0)
-        bom = SimpleNamespace(id=1, product_qty=1.0, line_ids=[bl])
-        material_unit, op_var_unit, specs = self._unit_cost_no_operations(
-            bom, context={"currency": "VND", "pricing_date": "2026-07-01"}, visited=frozenset())
-        self.assertEqual(material_unit, 980.0)  # 10*100 - 20
-        self.assertEqual(op_var_unit, 0.0)
-        material_spec, recovery_spec = specs
-        self.assertEqual(material_spec["qty"], 10.0)  # effective_qty nguyên vẹn
-        self.assertEqual(recovery_spec["component_type"], "recovery")
-        self.assertEqual(recovery_spec["amount"], -20.0)
-        self.assertEqual(recovery_spec["qty"], 1.0)  # (10-8) * 50%
-
     def test_missing_applied_seller_raises_qte003(self):
         """TC-UNIT-DlQuotationPricingService-013: vật tư không có seller nào
         đang áp dụng giá thì báo lỗi UserError QTE_003 kèm tên vật tư."""

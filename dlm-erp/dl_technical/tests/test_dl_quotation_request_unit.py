@@ -364,6 +364,33 @@ class TestCheckInfeasibleReason(unittest.TestCase):
         DlQuotationRequestLine._check_infeasible_reason([line])  # không raise
 
 
+class TestCheckProductNameLength(unittest.TestCase):
+    def test_manufactured_name_too_short_raises(self):
+        """TC-UNIT-DlQuotationRequestLine-038: dòng manufactured có tên sản
+        phẩm chỉ 1 ký tự thì _check_product_name_length ném
+        ValidationError."""
+        line = _line(product_type="manufactured", product_name="A")
+        with self.assertRaises(ValidationError):
+            DlQuotationRequestLine._check_product_name_length([line])
+
+    def test_trading_type_exempt(self):
+        """Dòng trading không bị kiểm tra độ dài tên, dù product_name
+        rỗng."""
+        line = _line(product_type="trading", product_name="")
+        DlQuotationRequestLine._check_product_name_length([line])  # không raise
+
+    def test_empty_name_skips_length_check(self):
+        """Tên rỗng đã có _check_product_type_required lo riêng, ở đây
+        không raise."""
+        line = _line(product_type="manufactured", product_name="")
+        DlQuotationRequestLine._check_product_name_length([line])  # không raise
+
+    def test_manufactured_name_long_enough_passes(self):
+        """Tên sản phẩm đủ dài (>= _MIN_PRODUCT_NAME_LEN) thì không raise."""
+        line = _line(product_type="manufactured", product_name="Khung thép")
+        DlQuotationRequestLine._check_product_name_length([line])  # không raise
+
+
 # DlQuotationRequest: compute/constraint thuần header
 class TestComputeSupplementCount(unittest.TestCase):
     def test_counts_waiting_and_ready(self):
@@ -518,6 +545,27 @@ class TestCheckDeadline(unittest.TestCase):
         requested_date (1/2/2026) thì _check_deadline không ném lỗi."""
         rec = _rfq(deadline=date(2026, 3, 1), requested_date=date(2026, 2, 1))
         DlQuotationRequest._check_deadline([rec])  # không raise
+
+
+class TestCheckHasLines(unittest.TestCase):
+    def test_no_lines_raises(self):
+        """TC-UNIT-DlQuotationRequest-029: RFQ không có dòng nào (line_ids
+        rỗng) và status khác 'cancelled' thì _check_has_lines ném
+        ValidationError."""
+        rec = _rfq(status="new", line_ids=FakeLineRS([]), name="RFQ0001")
+        with self.assertRaises(ValidationError):
+            DlQuotationRequest._check_has_lines([rec])
+
+    def test_cancelled_exempt(self):
+        """RFQ đã hủy (status='cancelled') được miễn, không raise dù không
+        có dòng nào."""
+        rec = _rfq(status="cancelled", line_ids=FakeLineRS([]))
+        DlQuotationRequest._check_has_lines([rec])  # không raise
+
+    def test_has_lines_passes(self):
+        """RFQ đã có ít nhất một dòng thì không raise."""
+        rec = _rfq(status="new", line_ids=FakeLineRS([_line()]))
+        DlQuotationRequest._check_has_lines([rec])  # không raise
 
 
 # _recompute_status_from_lines(): core state machine của RFQ (§1.6 issue #11

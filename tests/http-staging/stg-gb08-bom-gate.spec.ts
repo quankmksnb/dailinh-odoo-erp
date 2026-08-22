@@ -59,11 +59,16 @@ test('GB-08 [staging]: ghi thẳng resolved_bom_id trỏ tới BOM còn Nháp ph
   // constraint gốc, giống đúng tinh thần "nếu ai đó ghi thẳng qua RPC" mà code đã lường trước).
   const partners = await rpcOk(salesCtx, 'res.partner', 'search_read', [[['partner_role', '=', 'customer']], ['id']], { limit: 1 });
   expect(partners.length).toBeGreaterThan(0);
+  // Dòng gia công bắt buộc có Nhóm sản phẩm (product_category_id, nhóm nhánh Thành phẩm) —
+  // constraint mới, chưa có lúc viết bản đầu của test này.
+  const categories = await rpcOk(ctx, 'product.category', 'search_read', [[['dl_branch', '=', 'finished'], ['parent_id', '!=', false]], ['id']], { limit: 1 });
+  expect(categories.length, 'Cần ít nhất 1 Nhóm sản phẩm nhánh Thành phẩm trên staging').toBeGreaterThan(0);
   const rfqId = await rpcOk(salesCtx, 'dl.quotation.request', 'create', [{
     customer_id: partners[0].id,
     line_ids: [[0, 0, {
       product_type: 'manufactured',
       product_name: 'GB-08 test dòng gia công',
+      product_category_id: categories[0].id,
       dimension_note: 'Kiểm tra GB-08: chặn BOM Nháp qua RPC trực tiếp',
     }]],
   }]);

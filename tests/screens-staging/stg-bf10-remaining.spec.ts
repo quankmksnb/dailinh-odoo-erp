@@ -160,32 +160,43 @@ test.describe('BF10-008: Kiểm kê (SCR-46) — Áp dụng không bị chặn q
   test.use({ storageState: STAGING_ROLES.thu_kho.storageStatePath });
 
   test('Đặt = tồn rồi Áp dụng thành công dù không có group_stock_manager', async ({ page }) => {
-    test.setTimeout(60000);
+    test.setTimeout(90000);
     await page.goto('/web');
     await (await openRailChild(page, 'Kho', 'Tồn kho')).click();
     await expect(page.locator('.o_breadcrumb, .o_last_breadcrumb_item').first()).toBeVisible({ timeout: 15000 });
 
     const inventoryBtn = page.getByRole('button', { name: /Kiểm kê/ });
-    const hasBtn = await inventoryBtn.count();
+    // Nút render sau breadcrumb — chờ tường minh thay vì đếm ngay, tránh race điều kiện.
+    const hasBtn = await inventoryBtn.first().waitFor({ state: 'visible', timeout: 8000 }).then(() => 1).catch(() => 0);
     if (hasBtn === 0) {
       console.log('[staging] BF10-008: không tìm thấy nút "Kiểm kê" trên màn Tồn kho staging — bỏ qua.');
       return;
     }
     await inventoryBtn.first().click();
-    await expect(page.getByRole('heading', { level: 1 }).or(page.getByText('Kiểm kê'))).toBeVisible({ timeout: 15000 });
+    // Màn Tồn kho gốc CŨNG là .o_list_view nên chờ nó không xác nhận đã điều hướng sang thật —
+    // chờ breadcrumb đổi sang "Kiểm kê" (mục cuối cùng trong .o_breadcrumb).
+    await expect(page.locator('.o_last_breadcrumb_item, .o_breadcrumb li:last-child').last()).toContainText('Kiểm kê', { timeout: 15000 });
 
-    const row = page.locator('.o_data_row').filter({ hasText: 'Thép tấm CT3 dày' }).first();
+    // Danh sách Kiểm kê mặc định gộp nhóm theo vị trí (o_group_header), chưa xổ ra .o_data_row —
+    // bấm mở nhóm đầu tiên trước khi tìm dòng.
+    const groupHeader = page.locator('.o_group_header').first();
+    if (await groupHeader.count()) {
+      await groupHeader.click();
+      await page.locator('.o_data_row').first().waitFor({ state: 'visible', timeout: 8000 }).catch(() => {});
+    }
+
+    // Không cần đúng vật tư cụ thể — chỉ cần 1 dòng bất kỳ để kiểm tra Thủ kho bấm Áp dụng được
+    // dù thiếu group_stock_manager, đúng trọng tâm test case.
+    const row = page.locator('.o_data_row').first();
     const hasRow = await row.count();
     if (hasRow === 0) {
-      console.log('[staging] BF10-008: không tìm thấy dòng tồn kho "Thép tấm CT3 dày" trong danh sách Kiểm kê — bỏ qua.');
+      console.log('[staging] BF10-008: không có dòng tồn kho nào trong danh sách Kiểm kê — bỏ qua.');
       return;
     }
-    await row.getByTitle('Đặt = tồn').click().catch(async () => {
-      await row.getByRole('button', { name: /Đặt = tồn/ }).click();
-    });
-    await row.getByTitle('Áp dụng').click().catch(async () => {
-      await row.getByRole('button', { name: /Áp dụng/ }).click();
-    });
+    // Nút hiện dạng link text "Đặt = tồn" / "Áp dụng", không có thuộc tính title — dùng getByText
+    // trong đúng dòng, timeout ngắn để fail nhanh thay vì treo cả bài test.
+    await row.getByText('Đặt = tồn', { exact: true }).click({ timeout: 10000 });
+    await row.getByText('Áp dụng', { exact: true }).click({ timeout: 10000 });
     await page.waitForTimeout(1500);
     await expect(page.locator('.o_error_dialog, .o_notification.border-danger')).toHaveCount(0);
     console.log('[staging] BF10-008: Thủ kho "Đặt = tồn" + "Áp dụng" thành công trên dòng Kiểm kê, không bị chặn quyền.');

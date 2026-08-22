@@ -136,6 +136,69 @@ class TestRfqSuggestion(TransactionCase):
         self.assertEqual(line.suggestion_state, "auto")
 
     # ------------------------------------------------------------------
+    # DEF-L2-004 / DEF-L2-005 / DEF-L2-006 — test đúng TC-ID theo Report 5.2
+    # ------------------------------------------------------------------
+    def test_customer_history_name_category_reaches_auto(self):
+        """TC-INT-TestRfqSuggestion-004: Khách từng đặt (+10) cộng khớp tên
+        trùng hệt (+40) + cùng nhóm (+10) = 60 -> đủ ngưỡng tự chọn.
+        DEF-L2-004: đơn cũ của cùng khách đã có resolved_product_id=SP X;
+        dòng RFQ mới tên trùng hệt SP X và cùng nhóm."""
+        prev_req, prev_line = self._rfq(product_name="Đơn cũ (test 004)")
+        prev_line.resolved_product_id = self.existing.id
+
+        _req, line = self._rfq(
+            product_name="khung sắt v5 1200x800 (test)",
+            product_category_id=self.categ.id,
+        )
+        ranked = line._dlm_suggest_candidates()
+
+        self.assertTrue(ranked, "Phải có ứng viên")
+        self.assertEqual(ranked[0]["product"], self.existing)
+        self.assertGreaterEqual(ranked[0]["score"], 60)
+        self.assertEqual(line.suggestion_state, "auto")
+
+    def test_trading_line_type_blocks_suggestion(self):
+        """TC-INT-TestRfqSuggestion-007: dòng product_type='trading' không
+        bao giờ được gợi ý, dù product_name trùng hệt một SP gia công có sẵn.
+        DEF-L2-005."""
+        _req, line = self._rfq(
+            request_type="trading",
+            product_type="trading",
+            product_name="khung sắt v5 1200x800 (test)",
+            product_category_id=False,
+            resolved_product_id=self.trading_product.id,
+        )
+        self.assertEqual(line.suggestion_state, "none")
+        self.assertFalse(line._dlm_suggest_candidates())
+
+    def test_resolving_line_turns_suggestion_state_none(self):
+        """TC-INT-TestRfqSuggestion-008: dòng đang suggestion_state='suggest',
+        khi gán line.resolved_product_id thì suggestion_state phải chuyển về
+        'none' (dòng đã xác định SP thì không cần gợi ý nữa). DEF-L2-004."""
+        _req, line = self._rfq(product_name="khung sắt v5 1200x800 (test)")
+        self.assertEqual(line.suggestion_state, "suggest")
+
+        line.resolved_product_id = self.existing.id
+
+        self.assertEqual(line.suggestion_state, "none")
+
+    def test_exact_name_plus_dimension_from_name_reaches_auto(self):
+        """TC-INT-TestRfqSuggestion-014: Tên trùng hệt (+40, kích thước trích
+        trực tiếp từ TÊN) + khớp kích thước (+30) = 70 -> tự chọn.
+        DEF-L2-006."""
+        self.existing.write({"dlm_dim_length": 1200, "dlm_dim_width": 800})
+        _req, line = self._rfq(
+            product_name="khung sắt v5 1200x800 (test)",
+            product_category_id=self.other_categ.id,
+            dimension_note=False,
+            attachment_ids=[(0, 0, {"name": "bv.pdf", "datas": b"MA=="})],
+        )
+        ranked = line._dlm_suggest_candidates()
+
+        self.assertGreaterEqual(ranked[0]["score"], 70)
+        self.assertEqual(line.suggestion_state, "auto")
+
+    # ------------------------------------------------------------------
     # SP Ngừng sử dụng bị phạt điểm
     # ------------------------------------------------------------------
     def test_obsolete_product_penalised(self):

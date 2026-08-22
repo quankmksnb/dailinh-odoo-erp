@@ -313,10 +313,16 @@ class TestRailCoverage(DlInventoryCase):
             children, "Không đọc được menu con của nhóm Kho — phép thử này sẽ "
                       "xanh rỗng nếu bỏ qua.")
 
+        # "Trả hàng nhà cung cấp" nằm dưới cây menu Kho (parent=menu_dl_inventory)
+        # nhưng rail của nó do dl_purchase sở hữu (chủ sở hữu nghiệp vụ là Mua
+        # hàng, xem comment ở dl_purchase/static/src/js/nav_patch.js) — cố ý
+        # không khai trong INVENTORY_CHILDREN, không phải sót.
+        RELOCATED_TO_OTHER_MODULE = {"dl_inventory.menu_dl_picking_vendor_return"}
+
         thieu = []
         for menu in children:
             xml_id = menu.get_external_id().get(menu.id)
-            if not xml_id:
+            if not xml_id or xml_id in RELOCATED_TO_OTHER_MODULE:
                 continue
             if xml_id not in source:
                 thieu.append("%s (%s)" % (menu.name, xml_id))

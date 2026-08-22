@@ -27,7 +27,9 @@ class TestRfqViews(TransactionCase):
         create_buttons = arch.xpath(
             "//button[@name='action_create_quotation']"
         )
-        self.assertEqual(len(create_buttons), 2)
+        # form tách 2 loại yêu cầu (Thương mại / Gia công) nên nút này giờ lặp
+        # cho từng loại, ra 4 thay vì 2 như trước khi form được tách.
+        self.assertEqual(len(create_buttons), 4)
         self.assertEqual(
             len(arch.xpath("//button[@name='action_open_quotation']")),
             1,

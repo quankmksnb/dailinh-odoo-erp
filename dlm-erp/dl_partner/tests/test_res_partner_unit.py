@@ -381,6 +381,141 @@ class TestCheckUniqueTaxCode(unittest.TestCase):
         ResPartner._check_unique_tax_code(rs)  # không raise
 
 
+class TestCheckPartnerName(unittest.TestCase):
+    def test_dlm_partner_empty_name_raises(self):
+        """TC-UNIT-ResPartner-043: đối tác cấp cao (KH/NCC) không nhập Tên
+        thì báo lỗi ValidationError."""
+        p = _partner(partner_role="customer", parent_id=None, name="")
+        p._dl_partner_kind_label = lambda: ResPartner._dl_partner_kind_label(p)
+        with self.assertRaises(ValidationError):
+            ResPartner._check_partner_name([p])
+
+    def test_dlm_partner_whitespace_only_name_raises(self):
+        """Tên chỉ có khoảng trắng (chưa strip) cũng bị coi là rỗng, vẫn báo
+        lỗi ValidationError."""
+        p = _partner(partner_role="supplier", parent_id=None, name="   ")
+        p._dl_partner_kind_label = lambda: ResPartner._dl_partner_kind_label(p)
+        with self.assertRaises(ValidationError):
+            ResPartner._check_partner_name([p])
+
+    def test_non_dlm_partner_exempt(self):
+        """Bản ghi không có partner_role (không phải đối tác DLM) thì không
+        raise dù Tên rỗng."""
+        p = _partner(partner_role=False, parent_id=None, name="")
+        ResPartner._check_partner_name([p])  # không raise, không phải đối tác DLM
+
+    def test_dlm_partner_with_name_passes(self):
+        """Đối tác cấp cao đã có Tên thì không raise."""
+        p = _partner(partner_role="customer", parent_id=None, name="Công ty ABC")
+        p._dl_partner_kind_label = lambda: ResPartner._dl_partner_kind_label(p)
+        ResPartner._check_partner_name([p])  # không raise
+
+
+class TestCheckCustomerAddress(unittest.TestCase):
+    def test_company_missing_street_and_city_raises(self):
+        """TC-UNIT-ResPartner-044: khách hàng loại Doanh nghiệp thiếu cả
+        Đường và Tỉnh/TP thì báo lỗi ValidationError."""
+        p = _partner(partner_role="customer", partner_type="company",
+                      street="", city="")
+        with self.assertRaises(ValidationError):
+            ResPartner._check_customer_address(_PRS([p]))
+
+    def test_dealer_missing_street_only_raises(self):
+        """Khách Đại lý có Tỉnh/TP nhưng thiếu Đường thì vẫn báo lỗi
+        ValidationError."""
+        p = _partner(partner_role="customer", partner_type="dealer",
+                      street="", city="Hà Nội")
+        with self.assertRaises(ValidationError):
+            ResPartner._check_customer_address(_PRS([p]))
+
+    def test_company_with_full_address_passes(self):
+        """Khách Doanh nghiệp đã có đủ Đường và Tỉnh/TP thì không raise."""
+        p = _partner(partner_role="customer", partner_type="company",
+                      street="123 Lê Lợi", city="Hà Nội")
+        ResPartner._check_customer_address(_PRS([p]))  # không raise
+
+    def test_individual_exempt(self):
+        """Khách hàng Cá nhân không bắt buộc địa chỉ, không raise dù thiếu
+        Đường và Tỉnh/TP."""
+        p = _partner(partner_role="customer", partner_type="individual",
+                      street="", city="")
+        ResPartner._check_customer_address([p])  # không raise, cá nhân miễn địa chỉ
+
+    def test_contact_row_exempt(self):
+        """Dòng người liên hệ (có parent_id) không phải bản ghi khách hàng
+        gốc nên không raise, dù thiếu địa chỉ."""
+        p = _partner(partner_role="customer", partner_type="company",
+                      parent_id=SimpleNamespace(id=1), street="", city="")
+        ResPartner._check_customer_address([p])  # không raise, không phải KH gốc
+
+
+class TestCheckContactName(unittest.TestCase):
+    def test_person_contact_empty_name_raises(self):
+        """TC-UNIT-ResPartner-045: dòng người liên hệ (type contact) của
+        khách hàng chưa nhập Họ tên thì báo lỗi ValidationError."""
+        p = _partner(parent_id=SimpleNamespace(id=1), type="contact",
+                      commercial_partner_id=SimpleNamespace(partner_role="customer"),
+                      name="")
+        p._dl_is_customer_person_contact = lambda: ResPartner._dl_is_customer_person_contact(p)
+        with self.assertRaises(ValidationError):
+            ResPartner._check_contact_name([p])
+
+    def test_person_contact_name_too_short_raises(self):
+        """Họ tên người liên hệ ngắn hơn _MIN_NAME_LEN (1 ký tự) thì báo lỗi
+        ValidationError."""
+        p = _partner(parent_id=SimpleNamespace(id=1), type="contact",
+                      commercial_partner_id=SimpleNamespace(partner_role="customer"),
+                      name="A")
+        p._dl_is_customer_person_contact = lambda: ResPartner._dl_is_customer_person_contact(p)
+        with self.assertRaises(ValidationError):
+            ResPartner._check_contact_name([p])
+
+    def test_address_row_type_exempt(self):
+        """Dòng dạng địa chỉ (type khác 'contact') không tính là người liên
+        hệ, không raise dù tên rỗng."""
+        p = _partner(parent_id=SimpleNamespace(id=1), type="delivery",
+                      commercial_partner_id=SimpleNamespace(partner_role="customer"),
+                      name="")
+        p._dl_is_customer_person_contact = lambda: ResPartner._dl_is_customer_person_contact(p)
+        ResPartner._check_contact_name([p])  # không raise, không phải dòng người liên hệ
+
+    def test_person_contact_with_valid_name_passes(self):
+        """Người liên hệ đã có Họ tên đủ dài thì không raise."""
+        p = _partner(parent_id=SimpleNamespace(id=1), type="contact",
+                      commercial_partner_id=SimpleNamespace(partner_role="customer"),
+                      name="Nguyễn Văn A")
+        p._dl_is_customer_person_contact = lambda: ResPartner._dl_is_customer_person_contact(p)
+        ResPartner._check_contact_name([p])  # không raise
+
+
+class TestCheckContactChannel(unittest.TestCase):
+    def test_person_contact_no_channel_raises(self):
+        """TC-UNIT-ResPartner-046: dòng người liên hệ không có Điện thoại,
+        Di động hay Email nào thì báo lỗi ValidationError."""
+        p = _partner(parent_id=SimpleNamespace(id=1), type="contact",
+                      commercial_partner_id=SimpleNamespace(partner_role="customer"),
+                      phone=False, mobile=False, email=False)
+        p._dl_is_customer_person_contact = lambda: ResPartner._dl_is_customer_person_contact(p)
+        with self.assertRaises(ValidationError):
+            ResPartner._check_contact_channel([p])
+
+    def test_person_contact_with_email_only_passes(self):
+        """Người liên hệ chỉ có Email (không có Điện thoại/Di động) vẫn coi
+        là đủ kênh liên lạc, không raise."""
+        p = _partner(parent_id=SimpleNamespace(id=1), type="contact",
+                      commercial_partner_id=SimpleNamespace(partner_role="customer"),
+                      phone=False, mobile=False, email="a@example.com")
+        p._dl_is_customer_person_contact = lambda: ResPartner._dl_is_customer_person_contact(p)
+        ResPartner._check_contact_channel([p])  # không raise
+
+    def test_non_contact_exempt(self):
+        """Bản ghi không phải dòng người liên hệ (không có parent_id) thì
+        không raise dù không có kênh liên lạc nào."""
+        p = _partner(parent_id=None, phone=False, mobile=False, email=False)
+        p._dl_is_customer_person_contact = lambda: ResPartner._dl_is_customer_person_contact(p)
+        ResPartner._check_contact_channel([p])  # không raise, không phải người liên hệ
+
+
 class TestWriteDeactivateGuard(unittest.TestCase):
     def test_unauthorized_role_cannot_deactivate_customer(self):
         """TC-UNIT-ResPartner-041: user không phải superuser và không có quyền

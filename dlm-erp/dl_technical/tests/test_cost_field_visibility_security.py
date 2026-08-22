@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """L2 Integration test (cắt ngang, Security) cho GB-06 (PRD §5.1): "Dữ liệu
-chi phí nội bộ chỉ CEO, Trưởng phòng KD, Kế toán, Admin được xem. NV Kinh
-doanh và Kỹ thuật viên không được xem." Che ở tầng field-level theo vai trò
-(UC-082, UC-003).
+chi phí nội bộ chỉ CEO, Trưởng phòng KD, Admin được xem. NV Kinh doanh và
+Kỹ thuật viên không được xem." Vai trò Kế toán không còn tồn tại trong hệ
+thống (dl_base/security/groups.xml không còn định nghĩa nhóm này), nên
+không test vai trò đó nữa. Che ở tầng field-level theo vai trò (UC-082,
+UC-003).
 
 Không gắn với một endpoint/controller cụ thể (khác các test RBAC record-rule
 như LKT-12 trong test_bom_btp_linkage.py). Test này kiểm field-level
@@ -71,13 +73,6 @@ class TestCostFieldVisibilitySecurity(TransactionCase):
         """
         mgr = self._user("dl_base.dl_group_sales_manager", "tpkd_gb06")
         visible = self.line.with_user(mgr).fields_get(list(COST_LINE_FIELDS))
-        self.assertEqual(set(visible.keys()), set(COST_LINE_FIELDS))
-
-    def test_accountant_can_see_bom_line_cost_fields(self):
-        """TC-SEC-GB06-004: Kế toán được phép xem đủ cả 3 field chi phí dòng BOM.
-        """
-        acc = self._user("dl_base.dl_group_accountant", "ketoan_gb06")
-        visible = self.line.with_user(acc).fields_get(list(COST_LINE_FIELDS))
         self.assertEqual(set(visible.keys()), set(COST_LINE_FIELDS))
 
     def test_ceo_can_see_bom_line_cost_fields(self):

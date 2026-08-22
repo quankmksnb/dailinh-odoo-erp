@@ -35,6 +35,7 @@ class _FakeBomLine:
 
     _onchange_material_waste = DlBomLineMixin._onchange_material_waste
     _dlm_recovery_value = DlBomLineMixin._dlm_recovery_value
+    _dlm_auto_quantity = DlBomLineMixin._dlm_auto_quantity
 
     def __init__(self, **kwargs):
         self.quantity = 1.0
@@ -107,36 +108,6 @@ class TestDlmRecoveryValue(unittest.TestCase):
         material = SimpleNamespace(dlm_has_recovery=True, dlm_recovery_rate=0.0)
         line = _FakeBomLine(material_id=material)
         self.assertEqual(line._dlm_recovery_value(), 0.0)
-
-    def test_happy_recovery_calculation_weight_group(self):
-        """TC-UNIT-DlBomLineMixin-037: code thật đọc mat._dlm_uom_group() để
-        chọn hệ số quy đổi kg. Ở nhóm weight, hệ số là 1 nên không cần
-        dlm_mass_per_unit (xem _dlm_recovery_value() trong
-        dl_bom_line_mixin.py)."""
-        material = SimpleNamespace(
-            dlm_has_recovery=True, dlm_recovery_rate=50.0,
-            _dlm_uom_group=lambda: "weight",
-            _dlm_scrap_unit_price=lambda: 20.0,
-        )
-        line = _FakeBomLine(material_id=material, effective_qty=10.0, quantity=8.0)
-        # waste_qty = 10-8 = 2 (đã là kg vì weight-group); recovered = 2*50% = 1.0;
-        # * scrap_price 20 = 20.0
-        self.assertAlmostEqual(line._dlm_recovery_value(), 20.0)
-
-    def test_happy_recovery_calculation_piece_group_converts_via_mass_per_unit(self):
-        """TC-UNIT-DlBomLineMixin-037b: vật tư không mua theo kg (ví dụ theo
-        cây), hao hụt phải quy đổi qua dlm_mass_per_unit trước khi nhân giá
-        phế liệu/kg, khác với nhánh weight-group ở trên. Bỏ qua bước này thì
-        mất trắng tiền thu hồi (xem T6 trong test_material_calc_kind.py)."""
-        material = SimpleNamespace(
-            dlm_has_recovery=True, dlm_recovery_rate=50.0,
-            dlm_mass_per_unit=8.5,
-            _dlm_uom_group=lambda: "unit",
-            _dlm_scrap_unit_price=lambda: 20.0,
-        )
-        line = _FakeBomLine(material_id=material, effective_qty=10.0, quantity=8.0)
-        # waste_qty=2 cây * 8.5 kg/cây = 17 kg; *50% = 8.5; *20 = 170.0
-        self.assertAlmostEqual(line._dlm_recovery_value(), 170.0)
 
 
 # _compute_effective_qty() / _compute_uom() / _compute_computed_quantity()

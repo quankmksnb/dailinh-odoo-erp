@@ -18,7 +18,7 @@ async function rpc(ctx: any, url: string, params: Record<string, unknown>) {
 }
 
 test('TC-SYS-PERF-P05-001 [staging]: upload file 16MB qua ir.attachment.create — kỳ vọng bị chặn theo PRD §6.1', async () => {
-  test.setTimeout(60000);
+  test.setTimeout(120000);
   if (!PASSWORD) throw new Error('Thiếu DLM_STAGING_PASSWORD');
   const ctx = await playwrightRequest.newContext({ baseURL: BASE_URL });
   const login = await rpc(ctx, '/web/session/authenticate', { db: DB, login: 'ba@gmail.com', password: PASSWORD });

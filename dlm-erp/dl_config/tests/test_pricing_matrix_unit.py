@@ -477,6 +477,42 @@ class TestAssertFitsLadder(unittest.TestCase):
         DlPricingApprovalMatrix._assert_fits_ladder(row)  # không raise
 
 
+# _check_level_monotonic(): chỉ lặp qua self, gọi rec._assert_fits_ladder()
+# cho dòng active. _assert_fits_ladder() bản thân đã test riêng ở
+# TestAssertFitsLadder, ở đây chỉ cần xác nhận điều kiện gọi/không gọi đúng và
+# lỗi từ _assert_fits_ladder() lan lên được.
+class TestCheckLevelMonotonic(unittest.TestCase):
+    def test_active_state_calls_assert_fits_ladder(self):
+        """TC-UNIT-DlPricingApprovalMatrix-037: dòng ở trạng thái active thì
+        _check_level_monotonic() phải gọi _assert_fits_ladder() để kiểm tra
+        thang phê duyệt."""
+        calls = []
+        rec = SimpleNamespace(state="active", _assert_fits_ladder=lambda: calls.append(1))
+        DlPricingApprovalMatrix._check_level_monotonic([rec])
+        self.assertEqual(calls, [1])
+
+    def test_draft_state_skips_ladder_check(self):
+        """Dòng chưa active (draft) thì _check_level_monotonic() không gọi
+        _assert_fits_ladder(), tránh kiểm tra thang phê duyệt cho bản
+        nháp."""
+        calls = []
+        rec = SimpleNamespace(state="draft", _assert_fits_ladder=lambda: calls.append(1))
+        DlPricingApprovalMatrix._check_level_monotonic([rec])
+        self.assertEqual(calls, [])
+
+    def test_active_ladder_violation_propagates(self):
+        """Dòng active vi phạm thang (ngưỡng thấp đòi cấp cao hơn ngưỡng
+        cao) thì ValidationError từ _assert_fits_ladder() phải lan lên qua
+        _check_level_monotonic()."""
+        other = SimpleNamespace(value_from=10_000_000.0, level_rank=1,
+                                 approval_level="sales_manager", currency_id=False)
+        row = _LadderRow(value_from=2_000_000.0, level_rank=2, others=[other])
+        row.state = "active"
+        row._assert_fits_ladder = lambda: DlPricingApprovalMatrix._assert_fits_ladder(row)
+        with self.assertRaises(ValidationError):
+            DlPricingApprovalMatrix._check_level_monotonic([row])
+
+
 # action_apply(): 4 nhánh raise sớm, trước khi chạm super().action_apply().
 # Tự chế self đủ ._is_matrix_manager() / lặp được / self.env.uid, su.
 class _ApplyRow:

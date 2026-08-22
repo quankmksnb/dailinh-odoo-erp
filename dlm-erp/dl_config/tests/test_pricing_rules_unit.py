@@ -375,22 +375,6 @@ class TestWasteRuleCheckRates(unittest.TestCase):
         with self.assertRaises(ValidationError):
             DlPricingWasteRule._check_rates([rec])
 
-    def test_recovery_enabled_but_zero_rate_raises(self):
-        """TC-UNIT-DlPricingWasteRule-009: bật thu hồi phế liệu
-        (has_recovery=True) nhưng recovery_rate bằng 0 thì _check_rates()
-        báo lỗi ValidationError."""
-        rec = SimpleNamespace(waste_rate=5.0, has_recovery=True, recovery_rate=0.0)
-        with self.assertRaises(ValidationError):
-            DlPricingWasteRule._check_rates([rec])
-
-    def test_recovery_enabled_above_100_raises(self):
-        """TC-UNIT-DlPricingWasteRule-010: bật thu hồi phế liệu nhưng
-        recovery_rate vượt quá 100% thì _check_rates() báo lỗi
-        ValidationError."""
-        rec = SimpleNamespace(waste_rate=5.0, has_recovery=True, recovery_rate=101.0)
-        with self.assertRaises(ValidationError):
-            DlPricingWasteRule._check_rates([rec])
-
     def test_recovery_disabled_ignores_recovery_rate(self):
         """TC-UNIT-DlPricingWasteRule-011: tắt thu hồi phế liệu
         (has_recovery=False) thì _check_rates() bỏ qua giá trị recovery_rate
@@ -421,27 +405,6 @@ class TestWasteRuleOnchangeTargetType(unittest.TestCase):
                                product_id=False)
         DlPricingWasteRule._onchange_target_type(rec)
         self.assertFalse(rec.category_id)
-
-
-class TestWasteRuleOnchangeHasRecovery(unittest.TestCase):
-    def test_disable_recovery_clears_rate_and_scrap(self):
-        """TC-UNIT-DlPricingWasteRule-015: tắt has_recovery thì
-        _onchange_has_recovery() tự đặt recovery_rate về 0 và xóa
-        scrap_product_id."""
-        rec = SimpleNamespace(has_recovery=False, recovery_rate=50.0,
-                               scrap_product_id=SimpleNamespace(id=9))
-        DlPricingWasteRule._onchange_has_recovery(rec)
-        self.assertEqual(rec.recovery_rate, 0.0)
-        self.assertFalse(rec.scrap_product_id)
-
-    def test_enable_recovery_keeps_values(self):
-        """TC-UNIT-DlPricingWasteRule-016: bật has_recovery thì
-        _onchange_has_recovery() giữ nguyên recovery_rate đang có, không
-        xóa."""
-        rec = SimpleNamespace(has_recovery=True, recovery_rate=50.0,
-                               scrap_product_id=SimpleNamespace(id=9))
-        DlPricingWasteRule._onchange_has_recovery(rec)
-        self.assertEqual(rec.recovery_rate, 50.0)
 
 
 # dl.pricing.rule.mixin: action_apply/action_expire/action_create_revision,

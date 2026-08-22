@@ -9,6 +9,33 @@ import { openRailChild } from './rail-nav';
 // - BF01-005 (A5 - Trả lại Sales bổ sung): dựa theo mẫu đã ổn định
 //   tests/screens/scr-25-rfq-wizard-a5.spec.ts, bỏ hard-code action id, dùng điều hướng menu.
 const CUSTOMER = 'Công ty TNHH Cơ khí Việt Thành';
+const CATEGORY = 'Khung thép hàn';
+
+// Nhóm sản phẩm nay là field bắt buộc trên dòng gia công (product_category_id, required="1" —
+// quotation_request_views.xml), chưa có lúc viết bản đầu của các test dưới đây.
+// Bấm 1 lần đôi khi không điều hướng thật (rail chỉ tô sáng, nội dung không đổi) — bấm lại tới
+// khi thấy đúng nội dung màn đích, thay vì tin 1 lần bấm duy nhất.
+async function openRfqCreate(page: any) {
+  const marker = page.getByText('Thêm yêu cầu báo giá').first();
+  for (let i = 0; i < 4; i++) {
+    await (await openRailChild(page, 'Báo giá', 'Tạo RFQ')).click();
+    if (await marker.waitFor({ state: 'visible', timeout: 6000 }).then(() => true).catch(() => false)) {
+      return;
+    }
+  }
+  await marker.waitFor({ state: 'visible', timeout: 10000 });
+}
+
+async function fillCategory(scope: any) {
+  // Label "Nhóm sản phẩm" không gắn aria-label vào input (getByRole textbox theo tên không khớp
+  // như field "Tên sản phẩm") — trỏ thẳng theo field name trong DOM.
+  const categoryField = scope.locator('[name="product_category_id"] input');
+  await categoryField.click({ force: true });
+  await categoryField.fill(CATEGORY);
+  const option = scope.locator('.o-autocomplete--dropdown-menu li', { hasText: CATEGORY });
+  await option.first().waitFor({ state: 'visible', timeout: 10000 });
+  await option.first().click();
+}
 
 test('BF01-002/003: Sales xem RFQ trong "Tất cả RFQ" (SCR-22), Kỹ thuật nhận qua "RFQ cần xử lý" (SCR-24)', async ({ browser }) => {
   test.setTimeout(90000);
@@ -16,8 +43,7 @@ test('BF01-002/003: Sales xem RFQ trong "Tất cả RFQ" (SCR-22), Kỹ thuật 
   const salesPage = await salesCtx.newPage();
 
   await salesPage.goto('/web');
-  await (await openRailChild(salesPage, 'Báo giá', 'Tạo RFQ')).click();
-  await expect(salesPage.getByText('Thêm yêu cầu báo giá').first()).toBeVisible({ timeout: 20000 });
+  await openRfqCreate(salesPage);
 
   const customerField = salesPage.locator('input[id^="customer_id_"]');
   await customerField.waitFor({ state: 'visible', timeout: 20000 });
@@ -34,7 +60,8 @@ test('BF01-002/003: Sales xem RFQ trong "Tất cả RFQ" (SCR-22), Kỹ thuật 
     .click();
   const productName = `Lan can cầu thang thép hộp, mạ kẽm nhúng nóng ${Date.now().toString().slice(-6)}`;
   await salesPage.getByRole('textbox', { name: 'Tên sản phẩm' }).fill(productName);
-  await salesPage.getByRole('textbox', { name: 'Kích thước, yêu cầu kỹ thuật' })
+  await fillCategory(salesPage);
+  await salesPage.locator('[name="dimension_note"] textarea, textarea[name="dimension_note"]')
     .fill('Dài 8m, thép hộp 30x30x1.4mm, mạ kẽm nhúng nóng theo TCVN');
   await salesPage.locator('.modal, [role="dialog"]').last()
     .getByRole('button', { name: 'Lưu & Đóng' }).click();
@@ -99,8 +126,7 @@ test('BF01-005 (A5 - Trả lại Sales): Kỹ thuật yêu cầu bổ sung -> Sa
   const salesPage = await salesCtx.newPage();
 
   await salesPage.goto('/web');
-  await (await openRailChild(salesPage, 'Báo giá', 'Tạo RFQ')).click();
-  await expect(salesPage.getByText('Thêm yêu cầu báo giá').first()).toBeVisible({ timeout: 20000 });
+  await openRfqCreate(salesPage);
 
   const customerField = salesPage.locator('input[id^="customer_id_"]');
   await customerField.waitFor({ state: 'visible', timeout: 20000 });
@@ -117,7 +143,8 @@ test('BF01-005 (A5 - Trả lại Sales): Kỹ thuật yêu cầu bổ sung -> Sa
     .click();
   const productName = `Khung mái che sảnh, thiếu kích thước cụ thể ${Date.now().toString().slice(-6)}`;
   await salesPage.getByRole('textbox', { name: 'Tên sản phẩm' }).fill(productName);
-  await salesPage.getByRole('textbox', { name: 'Kích thước, yêu cầu kỹ thuật' }).fill('Mô tả sơ sài, thiếu kích thước cụ thể');
+  await fillCategory(salesPage);
+  await salesPage.locator('[name="dimension_note"] textarea, textarea[name="dimension_note"]').fill('Mô tả sơ sài, thiếu kích thước cụ thể');
   await salesPage.locator('.modal, [role="dialog"]').last()
     .getByRole('button', { name: 'Lưu & Đóng' }).click();
   await salesPage.getByRole('button', { name: 'Lưu thủ công' }).click();
@@ -179,8 +206,7 @@ test('BF01-006 (RBAC): Sales mở lại RFQ có sẵn từ "Tất cả RFQ" — 
   // nơi form không còn render bảng dòng thô (chỉ còn tóm tắt tiến độ) — không phản ánh đúng layout
   // cần kiểm ở đây. Tự tạo 1 RFQ mới (còn "Mới"/"Đang xử lý") để chắc chắn bảng dòng còn hiển thị.
   await page.goto('/web');
-  await (await openRailChild(page, 'Báo giá', 'Tạo RFQ')).click();
-  await expect(page.getByText('Thêm yêu cầu báo giá').first()).toBeVisible({ timeout: 20000 });
+  await openRfqCreate(page);
   const customerField = page.locator('input[id^="customer_id_"]');
   await customerField.waitFor({ state: 'visible', timeout: 20000 });
   await customerField.click({ force: true });
@@ -194,7 +220,8 @@ test('BF01-006 (RBAC): Sales mở lại RFQ có sẵn từ "Tất cả RFQ" — 
     .getByRole('button', { name: 'Thêm một dòng' })
     .click();
   await page.getByRole('textbox', { name: 'Tên sản phẩm' }).fill(`Kiểm layout BF01-006 ${Date.now().toString().slice(-6)}`);
-  await page.getByRole('textbox', { name: 'Kích thước, yêu cầu kỹ thuật' }).fill('Kiểm layout, không cần chi tiết thật');
+  await fillCategory(page);
+  await page.locator('[name="dimension_note"] textarea, textarea[name="dimension_note"]').fill('Kiểm layout, không cần chi tiết thật');
   await page.locator('.modal, [role="dialog"]').last().getByRole('button', { name: 'Lưu & Đóng' }).click();
   await page.getByRole('button', { name: 'Lưu thủ công' }).click();
   await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('New', { timeout: 15000 });

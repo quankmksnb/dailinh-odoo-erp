@@ -13,3 +13,9 @@ from . import test_cost_field_visibility_security
 from . import test_material_calc_kind
 from . import test_rfq_return_and_notify_wizards
 from . import test_rfq_sales_params
+from . import test_product_name_duplicate
+from . import test_dl_bom_operation_line_unit
+from . import test_dl_bom_template_unit
+from . import test_dl_bom_template_param_unit
+from . import test_dl_drawing_unit
+from . import test_product_category_technical_unit

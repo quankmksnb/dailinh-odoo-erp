@@ -19,8 +19,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
+from ..models.dl_bom import DlBom
 from ..models.dl_bom_header_mixin import DlBomHeaderMixin
 from ..models.dl_bom_line import DlBomLine
 
@@ -245,6 +246,45 @@ class TestComputeSubtotal(unittest.TestCase):
         rec = SimpleNamespace(effective_qty=10.0, price_snapshot=500.0, recovery_value=0.0)
         DlBomLine._compute_subtotal([rec])
         self.assertEqual(rec.subtotal, 5000.0)
+
+
+# dl.bom (không phải mixin, nhưng constraint nằm ở đây theo tên sheet gốc):
+# _check_product_qty() / _check_product_not_obsolete().
+class TestCheckProductQty(unittest.TestCase):
+    def test_zero_raises(self):
+        """TC-UNIT-DlBomHeaderMixin-020: product_qty=0 (biên dưới) thì
+        _check_product_qty() báo lỗi ValidationError."""
+        rec = SimpleNamespace(product_qty=0.0)
+        with self.assertRaises(ValidationError):
+            DlBom._check_product_qty([rec])
+
+    def test_negative_raises(self):
+        """product_qty âm (-5) thì cũng báo lỗi ValidationError."""
+        rec = SimpleNamespace(product_qty=-5.0)
+        with self.assertRaises(ValidationError):
+            DlBom._check_product_qty([rec])
+
+    def test_positive_passes(self):
+        """product_qty dương (10) thì không báo lỗi."""
+        rec = SimpleNamespace(product_qty=10.0)
+        DlBom._check_product_qty([rec])  # không raise
+
+
+class TestCheckProductNotObsolete(unittest.TestCase):
+    def test_obsolete_product_raises(self):
+        """TC-UNIT-DlBomHeaderMixin-019: sản phẩm ở trạng thái Ngừng
+        (dlm_lifecycle_state='obsolete') thì _check_product_not_obsolete()
+        báo lỗi ValidationError."""
+        product = SimpleNamespace(dlm_lifecycle_state="obsolete", display_name="Ghế thép")
+        rec = SimpleNamespace(product_id=product)
+        with self.assertRaises(ValidationError):
+            DlBom._check_product_not_obsolete([rec])
+
+    def test_active_product_passes(self):
+        """Sản phẩm chưa Ngừng (dlm_lifecycle_state='active') thì không báo lỗi."""
+        product = SimpleNamespace(dlm_lifecycle_state="active", display_name="Ghế thép")
+        rec = SimpleNamespace(product_id=product)
+        DlBom._check_product_not_obsolete([rec])  # không raise
 
 
 if __name__ == "__main__":

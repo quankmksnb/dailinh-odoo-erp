@@ -16,6 +16,7 @@ class TestRfqReturnWizard(TransactionCase):
         super().setUpClass()
         cls.customer = cls.env["res.partner"].create({
             "name": "Khách test return wizard", "partner_role": "customer", "mobile": "0900001005"})
+        cls.categ = cls.env["product.category"].create({"name": "Ghế thép test return wizard"})
 
     def _make_rfq(self):
         request = self.env["dl.quotation.request"].create({
@@ -23,6 +24,7 @@ class TestRfqReturnWizard(TransactionCase):
             "line_ids": [(0, 0, {
                 "product_type": "manufactured",
                 "product_name": "SP test return wizard",
+                "product_category_id": self.categ.id,
                 "quantity": 1.0,
                 "dimension_note": "1000x500",
             })],
@@ -85,6 +87,7 @@ class TestRfqResolveWizardNotifyPurchasing(TransactionCase):
             "line_ids": [(0, 0, {
                 "product_type": "manufactured",
                 "product_name": "Bàn thép NP (test)",
+                "product_category_id": self.categ.id,
                 "quantity": 1.0,
                 "dimension_note": "1200x800x750",
             })],
@@ -96,10 +99,12 @@ class TestRfqResolveWizardNotifyPurchasing(TransactionCase):
             "line_ids": [(0, 0, {"material_id": self.material.id, "quantity": 1.0})],
         })
         bom.action_confirm()
+        # Field "mode" đã bị bỏ khỏi wizard (refactor sau này) — chọn BOM tay
+        # giờ chỉ cần set thẳng product_id + manual_bom_id.
         wizard = self.env["dl.rfq.resolve.wizard"].with_context(
             default_rfq_line_id=line.id).create({
                 "rfq_line_id": line.id, "product_id": self.product.id,
-                "mode": "existing", "manual_bom_id": bom.id,
+                "manual_bom_id": bom.id,
             })
         return wizard, bom
 
