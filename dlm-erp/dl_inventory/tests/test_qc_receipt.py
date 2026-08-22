@@ -84,6 +84,32 @@ class TestQcReceipt(DlInventoryCase):
         self.assertEqual(self._qty_at(self.loc_qc), 0.0,
                          "Khu Chờ kiểm phải sạch: không được để hàng lửng lơ.")
 
+    def test_khop_lai_so_go_ket_phieu_vuot_so_cho_kiem(self):
+        """🔴 Đạt + Loại vượt số chờ kiểm (do tách kiện co số sau khi nhập) ⇒ phải gỡ được.
+
+        Đỏ = phiếu kẹt câm: không xác nhận nổi, nằm ì trong hàng đợi như rác, thủ
+        kho phải tự đoán rằng cần hạ Đạt xuống.
+        """
+        _receipt, qc = self._qc_ready(receipt_qty=100.0)
+        # Mô phỏng ca thật: Đạt 100 + Loại 3 = 103 > 100 đang chờ kiểm.
+        self._fill_qc(qc, passed=100.0, rejected=3.0)
+
+        self.assertTrue(qc.dlm_qc_has_over, "Phải nhận ra dòng đang vượt.")
+        self.assertTrue(qc._dlm_qc_problems(), "Đang vượt thì phải chặn xác nhận.")
+
+        qc.action_dlm_fix_qc_counts()
+
+        move = self._qc_move(qc)
+        self.assertEqual(move.quantity, 97.0, "Đạt phải về (100 − 3).")
+        self.assertEqual(move.dlm_qty_rejected, 3.0, "Số Loại đếm thật, giữ nguyên.")
+        self.assertFalse(qc.dlm_qc_has_over)
+
+        qc.action_dlm_validate_qc()
+
+        self.assertEqual(qc.state, "done")
+        self.assertEqual(self._qty_at(self.loc_kho), 97.0)
+        self.assertEqual(self._qty_at(self.loc_tra), 3.0)
+
     def test_hang_thuong_mai_dat_vao_thang_kho_thanh_pham(self):
         """§5.3 — Đạt + hàng thương mại đi THẲNG vào Kho thành phẩm.
 
