@@ -1,6 +1,6 @@
 {
     "name": "DL-Purchase",
-    "version": "17.0.1.3.0",
+    "version": "17.0.1.4.0",
     "summary": "Mua hàng Đại Linh — đơn mua, hỏi giá, chốt giá theo lô, giá vốn FIFO",
     "description": """
 Phân hệ Mua hàng (giai đoạn B1.5). Đặc tả:
@@ -48,6 +48,8 @@ cùng lý do dự án đã tự xây dl.sale.order.
         # Mẫu thư gửi NCC — nạp TRƯỚC view: action_dlm_email tra bằng env.ref.
         "data/purchase_mail_template.xml",
         "wizard/purchase_price_update_views.xml",
+        # Dialog gộp Tải về / Gửi đơn cho NCC trên đơn mua.
+        "wizard/purchase_order_export_wizard_views.xml",
         "views/purchase_order_views.xml",
         "views/stock_lot_views_ext.xml",
         "views/sale_order_views_ext.xml",

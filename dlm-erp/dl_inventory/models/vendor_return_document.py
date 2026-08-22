@@ -274,6 +274,18 @@ class StockPickingRejectReport(models.Model):
     # ------------------------------------------------------------------
     # Nút trên form: dựng file, lưu dấu vết, tải về
     # ------------------------------------------------------------------
+    def action_dlm_open_reject_report_wizard(self):
+        """Nút [Xuất / Gửi biên bản]: mở dialog Tải về / Gửi email cho NCC."""
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Xuất / Gửi biên bản"),
+            "res_model": "dl.vendor.return.export.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_picking_id": self.id},
+        }
+
     def action_dlm_print_reject_report(self):
         """Nút In (màn phiếu Trả NCC): tạo biên bản, đính vào phiếu + chatter, rồi tải về."""
         self.ensure_one()
@@ -295,8 +307,8 @@ class StockPickingRejectReport(models.Model):
                 self.env.user.has_group(role) for role in _DLM_SEND_ROLES):
             raise UserError(_(
                 "Gửi biên bản cho nhà cung cấp là việc của Mua hàng — thư này "
-                "mở đầu cuộc đàm phán giảm trừ. Bạn vẫn in được bản giấy bằng "
-                "nút [Biên bản gửi nhà cung cấp]."))
+                "mở đầu cuộc đàm phán giảm trừ. Bạn vẫn tải được bản giấy bằng "
+                "nút Tải về trong hộp thoại."))
         if not self.partner_id:
             raise UserError(_(
                 "Phiếu %s chưa gắn nhà cung cấp nên không biết gửi cho ai.")

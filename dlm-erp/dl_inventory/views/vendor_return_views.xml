@@ -99,25 +99,16 @@
                             type="object" class="btn-primary"
                             invisible="state != 'cancel' or not dlm_has_stuck_stock"
                             groups="dl_base.dl_group_warehouse,dl_base.dl_group_admin"/>
-                    <!-- K17 — đường ra khỏi hệ thống cho bằng chứng: NCC không
-                         đăng nhập ERP, ảnh nằm trong Odoo thì lúc ngồi đàm phán
-                         vẫn là con số không. Nút CÓ Ở MỌI TRẠNG THÁI, kể cả đã
-                         xong/đã huỷ — tranh chấp thường nổ ra sau khi phiếu đã
-                         đóng, và bản in lại phải ra đúng nội dung cũ.
-                         KHÔNG khoá theo `groups`: thủ kho cũng cần in ra kẹp vào
-                         hàng lúc xe NCC tới lấy. -->
-                    <button name="action_dlm_print_reject_report"
-                            string="Biên bản gửi nhà cung cấp" icon="fa-file-pdf-o"
+                    <!-- K17 — một cửa cho cả TẢI VỀ và GỬI biên bản (dialog
+                         action_dlm_open_reject_report_wizard). Nút CÓ Ở MỌI
+                         TRẠNG THÁI, kể cả đã xong/đã huỷ — tranh chấp thường nổ
+                         ra sau khi phiếu đã đóng, bản in lại phải ra đúng nội
+                         dung cũ. KHÔNG khoá `groups`: thủ kho cũng cần tải về
+                         kẹp vào hàng lúc xe NCC tới lấy; việc GỬI mới hẹp về Mua
+                         hàng và được khoá ở NÚT GỬI TRONG DIALOG. -->
+                    <button name="action_dlm_open_reject_report_wizard"
+                            string="Xuất / Gửi biên bản" icon="fa-file-pdf-o"
                             type="object" class="btn-secondary"/>
-                    <!-- Nút GỬI hẹp hơn nút IN ngay trên: in là việc của kho
-                         (kẹp vào hàng lúc xe NCC tới lấy), còn gửi là mở đầu
-                         cuộc đàm phán giảm trừ — quan hệ với NCC là của Mua
-                         hàng. `groups` chỉ giấu nút; lá chắn thật nằm ở
-                         action_dlm_email_reject_report. -->
-                    <button name="action_dlm_email_reject_report"
-                            string="Gửi biên bản qua email" icon="fa-envelope-o"
-                            type="object" class="btn-secondary"
-                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
                     <field name="state" widget="dl_stepper"
                            statusbar_visible="draft,assigned,done"/>
                 </header>

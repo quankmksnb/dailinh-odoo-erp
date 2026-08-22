@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_dl_vendor_return_export_wizard_form" model="ir.ui.view">
+        <field name="name">dl.vendor.return.export.wizard.form</field>
+        <field name="model">dl.vendor.return.export.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Xuất / Gửi biên bản">
+                <field name="picking_id" invisible="1"/>
+                <group>
+                    <field name="partner_email" readonly="1"/>
+                </group>
+                <p class="text-muted">
+                    Bấm <strong>Tải về</strong> để lưu biên bản PDF (kẹp vào hàng
+                    lúc nhà cung cấp tới lấy), hoặc <strong>Gửi email</strong> để
+                    mở trình soạn thư đã đính sẵn biên bản — đọc lại rồi mới bấm
+                    Gửi. Biên bản chỉ nói về hàng, không có giá.
+                </p>
+                <footer>
+                    <button name="action_download" string="Tải về"
+                            type="object" class="btn-primary"/>
+                    <!-- Nút GỬI hẹp hơn nút TẢI VỀ: gửi mở đầu đàm phán giảm trừ
+                         (việc Mua hàng), tải về ai cũng in được. `groups` chỉ
+                         giấu nút — lá chắn thật ở action_dlm_email_reject_report. -->
+                    <button name="action_email" string="Gửi email cho NCC"
+                            type="object" class="btn-secondary"
+                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
+                    <button string="Đóng" class="btn-link" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

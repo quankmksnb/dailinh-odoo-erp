@@ -56,3 +56,7 @@ access_dl_sale_order_wh,dl.sale.order Warehouse,dl_sale.model_dl_sale_order,dl_b
 access_dl_sale_order_line_wh,dl.sale.order.line Warehouse,dl_sale.model_dl_sale_order_line,dl_base.dl_group_warehouse,1,0,0,0
 access_dl_sale_order_tech,dl.sale.order Tech,dl_sale.model_dl_sale_order,dl_base.dl_group_tech,1,0,0,0
 access_dl_sale_order_line_tech,dl.sale.order.line Tech,dl_sale.model_dl_sale_order_line,dl_base.dl_group_tech,1,0,0,0
+access_dl_vendor_return_export_wiz_wh,dl.vendor.return.export.wizard Warehouse,model_dl_vendor_return_export_wizard,dl_base.dl_group_warehouse,1,1,1,0
+access_dl_vendor_return_export_wiz_pur,dl.vendor.return.export.wizard Purchasing,model_dl_vendor_return_export_wizard,dl_base.dl_group_purchasing,1,1,1,0
+access_dl_vendor_return_export_wiz_admin,dl.vendor.return.export.wizard Admin,model_dl_vendor_return_export_wizard,dl_base.dl_group_admin,1,1,1,1
+access_dl_vendor_return_export_wiz_ceo,dl.vendor.return.export.wizard CEO,model_dl_vendor_return_export_wizard,dl_base.dl_group_ceo,1,1,1,0

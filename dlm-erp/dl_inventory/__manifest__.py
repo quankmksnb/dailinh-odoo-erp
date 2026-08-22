@@ -154,6 +154,8 @@ hệ thống, điều hướng đi thẳng qua submenu rail.
         "views/fg_receipt_views.xml",
         "views/delivery_views.xml",
         "views/vendor_return_views.xml",
+        # Dialog gộp Tải về / Gửi biên bản trên phiếu Trả hàng NCC.
+        "wizard/vendor_return_export_wizard_views.xml",
         # K12 — nạp TRƯỚC stock_quant_views.xml: nút [Chuyển thành phế liệu]
         # trên màn Tồn kho gọi action trả về form khai ở đây.
         "views/to_scrap_views.xml",

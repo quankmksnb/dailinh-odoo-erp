@@ -110,20 +110,14 @@
                                        or not dlm_needs_approval
                                        or not dlm_customer_committed"
                                        groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
-                    <button name="action_dlm_print"
-                            string="In yêu cầu báo giá"
-                            type="object" class="btn-secondary"
-                            invisible="state not in ('draft', 'sent')"
-                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
-                    <button name="action_dlm_print" string="In đơn đặt hàng"
-                            type="object" class="btn-secondary"
-                            invisible="state != 'confirmed'"
-                            groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
-                    <!-- MỘT nút cho cả hai biến thể: PDF và mẫu thư đều tự đổi
-                         giọng theo trạng thái, nên tách hai nút chỉ để đổi chữ
-                         trên nhãn là bắt người dùng chọn hộ máy. Ẩn ở đơn đã
-                         huỷ — không gửi cho NCC một đơn không còn hiệu lực. -->
-                    <button name="action_dlm_email" string="Gửi mail cho NCC"
+                    <!-- MỘT nút cho cả Tải về lẫn Gửi, và cho cả hai biến thể
+                         chứng từ: PDF và mẫu thư tự đổi giọng theo trạng thái
+                         (chưa chốt = Yêu cầu báo giá, đã chốt = Đơn đặt hàng),
+                         nên tách nút chỉ để đổi chữ là bắt người dùng chọn hộ
+                         máy. Ẩn ở đơn đã huỷ / chưa có dòng — không gửi cho NCC
+                         một đơn không còn hiệu lực hoặc rỗng. -->
+                    <button name="action_dlm_open_export_wizard"
+                            string="Xuất / Gửi đơn" icon="fa-file-pdf-o"
                             type="object" class="btn-secondary"
                             invisible="state == 'cancelled' or not line_ids"
                             groups="dl_base.dl_group_purchasing,dl_base.dl_group_admin,dl_base.dl_group_ceo"/>
