@@ -10,6 +10,8 @@
                 <field name="name" string="Tên đơn vị"/>
                 <field name="category_id" string="Nhóm đơn vị"/>
                 <field name="uom_type" string="Loại"/>
+                <field name="dlm_allow_waste" string="Có hao hụt"
+                       widget="boolean_toggle"/>
                 <field name="ratio" string="Tỷ lệ quy đổi" digits="[16, 4]"/>
                 <field name="active" column_invisible="1"/>
             </tree>
@@ -42,6 +44,8 @@
                                    readonly="uom_type == 'reference'"/>
                             <field name="rounding" string="Bước làm tròn"
                                    digits="[16, 4]"/>
+                            <field name="dlm_allow_waste" string="Có hao hụt"
+                                   widget="boolean_toggle"/>
                         </group>
                     </group>
                 </sheet>
@@ -97,11 +101,18 @@
                 <filter name="filter_smaller" string="Nhỏ hơn"
                         domain="[('uom_type', '=', 'smaller')]"/>
                 <separator/>
+                <filter name="filter_has_waste" string="Có hao hụt"
+                        domain="[('dlm_allow_waste', '=', True)]"/>
+                <filter name="filter_no_waste" string="Không hao hụt"
+                        domain="[('dlm_allow_waste', '=', False)]"/>
+                <separator/>
                 <filter name="filter_active" string="Đang dùng"
                         domain="[('active', '=', True)]"/>
                 <filter name="filter_inactive" string="Đã ẩn"
                         domain="[('active', '=', False)]"/>
                 <group expand="0" string="Nhóm theo">
+                    <filter name="group_waste" string="Có / không hao hụt"
+                            context="{'group_by': 'dlm_allow_waste'}"/>
                     <filter name="group_category" string="Nhóm đơn vị"
                             context="{'group_by': 'category_id'}"/>
                     <filter name="group_type" string="Loại"

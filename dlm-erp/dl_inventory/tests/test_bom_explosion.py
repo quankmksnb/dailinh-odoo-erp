@@ -20,17 +20,24 @@ class TestBomExplosion(TransactionCase):
         cls.Bom = cls.env["dl.bom"]
         cls.Product = cls.env["product.product"]
 
-        cls.thep = cls._mk("material", "Thép hộp 25x50 (nổ BOM)")
-        cls.que_han = cls._mk("material", "Que hàn (nổ BOM)")
+        # thep/que_han để ĐVT kg (nhóm chia được) — các test số học dưới đây đo
+        # phép nổ BOM, không đo luật làm tròn; kg giữ nhu cầu lẻ đúng như xưa.
+        # Luật "ĐVT đếm được tròn lên" có test riêng ở cuối file.
+        kg = cls.env.ref("uom.product_uom_kgm")
+        cls.thep = cls._mk("material", "Thép hộp 25x50 (nổ BOM)", uom=kg)
+        cls.que_han = cls._mk("material", "Que hàn (nổ BOM)", uom=kg)
         cls.oc = cls._mk("material", "Ốc M8 (nổ BOM)")
         cls.khung = cls._mk("material_processed", "Khung bàn (nổ BOM)")
         cls.ban = cls._mk("manufactured", "Bộ bàn ghế (nổ BOM)")
 
     # ------------------------------------------------------------------ helpers
     @classmethod
-    def _mk(cls, kind, name):
-        return cls.env["product.product"].create(
-            {"name": name, "product_kind": kind})
+    def _mk(cls, kind, name, uom=None):
+        vals = {"name": name, "product_kind": kind}
+        if uom:
+            vals["uom_id"] = uom.id
+            vals["uom_po_id"] = uom.id
+        return cls.env["product.product"].create(vals)
 
     def _mk_bom(self, product, lines, product_qty=1.0, confirmed=True):
         """BOM với các dòng ``(vật tư, số lượng)``.
@@ -191,6 +198,58 @@ class TestBomExplosion(TransactionCase):
 
         self.assertNotIn(scrap, report["requirements"])
         self.assertIn(scrap, report["scrap"])
+
+    def test_don_vi_dem_duoc_lam_tron_len(self):
+        """ĐVT đếm được (cây/túi...) có hao hụt ⇒ nhu cầu kho tròn LÊN số nguyên.
+
+        Đỏ = phiếu kho đòi xuất 1,04 cây — con số không cấp được ngoài đời, thủ
+        kho phải tự làm tròn bằng tay mỗi lần. Giá thành vẫn để lẻ ở engine giá,
+        chỉ nhu cầu xuất kho mới tròn.
+        """
+        cay = self.env.ref("dl_product.dlm_uom_cay")
+        thep_cay = self._mk("material", "Thép cây tròn (nổ BOM)", uom=cay)
+        thep_cay.dlm_waste_rate = 20.0      # cây CÓ hao hụt: mạch cắt, ba-via
+        bom = self._mk_bom(self.ban, [(thep_cay, 1.0)])
+
+        # Trục 1 — định mức giữ LẺ để tính giá đúng.
+        self.assertAlmostEqual(bom.line_ids.waste_rate, 20.0, places=2)
+        self.assertAlmostEqual(bom.line_ids.effective_qty, 1.2, places=2)
+
+        # Trục 2 — kho cấp nguyên cây: 1,2 → 2.
+        self.assertAlmostEqual(
+            bom._dlm_explode_requirements(1.0)[thep_cay], 2.0, places=2)
+        # 10 sản phẩm: 12 cây chẵn → giữ 12, KHÔNG phải 10 × 2 = 20.
+        self.assertAlmostEqual(
+            bom._dlm_explode_requirements(10.0)[thep_cay], 12.0, places=2)
+
+    def test_dvt_dem_nguyen_chiec_khong_co_hao_hut(self):
+        """Hàng đếm nguyên chiếc (túi) KHÔNG tự gán hao hụt, dù vật tư khai sẵn.
+
+        Đỏ = 2% của túi 1000 con biến thành cả một túi thứ hai khi kho tròn lên.
+        """
+        tui = self.env.ref("dl_product.dlm_uom_tui")
+        dinh = self._mk("material", "Đinh rút (nổ BOM)", uom=tui)
+        dinh.dlm_waste_rate = 5.0
+        bom = self._mk_bom(self.ban, [(dinh, 1.0)])
+
+        self.assertEqual(bom.line_ids.waste_rate, 0.0)
+        self.assertAlmostEqual(bom.line_ids.effective_qty, 1.0, places=2)
+        self.assertAlmostEqual(
+            bom._dlm_explode_requirements(1.0)[dinh], 1.0, places=2)
+
+    def test_don_vi_do_luong_giu_le(self):
+        """ĐVT đo lường (kg) CÓ hao hụt (tự gán từ vật tư) và KHÔNG bị tròn.
+
+        Đỏ = tròn cả kg/m ⇒ mua thừa vật tư bán theo cân, sai ngược hướng.
+        """
+        kg = self.env.ref("uom.product_uom_kgm")
+        son = self._mk("material", "Sơn tĩnh điện (nổ BOM)", uom=kg)
+        son.dlm_waste_rate = 4.0
+        bom = self._mk_bom(self.ban, [(son, 1.0)])
+
+        self.assertAlmostEqual(bom.line_ids.waste_rate, 4.0, places=2)
+        self.assertAlmostEqual(
+            bom._dlm_explode_requirements(1.0)[son], 1.04, places=2)
 
     def test_bom_vong_lap_bao_chuoi_khong_treo(self):
         """🔴 A cần B, B cần A ⇒ phải raise nêu chuỗi, KHÔNG đệ quy vô hạn.

@@ -15,9 +15,18 @@
              Vít cá        | túi  |    60.000đ
              Đá cắt        | hộp  |   155.000đ
 
-         🔴 BẪY 4 (§17.1): `rounding` PHẢI đủ nhỏ.
-         Mặc định của Odoo là 1.0 ⇒ một dòng BOM cần 0.233 cây sẽ bị LÀM TRÒN
-         VỀ 0 ⇒ giá vốn hụt âm thầm. Test T5 khoá ca này.
+         🔴 `rounding` = TRỤC "CÓ XÉ LẺ ĐƯỢC KHÔNG" (đổi 2026-08-22).
+         Đây là cơ chế sẵn có của Odoo — help gốc ghi rõ "dùng 1.0 cho đơn vị
+         không thể chia nhỏ, ví dụ một cái". Cây · Tấm · Cuộn · Túi · Hộp · Bộ
+         đều để **1.0**: kho chỉ cấp phát nguyên chiếc.
+
+         ⚠️ Điều này KHÔNG bóp méo định mức: `rounding` chỉ áp ở tầng KHO
+         (stock.move, quant, `_need_for_stock`). Dòng BOM giữ số LẺ để tính giá
+         đúng (1,2 cây) — `quantity`/`effective_qty` là Float thường, ăn theo
+         `decimal.precision` bên dưới chứ không ăn theo `rounding`.
+         (Bản trước ghi "`rounding` PHẢI đủ nhỏ, để 1.0 thì 0.233 cây về 0" —
+         giữ lại đây để người sau khỏi "sửa cho nhất quán": chỗ thật sự quyết
+         định độ mịn của định mức là decimal.precision, không phải rounding.)
 
          ⚠️ Các đơn vị dưới đây nằm chung nhóm "Đơn vị" (factor_inv = 1) nên
          Odoo coi 1 Cây = 1 Cái về mặt quy đổi. Điều đó vô hại vì mỗi vật tư
@@ -60,13 +69,18 @@
 
     <data noupdate="1">
 
+        <!-- HÀNG CẮT (cây · tấm · cuộn): mua nguyên chiếc nhưng cắt ra dùng nên
+             CÓ hao hụt thật (mạch cắt, ba-via) ⇒ dlm_allow_waste = True, dù nằm
+             chung nhóm "Đơn vị" với hàng đếm. Vẫn xuất kho nguyên chiếc. -->
+
         <!-- Thanh/ống/hộp thép, thép cây — bán theo CÂY (mặc định 6m) -->
         <record id="dlm_uom_cay" model="uom.uom">
             <field name="name">Cây</field>
             <field name="category_id" ref="uom.product_uom_categ_unit" />
             <field name="uom_type">bigger</field>
             <field name="factor_inv">1</field>
-            <field name="rounding">0.001</field>
+            <field name="rounding">1.0</field>
+            <field name="dlm_allow_waste" eval="True" />
         </record>
 
         <!-- Tôn, alu, gỗ tấm — bán theo TẤM (khổ khai trên vật tư) -->
@@ -75,7 +89,8 @@
             <field name="category_id" ref="uom.product_uom_categ_unit" />
             <field name="uom_type">bigger</field>
             <field name="factor_inv">1</field>
-            <field name="rounding">0.001</field>
+            <field name="rounding">1.0</field>
+            <field name="dlm_allow_waste" eval="True" />
         </record>
 
         <!-- Lưới, dây — bán theo CUỘN -->
@@ -84,8 +99,12 @@
             <field name="category_id" ref="uom.product_uom_categ_unit" />
             <field name="uom_type">bigger</field>
             <field name="factor_inv">1</field>
-            <field name="rounding">0.001</field>
+            <field name="rounding">1.0</field>
+            <field name="dlm_allow_waste" eval="True" />
         </record>
+
+        <!-- HÀNG ĐẾM NGUYÊN CHIẾC (túi · hộp · bộ): dùng bao nhiêu lấy bấy nhiêu,
+             con lẻ hỏng gộp vào chi phí chung ⇒ KHÔNG khai hao hụt. -->
 
         <!-- Vít, đinh rút — bán theo TÚI -->
         <record id="dlm_uom_tui" model="uom.uom">
@@ -93,7 +112,8 @@
             <field name="category_id" ref="uom.product_uom_categ_unit" />
             <field name="uom_type">bigger</field>
             <field name="factor_inv">1</field>
-            <field name="rounding">0.01</field>
+            <field name="rounding">1.0</field>
+            <field name="dlm_allow_waste" eval="False" />
         </record>
 
         <!-- Đá cắt, phụ kiện — bán theo HỘP -->
@@ -102,7 +122,8 @@
             <field name="category_id" ref="uom.product_uom_categ_unit" />
             <field name="uom_type">bigger</field>
             <field name="factor_inv">1</field>
-            <field name="rounding">0.01</field>
+            <field name="rounding">1.0</field>
+            <field name="dlm_allow_waste" eval="False" />
         </record>
 
         <!-- Thành phẩm bán theo BỘ (1 bàn + 2 ghế) — theo báo giá thật -->
@@ -111,8 +132,25 @@
             <field name="category_id" ref="uom.product_uom_categ_unit" />
             <field name="uom_type">bigger</field>
             <field name="factor_inv">1</field>
-            <field name="rounding">0.01</field>
+            <field name="rounding">1.0</field>
+            <field name="dlm_allow_waste" eval="False" />
         </record>
 
+    </data>
+
+    <!-- Các bản ghi trên mang noupdate="1" nên DB đã cài KHÔNG nhận giá trị mới.
+         Áp lại tường minh — đây là ràng buộc đúng-sai của cách cấp phát vật tư,
+         phải chạy mỗi lần cập nhật. Đặt SAU khối trên vì ref() cần bản ghi đã có. -->
+    <data>
+        <function model="uom.uom" name="write">
+            <value eval="[ref('dlm_uom_cay'), ref('dlm_uom_tam'),
+                          ref('dlm_uom_cuon')]" />
+            <value eval="{'rounding': 1.0, 'dlm_allow_waste': True}" />
+        </function>
+        <function model="uom.uom" name="write">
+            <value eval="[ref('dlm_uom_tui'), ref('dlm_uom_hop'),
+                          ref('dlm_uom_bo')]" />
+            <value eval="{'rounding': 1.0, 'dlm_allow_waste': False}" />
+        </function>
     </data>
 </odoo>

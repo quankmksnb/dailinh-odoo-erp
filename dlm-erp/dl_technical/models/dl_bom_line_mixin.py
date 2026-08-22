@@ -52,6 +52,10 @@ class DlBomLineMixin(models.AbstractModel):
         related="material_id.dlm_calc_kind", string="Kiểu tính", readonly=True)
     material_uom_name = fields.Char(
         related="material_id.uom_id.name", string="Đơn vị tính", readonly=True)
+    # Cờ có-hao-hụt của ĐVT — view ẩn ô hao hụt khi tắt (cái/cây/tấm/túi/hộp).
+    material_allow_waste = fields.Boolean(
+        related="material_id.dlm_uom_allow_waste", string="ĐVT có hao hụt",
+        readonly=True)
 
     # ── Kích thước cắt (mm) ──────────────────────────────────────────────
     # Chỉ còn 2 ô: mặt cắt (cạnh/đường kính/độ dày) nay là quy cách của VẬT TƯ,
@@ -101,6 +105,8 @@ class DlBomLineMixin(models.AbstractModel):
         compute="_compute_effective_qty",
         store=True,
         digits="Product Unit of Measure",
+        help="Số lượng đã gồm hao hụt — dùng để TÍNH GIÁ, nên có thể lẻ "
+             "(1,04 cây). Khi xuất kho, đơn vị đếm được sẽ làm tròn lên số nguyên.",
     )
 
     is_override = fields.Boolean(
@@ -203,6 +209,10 @@ class DlBomLineMixin(models.AbstractModel):
         for vals in vals_list:
             if "waste_rate" not in vals and vals.get("material_id"):
                 material = Product.browse(vals["material_id"])
+                if not material.dlm_is_divisible():
+                    # ĐVT đếm được (cái/cây/tấm/túi/hộp) không tính hao hụt.
+                    vals["waste_rate"] = 0.0
+                    continue
                 factor = 1.0
                 if vals.get("complexity_id"):
                     factor = self.env["dl.pricing.complexity.level"].browse(
@@ -216,8 +226,12 @@ class DlBomLineMixin(models.AbstractModel):
 
     @api.onchange("material_id", "complexity_id")
     def _onchange_material_waste(self):
-        """Tự tính % hao hụt = hao hụt cơ sở của vật tư × hệ số phức tạp."""
+        """Tự tính % hao hụt = hao hụt cơ sở của vật tư × hệ số phức tạp.
+        ĐVT đếm được (cái/cây/tấm/túi/hộp) không có hao hụt ⇒ ép 0."""
         if not self.material_id:
+            return
+        if not self.material_id.dlm_is_divisible():
+            self.waste_rate = 0.0
             return
         factor = self.complexity_id.factor if self.complexity_id else 1.0
         self.waste_rate = (self.material_id.dlm_waste_rate or 0.0) * factor

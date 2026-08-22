@@ -8,6 +8,18 @@ from odoo.tools.float_utils import float_compare, float_round
 # Chặn đệ quy BOM vô hạn (lá chắn lúc tạo không cứu được BOM lỗi có sẵn trong DB).
 _MAX_DEPTH = 5
 
+def _need_for_stock(material, qty):
+    """Nhu cầu XUẤT KHO, làm tròn LÊN theo `rounding` của chính ĐVT — cơ chế sẵn có
+    của Odoo ("dùng 1.0 cho đơn vị không xé lẻ được"). Cây/tấm/túi để 1.0 ⇒ ra số
+    nguyên; kg/m để 0.001 ⇒ giữ lẻ. Tròn LÊN vì thiếu vật tư thì xưởng đứng, còn dư
+    thì đã có bước nghiệm thu vật tư thừa trên phiếu mẻ.
+
+    Định mức trên BOM vẫn để LẺ (1,2 cây) để tính giá đúng — đây chỉ là lớp cấp phát.
+    """
+    return float_round(
+        qty, precision_rounding=material.uom_id.rounding or 0.01,
+        rounding_method="UP")
+
 
 class DlBomExplosion(models.Model):
     _inherit = "dl.bom"
@@ -67,7 +79,9 @@ class DlBomExplosion(models.Model):
                 continue
 
             # effective_qty đã gồm hao hụt — không nhân hao hụt lần nữa.
-            need = line.effective_qty * factor
+            # Tròn lên cho ĐVT đếm được: 1,04 cây ⇒ 2 cây; BTP cũng vậy nên số
+            # BTP cần làm và số lấy khỏi kho đều nguyên (tròn TRƯỚC khi bù trừ tồn).
+            need = _need_for_stock(material, line.effective_qty * factor)
             if need <= 0:
                 continue
 

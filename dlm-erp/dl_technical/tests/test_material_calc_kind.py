@@ -129,18 +129,23 @@ class TestMaterialCalcKind(TransactionCase):
         self.assertEqual(line.quantity, 0.4, "Số kỹ thuật nhập không bị ghi đè")
 
     # ------------------------------------------------------------------
-    # T5 — 🔴 bẫy làm tròn ĐVT
+    # T5 — 🔴 hai trục vuông góc: kho cấp NGUYÊN cây, định mức vẫn LẺ
     # ------------------------------------------------------------------
-    def test_t5_cay_rounding_keeps_fraction(self):
-        """Hai tầng làm tròn đều phải đủ mịn cho đơn vị CÂY:
-        (1) `rounding` của ĐVT — để 1.0 thì 0.2333 cây về 0;
-        (2) độ chính xác "Product Unit of Measure" — mặc định Odoo là 2 chữ số,
-            lưu 0.23 thay vì 0.2333 ⇒ giá vốn lệch 1.4%, và 0.095 → 0.10 lệch 5%.
+    def test_t5_cay_rounding_nguyen_dinh_muc_van_le(self):
+        """Cây để `rounding = 1.0` (kho không xé lẻ được một cây) NHƯNG dòng định
+        mức vẫn giữ 0.2333 cây để tính giá đúng.
+
+        Đỏ ở vế sau = `rounding` của ĐVT đã leo sang tầng định mức: một chi tiết
+        dùng 1,4 m thép bị tính tròn nguyên cây ⇒ giá vốn đồ nhỏ đội ~4 lần.
+        Độ mịn của định mức do "Product Unit of Measure" quyết định (≥4 chữ số),
+        không phải do `rounding`.
         """
-        self.assertLessEqual(self.uom_cay.rounding, 0.001)
+        self.assertEqual(self.uom_cay.rounding, 1.0,
+                         "Cây phải cấp phát nguyên chiếc")
         precision = self.env["decimal.precision"].precision_get(
             "Product Unit of Measure")
-        self.assertGreaterEqual(precision, 4, "Cần ≥4 chữ số cho định mức cây")
+        self.assertGreaterEqual(precision, 4, "Cần ≥4 chữ số cho định mức lẻ")
+
         bom = self._bom(self.hop_25x50, dim_length=700, piece_count=2,
                         quantity=1.4 / 6)
         self.assertAlmostEqual(bom.line_ids.quantity, 0.2333, places=4)

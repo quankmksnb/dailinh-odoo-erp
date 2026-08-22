@@ -246,7 +246,11 @@
                             string="Hao hụt &amp; phế liệu"
                             invisible="product_kind not in ('material', 'material_processed')"
                         >
-                            <field name="dlm_waste_rate" />
+                            <field name="dlm_uom_allow_waste" invisible="1" />
+                            <!-- Hao hụt chỉ có với ĐVT đo lường (kg/m/lít/m²);
+                                 đơn vị đếm được (cái/cây/tấm/túi) ẩn ô này. -->
+                            <field name="dlm_waste_rate"
+                                invisible="not dlm_uom_allow_waste" />
                             <field name="dlm_scrap_product_id"
                                 options="{'no_create': True}" />
                         </group>

@@ -240,6 +240,7 @@
                                     <div class="row">
                                       <!-- Trái: nhập vật tư / kích thước / định mức cho dòng -->
                                       <div class="col-12 col-lg-7">
+                                    <field name="material_allow_waste" invisible="1"/>
                                     <group>
                                         <group string="1. Vật tư">
                                             <!-- M1 (§4.1) — vật tư tạo tại chỗ khi
@@ -273,7 +274,11 @@
                                         </div>
                                     </group>
 
-                                    <group string="3. Hao hụt">
+                                    <!-- Hao hụt chỉ áp cho vật tư đo lường (kg/m/lít/m²);
+                                         ĐVT đếm được (cái/cây/tấm/túi/hộp) luôn số nguyên,
+                                         không hao hụt nên ẩn cả mục. -->
+                                    <group string="3. Hao hụt"
+                                           invisible="not material_allow_waste">
                                         <field name="complexity_id"/>
                                         <field name="waste_rate"/>
                                         <field name="effective_qty" readonly="1"/>

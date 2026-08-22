@@ -120,6 +120,7 @@
                                 <form string="Dòng mẫu">
                                     <!-- Dùng cho domain param_id của ánh xạ (parent.bom_template_id). -->
                                     <field name="bom_template_id" invisible="1"/>
+                                    <field name="material_allow_waste" invisible="1"/>
                                     <group>
                                         <group string="1. Vật tư">
                                             <field name="material_id"
@@ -138,7 +139,10 @@
                                         </div>
                                     </group>
 
-                                    <group string="3. Hao hụt">
+                                    <!-- Chỉ vật tư đo lường (kg/m/lít/m²) mới có hao hụt;
+                                         ĐVT đếm được ẩn cả mục (xem bom_views.xml). -->
+                                    <group string="3. Hao hụt"
+                                           invisible="not material_allow_waste">
                                         <field name="complexity_id"/>
                                         <field name="waste_rate"/>
                                         <field name="effective_qty" readonly="1"/>

@@ -737,6 +737,9 @@ class ProductProduct(models.Model):
     # View đọc CHÍNH nguồn mà công thức đọc, không đoán lại theo tên đơn vị.
     dlm_uom_group = fields.Char(
         string="Nhóm đơn vị tính", compute="_compute_dlm_uom_group")
+    # Cờ có-hao-hụt lấy thẳng từ ĐVT — view ẩn ô hao hụt khi ĐVT là loại đếm được.
+    dlm_uom_allow_waste = fields.Boolean(
+        related="uom_id.dlm_allow_waste", string="ĐVT có hao hụt", readonly=True)
 
     @api.depends("uom_id")
     def _compute_dlm_uom_group(self):
@@ -762,6 +765,13 @@ class ProductProduct(models.Model):
             if rec and rec.id == categ.id:
                 return token
         return "unit"
+
+    def dlm_is_divisible(self):
+        """True nếu ĐVT của vật tư có hao hụt (đo lường kg/m/lít/m²) — định mức để
+        lẻ + có ô hao hụt; đơn vị đếm được (cái/cây/tấm/túi/hộp) thì không. Cờ đặt
+        trên chính ĐVT (uom.dlm_allow_waste), sửa được ở màn Đơn vị tính."""
+        self.ensure_one()
+        return self.uom_id.dlm_allow_waste
 
     @api.onchange("uom_id", "product_kind")
     def _onchange_dlm_suggest_calc_kind(self):
